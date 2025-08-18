@@ -195,8 +195,8 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
     if (last_grapheme != 0 && graphemes_equal(&ptr, &synthetic_graphemes[-last_grapheme-1].utf32_cluster, NULL))
         return last_grapheme;
 
-    TypeInfo_t GraphemeIDLookupTableInfo = *Table$info(&GraphemeClusterInfo, &Int32$info);
-    int32_t *found = Table$get(grapheme_ids_by_codepoints, &ptr, &GraphemeIDLookupTableInfo);
+    TypeInfo_t GraphemeIDLookupTableInfo = *Tableヽinfo(&GraphemeClusterInfo, &Int32ヽinfo);
+    int32_t *found = Tableヽget(grapheme_ids_by_codepoints, &ptr, &GraphemeIDLookupTableInfo);
     if (found) return *found;
 
     // New synthetic grapheme:
@@ -266,7 +266,7 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
     // Cleanup from unicode API:
     if (u8 != u8_buf) free(u8);
 
-    Table$set(&grapheme_ids_by_codepoints, &codepoint_copy, &grapheme_id, &GraphemeIDLookupTableInfo);
+    Tableヽset(&grapheme_ids_by_codepoints, &codepoint_copy, &grapheme_id, &GraphemeIDLookupTableInfo);
 
     last_grapheme = grapheme_id;
     return grapheme_id;
@@ -275,7 +275,7 @@ public int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_le
 #pragma GCC diagnostic pop
 #endif
 
-public int Text$print(FILE *stream, Text_t t)
+public int Textヽprint(FILE *stream, Text_t t)
 {
     if (t.length == 0) return 0;
 
@@ -321,8 +321,8 @@ public int Text$print(FILE *stream, Text_t t)
         return written;
     }
     case TEXT_CONCAT: {
-        int written = Text$print(stream, *t.left);
-        written += Text$print(stream, *t.right);
+        int written = Textヽprint(stream, *t.left);
+        written += Textヽprint(stream, *t.right);
         return written;
     }
     default: return 0;
@@ -478,8 +478,8 @@ static Text_t concat2(Text_t a, Text_t b)
     if (a.length == 0) return b;
     if (b.length == 0) return a;
 
-    int32_t last_a = Text$get_grapheme(a, a.length-1);
-    int32_t first_b = Text$get_grapheme(b, 0);
+    int32_t last_a = Textヽget_grapheme(a, a.length-1);
+    int32_t first_b = Textヽget_grapheme(b, 0);
 
     // Magic number, we know that no codepoints below here trigger instability:
     static const int32_t LOWEST_CODEPOINT_TO_CHECK = 0x300; // COMBINING GRAVE ACCENT
@@ -525,7 +525,7 @@ static Text_t concat2(Text_t a, Text_t b)
         return concat2_assuming_safe(a, b);
     }
 
-    Text_t glue = Text$from_codepoints((List_t){.data=norm_buf, .length=(int64_t)norm_length, .stride=sizeof(int32_t)});
+    Text_t glue = Textヽfrom_codepoints((List_t){.data=norm_buf, .length=(int64_t)norm_length, .stride=sizeof(int32_t)});
 
     if (normalized != norm_buf)
         free(normalized);
@@ -533,16 +533,16 @@ static Text_t concat2(Text_t a, Text_t b)
     if (a.length == 1 && b.length == 1)
         return glue;
     else if (a.length == 1)
-        return concat2_assuming_safe(glue, Text$slice(b, I(2), I(b.length)));
+        return concat2_assuming_safe(glue, Textヽslice(b, I(2), I(b.length)));
     else if (b.length == 1)
-        return concat2_assuming_safe(Text$slice(a, I(1), I(a.length-1)), glue);
+        return concat2_assuming_safe(Textヽslice(a, I(1), I(a.length-1)), glue);
     else
         return concat2_assuming_safe(
-            concat2_assuming_safe(Text$slice(a, I(1), I(a.length-1)), glue),
-            Text$slice(b, I(2), I(b.length)));
+            concat2_assuming_safe(Textヽslice(a, I(1), I(a.length-1)), glue),
+            Textヽslice(b, I(2), I(b.length)));
 }
 
-public Text_t Text$_concat(int n, Text_t items[n])
+public Text_t Textヽ_concat(int n, Text_t items[n])
 {
     if (n == 0) return EMPTY_TEXT;
 
@@ -554,35 +554,35 @@ public Text_t Text$_concat(int n, Text_t items[n])
     return ret;
 }
 
-public Text_t Text$repeat(Text_t text, Int_t count)
+public Text_t Textヽrepeat(Text_t text, Int_t count)
 {
-    if (text.length == 0 || Int$is_negative(count))
+    if (text.length == 0 || Intヽis_negative(count))
         return EMPTY_TEXT;
 
-    Int_t result_len = Int$times(count, I(text.length));
-    if (Int$compare_value(result_len, I(1l<<40)) > 0)
+    Int_t result_len = Intヽtimes(count, I(text.length));
+    if (Intヽcompare_value(result_len, I(1l<<40)) > 0)
         fail("Text repeating would produce too big of an result!");
 
-    int64_t count64 = Int64$from_int(count, false);
+    int64_t count64 = Int64ヽfrom_int(count, false);
     Text_t ret = text;
     for (int64_t c = 1; c < count64; c++)
         ret = concat2(ret, text);
     return ret;
 }
 
-public Int_t Text$width(Text_t text, Text_t language)
+public Int_t Textヽwidth(Text_t text, Text_t language)
 {
-    int width = u8_strwidth((const uint8_t*)Text$as_c_string(text), Text$as_c_string(language));
-    return Int$from_int32(width);
+    int width = u8_strwidth((const uint8_t*)Textヽas_c_string(text), Textヽas_c_string(language));
+    return Intヽfrom_int32(width);
 }
 
-static Text_t Text$repeat_to_width(Text_t to_repeat, int64_t target_width, Text_t language)
+static Text_t Textヽrepeat_to_width(Text_t to_repeat, int64_t target_width, Text_t language)
 {
     if (target_width <= 0)
         return EMPTY_TEXT;
 
-    const char *lang_str = Text$as_c_string(language);
-    int64_t width = (int64_t)u8_strwidth((const uint8_t*)Text$as_c_string(to_repeat), lang_str);
+    const char *lang_str = Textヽas_c_string(language);
+    int64_t width = (int64_t)u8_strwidth((const uint8_t*)Textヽas_c_string(to_repeat), lang_str);
     Text_t repeated = EMPTY_TEXT;
     int64_t repeated_width = 0;
     while (repeated_width + width <= target_width) {
@@ -592,10 +592,10 @@ static Text_t Text$repeat_to_width(Text_t to_repeat, int64_t target_width, Text_
 
     if (repeated_width < target_width) {
         for (int64_t i = 0; repeated_width < target_width && i < to_repeat.length; i++) {
-            Text_t c = Text$slice(to_repeat, I_small(i+1), I_small(i+1));
-            int64_t w = (int64_t)u8_strwidth((const uint8_t*)Text$as_c_string(c), lang_str);
+            Text_t c = Textヽslice(to_repeat, I_small(i+1), I_small(i+1));
+            int64_t w = (int64_t)u8_strwidth((const uint8_t*)Textヽas_c_string(c), lang_str);
             if (repeated_width + w > target_width) {
-                repeated = concat2(repeated, Text$repeat(Text(" "), I(target_width - repeated_width)));
+                repeated = concat2(repeated, Textヽrepeat(Text(" "), I(target_width - repeated_width)));
                 repeated_width = target_width;
                 break;
             }
@@ -607,37 +607,37 @@ static Text_t Text$repeat_to_width(Text_t to_repeat, int64_t target_width, Text_
     return repeated;
 }
 
-public Text_t Text$left_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
+public Text_t Textヽleft_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
 {
     if (padding.length == 0)
         fail("Cannot pad with an empty text!");
 
-    int64_t needed = Int64$from_int(width, false) - Int64$from_int(Text$width(text, language), false);
-    return concat2(Text$repeat_to_width(padding, needed, language), text);
+    int64_t needed = Int64ヽfrom_int(width, false) - Int64ヽfrom_int(Textヽwidth(text, language), false);
+    return concat2(Textヽrepeat_to_width(padding, needed, language), text);
 }
 
-public Text_t Text$right_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
+public Text_t Textヽright_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
 {
     if (padding.length == 0)
         fail("Cannot pad with an empty text!");
 
-    int64_t needed = Int64$from_int(width, false) - Int64$from_int(Text$width(text, language), false);
-    return concat2(text, Text$repeat_to_width(padding, needed, language));
+    int64_t needed = Int64ヽfrom_int(width, false) - Int64ヽfrom_int(Textヽwidth(text, language), false);
+    return concat2(text, Textヽrepeat_to_width(padding, needed, language));
 }
 
-public Text_t Text$middle_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
+public Text_t Textヽmiddle_pad(Text_t text, Int_t width, Text_t padding, Text_t language)
 {
     if (padding.length == 0)
         fail("Cannot pad with an empty text!");
 
-    int64_t needed = Int64$from_int(width, false) - Int64$from_int(Text$width(text, language), false);
-    return Texts(Text$repeat_to_width(padding, needed/2, language), text, Text$repeat_to_width(padding, (needed+1)/2, language));
+    int64_t needed = Int64ヽfrom_int(width, false) - Int64ヽfrom_int(Textヽwidth(text, language), false);
+    return Texts(Textヽrepeat_to_width(padding, needed/2, language), text, Textヽrepeat_to_width(padding, (needed+1)/2, language));
 }
 
-public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
+public Text_t Textヽslice(Text_t text, Int_t first_int, Int_t last_int)
 {
-    int64_t first = Int64$from_int(first_int, false);
-    int64_t last = Int64$from_int(last_int, false);
+    int64_t first = Int64ヽfrom_int(first_int, false);
+    int64_t last = Int64ヽfrom_int(last_int, false);
     if (first == 0) fail("Invalid index: 0");
     if (last == 0) return EMPTY_TEXT;
 
@@ -660,8 +660,8 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
             last -= text.left->length;
             text = *text.right;
         } else {
-            return concat2_assuming_safe(Text$slice(*text.left, I(first), I(text.length)),
-                                         Text$slice(*text.right, I(1), I(last-text.left->length)));
+            return concat2_assuming_safe(Textヽslice(*text.left, I(first), I(text.length)),
+                                         Textヽslice(*text.right, I(1), I(last-text.left->length)));
         }
     }
 
@@ -694,17 +694,17 @@ public Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int)
     return EMPTY_TEXT;
 }
 
-public Text_t Text$from(Text_t text, Int_t first)
+public Text_t Textヽfrom(Text_t text, Int_t first)
 {
-    return Text$slice(text, first, I_small(-1));
+    return Textヽslice(text, first, I_small(-1));
 }
 
-public Text_t Text$to(Text_t text, Int_t last)
+public Text_t Textヽto(Text_t text, Int_t last)
 {
-    return Text$slice(text, I_small(1), last);
+    return Textヽslice(text, I_small(1), last);
 }
 
-public Text_t Text$reversed(Text_t text)
+public Text_t Textヽreversed(Text_t text)
 {
     switch (text.tag) {
     case TEXT_ASCII: {
@@ -739,19 +739,19 @@ public Text_t Text$reversed(Text_t text)
         return ret;
     }
     case TEXT_CONCAT: {
-        return concat2_assuming_safe(Text$reversed(*text.right), Text$reversed(*text.left));
+        return concat2_assuming_safe(Textヽreversed(*text.right), Textヽreversed(*text.left));
     }
     default: errx(1, "Invalid tag");
     }
     return EMPTY_TEXT;
 }
 
-public PUREFUNC Text_t Text$cluster(Text_t text, Int_t index)
+public PUREFUNC Text_t Textヽcluster(Text_t text, Int_t index)
 {
-    return Text$slice(text, index, index);
+    return Textヽslice(text, index, index);
 }
 
-static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters)
+static Text_t Textヽfrom_components(List_t graphemes, Table_t unique_clusters)
 {
     struct {
         int32_t map[unique_clusters.entries.length];
@@ -771,7 +771,7 @@ static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters)
         }
         for (int64_t i = 0; i < graphemes.length; i++) {
             int32_t g = *(int32_t*)(graphemes.data + i*graphemes.stride);
-            uint8_t *byte = Table$get(unique_clusters, &g, Table$info(&Int32$info, &Byte$info));
+            uint8_t *byte = Tableヽget(unique_clusters, &g, Tableヽinfo(&Int32ヽinfo, &Byteヽinfo));
             assert(byte);
             blob->bytes[i] = *byte;
         }
@@ -787,7 +787,7 @@ static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters)
     }
 }
 
-public OptionalText_t Text$from_strn(const char *str, size_t len)
+public OptionalText_t Textヽfrom_strn(const char *str, size_t len)
 {
     int64_t ascii_span = 0;
     for (size_t i = 0; i < len && isascii(str[i]); i++)
@@ -820,23 +820,23 @@ public OptionalText_t Text$from_strn(const char *str, size_t len)
         uint32_t *u32s_normalized = u32_normalize(UNINORM_NFC, u32s, u32_len, buf2, &u32_normlen);
 
         int32_t g = get_synthetic_grapheme(u32s_normalized, (int64_t)u32_normlen);
-        List$insert(&graphemes, &g, I(0), sizeof(int32_t));
-        Table$get_or_setdefault(&unique_clusters, int32_t, uint8_t, g, (uint8_t)unique_clusters.entries.length, Table$info(&Int32$info, &Byte$info));
+        Listヽinsert(&graphemes, &g, I(0), sizeof(int32_t));
+        Tableヽget_or_setdefault(&unique_clusters, int32_t, uint8_t, g, (uint8_t)unique_clusters.entries.length, Tableヽinfo(&Int32ヽinfo, &Byteヽinfo));
 
         if (u32s != buf) free(u32s);
         if (u32s_normalized != buf2) free(u32s_normalized);
 
         if (unique_clusters.entries.length >= 256) {
-            return concat2_assuming_safe(Text$from_components(graphemes, unique_clusters), Text$from_strn(next, (size_t)(end-next)));
+            return concat2_assuming_safe(Textヽfrom_components(graphemes, unique_clusters), Textヽfrom_strn(next, (size_t)(end-next)));
         }
     }
 
-    return Text$from_components(graphemes, unique_clusters);
+    return Textヽfrom_components(graphemes, unique_clusters);
 }
 
-public OptionalText_t Text$from_str(const char *str)
+public OptionalText_t Textヽfrom_str(const char *str)
 {
-    return str ? Text$from_strn(str, strlen(str)) : Text("");
+    return str ? Textヽfrom_strn(str, strlen(str)) : Text("");
 }
 
 static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i)
@@ -924,7 +924,7 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
     }
 }
 
-public char *Text$as_c_string(Text_t text)
+public char *Textヽas_c_string(Text_t text)
 {
     int64_t capacity = text.length + 1;
     char *buf = GC_MALLOC_ATOMIC((size_t)capacity);
@@ -939,7 +939,7 @@ public char *Text$as_c_string(Text_t text)
     return buf;
 }
 
-PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t *info)
+PUREFUNC public uint64_t Textヽhash(const void *obj, const TypeInfo_t *info)
 {
     (void)info;
     Text_t text = *(Text_t*)obj;
@@ -983,12 +983,12 @@ PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t *info)
     case TEXT_CONCAT: {
         TextIter_t state = NEW_TEXT_ITER_STATE(text);
         for (int64_t i = 0; i + 1 < text.length; i += 2) {
-            tmp.chunks[0] = Text$get_grapheme_fast(&state, i);
-            tmp.chunks[1] = Text$get_grapheme_fast(&state, i+1);
+            tmp.chunks[0] = Textヽget_grapheme_fast(&state, i);
+            tmp.chunks[1] = Textヽget_grapheme_fast(&state, i+1);
             siphashadd64bits(&sh, tmp.whole);
         }
 
-        int32_t last = (text.length & 0x1) ? Text$get_grapheme_fast(&state, text.length-1) : 0;
+        int32_t last = (text.length & 0x1) ? Textヽget_grapheme_fast(&state, text.length-1) : 0;
         return siphashfinish_last_part(&sh, (uint64_t)last);
     }
     default: errx(1, "Invalid text");
@@ -996,7 +996,7 @@ PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t *info)
     return 0;
 }
 
-public int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index)
+public int32_t Textヽget_grapheme_fast(TextIter_t *state, int64_t index)
 {
     if (index < 0) return 0;
     if (index >= state->stack[0].text.length) return 0;
@@ -1047,13 +1047,13 @@ public int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index)
     return 0;
 }
 
-public uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index)
+public uint32_t Textヽget_main_grapheme_fast(TextIter_t *state, int64_t index)
 {
-    int32_t g = Text$get_grapheme_fast(state, index);
+    int32_t g = Textヽget_grapheme_fast(state, index);
     return (g) >= 0 ? (ucs4_t)(g) : synthetic_graphemes[-(g)-1].main_codepoint;
 }
 
-PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeInfo_t *info)
+PUREFUNC public int32_t Textヽcompare(const void *va, const void *vb, const TypeInfo_t *info)
 {
     (void)info;
     if (va == vb) return 0;
@@ -1064,8 +1064,8 @@ PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeI
     int64_t len = MAX(a.length, b.length);
     TextIter_t a_state = NEW_TEXT_ITER_STATE(a), b_state = NEW_TEXT_ITER_STATE(b);
     for (int64_t i = 0; i < len; i++) {
-        int32_t ai = Text$get_grapheme_fast(&a_state, i);
-        int32_t bi = Text$get_grapheme_fast(&b_state, i);
+        int32_t ai = Textヽget_grapheme_fast(&a_state, i);
+        int32_t bi = Textヽget_grapheme_fast(&b_state, i);
         if (ai == bi) continue;
         int32_t cmp;
         if (ai > 0 && bi > 0) {
@@ -1095,20 +1095,20 @@ PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeI
 bool _matches(TextIter_t *text_state, TextIter_t *target_state, int64_t pos)
 {
     for (int64_t i = 0; i < target_state->stack[0].text.length; i++) {
-        int32_t text_i = Text$get_grapheme_fast(text_state, pos + i);
-        int32_t prefix_i = Text$get_grapheme_fast(target_state, i);
+        int32_t text_i = Textヽget_grapheme_fast(text_state, pos + i);
+        int32_t prefix_i = Textヽget_grapheme_fast(target_state, i);
         if (text_i != prefix_i) return false;
     }
     return true;
 }
 
-PUREFUNC public bool Text$starts_with(Text_t text, Text_t prefix, Text_t *remainder)
+PUREFUNC public bool Textヽstarts_with(Text_t text, Text_t prefix, Text_t *remainder)
 {
     if (text.length < prefix.length)
         return false;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), prefix_state = NEW_TEXT_ITER_STATE(prefix);
     if (_matches(&text_state, &prefix_state, 0)) {
-        if (remainder) *remainder = Text$from(text, Int$from_int64(prefix.length + 1));
+        if (remainder) *remainder = Textヽfrom(text, Intヽfrom_int64(prefix.length + 1));
         return true;
     } else {
         if (remainder) *remainder = text;
@@ -1116,13 +1116,13 @@ PUREFUNC public bool Text$starts_with(Text_t text, Text_t prefix, Text_t *remain
     }
 }
 
-PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainder)
+PUREFUNC public bool Textヽends_with(Text_t text, Text_t suffix, Text_t *remainder)
 {
     if (text.length < suffix.length)
         return false;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), suffix_state = NEW_TEXT_ITER_STATE(suffix);
     if (_matches(&text_state, &suffix_state, text.length - suffix.length)) {
-        if (remainder) *remainder = Text$to(text, Int$from_int64(text.length - suffix.length));
+        if (remainder) *remainder = Textヽto(text, Intヽfrom_int64(text.length - suffix.length));
         return true;
     } else {
         if (remainder) *remainder = text;
@@ -1130,45 +1130,45 @@ PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainde
     }
 }
 
-public Text_t Text$without_prefix(Text_t text, Text_t prefix)
+public Text_t Textヽwithout_prefix(Text_t text, Text_t prefix)
 {
-    return Text$starts_with(text, prefix, false) ? Text$slice(text, I(prefix.length + 1), I(text.length)) : text;
+    return Textヽstarts_with(text, prefix, false) ? Textヽslice(text, I(prefix.length + 1), I(text.length)) : text;
 }
 
-public Text_t Text$without_suffix(Text_t text, Text_t suffix)
+public Text_t Textヽwithout_suffix(Text_t text, Text_t suffix)
 {
-    return Text$ends_with(text, suffix, false) ? Text$slice(text, I(1), I(text.length - suffix.length)) : text;
+    return Textヽends_with(text, suffix, false) ? Textヽslice(text, I(1), I(text.length - suffix.length)) : text;
 }
 
 static bool _has_grapheme(TextIter_t *text, int32_t g)
 {
     for (int64_t t = 0; t < text->stack[0].text.length; t++) {
-        if (g == Text$get_grapheme_fast(text, t)) {
+        if (g == Textヽget_grapheme_fast(text, t)) {
             return true;
         }
     }
     return false;
 }
 
-public Text_t Text$trim(Text_t text, Text_t to_trim, bool left, bool right)
+public Text_t Textヽtrim(Text_t text, Text_t to_trim, bool left, bool right)
 {
     int64_t first = 0;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), trim_state = NEW_TEXT_ITER_STATE(to_trim);
     if (left) {
-        while (first < text.length && _has_grapheme(&trim_state, Text$get_grapheme_fast(&text_state, first))) {
+        while (first < text.length && _has_grapheme(&trim_state, Textヽget_grapheme_fast(&text_state, first))) {
             first += 1;
         }
     }
     int64_t last = text.length-1;
     if (right) {
-        while (last >= first && _has_grapheme(&trim_state, Text$get_grapheme_fast(&text_state, last))) {
+        while (last >= first && _has_grapheme(&trim_state, Textヽget_grapheme_fast(&text_state, last))) {
             last -= 1;
         }
     }
-    return (first != 0 || last != text.length-1) ? Text$slice(text, I(first+1), I(last+1)) : text;
+    return (first != 0 || last != text.length-1) ? Textヽslice(text, I(first+1), I(last+1)) : text;
 }
 
-public Text_t Text$translate(Text_t text, Table_t translations)
+public Text_t Textヽtranslate(Text_t text, Table_t translations)
 {
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text);
     Text_t result = EMPTY_TEXT;
@@ -1180,7 +1180,7 @@ public Text_t Text$translate(Text_t text, Table_t translations)
             TextIter_t target_state = NEW_TEXT_ITER_STATE(entry->target);
             if (_matches(&text_state, &target_state, i)) {
                 if (i > span_start)
-                    result = concat2(result, Text$slice(text, I(span_start+1), I(i)));
+                    result = concat2(result, Textヽslice(text, I(span_start+1), I(i)));
 
                 result = concat2(result, entry->replacement);
                 i += entry->target.length;
@@ -1192,11 +1192,11 @@ public Text_t Text$translate(Text_t text, Table_t translations)
       found_match: continue;
     }
     if (span_start < text.length)
-        result = concat2(result, Text$slice(text, I(span_start+1), I(text.length)));
+        result = concat2(result, Textヽslice(text, I(span_start+1), I(text.length)));
     return result;
 }
 
-public Text_t Text$replace(Text_t text, Text_t target, Text_t replacement)
+public Text_t Textヽreplace(Text_t text, Text_t target, Text_t replacement)
 {
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
     Text_t result = EMPTY_TEXT;
@@ -1204,7 +1204,7 @@ public Text_t Text$replace(Text_t text, Text_t target, Text_t replacement)
     for (int64_t i = 0; i < text.length; ) {
         if (_matches(&text_state, &target_state, i)) {
             if (i > span_start)
-                result = concat2(result, Text$slice(text, I(span_start+1), I(i)));
+                result = concat2(result, Textヽslice(text, I(span_start+1), I(i)));
 
             result = concat2(result, replacement);
             i += target.length;
@@ -1214,11 +1214,11 @@ public Text_t Text$replace(Text_t text, Text_t target, Text_t replacement)
         }
     }
     if (span_start < text.length)
-        result = concat2(result, Text$slice(text, I(span_start+1), I(text.length)));
+        result = concat2(result, Textヽslice(text, I(span_start+1), I(text.length)));
     return result;
 }
 
-public PUREFUNC bool Text$has(Text_t text, Text_t target)
+public PUREFUNC bool Textヽhas(Text_t text, Text_t target)
 {
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
     for (int64_t i = 0; i < text.length; i++) {
@@ -1228,10 +1228,10 @@ public PUREFUNC bool Text$has(Text_t text, Text_t target)
     return false;
 }
 
-public List_t Text$split(Text_t text, Text_t delimiters)
+public List_t Textヽsplit(Text_t text, Text_t delimiters)
 {
     if (delimiters.length == 0)
-        return Text$clusters(text);
+        return Textヽclusters(text);
 
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), delim_state = NEW_TEXT_ITER_STATE(delimiters);
     List_t splits = {};
@@ -1240,18 +1240,18 @@ public List_t Text$split(Text_t text, Text_t delimiters)
         while (i + span_len < text.length && !_matches(&text_state, &delim_state, i + span_len)) {
             span_len += 1;
         }
-        Text_t slice = Text$slice(text, I(i+1), I(i+span_len));
-        List$insert(&splits, &slice, I(0), sizeof(slice));
+        Text_t slice = Textヽslice(text, I(i+1), I(i+span_len));
+        Listヽinsert(&splits, &slice, I(0), sizeof(slice));
         i += span_len + delimiters.length;
         if (i == text.length) {
             Text_t empty = Text("");
-            List$insert(&splits, &empty, I(0), sizeof(empty));
+            Listヽinsert(&splits, &empty, I(0), sizeof(empty));
         }
     }
     return splits;
 }
 
-public List_t Text$split_any(Text_t text, Text_t delimiters)
+public List_t Textヽsplit_any(Text_t text, Text_t delimiters)
 {
     if (delimiters.length == 0)
         return List(text);
@@ -1260,19 +1260,19 @@ public List_t Text$split_any(Text_t text, Text_t delimiters)
     List_t splits = {};
     for (int64_t i = 0; i < text.length; ) {
         int64_t span_len = 0;
-        while (i + span_len < text.length && !_has_grapheme(&delim_state, Text$get_grapheme_fast(&text_state, i + span_len))) {
+        while (i + span_len < text.length && !_has_grapheme(&delim_state, Textヽget_grapheme_fast(&text_state, i + span_len))) {
             span_len += 1;
         }
         bool trailing_delim = i + span_len < text.length;
-        Text_t slice = Text$slice(text, I(i+1), I(i+span_len));
-        List$insert(&splits, &slice, I(0), sizeof(slice));
+        Text_t slice = Textヽslice(text, I(i+1), I(i+span_len));
+        Listヽinsert(&splits, &slice, I(0), sizeof(slice));
         i += span_len + 1;
-        while (i < text.length && _has_grapheme(&delim_state, Text$get_grapheme_fast(&text_state, i))) {
+        while (i < text.length && _has_grapheme(&delim_state, Textヽget_grapheme_fast(&text_state, i))) {
             i += 1;
         }
         if (i >= text.length && trailing_delim) {
             Text_t empty = Text("");
-            List$insert(&splits, &empty, I(0), sizeof(empty));
+            Listヽinsert(&splits, &empty, I(0), sizeof(empty));
         }
     }
     return splits;
@@ -1306,12 +1306,12 @@ static OptionalText_t next_split(split_iter_state_t *state)
     while (i + span_len < text.length && !_matches(&state->state, &delim_state, i + span_len)) {
         span_len += 1;
     }
-    Text_t slice = Text$slice(text, I(i+1), I(i+span_len));
+    Text_t slice = Textヽslice(text, I(i+1), I(i+span_len));
     state->i = i + span_len + state->delimiter.length;
     return slice;
 }
 
-public Closure_t Text$by_split(Text_t text, Text_t delimiter)
+public Closure_t Textヽby_split(Text_t text, Text_t delimiter)
 {
     return (Closure_t){
         .fn=(void*)next_split,
@@ -1331,7 +1331,7 @@ static OptionalText_t next_split_any(split_iter_state_t *state)
     }
 
     if (state->delimiter.length == 0) { // special case
-        Text_t ret = Text$cluster(text, I(state->i+1));
+        Text_t ret = Textヽcluster(text, I(state->i+1));
         state->i += 1;
         return ret;
     }
@@ -1339,19 +1339,19 @@ static OptionalText_t next_split_any(split_iter_state_t *state)
     TextIter_t delim_state = NEW_TEXT_ITER_STATE(state->delimiter);
     int64_t i = state->i;
     int64_t span_len = 0;
-    while (i + span_len < text.length && !_has_grapheme(&delim_state, Text$get_grapheme_fast(&state->state, i + span_len))) {
+    while (i + span_len < text.length && !_has_grapheme(&delim_state, Textヽget_grapheme_fast(&state->state, i + span_len))) {
         span_len += 1;
     }
-    Text_t slice = Text$slice(text, I(i+1), I(i+span_len));
+    Text_t slice = Textヽslice(text, I(i+1), I(i+span_len));
     i += span_len + 1;
-    while (i < text.length && _has_grapheme(&delim_state, Text$get_grapheme_fast(&state->state, i))) {
+    while (i < text.length && _has_grapheme(&delim_state, Textヽget_grapheme_fast(&state->state, i))) {
         i += 1;
     }
     state->i = i;
     return slice;
 }
 
-public Closure_t Text$by_split_any(Text_t text, Text_t delimiters)
+public Closure_t Textヽby_split_any(Text_t text, Text_t delimiters)
 {
     return (Closure_t){
         .fn=(void*)next_split_any,
@@ -1359,7 +1359,7 @@ public Closure_t Text$by_split_any(Text_t text, Text_t delimiters)
     };
 }
 
-PUREFUNC public bool Text$equal_values(Text_t a, Text_t b)
+PUREFUNC public bool Textヽequal_values(Text_t a, Text_t b)
 {
     if (a.length != b.length)
         return false;
@@ -1367,30 +1367,30 @@ PUREFUNC public bool Text$equal_values(Text_t a, Text_t b)
     TextIter_t a_state = NEW_TEXT_ITER_STATE(a), b_state = NEW_TEXT_ITER_STATE(b);
     // TODO: make this smarter and more efficient
     for (int64_t i = 0; i < len; i++) {
-        int32_t ai = Text$get_grapheme_fast(&a_state, i);
-        int32_t bi = Text$get_grapheme_fast(&b_state, i);
+        int32_t ai = Textヽget_grapheme_fast(&a_state, i);
+        int32_t bi = Textヽget_grapheme_fast(&b_state, i);
         if (ai != bi) return false;
     }
     return true;
 }
 
-PUREFUNC public bool Text$equal(const void *a, const void *b, const TypeInfo_t *info)
+PUREFUNC public bool Textヽequal(const void *a, const void *b, const TypeInfo_t *info)
 {
     (void)info;
     if (a == b) return true;
-    return Text$equal_values(*(Text_t*)a, *(Text_t*)b);
+    return Textヽequal_values(*(Text_t*)a, *(Text_t*)b);
 }
 
-PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b, Text_t language)
+PUREFUNC public bool Textヽequal_ignoring_case(Text_t a, Text_t b, Text_t language)
 {
     if (a.length != b.length)
         return false;
     int64_t len = a.length;
     TextIter_t a_state = NEW_TEXT_ITER_STATE(a), b_state = NEW_TEXT_ITER_STATE(b);
-    const char *uc_language = Text$as_c_string(language);
+    const char *uc_language = Textヽas_c_string(language);
     for (int64_t i = 0; i < len; i++) {
-        int32_t ai = Text$get_grapheme_fast(&a_state, i);
-        int32_t bi = Text$get_grapheme_fast(&b_state, i);
+        int32_t ai = Textヽget_grapheme_fast(&a_state, i);
+        int32_t bi = Textヽget_grapheme_fast(&b_state, i);
         if (ai != bi) {
             const ucs4_t *a_codepoints = ai >= 0 ? (ucs4_t*)&ai : GRAPHEME_CODEPOINTS(ai);
             int64_t a_len = ai >= 0 ? 1 : NUM_GRAPHEME_CODEPOINTS(ai);
@@ -1407,54 +1407,54 @@ PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b, Text_t languag
     return true;
 }
 
-public Text_t Text$upper(Text_t text, Text_t language)
+public Text_t Textヽupper(Text_t text, Text_t language)
 {
     if (text.length == 0) return text;
-    List_t codepoints = Text$utf32_codepoints(text);
-    const char *uc_language = Text$as_c_string(language);
+    List_t codepoints = Textヽutf32_codepoints(text);
+    const char *uc_language = Textヽas_c_string(language);
     size_t out_len = 0;
     ucs4_t *upper = u32_toupper(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
-    Text_t ret = Text$from_codepoints((List_t){.data=upper, .length=(int64_t)out_len, .stride=sizeof(int32_t)});
+    Text_t ret = Textヽfrom_codepoints((List_t){.data=upper, .length=(int64_t)out_len, .stride=sizeof(int32_t)});
     return ret;
 }
 
-public Text_t Text$lower(Text_t text, Text_t language)
+public Text_t Textヽlower(Text_t text, Text_t language)
 {
     if (text.length == 0) return text;
-    List_t codepoints = Text$utf32_codepoints(text);
-    const char *uc_language = Text$as_c_string(language);
+    List_t codepoints = Textヽutf32_codepoints(text);
+    const char *uc_language = Textヽas_c_string(language);
     size_t out_len = 0;
     ucs4_t *lower = u32_tolower(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
-    Text_t ret = Text$from_codepoints((List_t){.data=lower, .length=(int64_t)out_len, .stride=sizeof(int32_t)});
+    Text_t ret = Textヽfrom_codepoints((List_t){.data=lower, .length=(int64_t)out_len, .stride=sizeof(int32_t)});
     return ret;
 }
 
-public Text_t Text$title(Text_t text, Text_t language)
+public Text_t Textヽtitle(Text_t text, Text_t language)
 {
     if (text.length == 0) return text;
-    List_t codepoints = Text$utf32_codepoints(text);
-    const char *uc_language = Text$as_c_string(language);
+    List_t codepoints = Textヽutf32_codepoints(text);
+    const char *uc_language = Textヽas_c_string(language);
     size_t out_len = 0;
     ucs4_t *title = u32_totitle(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
-    Text_t ret = Text$from_codepoints((List_t){.data=title, .length=(int64_t)out_len, .stride=sizeof(int32_t)});
+    Text_t ret = Textヽfrom_codepoints((List_t){.data=title, .length=(int64_t)out_len, .stride=sizeof(int32_t)});
     return ret;
 }
 
-public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
+public Text_t Textヽquoted(Text_t text, bool colorize, Text_t quotation_mark)
 {
     if (quotation_mark.length != 1)
         fail("Invalid quote text: ", quotation_mark, " (must have length == 1)");
 
     Text_t ret = colorize ? Text("\x1b[35m") : EMPTY_TEXT;
-    if (!Text$equal_values(quotation_mark, Text("\"")) && !Text$equal_values(quotation_mark, Text("'")) && !Text$equal_values(quotation_mark, Text("`")))
+    if (!Textヽequal_values(quotation_mark, Text("\"")) && !Textヽequal_values(quotation_mark, Text("'")) && !Textヽequal_values(quotation_mark, Text("`")))
         ret = concat2_assuming_safe(ret, Text("$"));
 
     ret = concat2_assuming_safe(ret, quotation_mark);
-    int32_t quote_char = Text$get_grapheme(quotation_mark, 0);
+    int32_t quote_char = Textヽget_grapheme(quotation_mark, 0);
 
 #define flush_unquoted() ({ \
                           if (unquoted_span > 0) { \
-                              ret = concat2_assuming_safe(ret, Text$slice(text, I(i-unquoted_span+1), I(i))); \
+                              ret = concat2_assuming_safe(ret, Textヽslice(text, I(i-unquoted_span+1), I(i))); \
                               unquoted_span = 0; \
                           } })
 #define add_escaped(str) ({ \
@@ -1466,7 +1466,7 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
     int64_t unquoted_span = 0;
     int64_t i = 0;
     for (i = 0; i < text.length; i++) {
-        int32_t g = Text$get_grapheme_fast(&state, i);
+        int32_t g = Textヽget_grapheme_fast(&state, i);
         switch (g) {
         case '\a': add_escaped("a"); break;
         case '\b': add_escaped("b"); break;
@@ -1494,7 +1494,7 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
                 (g & 15) > 9 ? 'a' + (g & 15) - 10 : '0' + (g & 15),
                 '\0',
             };
-            ret = concat2_assuming_safe(ret, Text$from_strn(tmp, 2));
+            ret = concat2_assuming_safe(ret, Textヽfrom_strn(tmp, 2));
             if (colorize)
                 ret = concat2_assuming_safe(ret, Text("\x1b[0;35m"));
             break;
@@ -1524,10 +1524,10 @@ public Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark)
     return ret;
 }
 
-public Text_t Text$as_text(const void *vtext, bool colorize, const TypeInfo_t *info)
+public Text_t Textヽas_text(const void *vtext, bool colorize, const TypeInfo_t *info)
 {
     (void)info;
-    if (!vtext) return info && info->TextInfo.lang ? Text$from_str(info->TextInfo.lang) : Text("Text");
+    if (!vtext) return info && info->TextInfo.lang ? Textヽfrom_str(info->TextInfo.lang) : Text("Text");
 
     Text_t text = *(Text_t*)vtext;
     // Figure out the best quotation mark to use:
@@ -1535,7 +1535,7 @@ public Text_t Text$as_text(const void *vtext, bool colorize, const TypeInfo_t *i
          has_single_quote = false, needs_escapes = false;
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
-        int32_t g = Text$get_grapheme_fast(&state, i);
+        int32_t g = Textヽget_grapheme_fast(&state, i);
         if (g == '"') {
             has_double_quote = true;
         } else if (g == '`') {
@@ -1560,58 +1560,58 @@ public Text_t Text$as_text(const void *vtext, bool colorize, const TypeInfo_t *i
     else
         quote = Text("\"");
 
-    Text_t as_text = Text$quoted(text, colorize, quote);
-    if (info && info->TextInfo.lang && info != &Text$info)
-        as_text = Text$concat(
+    Text_t as_text = Textヽquoted(text, colorize, quote);
+    if (info && info->TextInfo.lang && info != &Textヽinfo)
+        as_text = Textヽconcat(
             colorize ? Text("\x1b[1m$") : Text("$"),
-            Text$from_str(info->TextInfo.lang),
-            colorize ? Text("\x1b[0m") : Text(""),
+            Textヽfrom_str(info->TextInfo.lang),
+            colorize ? Text("\x1b[0m") : EMPTY_TEXT,
             as_text);
     return as_text;
 }
 
-public Text_t Text$join(Text_t glue, List_t pieces)
+public Text_t Textヽjoin(Text_t glue, List_t pieces)
 {
     if (pieces.length == 0) return EMPTY_TEXT;
 
     Text_t result = *(Text_t*)pieces.data;
     for (int64_t i = 1; i < pieces.length; i++) {
-        result = Text$concat(result, glue, *(Text_t*)(pieces.data + i*pieces.stride));
+        result = Textヽconcat(result, glue, *(Text_t*)(pieces.data + i*pieces.stride));
     }
     return result;
 }
 
-public List_t Text$clusters(Text_t text)
+public List_t Textヽclusters(Text_t text)
 {
     List_t clusters = {};
     for (int64_t i = 1; i <= text.length; i++) {
-        Text_t cluster = Text$slice(text, I(i), I(i));
-        List$insert(&clusters, &cluster, I_small(0), sizeof(Text_t));
+        Text_t cluster = Textヽslice(text, I(i), I(i));
+        Listヽinsert(&clusters, &cluster, I_small(0), sizeof(Text_t));
     }
     return clusters;
 }
 
-public List_t Text$utf32_codepoints(Text_t text)
+public List_t Textヽutf32_codepoints(Text_t text)
 {
     List_t codepoints = {.atomic=1};
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
-        int32_t grapheme = Text$get_grapheme_fast(&state, i);
+        int32_t grapheme = Textヽget_grapheme_fast(&state, i);
         if (grapheme < 0) {
             for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
                 ucs4_t subg = GRAPHEME_CODEPOINTS(grapheme)[c];
-                List$insert(&codepoints, &subg, I_small(0), sizeof(ucs4_t));
+                Listヽinsert(&codepoints, &subg, I_small(0), sizeof(ucs4_t));
             }
         } else {
-            List$insert(&codepoints, &grapheme, I_small(0), sizeof(ucs4_t));
+            Listヽinsert(&codepoints, &grapheme, I_small(0), sizeof(ucs4_t));
         }
     }
     return codepoints;
 }
 
-public List_t Text$utf8_bytes(Text_t text)
+public List_t Textヽutf8_bytes(Text_t text)
 {
-    const char *str = Text$as_c_string(text);
+    const char *str = Textヽas_c_string(text);
     return (List_t){.length=(int64_t)strlen(str), .stride=1, .atomic=1, .data=(void*)str};
 }
 
@@ -1625,31 +1625,31 @@ static INLINE const char *codepoint_name(ucs4_t c)
     return String(block->name, "-", hex(c, .no_prefix=true, .uppercase=true));
 }
 
-public List_t Text$codepoint_names(Text_t text)
+public List_t Textヽcodepoint_names(Text_t text)
 {
     List_t names = {};
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
-        int32_t grapheme = Text$get_grapheme_fast(&state, i);
+        int32_t grapheme = Textヽget_grapheme_fast(&state, i);
         if (grapheme < 0) {
             for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
                 const char *name = codepoint_name(GRAPHEME_CODEPOINTS(grapheme)[c]);
-                Text_t name_text = Text$from_str(name);
-                List$insert(&names, &name_text, I_small(0), sizeof(Text_t));
+                Text_t name_text = Textヽfrom_str(name);
+                Listヽinsert(&names, &name_text, I_small(0), sizeof(Text_t));
             }
         } else {
             const char *name = codepoint_name((ucs4_t)grapheme);
-            Text_t name_text = Text$from_str(name);
-            List$insert(&names, &name_text, I_small(0), sizeof(Text_t));
+            Text_t name_text = Textヽfrom_str(name);
+            Listヽinsert(&names, &name_text, I_small(0), sizeof(Text_t));
         }
     }
     return names;
 }
 
-public Text_t Text$from_codepoints(List_t codepoints)
+public Text_t Textヽfrom_codepoints(List_t codepoints)
 {
     if (codepoints.stride != sizeof(uint32_t))
-        List$compact(&codepoints, sizeof(uint32_t));
+        Listヽcompact(&codepoints, sizeof(uint32_t));
 
     List_t graphemes = {};
     Table_t unique_clusters = {};
@@ -1663,10 +1663,10 @@ public Text_t Text$from_codepoints(List_t codepoints)
         uint32_t *u32s_normalized = u32_normalize(UNINORM_NFC, pos, (size_t)(next-pos), buf, &u32_normlen);
 
         int32_t g = get_synthetic_grapheme(u32s_normalized, (int64_t)u32_normlen);
-        List$insert(&graphemes, &g, I(0), sizeof(int32_t));
-        Table$get_or_setdefault(
+        Listヽinsert(&graphemes, &g, I(0), sizeof(int32_t));
+        Tableヽget_or_setdefault(
             &unique_clusters, int32_t, uint8_t, g, (uint8_t)unique_clusters.entries.length,
-            Table$info(&Int32$info, &Byte$info));
+            Tableヽinfo(&Int32ヽinfo, &Byteヽinfo));
 
         if (u32s_normalized != buf) free(u32s_normalized);
 
@@ -1676,52 +1676,52 @@ public Text_t Text$from_codepoints(List_t codepoints)
                 .data=(void*)next,
                 .stride=sizeof(int32_t),
             };
-            return concat2_assuming_safe(Text$from_components(graphemes, unique_clusters), Text$from_codepoints(remaining_codepoints));
+            return concat2_assuming_safe(Textヽfrom_components(graphemes, unique_clusters), Textヽfrom_codepoints(remaining_codepoints));
         }
     }
-    return Text$from_components(graphemes, unique_clusters);
+    return Textヽfrom_components(graphemes, unique_clusters);
 }
 
-public OptionalText_t Text$from_codepoint_names(List_t codepoint_names)
+public OptionalText_t Textヽfrom_codepoint_names(List_t codepoint_names)
 {
     List_t codepoints = {};
     for (int64_t i = 0; i < codepoint_names.length; i++) {
         Text_t *name = ((Text_t*)(codepoint_names.data + i*codepoint_names.stride));
-        const char *name_str = Text$as_c_string(*name);
+        const char *name_str = Textヽas_c_string(*name);
         ucs4_t codepoint = unicode_name_character(name_str);
         if (codepoint == UNINAME_INVALID)
             return NONE_TEXT;
-        List$insert(&codepoints, &codepoint, I_small(0), sizeof(ucs4_t));
+        Listヽinsert(&codepoints, &codepoint, I_small(0), sizeof(ucs4_t));
     }
-    return Text$from_codepoints(codepoints);
+    return Textヽfrom_codepoints(codepoints);
 }
 
-public OptionalText_t Text$from_bytes(List_t bytes)
+public OptionalText_t Textヽfrom_bytes(List_t bytes)
 {
     if (bytes.stride != sizeof(int8_t))
-        List$compact(&bytes, sizeof(int8_t));
+        Listヽcompact(&bytes, sizeof(int8_t));
 
-    return Text$from_strn(bytes.data, (size_t)bytes.length);
+    return Textヽfrom_strn(bytes.data, (size_t)bytes.length);
 }
 
-public List_t Text$lines(Text_t text)
+public List_t Textヽlines(Text_t text)
 {
     List_t lines = {};
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0, line_start = 0; i < text.length; i++) {
-        int32_t grapheme = Text$get_grapheme_fast(&state, i);
-        if (grapheme == '\r' && Text$get_grapheme_fast(&state, i + 1) == '\n') { // CRLF
-            Text_t line = Text$slice(text, I(line_start+1), I(i));
-            List$insert(&lines, &line, I_small(0), sizeof(Text_t));
+        int32_t grapheme = Textヽget_grapheme_fast(&state, i);
+        if (grapheme == '\r' && Textヽget_grapheme_fast(&state, i + 1) == '\n') { // CRLF
+            Text_t line = Textヽslice(text, I(line_start+1), I(i));
+            Listヽinsert(&lines, &line, I_small(0), sizeof(Text_t));
             i += 1; // skip one extra for CR
             line_start = i + 1;
         } else if (grapheme == '\n') { // newline
-            Text_t line = Text$slice(text, I(line_start+1), I(i));
-            List$insert(&lines, &line, I_small(0), sizeof(Text_t));
+            Text_t line = Textヽslice(text, I(line_start+1), I(i));
+            Listヽinsert(&lines, &line, I_small(0), sizeof(Text_t));
             line_start = i + 1;
         } else if (i == text.length-1 && line_start != i) { // last line
-            Text_t line = Text$slice(text, I(line_start+1), I(i+1));
-            List$insert(&lines, &line, I_small(0), sizeof(Text_t));
+            Text_t line = Textヽslice(text, I(line_start+1), I(i+1));
+            Listヽinsert(&lines, &line, I_small(0), sizeof(Text_t));
         }
     }
     return lines;
@@ -1736,17 +1736,17 @@ static OptionalText_t next_line(line_iter_state_t *state)
 {
     Text_t text = state->state.stack[0].text;
     for (int64_t i = state->i; i < text.length; i++) {
-        int32_t grapheme = Text$get_grapheme_fast(&state->state, i);
-        if (grapheme == '\r' && Text$get_grapheme_fast(&state->state, i + 1) == '\n') { // CRLF
-            Text_t line = Text$slice(text, I(state->i+1), I(i));
+        int32_t grapheme = Textヽget_grapheme_fast(&state->state, i);
+        if (grapheme == '\r' && Textヽget_grapheme_fast(&state->state, i + 1) == '\n') { // CRLF
+            Text_t line = Textヽslice(text, I(state->i+1), I(i));
             state->i = i + 2; // skip one extra for CR
             return line;
         } else if (grapheme == '\n') { // newline
-            Text_t line = Text$slice(text, I(state->i+1), I(i));
+            Text_t line = Textヽslice(text, I(state->i+1), I(i));
             state->i = i + 1;
             return line;
         } else if (i == text.length-1 && state->i != i) { // last line
-            Text_t line = Text$slice(text, I(state->i+1), I(i+1));
+            Text_t line = Textヽslice(text, I(state->i+1), I(i+1));
             state->i = i + 1;
             return line;
         }
@@ -1754,7 +1754,7 @@ static OptionalText_t next_line(line_iter_state_t *state)
     return NONE_TEXT;
 }
 
-public Closure_t Text$by_line(Text_t text)
+public Closure_t Textヽby_line(Text_t text)
 {
     return (Closure_t){
         .fn=(void*)next_line,
@@ -1762,73 +1762,73 @@ public Closure_t Text$by_line(Text_t text)
     };
 }
 
-PUREFUNC public bool Text$is_none(const void *t, const TypeInfo_t *info)
+PUREFUNC public bool Textヽis_none(const void *t, const TypeInfo_t *info)
 {
     (void)info;
     return ((Text_t*)t)->length < 0;
 }
 
-public Int_t Text$memory_size(Text_t text)
+public Int_t Textヽmemory_size(Text_t text)
 {
     switch (text.tag) {
     case TEXT_ASCII:
-        return Int$from_int64((int64_t)sizeof(Text_t) + (int64_t)sizeof(char[text.length]));
+        return Intヽfrom_int64((int64_t)sizeof(Text_t) + (int64_t)sizeof(char[text.length]));
     case TEXT_GRAPHEMES:
-        return Int$from_int64((int64_t)sizeof(Text_t) + (int64_t)sizeof(int32_t[text.length]));
+        return Intヽfrom_int64((int64_t)sizeof(Text_t) + (int64_t)sizeof(int32_t[text.length]));
     case TEXT_BLOB:
-        return Int$from_int64((int64_t)sizeof(Text_t) + (int64_t)((void*)text.blob.bytes - (void*)text.blob.map) + (int64_t)sizeof(uint8_t[text.length]));
+        return Intヽfrom_int64((int64_t)sizeof(Text_t) + (int64_t)((void*)text.blob.bytes - (void*)text.blob.map) + (int64_t)sizeof(uint8_t[text.length]));
     case TEXT_CONCAT:
-        return Int$plus(
-            Int$from_int64((int64_t)sizeof(Text_t)),
-            Int$plus(Text$memory_size(*text.left), Text$memory_size(*text.right)));
+        return Intヽplus(
+            Intヽfrom_int64((int64_t)sizeof(Text_t)),
+            Intヽplus(Textヽmemory_size(*text.left), Textヽmemory_size(*text.right)));
     default: errx(1, "Invalid text tag: ", text.tag);
     }
 }
 
-public Text_t Text$layout(Text_t text)
+public Text_t Textヽlayout(Text_t text)
 {
     switch (text.tag) {
     case TEXT_ASCII:
-        return Texts(Text("ASCII("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
+        return Texts(Text("ASCII("), Int64ヽas_text((int64_t[1]){text.length}, false, NULL), Text(")"));
     case TEXT_GRAPHEMES:
-        return Texts(Text("Graphemes("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
+        return Texts(Text("Graphemes("), Int64ヽas_text((int64_t[1]){text.length}, false, NULL), Text(")"));
     case TEXT_BLOB:
-        return Texts(Text("Blob("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
+        return Texts(Text("Blob("), Int64ヽas_text((int64_t[1]){text.length}, false, NULL), Text(")"));
     case TEXT_CONCAT:
-        return Texts(Text("Concat("), Text$layout(*text.left), Text(", "), Text$layout(*text.right), Text(")"));
+        return Texts(Text("Concat("), Textヽlayout(*text.left), Text(", "), Textヽlayout(*text.right), Text(")"));
     default: errx(1, "Invalid text tag: ", text.tag);
     }
 }
 
-public void Text$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
+public void Textヽserialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
-    const char *str = Text$as_c_string(*(Text_t*)obj);
+    const char *str = Textヽas_c_string(*(Text_t*)obj);
     int64_t len = (int64_t)strlen(str);
-    Int64$serialize(&len, out, pointers, &Int64$info);
+    Int64ヽserialize(&len, out, pointers, &Int64ヽinfo);
     fwrite(str, sizeof(char), (size_t)len, out);
 }
 
-public void Text$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info)
+public void Textヽdeserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
     int64_t len = 0;
-    Int64$deserialize(in, &len, pointers, &Int64$info);
+    Int64ヽdeserialize(in, &len, pointers, &Int64ヽinfo);
     if (len < 0)
         fail("Cannot deserialize text with a negative length!");
     char *buf = GC_MALLOC_ATOMIC((size_t)len+1);
     if (fread(buf, sizeof(char), (size_t)len, in) != (size_t)len)
         fail("Not enough data in stream to deserialize");
     buf[len+1] = '\0';
-    *(Text_t*)out = Text$from_strn(buf, (size_t)len);
+    *(Text_t*)out = Textヽfrom_strn(buf, (size_t)len);
 }
 
-public const TypeInfo_t Text$info = {
+public const TypeInfo_t Textヽinfo = {
     .size=sizeof(Text_t),
     .align=__alignof__(Text_t),
     .tag=TextInfo,
     .TextInfo={.lang="Text"},
-    .metamethods=Text$metamethods,
+    .metamethods=Textヽmetamethods,
 };
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

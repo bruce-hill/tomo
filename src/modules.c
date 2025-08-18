@@ -11,18 +11,18 @@
 
 static void read_modules_ini(Path_t ini_file, module_info_t *info)
 {
-    OptionalClosure_t by_line = Path$by_line(ini_file);
+    OptionalClosure_t by_line = Pathヽby_line(ini_file);
     if (by_line.fn == NULL) return;
     OptionalText_t (*next_line)(void*) = by_line.fn;
   find_section:;
     for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
-        char *line_str = Text$as_c_string(line);
+        char *line_str = Textヽas_c_string(line);
         if (line_str[0] == '[' && strncmp(line_str+1, info->name, strlen(info->name)) == 0
             && line_str[1+strlen(info->name)] == ']')
             break;
     }
     for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
-        char *line_str = Text$as_c_string(line);
+        char *line_str = Textヽas_c_string(line);
         if (line_str[0] == '[') goto find_section;
         if (!strparse(line_str, "version=", &info->version)
             || !strparse(line_str, "url=", &info->url)
@@ -36,8 +36,8 @@ static void read_modules_ini(Path_t ini_file, module_info_t *info)
 module_info_t get_module_info(ast_t *use)
 {
     static Table_t cache = {};
-    TypeInfo_t *cache_type = Table$info(Pointer$info("@", &Memory$info), Pointer$info("@", &Memory$info));
-    module_info_t **cached = Table$get(cache, &use, cache_type);
+    TypeInfo_t *cache_type = Tableヽinfo(Pointerヽinfo("@", &Memoryヽinfo), Pointerヽinfo("@", &Memoryヽinfo));
+    module_info_t **cached = Tableヽget(cache, &use, cache_type);
     if (cached) return **cached;
     const char *name = Match(use, Use)->path;
     module_info_t *info = new(module_info_t, .name=name);
@@ -52,10 +52,10 @@ module_info_t get_module_info(ast_t *use)
     else if (streq(name, "time")) info->version = "v1.0";
     else if (streq(name, "uuid")) info->version = "v1.0";
     else {
-        read_modules_ini(Path$sibling(Path$from_str(use->file->filename), Text("modules.ini")), info);
-        read_modules_ini(Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false), info);
+        read_modules_ini(Pathヽsibling(Pathヽfrom_str(use->file->filename), Text("modules.ini")), info);
+        read_modules_ini(Pathヽwith_extension(Pathヽfrom_str(use->file->filename), Text(":modules.ini"), false), info);
     }
-    Table$set(&cache, &use, &info, cache_type);
+    Tableヽset(&cache, &use, &info, cache_type);
     return *info;
 
 }
@@ -64,25 +64,25 @@ bool try_install_module(module_info_t mod)
 {
     if (mod.git) {
         OptionalText_t answer = ask(
-            Texts(Text("The module \""), Text$from_str(mod.name), Text("\" is not installed.\nDo you want to install it from git URL "),
-                  Text$from_str(mod.git), Text("? [Y/n] ")),
+            Texts(Text("The module \""), Textヽfrom_str(mod.name), Text("\" is not installed.\nDo you want to install it from git URL "),
+                  Textヽfrom_str(mod.git), Text("? [Y/n] ")),
             true, true);
-        if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
+        if (!(answer.length == 0 || Textヽequal_values(answer, Text("Y")) || Textヽequal_values(answer, Text("y"))))
             return false;
         print("Installing ", mod.name, " from git...");
-        Path_t tmpdir = Path$unique_directory(Path("/tmp/tomo-module-XXXXXX"));
+        Path_t tmpdir = Pathヽunique_directory(Path("/tmp/tomo-module-XXXXXX"));
         if (mod.revision) xsystem("git clone --depth=1 --revision ", mod.revision, " ", mod.git, " ", tmpdir);
         else xsystem("git clone --depth=1 ", mod.git, " ", tmpdir);
         if (mod.path) xsystem("tomo -IL ", tmpdir, "/", mod.path);
         else xsystem("tomo -IL ", tmpdir);
-        Path$remove(tmpdir, true);
+        Pathヽremove(tmpdir, true);
         return true;
     } else if (mod.url) {
         OptionalText_t answer = ask(
-            Texts(Text("The module "), Text$from_str(mod.name), Text(" is not installed.\nDo you want to install it from URL "),
-                  Text$from_str(mod.url), Text("? [Y/n] ")),
+            Texts(Text("The module "), Textヽfrom_str(mod.name), Text(" is not installed.\nDo you want to install it from URL "),
+                  Textヽfrom_str(mod.url), Text("? [Y/n] ")),
             true, true);
-        if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
+        if (!(answer.length == 0 || Textヽequal_values(answer, Text("Y")) || Textヽequal_values(answer, Text("y"))))
             return false;
 
         print("Installing ", mod.name, " from URL...");
@@ -93,7 +93,7 @@ bool try_install_module(module_info_t mod)
         p = strchr(filename, '.');
         if (!p) return false;
         const char *extension = p + 1;
-        Path_t tmpdir = Path$unique_directory(Path("/tmp/tomo-module-XXXXXX"));
+        Path_t tmpdir = Pathヽunique_directory(Path("/tmp/tomo-module-XXXXXX"));
         xsystem("curl ", mod.url, " -o ", tmpdir);
         if (streq(extension, ".zip"))
             xsystem("unzip ", tmpdir, "/", filename);
@@ -104,14 +104,14 @@ bool try_install_module(module_info_t mod)
         const char *basename = String(string_slice(filename, strcspn(filename, ".")));
         if (mod.path) xsystem("tomo -IL ", tmpdir, "/", basename, "/", mod.path);
         else xsystem("tomo -IL ", tmpdir, "/", basename);
-        Path$remove(tmpdir, true);
+        Pathヽremove(tmpdir, true);
         return true;
     } else if (mod.path) {
         OptionalText_t answer = ask(
-            Texts(Text("The module "), Text$from_str(mod.name), Text(" is not installed.\nDo you want to install it from path "),
-                  Text$from_str(mod.path), Text("? [Y/n] ")),
+            Texts(Text("The module "), Textヽfrom_str(mod.name), Text(" is not installed.\nDo you want to install it from path "),
+                  Textヽfrom_str(mod.path), Text("? [Y/n] ")),
             true, true);
-        if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
+        if (!(answer.length == 0 || Textヽequal_values(answer, Text("Y")) || Textヽequal_values(answer, Text("y"))))
             return false;
 
         print("Installing ", mod.name, " from path...");

@@ -9,6 +9,27 @@
 #include "stdlib/print.h"
 #include "stdlib/text.h"
 
+public const Text_t SEP = {
+    .length=1,
+    .tag=TEXT_GRAPHEMES,
+    .depth=0,
+    .graphemes=(int32_t[1]){12541 /* U+30FD KATAKANA ITERATION MARK */},
+};
+
+public const Text_t ID_PREFIX = {
+    .length=1,
+    .tag=TEXT_GRAPHEMES,
+    .depth=0,
+    .graphemes=(int32_t[1]){12295 /* U+3007 IDEOGRAPHIC NUMBER ZERO */},
+};
+
+public const Text_t INTERNAL_PREFIX = {
+    .length=1,
+    .tag=TEXT_GRAPHEMES,
+    .depth=0,
+    .graphemes=(int32_t[1]){12293 /* U+3005 IDEOGRAPHIC ITERATION MARK */},
+};
+
 static const char *c_keywords[] = { // Maintain sorted order:
     "_Alignas", "_Alignof", "_Atomic", "_BitInt", "_Bool", "_Complex", "_Decimal128", "_Decimal32", "_Decimal64", "_Generic",
     "_Imaginary", "_Noreturn", "_Static_assert", "_Thread_local",
@@ -40,15 +61,15 @@ public Text_t valid_c_name(const char *name)
     while (trailing_underscores < len && name[len-1-trailing_underscores] == '_')
         trailing_underscores += 1;
     if (is_keyword(name, len-trailing_underscores)) {
-        return Texts(Text$from_str(name), Text("_"));
+        return Texts(Textヽfrom_str(name), Text("_"));
     }
-    return Text$from_str(name);
+    return Textヽfrom_str(name);
 }
 
 public Text_t CONSTFUNC namespace_name(env_t *env, namespace_t *ns, Text_t name)
 {
     for (; ns; ns = ns->parent)
-        name = Texts(ns->name, "$", name);
+        name = Texts(ns->name, SEP, name);
     if (env->id_suffix.length > 0)
         name = Texts(name, env->id_suffix);
     return name;
@@ -57,16 +78,16 @@ public Text_t CONSTFUNC namespace_name(env_t *env, namespace_t *ns, Text_t name)
 public Text_t get_id_suffix(const char *filename)
 {
     assert(filename);
-    Path_t path = Path$from_str(filename);
-    Path_t build_dir = Path$sibling(path, Text(".build"));
-    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (!Path$is_directory(build_dir, true))
+    Path_t path = Pathヽfrom_str(filename);
+    Path_t build_dir = Pathヽsibling(path, Text(".build"));
+    if (mkdir(Pathヽas_c_string(build_dir), 0755) != 0) {
+        if (!Pathヽis_directory(build_dir, true))
             err(1, "Could not make .build directory");
     }
-    Path_t id_file = Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(".id")));
-    OptionalText_t id = Path$read(id_file);
+    Path_t id_file = Pathヽchild(build_dir, Texts(Pathヽbase_name(path), Textヽfrom_str(".id")));
+    OptionalText_t id = Pathヽread(id_file);
     if (id.length < 0) err(1, "Could not read ID file: ", id_file);
-    return Texts(Text("$"), id);
+    return Texts(SEP, id);
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

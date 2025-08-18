@@ -20,7 +20,7 @@ include config.mk
 CC=cc
 CCONFIG=-std=c2x -fPIC \
 		-fno-signed-zeros -fno-finite-math-only -fno-trapping-math \
-		-fvisibility=hidden -fdollars-in-identifiers \
+		-fvisibility=hidden \
 		-DGC_THREADS
 LTO=
 LDFLAGS=

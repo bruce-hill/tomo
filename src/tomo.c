@@ -33,7 +33,7 @@
 
 #define run_cmd(...) ({ const char *_cmd = String(__VA_ARGS__); if (verbose) print("\033[34;1m", _cmd, "\033[m"); popen(_cmd, "w"); })
 #define xsystem(...) ({ int _status = system(String(__VA_ARGS__)); if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0) errx(1, "Failed to run command: %s", String(__VA_ARGS__)); })
-#define list_text(list) Text$join(Text(" "), list)
+#define list_text(list) Textヽjoin(Text(" "), list)
 
 #define whisper(...) print("\033[2m", __VA_ARGS__, "\033[m")
 
@@ -46,9 +46,9 @@ static const char *paths_str(List_t paths) {
     Text_t result = EMPTY_TEXT;
     for (int64_t i = 0; i < paths.length; i++) {
         if (i > 0) result = Texts(result, Text(" "));
-        result = Texts(result, Path$as_text((Path_t*)(paths.data + i*paths.stride), false, &Path$info));
+        result = Texts(result, Pathヽas_text((Path_t*)(paths.data + i*paths.stride), false, &Pathヽinfo));
     }
-    return Text$as_c_string(result);
+    return Textヽas_c_string(result);
 }
 
 #ifdef __APPLE__
@@ -76,7 +76,7 @@ static OptionalBool_t verbose = false,
 
 static OptionalText_t 
             show_codegen = NONE_TEXT,
-            cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
+            cflags = Text("-Werror -std=c2x -Wno-trigraphs "
                           " -ffunction-sections -fdata-sections"
                           " -fno-signed-zeros -fno-finite-math-only "
                           " -D_XOPEN_SOURCE -D_DEFAULT_SOURCE -fPIC -ggdb"
@@ -191,37 +191,37 @@ int main(int argc, char *argv[])
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(
         argc, argv, usage, help, TOMO_VERSION,
-        {"files", true, List$info(&Path$info), &files},
-        {"args", true, List$info(&Text$info), &args},
-        {"verbose", false, &Bool$info, &verbose},
-        {"v", false, &Bool$info, &verbose},
-        {"version", false, &Bool$info, &show_version},
-        {"parse", false, &Bool$info, &show_parse_tree},
-        {"p", false, &Bool$info, &show_parse_tree},
-        {"prefix", false, &Bool$info, &show_prefix},
-        {"quiet", false, &Bool$info, &quiet},
-        {"q", false, &Bool$info, &quiet},
-        {"transpile", false, &Bool$info, &stop_at_transpile},
-        {"t", false, &Bool$info, &stop_at_transpile},
-        {"compile-obj", false, &Bool$info, &stop_at_obj_compilation},
-        {"c", false, &Bool$info, &stop_at_obj_compilation},
-        {"compile-exe", false, &Bool$info, &compile_exe},
-        {"e", false, &Bool$info, &compile_exe},
-        {"uninstall", false, List$info(&Text$info), &uninstall},
-        {"u", false, List$info(&Text$info), &uninstall},
-        {"library", false, List$info(&Path$info), &libraries},
-        {"L", false, List$info(&Path$info), &libraries},
-        {"show-codegen", false, &Text$info, &show_codegen},
-        {"C", false, &Text$info, &show_codegen},
-        {"install", false, &Bool$info, &should_install},
-        {"I", false, &Bool$info, &should_install},
-        {"optimization", false, &Text$info, &optimization},
-        {"O", false, &Text$info, &optimization},
-        {"force-rebuild", false, &Bool$info, &clean_build},
-        {"f", false, &Bool$info, &clean_build},
-        {"source-mapping", false, &Bool$info, &source_mapping},
-        {"m", false, &Bool$info, &source_mapping},
-        {"changelog", false, &Bool$info, &show_changelog},
+        {"files", true, Listヽinfo(&Pathヽinfo), &files},
+        {"args", true, Listヽinfo(&Textヽinfo), &args},
+        {"verbose", false, &Boolヽinfo, &verbose},
+        {"v", false, &Boolヽinfo, &verbose},
+        {"version", false, &Boolヽinfo, &show_version},
+        {"parse", false, &Boolヽinfo, &show_parse_tree},
+        {"p", false, &Boolヽinfo, &show_parse_tree},
+        {"prefix", false, &Boolヽinfo, &show_prefix},
+        {"quiet", false, &Boolヽinfo, &quiet},
+        {"q", false, &Boolヽinfo, &quiet},
+        {"transpile", false, &Boolヽinfo, &stop_at_transpile},
+        {"t", false, &Boolヽinfo, &stop_at_transpile},
+        {"compile-obj", false, &Boolヽinfo, &stop_at_obj_compilation},
+        {"c", false, &Boolヽinfo, &stop_at_obj_compilation},
+        {"compile-exe", false, &Boolヽinfo, &compile_exe},
+        {"e", false, &Boolヽinfo, &compile_exe},
+        {"uninstall", false, Listヽinfo(&Textヽinfo), &uninstall},
+        {"u", false, Listヽinfo(&Textヽinfo), &uninstall},
+        {"library", false, Listヽinfo(&Pathヽinfo), &libraries},
+        {"L", false, Listヽinfo(&Pathヽinfo), &libraries},
+        {"show-codegen", false, &Textヽinfo, &show_codegen},
+        {"C", false, &Textヽinfo, &show_codegen},
+        {"install", false, &Boolヽinfo, &should_install},
+        {"I", false, &Boolヽinfo, &should_install},
+        {"optimization", false, &Textヽinfo, &optimization},
+        {"O", false, &Textヽinfo, &optimization},
+        {"force-rebuild", false, &Boolヽinfo, &clean_build},
+        {"f", false, &Boolヽinfo, &clean_build},
+        {"source-mapping", false, &Boolヽinfo, &source_mapping},
+        {"m", false, &Boolヽinfo, &source_mapping},
+        {"changelog", false, &Boolヽinfo, &show_changelog},
     );
 
     if (show_prefix) {
@@ -258,14 +258,14 @@ int main(int argc, char *argv[])
     ldflags = Texts(ldflags, Text(" -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib"));
 #endif
 
-    if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
+    if (show_codegen.length > 0 && Textヽequal_values(show_codegen, Text("pretty")))
         show_codegen = Text("{ sed '/^#line/d;/^$/d' | indent -o /dev/stdout | bat -l c -P; }");
 
-    config_summary = Text$from_str(String(cc, " ", cflags, " -O", optimization));
+    config_summary = Textヽfrom_str(String(cc, " ", cflags, " -O", optimization));
 
-    Text_t owner = Path$owner(Path$from_str(TOMO_PREFIX), true);
-    Text_t user = Text$from_str(getenv("USER"));
-    if (!Text$equal_values(user, owner)) {
+    Text_t owner = Pathヽowner(Pathヽfrom_str(TOMO_PREFIX), true);
+    Text_t user = Textヽfrom_str(getenv("USER"));
+    if (!Textヽequal_values(user, owner)) {
         as_owner = Texts(Text(SUDO" -u "), owner, Text(" "));
     }
 
@@ -275,10 +275,10 @@ int main(int argc, char *argv[])
         print("Uninstalled ", *u);
     }
 
-    Path_t cwd = Path$current_dir();
+    Path_t cwd = Pathヽcurrent_dir();
     for (int64_t i = 0; i < libraries.length; i++) {
         Path_t *lib = (Path_t*)(libraries.data + i*libraries.stride);
-        *lib = Path$resolved(*lib, cwd);
+        *lib = Pathヽresolved(*lib, cwd);
         // Fork a child process to build the library to prevent cross-contamination
         // of side effects when building one library from affecting another library.
         // This *could* be done in parallel, but there may be some dependency issues.
@@ -302,14 +302,14 @@ int main(int argc, char *argv[])
     }
 
     // Convert `foo` to `foo/foo.tm` and resolve all paths to absolute paths:
-    Path_t cur_dir = Path$current_dir();
+    Path_t cur_dir = Pathヽcurrent_dir();
     for (int64_t i = 0; i < files.length; i++) {
         Path_t *path = (Path_t*)(files.data + i*files.stride);
-        if (Path$is_directory(*path, true))
-            *path = Path$child(*path, Texts(Path$base_name(*path), Text(".tm")));
+        if (Pathヽis_directory(*path, true))
+            *path = Pathヽchild(*path, Texts(Pathヽbase_name(*path), Text(".tm")));
 
-        *path = Path$resolved(*path, cur_dir);
-        if (!Path$exists(*path))
+        *path = Pathヽresolved(*path, cur_dir);
+        if (!Pathヽexists(*path))
             fail("File not found: ", *path);
     }
 
@@ -321,13 +321,13 @@ int main(int argc, char *argv[])
     for (int64_t i = 0; i < files.length; i++) {
         Path_t path = *(Path_t*)(files.data + i*files.stride);
         if (show_parse_tree) {
-            ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+            ast_t *ast = parse_file(Pathヽas_c_string(path), NULL);
             print(ast_to_sexp_str(ast));
             continue;
         }
 
-        Path_t exe_path = compile_exe ? Path$with_extension(path, Text(""), true)
-            : build_file(Path$with_extension(path, Text(""), true), "");
+        Path_t exe_path = compile_exe ? Pathヽwith_extension(path, Text(""), true)
+            : build_file(Pathヽwith_extension(path, Text(""), true), "");
 
         pid_t child = fork();
         if (child == 0) {
@@ -341,9 +341,9 @@ int main(int argc, char *argv[])
                 _exit(0);
 
             char *prog_args[1 + args.length + 1];
-            prog_args[0] = (char*)Path$as_c_string(exe_path);
+            prog_args[0] = (char*)Pathヽas_c_string(exe_path);
             for (int64_t j = 0; j < args.length; j++)
-                prog_args[j + 1] = Text$as_c_string(*(Text_t*)(args.data + j*args.stride));
+                prog_args[j + 1] = Textヽas_c_string(*(Text_t*)(args.data + j*args.stride));
             prog_args[1 + args.length] = NULL;
             execv(prog_args[0], prog_args);
             print_err("Could not execute program: ", prog_args[0]);
@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
     if (compile_exe && should_install) {
         for (int64_t i = 0; i < files.length; i++) {
             Path_t path = *(Path_t*)(files.data + i*files.stride);
-            Path_t exe = Path$with_extension(path, Text(""), true);
+            Path_t exe = Pathヽwith_extension(path, Text(""), true);
             xsystem(as_owner, "cp -v '", exe, "' '"TOMO_PREFIX"'/bin/");
         }
     }
@@ -382,22 +382,22 @@ void wait_for_child_success(pid_t child)
 
 Path_t build_file(Path_t path, const char *extension)
 {
-    Path_t build_dir = Path$sibling(path, Text(".build"));
-    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (!Path$is_directory(build_dir, true))
+    Path_t build_dir = Pathヽsibling(path, Text(".build"));
+    if (mkdir(Pathヽas_c_string(build_dir), 0755) != 0) {
+        if (!Pathヽis_directory(build_dir, true))
             err(1, "Could not make .build directory");
     }
-    return Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
+    return Pathヽchild(build_dir, Texts(Pathヽbase_name(path), Textヽfrom_str(extension)));
 }
 
 static const char *get_version(Path_t lib_dir)
 {
-    Path_t changes_file = Path$child(lib_dir, Text("CHANGES.md"));
-    OptionalText_t changes = Path$read(changes_file);
+    Path_t changes_file = Pathヽchild(lib_dir, Text("CHANGES.md"));
+    OptionalText_t changes = Pathヽread(changes_file);
     if (changes.length <= 0) {
         return "v0.0";
     }
-    const char *changes_str = Text$as_c_string(Texts(Text("\n"), changes));
+    const char *changes_str = Textヽas_c_string(Texts(Text("\n"), changes));
     const char *version_line = strstr(changes_str, "\n## ");
     if (version_line == NULL)
         print_err("CHANGES.md in ", lib_dir, " does not have any valid versions starting with '## '");
@@ -406,17 +406,17 @@ static const char *get_version(Path_t lib_dir)
 
 static Text_t get_version_suffix(Path_t lib_dir)
 {
-    return Texts(Text("_"), Text$from_str(get_version(lib_dir)));
+    return Texts(Text("_"), Textヽfrom_str(get_version(lib_dir)));
 }
 
 void build_library(Path_t lib_dir)
 {
-    lib_dir = Path$resolved(lib_dir, Path$current_dir());
-    if (!Path$is_directory(lib_dir, true))
+    lib_dir = Pathヽresolved(lib_dir, Pathヽcurrent_dir());
+    if (!Pathヽis_directory(lib_dir, true))
         print_err("Not a valid directory: ", lib_dir);
 
-    Text_t lib_dir_name = Path$base_name(lib_dir);
-    List_t tm_files = Path$glob(Path$child(lib_dir, Text("[!._0-9]*.tm")));
+    Text_t lib_dir_name = Pathヽbase_name(lib_dir);
+    List_t tm_files = Pathヽglob(Pathヽchild(lib_dir, Text("[!._0-9]*.tm")));
     env_t *env = fresh_scope(global_env(source_mapping));
     List_t object_files = {},
            extra_ldlibs = {};
@@ -424,7 +424,7 @@ void build_library(Path_t lib_dir)
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
 
     Text_t version_suffix = get_version_suffix(lib_dir);
-    Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), lib_dir_name, version_suffix, Text(SHARED_SUFFIX)));
+    Path_t shared_lib = Pathヽchild(lib_dir, Texts(Text("lib"), lib_dir_name, version_suffix, Text(SHARED_SUFFIX)));
     if (!is_stale_for_any(shared_lib, object_files, false)) {
         if (verbose) whisper("Unchanged: ", shared_lib);
         return;
@@ -450,10 +450,10 @@ void build_library(Path_t lib_dir)
 
 void install_library(Path_t lib_dir)
 {
-    Text_t lib_dir_name = Path$base_name(lib_dir);
+    Text_t lib_dir_name = Pathヽbase_name(lib_dir);
     Text_t version_suffix = get_version_suffix(lib_dir);
-    Path_t dest = Path$child(Path$from_str(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed"), Texts(lib_dir_name, version_suffix));
-    if (!Path$equal_values(lib_dir, dest)) {
+    Path_t dest = Pathヽchild(Pathヽfrom_str(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed"), Texts(lib_dir_name, version_suffix));
+    if (!Pathヽequal_values(lib_dir, dest)) {
         if (verbose) whisper("Clearing out any pre-existing version of ", lib_dir_name);
         xsystem(as_owner, "rm -rf '", dest, "'");
         if (verbose) whisper("Moving files to ", dest);
@@ -478,10 +478,10 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
     Table_t dependency_files = {};
     for (int64_t i = 0; i < to_compile.length; i++) {
         Path_t filename = *(Path_t*)(to_compile.data + i*to_compile.stride);
-        Text_t extension = Path$extension(filename, true);
-        if (!Text$equal_values(extension, Text("tm")))
+        Text_t extension = Pathヽextension(filename, true);
+        if (!Textヽequal_values(extension, Text("tm")))
             print_err("Not a valid .tm file: \x1b[31;1m", filename, "\x1b[m");
-        if (!Path$is_file(filename, true))
+        if (!Pathヽis_file(filename, true))
             print_err("Couldn't find file: ", filename);
         build_file_dependency_graph(filename, &dependency_files, &to_link);
     }
@@ -494,22 +494,22 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
 
         Path_t id_file = build_file(entry->filename, ".id");
-        if (!Path$exists(id_file)) {
+        if (!Pathヽexists(id_file)) {
             static const char id_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             char id_str[8]; 
             for (int j = 0; j < (int)sizeof(id_str); j++) {
                 id_str[j] = id_chars[random_range(0, sizeof(id_chars)-1)];
             }
             Text_t filename_id = Text("");
-            Text_t base = Path$base_name(entry->filename);
+            Text_t base = Pathヽbase_name(entry->filename);
             TextIter_t state = NEW_TEXT_ITER_STATE(base);
             for (int64_t j = 0; j < base.length; j++) {
-                uint32_t c = Text$get_main_grapheme_fast(&state, j);
+                uint32_t c = Textヽget_main_grapheme_fast(&state, j);
                 if (c == '.') break;
                 if (isalpha(c) || isdigit(c) || c == '_')
-                    filename_id = Texts(filename_id, Text$from_strn((char[]){(char)c}, 1));
+                    filename_id = Texts(filename_id, Textヽfrom_strn((char[]){(char)c}, 1));
             }
-            Path$write(id_file, Texts(filename_id, Text("_"), Text$from_strn(id_str, sizeof(id_str))), 0644);
+            Pathヽwrite(id_file, Texts(filename_id, Text("_"), Textヽfrom_strn(id_str, sizeof(id_str))), 0644);
         }
     }
 
@@ -577,35 +577,35 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             } *entry = (dependency_files.entries.data + i*dependency_files.entries.stride);
             Path_t path = entry->filename;
             path = build_file(path, ".o");
-            List$insert(object_files, &path, I(0), sizeof(Path_t));
+            Listヽinsert(object_files, &path, I(0), sizeof(Path_t));
         }
     }
     if (extra_ldlibs) {
         for (int64_t i = 0; i < to_link.entries.length; i++) {
             Text_t lib = *(Text_t*)(to_link.entries.data + i*to_link.entries.stride);
-            List$insert(extra_ldlibs, &lib, I(0), sizeof(Text_t));
+            Listヽinsert(extra_ldlibs, &lib, I(0), sizeof(Text_t));
         }
     }
 }
 
 bool is_config_outdated(Path_t path)
 {
-    OptionalText_t config = Path$read(build_file(path, ".config"));
+    OptionalText_t config = Pathヽread(build_file(path, ".config"));
     if (config.length < 0) return true;
-    return !Text$equal_values(config, config_summary);
+    return !Textヽequal_values(config, config_summary);
 }
 
 void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link)
 {
-    if (Table$has_value(*to_compile, path, Table$info(&Path$info, &Byte$info)))
+    if (Tableヽhas_value(*to_compile, path, Tableヽinfo(&Pathヽinfo, &Byteヽinfo)))
         return;
 
     staleness_t staleness = {
-        .h=is_stale(build_file(path, ".h"), Path$sibling(path, Text("modules.ini")), true)
+        .h=is_stale(build_file(path, ".h"), Pathヽsibling(path, Text("modules.ini")), true)
             || is_stale(build_file(path, ".h"), build_file(path, ":modules.ini"), true)
             || is_stale(build_file(path, ".h"), path, false)
             || is_stale(build_file(path, ".h"), build_file(path, ".id"), false),
-        .c=is_stale(build_file(path, ".c"), Path$sibling(path, Text("modules.ini")), true)
+        .c=is_stale(build_file(path, ".c"), Pathヽsibling(path, Text("modules.ini")), true)
             || is_stale(build_file(path, ".c"), build_file(path, ":modules.ini"), true)
             || is_stale(build_file(path, ".c"), path, false)
             || is_stale(build_file(path, ".c"), build_file(path, ".id"), false),
@@ -613,11 +613,11 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
     staleness.o = staleness.c || staleness.h
         || is_stale(build_file(path, ".o"), build_file(path, ".c"), false)
         || is_stale(build_file(path, ".o"), build_file(path, ".h"), false);
-    Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
+    Tableヽset(to_compile, &path, &staleness, Tableヽinfo(&Pathヽinfo, &Byteヽinfo));
 
-    assert(Text$equal_values(Path$extension(path, true), Text("tm")));
+    assert(Textヽequal_values(Pathヽextension(path, true), Text("tm")));
 
-    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+    ast_t *ast = parse_file(Pathヽas_c_string(path), NULL);
     if (!ast)
         print_err("Could not parse file: ", path);
 
@@ -628,8 +628,8 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
 
         switch (use->what) {
         case USE_LOCAL: {
-            Path_t dep_tm = Path$resolved(Path$from_str(use->path), Path$parent(path));
-            if (!Path$is_file(dep_tm, true))
+            Path_t dep_tm = Pathヽresolved(Pathヽfrom_str(use->path), Pathヽparent(path));
+            if (!Pathヽis_file(dep_tm, true))
                 code_err(stmt_ast, "Not a valid file: ", dep_tm);
             if (is_stale(build_file(path, ".h"), dep_tm, false))
                 staleness.h = true;
@@ -637,7 +637,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
                 staleness.c = true;
             if (staleness.c || staleness.h)
                 staleness.o = true;
-            Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
+            Tableヽset(to_compile, &path, &staleness, Tableヽinfo(&Pathヽinfo, &Byteヽinfo));
             build_file_dependency_graph(dep_tm, to_compile, to_link);
             break;
         }
@@ -645,12 +645,12 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             module_info_t mod = get_module_info(stmt_ast);
             const char *full_name = mod.version ? String(mod.name, "_", mod.version) : mod.name;
             Text_t lib = Texts(Text("-Wl,-rpath,'"),
-                               Text(TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed/"), Text$from_str(full_name),
+                               Text(TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed/"), Textヽfrom_str(full_name),
                                Text("' '" TOMO_PREFIX "/share/tomo_"TOMO_VERSION"/installed/"),
-                               Text$from_str(full_name), Text("/lib"), Text$from_str(full_name), Text(SHARED_SUFFIX "'"));
-            Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
+                               Textヽfrom_str(full_name), Text("/lib"), Textヽfrom_str(full_name), Text(SHARED_SUFFIX "'"));
+            Tableヽset(to_link, &lib, NULL, Tableヽinfo(&Textヽinfo, &Voidヽinfo));
 
-            List_t children = Path$glob(Path$from_str(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", full_name, "/[!._0-9]*.tm")));
+            List_t children = Pathヽglob(Pathヽfrom_str(String(TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", full_name, "/[!._0-9]*.tm")));
             for (int64_t i = 0; i < children.length; i++) {
                 Path_t *child = (Path_t*)(children.data + i*children.stride);
                 Table_t discarded = {.fallback=to_compile};
@@ -659,18 +659,18 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_SHARED_OBJECT: {
-            Text_t lib = Text$from_str(use->path);
-            Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
+            Text_t lib = Textヽfrom_str(use->path);
+            Tableヽset(to_link, &lib, NULL, Tableヽinfo(&Textヽinfo, &Voidヽinfo));
             break;
         }
         case USE_ASM: {
-            Path_t asm_path = Path$from_str(use->path);
-            asm_path = Path$concat(Path$parent(path), asm_path);
-            Text_t linker_text = Path$as_text(&asm_path, NULL, &Path$info);
-            Table$set(to_link, &linker_text, NULL, Table$info(&Text$info, &Void$info));
+            Path_t asm_path = Pathヽfrom_str(use->path);
+            asm_path = Pathヽconcat(Pathヽparent(path), asm_path);
+            Text_t linker_text = Pathヽas_text(&asm_path, NULL, &Pathヽinfo);
+            Tableヽset(to_link, &linker_text, NULL, Tableヽinfo(&Textヽinfo, &Voidヽinfo));
             if (is_stale(build_file(path, ".o"), asm_path, false)) {
                 staleness.o = true;
-                Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
+                Tableヽset(to_compile, &path, &staleness, Tableヽinfo(&Pathヽinfo, &Byteヽinfo));
             }
             break;
         }
@@ -678,10 +678,10 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             if (use->path[0] == '<')
                 break;
 
-            Path_t dep_path = Path$resolved(Path$from_str(use->path), Path$parent(path));
+            Path_t dep_path = Pathヽresolved(Pathヽfrom_str(use->path), Pathヽparent(path));
             if (is_stale(build_file(path, ".o"), dep_path, false)) {
                 staleness.o = true;
-                Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
+                Tableヽset(to_compile, &path, &staleness, Tableヽinfo(&Pathヽinfo, &Byteヽinfo));
             }
             break;
         }
@@ -694,39 +694,39 @@ time_t latest_included_modification_time(Path_t path)
 {
     static Table_t c_modification_times = {};
     const TypeInfo_t time_info = {.size=sizeof(time_t), .align=alignof(time_t), .tag=OpaqueInfo};
-    time_t *cached_latest = Table$get(c_modification_times, &path, Table$info(&Path$info, &time_info));
+    time_t *cached_latest = Tableヽget(c_modification_times, &path, Tableヽinfo(&Pathヽinfo, &time_info));
     if (cached_latest) return *cached_latest;
 
     struct stat s;
     time_t latest = 0;
-    if (stat(Path$as_c_string(path), &s) == 0)
+    if (stat(Pathヽas_c_string(path), &s) == 0)
         latest = s.st_mtime;
-    Table$set(&c_modification_times, &path, &latest, Table$info(&Path$info, &time_info));
+    Tableヽset(&c_modification_times, &path, &latest, Tableヽinfo(&Pathヽinfo, &time_info));
 
-    OptionalClosure_t by_line = Path$by_line(path);
+    OptionalClosure_t by_line = Pathヽby_line(path);
     if (by_line.fn == NULL) return 0;
     OptionalText_t (*next_line)(void*) = by_line.fn;
-    Path_t parent = Path$parent(path);
-    bool allow_dot_include = Path$has_extension(path, Text("s")) || Path$has_extension(path, Text("S"));
+    Path_t parent = Pathヽparent(path);
+    bool allow_dot_include = Pathヽhas_extension(path, Text("s")) || Pathヽhas_extension(path, Text("S"));
     for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
-        line = Text$trim(line, Text(" \t"), true, false);
-        if (!Text$starts_with(line, Text("#include"), NULL) && !(allow_dot_include && Text$starts_with(line, Text(".include"), NULL)))
+        line = Textヽtrim(line, Text(" \t"), true, false);
+        if (!Textヽstarts_with(line, Text("#include"), NULL) && !(allow_dot_include && Textヽstarts_with(line, Text(".include"), NULL)))
             continue;
 
         // Check for `"` after `#include` or `.include` and some spaces:
-        if (!Text$starts_with(Text$trim(Text$from(line, I(9)), Text(" \t"), true, false), Text("\""), NULL))
+        if (!Textヽstarts_with(Textヽtrim(Textヽfrom(line, I(9)), Text(" \t"), true, false), Text("\""), NULL))
             continue;
 
-        List_t chunks = Text$split(line, Text("\""));
+        List_t chunks = Textヽsplit(line, Text("\""));
         if (chunks.length < 3) // Should be `#include "foo" ...` -> ["#include ", "foo", "..."]
             continue;
 
         Text_t included = *(Text_t*)(chunks.data + 1*chunks.stride);
-        Path_t included_path = Path$resolved(Path$from_text(included), parent);
+        Path_t included_path = Pathヽresolved(Pathヽfrom_text(included), parent);
         time_t included_time = latest_included_modification_time(included_path);
         if (included_time > latest) {
             latest = included_time;
-            Table$set(&c_modification_times, &path, &latest, Table$info(&Path$info, &time_info));
+            Tableヽset(&c_modification_times, &path, &latest, Tableヽinfo(&Pathヽinfo, &time_info));
         }
     }
     return latest;
@@ -735,7 +735,7 @@ time_t latest_included_modification_time(Path_t path)
 bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing)
 {
     struct stat target_stat;
-    if (stat(Path$as_c_string(path), &target_stat) != 0) {
+    if (stat(Pathヽas_c_string(path), &target_stat) != 0) {
         if (ignore_missing) return false;
         return true;
     }
@@ -746,14 +746,14 @@ bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing)
         return true;
 #endif
 
-    if (Path$has_extension(relative_to, Text("c")) || Path$has_extension(relative_to, Text("h"))
-        || Path$has_extension(relative_to, Text("s")) || Path$has_extension(relative_to, Text("S"))) {
+    if (Pathヽhas_extension(relative_to, Text("c")) || Pathヽhas_extension(relative_to, Text("h"))
+        || Pathヽhas_extension(relative_to, Text("s")) || Pathヽhas_extension(relative_to, Text("S"))) {
         time_t mtime = latest_included_modification_time(relative_to);
         return target_stat.st_mtime < mtime;
     }
 
     struct stat relative_to_stat;
-    if (stat(Path$as_c_string(relative_to), &relative_to_stat) != 0) {
+    if (stat(Pathヽas_c_string(relative_to), &relative_to_stat) != 0) {
         if (ignore_missing) return false;
         print_err("File doesn't exist: ", relative_to);
     }
@@ -773,18 +773,18 @@ bool is_stale_for_any(Path_t path, List_t relative_to, bool ignore_missing)
 void transpile_header(env_t *base_env, Path_t path)
 {
     Path_t h_filename = build_file(path, ".h");
-    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+    ast_t *ast = parse_file(Pathヽas_c_string(path), NULL);
     if (!ast)
         print_err("Could not parse file: ", path);
 
     env_t *module_env = load_module_env(base_env, ast);
 
-    Text_t h_code = compile_file_header(module_env, Path$resolved(h_filename, Path$from_str(".")), ast);
+    Text_t h_code = compile_file_header(module_env, Pathヽresolved(h_filename, Pathヽfrom_str(".")), ast);
 
-    FILE *header = fopen(Path$as_c_string(h_filename), "w");
+    FILE *header = fopen(Pathヽas_c_string(h_filename), "w");
     if (!header)
         print_err("Failed to open header file: ", h_filename);
-    Text$print(header, h_code);
+    Textヽprint(header, h_code);
     if (fclose(header) == -1)
         print_err("Failed to write header file: ", h_filename);
 
@@ -798,7 +798,7 @@ void transpile_header(env_t *base_env, Path_t path)
 void transpile_code(env_t *base_env, Path_t path)
 {
     Path_t c_filename = build_file(path, ".c");
-    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+    ast_t *ast = parse_file(Pathヽas_c_string(path), NULL);
     if (!ast)
         print_err("Could not parse file: ", path);
 
@@ -806,13 +806,13 @@ void transpile_code(env_t *base_env, Path_t path)
 
     Text_t c_code = compile_file(module_env, ast);
 
-    FILE *c_file = fopen(Path$as_c_string(c_filename), "w");
+    FILE *c_file = fopen(Pathヽas_c_string(c_filename), "w");
     if (!c_file)
         print_err("Failed to write C file: ", c_filename);
 
-    Text$print(c_file, c_code);
+    Textヽprint(c_file, c_code);
 
-    const char *version = get_version(Path$parent(path));
+    const char *version = get_version(Pathヽparent(path));
     binding_t *main_binding = get_binding(module_env, "main");
     if (main_binding && main_binding->type->tag == FunctionType) {
         type_t *ret = Match(main_binding->type, FunctionType)->ret;
@@ -821,11 +821,11 @@ void transpile_code(env_t *base_env, Path_t path)
                          "The main() function in this file has a return type of ", type_to_str(ret),
                          ", but it should not have any return value!");
 
-        Text$print(c_file, Texts(
-            "int parse_and_run$$", main_binding->code, "(int argc, char *argv[]) {\n",
+        Textヽprint(c_file, Texts(
+            "int ", INTERNAL_ID("parse_and_run"), SEP, main_binding->code, "(int argc, char *argv[]) {\n",
             module_env->do_source_mapping ? Text("#line 1\n") : EMPTY_TEXT,
             "tomo_init();\n",
-            namespace_name(module_env, module_env->namespace, Text("$initialize")), "();\n"
+            namespace_name(module_env, module_env->namespace, INTERNAL_ID("initialize")), "();\n"
             "\n",
             compile_cli_arg_call(module_env, main_binding->code, main_binding->type, version),
             "return 0;\n"
@@ -854,7 +854,7 @@ void compile_object_file(Path_t path)
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);
 
-    Path$write(build_file(path, ".config"), config_summary, 0644);
+    Pathヽwrite(build_file(path, ".config"), config_summary, 0644);
 
     if (!quiet)
         print("Compiled object:\t", obj_file);
@@ -862,7 +862,7 @@ void compile_object_file(Path_t path)
 
 Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs)
 {
-    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+    ast_t *ast = parse_file(Pathヽas_c_string(path), NULL);
     if (!ast)
         print_err("Could not parse file ", path);
     env_t *env = load_module_env(base_env, ast);
@@ -870,9 +870,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     if (!main_binding || main_binding->type->tag != FunctionType)
         print_err("No main() function has been defined for ", path, ", so it can't be run!");
 
-    if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
+    if (!clean_build && Pathヽis_file(exe_path, true) && !is_config_outdated(path)
         && !is_stale_for_any(exe_path, object_files, false)
-        && !is_stale(exe_path, Path$sibling(path, Text("modules.ini")), true)
+        && !is_stale(exe_path, Pathヽsibling(path, Text("modules.ini")), true)
         && !is_stale(exe_path, build_file(path, ":modules.ini"), true)) {
         if (verbose) whisper("Unchanged: ", exe_path);
         return exe_path;
@@ -881,20 +881,20 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
                            paths_str(object_files), " -x c - -o ", exe_path);
     Text_t program = Texts(
-        "extern int parse_and_run$$", main_binding->code, "(int argc, char *argv[]);\n"
+        "extern int ", INTERNAL_ID("parse_and_run"), SEP, main_binding->code, "(int argc, char *argv[]);\n"
         "__attribute__ ((noinline))\n"
         "int main(int argc, char *argv[]) {\n"
-        "\treturn parse_and_run$$", main_binding->code, "(argc, argv);\n"
+        "\treturn ", INTERNAL_ID("parse_and_run"), SEP, main_binding->code, "(argc, argv);\n"
         "}\n"
     );
 
     if (show_codegen.length > 0) {
         FILE *out = run_cmd(show_codegen);
-        Text$print(out, program);
+        Textヽprint(out, program);
         pclose(out);
     }
 
-    Text$print(runner, program);
+    Textヽprint(runner, program);
     int status = pclose(runner);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
         exit(EXIT_FAILURE);

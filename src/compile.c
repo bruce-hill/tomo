@@ -47,11 +47,11 @@ static ast_t *add_to_set_comprehension(ast_t *item, ast_t *subject);
 static Text_t compile_lvalue(env_t *env, ast_t *ast);
 
 static Text_t quoted_str(const char *str) {
-    return Text$quoted(Text$from_str(str), false, Text("\""));
+    return Textヽquoted(Textヽfrom_str(str), false, Text("\""));
 }
 
 static inline Text_t quoted_text(Text_t text) {
-    return Text$quoted(text, false, Text("\""));
+    return Textヽquoted(text, false, Text("\""));
 }
 
 Text_t promote_to_optional(type_t *t, Text_t code)
@@ -159,7 +159,7 @@ static bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t
 
     // Text_t to C String
     if (actual->tag == TextType && type_eq(actual, TEXT_TYPE) && needed->tag == CStringType) {
-        *code = Texts("Text$as_c_string(", *code, ")");
+        *code = Texts("Text", SEP, "as_c_string(", *code, ")");
         return true;
     }
 
@@ -218,7 +218,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         if (b) {
             binding_t *shadow = get_binding(env, Match(ast, Var)->name);
             if (!shadow || shadow == b)
-                Table$str_set(closed_vars, Match(ast, Var)->name, b);
+                Tableヽstr_set(closed_vars, Match(ast, Var)->name, b);
         }
         break;
     }
@@ -307,7 +307,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         DeclareMatch(lambda, ast, Lambda);
         env_t *lambda_scope = fresh_scope(env);
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next)
-            set_binding(lambda_scope, arg->name, get_arg_ast_type(env, arg), Texts("_$", arg->name));
+            set_binding(lambda_scope, arg->name, get_arg_ast_type(env, arg), USER_ID(arg->name));
         add_closed_vars(closed_vars, enclosing_scope, lambda_scope, lambda->body);
         break;
     }
@@ -422,7 +422,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
     case Reduction: {
         DeclareMatch(reduction, ast, Reduction);
         static int64_t next_id = 1;
-        ast_t *item = FakeAST(Var, String("$it", next_id++));
+        ast_t *item = FakeAST(Var, String(INTERNAL_ID("it"), next_id++));
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=FakeAST(Pass));
         env_t *scope = for_scope(env, loop);
         add_closed_vars(closed_vars, enclosing_scope, scope, reduction->key ? reduction->key : item);
@@ -484,7 +484,7 @@ static Table_t get_closed_vars(env_t *env, arg_ast_t *args, ast_t *block)
     env_t *body_scope = fresh_scope(env);
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
-        set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
+        set_binding(body_scope, arg->name, arg_type, USER_ID(arg->name));
     }
 
     Table_t closed_vars = {};
@@ -707,7 +707,7 @@ static Text_t compile_binary_op(env_t *env, ast_t *ast)
     }
     case Minus: {
         if (overall_t->tag == SetType)
-            return Texts("Table$without(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
+            return Texts("Table", SEP, "without(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast, "Math operations are only supported for values of the same numeric type, not ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
         return Texts("(", lhs, " - ", rhs, ")");
@@ -738,7 +738,7 @@ static Text_t compile_binary_op(env_t *env, ast_t *ast)
         else if (overall_t->tag == IntType || overall_t->tag == ByteType)
             return Texts("(", lhs, " & ", rhs, ")");
         else if (overall_t->tag == SetType)
-            return Texts("Table$overlap(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
+            return Texts("Table", SEP, "overlap(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
             code_err(ast, "The 'and' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
     }
@@ -751,7 +751,7 @@ static Text_t compile_binary_op(env_t *env, ast_t *ast)
         } else if (overall_t->tag == IntType || overall_t->tag == ByteType) {
             return Texts("(", lhs, " | ", rhs, ")");
         } else if (overall_t->tag == SetType) {
-            return Texts("Table$with(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
+            return Texts("Table", SEP, "with(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         } else {
             code_err(ast, "The 'or' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
         }
@@ -761,19 +761,19 @@ static Text_t compile_binary_op(env_t *env, ast_t *ast)
         if (overall_t->tag == BoolType || overall_t->tag == IntType || overall_t->tag == ByteType)
             return Texts("(", lhs, " ^ ", rhs, ")");
         else if (overall_t->tag == SetType)
-            return Texts("Table$xor(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
+            return Texts("Table", SEP, "xor(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
             code_err(ast, "The 'xor' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
     }
     case Concat: {
         if (overall_t == PATH_TYPE)
-            return Texts("Path$concat(", lhs, ", ", rhs, ")");
+            return Texts("Path", SEP, "concat(", lhs, ", ", rhs, ")");
         switch (overall_t->tag) {
         case TextType: {
-            return Texts("Text$concat(", lhs, ", ", rhs, ")");
+            return Texts("Text", SEP, "concat(", lhs, ", ", rhs, ")");
         }
         case ListType: {
-            return Texts("List$concat(", lhs, ", ", rhs, ", sizeof(", compile_type(Match(overall_t, ListType)->item_type), "))");
+            return Texts("List", SEP, "concat(", lhs, ", ", rhs, ", sizeof(", compile_type(Match(overall_t, ListType)->item_type), "))");
         }
         default:
             code_err(ast, "Concatenation isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
@@ -819,7 +819,7 @@ Text_t compile_type(type_t *t)
         if (!text->lang || streq(text->lang, "Text"))
             return Text("Text_t");
         else
-            return namespace_name(text->env, text->env->namespace, Text("$type"));
+            return namespace_name(text->env, text->env->namespace, Texts(INTERNAL_ID("type")));
     }
     case ListType: return Text("List_t");
     case SetType: return Text("Table_t");
@@ -839,12 +839,12 @@ Text_t compile_type(type_t *t)
     case PointerType: return Texts(compile_type(Match(t, PointerType)->pointed), "*");
     case StructType: {
         DeclareMatch(s, t, StructType);
-        if (s->external) return Text$from_str(s->name);
-        return Texts("struct ", namespace_name(s->env, s->env->namespace, Text("$struct")));
+        if (s->external) return Textヽfrom_str(s->name);
+        return Texts("struct ", namespace_name(s->env, s->env->namespace, Texts(INTERNAL_ID("struct"))));
     }
     case EnumType: {
         DeclareMatch(e, t, EnumType);
-        return namespace_name(e->env, e->env->namespace, Text("$type"));
+        return namespace_name(e->env, e->env->namespace, Texts(INTERNAL_ID("type")));
     }
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
@@ -863,7 +863,7 @@ Text_t compile_type(type_t *t)
             if (nonnull == PATH_TYPE_TYPE)
                 return Text("OptionalPathType_t");
             DeclareMatch(s, nonnull, StructType);
-            return namespace_name(s->env, s->env->namespace->parent, Texts("$Optional", s->name, "$$type"));
+            return namespace_name(s->env, s->env->namespace->parent, Texts(INTERNAL_ID("Optional"), s->name, SEP, INTERNAL_ID("type")));
         }
         default:
             compiler_err(NULL, NULL, NULL, "Optional types are not supported for: ", type_to_str(t));
@@ -906,7 +906,7 @@ Text_t compile_lvalue(env_t *env, ast_t *ast)
             type_t *item_type = Match(container_t, ListType)->item_type;
             Text_t index_code = index->index->tag == Int
                 ? compile_int_to_type(env, index->index, Type(IntType, .bits=TYPE_IBITS64))
-                : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, index->index), ", no)")
+                : (index_t->tag == BigIntType ? Texts("Int64", SEP, "from_int(", compile(env, index->index), ", no)")
                    : Texts("(Int64_t)(", compile(env, index->index), ")"));
             if (index->unchecked) {
                 return Texts("List_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", 
@@ -921,7 +921,7 @@ Text_t compile_lvalue(env_t *env, ast_t *ast)
             DeclareMatch(table_type, container_t, TableType);
             if (table_type->default_value) {
                 type_t *value_type = get_type(env, table_type->default_value);
-                return Texts("*Table$get_or_setdefault(",
+                return Texts("*Table", SEP, "get_or_setdefault(",
                                 compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(value_type), ", ",
@@ -931,7 +931,7 @@ Text_t compile_lvalue(env_t *env, ast_t *ast)
             }
             if (index->unchecked)
                 code_err(ast, "Table indexes cannot be unchecked");
-            return Texts("*(", compile_type(Type(PointerType, table_type->value_type)), ")Table$reserve(",
+            return Texts("*(", compile_type(Type(PointerType, table_type->value_type)), ")Table", SEP, "reserve(",
                             compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
                             compile_to_type(env, index->index, Type(PointerType, table_type->key_type, .is_stack=true)), ", NULL,",
                             compile_type_info(container_t), ")");
@@ -995,9 +995,9 @@ Text_t check_none(type_t *t, Text_t value)
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType)
         return Texts("({", value, " == NULL;})");
     else if (t == PATH_TYPE)
-        return Texts("({(", value, ").type.$tag == PATH_NONE;})");
+        return Texts("({(", value, ").type.", INTERNAL_ID("tag"), " == PATH_NONE;})");
     else if (t == PATH_TYPE_TYPE)
-        return Texts("({(", value, ").$tag == PATH_NONE;})");
+        return Texts("({(", value, ").", INTERNAL_ID("tag"), " == PATH_NONE;})");
     else if (t->tag == BigIntType)
         return Texts("({(", value, ").small == 0;})");
     else if (t->tag == ClosureType)
@@ -1016,7 +1016,7 @@ Text_t check_none(type_t *t, Text_t value)
         return Texts("(", value, ").is_none");
     else if (t->tag == EnumType) {
         if (enum_has_fields(t))
-            return Texts("({(", value, ").$tag == 0;})");
+            return Texts("({(", value, ").", INTERNAL_ID("tag"), " == 0;})");
         else
             return Texts("((", value, ") == 0)");
     }
@@ -1091,7 +1091,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
             if (clause->pattern->tag == Var) {
                 const char *clause_tag_name = Match(clause->pattern, Var)->name;
                 type_t *clause_type = clause->body ? get_type(env, clause->body) : Type(VoidType);
-                code = Texts(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, Texts("tag$", clause_tag_name)), ": {\n",
+                code = Texts(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, Texts(INTERNAL_ID("tag"), SEP, clause_tag_name)), ": {\n",
                                 compile_inline_block(env, clause->body),
                                 (clause_type->tag == ReturnType || clause_type->tag == AbortType) ? EMPTY_TEXT : Text("break;\n"),
                                 "}\n");
@@ -1102,7 +1102,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                 code_err(clause->pattern, "This is not a valid pattern for a ", type_to_str(subject_t), " enum type");
 
             const char *clause_tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
-            code = Texts(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, Texts("tag$", clause_tag_name)), ": {\n");
+            code = Texts(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, Texts(INTERNAL_ID("tag"), SEP, clause_tag_name)), ": {\n");
             type_t *tag_type = NULL;
             for (tag_t *tag = enum_t->tags; tag; tag = tag->next) {
                 if (streq(tag->name, clause_tag_name)) {
@@ -1120,7 +1120,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                     code_err(args->value, "This is not a valid variable to bind to");
                 const char *var_name = Match(args->value, Var)->name;
                 if (!streq(var_name, "_")) {
-                    Text_t var = Texts("_$", var_name);
+                    Text_t var = USER_ID(var_name);
                     code = Texts(code, compile_declaration(tag_type, var), " = _when_subject.", valid_c_name(clause_tag_name), ";\n");
                     scope = fresh_scope(scope);
                     set_binding(scope, Match(args->value, Var)->name, tag_type, EMPTY_TEXT);
@@ -1138,7 +1138,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
 
                     const char *var_name = Match(arg->value, Var)->name;
                     if (!streq(var_name, "_")) {
-                        Text_t var = Texts("_$", var_name);
+                        Text_t var = USER_ID(var_name);
                         code = Texts(code, compile_declaration(field->type, var), " = _when_subject.",
                                      valid_c_name(clause_tag_name), ".", valid_c_name(field->name), ";\n");
                         set_binding(scope, Match(arg->value, Var)->name, field->type, var);
@@ -1184,7 +1184,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
             DeclareMatch(decl, test->expr, Declare);
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == FunctionType) t = Type(ClosureType, t);
-            Text_t var = Texts("_$", Match(decl->var, Var)->name);
+            Text_t var = USER_ID(Match(decl->var, Var)->name);
             Text_t val_code = compile_declared_value(env, test->expr);
             setup = Texts(compile_declaration(t, var), ";\n");
             test_code = Texts("(", var, " = ", val_code, ")");
@@ -1222,16 +1222,16 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                         expr_t = lhs_t;
                     env_t *val_scope = with_enum_scope(env, lhs_t);
                     Text_t val_code = compile_to_type(val_scope, value->ast, lhs_t);
-                    test_code = Texts(test_code, compile_type(lhs_t), " $", String(i), " = ", val_code, ";\n");
+                    test_code = Texts(test_code, compile_type(lhs_t), " ", INTERNAL_ID(String(i)), " = ", val_code, ";\n");
                     i += 1;
                 }
                 i = 1;
                 for (ast_list_t *target = assign->targets; target; target = target->next) {
-                    test_code = Texts(test_code, compile_assignment(env, target->ast, Texts("$", String(i))), ";\n");
+                    test_code = Texts(test_code, compile_assignment(env, target->ast, INTERNAL_ID(String(i))), ";\n");
                     i += 1;
                 }
 
-                test_code = Texts(test_code, "$1; })");
+                test_code = Texts(test_code, INTERNAL_ID("1"), "; })");
             }
         } else if (is_update_assignment(test->expr)) {
             binary_operands_t update = UPDATE_OPERANDS(test->expr);
@@ -1328,7 +1328,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                                     "fail_source(", quoted_str(ast->file->filename), ", ",
                                     String((int64_t)(expr->start - expr->file->text)), ", ",
                                     String((int64_t)(expr->end - expr->file->text)), ", ", 
-                                    message ? Texts("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
+                                    message ? Texts("Text", SEP, "as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
                                         : Text("\"This assertion failed!\""), ", ",
                                     "\" (\", ", expr_as_text(Text("_lhs"), operand_t, Text("no")), ", "
                                     "\" ", failure, " \", ", expr_as_text(Text("_rhs"), operand_t, Text("no")), ", \")\");\n"),
@@ -1343,7 +1343,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                 "fail_source(", quoted_str(ast->file->filename), ", ",
                 String((int64_t)(expr->start - expr->file->text)), ", ", 
                 String((int64_t)(expr->end - expr->file->text)), ", ",
-                message ? Texts("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
+                message ? Texts("Text", SEP, "as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
                     : Text("\"This assertion failed!\""),
                 ");\n");
         }
@@ -1364,7 +1364,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
 
             Text_t val_code = compile_declared_value(env, ast);
-            return Texts(compile_declaration(t, Texts("_$", name)), " = ", val_code, ";");
+            return Texts(compile_declaration(t, USER_ID(name)), " = ", val_code, ";");
         }
     }
     case Assign: {
@@ -1393,12 +1393,12 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                 code_err(ast, "Stack references cannot be assigned to variables because the variable's scope may outlive the scope of the stack memory.");
             env_t *val_env = with_enum_scope(env, lhs_t);
             Text_t val = compile_to_type(val_env, value->ast, lhs_t);
-            code = Texts(code, compile_type(lhs_t), " $", String(i), " = ", val, ";\n");
+            code = Texts(code, compile_type(lhs_t), " ", INTERNAL_ID(String(i)), " = ", val, ";\n");
             i += 1;
         }
         i = 1;
         for (ast_list_t *target = assign->targets; target; target = target->next) {
-            code = Texts(code, compile_assignment(env, target->ast, Texts("$", String(i))), ";\n");
+            code = Texts(code, compile_assignment(env, target->ast, INTERNAL_ID(String(i))), ";\n");
             i += 1;
         }
         return Texts(code, "\n}");
@@ -1515,10 +1515,10 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
             struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
             if (entry->b->type->tag == ModuleType)
                 continue;
-            if (Text$starts_with(entry->b->code, Text("userdata->"), NULL)) {
-                Table$str_set(defer_env->locals, entry->name, entry->b);
+            if (Textヽstarts_with(entry->b->code, Text("userdata->"), NULL)) {
+                Tableヽstr_set(defer_env->locals, entry->name, entry->b);
             } else {
-                Text_t defer_name = Texts("defer$", String(++defer_id), "$", entry->name);
+                Text_t defer_name = Texts("defer", SEP, String(++defer_id), SEP, entry->name);
                 defer_id += 1;
                 code = Texts(
                     code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
@@ -1669,14 +1669,14 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
             Text_t value = for_->vars ? compile(body_scope, for_->vars->ast) : Text("i");
             if (int_type->tag == BigIntType) {
                 if (optional_step.length > 0)
-                    step = Texts("({ OptionalInt_t maybe_step = ", optional_step, "; maybe_step->small == 0 ? (Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)) : (Int_t)maybe_step; })");
+                    step = Texts("({ OptionalInt_t maybe_step = ", optional_step, "; maybe_step->small == 0 ? (Int", SEP, "compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)) : (Int_t)maybe_step; })");
                 else if (step.length == 0)
-                    step = Text("Int$compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)");
+                    step = Texts("Int", SEP, "compare_value(last, first) >= 0 ? I_small(1) : I_small(-1)");
                 return Texts(
                     "for (", type_code, " first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
                     value, " = first, last = ", last, ", step = ", step, "; "
-                    "Int$compare_value(", value, ", last) != Int$compare_value(step, I_small(0)); ",
-                    value, " = Int$plus(", value, ", step)) {\n"
+                    "Int", SEP, "compare_value(", value, ", last) != Int", SEP, "compare_value(step, I_small(0)); ",
+                    value, " = Int", SEP, "plus(", value, ", step)) {\n"
                     "\t", naked_body,
                     "}",
                     stop);
@@ -1704,7 +1704,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
             Text_t value = for_->vars ? compile(body_scope, for_->vars->ast) : Text("i");
             return Texts(
                 "for (Int_t ", value, " = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
-                "step = ", step, "; ; ", value, " = Int$plus(", value, ", step)) {\n"
+                "step = ", step, "; ; ", value, " = Int", SEP, "plus(", value, ", step)) {\n"
                 "\t", naked_body,
                 "}",
                 stop);
@@ -1824,13 +1824,13 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
             Text_t n;
             if (for_->iter->tag == Int) {
                 const char *str = Match(for_->iter, Int)->str;
-                Int_t int_val = Int$from_str(str);
+                Int_t int_val = Intヽfrom_str(str);
                 if (int_val.small == 0)
                     code_err(for_->iter, "Failed to parse this integer");
                 mpz_t i;
                 mpz_init_set_int(i, int_val);
                 if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0)
-                    n = Text$from_str(mpz_get_str(NULL, 10, i));
+                    n = Textヽfrom_str(mpz_get_str(NULL, 10, i));
                 else
                     goto big_n;
 
@@ -1855,8 +1855,8 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                 return Texts(
                     "{\n"
                     "Int_t ", n_var, " = ", n, ";\n"
-                    "if (Int$compare_value(", n_var, ", I(0)) > 0) {\n"
-                    "for (Int_t ", i, " = I(1); Int$compare_value(", i, ", ", n_var, ") <= 0; ", i, " = Int$plus(", i, ", I(1))) {\n",
+                    "if (Int", SEP, "compare_value(", n_var, ", I(0)) > 0) {\n"
+                    "for (Int_t ", i, " = I(1); Int", SEP, "compare_value(", i, ", ", n_var, ") <= 0; ", i, " = Int", SEP, "plus(", i, ", I(1))) {\n",
                     "\t", naked_body,
                     "}\n"
                     "} else ", compile_statement(env, for_->empty),
@@ -1864,7 +1864,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                     "}\n");
             } else {
                 return Texts(
-                    "for (Int_t ", i, " = I(1), ", n_var, " = ", n, "; Int$compare_value(", i, ", ", n_var, ") <= 0; ", i, " = Int$plus(", i, ", I(1))) {\n",
+                    "for (Int_t ", i, " = I(1), ", n_var, " = ", n, "; Int", SEP, "compare_value(", i, ", ", n_var, ") <= 0; ", i, " = Int", SEP, "plus(", i, ", I(1))) {\n",
                     "\t", naked_body,
                     "}\n",
                     stop, "\n");
@@ -1904,7 +1904,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                 get_next = Texts("(cur=", get_next, ", !", check_none(fn->ret, Text("cur")), ")");
                 if (for_->vars) {
                     naked_body = Texts(
-                        compile_declaration(Match(fn->ret, OptionalType)->type, Texts("_$", Match(for_->vars->ast, Var)->name)),
+                        compile_declaration(Match(fn->ret, OptionalType)->type, USER_ID(Match(for_->vars->ast, Var)->name)),
                         " = ", optional_into_nonnone(fn->ret, Text("cur")), ";\n",
                         naked_body);
                 }
@@ -1918,7 +1918,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
             } else {
                 if (for_->vars) {
                     naked_body = Texts(
-                        compile_declaration(fn->ret, Texts("_$", Match(for_->vars->ast, Var)->name)),
+                        compile_declaration(fn->ret, USER_ID(Match(for_->vars->ast, Var)->name)),
                         " = ", get_next, ";\n", naked_body);
                 } else {
                     naked_body = Texts(get_next, ";\n", naked_body);
@@ -2007,11 +2007,11 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
     case Use: {
         DeclareMatch(use, ast, Use);
         if (use->what == USE_LOCAL) {
-            Path_t path = Path$from_str(Match(ast, Use)->path);
-            Path_t in_file = Path$from_str(ast->file->filename);
-            path = Path$resolved(path, Path$parent(in_file));
-            Text_t suffix = get_id_suffix(Path$as_c_string(path));
-            return with_source_info(env, ast, Texts("$initialize", suffix, "();\n"));
+            Path_t path = Pathヽfrom_str(Match(ast, Use)->path);
+            Path_t in_file = Pathヽfrom_str(ast->file->filename);
+            path = Pathヽresolved(path, Pathヽparent(in_file));
+            Text_t suffix = get_id_suffix(Pathヽas_c_string(path));
+            return with_source_info(env, ast, Texts(INTERNAL_ID("initialize"), suffix, "();\n"));
         } else if (use->what == USE_MODULE) {
             module_info_t mod = get_module_info(ast);
             glob_t tm_files;
@@ -2027,7 +2027,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast)
                 const char *filename = tm_files.gl_pathv[i];
                 initialization = Texts(
                     initialization,
-                    with_source_info(env, ast, Texts("$initialize", get_id_suffix(filename), "();\n")));
+                    with_source_info(env, ast, Texts(INTERNAL_ID("initialize"), get_id_suffix(filename), "();\n")));
             }
             globfree(&tm_files);
             return initialization;
@@ -2051,22 +2051,22 @@ Text_t compile_statement(env_t *env, ast_t *ast) {
 Text_t expr_as_text(Text_t expr, type_t *t, Text_t color)
 {
     switch (t->tag) {
-    case MemoryType: return Texts("Memory$as_text(stack(", expr, "), ", color, ", &Memory$info)");
+    case MemoryType: return Texts("Memory", SEP, "as_text(stack(", expr, "), ", color, ", &Memory", SEP, "info)");
     case BoolType:
          // NOTE: this cannot use stack(), since bools may actually be bit fields:
-         return Texts("Bool$as_text((Bool_t[1]){", expr, "}, ", color, ", &Bool$info)");
-    case CStringType: return Texts("CString$as_text(stack(", expr, "), ", color, ", &CString$info)");
+         return Texts("Bool", SEP, "as_text((Bool_t[1]){", expr, "}, ", color, ", &Bool", SEP, "info)");
+    case CStringType: return Texts("CString", SEP, "as_text(stack(", expr, "), ", color, ", &CString", SEP, "info)");
     case BigIntType: case IntType: case ByteType: case NumType: {
         Text_t name = type_to_text(t);
-        return Texts(name, "$as_text(stack(", expr, "), ", color, ", &", name, "$info)");
+        return Texts(name, SEP, "as_text(stack(", expr, "), ", color, ", &", name, SEP, "info)");
     }
-    case TextType: return Texts("Text$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case ListType: return Texts("List$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case SetType: return Texts("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case TableType: return Texts("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case FunctionType: case ClosureType: return Texts("Func$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case PointerType: return Texts("Pointer$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case OptionalType: return Texts("Optional$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case TextType: return Texts("Text", SEP, "as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case ListType: return Texts("List", SEP, "as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case SetType: return Texts("Table", SEP, "as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case TableType: return Texts("Table", SEP, "as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case FunctionType: case ClosureType: return Texts("Func", SEP, "as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case PointerType: return Texts("Pointer", SEP, "as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
+    case OptionalType: return Texts("Optional", SEP, "as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
     case StructType: case EnumType:
         return Texts("generic_as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
     default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for ", type_to_str(t));
@@ -2131,8 +2131,8 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t)
     } else if (ast->tag == Num && t->tag == NumType) {
         double n = Match(ast, Num)->n;
         switch (Match(t, NumType)->bits) {
-        case TYPE_NBITS64: return Text$from_str(String(hex_double(n)));
-        case TYPE_NBITS32: return Text$from_str(String(hex_double(n), "f"));
+        case TYPE_NBITS64: return Textヽfrom_str(String(hex_double(n)));
+        case TYPE_NBITS32: return Textヽfrom_str(String(hex_double(n), "f"));
         default: code_err(ast, "This is not a valid number bit width");
         }
     } else if (ast->tag == None) {
@@ -2229,7 +2229,7 @@ Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type)
     {
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
         static int64_t comp_num = 1;
-        const char *comprehension_name = String("list$", comp_num++);
+        const char *comprehension_name = String("list", SEP, comp_num++);
         ast_t *comprehension_var = LiteralCode(Texts("&", comprehension_name),
                                                .type=Type(PointerType, .pointed=list_type, .is_stack=true));
         Closure_t comp_action = {.fn=add_to_list_comprehension, .userdata=comprehension_var};
@@ -2278,7 +2278,7 @@ Text_t compile_typed_set(env_t *env, ast_t *ast, type_t *set_type)
     {
         static int64_t comp_num = 1;
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
-        const char *comprehension_name = String("set$", comp_num++);
+        const char *comprehension_name = String("set", SEP, comp_num++);
         ast_t *comprehension_var = LiteralCode(Texts("&", comprehension_name),
                                                .type=Type(PointerType, .pointed=set_type, .is_stack=true));
         Text_t code = Texts("({ Table_t ", comprehension_name, " = {};");
@@ -2346,7 +2346,7 @@ Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type)
     {
         static int64_t comp_num = 1;
         env_t *scope = fresh_scope(env);
-        const char *comprehension_name = String("table$", comp_num++);
+        const char *comprehension_name = String("table", SEP, comp_num++);
         ast_t *comprehension_var = LiteralCode(Texts("&", comprehension_name),
                                            .type=Type(PointerType, .pointed=table_type, .is_stack=true));
 
@@ -2406,7 +2406,7 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target)
         return compile_int_to_type(env, ast, Match(target, OptionalType)->type);
 
     const char *literal = Match(ast, Int)->str;
-    OptionalInt_t int_val = Int$from_str(literal);
+    OptionalInt_t int_val = Intヽfrom_str(literal);
     if (int_val.small == 0)
         code_err(ast, "Failed to parse this integer");
 
@@ -2479,18 +2479,18 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
                     if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                         value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                     } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                        OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
+                        OptionalInt_t int_val = Intヽfrom_str(Match(call_arg->value, Int)->str);
                         if (int_val.small == 0)
                             code_err(call_arg->value, "Failed to parse this integer");
                         if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
-                            value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
+                            value = Textヽfrom_str(String(hex_double(Numヽfrom_int(int_val, false))));
                         else
-                            value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
+                            value = Textヽfrom_str(String(hex_double((double)Num32ヽfrom_int(int_val, false)), "f"));
                     } else {
                         env_t *arg_env = with_enum_scope(env, spec_arg->type);
                         value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
                     }
-                    Table$str_set(&used_args, call_arg->name, call_arg);
+                    Tableヽstr_set(&used_args, call_arg->name, call_arg);
                     if (code.length > 0) code = Texts(code, ", ");
                     code = Texts(code, value);
                     goto found_it;
@@ -2501,24 +2501,24 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
         for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
             if (call_arg->name) continue;
             const char *pseudoname = String(i++);
-            if (!Table$str_get(used_args, pseudoname)) {
+            if (!Tableヽstr_get(used_args, pseudoname)) {
                 Text_t value;
                 if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                 } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                    OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
+                    OptionalInt_t int_val = Intヽfrom_str(Match(call_arg->value, Int)->str);
                     if (int_val.small == 0)
                         code_err(call_arg->value, "Failed to parse this integer");
                     if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
-                        value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
+                        value = Textヽfrom_str(String(hex_double(Numヽfrom_int(int_val, false))));
                     else
-                        value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
+                        value = Textヽfrom_str(String(hex_double((double)Num32ヽfrom_int(int_val, false)), "f"));
                 } else {
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
                     value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
                 }
 
-                Table$str_set(&used_args, pseudoname, call_arg);
+                Tableヽstr_set(&used_args, pseudoname, call_arg);
                 if (code.length > 0) code = Texts(code, ", ");
                 code = Texts(code, value);
                 goto found_it;
@@ -2539,11 +2539,11 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
     int64_t i = 1;
     for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
         if (call_arg->name) {
-            if (!Table$str_get(used_args, call_arg->name))
+            if (!Tableヽstr_get(used_args, call_arg->name))
                 code_err(call_arg->value, "There is no argument with the name '", call_arg->name, "'");
         } else {
             const char *pseudoname = String(i++);
-            if (!Table$str_get(used_args, pseudoname))
+            if (!Tableヽstr_get(used_args, pseudoname))
                 code_err(call_arg->value, "This is one argument too many!");
         }
     }
@@ -2553,7 +2553,7 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
 Text_t compile_text_literal(Text_t literal)
 {
     Text_t code = Text("\"");
-    const char *utf8 = Text$as_c_string(literal);
+    const char *utf8 = Textヽas_c_string(literal);
     for (const char *p = utf8; *p; p++) {
         switch (*p) {
         case '\\': code = Texts(code, "\\\\"); break;
@@ -2566,7 +2566,7 @@ Text_t compile_text_literal(Text_t literal)
         case '\v': code = Texts(code, "\\v"); break;
         default: {
             if (isprint(*p)) {
-                code = Texts(code, Text$from_strn(p, 1));
+                code = Texts(code, Textヽfrom_strn(p, 1));
             } else {
                 uint8_t byte = *(uint8_t*)p;
                 code = Texts(code, "\\x", String(hex(byte, .no_prefix=true, .uppercase=true, .digits=2)), "\"\"");
@@ -2582,7 +2582,7 @@ PUREFUNC static bool string_literal_is_all_ascii(Text_t literal)
 {
     TextIter_t state = NEW_TEXT_ITER_STATE(literal);
     for (int64_t i = 0; i < literal.length; i++) {
-        int32_t g = Text$get_grapheme_fast(&state, i);
+        int32_t g = Textヽget_grapheme_fast(&state, i);
         if (g < 0 || g > 127 || !isascii(g))
             return false;
     }
@@ -2694,9 +2694,9 @@ Text_t compile_empty(type_t *t)
         assert(tag);
         assert(tag->type);
         if (Match(tag->type, StructType)->fields)
-            return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), ", .", tag->name, "=", compile_empty(tag->type), "})");
+            return Texts("((", compile_type(t), "){.", INTERNAL_ID("tag"), "=", String(tag->tag_value), ", .", tag->name, "=", compile_empty(tag->type), "})");
         else if (enum_has_fields(t))
-            return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), "})");
+            return Texts("((", compile_type(t), "){.", INTERNAL_ID("tag"), "=", String(tag->tag_value), "})");
         else
             return Texts("((", compile_type(t), ")", String(tag->tag_value), ")");
     }
@@ -2755,13 +2755,12 @@ Text_t compile(env_t *env, ast_t *ast)
     case Var: {
         binding_t *b = get_binding(env, Match(ast, Var)->name);
         if (b)
-            return b->code.length > 0 ? b->code : Texts("_$", Match(ast, Var)->name);
-        // return Texts("_$", Match(ast, Var)->name);
+            return b->code.length > 0 ? b->code : USER_ID(Match(ast, Var)->name);
         code_err(ast, "I don't know of any variable by this name");
     }
     case Int: {
         const char *str = Match(ast, Int)->str;
-        OptionalInt_t int_val = Int$from_str(str);
+        OptionalInt_t int_val = Intヽfrom_str(str);
         if (int_val.small == 0)
             code_err(ast, "Failed to parse this integer");
         mpz_t i;
@@ -2769,13 +2768,13 @@ Text_t compile(env_t *env, ast_t *ast)
         if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
             return Texts("I_small(", str, ")");
         } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
-            return Texts("Int$from_int64(", str, ")");
+            return Texts("Int", SEP, "from_int64(", str, ")");
         } else {
-            return Texts("Int$from_str(\"", str, "\")");
+            return Texts("Int", SEP, "from_str(\"", str, "\")");
         }
     }
     case Num: {
-        return Text$from_str(String(hex_double(Match(ast, Num)->n)));
+        return Textヽfrom_str(String(hex_double(Match(ast, Num)->n)));
     }
     case Not: {
         ast_t *value = Match(ast, Not)->value;
@@ -2869,7 +2868,7 @@ Text_t compile(env_t *env, ast_t *ast)
 
         switch (operand_t->tag) {
         case BigIntType:
-            return Texts(ast->tag == Equals ? EMPTY_TEXT : Text("!"), "Int$equal_value(", lhs, ", ", rhs, ")");
+            return Texts(ast->tag == Equals ? EMPTY_TEXT : Text("!"), "Int", SEP, "equal_value(", lhs, ", ", rhs, ")");
         case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
             return Texts("(", lhs, ast->tag == Equals ? " == " : " != ", rhs, ")");
         default:
@@ -2905,7 +2904,7 @@ Text_t compile(env_t *env, ast_t *ast)
         const char *op = binop_operator(ast->tag);
         switch (operand_t->tag) {
         case BigIntType:
-            return Texts("(Int$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
+            return Texts("(Int", SEP, "compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
         case BoolType: case ByteType: case IntType: case NumType: case PointerType: case FunctionType:
             return Texts("(", lhs, " ", op, " ", rhs, ")");
         default:
@@ -2921,13 +2920,13 @@ Text_t compile(env_t *env, ast_t *ast)
         if (string_literal_is_all_ascii(literal))
             return Texts("Text(", compile_text_literal(literal), ")");
         else
-            return Texts("Text$from_str(", compile_text_literal(literal), ")");
+            return Texts("Text", SEP, "from_str(", compile_text_literal(literal), ")");
     }
     case TextJoin: {
         const char *lang = Match(ast, TextJoin)->lang;
         Text_t colorize = Match(ast, TextJoin)->colorize ? Text("yes") : Text("no");
 
-        type_t *text_t = lang ? Table$str_get(*env->types, lang) : TEXT_TYPE;
+        type_t *text_t = lang ? Tableヽstr_get(*env->types, lang) : TEXT_TYPE;
         if (!text_t || text_t->tag != TextType)
             code_err(ast, quoted(lang), " is not a valid text language name");
 
@@ -2935,7 +2934,7 @@ Text_t compile(env_t *env, ast_t *ast)
         if (!lang || streq(lang, "Text"))
             lang_constructor = Text("Text");
         else
-            lang_constructor = namespace_name(Match(text_t, TextType)->env, Match(text_t, TextType)->env->namespace->parent, Text$from_str(lang));
+            lang_constructor = namespace_name(Match(text_t, TextType)->env, Match(text_t, TextType)->env->namespace->parent, Textヽfrom_str(lang));
 
         ast_list_t *chunks = Match(ast, TextJoin)->children;
         if (!chunks) {
@@ -2978,7 +2977,7 @@ Text_t compile(env_t *env, ast_t *ast)
         }
     }
     case Path: {
-        return Texts("Path(", compile_text_literal(Text$from_str(Match(ast, Path)->path)), ")");
+        return Texts("Path(", compile_text_literal(Textヽfrom_str(Match(ast, Path)->path)), ")");
     }
     case Block: {
         ast_list_t *stmts = Match(ast, Block)->statements;
@@ -3010,20 +3009,20 @@ Text_t compile(env_t *env, ast_t *ast)
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
         ast_t *lhs = ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs;
         ast_t *rhs = ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs;
-        const char *key_name = "$";
+        const char *key_name = "ヽ";
         if (key == NULL) key = FakeAST(Var, key_name);
 
         env_t *expr_env = fresh_scope(env);
-        set_binding(expr_env, key_name, t, Text("ternary$lhs"));
+        set_binding(expr_env, key_name, t, Texts("ternary", SEP, "lhs"));
         Text_t lhs_key = compile(expr_env, key);
 
-        set_binding(expr_env, key_name, t, Text("ternary$rhs"));
+        set_binding(expr_env, key_name, t, Texts("ternary", SEP, "rhs"));
         Text_t rhs_key = compile(expr_env, key);
 
         type_t *key_t = get_type(expr_env, key);
         Text_t comparison;
         if (key_t->tag == BigIntType)
-            comparison = Texts("(Int$compare_value(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
+            comparison = Texts("(Int", SEP, "compare_value(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
         else if (key_t->tag == IntType || key_t->tag == NumType || key_t->tag == BoolType || key_t->tag == PointerType || key_t->tag == ByteType)
             comparison = Texts("((", lhs_key, ")", (ast->tag == Min ? "<=" : ">="), "(", rhs_key, "))");
         else
@@ -3032,8 +3031,8 @@ Text_t compile(env_t *env, ast_t *ast)
 
         return Texts(
             "({\n",
-            compile_type(t), " ternary$lhs = ", compile(env, lhs), ", ternary$rhs = ", compile(env, rhs), ";\n",
-            comparison, " ? ternary$lhs : ternary$rhs;\n"
+            compile_type(t), " ternary", SEP, "lhs = ", compile(env, lhs), ", ternary", SEP, "rhs = ", compile(env, rhs), ";\n",
+            comparison, " ? ternary", SEP, "lhs : ternary", SEP, "rhs;\n"
             "})");
     }
     case List: {
@@ -3075,13 +3074,13 @@ Text_t compile(env_t *env, ast_t *ast)
     }
     case Lambda: {
         DeclareMatch(lambda, ast, Lambda);
-        Text_t name = namespace_name(env, env->namespace, Texts("lambda$", String(lambda->id)));
+        Text_t name = namespace_name(env, env->namespace, Texts("lambda", SEP, String(lambda->id)));
 
         env_t *body_scope = fresh_scope(env);
         body_scope->deferred = NULL;
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
+            set_binding(body_scope, arg->name, arg_type, USER_ID(arg->name));
         }
 
         type_t *ret_t = get_type(body_scope, lambda->body);
@@ -3100,7 +3099,7 @@ Text_t compile(env_t *env, ast_t *ast)
         body_scope->fn_ret = ret_t;
 
         Table_t closed_vars = get_closed_vars(env, lambda->args, ast);
-        if (Table$length(closed_vars) > 0) { // Create a typedef for the lambda's closure userdata
+        if (Tableヽlength(closed_vars) > 0) { // Create a typedef for the lambda's closure userdata
             Text_t def = Text("typedef struct {");
             for (int64_t i = 0; i < closed_vars.entries.length; i++) {
                 struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
@@ -3110,24 +3109,24 @@ Text_t compile(env_t *env, ast_t *ast)
                 if (entry->b->type->tag == ModuleType)
                     continue;
                 set_binding(body_scope, entry->name, entry->b->type, Texts("userdata->", entry->name));
-                def = Texts(def, compile_declaration(entry->b->type, Text$from_str(entry->name)), "; ");
+                def = Texts(def, compile_declaration(entry->b->type, Textヽfrom_str(entry->name)), "; ");
             }
-            def = Texts(def, "} ", name, "$userdata_t;");
+            def = Texts(def, "} ", name, SEP, "userdata_t;");
             env->code->local_typedefs = Texts(env->code->local_typedefs, def);
         }
 
         Text_t code = Texts("static ", compile_type(ret_t), " ", name, "(");
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            code = Texts(code, compile_type(arg_type), " _$", arg->name, ", ");
+            code = Texts(code, compile_type(arg_type), " ", USER_ID(arg->name), ", ");
         }
 
         Text_t userdata;
-        if (Table$length(closed_vars) == 0) {
+        if (Tableヽlength(closed_vars) == 0) {
             code = Texts(code, "void *_)");
             userdata = Text("NULL");
         } else {
-            userdata = Texts("new(", name, "$userdata_t");
+            userdata = Texts("new(", name, SEP, "userdata_t");
             for (int64_t i = 0; i < closed_vars.entries.length; i++) {
                 struct { const char *name; binding_t *b; } *entry = closed_vars.entries.data + closed_vars.entries.stride*i;
                 if (entry->b->type->tag == ModuleType)
@@ -3143,7 +3142,7 @@ Text_t compile(env_t *env, ast_t *ast)
                     userdata = Texts(userdata, ", ", binding_code);
             }
             userdata = Texts(userdata, ")");
-            code = Texts(code, name, "$userdata_t *userdata)");
+            code = Texts(code, name, SEP, "userdata_t *userdata)");
         }
 
         Text_t body = EMPTY_TEXT;
@@ -3203,30 +3202,30 @@ Text_t compile(env_t *env, ast_t *ast)
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="at", .type=INT_TYPE, .default_val=FakeAST(Int, .str="0")));
-                return Texts("List$insert_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List", SEP, "insert_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "insert_all")) {
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="items", .type=self_value_t,
                                       .next=new(arg_t, .name="at", .type=INT_TYPE, .default_val=FakeAST(Int, .str="0")));
-                return Texts("List$insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List", SEP, "insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "remove_at")) {
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="index", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1"),
                                       .next=new(arg_t, .name="count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="1")));
-                return Texts("List$remove_at(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List", SEP, "remove_at(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "remove_item")) {
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="max_count", .type=INT_TYPE, .default_val=FakeAST(Int, .str="-1")));
-                return Texts("List$remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List", SEP, "remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
-                return Texts("List$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List", SEP, "has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "sample")) {
                 type_t *random_num_type = parse_type_string(env, "func(->Num)?");
@@ -3235,23 +3234,23 @@ Text_t compile(env_t *env, ast_t *ast)
                     .next=new(arg_t, .name="weights", .type=Type(ListType, .item_type=Type(NumType, .bits=TYPE_NBITS64)),
                               .default_val=FakeAST(None),
                               .next=new(arg_t, .name="random", .type=random_num_type, .default_val=FakeAST(None))));
-                return Texts("List$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("List", SEP, "sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 padded_item_size, ")");
             } else if (streq(call->name, "shuffle")) {
                 type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=FakeAST(None));
-                return Texts("List$shuffle(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
+                return Texts("List", SEP, "shuffle(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "shuffled")) {
                 type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=FakeAST(None));
-                return Texts("List$shuffled(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
+                return Texts("List", SEP, "shuffled(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "random")) {
                 type_t *random_int64_type = parse_type_string(env, "func(min,max:Int64->Int64)?");
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="random", .type=random_int64_type, .default_val=FakeAST(None));
-                return Texts("List$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type(item_t), ")");
+                return Texts("List", SEP, "random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", compile_type(item_t), ")");
             } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
                 if (streq(call->name, "sort"))
                     EXPECT_POINTER("a", "list");
@@ -3266,7 +3265,7 @@ Text_t compile(env_t *env, ast_t *ast)
                 } else {
                     comparison = Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
                 }
-                return Texts("List$", call->name, "(", self, ", ", comparison, ", ", padded_item_size, ")");
+                return Texts("List", SEP, call->name, "(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heapify")) {
                 EXPECT_POINTER("a", "list");
                 Text_t comparison;
@@ -3278,7 +3277,7 @@ Text_t compile(env_t *env, ast_t *ast)
                 } else {
                     comparison = Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
                 }
-                return Texts("List$heapify(", self, ", ", comparison, ", ", padded_item_size, ")");
+                return Texts("List", SEP, "heapify(", self, ", ", comparison, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_push")) {
                 EXPECT_POINTER("a", "list");
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
@@ -3289,7 +3288,7 @@ Text_t compile(env_t *env, ast_t *ast)
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t,
                                       .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
                 Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return Texts("List$heap_push_value(", self, ", ", arg_code, ", ", padded_item_size, ")");
+                return Texts("List", SEP, "heap_push_value(", self, ", ", arg_code, ", ", padded_item_size, ")");
             } else if (streq(call->name, "heap_pop")) {
                 EXPECT_POINTER("a", "list");
                 type_t *item_ptr = Type(PointerType, .pointed=item_t, .is_stack=true);
@@ -3299,7 +3298,7 @@ Text_t compile(env_t *env, ast_t *ast)
                                                  .type=Type(ClosureType, .fn=fn_t));
                 arg_t *arg_spec = new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp);
                 Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return Texts("List$heap_pop_value(", self, ", ", arg_code, ", ", compile_type(item_t), ", _, ",
+                return Texts("List", SEP, "heap_pop_value(", self, ", ", arg_code, ", ", compile_type(item_t), ", _, ",
                                 promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t), ")");
             } else if (streq(call->name, "binary_search")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
@@ -3312,15 +3311,15 @@ Text_t compile(env_t *env, ast_t *ast)
                 arg_t *arg_spec = new(arg_t, .name="target", .type=item_t,
                                       .next=new(arg_t, .name="by", .type=Type(ClosureType, .fn=fn_t), .default_val=default_cmp));
                 Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
-                return Texts("List$binary_search_value(", self, ", ", arg_code, ")");
+                return Texts("List", SEP, "binary_search_value(", self, ", ", arg_code, ")");
             } else if (streq(call->name, "clear")) {
                 EXPECT_POINTER("a", "list");
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return Texts("List$clear(", self, ")");
+                return Texts("List", SEP, "clear(", self, ")");
             } else if (streq(call->name, "find")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="item", .type=item_t);
-                return Texts("List$find_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("List", SEP, "find_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "where")) {
                 self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
@@ -3328,41 +3327,41 @@ Text_t compile(env_t *env, ast_t *ast)
                 type_t *predicate_type = Type(
                     ClosureType, .fn=NewFunctionType(Type(BoolType), {.name="item", .type=item_ptr}));
                 arg_t *arg_spec = new(arg_t, .name="predicate", .type=predicate_type);
-                return Texts("List$first(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts("List", SEP, "first(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "from")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="first", .type=INT_TYPE);
-                return Texts("List$from(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts("List", SEP, "from(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "to")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="last", .type=INT_TYPE);
-                return Texts("List$to(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts("List", SEP, "to(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "slice")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="first", .type=INT_TYPE, .next=new(arg_t, .name="last", .type=INT_TYPE));
-                return Texts("List$slice(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts("List", SEP, "slice(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else if (streq(call->name, "by")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 arg_t *arg_spec = new(arg_t, .name="stride", .type=INT_TYPE);
-                return Texts("List$by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
+                return Texts("List", SEP, "by(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ", padded_item_size, ")");
             } else if (streq(call->name, "reversed")) {
                 self = compile_to_pointer_depth(env, call->self, 0, true);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return Texts("List$reversed(", self, ", ", padded_item_size, ")");
+                return Texts("List", SEP, "reversed(", self, ", ", padded_item_size, ")");
             } else if (streq(call->name, "unique")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return Texts("Table$from_entries(", self, ", Set$info(", compile_type_info(item_t), "))");
+                return Texts("Table", SEP, "from_entries(", self, ", Set", SEP, "info(", compile_type_info(item_t), "))");
             } else if (streq(call->name, "pop")) {
                 EXPECT_POINTER("a", "list");
                 arg_t *arg_spec = new(arg_t, .name="index", .type=INT_TYPE, .default_val=FakeAST(Int, "-1"));
                 Text_t index = compile_arguments(env, ast, arg_spec, call->args);
-                return Texts("List$pop(", self, ", ", index, ", ", compile_type(item_t), ", _, ",
+                return Texts("List", SEP, "pop(", self, ", ", index, ", ", compile_type(item_t), ", _, ",
                              promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t), ")");
             } else if (streq(call->name, "counts")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return Texts("List$counts(", self, ", ", compile_type_info(self_value_t), ")");
+                return Texts("List", SEP, "counts(", self, ", ", compile_type_info(self_value_t), ")");
             } else code_err(ast, "There is no '", call->name, "' method for lists");
         }
         case SetType: {
@@ -3370,12 +3369,12 @@ Text_t compile(env_t *env, ast_t *ast)
             if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=set->item_type);
-                return Texts("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table", SEP, "has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "add")) {
                 EXPECT_POINTER("a", "set");
                 arg_t *arg_spec = new(arg_t, .name="item", .type=set->item_type);
-                return Texts("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", NULL, ",
+                return Texts("Table", SEP, "set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", NULL, ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "add_all")) {
                 EXPECT_POINTER("a", "set");
@@ -3383,12 +3382,12 @@ Text_t compile(env_t *env, ast_t *ast)
                 return Texts("({ Table_t *set = ", self, "; ",
                                 "List_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
-                                "Table$set(set, to_add.data + i*to_add.stride, NULL, ", compile_type_info(self_value_t), ");\n",
+                                "Table", SEP, "set(set, to_add.data + i*to_add.stride, NULL, ", compile_type_info(self_value_t), ");\n",
                                 "(void)0; })");
             } else if (streq(call->name, "remove")) {
                 EXPECT_POINTER("a", "set");
                 arg_t *arg_spec = new(arg_t, .name="item", .type=set->item_type);
-                return Texts("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table", SEP, "remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "remove_all")) {
                 EXPECT_POINTER("a", "set");
@@ -3396,38 +3395,38 @@ Text_t compile(env_t *env, ast_t *ast)
                 return Texts("({ Table_t *set = ", self, "; ",
                                 "List_t to_add = ", compile_arguments(env, ast, arg_spec, call->args), "; ",
                                 "for (int64_t i = 0; i < to_add.length; i++)\n"
-                                "Table$remove(set, to_add.data + i*to_add.stride, ", compile_type_info(self_value_t), ");\n",
+                                "Table", SEP, "remove(set, to_add.data + i*to_add.stride, ", compile_type_info(self_value_t), ");\n",
                                 "(void)0; })");
             } else if (streq(call->name, "clear")) {
                 EXPECT_POINTER("a", "set");
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return Texts("Table$clear(", self, ")");
+                return Texts("Table", SEP, "clear(", self, ")");
             } else if (streq(call->name, "with")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
-                return Texts("Table$with(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table", SEP, "with(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "overlap")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
-                return Texts("Table$overlap(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table", SEP, "overlap(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "without")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t);
-                return Texts("Table$without(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table", SEP, "without(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "is_subset_of")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t,
                                       .next=new(arg_t, .name="strict", .type=Type(BoolType), .default_val=FakeAST(Bool, false)));
-                return Texts("Table$is_subset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table", SEP, "is_subset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "is_superset_of")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="other", .type=self_value_t,
                                       .next=new(arg_t, .name="strict", .type=Type(BoolType), .default_val=FakeAST(Bool, false)));
-                return Texts("Table$is_superset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
+                return Texts("Table", SEP, "is_superset_of(", self, ", ", compile_arguments(env, ast, arg_spec, call->args),
                                 ", ", compile_type_info(self_value_t), ")");
             } else code_err(ast, "There is no '", call->name, "' method for tables");
         }
@@ -3437,7 +3436,7 @@ Text_t compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
                 return Texts(
-                    "Table$get_optional(", self, ", ", compile_type(table->key_type), ", ",
+                    "Table", SEP, "get_optional(", self, ", ", compile_type(table->key_type), ", ",
                     compile_type(table->value_type), ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                     "_, ", optional_into_nonnone(table->value_type, Text("(*_)")), ", ", compile_none(table->value_type), ", ",
                     compile_type_info(self_value_t), ")");
@@ -3445,7 +3444,7 @@ Text_t compile(env_t *env, ast_t *ast)
                 self = compile_to_pointer_depth(env, call->self, 1, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
                                       .next=new(arg_t, .name="default", .type=table->value_type, .default_val=table->default_value));
-                return Texts("*Table$get_or_setdefault(",
+                return Texts("*Table", SEP, "get_or_setdefault(",
                                 self, ", ", compile_type(table->key_type), ", ",
                                 compile_type(table->value_type), ", ",
                                 compile_arguments(env, ast, arg_spec, call->args), ", ",
@@ -3453,31 +3452,31 @@ Text_t compile(env_t *env, ast_t *ast)
             } else if (streq(call->name, "has")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
-                return Texts("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table", SEP, "has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "set")) {
                 EXPECT_POINTER("a", "table");
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type,
                                       .next=new(arg_t, .name="value", .type=table->value_type));
-                return Texts("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table", SEP, "set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "remove")) {
                 EXPECT_POINTER("a", "table");
                 arg_t *arg_spec = new(arg_t, .name="key", .type=table->key_type);
-                return Texts("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                return Texts("Table", SEP, "remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                                 compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "clear")) {
                 EXPECT_POINTER("a", "table");
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return Texts("Table$clear(", self, ")");
+                return Texts("Table", SEP, "clear(", self, ")");
             } else if (streq(call->name, "sorted")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 (void)compile_arguments(env, ast, NULL, call->args);
-                return Texts("Table$sorted(", self, ", ", compile_type_info(self_value_t), ")");
+                return Texts("Table", SEP, "sorted(", self, ", ", compile_type_info(self_value_t), ")");
             } else if (streq(call->name, "with_fallback")) {
                 self = compile_to_pointer_depth(env, call->self, 0, false);
                 arg_t *arg_spec = new(arg_t, .name="fallback", .type=Type(OptionalType, self_value_t));
-                return Texts("Table$with_fallback(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+                return Texts("Table", SEP, "with_fallback(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
             } else code_err(ast, "There is no '", call->name, "' method for tables");
         }
         default: {
@@ -3534,7 +3533,7 @@ Text_t compile(env_t *env, ast_t *ast)
                     return Text("\"\"");
                 else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children->next == NULL)
                     return compile_text_literal(Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->text);
-                return Texts("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, Text("no")), ")");
+                return Texts("Text", SEP, "as_c_string(", expr_as_text(compile(env, call->args->value), actual, Text("no")), ")");
             } else if (t->tag == StructType) {
                 DeclareMatch(struct_, t, StructType);
                 if (!struct_->opaque && is_valid_call(env, struct_->fields, call->args, true)) {
@@ -3686,7 +3685,7 @@ Text_t compile(env_t *env, ast_t *ast)
         if (!item_t) code_err(reduction->iter, "I couldn't figure out how to iterate over this type: ", type_to_str(iter_t));
 
         static int64_t next_id = 1;
-        ast_t *item = FakeAST(Var, String("$it", next_id++));
+        ast_t *item = FakeAST(Var, String(INTERNAL_ID("it"), next_id++));
         ast_t *body = LiteralCode(Text("{}")); // placeholder
         ast_t *loop = FakeAST(For, .vars=new(ast_list_t, .ast=item), .iter=reduction->iter, .body=body);
         env_t *body_scope = for_scope(env, loop);
@@ -3695,7 +3694,7 @@ Text_t compile(env_t *env, ast_t *ast)
             type_t *item_value_type = item_t;
             ast_t *item_value = item;
             if (reduction->key) {
-                set_binding(body_scope, "$", item_t, compile(body_scope, item));
+                set_binding(body_scope, "ヽ", item_t, compile(body_scope, item));
                 item_value = reduction->key;
                 item_value_type = get_type(body_scope, reduction->key);
             }
@@ -3735,7 +3734,7 @@ Text_t compile(env_t *env, ast_t *ast)
             ast_e cmp_op = op == Min ? LessThan : GreaterThan;
             if (reduction->key) {
                 env_t *key_scope = fresh_scope(env);
-                set_binding(key_scope, "$", item_t, item_code);
+                set_binding(key_scope, "ヽ", item_t, item_code);
                 type_t *key_type = get_type(key_scope, reduction->key);
                 Text_t superlative_key = op == Min ? Text("min_key") : Text("max_key");
                 code = Texts(code, compile_declaration(key_type, superlative_key), ";\n");
@@ -3771,7 +3770,7 @@ Text_t compile(env_t *env, ast_t *ast)
             type_t *reduction_type = Match(get_type(env, ast), OptionalType)->type;
             ast_t *item_value = item;
             if (reduction->key) {
-                set_binding(body_scope, "$", item_t, compile(body_scope, item));
+                set_binding(body_scope, "ヽ", item_t, compile(body_scope, item));
                 item_value = reduction->key;
             }
 
@@ -3837,7 +3836,7 @@ Text_t compile(env_t *env, ast_t *ast)
                 Text_t text = compile_to_pointer_depth(env, f->fielded, 0, false);
                 return Texts("((Text_t)", text, ")");
             } else if (streq(f->field, "length")) {
-                return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
+                return Texts("Int", SEP, "from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             }
             code_err(ast, "There is no '", f->field, "' field on ", type_to_str(value_t), " values");
         }
@@ -3859,13 +3858,13 @@ Text_t compile(env_t *env, ast_t *ast)
             DeclareMatch(e, value_t, EnumType);
             for (tag_t *tag = e->tags; tag; tag = tag->next) {
                 if (streq(f->field, tag->name)) {
-                    Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts("tag$", tag->name));
+                    Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts(INTERNAL_ID("tag"), SEP, tag->name));
                     if (fielded_t->tag == PointerType) {
                         Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return Texts("((", fielded, ")->$tag == ", tag_name, ")");
+                        return Texts("((", fielded, ")->", INTERNAL_ID("tag"), " == ", tag_name, ")");
                     } else if (enum_has_fields(value_t)) {
                         Text_t fielded = compile(env, f->fielded);
-                        return Texts("((", fielded, ").$tag == ", tag_name, ")");
+                        return Texts("((", fielded, ").", INTERNAL_ID("tag"), " == ", tag_name, ")");
                     } else {
                         Text_t fielded = compile(env, f->fielded);
                         return Texts("((", fielded, ") == ", tag_name, ")");
@@ -3876,19 +3875,19 @@ Text_t compile(env_t *env, ast_t *ast)
         }
         case ListType: {
             if (streq(f->field, "length"))
-                return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
+                return Texts("Int", SEP, "from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
             code_err(ast, "There is no ", f->field, " field on lists");
         }
         case SetType: {
             if (streq(f->field, "items"))
                 return Texts("LIST_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             else if (streq(f->field, "length"))
-                return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
+                return Texts("Int", SEP, "from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
             code_err(ast, "There is no '", f->field, "' field on sets");
         }
         case TableType: {
             if (streq(f->field, "length")) {
-                return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
+                return Texts("Int", SEP, "from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
             } else if (streq(f->field, "keys")) {
                 return Texts("LIST_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
             } else if (streq(f->field, "values")) {
@@ -3906,7 +3905,7 @@ Text_t compile(env_t *env, ast_t *ast)
         }
         case ModuleType: {
             const char *name = Match(value_t, ModuleType)->name;
-            env_t *module_env = Table$str_get(*env->imports, name);
+            env_t *module_env = Tableヽstr_get(*env->imports, name);
             return compile(module_env, WrapAST(ast, Var, f->field));
         }
         default:
@@ -3939,7 +3938,7 @@ Text_t compile(env_t *env, ast_t *ast)
             file_t *f = indexing->index->file;
             Text_t index_code = indexing->index->tag == Int
                 ? compile_int_to_type(env, indexing->index, Type(IntType, .bits=TYPE_IBITS64))
-                : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, indexing->index), ", no)")
+                : (index_t->tag == BigIntType ? Texts("Int64", SEP, "from_int(", compile(env, indexing->index), ", no)")
                    : Texts("(Int64_t)(", compile(env, indexing->index), ")"));
             if (indexing->unchecked)
                 return Texts("List_get_unchecked(", compile_type(item_type), ", ", list, ", ", index_code, ")");
@@ -3953,7 +3952,7 @@ Text_t compile(env_t *env, ast_t *ast)
             if (indexing->unchecked)
                 code_err(ast, "Table indexes cannot be unchecked");
             if (table_type->default_value) {
-                return Texts("Table$get_or_default(",
+                return Texts("Table", SEP, "get_or_default(",
                                 compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(table_type->value_type), ", ",
@@ -3961,7 +3960,7 @@ Text_t compile(env_t *env, ast_t *ast)
                                 compile_to_type(env, table_type->default_value, table_type->value_type), ", ",
                                 compile_type_info(container_t), ")");
             } else {
-                return Texts("Table$get_optional(",
+                return Texts("Table", SEP, "get_optional(",
                                 compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                                 compile_type(table_type->key_type), ", ",
                                 compile_type(table_type->value_type), ", ",
@@ -3971,7 +3970,7 @@ Text_t compile(env_t *env, ast_t *ast)
                                 compile_type_info(container_t), ")");
             }
         } else if (container_t->tag == TextType) {
-            return Texts("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ", compile_to_type(env, indexing->index, Type(BigIntType)), ")");
+            return Texts("Text", SEP, "cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ", compile_to_type(env, indexing->index, Type(BigIntType)), ")");
         } else {
             code_err(ast, "Indexing is not supported for type: ", type_to_str(container_t));
         }
@@ -3998,59 +3997,59 @@ Text_t compile(env_t *env, ast_t *ast)
 Text_t compile_type_info(type_t *t)
 {
     if (t == NULL) compiler_err(NULL, NULL, NULL, "Attempt to compile a NULL type");
-    if (t == PATH_TYPE) return Text("&Path$info");
-    else if (t == PATH_TYPE_TYPE) return Text("&PathType$info");
+    if (t == PATH_TYPE) return Texts("&Path", SEP, "info");
+    else if (t == PATH_TYPE_TYPE) return Texts("&PathType", SEP, "info");
 
     switch (t->tag) {
     case BoolType: case ByteType: case IntType: case BigIntType: case NumType: case CStringType:
-        return Texts("&", type_to_text(t), "$info");
+        return Texts("&", type_to_text(t), SEP, "info");
     case TextType: {
         DeclareMatch(text, t, TextType);
         if (!text->lang || streq(text->lang, "Text"))
-            return Text("&Text$info");
-        return Texts("(&", namespace_name(text->env, text->env->namespace, Text("$info")), ")");
+            return Texts("&Text", SEP, "info");
+        return Texts("(&", namespace_name(text->env, text->env->namespace, Texts(INTERNAL_ID("info"))), ")");
     }
     case StructType: {
         DeclareMatch(s, t, StructType);
-        return Texts("(&", namespace_name(s->env, s->env->namespace, Text("$info")), ")");
+        return Texts("(&", namespace_name(s->env, s->env->namespace, Texts(INTERNAL_ID("info"))), ")");
     }
     case EnumType: {
         DeclareMatch(e, t, EnumType);
-        return Texts("(&", namespace_name(e->env, e->env->namespace, Text("$info")), ")");
+        return Texts("(&", namespace_name(e->env, e->env->namespace, Texts(INTERNAL_ID("info"))), ")");
     }
     case ListType: {
         type_t *item_t = Match(t, ListType)->item_type;
-        return Texts("List$info(", compile_type_info(item_t), ")");
+        return Texts("List", SEP, "info(", compile_type_info(item_t), ")");
     }
     case SetType: {
         type_t *item_type = Match(t, SetType)->item_type;
-        return Texts("Set$info(", compile_type_info(item_type), ")");
+        return Texts("Set", SEP, "info(", compile_type_info(item_type), ")");
     }
     case TableType: {
         DeclareMatch(table, t, TableType);
         type_t *key_type = table->key_type;
         type_t *value_type = table->value_type;
-        return Texts("Table$info(", compile_type_info(key_type), ", ", compile_type_info(value_type), ")");
+        return Texts("Table", SEP, "info(", compile_type_info(key_type), ", ", compile_type_info(value_type), ")");
     }
     case PointerType: {
         DeclareMatch(ptr, t, PointerType);
         const char *sigil = ptr->is_stack ? "&" : "@";
-        return Texts("Pointer$info(", quoted_str(sigil), ", ", compile_type_info(ptr->pointed), ")");
+        return Texts("Pointer", SEP, "info(", quoted_str(sigil), ", ", compile_type_info(ptr->pointed), ")");
     }
     case FunctionType: {
-        return Texts("Function$info(", quoted_text(type_to_text(t)), ")");
+        return Texts("Function", SEP, "info(", quoted_text(type_to_text(t)), ")");
     }
     case ClosureType: {
-        return Texts("Closure$info(", quoted_text(type_to_text(t)), ")");
+        return Texts("Closure", SEP, "info(", quoted_text(type_to_text(t)), ")");
     }
     case OptionalType: {
         type_t *non_optional = Match(t, OptionalType)->type;
-        return Texts("Optional$info(sizeof(", compile_type(non_optional),
+        return Texts("Optional", SEP, "info(sizeof(", compile_type(non_optional),
                         "), __alignof__(", compile_type(non_optional), "), ", compile_type_info(non_optional), ")");
     }
-    case TypeInfoType: return Texts("Type$info(", quoted_text(type_to_text(Match(t, TypeInfoType)->type)), ")");
-    case MemoryType: return Text("&Memory$info");
-    case VoidType: return Text("&Void$info");
+    case TypeInfoType: return Texts("Type", SEP, "info(", quoted_text(type_to_text(Match(t, TypeInfoType)->type)), ")");
+    case MemoryType: return Texts("&Memory", SEP, "info");
+    case VoidType: return Texts("&Void", SEP, "info");
     default:
         compiler_err(NULL, 0, 0, "I couldn't convert to a type info: ", type_to_str(t));
     }
@@ -4099,7 +4098,7 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
         for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
             usage = Texts(usage, " ");
             type_t *t = get_arg_type(main_env, arg);
-            Text_t flag = Text$replace(Text$from_str(arg->name), Text("_"), Text("-"));
+            Text_t flag = Textヽreplace(Textヽfrom_str(arg->name), Text("_"), Text("-"));
             if (arg->default_val || arg->type->tag == OptionalType) {
                 if (strlen(arg->name) == 1) {
                     if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
@@ -4125,14 +4124,14 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
                     usage = Texts(usage, "<", flag, ">");
             }
         }
-        code = Texts(code, "Text_t usage = Texts(Text(\"Usage: \"), Text$from_str(argv[0])",
+        code = Texts(code, "Text_t usage = Texts(Text(\"Usage: \"), Text", SEP, "from_str(argv[0])",
                         usage.length == 0 ? EMPTY_TEXT : Texts(", Text(", quoted_text(usage), ")"), ");\n");
     }
 
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *opt_type = arg->type->tag == OptionalType ? arg->type : Type(OptionalType, .type=arg->type);
-        code = Texts(code, compile_declaration(opt_type, Texts("_$", arg->name)));
+        code = Texts(code, compile_declaration(opt_type, USER_ID(arg->name)));
         if (arg->default_val) {
             Text_t default_val = compile(env, arg->default_val);
             if (arg->type->tag != OptionalType)
@@ -4147,16 +4146,16 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
     Text_t version_code = quoted_str(version);
     code = Texts(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code, ", ", version_code);
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        code = Texts(code, ",\n{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", ",
+        code = Texts(code, ",\n{", quoted_text(Textヽreplace(Textヽfrom_str(arg->name), Text("_"), Text("-"))), ", ",
                         (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",
                         compile_type_info(arg->type),
-                        ", &", Texts("_$", arg->name), "}");
+                        ", &", USER_ID(arg->name), "}");
     }
     code = Texts(code, ");\n");
 
     code = Texts(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        Text_t arg_code = Texts("_$", arg->name);
+        Text_t arg_code = USER_ID(arg->name);
         if (arg->type->tag != OptionalType)
             arg_code = optional_into_nonnone(arg->type, arg_code);
 
@@ -4201,11 +4200,11 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
     Table_t used_names = {};
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
-        arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
+        arg_signature = Texts(arg_signature, compile_declaration(arg_type, USER_ID(arg->name)));
         if (arg->next) arg_signature = Texts(arg_signature, ", ");
-        if (Table$str_get(used_names, arg->name))
+        if (Tableヽstr_get(used_names, arg->name))
             code_err(ast, "The argument name '", arg->name, "' is used more than once");
-        Table$str_set(&used_names, arg->name, arg->name);
+        Tableヽstr_set(&used_names, arg->name, arg->name);
     }
     arg_signature = Texts(arg_signature, ")");
 
@@ -4218,7 +4217,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
 
     Text_t code;
     if (cache) {
-        code = Texts("static ", ret_type_code, " ", name_code, "$uncached", arg_signature);
+        code = Texts("static ", ret_type_code, " ", name_code, SEP, "uncached", arg_signature);
     } else {
         code = Texts(ret_type_code, " ", name_code, arg_signature);
         if (is_inline)
@@ -4236,7 +4235,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
     body_scope->deferred = NULL;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
-        set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
+        set_binding(body_scope, arg->name, arg_type, USER_ID(arg->name));
     }
 
     body_scope->fn_ret = ret_t;
@@ -4263,7 +4262,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             "static ", compile_declaration(ret_t, Text("cached_result")), ";\n",
             "static bool initialized = false;\n",
             "if (!initialized) {\n"
-            "\tcached_result = ", name_code, "$uncached();\n",
+            "\tcached_result = ", name_code, SEP, "uncached();\n",
             "\tinitialized = true;\n",
             "}\n",
             "return cached_result;\n"
@@ -4271,13 +4270,13 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         definition = Texts(definition, wrapper);
     } else if (cache && cache->tag == Int) {
         assert(args);
-        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NULL);
+        OptionalInt64_t cache_size = Int64ヽparse(Textヽfrom_str(Match(cache, Int)->str), NULL);
         Text_t pop_code = EMPTY_TEXT;
         if (cache->tag == Int && !cache_size.is_none && cache_size.value > 0) {
             // FIXME: this currently just deletes the first entry, but this should be more like a
             // least-recently-used cache eviction policy or least-frequently-used
             pop_code = Texts("if (cache.entries.length > ", String(cache_size.value),
-                                ") Table$remove(&cache, cache.entries.data + cache.entries.stride*0, table_type);\n");
+                                ") Table", SEP, "remove(&cache, cache.entries.data + cache.entries.stride*0, table_type);\n");
         }
 
         if (!args->next) {
@@ -4286,12 +4285,12 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             Text_t wrapper = Texts(
                 is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
-                "const TypeInfo_t *table_type = Table$info(", compile_type_info(arg_type), ", ", compile_type_info(ret_t), ");\n",
-                compile_declaration(Type(PointerType, .pointed=ret_t), Text("cached")), " = Table$get_raw(cache, &_$", args->name, ", table_type);\n"
+                "const TypeInfo_t *table_type = Table", SEP, "info(", compile_type_info(arg_type), ", ", compile_type_info(ret_t), ");\n",
+                compile_declaration(Type(PointerType, .pointed=ret_t), Text("cached")), " = Table", SEP, "get_raw(cache, &", USER_ID(args->name), ", table_type);\n"
                 "if (cached) return *cached;\n",
-                compile_declaration(ret_t, Text("ret")), " = ", name_code, "$uncached(_$", args->name, ");\n",
+                compile_declaration(ret_t, Text("ret")), " = ", name_code, SEP, "uncached(", USER_ID(args->name), ");\n",
                 pop_code,
-                "Table$set(&cache, &_$", args->name, ", &ret, table_type);\n"
+                "Table", SEP, "set(&cache, &", USER_ID(args->name), ", &ret, table_type);\n"
                 "return ret;\n"
                 "}\n");
             definition = Texts(definition, wrapper);
@@ -4301,10 +4300,10 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             for (arg_ast_t *arg = args; arg; arg = arg->next)
                 fields = new(arg_t, .name=arg->name, .type=get_arg_ast_type(env, arg), .next=fields);
             REVERSE_LIST(fields);
-            type_t *t = Type(StructType, .name=String("func$", get_line_number(ast->file, ast->start), "$args"), .fields=fields, .env=env);
+            type_t *t = Type(StructType, .name=String("func", SEP, get_line_number(ast->file, ast->start), SEP, "args"), .fields=fields, .env=env);
 
             int64_t num_fields = used_names.entries.length;
-            const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
+            const char *metamethods = is_packed_data(t) ? "PackedDataヽmetamethods" : "Structヽmetamethods";
             Text_t args_typeinfo = Texts("((TypeInfo_t[1]){{.size=sizeof(args), .align=__alignof__(args), .metamethods=", metamethods,
                                           ", .tag=StructInfo, .StructInfo.name=\"FunctionArguments\", "
                                           ".StructInfo.num_fields=", String(num_fields),
@@ -4312,7 +4311,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             Text_t args_type = Text("struct { ");
             for (arg_t *f = fields; f; f = f->next) {
                 args_typeinfo = Texts(args_typeinfo, "{\"", f->name, "\", ", compile_type_info(f->type), "}");
-                args_type = Texts(args_type, compile_declaration(f->type, Text$from_str(f->name)), "; ");
+                args_type = Texts(args_type, compile_declaration(f->type, Textヽfrom_str(f->name)), "; ");
                 if (f->next) args_typeinfo = Texts(args_typeinfo, ", ");
             }
             args_type = Texts(args_type, "}");
@@ -4320,25 +4319,25 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
 
             Text_t all_args = EMPTY_TEXT;
             for (arg_ast_t *arg = args; arg; arg = arg->next)
-                all_args = Texts(all_args, "_$", arg->name, arg->next ? Text(", ") : EMPTY_TEXT);
+                all_args = Texts(all_args, USER_ID(arg->name), arg->next ? Text(", ") : EMPTY_TEXT);
 
             Text_t wrapper = Texts(
                 is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code, arg_signature, "{\n"
                 "static Table_t cache = {};\n",
                 args_type, " args = {", all_args, "};\n"
-                "const TypeInfo_t *table_type = Table$info(", args_typeinfo, ", ", compile_type_info(ret_t), ");\n",
-                compile_declaration(Type(PointerType, .pointed=ret_t), Text("cached")), " = Table$get_raw(cache, &args, table_type);\n"
+                "const TypeInfo_t *table_type = Table", SEP, "info(", args_typeinfo, ", ", compile_type_info(ret_t), ");\n",
+                compile_declaration(Type(PointerType, .pointed=ret_t), Text("cached")), " = Table", SEP, "get_raw(cache, &args, table_type);\n"
                 "if (cached) return *cached;\n",
-                compile_declaration(ret_t, Text("ret")), " = ", name_code, "$uncached(", all_args, ");\n",
+                compile_declaration(ret_t, Text("ret")), " = ", name_code, SEP, "uncached(", all_args, ");\n",
                 pop_code,
-                "Table$set(&cache, &args, &ret, table_type);\n"
+                "Table", SEP, "set(&cache, &args, &ret, table_type);\n"
                 "return ret;\n"
                 "}\n");
             definition = Texts(definition, wrapper);
         }
     }
 
-    Text_t qualified_name = Text$from_str(function_name);
+    Text_t qualified_name = Textヽfrom_str(function_name);
     if (env->namespace && env->namespace->parent && env->namespace->name)
         qualified_name = Texts(env->namespace->name, ".", qualified_name);
     Text_t text = Texts("func ", qualified_name, "(");
@@ -4360,15 +4359,15 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast)
     case Use: {
         // DeclareMatch(use, ast, Use);
         // if (use->what == USE_C_CODE) {
-        //     Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
-        //     return Texts("#include \"", Path$as_c_string(path), "\"\n");
+        //     Path_t path = Pathヽrelative_to(Pathヽfrom_str(use->path), Path(".build"));
+        //     return Texts("#include \"", Pathヽas_c_string(path), "\"\n");
         // }
         return EMPTY_TEXT;
     }
     case Declare: {
         DeclareMatch(decl, ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;
-        Text_t full_name = namespace_name(env, env->namespace, Text$from_str(decl_name));
+        Text_t full_name = namespace_name(env, env->namespace, Textヽfrom_str(decl_name));
         type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
         if (t->tag == FunctionType) t = Type(ClosureType, t);
         Text_t val_code = compile_declared_value(env, ast);
@@ -4379,11 +4378,11 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast)
                 is_private ? "static " : "public ",
                 compile_declaration(t, full_name), " = ", val_code, ";\n");
         } else {
-            Text_t init_var = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
+            Text_t init_var = namespace_name(env, env->namespace, Texts(decl_name, SEP, INTERNAL_ID("initialized")));
             Text_t checked_access = Texts("check_initialized(", full_name, ", ", init_var, ", \"", decl_name, "\")");
             set_binding(env, decl_name, t, checked_access);
 
-            Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
+            Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, SEP, INTERNAL_ID("initialized")));
             return Texts(
                 "static bool ", initialized_name, " = false;\n",
                 is_private ? "static " : "public ",
@@ -4391,7 +4390,7 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast)
         }
     }
     case FunctionDef: {
-        Text_t name_code = namespace_name(env, env->namespace, Text$from_str(Match(Match(ast, FunctionDef)->name, Var)->name));
+        Text_t name_code = namespace_name(env, env->namespace, Textヽfrom_str(Match(Match(ast, FunctionDef)->name, Var)->name));
         return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case ConvertDef: {
@@ -4399,12 +4398,12 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast)
         const char *name = get_type_name(Match(type, FunctionType)->ret);
         if (!name)
             code_err(ast, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(Match(type, FunctionType)->ret));
-        Text_t name_code = namespace_name(env, env->namespace, Texts(name, "$", String(get_line_number(ast->file, ast->start))));
+        Text_t name_code = namespace_name(env, env->namespace, Texts(name, SEP, String(get_line_number(ast->file, ast->start))));
         return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case StructDef: {
         DeclareMatch(def, ast, StructDef);
-        type_t *t = Table$str_get(*env->types, def->name);
+        type_t *t = Tableヽstr_get(*env->types, def->name);
         assert(t && t->tag == StructType);
         Text_t code = compile_struct_typeinfo(env, t, def->name, def->fields, def->secret, def->opaque);
         env_t *ns_env = namespace_env(env, def->name);
@@ -4419,9 +4418,9 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast)
     }
     case LangDef: {
         DeclareMatch(def, ast, LangDef);
-        Text_t code = Texts("public const TypeInfo_t ", namespace_name(env, env->namespace, Texts(def->name, "$$info")),
+        Text_t code = Texts("public const TypeInfo_t ", namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("info"))),
                              " = {", String((int64_t)sizeof(Text_t)), ", ", String((int64_t)__alignof__(Text_t)),
-                             ", .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={", quoted_str(def->name), "}};\n");
+                             ", .metamethods=Text", SEP, "metamethods, .tag=TextInfo, .TextInfo={", quoted_str(def->name), "}};\n");
         env_t *ns_env = namespace_env(env, def->name);
         return Texts(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : EMPTY_TEXT);
     }
@@ -4461,12 +4460,12 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast)
         } else if (stmt->ast->tag == Declare) {
             DeclareMatch(decl, stmt->ast, Declare);
             const char *decl_name = Match(decl->var, Var)->name;
-            Text_t full_name = namespace_name(env, env->namespace, Text$from_str(decl_name));
+            Text_t full_name = namespace_name(env, env->namespace, Textヽfrom_str(decl_name));
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == FunctionType) t = Type(ClosureType, t);
             Text_t val_code = compile_declared_value(env, stmt->ast);
             if ((decl->value && !is_constant(env, decl->value)) || (!decl->value && has_heap_memory(t))) {
-                Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
+                Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, SEP, INTERNAL_ID("initialized")));
                 env->code->variable_initializers = Texts(
                     env->code->variable_initializers,
                     with_source_info(
@@ -4509,8 +4508,8 @@ Text_t compile_file(env_t *env, ast_t *ast)
 
             DeclareMatch(use, stmt->ast, Use);
             if (use->what == USE_C_CODE) {
-                Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
-                includes = Texts(includes, "#include \"", Path$as_c_string(path), "\"\n");
+                Path_t path = Pathヽrelative_to(Pathヽfrom_str(use->path), Path(".build"));
+                includes = Texts(includes, "#include \"", Pathヽas_c_string(path), "\"\n");
             }
         }
     }
@@ -4528,7 +4527,7 @@ Text_t compile_file(env_t *env, ast_t *ast)
         env->code->lambdas, "\n",
         env->code->staticdefs, "\n",
         top_level_code,
-        "public void ", namespace_name(env, env->namespace, Text("$initialize")), "(void) {\n",
+        "public void ", namespace_name(env, env->namespace, Texts(INTERNAL_ID("initialize"))), "(void) {\n",
         "static bool initialized = false;\n",
         "if (initialized) return;\n",
         "initialized = true;\n",
@@ -4542,9 +4541,9 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
     switch (ast->tag) {
     case Use: {
         DeclareMatch(use, ast, Use);
-        Path_t source_path = Path$from_str(ast->file->filename);
-        Path_t source_dir = Path$parent(source_path);
-        Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
+        Path_t source_path = Pathヽfrom_str(ast->file->filename);
+        Path_t source_dir = Pathヽparent(source_path);
+        Path_t build_dir = Pathヽresolved(Pathヽparent(header_path), Pathヽcurrent_dir());
         switch (use->what) {
         case USE_MODULE: {
             module_info_t mod = get_module_info(ast);
@@ -4558,26 +4557,26 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
             Text_t includes = EMPTY_TEXT;
             for (size_t i = 0; i < tm_files.gl_pathc; i++) {
                 const char *filename = tm_files.gl_pathv[i];
-                Path_t tm_file = Path$from_str(filename);
-                Path_t lib_build_dir = Path$sibling(tm_file, Text(".build"));
-                Path_t header = Path$child(lib_build_dir, Texts(Path$base_name(tm_file), Text(".h")));
-                includes = Texts(includes, "#include \"", Path$as_c_string(header), "\"\n");
+                Path_t tm_file = Pathヽfrom_str(filename);
+                Path_t lib_build_dir = Pathヽsibling(tm_file, Text(".build"));
+                Path_t header = Pathヽchild(lib_build_dir, Texts(Pathヽbase_name(tm_file), Text(".h")));
+                includes = Texts(includes, "#include \"", Pathヽas_c_string(header), "\"\n");
             }
             globfree(&tm_files);
             return with_source_info(env, ast, includes);
         }
         case USE_LOCAL: {
-            Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
-            Path_t used_build_dir = Path$sibling(used_path, Text(".build"));
-            Path_t used_header_path = Path$child(used_build_dir, Texts(Path$base_name(used_path), Text(".h")));
-            return Texts("#include \"", Path$as_c_string(Path$relative_to(used_header_path, build_dir)), "\"\n");
+            Path_t used_path = Pathヽresolved(Pathヽfrom_str(use->path), source_dir);
+            Path_t used_build_dir = Pathヽsibling(used_path, Text(".build"));
+            Path_t used_header_path = Pathヽchild(used_build_dir, Texts(Pathヽbase_name(used_path), Text(".h")));
+            return Texts("#include \"", Pathヽas_c_string(Pathヽrelative_to(used_header_path, build_dir)), "\"\n");
         }
         case USE_HEADER:
             if (use->path[0] == '<') {
                 return Texts("#include ", use->path, "\n");
             } else {
-                Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
-                return Texts("#include \"", Path$as_c_string(Path$relative_to(used_path, build_dir)), "\"\n");
+                Path_t used_path = Pathヽresolved(Pathヽfrom_str(use->path), source_dir);
+                return Texts("#include \"", Pathヽas_c_string(Pathヽrelative_to(used_path, build_dir)), "\"\n");
             }
         default:
             return EMPTY_TEXT;
@@ -4593,11 +4592,11 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         DeclareMatch(def, ast, LangDef);
         return Texts(
             // Constructor macro:
-            "#define ", namespace_name(env, env->namespace, Text$from_str(def->name)),
-                "(text) ((", namespace_name(env, env->namespace, Texts(def->name, "$$type")), "){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
-            "#define ", namespace_name(env, env->namespace, Text$from_str(def->name)),
-                "s(...) ((", namespace_name(env, env->namespace, Texts(def->name, "$$type")), ")Texts(__VA_ARGS__))\n"
-            "extern const TypeInfo_t ", namespace_name(env, env->namespace, Texts(def->name, Text("$$info"))), ";\n"
+            "#define ", namespace_name(env, env->namespace, Textヽfrom_str(def->name)),
+                "(text) ((", namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("type"))), "){.length=sizeof(text)-1, .tag=TEXT_ASCII, .ascii=\"\" text})\n"
+            "#define ", namespace_name(env, env->namespace, Textヽfrom_str(def->name)),
+                "s(...) ((", namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("type"))), ")Texts(__VA_ARGS__))\n"
+            "extern const TypeInfo_t ", namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("info"))), ";\n"
         );
     }
     case Extend: {
@@ -4659,7 +4658,7 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
             }
             decl = Texts(decl, ")");
         } else {
-            decl = compile_declaration(t, Text$from_str(ext->name));
+            decl = compile_declaration(t, Textヽfrom_str(ext->name));
         }
         return Texts("extern ", decl, ";\n");
     }
@@ -4679,7 +4678,7 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
 
         return Texts(
             decl->value ? compile_statement_type_header(env, header_path, decl->value) : EMPTY_TEXT,
-            "extern ", compile_declaration(t, namespace_name(env, env->namespace, Text$from_str(decl_name))), ";\n");
+            "extern ", compile_declaration(t, namespace_name(env, env->namespace, Textヽfrom_str(decl_name))), ";\n");
     }
     case FunctionDef: {
         DeclareMatch(fndef, ast, FunctionDef);
@@ -4689,7 +4688,7 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
         Text_t arg_signature = Text("(");
         for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
+            arg_signature = Texts(arg_signature, compile_declaration(arg_type, USER_ID(arg->name)));
             if (arg->next) arg_signature = Texts(arg_signature, ", ");
         }
         arg_signature = Texts(arg_signature, ")");
@@ -4698,9 +4697,9 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
         Text_t ret_type_code = compile_type(ret_t);
         if (ret_t->tag == AbortType)
             ret_type_code = Texts("__attribute__((noreturn)) _Noreturn ", ret_type_code);
-        Text_t name = namespace_name(env, env->namespace, Text$from_str(decl_name));
+        Text_t name = namespace_name(env, env->namespace, Textヽfrom_str(decl_name));
         if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
-            name = namespace_name(env, env->namespace, Text$from_str(String(get_line_number(ast->file, ast->start))));
+            name = namespace_name(env, env->namespace, Textヽfrom_str(String(get_line_number(ast->file, ast->start))));
         return Texts(ret_type_code, " ", name, arg_signature, ";\n");
     }
     case ConvertDef: {
@@ -4709,17 +4708,17 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
         Text_t arg_signature = Text("(");
         for (arg_ast_t *arg = def->args; arg; arg = arg->next) {
             type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
+            arg_signature = Texts(arg_signature, compile_declaration(arg_type, USER_ID(arg->name)));
             if (arg->next) arg_signature = Texts(arg_signature, ", ");
         }
         arg_signature = Texts(arg_signature, ")");
 
         type_t *ret_t = def->ret_type ? parse_type_ast(env, def->ret_type) : Type(VoidType);
         Text_t ret_type_code = compile_type(ret_t);
-        Text_t name = Text$from_str(get_type_name(ret_t));
+        Text_t name = Textヽfrom_str(get_type_name(ret_t));
         if (name.length == 0)
             code_err(ast, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(ret_t));
-        Text_t name_code = namespace_name(env, env->namespace, Texts(name, "$", String(get_line_number(ast->file, ast->start))));
+        Text_t name_code = namespace_name(env, env->namespace, Texts(name, SEP, String(get_line_number(ast->file, ast->start))));
         return Texts(ret_type_code, " ", name_code, arg_signature, ";\n");
     }
     default: return EMPTY_TEXT;
@@ -4743,8 +4742,8 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
     if (ast->tag == StructDef) {
         DeclareMatch(def, ast, StructDef);
         if (def->external) return;
-        Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$struct"));
-        Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
+        Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, SEP, INTERNAL_ID("struct")));
+        Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, SEP, INTERNAL_ID("type")));
         *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
     } else if (ast->tag == EnumDef) {
         DeclareMatch(def, ast, EnumDef);
@@ -4754,24 +4753,24 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast)
         }
 
         if (has_any_tags_with_fields) {
-            Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$struct"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
+            Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, SEP, INTERNAL_ID("struct")));
+            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, SEP, INTERNAL_ID("type")));
             *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
 
             for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
                 if (!tag->fields) continue;
-                Text_t tag_struct = namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$struct"));
-                Text_t tag_type = namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$type"));
+                Text_t tag_struct = namespace_name(info->env, info->env->namespace, Texts(def->name, SEP, tag->name, SEP, INTERNAL_ID("struct")));
+                Text_t tag_type = namespace_name(info->env, info->env->namespace, Texts(def->name, SEP, tag->name, SEP, INTERNAL_ID("type")));
                 *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
             }
         } else {
-            Text_t enum_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$enum"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
+            Text_t enum_name = namespace_name(info->env, info->env->namespace, Texts(def->name, SEP, INTERNAL_ID("enum")));
+            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, SEP, INTERNAL_ID("type")));
             *info->header = Texts(*info->header, "typedef enum ", enum_name, " ", type_name, ";\n");
         }
     } else if (ast->tag == LangDef) {
         DeclareMatch(def, ast, LangDef);
-        *info->header = Texts(*info->header, "typedef Text_t ", namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type")), ";\n");
+        *info->header = Texts(*info->header, "typedef Text_t ", namespace_name(info->env, info->env->namespace, Texts(def->name, SEP, INTERNAL_ID("type"))), ";\n");
     }
 }
 
@@ -4793,7 +4792,7 @@ Text_t compile_file_header(env_t *env, Path_t header_path, ast_t *ast)
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_make_typedefs, &info});
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn=(void*)_define_types_and_funcs, &info});
 
-    header = Texts(header, "void ", namespace_name(env, env->namespace, Text("$initialize")), "(void);\n");
+    header = Texts(header, "void ", namespace_name(env, env->namespace, Texts(INTERNAL_ID("initialize"))), "(void);\n");
     return header;
 }
 

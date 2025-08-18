@@ -13,22 +13,22 @@
 
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret, bool is_opaque)
 {
-    Text_t typeinfo_name = namespace_name(env, env->namespace, Texts(name, "$$info"));
+    Text_t typeinfo_name = namespace_name(env, env->namespace, Texts(name, SEP, INTERNAL_ID("info")));
     Text_t type_code = Match(t, StructType)->external ?
-        Text$from_str(name) : Texts("struct ", namespace_name(env, env->namespace, Texts(name, "$$struct")));
+        Textヽfrom_str(name) : Texts("struct ", namespace_name(env, env->namespace, Texts(name, SEP, INTERNAL_ID("struct"))));
 
     int num_fields = 0;
     for (arg_ast_t *f = fields; f; f = f->next)
         num_fields += 1;
     const char *short_name = name;
-    if (strchr(short_name, '$'))
-        short_name = strrchr(short_name, '$') + 1;
+    if (strstr(short_name, "ヽ"))
+        short_name = strstr(short_name, "ヽ") + strlen("ヽ");
 
-    const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
+    const char *metamethods = is_packed_data(t) ? "PackedDataヽmetamethods" : "Structヽmetamethods";
     Text_t typeinfo = Texts("public const TypeInfo_t ", typeinfo_name,
                                   " = {.size=sizeof(", type_code, "), .align=__alignof__(", type_code, "), "
                                   ".metamethods=", metamethods, ", "
-                                  ".tag=StructInfo, .StructInfo.name=\"", short_name, "\"",
+                                  ".tag=StructInfo, .StructInfo.name=\"", Textヽfrom_str(short_name), "\"",
                                   is_secret ? Text(", .StructInfo.is_secret=true") : EMPTY_TEXT,
                                   is_opaque ? Text(", .StructInfo.is_opaque=true") : EMPTY_TEXT,
                                   ", .StructInfo.num_fields=", String(num_fields));
@@ -47,9 +47,10 @@ Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_
 Text_t compile_struct_header(env_t *env, ast_t *ast)
 {
     DeclareMatch(def, ast, StructDef);
-    Text_t typeinfo_name = namespace_name(env, env->namespace, Texts(def->name, "$$info"));
-    Text_t type_code = def->external ? Text$from_str(def->name)
-        : Texts("struct ", namespace_name(env, env->namespace, Texts(def->name, "$$struct")));
+    Text_t name = Textヽfrom_str(def->name);
+    Text_t typeinfo_name = namespace_name(env, env->namespace, Texts(name, SEP, INTERNAL_ID("info")));
+    Text_t type_code = def->external ? name
+        : Texts("struct ", namespace_name(env, env->namespace, Texts(name, SEP, INTERNAL_ID("struct"))));
 
     Text_t fields = EMPTY_TEXT;
     for (arg_ast_t *field = def->fields; field; field = field->next) {
@@ -65,14 +66,14 @@ Text_t compile_struct_header(env_t *env, ast_t *ast)
                        field_t->tag == BoolType ? Text(":1") : EMPTY_TEXT, ";\n");
     }
     Text_t struct_code = def->external ? EMPTY_TEXT : Texts(type_code, " {\n", fields, "};\n");
-    type_t *t = Table$str_get(*env->types, def->name);
+    type_t *t = Tableヽstr_get(*env->types, def->name);
 
-    Text_t unpadded_size = def->opaque ? Texts("sizeof(", type_code, ")") : Text$from_str(String((int64_t)unpadded_struct_size(t)));
+    Text_t unpadded_size = def->opaque ? Texts("sizeof(", type_code, ")") : Textヽfrom_str(String((int64_t)unpadded_struct_size(t)));
     Text_t typeinfo_code = Texts("extern const TypeInfo_t ", typeinfo_name, ";\n");
     Text_t optional_code = EMPTY_TEXT;
     if (!def->opaque) {
         optional_code = Texts("DEFINE_OPTIONAL_TYPE(", compile_type(t), ", ", unpadded_size, ", ",
-                                 namespace_name(env, env->namespace, Texts("$Optional", def->name, "$$type")), ");\n");
+                                 namespace_name(env, env->namespace, Texts(INTERNAL_ID(Texts("Optional", name)), SEP, INTERNAL_ID("type"))), ");\n");
     }
     return Texts(struct_code, optional_code, typeinfo_code);
 }

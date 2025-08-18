@@ -100,7 +100,7 @@ typedef struct Text_s {
 } Text_t;
 
 typedef struct {
-    enum { PATH_NONE, PATH_RELATIVE, PATH_ABSOLUTE, PATH_HOME } $tag;
+    enum { PATH_NONE, PATH_RELATIVE, PATH_ABSOLUTE, PATH_HOME } ヽtag;
 } PathType_t;
 #define OptionalPathType_t PathType_t
 

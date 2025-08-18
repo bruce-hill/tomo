@@ -29,7 +29,7 @@ Text_t type_to_text(type_t *t) {
         case BoolType: return Text("Bool");
         case ByteType: return Text("Byte");
         case CStringType: return Text("CString");
-        case TextType: return Match(t, TextType)->lang ? Text$from_str(Match(t, TextType)->lang) : Text("Text");
+        case TextType: return Match(t, TextType)->lang ? Textヽfrom_str(Match(t, TextType)->lang) : Text("Text");
         case BigIntType: return Text("Int");
         case IntType: return Texts("Int", String(Match(t, IntType)->bits));
         case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? Text("Num32") : Text("Num");
@@ -62,7 +62,7 @@ Text_t type_to_text(type_t *t) {
         }
         case StructType: {
             DeclareMatch(struct_, t, StructType);
-            return Text$from_str(struct_->name);
+            return Textヽfrom_str(struct_->name);
         }
         case PointerType: {
             DeclareMatch(ptr, t, PointerType);
@@ -71,7 +71,7 @@ Text_t type_to_text(type_t *t) {
         }
         case EnumType: {
             DeclareMatch(tagged, t, EnumType);
-            return Text$from_str(tagged->name);
+            return Textヽfrom_str(tagged->name);
         }
         case OptionalType: {
             type_t *opt = Match(t, OptionalType)->type;
@@ -81,7 +81,7 @@ Text_t type_to_text(type_t *t) {
                 return Text("(Unknown optional type)");
         }
         case TypeInfoType: {
-            return Texts("Type$info(", Match(t, TypeInfoType)->name, ")");
+            return Texts("Typeヽinfo(", Match(t, TypeInfoType)->name, ")");
         }
         case ModuleType: {
             return Texts("Module(", Match(t, ModuleType)->name, ")");
@@ -95,7 +95,7 @@ Text_t type_to_text(type_t *t) {
 
 const char *type_to_str(type_t *t)
 {
-    return Text$as_c_string(type_to_text(t));
+    return Textヽas_c_string(type_to_text(t));
 }
 
 PUREFUNC const char *get_type_name(type_t *t)
@@ -114,7 +114,7 @@ bool type_eq(type_t *a, type_t *b)
     if (!a && !b) return true;
     if (!a || !b) return false;
     if (a->tag != b->tag) return false;
-    return Text$equal_values(type_to_text(a), type_to_text(b));
+    return Textヽequal_values(type_to_text(a), type_to_text(b));
 }
 
 bool type_is_a(type_t *t, type_t *req)

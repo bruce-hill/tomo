@@ -84,51 +84,51 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest)
     while (info->tag == OptionalInfo)
         info = info->OptionalInfo.type;
 
-    if (info == &Int$info) {
-        OptionalInt_t parsed = Int$from_str(arg);
+    if (info == &Intヽinfo) {
+        OptionalInt_t parsed = Intヽfrom_str(arg);
         if (parsed.small != 0)
             *(OptionalInt_t*)dest = parsed;
         return parsed.small != 0;
-    } else if (info == &Int64$info) {
-        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
+    } else if (info == &Int64ヽinfo) {
+        OptionalInt64_t parsed = Int64ヽparse(Textヽfrom_str(arg), NULL);
         if (!parsed.is_none)
             *(OptionalInt64_t*)dest = parsed;
         return !parsed.is_none;
-    } else if (info == &Int32$info) {
-        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
+    } else if (info == &Int32ヽinfo) {
+        OptionalInt32_t parsed = Int32ヽparse(Textヽfrom_str(arg), NULL);
         if (!parsed.is_none)
             *(OptionalInt32_t*)dest = parsed;
         return !parsed.is_none;
-    } else if (info == &Int16$info) {
-        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
+    } else if (info == &Int16ヽinfo) {
+        OptionalInt16_t parsed = Int16ヽparse(Textヽfrom_str(arg), NULL);
         if (!parsed.is_none)
             *(OptionalInt16_t*)dest = parsed;
         return !parsed.is_none;
-    } else if (info == &Int8$info) {
-        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
+    } else if (info == &Int8ヽinfo) {
+        OptionalInt8_t parsed = Int8ヽparse(Textヽfrom_str(arg), NULL);
         if (!parsed.is_none)
             *(OptionalInt8_t*)dest = parsed;
         return !parsed.is_none;
-    } else if (info == &Bool$info) {
-        OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
+    } else if (info == &Boolヽinfo) {
+        OptionalBool_t parsed = Boolヽparse(Textヽfrom_str(arg), NULL);
         if (parsed != NONE_BOOL)
             *(OptionalBool_t*)dest = parsed;
         return parsed != NONE_BOOL;
-    } else if (info == &Num$info) {
-        OptionalNum_t parsed = Num$parse(Text$from_str(arg), NULL);
+    } else if (info == &Numヽinfo) {
+        OptionalNum_t parsed = Numヽparse(Textヽfrom_str(arg), NULL);
         if (!isnan(parsed))
             *(OptionalNum_t*)dest = parsed;
         return !isnan(parsed);
-    } else if (info == &Num32$info) {
-        OptionalNum32_t parsed = Num32$parse(Text$from_str(arg), NULL);
+    } else if (info == &Num32ヽinfo) {
+        OptionalNum32_t parsed = Num32ヽparse(Textヽfrom_str(arg), NULL);
         if (!isnan(parsed))
             *(OptionalNum32_t*)dest = parsed;
         return !isnan(parsed);
-    } else if (info == &Path$info) {
-        *(OptionalPath_t*)dest = Path$from_str(arg);
+    } else if (info == &Pathヽinfo) {
+        *(OptionalPath_t*)dest = Pathヽfrom_str(arg);
         return true;
     } else if (info->tag == TextInfo) {
-        *(OptionalText_t*)dest = Text$from_str(arg);
+        *(OptionalText_t*)dest = Textヽfrom_str(arg);
         return true;
     } else if (info->tag == EnumInfo) {
         for (int t = 0; t < info->EnumInfo.num_tags; t++) {
@@ -225,7 +225,7 @@ static Table_t parse_table(const TypeInfo_t *table, int n, char *args[])
 
         *equals = '=';
     }
-    return Table$from_entries(entries, table);
+    return Tableヽfrom_entries(entries, table);
 }
 
 #ifdef __GNUC__
@@ -251,7 +251,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                 while (non_opt_type->tag == OptionalInfo)
                     non_opt_type = non_opt_type->OptionalInfo.type;
 
-                if (non_opt_type == &Bool$info
+                if (non_opt_type == &Boolヽinfo
                     && strncmp(argv[i], "--no-", strlen("--no-")) == 0
                     && strcmp(argv[i] + strlen("--no-"), spec[s].name) == 0) {
                     *(OptionalBool_t*)spec[s].dest = false;
@@ -286,7 +286,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                         }
                         populated_args[s] = true;
                         *(OptionalTable_t*)spec[s].dest = parse_table(non_opt_type, num_args, &argv[i+1]);
-                    } else if (non_opt_type == &Bool$info) { // --flag
+                    } else if (non_opt_type == &Boolヽinfo) { // --flag
                         populated_args[s] = true;
                         *(OptionalBool_t*)spec[s].dest = true;
                     } else {
@@ -351,7 +351,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
                         }
                         populated_args[s] = true;
                         *(OptionalTable_t*)spec[s].dest = parse_table(non_opt_type, num_args, &argv[i+1]);
-                    } else if (non_opt_type == &Bool$info) { // -f
+                    } else if (non_opt_type == &Boolヽinfo) { // -f
                         populated_args[s] = true;
                         *(OptionalBool_t*)spec[s].dest = true;
                     } else {
@@ -403,7 +403,7 @@ public void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, 
             non_opt_type = non_opt_type->OptionalInfo.type;
 
         // You can't specify boolean flags positionally
-        if (non_opt_type == &Bool$info)
+        if (non_opt_type == &Boolヽinfo)
             goto next_non_bool_flag;
 
         if (non_opt_type->tag == ListInfo) {
@@ -456,7 +456,7 @@ public _Noreturn void fail_text(Text_t message)
 
 public Text_t builtin_last_err()
 {
-    return Text$from_str(strerror(errno));
+    return Textヽfrom_str(strerror(errno));
 }
 
 static int _inspect_depth = 0;
@@ -548,7 +548,7 @@ public void test_value(const char *filename, int64_t start, int64_t end, const v
 
 public void say(Text_t text, bool newline)
 {
-    Text$print(stdout, text);
+    Textヽprint(stdout, text);
     if (newline)
         fputc('\n', stdout);
     fflush(stdout);
@@ -578,7 +578,7 @@ public OptionalText_t ask(Text_t prompt, bool bold, bool force_tty)
     }
 
     if (bold) fputs("\x1b[1m", out);
-    Text$print(out, prompt);
+    Textヽprint(out, prompt);
     if (bold) fputs("\x1b[m", out);
     fflush(out);
 
@@ -604,7 +604,7 @@ public OptionalText_t ask(Text_t prompt, bool bold, bool force_tty)
     gc_input = GC_MALLOC_ATOMIC((size_t)(length + 1));
     memcpy(gc_input, line, (size_t)(length + 1));
 
-    ret = Text$from_strn(gc_input, (size_t)(length));
+    ret = Textヽfrom_strn(gc_input, (size_t)(length));
 
   cleanup:
     if (out && out != stdout) fclose(out);
@@ -627,7 +627,7 @@ public bool pop_flag(char **argv, int *i, const char *flag, Text_t *result)
         *i += 1;
         return true;
     } else if (strncmp(argv[*i] + 2, flag, strlen(flag)) == 0 && argv[*i][2 + strlen(flag)] == '=') {
-        *result = Text$from_str(argv[*i] + 2 + strlen(flag) + 1);
+        *result = Textヽfrom_str(argv[*i] + 2 + strlen(flag) + 1);
         argv[*i] = NULL;
         *i += 1;
         return true;
@@ -646,13 +646,13 @@ public void sleep_num(double seconds)
 
 public OptionalText_t getenv_text(Text_t name)
 {
-    const char *val = getenv(Text$as_c_string(name));
-    return val ? Text$from_str(val) : NONE_TEXT;
+    const char *val = getenv(Textヽas_c_string(name));
+    return val ? Textヽfrom_str(val) : NONE_TEXT;
 }
 
 public void setenv_text(Text_t name, Text_t value)
 {
-    setenv(Text$as_c_string(name), Text$as_c_string(value), 1);
+    setenv(Textヽas_c_string(name), Textヽas_c_string(value), 1);
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

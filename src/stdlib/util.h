@@ -19,7 +19,7 @@
 
 #define IF_DECLARE(decl, expr, block) if (({ decl; expr ? ({ block; 1; }) : 0; })) {}
 
-#define WHEN(type, subj, var, body) { type var = subj; switch (var.$tag) body }
+#define WHEN(type, subj, var, body) { type var = subj; switch (var.々tag) body }
 
 #ifndef public
 #define public __attribute__ ((visibility ("default")))

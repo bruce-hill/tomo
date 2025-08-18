@@ -96,9 +96,9 @@ PRINT_FN _print_repeated_char(FILE *f, repeated_char_t repeated) {
     return len;
 }
 
-extern int Text$print(FILE *stream, Text_t text);
-extern int Path$print(FILE *stream, Path_t path);
-extern int Int$print(FILE *f, Int_t i);
+extern int Textヽprint(FILE *stream, Text_t text);
+extern int Pathヽprint(FILE *stream, Path_t path);
+extern int Intヽprint(FILE *f, Int_t i);
 #ifndef _fprint1
 #define _fprint1(f, x) _Generic((x), \
     char*: _print_str, \
@@ -121,9 +121,9 @@ extern int Int$print(FILE *f, Int_t i);
     quoted_t: _print_quoted, \
     string_slice_t: _print_string_slice, \
     repeated_char_t: _print_repeated_char, \
-    Text_t: Text$print, \
-    Path_t: Path$print, \
-    Int_t: Int$print, \
+    Text_t: Textヽprint, \
+    Path_t: Pathヽprint, \
+    Int_t: Intヽprint, \
     void*: _print_pointer)(f, x)
 #endif
 

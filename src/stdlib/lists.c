@@ -28,7 +28,7 @@ PUREFUNC static INLINE int64_t get_padded_item_size(const TypeInfo_t *info)
 
 // Replace the list's .data pointer with a new pointer to a copy of the
 // data that is compacted and has a stride of exactly `padded_item_size`
-public void List$compact(List_t *list, int64_t padded_item_size)
+public void Listヽcompact(List_t *list, int64_t padded_item_size)
 {
     void *copy = NULL;
     if (list->length > 0) {
@@ -49,9 +49,9 @@ public void List$compact(List_t *list, int64_t padded_item_size)
     };
 }
 
-public void List$insert(List_t *list, const void *item, Int_t int_index, int64_t padded_item_size)
+public void Listヽinsert(List_t *list, const void *item, Int_t int_index, int64_t padded_item_size)
 {
-    int64_t index = Int64$from_int(int_index, false);
+    int64_t index = Int64ヽfrom_int(int_index, false);
     if (index <= 0) index = list->length + index + 1;
 
     if (index < 1) index = 1;
@@ -92,9 +92,9 @@ public void List$insert(List_t *list, const void *item, Int_t int_index, int64_t
     memcpy((void*)list->data + (index-1)*padded_item_size, item, (size_t)padded_item_size);
 }
 
-public void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t padded_item_size)
+public void Listヽinsert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t padded_item_size)
 {
-    int64_t index = Int64$from_int(int_index, false);
+    int64_t index = Int64ヽfrom_int(int_index, false);
     if (to_insert.length == 0)
         return;
 
@@ -174,12 +174,12 @@ public void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int
     }
 }
 
-public void List$remove_at(List_t *list, Int_t int_index, Int_t int_count, int64_t padded_item_size)
+public void Listヽremove_at(List_t *list, Int_t int_index, Int_t int_count, int64_t padded_item_size)
 {
-    int64_t index = Int64$from_int(int_index, false);
+    int64_t index = Int64ヽfrom_int(int_index, false);
     if (index < 1) index = list->length + index + 1;
 
-    int64_t count = Int64$from_int(int_count, false);
+    int64_t count = Int64ヽfrom_int(int_count, false);
     if (index < 1 || index > (int64_t)list->length || count < 1) return;
 
     if (count > list->length - index + 1)
@@ -210,7 +210,7 @@ public void List$remove_at(List_t *list, Int_t int_index, Int_t int_count, int64
     if (list->length == 0) list->data = NULL;
 }
 
-public void List$remove_item(List_t *list, void *item, Int_t max_removals, const TypeInfo_t *type)
+public void Listヽremove_item(List_t *list, void *item, Int_t max_removals, const TypeInfo_t *type)
 {
     int64_t padded_item_size = get_padded_item_size(type);
     const Int_t ZERO = (Int_t){.small=(0<<2)|1};
@@ -221,15 +221,15 @@ public void List$remove_item(List_t *list, void *item, Int_t max_removals, const
             break;
 
         if (generic_equal(item, list->data + i*list->stride, item_type)) {
-            List$remove_at(list, I(i+1), ONE, padded_item_size);
-            max_removals = Int$minus(max_removals, ONE);
+            Listヽremove_at(list, I(i+1), ONE, padded_item_size);
+            max_removals = Intヽminus(max_removals, ONE);
         } else {
             i++;
         }
     }
 }
 
-public OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type)
+public OptionalInt_t Listヽfind(List_t list, void *item, const TypeInfo_t *type)
 {
     const TypeInfo_t *item_type = type->ListInfo.item;
     for (int64_t i = 0; i < list.length; i++) {
@@ -239,7 +239,7 @@ public OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type)
     return NONE_INT;
 }
 
-public OptionalInt_t List$first(List_t list, Closure_t predicate)
+public OptionalInt_t Listヽfirst(List_t list, Closure_t predicate)
 {
     bool (*is_good)(void*, void*) = (void*)predicate.fn;
     for (int64_t i = 0; i < list.length; i++) {
@@ -257,18 +257,18 @@ int _compare_closure(const void *a, const void *b)
     return ((comparison_t)_sort_comparison.fn)(a, b, _sort_comparison.userdata);
 }
 
-public void List$sort(List_t *list, Closure_t comparison, int64_t padded_item_size)
+public void Listヽsort(List_t *list, Closure_t comparison, int64_t padded_item_size)
 {
     if (list->data_refcount != 0 || (int64_t)list->stride != padded_item_size)
-        List$compact(list, padded_item_size);
+        Listヽcompact(list, padded_item_size);
 
     _sort_comparison = comparison;
     qsort(list->data, (size_t)list->length, (size_t)padded_item_size, _compare_closure);
 }
 
-public List_t List$sorted(List_t list, Closure_t comparison, int64_t padded_item_size)
+public List_t Listヽsorted(List_t list, Closure_t comparison, int64_t padded_item_size)
 {
-    List$compact(&list, padded_item_size);
+    Listヽcompact(&list, padded_item_size);
     _sort_comparison = comparison;
     qsort(list.data, (size_t)list.length, (size_t)padded_item_size, _compare_closure);
     return list;
@@ -303,10 +303,10 @@ static int64_t _default_random_int64(int64_t min, int64_t max, void *userdata)
     return (int64_t)((uint64_t)min + (r % range));
 }
 
-public void List$shuffle(List_t *list, OptionalClosure_t random_int64, int64_t padded_item_size)
+public void Listヽshuffle(List_t *list, OptionalClosure_t random_int64, int64_t padded_item_size)
 {
     if (list->data_refcount != 0 || (int64_t)list->stride != padded_item_size)
-        List$compact(list, padded_item_size);
+        Listヽcompact(list, padded_item_size);
 
     typedef int64_t (*rng_fn_t)(int64_t, int64_t, void*);
     rng_fn_t rng_fn = random_int64.fn ? (rng_fn_t)random_int64.fn : _default_random_int64;
@@ -321,14 +321,14 @@ public void List$shuffle(List_t *list, OptionalClosure_t random_int64, int64_t p
     }
 }
 
-public List_t List$shuffled(List_t list, Closure_t random_int64, int64_t padded_item_size)
+public List_t Listヽshuffled(List_t list, Closure_t random_int64, int64_t padded_item_size)
 {
-    List$compact(&list, padded_item_size);
-    List$shuffle(&list, random_int64, padded_item_size);
+    Listヽcompact(&list, padded_item_size);
+    Listヽshuffle(&list, random_int64, padded_item_size);
     return list;
 }
 
-public void *List$random(List_t list, OptionalClosure_t random_int64)
+public void *Listヽrandom(List_t list, OptionalClosure_t random_int64)
 {
     if (list.length == 0)
         return NULL; // fail("Cannot get a random item from an empty list!");
@@ -341,15 +341,15 @@ public void *List$random(List_t list, OptionalClosure_t random_int64)
     return list.data + list.stride*index;
 }
 
-public Table_t List$counts(List_t list, const TypeInfo_t *type)
+public Table_t Listヽcounts(List_t list, const TypeInfo_t *type)
 {
     Table_t counts = {};
-    const TypeInfo_t count_type = *Table$info(type->ListInfo.item, &Int$info);
+    const TypeInfo_t count_type = *Tableヽinfo(type->ListInfo.item, &Intヽinfo);
     for (int64_t i = 0; i < list.length; i++) {
         void *key = list.data + i*list.stride;
-        int64_t *count = Table$get(counts, key, &count_type);
+        int64_t *count = Tableヽget(counts, key, &count_type);
         int64_t val = count ? *count + 1 : 1;
-        Table$set(&counts, key, &val, &count_type);
+        Tableヽset(&counts, key, &val, &count_type);
     }
     return counts;
 }
@@ -369,9 +369,9 @@ static double _default_random_num(void *userdata)
     return r.num - 1.0;
 }
 
-public List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t random_num, int64_t padded_item_size)
+public List_t Listヽsample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t random_num, int64_t padded_item_size)
 {
-    int64_t n = Int64$from_int(int_n, false);
+    int64_t n = Int64ヽfrom_int(int_n, false);
     if (n < 0)
         fail("Cannot select a negative number of values");
 
@@ -459,19 +459,19 @@ public List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClos
     return selected;
 }
 
-public List_t List$from(List_t list, Int_t first)
+public List_t Listヽfrom(List_t list, Int_t first)
 {
-    return List$slice(list, first, I_small(-1));
+    return Listヽslice(list, first, I_small(-1));
 }
 
-public List_t List$to(List_t list, Int_t last)
+public List_t Listヽto(List_t list, Int_t last)
 {
-    return List$slice(list, I_small(1), last);
+    return Listヽslice(list, I_small(1), last);
 }
 
-public List_t List$by(List_t list, Int_t int_stride, int64_t padded_item_size)
+public List_t Listヽby(List_t list, Int_t int_stride, int64_t padded_item_size)
 {
-    int64_t stride = Int64$from_int(int_stride, false);
+    int64_t stride = Int64ヽfrom_int(int_stride, false);
     // In the unlikely event that the stride value would be too large to fit in
     // a 15-bit integer, fall back to creating a copy of the list:
     if (unlikely(list.stride*stride < LIST_MIN_STRIDE || list.stride*stride > LIST_MAX_STRIDE)) {
@@ -503,14 +503,14 @@ public List_t List$by(List_t list, Int_t int_stride, int64_t padded_item_size)
     };
 }
 
-public List_t List$slice(List_t list, Int_t int_first, Int_t int_last)
+public List_t Listヽslice(List_t list, Int_t int_first, Int_t int_last)
 
 {
-    int64_t first = Int64$from_int(int_first, false);
+    int64_t first = Int64ヽfrom_int(int_first, false);
     if (first < 0)
         first = list.length + first + 1;
 
-    int64_t last = Int64$from_int(int_last, false);
+    int64_t last = Int64ヽfrom_int(int_last, false);
     if (last < 0)
         last = list.length + last + 1;
 
@@ -529,14 +529,14 @@ public List_t List$slice(List_t list, Int_t int_first, Int_t int_last)
     };
 }
 
-public List_t List$reversed(List_t list, int64_t padded_item_size)
+public List_t Listヽreversed(List_t list, int64_t padded_item_size)
 {
     // Just in case negating the stride gives a value that doesn't fit into a
-    // 15-bit integer, fall back to List$by()'s more general method of copying
+    // 15-bit integer, fall back to Listヽby()'s more general method of copying
     // the list. This should only happen if list.stride is MIN_STRIDE to
     // begin with (very unlikely).
     if (unlikely(-list.stride < LIST_MIN_STRIDE || -list.stride > LIST_MAX_STRIDE))
-        return List$by(list, I(-1), padded_item_size);
+        return Listヽby(list, I(-1), padded_item_size);
 
     List_t reversed = list;
     reversed.stride = -list.stride;
@@ -544,7 +544,7 @@ public List_t List$reversed(List_t list, int64_t padded_item_size)
     return reversed;
 }
 
-public List_t List$concat(List_t x, List_t y, int64_t padded_item_size)
+public List_t Listヽconcat(List_t x, List_t y, int64_t padded_item_size)
 {
     void *data = x.atomic ? GC_MALLOC_ATOMIC((size_t)(padded_item_size*(x.length + y.length)))
         : GC_MALLOC((size_t)(padded_item_size*(x.length + y.length)));
@@ -571,7 +571,7 @@ public List_t List$concat(List_t x, List_t y, int64_t padded_item_size)
     };
 }
 
-public bool List$has(List_t list, void *item, const TypeInfo_t *type)
+public bool Listヽhas(List_t list, void *item, const TypeInfo_t *type)
 {
     const TypeInfo_t *item_type = type->ListInfo.item;
     for (int64_t i = 0; i < list.length; i++) {
@@ -581,12 +581,12 @@ public bool List$has(List_t list, void *item, const TypeInfo_t *type)
     return false;
 }
 
-public void List$clear(List_t *list)
+public void Listヽclear(List_t *list)
 {
     *list = (List_t){.data=0, .length=0};
 }
 
-public int32_t List$compare(const void *vx, const void *vy, const TypeInfo_t *type)
+public int32_t Listヽcompare(const void *vx, const void *vy, const TypeInfo_t *type)
 {
     const List_t *x = (List_t*)vx, *y = (List_t*)vy;
     // Early out for lists with the same data, e.g. two copies of the same list:
@@ -617,30 +617,30 @@ public int32_t List$compare(const void *vx, const void *vy, const TypeInfo_t *ty
     return (x->length > y->length) - (x->length < y->length);
 }
 
-public bool List$equal(const void *x, const void *y, const TypeInfo_t *type)
+public bool Listヽequal(const void *x, const void *y, const TypeInfo_t *type)
 {
-    return x == y || (((List_t*)x)->length == ((List_t*)y)->length && List$compare(x, y, type) == 0);
+    return x == y || (((List_t*)x)->length == ((List_t*)y)->length && Listヽcompare(x, y, type) == 0);
 }
 
-public Text_t List$as_text(const void *obj, bool colorize, const TypeInfo_t *type)
+public Text_t Listヽas_text(const void *obj, bool colorize, const TypeInfo_t *type)
 {
     List_t *list = (List_t*)obj;
     if (!list)
-        return Text$concat(Text("["), generic_as_text(NULL, false, type->ListInfo.item), Text("]"));
+        return Textヽconcat(Text("["), generic_as_text(NULL, false, type->ListInfo.item), Text("]"));
 
     const TypeInfo_t *item_type = type->ListInfo.item;
     Text_t text = Text("[");
     for (int64_t i = 0; i < list->length; i++) {
         if (i > 0)
-            text = Text$concat(text, Text(", "));
+            text = Textヽconcat(text, Text(", "));
         Text_t item_text = generic_as_text(list->data + i*list->stride, colorize, item_type);
-        text = Text$concat(text, item_text);
+        text = Textヽconcat(text, item_text);
     }
-    text = Text$concat(text, Text("]"));
+    text = Textヽconcat(text, Text("]"));
     return text;
 }
 
-public uint64_t List$hash(const void *obj, const TypeInfo_t *type)
+public uint64_t Listヽhash(const void *obj, const TypeInfo_t *type)
 {
     const List_t *list = (List_t*)obj;
     const TypeInfo_t *item = type->ListInfo.item;
@@ -706,18 +706,18 @@ static void siftup(List_t *heap, int64_t pos, Closure_t comparison, int64_t padd
     siftdown(heap, startpos, pos, comparison, padded_item_size);
 }
 
-public void List$heap_push(List_t *heap, const void *item, Closure_t comparison, int64_t padded_item_size)
+public void Listヽheap_push(List_t *heap, const void *item, Closure_t comparison, int64_t padded_item_size)
 {
-    List$insert(heap, item, I(0), padded_item_size);
+    Listヽinsert(heap, item, I(0), padded_item_size);
 
     if (heap->length > 1) {
         if (heap->data_refcount != 0)
-            List$compact(heap, padded_item_size);
+            Listヽcompact(heap, padded_item_size);
         siftdown(heap, 0, heap->length-1, comparison, padded_item_size);
     }
 }
 
-public void List$heap_pop(List_t *heap, Closure_t comparison, int64_t padded_item_size)
+public void Listヽheap_pop(List_t *heap, Closure_t comparison, int64_t padded_item_size)
 {
     if (heap->length == 0)
         fail("Attempt to pop from an empty list");
@@ -729,17 +729,17 @@ public void List$heap_pop(List_t *heap, Closure_t comparison, int64_t padded_ite
         --heap->length;
     } else {
         if (heap->data_refcount != 0)
-            List$compact(heap, padded_item_size);
+            Listヽcompact(heap, padded_item_size);
         memcpy(heap->data, heap->data + heap->stride*(heap->length-1), (size_t)(padded_item_size));
         --heap->length;
         siftup(heap, 0, comparison, padded_item_size);
     }
 }
 
-public void List$heapify(List_t *heap, Closure_t comparison, int64_t padded_item_size)
+public void Listヽheapify(List_t *heap, Closure_t comparison, int64_t padded_item_size)
 {
     if (heap->data_refcount != 0)
-        List$compact(heap, padded_item_size);
+        Listヽcompact(heap, padded_item_size);
 
     // It's necessary to bump the refcount because the user's comparison
     // function could do stuff that modifies the heap's data.
@@ -750,7 +750,7 @@ public void List$heapify(List_t *heap, Closure_t comparison, int64_t padded_item
     LIST_DECREF(*heap);
 }
 
-public Int_t List$binary_search(List_t list, void *target, Closure_t comparison)
+public Int_t Listヽbinary_search(List_t list, void *target, Closure_t comparison)
 {
     typedef int32_t (*cmp_fn_t)(void*, void*, void*);
     int64_t lo = 0, hi = list.length-1;
@@ -768,17 +768,17 @@ public Int_t List$binary_search(List_t list, void *target, Closure_t comparison)
     return I(lo+1); // Return the index where the target would be inserted
 }
 
-public PUREFUNC bool List$is_none(const void *obj, const TypeInfo_t *info)
+public PUREFUNC bool Listヽis_none(const void *obj, const TypeInfo_t *info)
 {
     (void)info;
     return ((List_t*)obj)->length < 0;
 }
 
-public void List$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+public void Listヽserialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
 {
     List_t list = *(List_t*)obj;
     int64_t len = list.length;
-    Int64$serialize(&len, out, pointers, &Int64$info);
+    Int64ヽserialize(&len, out, pointers, &Int64ヽinfo);
     serialize_fn_t item_serialize = type->ListInfo.item->metamethods.serialize;
     if (item_serialize) {
         for (int64_t i = 0; i < len; i++)
@@ -791,10 +791,10 @@ public void List$serialize(const void *obj, FILE *out, Table_t *pointers, const 
     }
 }
 
-public void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *type)
+public void Listヽdeserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *type)
 {
     int64_t len = -1;
-    Int64$deserialize(in, &len, pointers, &Int64$info);
+    Int64ヽdeserialize(in, &len, pointers, &Int64ヽinfo);
     int64_t padded_size = type->ListInfo.item->size;
     if (type->ListInfo.item->align > 0 && padded_size % type->ListInfo.item->align > 0)
         padded_size += type->ListInfo.item->align - (padded_size % type->ListInfo.item->align);

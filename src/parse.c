@@ -380,13 +380,17 @@ const char *get_word(const char **inout) {
     const uint8_t *pos = (const uint8_t*)word;
     ucs4_t point;
     pos = u8_next(&point, pos);
-    if (!uc_is_property_xid_start(point) && point != '_')
+    if ((!uc_is_property_xid_start(point) && point != '_')
+        || point == 12541 || point == 12295 || point == 12293) // Reserved characters (see naming.c)
         return NULL;
 
     for (const uint8_t *next; (next = u8_next(&point, pos)); pos = next) {
         if (!uc_is_property_xid_continue(point))
             break;
+        if (point == 12541 || point == 12295 || point == 12293) // Reserved characters (see naming.c)
+            break;
     }
+
     *inout = (const char*)pos;
     return GC_strndup(word, (size_t)((const char*)pos - word));
 }
@@ -836,10 +840,10 @@ ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (!match(&pos, ".")) return NULL;
     if (*pos == '.') return NULL;
     whitespace(&pos);
-    bool dollar = match(&pos, "$");
-    const char* field = get_id(&pos);
+    bool is_sep = match(&pos, "ヽ");
+    const char *field = get_id(&pos);
     if (!field) return NULL;
-    if (dollar) field = String("$", field);
+    if (is_sep) field = String("ヽ", field);
     return NewAST(ctx->file, lhs->start, pos, FieldAccess, .fielded=lhs, .field=field);
 }
 
@@ -869,7 +873,7 @@ PARSER(parse_reduction) {
     ast_e op = match_binary_operator(&pos);
     if (op == Unknown) return NULL;
 
-    ast_t *key = NewAST(ctx->file, pos, pos, Var, .name="$");
+    ast_t *key = NewAST(ctx->file, pos, pos, Var, .name="ヽ");
     for (bool progress = true; progress; ) {
         ast_t *new_term;
         progress = (false
@@ -1218,7 +1222,7 @@ ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open
     int64_t plain_span_len = 0;
 #define FLUSH_PLAIN_SPAN() do { \
     if (plain_span_len > 0) { \
-        chunk = Texts(chunk, Text$from_strn(pos - plain_span_len, (size_t)plain_span_len)); \
+        chunk = Texts(chunk, Textヽfrom_strn(pos - plain_span_len, (size_t)plain_span_len)); \
         plain_span_len = 0; \
     } } while (0)
     for (const char *end = ctx->file->text + ctx->file->len; pos < end && depth > 0; ) {
@@ -1241,7 +1245,7 @@ ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open
         } else if (allow_escapes && *pos == '\\') {
             FLUSH_PLAIN_SPAN();
             const char *c = unescape(ctx, &pos);
-            chunk = Texts(chunk, Text$from_str(c));
+            chunk = Texts(chunk, Textヽfrom_str(c));
         } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) { // Nested pair begin
             if (get_indent(ctx, pos) == starting_indent) {
                 ++depth;
@@ -1678,7 +1682,7 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
     for (ast_e op; (op=match_binary_operator(&pos)) != Unknown && op_tightness[op] >= min_tightness; spaces(&pos)) {
         ast_t *key = NULL;
         if (op == Min || op == Max) {
-            key = NewAST(ctx->file, pos, pos, Var, .name="$");
+            key = NewAST(ctx->file, pos, pos, Var, .name="ヽ");
             for (bool progress = true; progress; ) {
                 ast_t *new_term;
                 progress = (false
@@ -2406,7 +2410,7 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
     // AST holds onto a reference to the file it came from, so they could
     // potentially be somewhat large.
     static Table_t cached = {};
-    ast_t *ast = Table$str_get(cached, path);
+    ast_t *ast = Tableヽstr_get(cached, path);
     if (ast) return ast;
 
     file_t *file;
@@ -2440,12 +2444,12 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
     if (cached.entries.length > PARSE_CACHE_SIZE) {
         // FIXME: this currently evicts the first entry, but it should be more like
         // an LRU cache
-        struct {const char *path; ast_t *ast; } *to_remove = Table$entry(cached, 1);
-        Table$str_remove(&cached, to_remove->path);
+        struct {const char *path; ast_t *ast; } *to_remove = Tableヽentry(cached, 1);
+        Tableヽstr_remove(&cached, to_remove->path);
     }
 
     // Save the AST in the cache:
-    Table$str_set(&cached, path, ast);
+    Tableヽstr_set(&cached, path, ast);
     return ast;
 }
 

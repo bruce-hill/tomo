@@ -18,7 +18,7 @@
 #include "text.h"
 #include "types.h"
 
-public int Int$print(FILE *f, Int_t i) {
+public int Intヽprint(FILE *f, Int_t i) {
     if (likely(i.small & 1L)) {
         return _print_int(f, (int64_t)((i.small)>>2L));
     } else {
@@ -44,33 +44,33 @@ static inline Text_t _int64_to_text(int64_t n)
     if (negative)
         *(p--) = '-';
 
-    return Text$from_strn(p + 1, (size_t)(&buf[19] - p));
+    return Textヽfrom_strn(p + 1, (size_t)(&buf[19] - p));
 }
 
-public Text_t Int$value_as_text(Int_t i) {
+public Text_t Intヽvalue_as_text(Int_t i) {
     if (likely(i.small & 1L)) {
         return _int64_to_text(i.small >> 2L);
     } else {
         char *str = mpz_get_str(NULL, 10, *i.big);
-        return Text$from_str(str);
+        return Textヽfrom_str(str);
     }
 }
 
-public Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t *info) {
+public Text_t Intヽas_text(const void *i, bool colorize, const TypeInfo_t *info) {
     (void)info;
     if (!i) return Text("Int");
-    Text_t text = Int$value_as_text(*(Int_t*)i);
-    if (colorize) text = Text$concat(Text("\x1b[35m"), text, Text("\x1b[m"));
+    Text_t text = Intヽvalue_as_text(*(Int_t*)i);
+    if (colorize) text = Textヽconcat(Text("\x1b[35m"), text, Text("\x1b[m"));
     return text;
 }
 
-static bool Int$is_none(const void *i, const TypeInfo_t *info)
+static bool Intヽis_none(const void *i, const TypeInfo_t *info)
 {
     (void)info;
     return ((Int_t*)i)->small == 0L;
 }
 
-public PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
+public PUREFUNC int32_t Intヽcompare_value(const Int_t x, const Int_t y) {
     if (likely(x.small & y.small & 1L))
         return (x.small > y.small) - (x.small < y.small);
     else if (x.small & 1)
@@ -81,32 +81,32 @@ public PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
         return x.big == y.big ? 0 : mpz_cmp(*x.big, *y.big);
 }
 
-public PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo_t *info) {
+public PUREFUNC int32_t Intヽcompare(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
-    return Int$compare_value(*(Int_t*)x, *(Int_t*)y);
+    return Intヽcompare_value(*(Int_t*)x, *(Int_t*)y);
 }
 
-public PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y) {
+public PUREFUNC bool Intヽequal_value(const Int_t x, const Int_t y) {
     if (likely((x.small | y.small) & 1L))
         return x.small == y.small;
     else
         return x.big == y.big ? 0 : (mpz_cmp(*x.big, *y.big) == 0);
 }
 
-public PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t *info) {
+public PUREFUNC bool Intヽequal(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
-    return Int$equal_value(*(Int_t*)x, *(Int_t*)y);
+    return Intヽequal_value(*(Int_t*)x, *(Int_t*)y);
 }
 
-public CONSTFUNC Int_t Int$clamped(Int_t x, Int_t low, Int_t high) {
-    return (Int$compare(&x, &low, &Int$info) <= 0) ? low : (Int$compare(&x, &high, &Int$info) >= 0 ? high : x);
+public CONSTFUNC Int_t Intヽclamped(Int_t x, Int_t low, Int_t high) {
+    return (Intヽcompare(&x, &low, &Intヽinfo) <= 0) ? low : (Intヽcompare(&x, &high, &Intヽinfo) >= 0 ? high : x);
 }
 
-public CONSTFUNC bool Int$is_between(const Int_t x, const Int_t low, const Int_t high) {
-    return Int$compare_value(low, x) <= 0 && Int$compare_value(x, high) <= 0;
+public CONSTFUNC bool Intヽis_between(const Int_t x, const Int_t low, const Int_t high) {
+    return Intヽcompare_value(low, x) <= 0 && Intヽcompare_value(x, high) <= 0;
 }
 
-public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t *info) {
+public PUREFUNC uint64_t Intヽhash(const void *vx, const TypeInfo_t *info) {
     (void)info;
     Int_t *x = (Int_t*)vx;
     if (likely(x->small & 1L)) {
@@ -117,57 +117,57 @@ public PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t *info) {
     }
 }
 
-public Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
-    if (Int$is_negative(i))
-        return Text$concat(Text("-"), Int$hex(Int$negative(i), digits_int, uppercase, prefix));
+public Text_t Intヽhex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
+    if (Intヽis_negative(i))
+        return Textヽconcat(Text("-"), Intヽhex(Intヽnegative(i), digits_int, uppercase, prefix));
 
     if (likely(i.small & 1L)) {
         uint64_t u64 = (uint64_t)(i.small >> 2);
-        return Text$from_str(String(hex(u64, .no_prefix=!prefix, .digits=Int32$from_int(digits_int, false), .uppercase=uppercase)));
+        return Textヽfrom_str(String(hex(u64, .no_prefix=!prefix, .digits=Int32ヽfrom_int(digits_int, false), .uppercase=uppercase)));
     } else {
         char *str = mpz_get_str(NULL, 16, *i.big);
         if (uppercase) {
             for (char *c = str; *c; c++)
                 *c = (char)toupper(*c);
         }
-        int64_t digits = Int64$from_int(digits_int, false);
+        int64_t digits = Int64ヽfrom_int(digits_int, false);
         int64_t needed_zeroes = digits - (int64_t)strlen(str);
         if (needed_zeroes <= 0)
-            return prefix ? Text$concat(Text("0x"), Text$from_str(str)) : Text$from_str(str);
+            return prefix ? Textヽconcat(Text("0x"), Textヽfrom_str(str)) : Textヽfrom_str(str);
 
         char *zeroes = GC_MALLOC_ATOMIC((size_t)(needed_zeroes));
         memset(zeroes, '0', (size_t)(needed_zeroes));
         if (prefix)
-            return Text$concat(Text("0x"), Text$from_str(zeroes), Text$from_str(str));
+            return Textヽconcat(Text("0x"), Textヽfrom_str(zeroes), Textヽfrom_str(str));
         else
-            return Text$concat(Text$from_str(zeroes), Text$from_str(str));
+            return Textヽconcat(Textヽfrom_str(zeroes), Textヽfrom_str(str));
     }
 }
 
-public Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
-    if (Int$is_negative(i))
-        return Text$concat(Text("-"), Int$octal(Int$negative(i), digits_int, prefix));
+public Text_t Intヽoctal(Int_t i, Int_t digits_int, bool prefix) {
+    if (Intヽis_negative(i))
+        return Textヽconcat(Text("-"), Intヽoctal(Intヽnegative(i), digits_int, prefix));
 
     if (likely(i.small & 1L)) {
         uint64_t u64 = (uint64_t)(i.small >> 2);
-        return Text$from_str(String(oct(u64, .no_prefix=!prefix, .digits=Int32$from_int(digits_int, false))));
+        return Textヽfrom_str(String(oct(u64, .no_prefix=!prefix, .digits=Int32ヽfrom_int(digits_int, false))));
     } else {
-        int64_t digits = Int64$from_int(digits_int, false);
+        int64_t digits = Int64ヽfrom_int(digits_int, false);
         char *str = mpz_get_str(NULL, 8, *i.big);
         int64_t needed_zeroes = digits - (int64_t)strlen(str);
         if (needed_zeroes <= 0)
-            return prefix ? Text$concat(Text("0o"), Text$from_str(str)) : Text$from_str(str);
+            return prefix ? Textヽconcat(Text("0o"), Textヽfrom_str(str)) : Textヽfrom_str(str);
 
         char *zeroes = GC_MALLOC_ATOMIC((size_t)(needed_zeroes));
         memset(zeroes, '0', (size_t)(needed_zeroes));
         if (prefix)
-            return Text$concat(Text("0o"), Text$from_str(zeroes), Text$from_str(str));
+            return Textヽconcat(Text("0o"), Textヽfrom_str(zeroes), Textヽfrom_str(str));
         else
-            return Text$concat(Text$from_str(zeroes), Text$from_str(str));
+            return Textヽconcat(Textヽfrom_str(zeroes), Textヽfrom_str(str));
     }
 }
 
-public Int_t Int$slow_plus(Int_t x, Int_t y) {
+public Int_t Intヽslow_plus(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1L) {
@@ -178,10 +178,10 @@ public Int_t Int$slow_plus(Int_t x, Int_t y) {
     } else {
         mpz_add(result, result, *y.big);
     }
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_minus(Int_t x, Int_t y) {
+public Int_t Intヽslow_minus(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1L) {
@@ -192,20 +192,20 @@ public Int_t Int$slow_minus(Int_t x, Int_t y) {
     } else {
         mpz_sub(result, result, *y.big);
     }
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_times(Int_t x, Int_t y) {
+public Int_t Intヽslow_times(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1L)
         mpz_mul_si(result, result, y.small >> 2L);
     else
         mpz_mul(result, result, *y.big);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_divided_by(Int_t dividend, Int_t divisor) {
+public Int_t Intヽslow_divided_by(Int_t dividend, Int_t divisor) {
     // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
     mpz_t quotient, remainder;
     mpz_init_set_int(quotient, dividend);
@@ -218,20 +218,20 @@ public Int_t Int$slow_divided_by(Int_t dividend, Int_t divisor) {
         else
             mpz_add_ui(quotient, quotient, 1);
     }
-    return Int$from_mpz(quotient);
+    return Intヽfrom_mpz(quotient);
 }
 
-public Int_t Int$slow_modulo(Int_t x, Int_t modulus)
+public Int_t Intヽslow_modulo(Int_t x, Int_t modulus)
 {
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_t divisor;
     mpz_init_set_int(divisor, modulus);
     mpz_mod(result, result, divisor);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_modulo1(Int_t x, Int_t modulus)
+public Int_t Intヽslow_modulo1(Int_t x, Int_t modulus)
 {
     mpz_t result;
     mpz_init_set_int(result, x);
@@ -240,67 +240,67 @@ public Int_t Int$slow_modulo1(Int_t x, Int_t modulus)
     mpz_init_set_int(divisor, modulus);
     mpz_mod(result, result, divisor);
     mpz_add_ui(result, result, 1);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_left_shifted(Int_t x, Int_t y)
+public Int_t Intヽslow_left_shifted(Int_t x, Int_t y)
 {
-    mp_bitcnt_t bits = (mp_bitcnt_t)Int64$from_int(y, false);
+    mp_bitcnt_t bits = (mp_bitcnt_t)Int64ヽfrom_int(y, false);
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_mul_2exp(result, result, bits);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_right_shifted(Int_t x, Int_t y)
+public Int_t Intヽslow_right_shifted(Int_t x, Int_t y)
 {
-    mp_bitcnt_t bits = (mp_bitcnt_t)Int64$from_int(y, false);
+    mp_bitcnt_t bits = (mp_bitcnt_t)Int64ヽfrom_int(y, false);
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_tdiv_q_2exp(result, result, bits);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_bit_and(Int_t x, Int_t y)
+public Int_t Intヽslow_bit_and(Int_t x, Int_t y)
 {
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_t y_mpz;
     mpz_init_set_int(y_mpz, y);
     mpz_and(result, result, y_mpz);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_bit_or(Int_t x, Int_t y)
+public Int_t Intヽslow_bit_or(Int_t x, Int_t y)
 {
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_t y_mpz;
     mpz_init_set_int(y_mpz, y);
     mpz_ior(result, result, y_mpz);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_bit_xor(Int_t x, Int_t y)
+public Int_t Intヽslow_bit_xor(Int_t x, Int_t y)
 {
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_t y_mpz;
     mpz_init_set_int(y_mpz, y);
     mpz_xor(result, result, y_mpz);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_negated(Int_t x)
+public Int_t Intヽslow_negated(Int_t x)
 {
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_neg(result, result);
     mpz_sub_ui(result, result, 1);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$slow_negative(Int_t x)
+public Int_t Intヽslow_negative(Int_t x)
 {
     if (likely(x.small & 1L))
         return (Int_t){.small=4L*-((x.small)>>2L) + 1L};
@@ -308,10 +308,10 @@ public Int_t Int$slow_negative(Int_t x)
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_neg(result, result);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$abs(Int_t x)
+public Int_t Intヽabs(Int_t x)
 {
     if (likely(x.small & 1L))
         return (Int_t){.small=4L*labs((x.small)>>2L) + 1L};
@@ -319,24 +319,24 @@ public Int_t Int$abs(Int_t x)
     mpz_t result;
     mpz_init_set_int(result, x);
     mpz_abs(result, result);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$power(Int_t base, Int_t exponent)
+public Int_t Intヽpower(Int_t base, Int_t exponent)
 {
-    int64_t exp = Int64$from_int(exponent, false);
+    int64_t exp = Int64ヽfrom_int(exponent, false);
     if (unlikely(exp < 0))
         fail("Cannot take a negative power of an integer!");
     mpz_t result;
     mpz_init_set_int(result, base);
     mpz_pow_ui(result, result, (uint64_t)exp);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public Int_t Int$gcd(Int_t x, Int_t y)
+public Int_t Intヽgcd(Int_t x, Int_t y)
 {
     if (likely(x.small & y.small & 0x1L))
-        return I_small(Int32$gcd(x.small >> 2L, y.small >> 2L));
+        return I_small(Int32ヽgcd(x.small >> 2L, y.small >> 2L));
 
     mpz_t result;
     mpz_init(result);
@@ -346,29 +346,29 @@ public Int_t Int$gcd(Int_t x, Int_t y)
         mpz_gcd_ui(result, *x.big, (uint64_t)labs(y.small>>2L));
     else
         mpz_gcd(result, *x.big, *y.big);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public OptionalInt_t Int$sqrt(Int_t i)
+public OptionalInt_t Intヽsqrt(Int_t i)
 {
-    if (Int$compare_value(i, I(0)) < 0)
+    if (Intヽcompare_value(i, I(0)) < 0)
         return NONE_INT;
     mpz_t result;
     mpz_init_set_int(result, i);
     mpz_sqrt(result, result);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
 
-public bool Int$get_bit(Int_t x, Int_t bit_index)
+public bool Intヽget_bit(Int_t x, Int_t bit_index)
 {
     mpz_t i;
     mpz_init_set_int(i, x);
-    if (Int$compare_value(bit_index, I(1)) < 0)
+    if (Intヽcompare_value(bit_index, I(1)) < 0)
         fail("Invalid bit index (expected 1 or higher): ", bit_index);
-    if (Int$compare_value(bit_index, Int$from_int64(INT64_MAX)) > 0)
+    if (Intヽcompare_value(bit_index, Intヽfrom_int64(INT64_MAX)) > 0)
         fail("Bit index is too large! ", bit_index);
 
-    int is_bit_set = mpz_tstbit(i, (mp_bitcnt_t)(Int64$from_int(bit_index, true)-1));
+    int is_bit_set = mpz_tstbit(i, (mp_bitcnt_t)(Int64ヽfrom_int(bit_index, true)-1));
     return (bool)is_bit_set;
 }
 
@@ -380,26 +380,26 @@ typedef struct {
 static OptionalInt_t _next_int(IntRange_t *info)
 {
     OptionalInt_t i = info->current;
-    if (!Int$is_none(&i, &Int$info)) {
-        Int_t next = Int$plus(i, info->step);
-        if (!Int$is_none(&info->last, &Int$info) && Int$compare_value(next, info->last) == Int$compare_value(info->step, I(0)))
+    if (!Intヽis_none(&i, &Intヽinfo)) {
+        Int_t next = Intヽplus(i, info->step);
+        if (!Intヽis_none(&info->last, &Intヽinfo) && Intヽcompare_value(next, info->last) == Intヽcompare_value(info->step, I(0)))
             next = NONE_INT;
         info->current = next;
     }
     return i;
 }
 
-public PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step) {
+public PUREFUNC Closure_t Intヽto(Int_t first, Int_t last, OptionalInt_t step) {
     IntRange_t *range = GC_MALLOC(sizeof(IntRange_t));
     range->current = first;
     range->last = last;
-    range->step = Int$is_none(&step, &Int$info) ?
-        Int$compare_value(last, first) >= 0 ? (Int_t){.small=(1L<<2L)|1L} : (Int_t){.small=(-1L>>2L)|1L}
+    range->step = Intヽis_none(&step, &Intヽinfo) ?
+        Intヽcompare_value(last, first) >= 0 ? (Int_t){.small=(1L<<2L)|1L} : (Int_t){.small=(-1L>>2L)|1L}
         : step;
     return (Closure_t){.fn=_next_int, .userdata=range};
 }
 
-public PUREFUNC Closure_t Int$onward(Int_t first, Int_t step) {
+public PUREFUNC Closure_t Intヽonward(Int_t first, Int_t step) {
     IntRange_t *range = GC_MALLOC(sizeof(IntRange_t));
     range->current = first;
     range->last = NONE_INT;
@@ -407,7 +407,7 @@ public PUREFUNC Closure_t Int$onward(Int_t first, Int_t step) {
     return (Closure_t){.fn=_next_int, .userdata=range};
 }
 
-public Int_t Int$from_str(const char *str) {
+public Int_t Intヽfrom_str(const char *str) {
     mpz_t i;
     int result;
     if (strncmp(str, "0x", 2) == 0) {
@@ -421,31 +421,31 @@ public Int_t Int$from_str(const char *str) {
     }
     if (result != 0)
         return NONE_INT;
-    return Int$from_mpz(i);
+    return Intヽfrom_mpz(i);
 }
 
-public OptionalInt_t Int$parse(Text_t text, Text_t *remainder) {
-    const char *str = Text$as_c_string(text);
+public OptionalInt_t Intヽparse(Text_t text, Text_t *remainder) {
+    const char *str = Textヽas_c_string(text);
     mpz_t i;
     int result;
     if (strncmp(str, "0x", 2) == 0) {
         const char *end = str + 2 + strspn(str + 2, "0123456789abcdefABCDEF");
-        if (remainder) *remainder = Text$from_str(end);
+        if (remainder) *remainder = Textヽfrom_str(end);
         else if (*end != '\0') return NONE_INT;
         result = mpz_init_set_str(i, str + 2, 16);
     } else if (strncmp(str, "0o", 2) == 0) {
         const char *end = str + 2 + strspn(str + 2, "01234567");
-        if (remainder) *remainder = Text$from_str(end);
+        if (remainder) *remainder = Textヽfrom_str(end);
         else if (*end != '\0') return NONE_INT;
         result = mpz_init_set_str(i, str + 2, 8);
     } else if (strncmp(str, "0b", 2) == 0) {
         const char *end = str + 2 + strspn(str + 2, "01");
-        if (remainder) *remainder = Text$from_str(end);
+        if (remainder) *remainder = Textヽfrom_str(end);
         else if (*end != '\0') return NONE_INT;
         result = mpz_init_set_str(i, str + 2, 2);
     } else {
         const char *end = str + 2 + strspn(str + 2, "0123456789");
-        if (remainder) *remainder = Text$from_str(end);
+        if (remainder) *remainder = Textヽfrom_str(end);
         else if (*end != '\0') return NONE_INT;
         result = mpz_init_set_str(i, str, 10);
     }
@@ -453,49 +453,49 @@ public OptionalInt_t Int$parse(Text_t text, Text_t *remainder) {
         if (remainder) *remainder = text;
         return NONE_INT;
     }
-    return Int$from_mpz(i);
+    return Intヽfrom_mpz(i);
 }
 
-public bool Int$is_prime(Int_t x, Int_t reps)
+public bool Intヽis_prime(Int_t x, Int_t reps)
 {
     mpz_t p;
     mpz_init_set_int(p, x);
-    if (unlikely(Int$compare_value(reps, I(9999)) > 0))
+    if (unlikely(Intヽcompare_value(reps, I(9999)) > 0))
         fail("Number of prime-test repetitions should not be above 9999");
-    int reps_int = Int32$from_int(reps, false);
+    int reps_int = Int32ヽfrom_int(reps, false);
     return (mpz_probab_prime_p(p, reps_int) != 0);
 }
 
-public Int_t Int$next_prime(Int_t x)
+public Int_t Intヽnext_prime(Int_t x)
 {
     mpz_t p;
     mpz_init_set_int(p, x);
     mpz_nextprime(p, p);
-    return Int$from_mpz(p);
+    return Intヽfrom_mpz(p);
 }
 
 #if __GNU_MP_VERSION >= 6
 #if __GNU_MP_VERSION_MINOR >= 3
-public OptionalInt_t Int$prev_prime(Int_t x)
+public OptionalInt_t Intヽprev_prime(Int_t x)
 {
     mpz_t p;
     mpz_init_set_int(p, x);
     if (unlikely(mpz_prevprime(p, p) == 0))
         return NONE_INT;
-    return Int$from_mpz(p);
+    return Intヽfrom_mpz(p);
 }
 #endif
 #endif
 
-public Int_t Int$choose(Int_t n, Int_t k)
+public Int_t Intヽchoose(Int_t n, Int_t k)
 {
-    if unlikely (Int$compare_value(n, I_small(0)) < 0)
+    if unlikely (Intヽcompare_value(n, I_small(0)) < 0)
         fail("Negative inputs are not supported for choose()");
 
     mpz_t ret;
     mpz_init(ret);
 
-    int64_t k_i64 = Int64$from_int(k, false);
+    int64_t k_i64 = Int64ヽfrom_int(k, false);
     if unlikely (k_i64 < 0)
         fail("Negative inputs are not supported for choose()");
 
@@ -506,28 +506,28 @@ public Int_t Int$choose(Int_t n, Int_t k)
         mpz_init_set_int(n_mpz, n);
         mpz_bin_ui(ret, n_mpz, (unsigned long)k_i64);
     }
-    return Int$from_mpz(ret);
+    return Intヽfrom_mpz(ret);
 }
 
-public Int_t Int$factorial(Int_t n)
+public Int_t Intヽfactorial(Int_t n)
 {
     mpz_t ret;
     mpz_init(ret);
-    int64_t n_i64 = Int64$from_int(n, false);
+    int64_t n_i64 = Int64ヽfrom_int(n, false);
     if unlikely (n_i64 < 0)
         fail("Factorials are not defined for negative numbers");
     mpz_fac_ui(ret, (unsigned long)n_i64);
-    return Int$from_mpz(ret);
+    return Intヽfrom_mpz(ret);
 }
 
-static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
+static void Intヽserialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
     Int_t i = *(Int_t*)obj;
     if (likely(i.small & 1L)) {
         fputc(0, out);
         int64_t i64 = i.small >> 2L;
-        Int64$serialize(&i64, out, pointers, &Int64$info);
+        Int64ヽserialize(&i64, out, pointers, &Int64ヽinfo);
     } else {
         fputc(1, out);
         mpz_t n;
@@ -536,36 +536,36 @@ static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const T
     }
 }
 
-static void Int$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *info)
+static void Intヽdeserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
     if (fgetc(in) == 0) {
         int64_t i = 0;
-        Int64$deserialize(in, &i, pointers, &Int64$info);
+        Int64ヽdeserialize(in, &i, pointers, &Int64ヽinfo);
         *(Int_t*)obj = (Int_t){.small=(i<<2L) | 1L};
     } else {
         mpz_t n;
         mpz_init(n);
         mpz_inp_raw(n, in);
-        *(Int_t*)obj = Int$from_mpz(n);
+        *(Int_t*)obj = Intヽfrom_mpz(n);
     }
 }
 
-public const TypeInfo_t Int$info = {
+public const TypeInfo_t Intヽinfo = {
     .size=sizeof(Int_t),
     .align=__alignof__(Int_t),
     .metamethods={
-        .compare=Int$compare,
-        .equal=Int$equal,
-        .hash=Int$hash,
-        .as_text=Int$as_text,
-        .is_none=Int$is_none,
-        .serialize=Int$serialize,
-        .deserialize=Int$deserialize,
+        .compare=Intヽcompare,
+        .equal=Intヽequal,
+        .hash=Intヽhash,
+        .as_text=Intヽas_text,
+        .is_none=Intヽis_none,
+        .serialize=Intヽserialize,
+        .deserialize=Intヽdeserialize,
     },
 };
 
-public void Int64$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
+public void Int64ヽserialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
 {
     (void)info, (void)pointers;
     int64_t i = *(int64_t*)obj;
@@ -577,7 +577,7 @@ public void Int64$serialize(const void *obj, FILE *out, Table_t *pointers, const
     fputc((uint8_t)z, out);
 }
 
-public void Int64$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info)
+public void Int64ヽdeserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info)
 {
     (void)info, (void)pointers;
     uint64_t z = 0;
@@ -589,7 +589,7 @@ public void Int64$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
     *(int64_t*)outval = (int64_t)((z >> 1L) ^ -(z & 1L)); // Zigzag decode
 }
 
-public void Int32$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) 
+public void Int32ヽserialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) 
 {
     (void)info, (void)pointers;
     int32_t i = *(int32_t*)obj;
@@ -601,7 +601,7 @@ public void Int32$serialize(const void *obj, FILE *out, Table_t *pointers, const
     fputc((uint8_t)z, out);
 }
 
-public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info)
+public void Int32ヽdeserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info)
 {
     (void)info, (void)pointers;
     uint32_t z = 0;
@@ -614,45 +614,45 @@ public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
 }
 
 // The space savings for smaller ints are not worth having:
-#define Int16$serialize NULL
-#define Int16$deserialize NULL
-#define Int8$serialize NULL
-#define Int8$deserialize NULL
+#define Int16ヽserialize NULL
+#define Int16ヽdeserialize NULL
+#define Int8ヽserialize NULL
+#define Int8ヽdeserialize NULL
 
 #ifdef __TINYC__
 #define __builtin_add_overflow(x, y, result) ({ *(result) = (x) + (y); false; })
 #endif
 
 #define DEFINE_INT_TYPE(c_type, KindOfInt, min_val, max_val, to_attr)\
-    public Text_t KindOfInt ## $as_text(const void *i, bool colorize, const TypeInfo_t *info) { \
+    public Text_t KindOfInt ## ヽas_text(const void *i, bool colorize, const TypeInfo_t *info) { \
         (void)info; \
         if (!i) return Text(#KindOfInt); \
         Text_t text = _int64_to_text((int64_t)(*(c_type*)i)); \
         return colorize ? Texts(Text("\033[35m"), text, Text("\033[m")) : text; \
     } \
-    public PUREFUNC int32_t KindOfInt ## $compare(const void *x, const void *y, const TypeInfo_t *info) { \
+    public PUREFUNC int32_t KindOfInt ## ヽcompare(const void *x, const void *y, const TypeInfo_t *info) { \
         (void)info; \
         return (*(c_type*)x > *(c_type*)y) - (*(c_type*)x < *(c_type*)y); \
     } \
-    public PUREFUNC bool KindOfInt ## $equal(const void *x, const void *y, const TypeInfo_t *info) { \
+    public PUREFUNC bool KindOfInt ## ヽequal(const void *x, const void *y, const TypeInfo_t *info) { \
         (void)info; \
         return *(c_type*)x == *(c_type*)y; \
     } \
-    public CONSTFUNC bool KindOfInt ## $is_between(const c_type x, const c_type low, const c_type high) { \
+    public CONSTFUNC bool KindOfInt ## ヽis_between(const c_type x, const c_type low, const c_type high) { \
         return low <= x && x <= high; \
     } \
-    public CONSTFUNC c_type KindOfInt ## $clamped(c_type x, c_type min, c_type max) { \
+    public CONSTFUNC c_type KindOfInt ## ヽclamped(c_type x, c_type min, c_type max) { \
         return x < min ? min : (x > max ? max : x); \
     } \
-    public Text_t KindOfInt ## $hex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
-        Int_t as_int = Int$from_int64((int64_t)i); \
-        return Int$hex(as_int, digits_int, uppercase, prefix); \
+    public Text_t KindOfInt ## ヽhex(c_type i, Int_t digits_int, bool uppercase, bool prefix) { \
+        Int_t as_int = Intヽfrom_int64((int64_t)i); \
+        return Intヽhex(as_int, digits_int, uppercase, prefix); \
     } \
-    public Text_t KindOfInt ## $octal(c_type i, Int_t digits_int, bool prefix) { \
-        Int_t as_int = Int$from_int64((int64_t)i); \
-        return Int$octal(as_int, digits_int, prefix); \
+    public Text_t KindOfInt ## ヽoctal(c_type i, Int_t digits_int, bool prefix) { \
+        Int_t as_int = Intヽfrom_int64((int64_t)i); \
+        return Intヽoctal(as_int, digits_int, prefix); \
     } \
-    public List_t KindOfInt ## $bits(c_type x) { \
+    public List_t KindOfInt ## ヽbits(c_type x) { \
         List_t bit_list = (List_t){.data=GC_MALLOC_ATOMIC(sizeof(bool[8*sizeof(c_type)])), .atomic=1, .stride=sizeof(bool), .length=8*sizeof(c_type)}; \
         bool *bits = bit_list.data + sizeof(c_type)*8; \
         for (size_t i = 0; i < 8*sizeof(c_type); i++) { \
@@ -661,12 +661,12 @@ public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
         } \
         return bit_list; \
     } \
-    public bool KindOfInt ## $get_bit(c_type x, Int_t bit_index) { \
-        if (Int$compare_value(bit_index, I(1)) < 0) \
+    public bool KindOfInt ## ヽget_bit(c_type x, Int_t bit_index) { \
+        if (Intヽcompare_value(bit_index, I(1)) < 0) \
             fail("Invalid bit index (expected 1 or higher): ", bit_index); \
-        if (Int$compare_value(bit_index, Int$from_int64(sizeof(c_type)*8)) > 0) \
+        if (Intヽcompare_value(bit_index, Intヽfrom_int64(sizeof(c_type)*8)) > 0) \
             fail("Bit index is too large! There are only ", sizeof(c_type)*8, " bits, but index is: ", bit_index); \
-        return ((x & (c_type)(1L << (Int64$from_int(bit_index, true)-1L))) != 0); \
+        return ((x & (c_type)(1L << (Int64ヽfrom_int(bit_index, true)-1L))) != 0); \
     } \
     typedef struct { \
         Optional##KindOfInt##_t current, last; \
@@ -684,51 +684,51 @@ public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
         } \
         return i; \
     } \
-    public to_attr Closure_t KindOfInt ## $to(c_type first, c_type last, Optional ## KindOfInt ## _t step) { \
+    public to_attr Closure_t KindOfInt ## ヽto(c_type first, c_type last, Optional ## KindOfInt ## _t step) { \
         KindOfInt##Range_t *range = GC_MALLOC(sizeof(KindOfInt##Range_t)); \
         range->current = (Optional##KindOfInt##_t){.value=first}; \
         range->last = (Optional##KindOfInt##_t){.value=last}; \
         range->step = step.is_none ? (last >= first ? 1 : -1) : step.value; \
         return (Closure_t){.fn=_next_##KindOfInt, .userdata=range}; \
     } \
-    public to_attr Closure_t KindOfInt ## $onward(c_type first, c_type step) { \
+    public to_attr Closure_t KindOfInt ## ヽonward(c_type first, c_type step) { \
         KindOfInt##Range_t *range = GC_MALLOC(sizeof(KindOfInt##Range_t)); \
         range->current = (Optional##KindOfInt##_t){.value=first}; \
         range->last = (Optional##KindOfInt##_t){.is_none=true}; \
         range->step = step; \
         return (Closure_t){.fn=_next_##KindOfInt, .userdata=range}; \
     } \
-    public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## $parse(Text_t text, Text_t *remainder) { \
-        OptionalInt_t full_int = Int$parse(text, remainder); \
+    public PUREFUNC Optional ## KindOfInt ## _t KindOfInt ## ヽparse(Text_t text, Text_t *remainder) { \
+        OptionalInt_t full_int = Intヽparse(text, remainder); \
         if (full_int.small == 0L) return (Optional ## KindOfInt ## _t){.is_none=true}; \
-        if (Int$compare_value(full_int, I(min_val)) < 0) { \
+        if (Intヽcompare_value(full_int, I(min_val)) < 0) { \
             return (Optional ## KindOfInt ## _t){.is_none=true}; \
         } \
-        if (Int$compare_value(full_int, I(max_val)) > 0) { \
+        if (Intヽcompare_value(full_int, I(max_val)) > 0) { \
             return (Optional ## KindOfInt ## _t){.is_none=true}; \
         } \
-        return (Optional ## KindOfInt ## _t){.value=KindOfInt##$from_int(full_int, true)}; \
+        return (Optional ## KindOfInt ## _t){.value=KindOfInt##ヽfrom_int(full_int, true)}; \
     } \
-    public CONSTFUNC c_type KindOfInt ## $gcd(c_type x, c_type y) { \
+    public CONSTFUNC c_type KindOfInt ## ヽgcd(c_type x, c_type y) { \
         if (x == 0 || y == 0) return 0; \
-        x = KindOfInt##$abs(x); \
-        y = KindOfInt##$abs(y); \
+        x = KindOfInt##ヽabs(x); \
+        y = KindOfInt##ヽabs(y); \
         while (x != y) { \
             if (x > y) x -= y; \
             else y -= x; \
         } \
         return x; \
     } \
-    public const c_type KindOfInt##$min = min_val; \
-    public const c_type KindOfInt##$max = max_val; \
-    public const TypeInfo_t KindOfInt##$info = { \
+    public const c_type KindOfInt##ヽmin = min_val; \
+    public const c_type KindOfInt##ヽmax = max_val; \
+    public const TypeInfo_t KindOfInt##ヽinfo = { \
         .size=sizeof(c_type), \
         .align=__alignof__(c_type), \
         .metamethods={ \
-            .compare=KindOfInt##$compare, \
-            .as_text=KindOfInt##$as_text, \
-            .serialize=KindOfInt##$serialize, \
-            .deserialize=KindOfInt##$deserialize, \
+            .compare=KindOfInt##ヽcompare, \
+            .as_text=KindOfInt##ヽas_text, \
+            .serialize=KindOfInt##ヽserialize, \
+            .deserialize=KindOfInt##ヽdeserialize, \
         }, \
     };
 

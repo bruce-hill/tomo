@@ -24,7 +24,7 @@ CONSTFUNC static ptrdiff_t value_offset(const TypeInfo_t *type) {
     return offset;
 }
 
-PUREFUNC public uint64_t Enum$hash(const void *obj, const TypeInfo_t *type)
+PUREFUNC public uint64_t Enumヽhash(const void *obj, const TypeInfo_t *type)
 {
     int32_t tag = *(int32_t*)obj;
     uint32_t components[2] = {(uint32_t)tag, 0};
@@ -36,7 +36,7 @@ PUREFUNC public uint64_t Enum$hash(const void *obj, const TypeInfo_t *type)
     return siphash24((void*)components, sizeof(components));
 }
 
-PUREFUNC public int32_t Enum$compare(const void *x, const void *y, const TypeInfo_t *type)
+PUREFUNC public int32_t Enumヽcompare(const void *x, const void *y, const TypeInfo_t *type)
 {
     if (x == y) return 0;
 
@@ -53,7 +53,7 @@ PUREFUNC public int32_t Enum$compare(const void *x, const void *y, const TypeInf
     return 0;
 }
 
-PUREFUNC public bool Enum$equal(const void *x, const void *y, const TypeInfo_t *type)
+PUREFUNC public bool Enumヽequal(const void *x, const void *y, const TypeInfo_t *type)
 {
     if (x == y) return true;
 
@@ -70,30 +70,30 @@ PUREFUNC public bool Enum$equal(const void *x, const void *y, const TypeInfo_t *
     return true;
 }
 
-public Text_t Enum$as_text(const void *obj, bool colorize, const TypeInfo_t *type)
+public Text_t Enumヽas_text(const void *obj, bool colorize, const TypeInfo_t *type)
 {
-    if (!obj) return Text$from_str(type->EnumInfo.name);
+    if (!obj) return Textヽfrom_str(type->EnumInfo.name);
 
     int32_t tag = *(int32_t*)obj;
     NamedType_t value = type->EnumInfo.tags[tag-1];
     if (!value.type || value.type->size == 0) {
-        Text_t text = Text$from_str(value.name);
+        Text_t text = Textヽfrom_str(value.name);
         return colorize ? Texts(Text("\x1b[1m"), text, Text("\x1b[m")) : text;
     }
 
     return generic_as_text(obj + value_offset(type), colorize, value.type);
 }
 
-PUREFUNC public bool Enum$is_none(const void *x, const TypeInfo_t *info)
+PUREFUNC public bool Enumヽis_none(const void *x, const TypeInfo_t *info)
 {
     (void)info;
     return *(int32_t*)x == 0;
 }
 
-public void Enum$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+public void Enumヽserialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
 {
     int32_t tag = *(int32_t*)obj;
-    Int32$serialize(&tag, out, pointers, &Int32$info);
+    Int32ヽserialize(&tag, out, pointers, &Int32ヽinfo);
 
     NamedType_t value = type->EnumInfo.tags[tag-1];
     if (value.type && value.type->size > 0) {
@@ -101,10 +101,10 @@ public void Enum$serialize(const void *obj, FILE *out, Table_t *pointers, const 
     }
 }
 
-public void Enum$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
+public void Enumヽdeserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
 {
     int32_t tag = 0;
-    Int32$deserialize(in, &tag, pointers, &Int32$info);
+    Int32ヽdeserialize(in, &tag, pointers, &Int32ヽinfo);
     *(int32_t*)outval = tag;
 
     NamedType_t value = type->EnumInfo.tags[tag-1];

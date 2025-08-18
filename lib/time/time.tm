@@ -24,7 +24,7 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
 
                 char *zoneinfo = strstr(buf, "/zoneinfo/");
                 if (zoneinfo)
-                    _local_timezone = Text$from_str(zoneinfo + strlen("/zoneinfo/"));
+                    _local_timezone = Textヽfrom_str(zoneinfo + strlen("/zoneinfo/"));
                 else
                     fail("Could not resolve local tz!");
             }
@@ -46,17 +46,17 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
             WITH_TIMEZONE(@timezone, final_info = localtime_r(&time, &result));
             static char buf[256];
             size_t len = strftime(buf, sizeof(buf), String(@format), final_info);
-            Text$from_strn(buf, len)
+            Textヽfrom_strn(buf, len)
         )
 
     func new(year,month,day:Int, hour=0, minute=0, second=0.0, timezone=Time.local_timezone() -> Time)
         return C_code : Time(
             struct tm info = {
-                .tm_min=Int32$from_int(@minute, false),
-                .tm_hour=Int32$from_int(@hour, false),
-                .tm_mday=Int32$from_int(@day, false),
-                .tm_mon=Int32$from_int(@month, false) - 1,
-                .tm_year=Int32$from_int(@year, false) - 1900,
+                .tm_min=Int32ヽfrom_int(@minute, false),
+                .tm_hour=Int32ヽfrom_int(@hour, false),
+                .tm_mday=Int32ヽfrom_int(@day, false),
+                .tm_mon=Int32ヽfrom_int(@month, false) - 1,
+                .tm_year=Int32ヽfrom_int(@year, false) - 1900,
                 .tm_isdst=-1,
             };
 
@@ -154,9 +154,9 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
             struct tm info = {};
             WITH_TIMEZONE(@timezone, localtime_r(&@t.tv_sec, &info));
 
-            info.tm_mday += Int32$from_int(@days, false) + 7*Int32$from_int(@weeks, false);
-            info.tm_mon += Int32$from_int(@months, false);
-            info.tm_year += Int32$from_int(@years, false);
+            info.tm_mday += Int32ヽfrom_int(@days, false) + 7*Int32ヽfrom_int(@weeks, false);
+            info.tm_mon += Int32ヽfrom_int(@months, false);
+            info.tm_year += Int32ヽfrom_int(@years, false);
 
             time_t t = mktime(&info);
             (Time){
@@ -169,8 +169,8 @@ struct Time(tv_sec:Int64, tv_usec:Int64; extern)
         ret : Time?
         C_code {
             struct tm info = {.tm_isdst=-1};
-            const char *str = Text$as_c_string(@text);
-            const char *fmt = Text$as_c_string(@format);
+            const char *str = Textヽas_c_string(@text);
+            const char *fmt = Textヽas_c_string(@format);
             if (strstr(fmt, "%Z"))
                 fail("The %Z specifier is not supported for time parsing!");
 

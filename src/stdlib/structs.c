@@ -18,7 +18,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstack-protector"
 #endif
-PUREFUNC public uint64_t Struct$hash(const void *obj, const TypeInfo_t *type)
+PUREFUNC public uint64_t Structヽhash(const void *obj, const TypeInfo_t *type)
 {
     if (type->StructInfo.num_fields == 0)
         return 0;
@@ -31,7 +31,7 @@ PUREFUNC public uint64_t Struct$hash(const void *obj, const TypeInfo_t *type)
     ptrdiff_t bit_offset = 0;
     for (int i = 0; i < type->StructInfo.num_fields; i++) {
         NamedType_t field = type->StructInfo.fields[i];
-        if (field.type == &Bool$info) {
+        if (field.type == &Boolヽinfo) {
             bool b = ((*(char*)(obj + byte_offset)) >> bit_offset) & 0x1;
             field_hashes[i] = (uint32_t)b;
             bit_offset += 1;
@@ -56,7 +56,7 @@ PUREFUNC public uint64_t Struct$hash(const void *obj, const TypeInfo_t *type)
 #pragma GCC diagnostic pop
 #endif
 
-PUREFUNC public uint64_t PackedData$hash(const void *obj, const TypeInfo_t *type)
+PUREFUNC public uint64_t PackedDataヽhash(const void *obj, const TypeInfo_t *type)
 {
     if (type->StructInfo.num_fields == 0)
         return 0;
@@ -64,7 +64,7 @@ PUREFUNC public uint64_t PackedData$hash(const void *obj, const TypeInfo_t *type
     return siphash24(obj, (size_t)type->size);
 }
 
-PUREFUNC public int32_t Struct$compare(const void *x, const void *y, const TypeInfo_t *type)
+PUREFUNC public int32_t Structヽcompare(const void *x, const void *y, const TypeInfo_t *type)
 {
     if (x == y)
         return 0;
@@ -73,7 +73,7 @@ PUREFUNC public int32_t Struct$compare(const void *x, const void *y, const TypeI
     ptrdiff_t bit_offset = 0;
     for (int i = 0; i < type->StructInfo.num_fields; i++) {
         NamedType_t field = type->StructInfo.fields[i];
-        if (field.type == &Bool$info) {
+        if (field.type == &Boolヽinfo) {
             bool bx = ((*(char*)(x + byte_offset)) >> bit_offset) & 0x1;
             bool by = ((*(char*)(y + byte_offset)) >> bit_offset) & 0x1;
             if (bx != by)
@@ -99,7 +99,7 @@ PUREFUNC public int32_t Struct$compare(const void *x, const void *y, const TypeI
     return 0;
 }
 
-PUREFUNC public bool Struct$equal(const void *x, const void *y, const TypeInfo_t *type)
+PUREFUNC public bool Structヽequal(const void *x, const void *y, const TypeInfo_t *type)
 {
     if (x == y)
         return true;
@@ -108,7 +108,7 @@ PUREFUNC public bool Struct$equal(const void *x, const void *y, const TypeInfo_t
     ptrdiff_t bit_offset = 0;
     for (int i = 0; i < type->StructInfo.num_fields; i++) {
         NamedType_t field = type->StructInfo.fields[i];
-        if (field.type == &Bool$info) {
+        if (field.type == &Boolヽinfo) {
             bool bx = ((*(char*)(x + byte_offset)) >> bit_offset) & 0x1;
             bool by = ((*(char*)(y + byte_offset)) >> bit_offset) & 0x1;
             if (bx != by)
@@ -133,35 +133,35 @@ PUREFUNC public bool Struct$equal(const void *x, const void *y, const TypeInfo_t
     return true;
 }
 
-PUREFUNC public bool PackedData$equal(const void *x, const void *y, const TypeInfo_t *type)
+PUREFUNC public bool PackedDataヽequal(const void *x, const void *y, const TypeInfo_t *type)
 {
     if (x == y) return true;
     return (memcmp(x, y, (size_t)type->size) == 0);
 }
 
-PUREFUNC public Text_t Struct$as_text(const void *obj, bool colorize, const TypeInfo_t *type)
+PUREFUNC public Text_t Structヽas_text(const void *obj, bool colorize, const TypeInfo_t *type)
 {
-    if (!obj) return Text$from_str(type->StructInfo.name);
+    if (!obj) return Textヽfrom_str(type->StructInfo.name);
 
-    Text_t name = Text$from_str(type->StructInfo.name);
+    Text_t name = Textヽfrom_str(type->StructInfo.name);
     if (type->StructInfo.is_secret || type->StructInfo.is_opaque) {
-        return colorize ? Texts(Text("\x1b[0;1m"), name, Text("\x1b[m(...)")) : Texts(name, Text("(...)"));
+        return colorize ? Texts(Text("\x1b[0;1m"), name, Text("\x1b[m(...)")) : Texts(name, "(...)");
     }
 
-    Text_t text = colorize ? Texts(Text("\x1b[0;1m"), name, Text("\x1b[m(")) : Texts(name, Text("("));
+    Text_t text = colorize ? Texts(Text("\x1b[0;1m"), name, Text("\x1b[m(")) : Texts(name, "(");
     ptrdiff_t byte_offset = 0;
     ptrdiff_t bit_offset = 0;
     for (int i = 0; i < type->StructInfo.num_fields; i++) {
         NamedType_t field = type->StructInfo.fields[i];
         if (i > 0)
-            text = Text$concat(text, Text(", "));
+            text = Textヽconcat(text, Text(", "));
 
         if (type->StructInfo.num_fields > 1)
-            text = Text$concat(text, Text$from_str(field.name), Text("="));
+            text = Textヽconcat(text, Textヽfrom_str(field.name), Text("="));
 
-        if (field.type == &Bool$info) {
+        if (field.type == &Boolヽinfo) {
             bool b = ((*(char*)(obj + byte_offset)) >> bit_offset) & 0x1;
-            text = Text$concat(text, Text$from_str(colorize ? (b ? "\x1b[35myes\x1b[m" : "\x1b[35mno\x1b[m") : (b ? "yes" : "no")));
+            text = Textヽconcat(text, Textヽfrom_str(colorize ? (b ? "\x1b[35myes\x1b[m" : "\x1b[35mno\x1b[m") : (b ? "yes" : "no")));
             bit_offset += 1;
             if (bit_offset >= 8) {
                 byte_offset += 1;
@@ -174,25 +174,25 @@ PUREFUNC public Text_t Struct$as_text(const void *obj, bool colorize, const Type
             }
             if (field.type->align && byte_offset % field.type->align > 0)
                 byte_offset += field.type->align - (byte_offset % field.type->align);
-            text = Text$concat(text, generic_as_text(obj + byte_offset, colorize, field.type));
+            text = Textヽconcat(text, generic_as_text(obj + byte_offset, colorize, field.type));
             byte_offset += field.type->size;
         }
     }
-    return Text$concat(text, Text(")"));
+    return Textヽconcat(text, Text(")"));
 }
 
-PUREFUNC public bool Struct$is_none(const void *obj, const TypeInfo_t *type)
+PUREFUNC public bool Structヽis_none(const void *obj, const TypeInfo_t *type)
 {
     return *(bool*)(obj + type->size);
 }
 
-public void Struct$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
+public void Structヽserialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
 {
     ptrdiff_t byte_offset = 0;
     ptrdiff_t bit_offset = 0;
     for (int i = 0; i < type->StructInfo.num_fields; i++) {
         NamedType_t field = type->StructInfo.fields[i];
-        if (field.type == &Bool$info) {
+        if (field.type == &Boolヽinfo) {
             bool b = ((*(char*)(obj + byte_offset)) >> bit_offset) & 0x1;
             fputc((int)b, out);
             bit_offset += 1;
@@ -213,13 +213,13 @@ public void Struct$serialize(const void *obj, FILE *out, Table_t *pointers, cons
     }
 }
 
-public void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
+public void Structヽdeserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
 {
     ptrdiff_t byte_offset = 0;
     ptrdiff_t bit_offset = 0;
     for (int i = 0; i < type->StructInfo.num_fields; i++) {
         NamedType_t field = type->StructInfo.fields[i];
-        if (field.type == &Bool$info) {
+        if (field.type == &Boolヽinfo) {
             bool b = (bool)fgetc(in);
             *(char*)(outval + byte_offset) |= (b << bit_offset);
             bit_offset += 1;

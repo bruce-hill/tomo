@@ -216,7 +216,7 @@ struct RandomNumberGenerator(_chacha:chacha_ctx, _random_bytes:[Byte]=[]; secret
             mpz_urandomm(r, gmp_rng, range_size);
 
             gmp_randclear(gmp_rng);
-            Int$plus(@min, Int$from_mpz(r))
+            Intヽplus(@min, Intヽfrom_mpz(r))
         )
 
 

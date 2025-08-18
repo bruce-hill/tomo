@@ -23,46 +23,46 @@
         c_type value; \
         bool is_none:1; \
     } Optional ## type_name ## _t; \
-    Text_t type_name ## $as_text(const void *i, bool colorize, const TypeInfo_t *type); \
-    PUREFUNC int32_t type_name ## $compare(const void *x, const void *y, const TypeInfo_t *type); \
-    PUREFUNC bool type_name ## $equal(const void *x, const void *y, const TypeInfo_t *type); \
-    Text_t type_name ## $hex(c_type i, Int_t digits, bool uppercase, bool prefix); \
-    Text_t type_name ## $octal(c_type i, Int_t digits, bool prefix); \
-    List_t type_name ## $bits(c_type x); \
-    bool type_name ## $get_bit(c_type x, Int_t bit_index); \
-    Closure_t type_name ## $to(c_type first, c_type last, Optional ## type_name ## _t step); \
-    Closure_t type_name ## $onward(c_type first, c_type step); \
-    PUREFUNC Optional ## type_name ## _t type_name ## $parse(Text_t text, Text_t *remainder); \
-    CONSTFUNC bool type_name ## $is_between(const c_type x, const c_type low, const c_type high); \
-    CONSTFUNC c_type type_name ## $clamped(c_type x, c_type min, c_type max); \
-    MACROLIKE CONSTFUNC c_type type_name ## $from_byte(Byte_t b) { return (c_type)b; } \
-    MACROLIKE CONSTFUNC c_type type_name ## $from_bool(Bool_t b) { return (c_type)b; } \
-    CONSTFUNC c_type type_name ## $gcd(c_type x, c_type y); \
-    extern const c_type type_name ## $min, type_name##$max; \
-    extern const TypeInfo_t type_name ## $info; \
-    MACROLIKE c_type type_name ## $divided_by(c_type D, c_type d) { \
+    Text_t type_name ## ヽas_text(const void *i, bool colorize, const TypeInfo_t *type); \
+    PUREFUNC int32_t type_name ## ヽcompare(const void *x, const void *y, const TypeInfo_t *type); \
+    PUREFUNC bool type_name ## ヽequal(const void *x, const void *y, const TypeInfo_t *type); \
+    Text_t type_name ## ヽhex(c_type i, Int_t digits, bool uppercase, bool prefix); \
+    Text_t type_name ## ヽoctal(c_type i, Int_t digits, bool prefix); \
+    List_t type_name ## ヽbits(c_type x); \
+    bool type_name ## ヽget_bit(c_type x, Int_t bit_index); \
+    Closure_t type_name ## ヽto(c_type first, c_type last, Optional ## type_name ## _t step); \
+    Closure_t type_name ## ヽonward(c_type first, c_type step); \
+    PUREFUNC Optional ## type_name ## _t type_name ## ヽparse(Text_t text, Text_t *remainder); \
+    CONSTFUNC bool type_name ## ヽis_between(const c_type x, const c_type low, const c_type high); \
+    CONSTFUNC c_type type_name ## ヽclamped(c_type x, c_type min, c_type max); \
+    MACROLIKE CONSTFUNC c_type type_name ## ヽfrom_byte(Byte_t b) { return (c_type)b; } \
+    MACROLIKE CONSTFUNC c_type type_name ## ヽfrom_bool(Bool_t b) { return (c_type)b; } \
+    CONSTFUNC c_type type_name ## ヽgcd(c_type x, c_type y); \
+    extern const c_type type_name ## ヽmin, type_name##ヽmax; \
+    extern const TypeInfo_t type_name ## ヽinfo; \
+    MACROLIKE c_type type_name ## ヽdivided_by(c_type D, c_type d) { \
         c_type q = D/d, r = D%d; \
         q -= (r < 0) * (2*(d > 0) - 1); \
         return q; \
     } \
-    MACROLIKE c_type type_name ## $modulo(c_type D, c_type d) { \
+    MACROLIKE c_type type_name ## ヽmodulo(c_type D, c_type d) { \
         c_type r = D%d; \
         r -= (r < 0) * (2*(d < 0) - 1) * d; \
         return r; \
     } \
-    MACROLIKE c_type type_name ## $modulo1(c_type D, c_type d) { \
-        return type_name ## $modulo(D-1, d) + 1; \
+    MACROLIKE c_type type_name ## ヽmodulo1(c_type D, c_type d) { \
+        return type_name ## ヽmodulo(D-1, d) + 1; \
     } \
-    MACROLIKE PUREFUNC c_type type_name ## $wrapping_plus(c_type x, c_type y) { \
+    MACROLIKE PUREFUNC c_type type_name ## ヽwrapping_plus(c_type x, c_type y) { \
         return (c_type)((u##c_type)x + (u##c_type)y); \
     } \
-    MACROLIKE PUREFUNC c_type type_name ## $wrapping_minus(c_type x, c_type y) { \
+    MACROLIKE PUREFUNC c_type type_name ## ヽwrapping_minus(c_type x, c_type y) { \
         return (c_type)((u##c_type)x + (u##c_type)y); \
     } \
-    MACROLIKE PUREFUNC c_type type_name ## $unsigned_left_shifted(c_type x, c_type y) { \
+    MACROLIKE PUREFUNC c_type type_name ## ヽunsigned_left_shifted(c_type x, c_type y) { \
         return (c_type)((u##c_type)x << y); \
     } \
-    MACROLIKE PUREFUNC c_type type_name ## $unsigned_right_shifted(c_type x, c_type y) { \
+    MACROLIKE PUREFUNC c_type type_name ## ヽunsigned_right_shifted(c_type x, c_type y) { \
         return (c_type)((u##c_type)x >> y); \
     }
 
@@ -77,41 +77,41 @@ DEFINE_INT_TYPE(int8_t,  Int8)
 #define NONE_INT16 ((OptionalInt16_t){.is_none=true})
 #define NONE_INT8 ((OptionalInt8_t){.is_none=true})
 
-#define Int64$abs(...) I64(labs(__VA_ARGS__))
-#define Int32$abs(...) I32(abs(__VA_ARGS__))
-#define Int16$abs(...) I16(abs(__VA_ARGS__))
-#define Int8$abs(...) I8(abs(__VA_ARGS__))
+#define Int64ヽabs(...) I64(labs(__VA_ARGS__))
+#define Int32ヽabs(...) I32(abs(__VA_ARGS__))
+#define Int16ヽabs(...) I16(abs(__VA_ARGS__))
+#define Int8ヽabs(...) I8(abs(__VA_ARGS__))
 
-void Int64$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*);
-void Int64$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*);
-void Int32$serialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*);
-void Int32$deserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*);
+void Int64ヽserialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*);
+void Int64ヽdeserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*);
+void Int32ヽserialize(const void *obj, FILE *out, Table_t*, const TypeInfo_t*);
+void Int32ヽdeserialize(FILE *in, void *outval, List_t*, const TypeInfo_t*);
 
-Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t *type);
-Text_t Int$value_as_text(Int_t i);
-PUREFUNC uint64_t Int$hash(const void *x, const TypeInfo_t *type);
-PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo_t *type);
-PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y);
-CONSTFUNC bool Int$is_between(const Int_t x, const Int_t low, const Int_t high);
-CONSTFUNC Int_t Int$clamped(Int_t x, Int_t low, Int_t high);
-PUREFUNC bool Int$equal(const void *x, const void *y, const TypeInfo_t *type);
-PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y);
-Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
-Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
-PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step);
-PUREFUNC Closure_t Int$onward(Int_t first, Int_t step);
-OptionalInt_t Int$from_str(const char *str);
-OptionalInt_t Int$parse(Text_t text, Text_t *remainder);
-Int_t Int$abs(Int_t x);
-Int_t Int$power(Int_t base, Int_t exponent);
-Int_t Int$gcd(Int_t x, Int_t y);
-OptionalInt_t Int$sqrt(Int_t i);
-bool Int$get_bit(Int_t x, Int_t bit_index);
+Text_t Intヽas_text(const void *i, bool colorize, const TypeInfo_t *type);
+Text_t Intヽvalue_as_text(Int_t i);
+PUREFUNC uint64_t Intヽhash(const void *x, const TypeInfo_t *type);
+PUREFUNC int32_t Intヽcompare(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC int32_t Intヽcompare_value(const Int_t x, const Int_t y);
+CONSTFUNC bool Intヽis_between(const Int_t x, const Int_t low, const Int_t high);
+CONSTFUNC Int_t Intヽclamped(Int_t x, Int_t low, Int_t high);
+PUREFUNC bool Intヽequal(const void *x, const void *y, const TypeInfo_t *type);
+PUREFUNC bool Intヽequal_value(const Int_t x, const Int_t y);
+Text_t Intヽhex(Int_t i, Int_t digits, bool uppercase, bool prefix);
+Text_t Intヽoctal(Int_t i, Int_t digits, bool prefix);
+PUREFUNC Closure_t Intヽto(Int_t first, Int_t last, OptionalInt_t step);
+PUREFUNC Closure_t Intヽonward(Int_t first, Int_t step);
+OptionalInt_t Intヽfrom_str(const char *str);
+OptionalInt_t Intヽparse(Text_t text, Text_t *remainder);
+Int_t Intヽabs(Int_t x);
+Int_t Intヽpower(Int_t base, Int_t exponent);
+Int_t Intヽgcd(Int_t x, Int_t y);
+OptionalInt_t Intヽsqrt(Int_t i);
+bool Intヽget_bit(Int_t x, Int_t bit_index);
 
 #define BIGGEST_SMALL_INT 0x3fffffff
 #define SMALLEST_SMALL_INT -0x40000000
 
-#define Int$from_mpz(mpz) (\
+#define Intヽfrom_mpz(mpz) (\
     mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0 ? ( \
         (Int_t){.small=(mpz_get_si(mpz)<<2L)|1L} \
     ) : ( \
@@ -124,61 +124,61 @@ bool Int$get_bit(Int_t x, Int_t bit_index);
 } while (0)
 
 #define I_small(i) ((Int_t){.small=(int64_t)((uint64_t)(i)<<2L)|1L})
-#define I(i) _Generic(i, int8_t: I_small(i), int16_t: I_small(i), default: Int$from_int64(i))
+#define I(i) _Generic(i, int8_t: I_small(i), int16_t: I_small(i), default: Intヽfrom_int64(i))
 #define I_is_zero(i) ((i).small == 1L)
 
-Int_t Int$slow_plus(Int_t x, Int_t y);
-Int_t Int$slow_minus(Int_t x, Int_t y);
-Int_t Int$slow_times(Int_t x, Int_t y);
-Int_t Int$slow_divided_by(Int_t x, Int_t y);
-Int_t Int$slow_modulo(Int_t x, Int_t y);
-Int_t Int$slow_modulo1(Int_t x, Int_t y);
-Int_t Int$slow_left_shifted(Int_t x, Int_t y);
-Int_t Int$slow_right_shifted(Int_t x, Int_t y);
-Int_t Int$slow_bit_and(Int_t x, Int_t y);
-Int_t Int$slow_bit_or(Int_t x, Int_t y);
-Int_t Int$slow_bit_xor(Int_t x, Int_t y);
-Int_t Int$slow_negative(Int_t x);
-Int_t Int$slow_negated(Int_t x);
-bool Int$is_prime(Int_t x, Int_t reps);
-Int_t Int$next_prime(Int_t x);
+Int_t Intヽslow_plus(Int_t x, Int_t y);
+Int_t Intヽslow_minus(Int_t x, Int_t y);
+Int_t Intヽslow_times(Int_t x, Int_t y);
+Int_t Intヽslow_divided_by(Int_t x, Int_t y);
+Int_t Intヽslow_modulo(Int_t x, Int_t y);
+Int_t Intヽslow_modulo1(Int_t x, Int_t y);
+Int_t Intヽslow_left_shifted(Int_t x, Int_t y);
+Int_t Intヽslow_right_shifted(Int_t x, Int_t y);
+Int_t Intヽslow_bit_and(Int_t x, Int_t y);
+Int_t Intヽslow_bit_or(Int_t x, Int_t y);
+Int_t Intヽslow_bit_xor(Int_t x, Int_t y);
+Int_t Intヽslow_negative(Int_t x);
+Int_t Intヽslow_negated(Int_t x);
+bool Intヽis_prime(Int_t x, Int_t reps);
+Int_t Intヽnext_prime(Int_t x);
 #if __GNU_MP_VERSION >= 6
 #if __GNU_MP_VERSION_MINOR >= 3
-OptionalInt_t Int$prev_prime(Int_t x);
+OptionalInt_t Intヽprev_prime(Int_t x);
 #endif
 #endif
-Int_t Int$choose(Int_t n, Int_t k);
-Int_t Int$factorial(Int_t n);
+Int_t Intヽchoose(Int_t n, Int_t k);
+Int_t Intヽfactorial(Int_t n);
 
-extern const TypeInfo_t Int$info;
+extern const TypeInfo_t Intヽinfo;
 
 // Fast-path inline versions for the common case where integer arithmetic is
 // between two small ints.
 
-MACROLIKE Int_t Int$plus(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽplus(Int_t x, Int_t y) {
     const int64_t z = (int64_t)((uint64_t)x.small + (uint64_t)y.small);
     if likely ((z|2L) == (int32_t)z)
         return (Int_t){.small=(z-1L)};
-    return Int$slow_plus(x, y);
+    return Intヽslow_plus(x, y);
 }
 
-MACROLIKE Int_t Int$minus(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽminus(Int_t x, Int_t y) {
     const int64_t z = (int64_t)(((uint64_t)x.small ^ 3L) - (uint64_t)y.small);
     if likely ((z & ~2L) == (int32_t)z)
         return (Int_t){.small=z};
-    return Int$slow_minus(x, y);
+    return Intヽslow_minus(x, y);
 }
 
-MACROLIKE Int_t Int$times(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽtimes(Int_t x, Int_t y) {
     if likely ((x.small & y.small) & 1L) {
         const int64_t z = (x.small>>1L) * (y.small>>1L);
         if likely (z == (int32_t)z)
             return (Int_t){.small=z+1L};
     }
-    return Int$slow_times(x, y);
+    return Intヽslow_times(x, y);
 }
 
-MACROLIKE Int_t Int$divided_by(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽdivided_by(Int_t x, Int_t y) {
     if likely (x.small & y.small & 1L) {
         // Euclidean division, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2L);
@@ -188,10 +188,10 @@ MACROLIKE Int_t Int$divided_by(Int_t x, Int_t y) {
         if likely (q == (int32_t)q)
             return (Int_t){.small=(q<<2L)|1L};
     }
-    return Int$slow_divided_by(x, y);
+    return Intヽslow_divided_by(x, y);
 }
 
-MACROLIKE Int_t Int$modulo(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽmodulo(Int_t x, Int_t y) {
     if likely (x.small & y.small & 1L) {
         // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2L);
@@ -200,10 +200,10 @@ MACROLIKE Int_t Int$modulo(Int_t x, Int_t y) {
         r -= (r < 0L) * (2L*(d < 0L) - 1L) * d;
         return (Int_t){.small=(r<<2L)|1L};
     }
-    return Int$slow_modulo(x, y);
+    return Intヽslow_modulo(x, y);
 }
 
-MACROLIKE Int_t Int$modulo1(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽmodulo1(Int_t x, Int_t y) {
     if likely (x.small & y.small & 1L) {
         // Euclidean modulus, see: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small>>2L)-1L;
@@ -212,62 +212,62 @@ MACROLIKE Int_t Int$modulo1(Int_t x, Int_t y) {
         r -= (r < 0L) * (2L*(d < 0L) - 1L) * d;
         return (Int_t){.small=((r+1L)<<2L)|1L};
     }
-    return Int$slow_modulo1(x, y);
+    return Intヽslow_modulo1(x, y);
 }
 
-MACROLIKE Int_t Int$left_shifted(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽleft_shifted(Int_t x, Int_t y) {
     if likely (x.small & y.small & 1L) {
         const int64_t z = ((x.small>>2L) << (y.small>>2L))<<2L;
         if likely (z == (int32_t)z)
             return (Int_t){.small=z+1L};
     }
-    return Int$slow_left_shifted(x, y);
+    return Intヽslow_left_shifted(x, y);
 }
 
-MACROLIKE Int_t Int$right_shifted(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽright_shifted(Int_t x, Int_t y) {
     if likely (x.small & y.small & 1L) {
         const int64_t z = ((x.small>>2L) >> (y.small>>2L))<<2L;
         if likely (z == (int32_t)z)
             return (Int_t){.small=z+1L};
     }
-    return Int$slow_right_shifted(x, y);
+    return Intヽslow_right_shifted(x, y);
 }
 
-MACROLIKE Int_t Int$bit_and(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽbit_and(Int_t x, Int_t y) {
     const int64_t z = x.small & y.small;
     if likely (z & 1L)
         return (Int_t){.small=z};
-    return Int$slow_bit_and(x, y);
+    return Intヽslow_bit_and(x, y);
 }
 
-MACROLIKE Int_t Int$bit_or(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽbit_or(Int_t x, Int_t y) {
     if likely (x.small & y.small & 1L)
         return (Int_t){.small=(x.small | y.small)};
-    return Int$slow_bit_or(x, y);
+    return Intヽslow_bit_or(x, y);
 }
 
-MACROLIKE Int_t Int$bit_xor(Int_t x, Int_t y) {
+MACROLIKE Int_t Intヽbit_xor(Int_t x, Int_t y) {
     if likely (x.small & y.small & 1L)
         return (Int_t){.small=(x.small ^ y.small) | 1L};
-    return Int$slow_bit_xor(x, y);
+    return Intヽslow_bit_xor(x, y);
 }
 
-MACROLIKE Int_t Int$negated(Int_t x) {
+MACROLIKE Int_t Intヽnegated(Int_t x) {
     if likely (x.small & 1L)
         return (Int_t){.small=(~x.small) ^ 3L};
-    return Int$slow_negated(x);
+    return Intヽslow_negated(x);
 }
 
-MACROLIKE Int_t Int$negative(Int_t x) {
+MACROLIKE Int_t Intヽnegative(Int_t x) {
     if likely (x.small & 1L)
         return (Int_t){.small=((-((x.small)>>2L))<<2L) | 1L};
-    return Int$slow_negative(x);
+    return Intヽslow_negative(x);
 }
 
-MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
+MACROLIKE PUREFUNC bool Intヽis_negative(Int_t x) {
     if likely (x.small & 1L)
         return x.small < 0L;
-    return Int$compare_value(x, I_small(0)) < 0L;
+    return Intヽcompare_value(x, I_small(0)) < 0L;
 }
 
 // Constructors/conversion functions:
@@ -277,147 +277,147 @@ MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 #endif
-MACROLIKE PUREFUNC Int_t Int$from_num(double n, bool truncate) {
+MACROLIKE PUREFUNC Int_t Intヽfrom_num(double n, bool truncate) {
     mpz_t result;
     mpz_init_set_d(result, n);
     if (!truncate && unlikely(mpz_get_d(result) != n))
         fail("Could not convert to an integer without truncation: ", n);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
-MACROLIKE PUREFUNC Int_t Int$from_num32(float n, bool truncate) { return Int$from_num((double)n, truncate); }
-MACROLIKE Int_t Int$from_int64(int64_t i) {
+MACROLIKE PUREFUNC Int_t Intヽfrom_num32(float n, bool truncate) { return Intヽfrom_num((double)n, truncate); }
+MACROLIKE Int_t Intヽfrom_int64(int64_t i) {
     if likely (i >= SMALLEST_SMALL_INT && i <= BIGGEST_SMALL_INT)
         return (Int_t){.small=(i<<2L)|1L};
     mpz_t result;
     mpz_init_set_si(result, i);
-    return Int$from_mpz(result);
+    return Intヽfrom_mpz(result);
 }
-MACROLIKE CONSTFUNC Int_t Int$from_int32(Int32_t i) { return Int$from_int64((Int32_t)i); }
-MACROLIKE CONSTFUNC Int_t Int$from_int16(Int16_t i) { return I_small(i); }
-MACROLIKE CONSTFUNC Int_t Int$from_int8(Int8_t i)   { return I_small(i); }
-MACROLIKE CONSTFUNC Int_t Int$from_byte(Byte_t b) { return I_small(b); }
-MACROLIKE CONSTFUNC Int_t Int$from_bool(Bool_t b) { return I_small(b); }
+MACROLIKE CONSTFUNC Int_t Intヽfrom_int32(Int32_t i) { return Intヽfrom_int64((Int32_t)i); }
+MACROLIKE CONSTFUNC Int_t Intヽfrom_int16(Int16_t i) { return I_small(i); }
+MACROLIKE CONSTFUNC Int_t Intヽfrom_int8(Int8_t i)   { return I_small(i); }
+MACROLIKE CONSTFUNC Int_t Intヽfrom_byte(Byte_t b) { return I_small(b); }
+MACROLIKE CONSTFUNC Int_t Intヽfrom_bool(Bool_t b) { return I_small(b); }
 
 // Int64 constructors
-MACROLIKE PUREFUNC Int64_t Int64$from_num(Num_t n, bool truncate) {
+MACROLIKE PUREFUNC Int64_t Int64ヽfrom_num(Num_t n, bool truncate) {
     int64_t i64 = (int64_t)n;
     if (!truncate && unlikely((Num_t)i64 != n))
         fail("Could not convert Num to Int64 without truncation: ", n);
     return i64;
 }
-MACROLIKE PUREFUNC Int64_t Int64$from_num32(Num32_t n, bool truncate) {
+MACROLIKE PUREFUNC Int64_t Int64ヽfrom_num32(Num32_t n, bool truncate) {
     int64_t i64 = (int64_t)n;
     if (!truncate && unlikely((Num32_t)i64 != n))
         fail("Could not convert Num32 to Int64 without truncation: ", n);
     return i64;
 }
-MACROLIKE PUREFUNC Int64_t Int64$from_int(Int_t i, bool truncate) {
+MACROLIKE PUREFUNC Int64_t Int64ヽfrom_int(Int_t i, bool truncate) {
     if likely (i.small & 1L)
         return (int64_t)(i.small >> 2L);
     if (!truncate && unlikely(!mpz_fits_slong_p(*i.big)))
         fail("Integer is too big to fit in a 64-bit integer: ", i);
     return mpz_get_si(*i.big);
 }
-MACROLIKE CONSTFUNC Int64_t Int64$from_int32(Int32_t i) { return (Int64_t)i; }
-MACROLIKE CONSTFUNC Int64_t Int64$from_int16(Int16_t i) { return (Int64_t)i; }
-MACROLIKE CONSTFUNC Int64_t Int64$from_int8(Int8_t i) { return (Int64_t)i; }
+MACROLIKE CONSTFUNC Int64_t Int64ヽfrom_int32(Int32_t i) { return (Int64_t)i; }
+MACROLIKE CONSTFUNC Int64_t Int64ヽfrom_int16(Int16_t i) { return (Int64_t)i; }
+MACROLIKE CONSTFUNC Int64_t Int64ヽfrom_int8(Int8_t i) { return (Int64_t)i; }
 
 // Int32 constructors
-MACROLIKE PUREFUNC Int32_t Int32$from_num(Num_t n, bool truncate) {
+MACROLIKE PUREFUNC Int32_t Int32ヽfrom_num(Num_t n, bool truncate) {
     int32_t i32 = (int32_t)n;
     if (!truncate && unlikely((Num_t)i32 != n))
         fail("Could not convert Num to Int32 without truncation: ", n);
     return i32;
 }
-MACROLIKE PUREFUNC Int32_t Int32$from_num32(Num32_t n, bool truncate) {
+MACROLIKE PUREFUNC Int32_t Int32ヽfrom_num32(Num32_t n, bool truncate) {
     int32_t i32 = (int32_t)n;
     if (!truncate && unlikely((Num32_t)i32 != n))
         fail("Could not convert Num32 to Int32 without truncation: ", n);
     return i32;
 }
-MACROLIKE PUREFUNC Int32_t Int32$from_int(Int_t i, bool truncate) {
-    int64_t i64 = Int64$from_int(i, truncate);
+MACROLIKE PUREFUNC Int32_t Int32ヽfrom_int(Int_t i, bool truncate) {
+    int64_t i64 = Int64ヽfrom_int(i, truncate);
     int32_t i32 = (int32_t)i64;
     if (!truncate && unlikely((int64_t)i32 != i64))
         fail("Integer is too big to fit in a 32-bit integer: ", i);
     return i32;
 }
-MACROLIKE PUREFUNC Int32_t Int32$from_int64(Int64_t i64, bool truncate) {
+MACROLIKE PUREFUNC Int32_t Int32ヽfrom_int64(Int64_t i64, bool truncate) {
     int32_t i32 = (int32_t)i64;
     if (!truncate && unlikely((int64_t)i32 != i64))
         fail("Integer is too big to fit in a 32-bit integer: ", i64);
     return i32;
 }
-MACROLIKE CONSTFUNC Int32_t Int32$from_int16(Int16_t i) { return (Int32_t)i; }
-MACROLIKE CONSTFUNC Int32_t Int32$from_int8(Int8_t i) { return (Int32_t)i; }
+MACROLIKE CONSTFUNC Int32_t Int32ヽfrom_int16(Int16_t i) { return (Int32_t)i; }
+MACROLIKE CONSTFUNC Int32_t Int32ヽfrom_int8(Int8_t i) { return (Int32_t)i; }
 
 // Int16 constructors
-MACROLIKE PUREFUNC Int16_t Int16$from_num(Num_t n, bool truncate) {
+MACROLIKE PUREFUNC Int16_t Int16ヽfrom_num(Num_t n, bool truncate) {
     int16_t i16 = (int16_t)n;
     if (!truncate && unlikely((Num_t)i16 != n))
         fail("Could not convert Num to Int16 without truncation: ", n);
     return i16;
 }
-MACROLIKE PUREFUNC Int16_t Int16$from_num32(Num32_t n, bool truncate) {
+MACROLIKE PUREFUNC Int16_t Int16ヽfrom_num32(Num32_t n, bool truncate) {
     int16_t i16 = (int16_t)n;
     if (!truncate && unlikely((Num32_t)i16 != n))
         fail("Could not convert Num32 to Int16 without truncation: ", (double)n);
     return i16;
 }
-MACROLIKE PUREFUNC Int16_t Int16$from_int(Int_t i, bool truncate) {
-    int64_t i64 = Int64$from_int(i, truncate);
+MACROLIKE PUREFUNC Int16_t Int16ヽfrom_int(Int_t i, bool truncate) {
+    int64_t i64 = Int64ヽfrom_int(i, truncate);
     int16_t i16 = (int16_t)i64;
     if (!truncate && unlikely((int64_t)i16 != i64))
         fail("Integer is too big to fit in a 16-bit integer!");
     return i16;
 }
-MACROLIKE PUREFUNC Int16_t Int16$from_int64(Int64_t i64, bool truncate) {
+MACROLIKE PUREFUNC Int16_t Int16ヽfrom_int64(Int64_t i64, bool truncate) {
     int16_t i16 = (int16_t)i64;
     if (!truncate && unlikely((int64_t)i16 != i64))
         fail("Integer is too big to fit in a 16-bit integer: ", i64);
     return i16;
 }
-MACROLIKE PUREFUNC Int16_t Int16$from_int32(Int32_t i32, bool truncate) {
+MACROLIKE PUREFUNC Int16_t Int16ヽfrom_int32(Int32_t i32, bool truncate) {
     int16_t i16 = (int16_t)i32;
     if (!truncate && unlikely((int32_t)i16 != i32))
         fail("Integer is too big to fit in a 16-bit integer: ", i32);
     return i16;
 }
-MACROLIKE CONSTFUNC Int16_t Int16$from_int8(Int8_t i) { return (Int16_t)i; }
+MACROLIKE CONSTFUNC Int16_t Int16ヽfrom_int8(Int8_t i) { return (Int16_t)i; }
 
 // Int8 constructors
-MACROLIKE PUREFUNC Int8_t Int8$from_num(Num_t n, bool truncate) {
+MACROLIKE PUREFUNC Int8_t Int8ヽfrom_num(Num_t n, bool truncate) {
     int8_t i8 = (int8_t)n;
     if (!truncate && unlikely((Num_t)i8 != n))
         fail("Could not convert Num to Int8 without truncation: ", n);
     return i8;
 }
-MACROLIKE PUREFUNC Int8_t Int8$from_num32(Num32_t n, bool truncate) {
+MACROLIKE PUREFUNC Int8_t Int8ヽfrom_num32(Num32_t n, bool truncate) {
     int8_t i8 = (int8_t)n;
     if (!truncate && unlikely((Num32_t)i8 != n))
         fail("Could not convert Num32 to Int8 without truncation: ", n);
     return i8;
 }
-MACROLIKE PUREFUNC Int8_t Int8$from_int(Int_t i, bool truncate) {
-    int64_t i64 = Int64$from_int(i, truncate);
+MACROLIKE PUREFUNC Int8_t Int8ヽfrom_int(Int_t i, bool truncate) {
+    int64_t i64 = Int64ヽfrom_int(i, truncate);
     int8_t i8 = (int8_t)i64;
     if (!truncate && unlikely((int64_t)i8 != i64))
         fail("Integer is too big to fit in an 8-bit integer!");
     return i8;
 }
-MACROLIKE PUREFUNC Int8_t Int8$from_int64(Int64_t i64, bool truncate) {
+MACROLIKE PUREFUNC Int8_t Int8ヽfrom_int64(Int64_t i64, bool truncate) {
     int8_t i8 = (int8_t)i64;
     if (!truncate && unlikely((int64_t)i8 != i64))
         fail("Integer is too big to fit in a 8-bit integer: ", i64);
     return i8;
 }
-MACROLIKE PUREFUNC Int8_t Int8$from_int32(Int32_t i32, bool truncate) {
+MACROLIKE PUREFUNC Int8_t Int8ヽfrom_int32(Int32_t i32, bool truncate) {
     int8_t i8 = (int8_t)i32;
     if (!truncate && unlikely((int32_t)i8 != i32))
         fail("Integer is too big to fit in a 8-bit integer: ", i32);
     return i8;
 }
-MACROLIKE PUREFUNC Int8_t Int8$from_int16(Int16_t i16, bool truncate) {
+MACROLIKE PUREFUNC Int8_t Int8ヽfrom_int16(Int16_t i16, bool truncate) {
     int8_t i8 = (int8_t)i16;
     if (!truncate && unlikely((int16_t)i8 != i16))
         fail("Integer is too big to fit in a 8-bit integer: ", i16);

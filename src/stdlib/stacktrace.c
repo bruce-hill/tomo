@@ -119,7 +119,7 @@ public void print_stacktrace(FILE *out, int offset)
                 const char *function = NULL, *filename = NULL;
                 long line_num = 0;
                 if (fparse(fp, &function, "\n", &filename, ":", &line_num) == NULL) {
-                    if (starts_with(function, "main$"))
+                    if (starts_with(function, "mainヽ"))
                         main_func_onwards = true;
                     if (main_func_onwards)
                         _print_stack_frame(out, cwd, install_dir, function, filename, line_num);

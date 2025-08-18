@@ -10,7 +10,7 @@
 #include "stdlib/text.h"
 
 static Text_t quoted_text(const char *text) {
-    return Text$quoted(Text$from_str(text), false, Text("\""));
+    return Textヽquoted(Textヽfrom_str(text), false, Text("\""));
 }
 
 CONSTFUNC const char *binop_method_name(ast_e tag) {
@@ -150,7 +150,7 @@ Text_t ast_to_sexp(ast_t *ast)
     T(Var, "(Var ", quoted_text(data.name), ")")
     T(Int, "(Int ", quoted_text(ast_source(ast)), ")")
     T(Num, "(Num ", quoted_text(ast_source(ast)), ")")
-    T(TextLiteral, Text$quoted(data.text, false, Text("\"")))
+    T(TextLiteral, Textヽquoted(data.text, false, Text("\"")))
     T(TextJoin, "(Text", data.lang ? Texts(" :lang ", quoted_text(data.lang)) : EMPTY_TEXT, ast_list_to_sexp(data.children), ")")
     T(Path, "(Path ", quoted_text(data.path), ")")
     T(Declare, "(Declare ", ast_to_sexp(data.var), " ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value), ")")
@@ -216,7 +216,7 @@ Text_t ast_to_sexp(ast_t *ast)
 
 const char *ast_to_sexp_str(ast_t *ast)
 {
-    return Text$as_c_string(ast_to_sexp(ast));
+    return Textヽas_c_string(ast_to_sexp(ast));
 }
 
 const char *ast_source(ast_t *ast)
@@ -250,14 +250,14 @@ void _visit_topologically(ast_t *ast, Table_t definitions, Table_t *visited, Clo
     void (*visit)(void*, ast_t*) = (void*)fn.fn;
     if (ast->tag == StructDef) {
         DeclareMatch(def, ast, StructDef);
-        if (Table$str_get(*visited, def->name))
+        if (Tableヽstr_get(*visited, def->name))
             return;
 
-        Table$str_set(visited, def->name, (void*)_visit_topologically);
+        Tableヽstr_set(visited, def->name, (void*)_visit_topologically);
         for (arg_ast_t *field = def->fields; field; field = field->next) {
             if (field->type && field->type->tag == VarTypeAST) {
                 const char *field_type_name = Match(field->type, VarTypeAST)->name;
-                ast_t *dependency = Table$str_get(definitions, field_type_name);
+                ast_t *dependency = Tableヽstr_get(definitions, field_type_name);
                 if (dependency) {
                     _visit_topologically(dependency, definitions, visited, fn);
                 }
@@ -267,15 +267,15 @@ void _visit_topologically(ast_t *ast, Table_t definitions, Table_t *visited, Clo
         visit(fn.userdata, ast);
     } else if (ast->tag == EnumDef) {
         DeclareMatch(def, ast, EnumDef);
-        if (Table$str_get(*visited, def->name))
+        if (Tableヽstr_get(*visited, def->name))
             return;
 
-        Table$str_set(visited, def->name, (void*)_visit_topologically);
+        Tableヽstr_set(visited, def->name, (void*)_visit_topologically);
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
                 if (field->type && field->type->tag == VarTypeAST) {
                     const char *field_type_name = Match(field->type, VarTypeAST)->name;
-                    ast_t *dependency = Table$str_get(definitions, field_type_name);
+                    ast_t *dependency = Tableヽstr_get(definitions, field_type_name);
                     if (dependency) {
                         _visit_topologically(dependency, definitions, visited, fn);
                     }
@@ -285,7 +285,7 @@ void _visit_topologically(ast_t *ast, Table_t definitions, Table_t *visited, Clo
         visit(fn.userdata, ast);
     } else if (ast->tag == LangDef) {
         DeclareMatch(def, ast, LangDef);
-        if (Table$str_get(*visited, def->name))
+        if (Tableヽstr_get(*visited, def->name))
             return;
         visit(fn.userdata, ast);
     } else {
@@ -305,13 +305,13 @@ void visit_topologically(ast_list_t *asts, Closure_t fn)
     for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == StructDef) {
             DeclareMatch(def, stmt->ast, StructDef);
-            Table$str_set(&definitions, def->name, stmt->ast);
+            Tableヽstr_set(&definitions, def->name, stmt->ast);
         } else if (stmt->ast->tag == EnumDef) {
             DeclareMatch(def, stmt->ast, EnumDef);
-            Table$str_set(&definitions, def->name, stmt->ast);
+            Tableヽstr_set(&definitions, def->name, stmt->ast);
         } else if (stmt->ast->tag == LangDef) {
             DeclareMatch(def, stmt->ast, LangDef);
-            Table$str_set(&definitions, def->name, stmt->ast);
+            Tableヽstr_set(&definitions, def->name, stmt->ast);
         }
     }
 

@@ -11,15 +11,15 @@
 #include "siphash.h"
 #include "util.h"
 
-public Text_t CString$as_text(const void *c_string, bool colorize, const TypeInfo_t *info)
+public Text_t CStringヽas_text(const void *c_string, bool colorize, const TypeInfo_t *info)
 {
     (void)info;
     if (!c_string) return Text("CString");
-    Text_t text = Text$from_str(*(const char**)c_string);
-    return Text$concat(colorize ? Text("\x1b[34mCString\x1b[m(") : Text("CString("), Text$quoted(text, colorize, Text("\"")), Text(")"));
+    Text_t text = Textヽfrom_str(*(const char**)c_string);
+    return Textヽconcat(colorize ? Text("\x1b[34mCString\x1b[m(") : Text("CString("), Textヽquoted(text, colorize, Text("\"")), Text(")"));
 }
 
-PUREFUNC public int32_t CString$compare(const void *x, const void *y, const TypeInfo_t *info)
+PUREFUNC public int32_t CStringヽcompare(const void *x, const void *y, const TypeInfo_t *info)
 {
     (void)info;
     if (x == y)
@@ -31,38 +31,38 @@ PUREFUNC public int32_t CString$compare(const void *x, const void *y, const Type
     return strcmp(*(const char**)x, *(const char**)y);
 }
 
-PUREFUNC public bool CString$equal(const void *x, const void *y, const TypeInfo_t *type)
+PUREFUNC public bool CStringヽequal(const void *x, const void *y, const TypeInfo_t *type)
 {
-    return CString$compare(x, y, type) == 0;
+    return CStringヽcompare(x, y, type) == 0;
 }
 
-PUREFUNC public uint64_t CString$hash(const void *c_str, const TypeInfo_t *info)
+PUREFUNC public uint64_t CStringヽhash(const void *c_str, const TypeInfo_t *info)
 {
     (void)info;
     if (!*(const char**)c_str) return 0;
     return siphash24(*(void**)c_str, strlen(*(const char**)c_str));
 }
 
-PUREFUNC public bool CString$is_none(const void *c_str, const TypeInfo_t *info)
+PUREFUNC public bool CStringヽis_none(const void *c_str, const TypeInfo_t *info)
 {
     (void)info;
     return *(const char**)c_str == NULL;
 }
 
-static void CString$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
+static void CStringヽserialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
     const char *str = *(const char **)obj;
     int64_t len = (int64_t)strlen(str);
-    Int64$serialize(&len, out, pointers, &Int64$info);
+    Int64ヽserialize(&len, out, pointers, &Int64ヽinfo);
     fwrite(str, sizeof(char), (size_t)len, out);
 }
 
-static void CString$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info)
+static void CStringヽdeserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info)
 {
     (void)info;
     int64_t len = -1;
-    Int64$deserialize(in, &len, pointers, &Int64$info);
+    Int64ヽdeserialize(in, &len, pointers, &Int64ヽinfo);
     char *str = GC_MALLOC_ATOMIC((size_t)len+1);
     if (fread(str, sizeof(char), (size_t)len, in) != (size_t)len)
         fail("Not enough data in stream to deserialize");
@@ -70,17 +70,17 @@ static void CString$deserialize(FILE *in, void *out, List_t *pointers, const Typ
     *(const char**)out = str;
 }
 
-public const TypeInfo_t CString$info = {
+public const TypeInfo_t CStringヽinfo = {
     .size=sizeof(const char*),
     .align=__alignof__(const char*),
     .metamethods={
-        .hash=CString$hash,
-        .compare=CString$compare,
-        .equal=CString$equal,
-        .as_text=CString$as_text,
-        .is_none=CString$is_none,
-        .serialize=CString$serialize,
-        .deserialize=CString$deserialize,
+        .hash=CStringヽhash,
+        .compare=CStringヽcompare,
+        .equal=CStringヽequal,
+        .as_text=CStringヽas_text,
+        .is_none=CStringヽis_none,
+        .serialize=CStringヽserialize,
+        .deserialize=CStringヽdeserialize,
     },
 };
 

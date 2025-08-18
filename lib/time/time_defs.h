@@ -10,12 +10,12 @@ static INLINE Text_t num_format(long n, const char *unit)
 {
     if (n == 0)
         return Text("now");
-    return Text$from_str(String((int64_t)labs(n), " ", unit, (n == -1 || n == 1) ? "" : "s", n <= 0 ? " ago" : " later"));
+    return Textヽfrom_str(String((int64_t)labs(n), " ", unit, (n == -1 || n == 1) ? "" : "s", n <= 0 ? " ago" : " later"));
 }
 
 static void set_local_timezone(Text_t tz)
 {
-    setenv("TZ", Text$as_c_string(tz), 1);
+    setenv("TZ", Textヽas_c_string(tz), 1);
     _local_timezone = tz;
     tzset();
 }

@@ -29,7 +29,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
     switch (ast->tag) {
     case VarTypeAST: {
         const char *name = Match(ast, VarTypeAST)->name;
-        type_t *t = Table$str_get(*env->types, name);
+        type_t *t = Tableヽstr_get(*env->types, name);
         if (t) return t;
         while (strchr(name, '.')) {
             char *module_name = GC_strndup(name, strcspn(name, "."));
@@ -37,11 +37,11 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
             if (!b || b->type->tag != ModuleType)
                 code_err(ast, "I don't know a module with the name '", module_name, "'");
 
-            env_t *imported = Table$str_get(*env->imports, Match(b->type, ModuleType)->name);
+            env_t *imported = Tableヽstr_get(*env->imports, Match(b->type, ModuleType)->name);
             assert(imported);
             env = imported;
             name = strchr(name, '.') + 1;
-            t = Table$str_get(*env->types, name);
+            t = Tableヽstr_get(*env->types, name);
             if (t) return t;
         }
         code_err(ast, "I don't know a type with the name '", name, "'");
@@ -134,7 +134,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
 //     switch (ast->tag) {
 //     case Int: {
 //         const char *str = Match(ast, Int)->str;
-//         OptionalInt_t int_val = Int$from_str(str);
+//         OptionalInt_t int_val = Intヽfrom_str(str);
 //         return (int_val.small == 0x1); // zero
 //     }
 //     case Num: {
@@ -167,14 +167,14 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
     DeclareMatch(use, module_ast, Use);
     switch (use->what) {
     case USE_LOCAL: {
-        Path_t source_path = Path$from_str(module_ast->file->filename);
-        Path_t source_dir = Path$parent(source_path);
-        Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
+        Path_t source_path = Pathヽfrom_str(module_ast->file->filename);
+        Path_t source_dir = Pathヽparent(source_path);
+        Path_t used_path = Pathヽresolved(Pathヽfrom_str(use->path), source_dir);
 
-        if (!Path$exists(used_path))
+        if (!Pathヽexists(used_path))
             code_err(module_ast, "No such file exists: ", quoted(use->path));
 
-        env_t *module_env = Table$str_get(*env->imports, String(used_path));
+        env_t *module_env = Tableヽstr_get(*env->imports, String(used_path));
         if (module_env)
             return module_env;
 
@@ -192,7 +192,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
         }
 
         env_t *module_env = fresh_scope(env);
-        Table$str_set(env->imports, mod.name, module_env);
+        Tableヽstr_set(env->imports, mod.name, module_env);
 
         for (size_t i = 0; i < tm_files.gl_pathc; i++) {
             const char *filename = tm_files.gl_pathv[i];
@@ -205,7 +205,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast)
                 struct {
                     const char *name; binding_t *binding;
                 } *entry = subenv->locals->entries.data + j*subenv->locals->entries.stride;
-                Table$str_set(module_env->locals, entry->name, entry->binding);
+                Tableヽstr_set(module_env->locals, entry->name, entry->binding);
             }
         }
         globfree(&tm_files);
@@ -233,9 +233,9 @@ void prebind_statement(env_t *env, ast_t *statement)
 
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(StructType, .name=def->name, .opaque=true, .external=def->external, .env=ns_env); // placeholder
-        Table$str_set(env->types, def->name, type);
+        Tableヽstr_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                    namespace_name(env, env->namespace, Texts(def->name, "$$info")));
+                    namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("info"))));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -247,9 +247,9 @@ void prebind_statement(env_t *env, ast_t *statement)
 
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(EnumType, .name=def->name, .opaque=true, .env=ns_env); // placeholder
-        Table$str_set(env->types, def->name, type);
+        Tableヽstr_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                    namespace_name(env, env->namespace, Texts(def->name, "$$info")));
+                    namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("info"))));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -261,9 +261,9 @@ void prebind_statement(env_t *env, ast_t *statement)
 
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
-        Table$str_set(env->types, def->name, type);
+        Tableヽstr_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name=def->name, .type=type, .env=ns_env),
-                    namespace_name(env, env->namespace, Texts(def->name, "$$info")));
+                    namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("info"))));
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(ns_env, stmt->ast);
         break;
@@ -281,12 +281,12 @@ void prebind_statement(env_t *env, ast_t *statement)
         List_t new_bindings = extended->locals->entries;
         for (int64_t i = 0; i < new_bindings.length; i++) {
             struct { const char *name; binding_t *binding; } *entry = new_bindings.data + i*new_bindings.stride;
-            binding_t *clobbered = Table$str_get(*ns_env->locals, entry->name);
+            binding_t *clobbered = Tableヽstr_get(*ns_env->locals, entry->name);
             if (clobbered && !type_eq(clobbered->type, entry->binding->type))
                 code_err(statement, "This `extend` block overwrites the binding for ", quoted(entry->name),
                          " in the original namespace (with type ", type_to_str(clobbered->type), ") with a new binding with type ",
                          type_to_str(entry->binding->type));
-            Table$str_set(ns_env->locals, entry->name, entry->binding);
+            Tableヽstr_set(ns_env->locals, entry->name, entry->binding);
         }
         break;
     }
@@ -321,9 +321,9 @@ void bind_statement(env_t *env, ast_t *statement)
             type = Type(ClosureType, type);
         Text_t code;
         if (name[0] != '_' && (env->namespace || decl->top_level))
-            code = namespace_name(env, env->namespace, Text$from_str(name));
+            code = namespace_name(env, env->namespace, Textヽfrom_str(name));
         else
-            code = Texts("_$", name);
+            code = USER_ID(Textヽfrom_str(name));
         set_binding(env, name, type, code);
         break;
     }
@@ -331,7 +331,7 @@ void bind_statement(env_t *env, ast_t *statement)
         DeclareMatch(def, statement, FunctionDef);
         const char *name = Match(def->name, Var)->name;
         type_t *type = get_function_def_type(env, statement);
-        set_binding(env, name, type, namespace_name(env, env->namespace, Text$from_str(name)));
+        set_binding(env, name, type, namespace_name(env, env->namespace, Textヽfrom_str(name)));
         break;
     }
     case ConvertDef: {
@@ -342,16 +342,16 @@ void bind_statement(env_t *env, ast_t *statement)
             code_err(statement, "Conversions are only supported for text, struct, and enum types, not ", type_to_str(ret_t));
 
         Text_t code = namespace_name(env, env->namespace,
-                                   Texts(name, "$", String(get_line_number(statement->file, statement->start))));
+                                   Texts(name, SEP, String(get_line_number(statement->file, statement->start))));
         binding_t binding = {.type=type, .code=code};
         env_t *type_ns = get_namespace_by_type(env, ret_t);
-        List$insert(&type_ns->namespace->constructors, &binding, I(0), sizeof(binding));
+        Listヽinsert(&type_ns->namespace->constructors, &binding, I(0), sizeof(binding));
         break;
     }
     case StructDef: {
         DeclareMatch(def, statement, StructDef);
         env_t *ns_env = namespace_env(env, def->name);
-        type_t *type = Table$str_get(*env->types, def->name);
+        type_t *type = Tableヽstr_get(*env->types, def->name);
         if (!type) code_err(statement, "Couldn't find type!");
         assert(type);
         ns_env->current_type = type;
@@ -394,7 +394,7 @@ void bind_statement(env_t *env, ast_t *statement)
     case EnumDef: {
         DeclareMatch(def, statement, EnumDef);
         env_t *ns_env = namespace_env(env, def->name);
-        type_t *type = Table$str_get(*env->types, def->name);
+        type_t *type = Tableヽstr_get(*env->types, def->name);
         assert(type);
         ns_env->current_type = type;
         tag_t *tags = NULL;
@@ -429,8 +429,8 @@ void bind_statement(env_t *env, ast_t *statement)
                 fields = new(arg_t, .name=field_ast->name, .type=field_t, .default_val=field_ast->value, .next=fields);
             }
             REVERSE_LIST(fields);
-            env_t *member_ns = namespace_env(env, String(def->name, "$", tag_ast->name));
-            type_t *tag_type = Type(StructType, .name=String(def->name, "$", tag_ast->name), .fields=fields, .env=member_ns);
+            env_t *member_ns = namespace_env(env, String(def->name, SEP, tag_ast->name));
+            type_t *tag_type = Type(StructType, .name=String(def->name, SEP, tag_ast->name), .fields=fields, .env=member_ns);
             tags = new(tag_t, .name=tag_ast->name, .tag_value=(next_tag++), .type=tag_type, .next=tags);
         }
         REVERSE_LIST(tags);
@@ -440,19 +440,19 @@ void bind_statement(env_t *env, ast_t *statement)
         for (tag_t *tag = tags; tag; tag = tag->next) {
             if (Match(tag->type, StructType)->fields) { // Constructor:
                 type_t *constructor_t = Type(FunctionType, .args=Match(tag->type, StructType)->fields, .ret=type);
-                Text_t tagged_name = namespace_name(env, env->namespace, Texts(def->name, "$tagged$", tag->name));
+                Text_t tagged_name = namespace_name(env, env->namespace, Texts(def->name, SEP, "tagged", SEP, tag->name));
                 set_binding(ns_env, tag->name, constructor_t, tagged_name);
                 binding_t binding = {.type=constructor_t, .code=tagged_name};
-                List$insert(&ns_env->namespace->constructors, &binding, I(1), sizeof(binding));
+                Listヽinsert(&ns_env->namespace->constructors, &binding, I(1), sizeof(binding));
             } else if (has_any_tags_with_fields) { // Empty singleton value:
-                Text_t code = Texts("((", namespace_name(env, env->namespace, Texts(def->name, "$$type")), "){",
-                                     namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name)), "})");
+                Text_t code = Texts("((", namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("type"))), "){",
+                                     namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("tag"), SEP, tag->name)), "})");
                 set_binding(ns_env, tag->name, type, code);
             } else {
-                Text_t code = namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name));
+                Text_t code = namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("tag"), SEP, tag->name));
                 set_binding(ns_env, tag->name, type, code);
             }
-            Table$str_set(env->types, String(def->name, "$", tag->name), tag->type);
+            Tableヽstr_set(env->types, String(def->name, SEP, tag->name), tag->type);
         }
         
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next) {
@@ -465,10 +465,10 @@ void bind_statement(env_t *env, ast_t *statement)
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(TextType, .lang=def->name, .env=ns_env);
         ns_env->current_type = type;
-        Table$str_set(env->types, def->name, type);
+        Tableヽstr_set(env->types, def->name, type);
 
         set_binding(ns_env, "from_text", NewFunctionType(type, {.name="text", .type=TEXT_TYPE}),
-                    Texts("(", namespace_name(env, env->namespace, Texts(def->name, "$$type")), ")"));
+                    Texts("(", namespace_name(env, env->namespace, Texts(def->name, SEP, INTERNAL_ID("type"))), ")"));
 
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
@@ -487,12 +487,12 @@ void bind_statement(env_t *env, ast_t *statement)
         List_t new_bindings = extended->locals->entries;
         for (int64_t i = 0; i < new_bindings.length; i++) {
             struct { const char *name; binding_t *binding; } *entry = new_bindings.data + i*new_bindings.stride;
-            binding_t *clobbered = Table$str_get(*ns_env->locals, entry->name);
+            binding_t *clobbered = Tableヽstr_get(*ns_env->locals, entry->name);
             if (clobbered && !type_eq(clobbered->type, entry->binding->type))
                 code_err(statement, "This `extend` block overwrites the binding for ", quoted(entry->name),
                          " in the original namespace (with type ", type_to_str(clobbered->type), ") with a new binding with type ",
                          type_to_str(entry->binding->type));
-            Table$str_set(ns_env->locals, entry->name, entry->binding);
+            Tableヽstr_set(ns_env->locals, entry->name, entry->binding);
         }
         break;
     }
@@ -505,9 +505,9 @@ void bind_statement(env_t *env, ast_t *statement)
                 struct { const char *name; binding_t *binding; } *entry = entries.data + entries.stride*i;
                 if (entry->name[0] == '_' || streq(entry->name, "main"))
                     continue;
-                binding_t *b = Table$str_get(*env->locals, entry->name);
+                binding_t *b = Tableヽstr_get(*env->locals, entry->name);
                 if (!b)
-                    Table$str_set(env->locals, entry->name, entry->binding);
+                    Tableヽstr_set(env->locals, entry->name, entry->binding);
                 else if (b != entry->binding)
                     code_err(statement, "This module imports a symbol called '", entry->name, "', which would clobber another variable");
             }
@@ -516,10 +516,10 @@ void bind_statement(env_t *env, ast_t *statement)
             struct { const char *name; type_t *type; } *entry = module_env->types->entries.data + module_env->types->entries.stride*i;
             if (entry->name[0] == '_')
                 continue;
-            if (Table$str_get(*env->types, entry->name))
+            if (Tableヽstr_get(*env->types, entry->name))
                 continue;
 
-            Table$str_set(env->types, entry->name, entry->type);
+            Tableヽstr_set(env->types, entry->name, entry->type);
         }
 
         ast_t *var = Match(statement, Use)->var;
@@ -535,7 +535,7 @@ void bind_statement(env_t *env, ast_t *statement)
         type_t *t = parse_type_ast(env, ext->type);
         if (t->tag == ClosureType)
             t = Match(t, ClosureType)->fn;
-        set_binding(env, ext->name, t, Text$from_str(ext->name));
+        set_binding(env, ext->name, t, Textヽfrom_str(ext->name));
         break;
     }
     default: break;
@@ -844,7 +844,7 @@ type_t *get_type(env_t *env, ast_t *ast)
         }
         if (fielded_t->tag == ModuleType) {
             const char *name = Match(fielded_t, ModuleType)->name;
-            env_t *module_env = Table$str_get(*env->imports, name);
+            env_t *module_env = Tableヽstr_get(*env->imports, name);
             if (!module_env) code_err(access->fielded, "I couldn't find the environment for the module ", name);
             return get_type(module_env, WrapAST(ast, Var, access->field));
         } else if (fielded_t->tag == TypeInfoType) {
@@ -1047,10 +1047,10 @@ type_t *get_type(env_t *env, ast_t *ast)
     case Use: {
         switch (Match(ast, Use)->what) {
         case USE_LOCAL: {
-            Path_t source_path = Path$from_str(ast->file->filename);
-            Path_t source_dir = Path$parent(source_path);
-            Path_t used_path = Path$resolved(Path$from_str(Match(ast, Use)->path), source_dir);
-            return Type(ModuleType, Path$as_c_string(used_path));
+            Path_t source_path = Pathヽfrom_str(ast->file->filename);
+            Path_t source_dir = Pathヽparent(source_path);
+            Path_t used_path = Pathヽresolved(Pathヽfrom_str(Match(ast, Use)->path), source_dir);
+            return Type(ModuleType, Pathヽas_c_string(used_path));
         }
         default:
             return Type(ModuleType, Match(ast, Use)->path);
@@ -1349,7 +1349,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             code_err(reduction->iter, "I don't know how to do a reduction over ", type_to_str(iter_t), " values");
         if (reduction->key && !(reduction->op == Min || reduction->op == Max)) {
             env_t *item_scope = fresh_scope(env);
-            set_binding(item_scope, "$", iterated, EMPTY_TEXT);
+            set_binding(item_scope, "ヽ", iterated, EMPTY_TEXT);
             iterated = get_type(item_scope, reduction->key);
         }
         return iterated->tag == OptionalType ? iterated : Type(OptionalType, .type=iterated);
@@ -1532,7 +1532,7 @@ type_t *get_type(env_t *env, ast_t *ast)
             Text_t unhandled = EMPTY_TEXT;
             for (match_t *m = matches; m; m = m->next) {
                 if (!m->handled)
-                    unhandled = unhandled.length > 0 ? Texts(unhandled, ", ", m->tag->name) : Text$from_str(m->tag->name);
+                    unhandled = unhandled.length > 0 ? Texts(unhandled, ", ", m->tag->name) : Textヽfrom_str(m->tag->name);
             }
             if (unhandled.length > 0)
                 code_err(ast, "This 'when' statement doesn't handle the tags: ", unhandled);
@@ -1599,7 +1599,7 @@ static Table_t *get_arg_bindings_with_promotion(env_t *env, arg_t *spec_args, ar
             type_t *spec_type = get_arg_type(env, spec_arg);
             if (!can_compile_to_type(env, call_arg->value, spec_type))
                 return NULL;
-            Table$str_set(&used_args, call_arg->name, call_arg);
+            Tableヽstr_set(&used_args, call_arg->name, call_arg);
             goto next_call_arg;
         }
         return NULL;
@@ -1608,7 +1608,7 @@ static Table_t *get_arg_bindings_with_promotion(env_t *env, arg_t *spec_args, ar
 
     arg_ast_t *unused_args = call_args;
     for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
-        arg_ast_t *keyworded = Table$str_get(used_args, spec_arg->name);
+        arg_ast_t *keyworded = Tableヽstr_get(used_args, spec_arg->name);
         if (keyworded) continue;
 
         type_t *spec_type = get_arg_type(env, spec_arg);
@@ -1616,7 +1616,7 @@ static Table_t *get_arg_bindings_with_promotion(env_t *env, arg_t *spec_args, ar
             if (unused_args->name) continue; // Already handled the keyword args
             if (!can_compile_to_type(env, unused_args->value, spec_type))
                 return NULL; // Positional arg trying to fill in 
-            Table$str_set(&used_args, spec_arg->name, unused_args);
+            Tableヽstr_set(&used_args, spec_arg->name, unused_args);
             unused_args = unused_args->next;
             goto found_it;
         }
@@ -1658,7 +1658,7 @@ Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bo
             if (!complete_call_type) return NULL;
             if (!type_eq(complete_call_type, spec_type))
                 return NULL;
-            Table$str_set(&used_args, call_arg->name, call_arg);
+            Tableヽstr_set(&used_args, call_arg->name, call_arg);
             goto next_call_arg;
         }
         return NULL;
@@ -1667,7 +1667,7 @@ Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bo
 
     arg_ast_t *unused_args = call_args;
     for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
-        arg_ast_t *keyworded = Table$str_get(used_args, spec_arg->name);
+        arg_ast_t *keyworded = Tableヽstr_get(used_args, spec_arg->name);
         if (keyworded) continue;
 
         type_t *spec_type = get_arg_type(env, spec_arg);
@@ -1678,7 +1678,7 @@ Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bo
             if (!complete_call_type) return NULL;
             if (!type_eq(complete_call_type, spec_type))
                 return NULL; // Positional arg trying to fill in 
-            Table$str_set(&used_args, spec_arg->name, unused_args);
+            Tableヽstr_set(&used_args, spec_arg->name, unused_args);
             unused_args = unused_args->next;
             goto found_it;
         }
@@ -1745,9 +1745,9 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
     case Bool: case Num: case None: return true;
     case Int: {
         DeclareMatch(info, ast, Int);
-        Int_t int_val = Int$parse(Text$from_str(info->str), NULL);
+        Int_t int_val = Intヽparse(Textヽfrom_str(info->str), NULL);
         if (int_val.small == 0) return false; // Failed to parse
-        return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
+        return (Intヽcompare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
     }
     case TextJoin: {
         DeclareMatch(text, ast, TextJoin);
@@ -1759,7 +1759,7 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast)
         Text_t literal = Match(ast, TextLiteral)->text; 
         TextIter_t state = NEW_TEXT_ITER_STATE(literal);
         for (int64_t i = 0; i < literal.length; i++) {
-            int32_t g = Text$get_grapheme_fast(&state, i);
+            int32_t g = Textヽget_grapheme_fast(&state, i);
             if (g < 0 || g > 127 || !isascii(g))
                 return false;
         }

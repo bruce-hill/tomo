@@ -12,7 +12,7 @@
 #include "text.h"
 #include "util.h"
 
-PUREFUNC public Text_t Bool$as_text(const void *b, bool colorize, const TypeInfo_t *info)
+PUREFUNC public Text_t Boolヽas_text(const void *b, bool colorize, const TypeInfo_t *info)
 {
     (void)info;
     if (!b) return Text("Bool");
@@ -26,9 +26,9 @@ static bool try_parse(Text_t text, Text_t target, bool target_value, Text_t *rem
 {
     static const Text_t lang = Text("C");
     if (text.length < target.length) return false;
-    Text_t prefix = Text$to(text, Int$from_int64(target.length));
-    if (Text$equal_ignoring_case(prefix, target, lang)) {
-        if (remainder) *remainder = Text$from(text, Int$from_int64(target.length + 1));
+    Text_t prefix = Textヽto(text, Intヽfrom_int64(target.length));
+    if (Textヽequal_ignoring_case(prefix, target, lang)) {
+        if (remainder) *remainder = Textヽfrom(text, Intヽfrom_int64(target.length + 1));
         else if (text.length > target.length) return false;
         *result = target_value;
         return true;
@@ -37,7 +37,7 @@ static bool try_parse(Text_t text, Text_t target, bool target_value, Text_t *rem
     }
 }
 
-PUREFUNC public OptionalBool_t Bool$parse(Text_t text, Text_t *remainder)
+PUREFUNC public OptionalBool_t Boolヽparse(Text_t text, Text_t *remainder)
 {
     bool result;
     if (try_parse(text, Text("yes"), true, remainder, &result)
@@ -53,18 +53,18 @@ PUREFUNC public OptionalBool_t Bool$parse(Text_t text, Text_t *remainder)
         return NONE_BOOL;
 }
 
-static bool Bool$is_none(const void *b, const TypeInfo_t *info)
+static bool Boolヽis_none(const void *b, const TypeInfo_t *info)
 {
     (void)info;
     return *(OptionalBool_t*)b == NONE_BOOL;
 }
 
-public const TypeInfo_t Bool$info = {
+public const TypeInfo_t Boolヽinfo = {
     .size=sizeof(bool),
     .align=__alignof__(bool),
     .metamethods={
-        .as_text=Bool$as_text,
-        .is_none=Bool$is_none,
+        .as_text=Boolヽas_text,
+        .is_none=Boolヽis_none,
     },
 };
 
