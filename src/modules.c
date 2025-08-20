@@ -1,8 +1,15 @@
+// This file defines some code for getting info about modules and installing them.
+#include <err.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+
 #include "modules.h"
 #include "stdlib/memory.h"
 #include "stdlib/paths.h"
-#include "stdlib/simpleparse.h"
 #include "stdlib/pointers.h"
+#include "stdlib/print.h"
+#include "stdlib/simpleparse.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/types.h"
@@ -121,6 +128,5 @@ bool try_install_module(module_info_t mod)
 
     return false;
 }
-
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
