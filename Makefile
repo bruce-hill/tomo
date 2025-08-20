@@ -74,7 +74,7 @@ CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) 
 	   -DTOMO_PREFIX='"$(PREFIX)"' -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DTOMO_VERSION='"$(TOMO_VERSION)"' -DGIT_VERSION='"$(GIT_VERSION)"'
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-LDLIBS=-lgc -lm -lunistring -lgmp -ldl
+LDLIBS=-lgc -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
 
 DEFINE_AS_OWNER=as_owner() { \
@@ -87,6 +87,8 @@ DEFINE_AS_OWNER=as_owner() { \
 
 ifeq ($(OS),OpenBSD)
 	LDLIBS += -lexecinfo
+else
+	LDLIBS += -ldl
 endif
 
 AR_FILE=libtomo_$(TOMO_VERSION).a
