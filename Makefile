@@ -1,4 +1,4 @@
-SHELL=/bin/bash -o pipefail
+SHELL=bash -o pipefail
 # Run ./configure.sh to choose installation locations:
 ifeq ($(wildcard config.mk),)
 all: config.mk
