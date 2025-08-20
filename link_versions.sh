@@ -10,8 +10,8 @@ commands="$(ls | awk -F '[v.]' '
     }
     END {
         for (major in max_minor) {
-            if (max_major > 0) print "ln -fvs tomo_v"major"."max_minor[major]" tomo"major
+            if (max_major > 0) print "ln -fs tomo_v"major"."max_minor[major]" tomo"major
         }
-        if (link_tomo) print "ln -fvs tomo_v"max_major"."max_minor[max_major]" tomo"
+        if (link_tomo) print "ln -fs tomo_v"max_major"."max_minor[max_major]" tomo"
     }')"
 eval "$commands"
