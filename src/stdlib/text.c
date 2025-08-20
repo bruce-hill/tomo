@@ -828,7 +828,9 @@ public OptionalText_t Text$from_strn(const char *str, size_t len)
         if (u32s_normalized != buf2) free(u32s_normalized);
 
         if (unique_clusters.entries.length >= 256) {
-            return concat2_assuming_safe(Text$from_components(graphemes, unique_clusters), Text$from_strn(next, (size_t)(end-next)));
+            return concat2_assuming_safe(
+                Text$from_components(graphemes, unique_clusters),
+                Text$from_strn((const char*)next, (size_t)(end-next)));
         }
     }
 
@@ -1133,12 +1135,12 @@ PUREFUNC public bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainde
 
 public Text_t Text$without_prefix(Text_t text, Text_t prefix)
 {
-    return Text$starts_with(text, prefix, false) ? Text$slice(text, I(prefix.length + 1), I(text.length)) : text;
+    return Text$starts_with(text, prefix, NULL) ? Text$slice(text, I(prefix.length + 1), I(text.length)) : text;
 }
 
 public Text_t Text$without_suffix(Text_t text, Text_t suffix)
 {
-    return Text$ends_with(text, suffix, false) ? Text$slice(text, I(1), I(text.length - suffix.length)) : text;
+    return Text$ends_with(text, suffix, NULL) ? Text$slice(text, I(1), I(text.length - suffix.length)) : text;
 }
 
 static bool _has_grapheme(TextIter_t *text, int32_t g)

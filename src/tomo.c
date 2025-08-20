@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
         USE_COLOR = false;
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
-    arc4random_buf(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0);
+    arc4random_buf(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY));
 #elif defined(__linux__)
     assert(getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0) == sizeof(TOMO_HASH_KEY));
 #else
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
     }
 
     if (show_changelog) {
-        print_inline(string_slice(CHANGES_md, CHANGES_md_len));
+        print_inline(string_slice((const char*)CHANGES_md, CHANGES_md_len));
         return 0;
     }
 
@@ -462,8 +462,8 @@ void install_library(Path_t lib_dir)
     if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_dir_name, SHARED_SUFFIX);
     int result = system(String(as_owner, "debugedit -b ", lib_dir,
                                " -d '", dest, "'"
-                               " '", dest, "/lib", lib_dir_name, version_suffix, SHARED_SUFFIX, "'"
-));
+                               " '", dest, "/lib", lib_dir_name, version_suffix, SHARED_SUFFIX, "' "
+                               ">/dev/null 2>/dev/null"));
     (void)result;
     print("Installed \033[1m", lib_dir_name, "\033[m to "TOMO_PREFIX"/share/tomo_"TOMO_VERSION"/installed/", lib_dir_name, version_suffix);
 }

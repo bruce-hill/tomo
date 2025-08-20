@@ -665,7 +665,7 @@ public void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const Ty
         if (Int$compare_value(bit_index, I(1)) < 0) \
             fail("Invalid bit index (expected 1 or higher): ", bit_index); \
         if (Int$compare_value(bit_index, Int$from_int64(sizeof(c_type)*8)) > 0) \
-            fail("Bit index is too large! There are only ", sizeof(c_type)*8, " bits, but index is: ", bit_index); \
+            fail("Bit index is too large! There are only ", (uint64_t)sizeof(c_type)*8, " bits, but index is: ", bit_index); \
         return ((x & (c_type)(1L << (Int64$from_int(bit_index, true)-1L))) != 0); \
     } \
     typedef struct { \

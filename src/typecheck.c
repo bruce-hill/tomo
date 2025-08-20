@@ -61,7 +61,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
             code_err(item_type, "Lists can't have stack references because the list may outlive the stack frame.");
         if (type_size(item_t) > LIST_MAX_STRIDE)
             code_err(ast, "This list holds items that take up ", (uint64_t)type_size(item_t),
-                     " bytes, but the maximum supported size is ", LIST_MAX_STRIDE, " bytes. Consider using a list of pointers instead.");
+                     " bytes, but the maximum supported size is ", (int64_t)LIST_MAX_STRIDE, " bytes. Consider using a list of pointers instead.");
         return Type(ListType, .item_type=item_t);
     }
     case SetTypeAST: {
@@ -72,7 +72,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast)
             code_err(item_type, "Sets can't have stack references because the list may outlive the stack frame.");
         if (type_size(item_t) > LIST_MAX_STRIDE)
             code_err(ast, "This set holds items that take up ", (uint64_t)type_size(item_t),
-                     " bytes, but the maximum supported size is ", LIST_MAX_STRIDE, " bytes. Consider using an set of pointers instead.");
+                     " bytes, but the maximum supported size is ", (int64_t)LIST_MAX_STRIDE, " bytes. Consider using an set of pointers instead.");
         return Type(SetType, .item_type=item_t);
     }
     case TableTypeAST: {
