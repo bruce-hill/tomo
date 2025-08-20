@@ -67,7 +67,8 @@ OSFLAGS != case $(OS) in *BSD|Darwin) echo '-D_BSD_SOURCE';; Linux) echo '-D_GNU
 EXTRA=
 G=-ggdb
 O=-O3
-TOMO_VERSION=$(shell awk '/^\#\# / {print $$2; exit}' CHANGES.md)
+# Note: older versions of Make have buggy behavior with hash marks inside strings, so this ugly code is necessary:
+TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print $$2; exit}' CHANGES.md)
 GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h")
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
 	   -DTOMO_PREFIX='"$(PREFIX)"' -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
@@ -107,6 +108,9 @@ API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
 all: config.mk check-c-compiler check-libs build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/$(EXE_FILE)
+
+version:
+	@echo $(TOMO_VERSION)
 
 check-c-compiler:
 	@$(DEFAULT_C_COMPILER) -v 2>/dev/null >/dev/null \
@@ -230,4 +234,4 @@ uninstall:
 endif
 
 .SUFFIXES:
-.PHONY: all clean install install-files install-libs uninstall test tags examples deps check-utilities check-c-compiler check-libs
+.PHONY: all clean install install-files install-libs uninstall test tags examples deps check-utilities check-c-compiler check-libs version
