@@ -1,3 +1,4 @@
+use <math.h>
 extern sqrt : func(n:Num->Num)
 
 func main()

@@ -113,7 +113,7 @@ public OptionalNum_t Num$parse(Text_t text, Text_t *remainder) {
     }
 }
 
-static bool Num$is_none(const void *n, const TypeInfo_t *info)
+public CONSTFUNC bool Num$is_none(const void *n, const TypeInfo_t *info)
 {
     (void)info;
     return isnan(*(Num_t*)n);
@@ -223,7 +223,7 @@ public OptionalNum32_t Num32$parse(Text_t text, Text_t *remainder) {
     }
 }
 
-static bool Num32$is_none(const void *n, const TypeInfo_t *info)
+public CONSTFUNC bool Num32$is_none(const void *n, const TypeInfo_t *info)
 {
     (void)info;
     return isnan(*(Num32_t*)n);

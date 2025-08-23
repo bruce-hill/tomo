@@ -1,8 +1,11 @@
 // Optional types
 
+#include <math.h>
+
 #include "datatypes.h"
 #include "metamethods.h"
 #include "nums.h"
+#include "optionals.h"
 #include "text.h"
 #include "util.h"
 

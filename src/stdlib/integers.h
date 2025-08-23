@@ -4,10 +4,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <gmp.h>
 
-#include "print.h"
 #include "datatypes.h"
 #include "stdlib.h"
 #include "types.h"

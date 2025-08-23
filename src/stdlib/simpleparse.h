@@ -32,6 +32,7 @@ typedef struct { parse_type_e type; void *dest; } parse_element_t;
 #define _parse_type(dest) _Generic((dest), \
     some_char_t*: PARSE_SOME_OF, \
     const char*: PARSE_LITERAL, \
+    char*: PARSE_LITERAL, \
     const char**: PARSE_STRING, \
     char**: PARSE_STRING, \
     double*: PARSE_DOUBLE, \

@@ -1,6 +1,7 @@
 // Functions that operate on lists
 
 #include <gc.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/param.h>

@@ -13,6 +13,7 @@
 #endif
 
 #include "ast.h"
+#include "config.h"
 #include "changes.md.h"
 #include "compile.h"
 #include "modules.h"
@@ -28,6 +29,7 @@
 #include "stdlib/print.h"
 #include "stdlib/random.h"
 #include "stdlib/siphash.h"
+#include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "types.h"
 

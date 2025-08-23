@@ -23,7 +23,7 @@ static void xpipe(int fd[2]) {
 }
 
 int run_command(Text_t exe, List_t arg_list, Table_t env_table,
-                       OptionalList_t input_bytes, List_t *output_bytes, List_t *error_bytes)
+                OptionalList_t input_bytes, List_t *output_bytes, List_t *error_bytes)
 {
     pthread_testcancel();
 

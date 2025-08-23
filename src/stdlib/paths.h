@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "types.h"
 #include "datatypes.h"
-#include "optionals.h"
+#include "integers.h"
+#include "types.h"
 
 Path_t Path$from_str(const char *str);
 Path_t Path$from_text(Text_t text);

@@ -8,11 +8,9 @@
 #include <stdio.h>
 
 #include "datatypes.h"
-#include "files.h"
 #include "print.h"
 #include "stacktrace.h"
 #include "types.h"
-#include "util.h"
 
 extern bool USE_COLOR;
 extern Text_t TOMO_VERSION_TEXT;

@@ -1,4 +1,5 @@
 // This file defines some of the helper functions used for printing values
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -170,6 +171,7 @@ public int _print_char(FILE *f, char c)
     if (name != NULL)
         return fputs(name, f);
     else if (isprint(c))
+
         return fputc('\'', f) + fputc(c, f) + fputc('\'', f);
     else
         return (fputs("'\\x", f) + _print_hex(f, hex((uint64_t)c, .digits=2, .no_prefix=true, .uppercase=true))

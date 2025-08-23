@@ -6,7 +6,6 @@
 #include <stdint.h>
 
 #include "types.h"
-#include "optionals.h"
 #include "util.h"
 
 #define yes (Bool_t)true

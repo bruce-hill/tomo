@@ -10,7 +10,6 @@
 //
 
 #include <assert.h>
-#include <ctype.h>
 #include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>

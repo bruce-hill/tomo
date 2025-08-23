@@ -7,6 +7,7 @@
 
 #include "memory.h"
 #include "metamethods.h"
+#include "print.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"

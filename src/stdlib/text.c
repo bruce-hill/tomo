@@ -109,8 +109,9 @@
 
 #include "bytes.h"
 #include "datatypes.h"
-#include "lists.h"
 #include "integers.h"
+#include "lists.h"
+#include "optionals.h"
 #include "tables.h"
 #include "text.h"
 

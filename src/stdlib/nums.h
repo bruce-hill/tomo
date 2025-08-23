@@ -2,12 +2,10 @@
 
 // Type infos and methods for Nums (floating point)
 
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "datatypes.h"
-#include "integers.h"
 #include "stdlib.h"
 #include "types.h"
 #include "util.h"
@@ -28,6 +26,7 @@ double Num$mod1(double num, double modulus);
 CONSTFUNC bool Num$isinf(double n);
 CONSTFUNC bool Num$finite(double n);
 CONSTFUNC bool Num$isnan(double n);
+bool Num$is_none(const void *n, const TypeInfo_t *info);
 double Num$nan(Text_t tag);
 CONSTFUNC double Num$mix(double amount, double x, double y);
 OptionalNum_t Num$parse(Text_t text, Text_t *remainder);
@@ -82,6 +81,7 @@ float Num32$mod1(float num, float modulus);
 CONSTFUNC bool Num32$isinf(float n);
 CONSTFUNC bool Num32$finite(float n);
 CONSTFUNC bool Num32$isnan(float n);
+CONSTFUNC bool Num32$is_none(const void *n, const TypeInfo_t *info);
 CONSTFUNC float Num32$mix(float amount, float x, float y);
 OptionalNum32_t Num32$parse(Text_t text, Text_t *remainder);
 float Num32$nan(Text_t tag);

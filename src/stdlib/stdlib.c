@@ -1,10 +1,12 @@
 // Built-in functions
 
+#include <ctype.h>
 #include <errno.h>
 #include <execinfo.h>
 #include <fcntl.h>
 #include <gc.h>
 #include <locale.h>
+#include <math.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>

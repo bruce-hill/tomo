@@ -4,8 +4,6 @@
 
 #include <gc.h>
 #include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "ast.h"
 #include "environment.h"

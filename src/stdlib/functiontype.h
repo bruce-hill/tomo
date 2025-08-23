@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "metamethods.h"
-#include "optionals.h"
 #include "types.h"
 #include "util.h"
 

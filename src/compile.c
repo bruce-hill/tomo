@@ -7,15 +7,16 @@
 #include <uninorm.h>
 
 #include "ast.h"
+#include "config.h"
 #include "compile.h"
 #include "enums.h"
 #include "environment.h"
 #include "modules.h"
 #include "naming.h"
-#include "parse.h"
 #include "stdlib/integers.h"
 #include "stdlib/nums.h"
 #include "stdlib/paths.h"
+#include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
 #include "structs.h"
@@ -64,7 +65,7 @@ Text_t promote_to_optional(type_t *t, Text_t code)
         case TYPE_IBITS16: return Texts("((OptionalInt16_t){.value=", code, "})");
         case TYPE_IBITS32: return Texts("((OptionalInt32_t){.value=", code, "})");
         case TYPE_IBITS64: return Texts("((OptionalInt64_t){.value=", code, "})");
-        default: errx(1, "Unsupported in type: ", type_to_str(t));
+        default: errx(1, "Unsupported in type: %s", type_to_str(t));
         }
         return code;
     } else if (t->tag == ByteType) {
@@ -779,7 +780,7 @@ static Text_t compile_binary_op(env_t *env, ast_t *ast)
             code_err(ast, "Concatenation isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t), " values");
         }
     }
-    default: errx(1, "Not a valid binary operation: ", ast_to_sexp_str(ast));
+    default: errx(1, "Not a valid binary operation: %s", ast_to_sexp_str(ast));
     }
     return EMPTY_TEXT;
 }
@@ -1003,7 +1004,7 @@ Text_t check_none(type_t *t, Text_t value)
     else if (t->tag == ClosureType)
         return Texts("({(", value, ").fn == NULL;})");
     else if (t->tag == NumType)
-        return Texts("isnan(", value, ")");
+        return Texts(Match(t, NumType)->bits == TYPE_NBITS64 ? "Num$isnan(" : "Num32$isnan(", value, ")");
     else if (t->tag == ListType)
         return Texts("({(", value, ").length < 0;})");
     else if (t->tag == TableType || t->tag == SetType)

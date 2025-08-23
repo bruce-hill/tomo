@@ -1,0 +1,3 @@
+CompileFlags:
+  Add: [-xc]
+Checks: '-bugprone-suspicious-missing-comma'

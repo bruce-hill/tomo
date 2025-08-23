@@ -1,4 +1,5 @@
 # Time - a module for dealing with dates and times
+use <math.h>
 use ./time_defs.h
 
 enum Weekday(Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday)

@@ -5,7 +5,6 @@
 #include <gmp.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <time.h>
 
 #define LIST_LENGTH_BITS 64
 #define LIST_FREE_BITS 48

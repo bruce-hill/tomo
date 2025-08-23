@@ -6,7 +6,6 @@
 #include <stdint.h>
 
 #include "datatypes.h"
-#include "integers.h"
 #include "types.h"
 #include "util.h"
 

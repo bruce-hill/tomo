@@ -6,6 +6,7 @@
 #include <sys/param.h>
 
 #include "bools.h"
+#include "integers.h"
 #include "optionals.h"
 #include "text.h"
 #include "util.h"

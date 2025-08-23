@@ -1,3 +1,7 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif 
+
 #include <dlfcn.h>
 #include <err.h>
 #include <execinfo.h>
@@ -8,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "../config.h"
 #include "print.h"
 #include "simpleparse.h"
 #include "util.h"

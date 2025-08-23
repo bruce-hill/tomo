@@ -3,6 +3,7 @@
 // All of the different builtin modules can be included by including this one
 // import
 
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/param.h>
@@ -12,6 +13,7 @@
 #include "c_strings.h"
 #include "datatypes.h"
 #include "enums.h"
+#include "files.h"
 #include "functiontype.h"
 #include "integers.h"
 #include "lists.h"

@@ -3,7 +3,6 @@
 // Compilation functions
 
 #include <gc.h>
-#include <stdio.h>
 
 #include "environment.h"
 #include "stdlib/datatypes.h"

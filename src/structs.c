@@ -6,6 +6,7 @@
 #include "environment.h"
 #include "naming.h"
 #include "stdlib/text.h"
+#include "stdlib/tables.h"
 #include "typecheck.h"
 
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret, bool is_opaque)

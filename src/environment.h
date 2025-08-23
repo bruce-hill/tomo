@@ -4,9 +4,6 @@
 
 #include "stdlib/datatypes.h"
 #include "stdlib/print.h"
-#include "stdlib/stacktrace.h"
-#include "stdlib/stdlib.h"
-#include "stdlib/tables.h"
 #include "types.h"
 
 typedef struct {

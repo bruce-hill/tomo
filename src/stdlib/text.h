@@ -7,9 +7,7 @@
 #include <stdint.h>
 
 #include "datatypes.h"
-#include "integers.h"
 #include "mapmacro.h"
-#include "optionals.h"
 #include "types.h"
 #include "util.h"
 

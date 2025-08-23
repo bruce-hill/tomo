@@ -7,7 +7,6 @@
 
 #include "datatypes.h"
 #include "integers.h"
-#include "stdlib.h"
 #include "types.h"
 #include "util.h"
 

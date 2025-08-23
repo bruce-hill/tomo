@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 
 #include "ast.h"
+#include "config.h"
 #include "environment.h"
 #include "modules.h"
 #include "naming.h"

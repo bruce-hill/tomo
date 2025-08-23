@@ -175,7 +175,7 @@ static inline void aco_fast_memcpy(void *dst, const void *src, size_t sz) {
 }
 #endif
 
-void aco_default_protector_last_word(void*) {
+void aco_default_protector_last_word(void*_) {
     aco_t* co = aco_get_co();
     // do some log about the offending `co`
     fprintf(stderr,"error: aco_default_protector_last_word triggered\n");
@@ -487,6 +487,6 @@ public void aco_destroy(aco_t* co) {
     }
 }
 
-public void aco_exit_fn(void*) {
+public void aco_exit_fn(void*_) {
     aco_exit();
 }

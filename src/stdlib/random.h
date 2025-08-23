@@ -1,3 +1,6 @@
+#include <stdint.h>
+#include <assert.h>
+
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 #include <stdlib.h>
 static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
