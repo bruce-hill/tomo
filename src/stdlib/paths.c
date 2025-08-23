@@ -19,7 +19,6 @@
 
 #include "lists.h"
 #include "enums.h"
-#include "files.h"
 #include "integers.h"
 #include "optionals.h"
 #include "paths.h"
@@ -30,7 +29,6 @@
 #include "print.h"
 
 // Use inline version of the siphash code for performance:
-#include "siphash.h"
 #include "siphash-internals.h"
 
 static const Path_t HOME_PATH = {.type.$tag=PATH_HOME},

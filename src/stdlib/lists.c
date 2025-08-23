@@ -15,7 +15,6 @@
 #include "util.h"
 
 // Use inline version of siphash code:
-#include "siphash.h"
 #include "siphash-internals.h"
 
 PUREFUNC static INLINE int64_t get_padded_item_size(const TypeInfo_t *info)

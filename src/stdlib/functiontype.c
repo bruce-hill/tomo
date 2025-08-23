@@ -4,9 +4,7 @@
 
 #include "datatypes.h"
 #include "functiontype.h"
-#include "optionals.h"
 #include "structs.h"
-#include "tables.h"
 #include "text.h"
 #include "types.h"
 #include "util.h"

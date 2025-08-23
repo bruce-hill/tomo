@@ -3,14 +3,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "lists.h"
 #include "bools.h"
-#include "functiontype.h"
 #include "metamethods.h"
-#include "optionals.h"
-#include "pointers.h"
 #include "siphash.h"
-#include "tables.h"
 #include "text.h"
 #include "util.h"
 

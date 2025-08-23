@@ -1,14 +1,9 @@
 // Type information and methods for TypeInfos (i.e. runtime representations of types)
 #include <err.h>
 #include <gc.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/param.h>
 
 #include "util.h"
-#include "lists.h"
-#include "pointers.h"
-#include "tables.h"
 #include "text.h"
 #include "types.h"
 

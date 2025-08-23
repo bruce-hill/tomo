@@ -22,7 +22,6 @@
 #include "memory.h"
 #include "metamethods.h"
 #include "pointers.h"
-#include "print.h"
 #include "siphash.h"
 #include "tables.h"
 #include "text.h"

@@ -14,7 +14,6 @@
 
 #include "bools.h"
 #include "files.h"
-#include "functiontype.h"
 #include "integers.h"
 #include "metamethods.h"
 #include "nums.h"

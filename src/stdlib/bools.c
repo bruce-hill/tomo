@@ -1,10 +1,8 @@
 // Boolean methods/type info
-#include <ctype.h>
 #include <err.h>
 #include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <sys/param.h>
 
 #include "bools.h"

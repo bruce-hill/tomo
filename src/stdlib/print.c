@@ -1,5 +1,4 @@
 // This file defines some of the helper functions used for printing values
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>

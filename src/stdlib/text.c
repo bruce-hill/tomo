@@ -1784,7 +1784,7 @@ public Int_t Text$memory_size(Text_t text)
         return Int$plus(
             Int$from_int64((int64_t)sizeof(Text_t)),
             Int$plus(Text$memory_size(*text.left), Text$memory_size(*text.right)));
-    default: errx(1, "Invalid text tag: ", text.tag);
+    default: errx(1, "Invalid text tag: %d", text.tag);
     }
 }
 
@@ -1799,7 +1799,7 @@ public Text_t Text$layout(Text_t text)
         return Texts(Text("Blob("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
     case TEXT_CONCAT:
         return Texts(Text("Concat("), Text$layout(*text.left), Text(", "), Text$layout(*text.right), Text(")"));
-    default: errx(1, "Invalid text tag: ", text.tag);
+    default: errx(1, "Invalid text tag: %d", text.tag);
     }
 }
 

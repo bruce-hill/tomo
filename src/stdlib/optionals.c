@@ -1,9 +1,6 @@
 // Optional types
 
-#include "bools.h"
-#include "bytes.h"
 #include "datatypes.h"
-#include "integers.h"
 #include "metamethods.h"
 #include "nums.h"
 #include "text.h"

@@ -1,5 +1,4 @@
 // Type infos and methods for Pointer types
-#include <ctype.h>
 #include <err.h>
 #include <gc.h>
 #include <stdbool.h>

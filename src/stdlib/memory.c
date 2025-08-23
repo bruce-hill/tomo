@@ -2,8 +2,6 @@
 #include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <ctype.h>
 #include <sys/param.h>
 #include <err.h>
 
