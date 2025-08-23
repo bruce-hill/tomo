@@ -13,92 +13,84 @@
 #include "types.h"
 
 Text_t type_to_text(type_t *t) {
-    if (!t)
-        return Text("(Unknown type)");
+    if (!t) return Text("(Unknown type)");
 
     switch (t->tag) {
-        case UnknownType: return Text("???");
-        case AbortType: return Text("Abort");
-        case ReturnType: {
-            type_t *ret = Match(t, ReturnType)->ret;
-            return Texts("Return(", ret ? type_to_text(ret) : Text("Void"), ")");
+    case UnknownType: return Text("???");
+    case AbortType: return Text("Abort");
+    case ReturnType: {
+        type_t *ret = Match(t, ReturnType)->ret;
+        return Texts("Return(", ret ? type_to_text(ret) : Text("Void"), ")");
+    }
+    case VoidType: return Text("Void");
+    case MemoryType: return Text("Memory");
+    case BoolType: return Text("Bool");
+    case ByteType: return Text("Byte");
+    case CStringType: return Text("CString");
+    case TextType: return Match(t, TextType)->lang ? Text$from_str(Match(t, TextType)->lang) : Text("Text");
+    case BigIntType: return Text("Int");
+    case IntType: return Texts("Int", String(Match(t, IntType)->bits));
+    case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? Text("Num32") : Text("Num");
+    case ListType: {
+        DeclareMatch(list, t, ListType);
+        return Texts("[", type_to_text(list->item_type), "]");
+    }
+    case TableType: {
+        DeclareMatch(table, t, TableType);
+        return Texts("{", type_to_text(table->key_type), "=", type_to_text(table->value_type), "}");
+    }
+    case SetType: {
+        DeclareMatch(set, t, SetType);
+        return Texts("{", type_to_text(set->item_type), "}");
+    }
+    case ClosureType: {
+        return type_to_text(Match(t, ClosureType)->fn);
+    }
+    case FunctionType: {
+        Text_t c = Text("func(");
+        DeclareMatch(fn, t, FunctionType);
+        for (arg_t *arg = fn->args; arg; arg = arg->next) {
+            c = Texts(c, type_to_text(arg->type));
+            if (arg->next) c = Texts(c, ",");
         }
-        case VoidType: return Text("Void");
-        case MemoryType: return Text("Memory");
-        case BoolType: return Text("Bool");
-        case ByteType: return Text("Byte");
-        case CStringType: return Text("CString");
-        case TextType: return Match(t, TextType)->lang ? Text$from_str(Match(t, TextType)->lang) : Text("Text");
-        case BigIntType: return Text("Int");
-        case IntType: return Texts("Int", String(Match(t, IntType)->bits));
-        case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? Text("Num32") : Text("Num");
-        case ListType: {
-            DeclareMatch(list, t, ListType);
-            return Texts("[", type_to_text(list->item_type), "]");
-        }
-        case TableType: {
-            DeclareMatch(table, t, TableType);
-            return Texts("{", type_to_text(table->key_type), "=", type_to_text(table->value_type), "}");
-        }
-        case SetType: {
-            DeclareMatch(set, t, SetType);
-            return Texts("{", type_to_text(set->item_type), "}");
-        }
-        case ClosureType: {
-            return type_to_text(Match(t, ClosureType)->fn);
-        }
-        case FunctionType: {
-            Text_t c = Text("func(");
-            DeclareMatch(fn, t, FunctionType);
-            for (arg_t *arg = fn->args; arg; arg = arg->next) {
-                c = Texts(c, type_to_text(arg->type));
-                if (arg->next) c = Texts(c, ",");
-            }
-            if (fn->ret && fn->ret->tag != VoidType)
-                c = Texts(c, fn->args ? " -> " : "-> ", type_to_text(fn->ret));
-            c = Texts(c, ")");
-            return c;
-        }
-        case StructType: {
-            DeclareMatch(struct_, t, StructType);
-            return Text$from_str(struct_->name);
-        }
-        case PointerType: {
-            DeclareMatch(ptr, t, PointerType);
-            Text_t sigil = ptr->is_stack ? Text("&") : Text("@");
-            return Texts(sigil, type_to_text(ptr->pointed));
-        }
-        case EnumType: {
-            DeclareMatch(tagged, t, EnumType);
-            return Text$from_str(tagged->name);
-        }
-        case OptionalType: {
-            type_t *opt = Match(t, OptionalType)->type;
-            if (opt)
-                return Texts(type_to_text(opt), "?");
-            else
-                return Text("(Unknown optional type)");
-        }
-        case TypeInfoType: {
-            return Texts("Type$info(", Match(t, TypeInfoType)->name, ")");
-        }
-        case ModuleType: {
-            return Texts("Module(", Match(t, ModuleType)->name, ")");
-        }
-        default: {
-            raise(SIGABRT);
-            return Texts("Unknown type: ", String(t->tag));
-        }
+        if (fn->ret && fn->ret->tag != VoidType) c = Texts(c, fn->args ? " -> " : "-> ", type_to_text(fn->ret));
+        c = Texts(c, ")");
+        return c;
+    }
+    case StructType: {
+        DeclareMatch(struct_, t, StructType);
+        return Text$from_str(struct_->name);
+    }
+    case PointerType: {
+        DeclareMatch(ptr, t, PointerType);
+        Text_t sigil = ptr->is_stack ? Text("&") : Text("@");
+        return Texts(sigil, type_to_text(ptr->pointed));
+    }
+    case EnumType: {
+        DeclareMatch(tagged, t, EnumType);
+        return Text$from_str(tagged->name);
+    }
+    case OptionalType: {
+        type_t *opt = Match(t, OptionalType)->type;
+        if (opt) return Texts(type_to_text(opt), "?");
+        else return Text("(Unknown optional type)");
+    }
+    case TypeInfoType: {
+        return Texts("Type$info(", Match(t, TypeInfoType)->name, ")");
+    }
+    case ModuleType: {
+        return Texts("Module(", Match(t, ModuleType)->name, ")");
+    }
+    default: {
+        raise(SIGABRT);
+        return Texts("Unknown type: ", String(t->tag));
+    }
     }
 }
 
-const char *type_to_str(type_t *t)
-{
-    return Text$as_c_string(type_to_text(t));
-}
+const char *type_to_str(type_t *t) { return Text$as_c_string(type_to_text(t)); }
 
-PUREFUNC const char *get_type_name(type_t *t)
-{
+PUREFUNC const char *get_type_name(type_t *t) {
     switch (t->tag) {
     case TextType: return Match(t, TextType)->lang;
     case StructType: return Match(t, StructType)->name;
@@ -107,8 +99,7 @@ PUREFUNC const char *get_type_name(type_t *t)
     }
 }
 
-bool type_eq(type_t *a, type_t *b)
-{
+bool type_eq(type_t *a, type_t *b) {
     if (a == b) return true;
     if (!a && !b) return true;
     if (!a || !b) return false;
@@ -116,11 +107,9 @@ bool type_eq(type_t *a, type_t *b)
     return Text$equal_values(type_to_text(a), type_to_text(b));
 }
 
-bool type_is_a(type_t *t, type_t *req)
-{
+bool type_is_a(type_t *t, type_t *req) {
     if (type_eq(t, req)) return true;
-    if (req->tag == OptionalType && Match(req, OptionalType)->type)
-        return type_is_a(t, Match(req, OptionalType)->type);
+    if (req->tag == OptionalType && Match(req, OptionalType)->type) return type_is_a(t, Match(req, OptionalType)->type);
     if (t->tag == PointerType && req->tag == PointerType) {
         DeclareMatch(t_ptr, t, PointerType);
         DeclareMatch(req_ptr, req, PointerType);
@@ -130,20 +119,15 @@ bool type_is_a(type_t *t, type_t *req)
     return false;
 }
 
-type_t *non_optional(type_t *t)
-{
-    return t->tag == OptionalType ? Match(t, OptionalType)->type : t;
-}
+type_t *non_optional(type_t *t) { return t->tag == OptionalType ? Match(t, OptionalType)->type : t; }
 
-PUREFUNC type_t *value_type(type_t *t)
-{
+PUREFUNC type_t *value_type(type_t *t) {
     while (t->tag == PointerType)
         t = Match(t, PointerType)->pointed;
     return t;
 }
 
-type_t *type_or_type(type_t *a, type_t *b)
-{
+type_t *type_or_type(type_t *a, type_t *b) {
     if (!a) return b;
     if (!b) return a;
     if (a->tag == OptionalType && !Match(a, OptionalType)->type)
@@ -151,12 +135,10 @@ type_t *type_or_type(type_t *a, type_t *b)
     if (b->tag == OptionalType && !Match(b, OptionalType)->type)
         return a->tag == OptionalType ? a : Type(OptionalType, a);
     if (a->tag == ReturnType && b->tag == ReturnType)
-        return Type(ReturnType, .ret=type_or_type(Match(a, ReturnType)->ret, Match(b, ReturnType)->ret));
+        return Type(ReturnType, .ret = type_or_type(Match(a, ReturnType)->ret, Match(b, ReturnType)->ret));
 
-    if (is_incomplete_type(a) && type_eq(b, most_complete_type(a, b)))
-        return b;
-    if (is_incomplete_type(b) && type_eq(a, most_complete_type(a, b)))
-        return a;
+    if (is_incomplete_type(a) && type_eq(b, most_complete_type(a, b))) return b;
+    if (is_incomplete_type(b) && type_eq(a, most_complete_type(a, b))) return a;
 
     if (type_is_a(b, a)) return a;
     if (type_is_a(a, b)) return b;
@@ -164,7 +146,8 @@ type_t *type_or_type(type_t *a, type_t *b)
     if (b->tag == AbortType || b->tag == ReturnType) return non_optional(a);
     if ((a->tag == IntType || a->tag == NumType) && (b->tag == IntType || b->tag == NumType)) {
         switch (compare_precision(a, b)) {
-        case NUM_PRECISION_EQUAL: case NUM_PRECISION_MORE: return a;
+        case NUM_PRECISION_EQUAL:
+        case NUM_PRECISION_MORE: return a;
         case NUM_PRECISION_LESS: return b;
         default: return NULL;
         }
@@ -173,12 +156,11 @@ type_t *type_or_type(type_t *a, type_t *b)
     return NULL;
 }
 
-static PUREFUNC INLINE double type_min_magnitude(type_t *t)
-{
+static PUREFUNC INLINE double type_min_magnitude(type_t *t) {
     switch (t->tag) {
     case BoolType: return (double)false;
     case ByteType: return 0;
-    case BigIntType: return -1./0.;
+    case BigIntType: return -1. / 0.;
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS8: return (double)INT8_MIN;
@@ -188,17 +170,16 @@ static PUREFUNC INLINE double type_min_magnitude(type_t *t)
         default: errx(1, "Invalid integer bit size");
         }
     }
-    case NumType: return -1./0.;
+    case NumType: return -1. / 0.;
     default: return (double)NAN;
     }
 }
 
-static PUREFUNC INLINE double type_max_magnitude(type_t *t)
-{
+static PUREFUNC INLINE double type_max_magnitude(type_t *t) {
     switch (t->tag) {
     case BoolType: return (double)true;
     case ByteType: return (double)UINT8_MAX;
-    case BigIntType: return 1./0.;
+    case BigIntType: return 1. / 0.;
     case IntType: {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS8: return (double)INT8_MAX;
@@ -208,36 +189,28 @@ static PUREFUNC INLINE double type_max_magnitude(type_t *t)
         default: errx(1, "Invalid integer bit size");
         }
     }
-    case NumType: return 1./0.;
+    case NumType: return 1. / 0.;
     default: return (double)NAN;
     }
 }
 
-PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b)
-{
-    if (a == NULL || b == NULL)
-        return NUM_PRECISION_INCOMPARABLE;
+PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b) {
+    if (a == NULL || b == NULL) return NUM_PRECISION_INCOMPARABLE;
 
-    if (is_int_type(a) && b->tag == NumType)
-        return NUM_PRECISION_LESS;
-    else if (a->tag == NumType && is_int_type(b))
-        return NUM_PRECISION_MORE;
+    if (is_int_type(a) && b->tag == NumType) return NUM_PRECISION_LESS;
+    else if (a->tag == NumType && is_int_type(b)) return NUM_PRECISION_MORE;
 
-    double a_min = type_min_magnitude(a),
-           b_min = type_min_magnitude(b),
-           a_max = type_max_magnitude(a),
+    double a_min = type_min_magnitude(a), b_min = type_min_magnitude(b), a_max = type_max_magnitude(a),
            b_max = type_max_magnitude(b);
 
-    if (isnan(a_min) || isnan(b_min) || isnan(a_max) || isnan(b_max))
-        return NUM_PRECISION_INCOMPARABLE;
+    if (isnan(a_min) || isnan(b_min) || isnan(a_max) || isnan(b_max)) return NUM_PRECISION_INCOMPARABLE;
     else if (a_min == b_min && a_max == b_max) return NUM_PRECISION_EQUAL;
     else if (a_min <= b_min && b_max <= a_max) return NUM_PRECISION_MORE;
     else if (b_min <= a_min && a_max <= b_max) return NUM_PRECISION_LESS;
     else return NUM_PRECISION_INCOMPARABLE;
 }
 
-PUREFUNC bool has_heap_memory(type_t *t)
-{
+PUREFUNC bool has_heap_memory(type_t *t) {
     switch (t->tag) {
     case ListType: return true;
     case TableType: return true;
@@ -247,15 +220,13 @@ PUREFUNC bool has_heap_memory(type_t *t)
     case BigIntType: return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-            if (has_heap_memory(field->type))
-                return true;
+            if (has_heap_memory(field->type)) return true;
         }
         return false;
     }
     case EnumType: {
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            if (tag->type && has_heap_memory(tag->type))
-                return true;
+            if (tag->type && has_heap_memory(tag->type)) return true;
         }
         return false;
     }
@@ -263,8 +234,7 @@ PUREFUNC bool has_heap_memory(type_t *t)
     }
 }
 
-PUREFUNC bool has_stack_memory(type_t *t)
-{
+PUREFUNC bool has_stack_memory(type_t *t) {
     if (!t) return false;
     switch (t->tag) {
     case PointerType: return Match(t, PointerType)->is_stack;
@@ -273,14 +243,12 @@ PUREFUNC bool has_stack_memory(type_t *t)
     }
 }
 
-PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t)
-{
+PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t) {
     const char *found = NULL;
     for (tag_t *tag = Match(enum_type, EnumType)->tags; tag; tag = tag->next) {
         if (tag->type->tag != StructType) continue;
         DeclareMatch(s, tag->type, StructType);
-        if (!s->fields || s->fields->next || !s->fields->type)
-            continue;
+        if (!s->fields || s->fields->next || !s->fields->type) continue;
 
         if (can_promote(t, s->fields->type)) {
             if (found) // Ambiguous case, multiple matches
@@ -292,51 +260,39 @@ PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t)
     return found;
 }
 
-PUREFUNC bool can_promote(type_t *actual, type_t *needed)
-{
-    if (!actual || !needed)
-        return false;
+PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
+    if (!actual || !needed) return false;
 
     // No promotion necessary:
-    if (type_eq(actual, needed))
-        return true;
+    if (type_eq(actual, needed)) return true;
 
-    if (actual->tag == NumType && needed->tag == IntType)
-        return false;
+    if (actual->tag == NumType && needed->tag == IntType) return false;
 
-    if (actual->tag == IntType && (needed->tag == NumType || needed->tag == BigIntType))
-        return true;
+    if (actual->tag == IntType && (needed->tag == NumType || needed->tag == BigIntType)) return true;
 
-    if (actual->tag == BigIntType && needed->tag == NumType)
-        return true;
+    if (actual->tag == BigIntType && needed->tag == NumType) return true;
 
     if (actual->tag == IntType && needed->tag == IntType) {
         precision_cmp_e cmp = compare_precision(actual, needed);
         return cmp == NUM_PRECISION_EQUAL || cmp == NUM_PRECISION_LESS;
     }
 
-    if (needed->tag == EnumType)
-        return (enum_single_value_tag(needed, actual) != NULL);
+    if (needed->tag == EnumType) return (enum_single_value_tag(needed, actual) != NULL);
 
     // Lang to Text:
-    if (actual->tag == TextType && needed->tag == TextType && streq(Match(needed, TextType)->lang, "Text"))
-        return true;
+    if (actual->tag == TextType && needed->tag == TextType && streq(Match(needed, TextType)->lang, "Text")) return true;
 
     // Text to C String
-    if (actual->tag == TextType && !Match(actual, TextType)->lang && needed->tag == CStringType)
-        return true;
+    if (actual->tag == TextType && !Match(actual, TextType)->lang && needed->tag == CStringType) return true;
 
     // Automatic dereferencing:
-    if (actual->tag == PointerType && can_promote(Match(actual, PointerType)->pointed, needed))
-        return true;
+    if (actual->tag == PointerType && can_promote(Match(actual, PointerType)->pointed, needed)) return true;
 
     if (actual->tag == OptionalType) {
-        if (needed->tag == BoolType)
-            return true;
+        if (needed->tag == BoolType) return true;
 
         // Ambiguous `none` to concrete optional
-        if (Match(actual, OptionalType)->type == NULL)
-            return (needed->tag == OptionalType);
+        if (Match(actual, OptionalType)->type == NULL) return (needed->tag == OptionalType);
 
         // Optional num -> num
         if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType)
@@ -344,7 +300,8 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     }
 
     // Optional promotion:
-    if (needed->tag == OptionalType && Match(needed, OptionalType)->type != NULL && can_promote(actual, Match(needed, OptionalType)->type))
+    if (needed->tag == OptionalType && Match(needed, OptionalType)->type != NULL
+        && can_promote(actual, Match(needed, OptionalType)->type))
         return true;
 
     if (needed->tag == PointerType && actual->tag == PointerType) {
@@ -361,8 +318,7 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
             // Can't use @Foo for a function that wants @Baz
             // But you *can* use @Foo for a function that wants @Memory
             return false;
-        else
-            return true;
+        else return true;
     }
 
     // Empty literals:
@@ -370,7 +326,8 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
         return true; // [] -> [T]
     if (actual->tag == SetType && needed->tag == SetType && Match(actual, SetType)->item_type == NULL)
         return true; // || -> |T|
-    if (actual->tag == TableType && needed->tag == TableType && Match(actual, TableType)->key_type == NULL && Match(actual, TableType)->value_type == NULL)
+    if (actual->tag == TableType && needed->tag == TableType && Match(actual, TableType)->key_type == NULL
+        && Match(actual, TableType)->value_type == NULL)
         return true; // {} -> {K=V}
 
     // Cross-promotion between tables with default values and without
@@ -403,10 +360,9 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
         type_t *needed_ret = Match(needed, FunctionType)->ret;
         if (!needed_ret) needed_ret = Type(VoidType);
 
-        return (
-            (type_eq(actual_ret, needed_ret))
-            || (actual_ret->tag == PointerType && needed_ret->tag == PointerType
-                && can_promote(actual_ret, needed_ret)));
+        return ((type_eq(actual_ret, needed_ret))
+                || (actual_ret->tag == PointerType && needed_ret->tag == PointerType
+                    && can_promote(actual_ret, needed_ret)));
     }
 
     // Set -> List promotion
@@ -417,30 +373,24 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed)
     return false;
 }
 
-PUREFUNC bool is_int_type(type_t *t)
-{
-    return t->tag == IntType || t->tag == BigIntType || t->tag == ByteType;
-}
+PUREFUNC bool is_int_type(type_t *t) { return t->tag == IntType || t->tag == BigIntType || t->tag == ByteType; }
 
-PUREFUNC bool is_numeric_type(type_t *t)
-{
+PUREFUNC bool is_numeric_type(type_t *t) {
     return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == ByteType;
 }
 
-PUREFUNC bool is_packed_data(type_t *t)
-{
-    if (t->tag == IntType || t->tag == NumType || t->tag == ByteType || t->tag == PointerType || t->tag == BoolType || t->tag == FunctionType) {
+PUREFUNC bool is_packed_data(type_t *t) {
+    if (t->tag == IntType || t->tag == NumType || t->tag == ByteType || t->tag == PointerType || t->tag == BoolType
+        || t->tag == FunctionType) {
         return true;
     } else if (t->tag == StructType) {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-            if (!is_packed_data(field->type))
-                return false;
+            if (!is_packed_data(field->type)) return false;
         }
         return true;
     } else if (t->tag == EnumType) {
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            if (!is_packed_data(tag->type))
-                return false;
+            if (!is_packed_data(tag->type)) return false;
         }
         return true;
     } else {
@@ -448,10 +398,10 @@ PUREFUNC bool is_packed_data(type_t *t)
     }
 }
 
-PUREFUNC size_t unpadded_struct_size(type_t *t)
-{
+PUREFUNC size_t unpadded_struct_size(type_t *t) {
     if (Match(t, StructType)->opaque)
-        compiler_err(NULL, NULL, NULL, "The struct type %s is opaque, so I can't get the size of it", Match(t, StructType)->name);
+        compiler_err(NULL, NULL, NULL, "The struct type %s is opaque, so I can't get the size of it",
+                     Match(t, StructType)->name);
     arg_t *fields = Match(t, StructType)->fields;
     size_t size = 0;
     size_t bit_offset = 0;
@@ -469,8 +419,7 @@ PUREFUNC size_t unpadded_struct_size(type_t *t)
                 bit_offset = 0;
             }
             size_t align = type_align(field_type);
-            if (align > 1 && size % align > 0)
-                size += align - (size % align); // Padding
+            if (align > 1 && size % align > 0) size += align - (size % align); // Padding
             size += type_size(field_type);
         }
     }
@@ -481,8 +430,7 @@ PUREFUNC size_t unpadded_struct_size(type_t *t)
     return size;
 }
 
-PUREFUNC size_t type_size(type_t *t)
-{
+PUREFUNC size_t type_size(type_t *t) {
     if (t == PATH_TYPE) return sizeof(Path_t);
     if (t == PATH_TYPE_TYPE) return sizeof(PathType_t);
 #ifdef __GNUC__
@@ -490,11 +438,14 @@ PUREFUNC size_t type_size(type_t *t)
 #pragma GCC diagnostic ignored "-Wswitch-default"
 #endif
     switch (t->tag) {
-    case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
+    case UnknownType:
+    case AbortType:
+    case ReturnType:
+    case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type size");
     case BoolType: return sizeof(bool);
     case ByteType: return sizeof(uint8_t);
-    case CStringType: return sizeof(char*);
+    case CStringType: return sizeof(char *);
     case BigIntType: return sizeof(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
@@ -510,9 +461,9 @@ PUREFUNC size_t type_size(type_t *t)
     case ListType: return sizeof(List_t);
     case SetType: return sizeof(Table_t);
     case TableType: return sizeof(Table_t);
-    case FunctionType: return sizeof(void*);
-    case ClosureType: return sizeof(struct {void *fn, *userdata;});
-    case PointerType: return sizeof(void*);
+    case FunctionType: return sizeof(void *);
+    case ClosureType: return sizeof(struct { void *fn, *userdata; });
+    case PointerType: return sizeof(void *);
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
@@ -528,8 +479,7 @@ PUREFUNC size_t type_size(type_t *t)
             size_t size = unpadded_struct_size(nonnull);
             size += sizeof(bool); // is_null flag
             size_t align = type_align(nonnull);
-            if (align > 0 && (size % align) > 0)
-                size = (size + align) - (size % align);
+            if (align > 0 && (size % align) > 0) size = (size + align) - (size % align);
             return size;
         }
         default: return type_size(nonnull);
@@ -537,11 +487,11 @@ PUREFUNC size_t type_size(type_t *t)
     }
     case StructType: {
         if (Match(t, StructType)->opaque)
-            compiler_err(NULL, NULL, NULL, "The struct type %s is opaque, so I can't get the size of it", Match(t, StructType)->name);
+            compiler_err(NULL, NULL, NULL, "The struct type %s is opaque, so I can't get the size of it",
+                         Match(t, StructType)->name);
         size_t size = unpadded_struct_size(t);
         size_t align = type_align(t);
-        if (size > 0 && align > 0 && (size % align) > 0)
-            size = (size + align) - (size % align);
+        if (size > 0 && align > 0 && (size % align) > 0) size = (size + align) - (size % align);
         return size;
     }
     case EnumType: {
@@ -553,7 +503,7 @@ PUREFUNC size_t type_size(type_t *t)
             size_t size = type_size(tag->type);
             if (size > max_size) max_size = size;
         }
-        size_t size = sizeof(UnknownType); // generic enum
+        size_t size = sizeof(UnknownType);         // generic enum
         if (max_align > 1 && size % max_align > 0) // Padding before first union field
             size += max_align - (size % max_align);
         size += max_size;
@@ -572,8 +522,7 @@ PUREFUNC size_t type_size(type_t *t)
     return 0;
 }
 
-PUREFUNC size_t type_align(type_t *t)
-{
+PUREFUNC size_t type_align(type_t *t) {
     if (t == PATH_TYPE) return __alignof__(Path_t);
     if (t == PATH_TYPE_TYPE) return __alignof__(PathType_t);
 #ifdef __GNUC__
@@ -581,11 +530,14 @@ PUREFUNC size_t type_align(type_t *t)
 #pragma GCC diagnostic ignored "-Wswitch-default"
 #endif
     switch (t->tag) {
-    case UnknownType: case AbortType: case ReturnType: case VoidType: return 0;
+    case UnknownType:
+    case AbortType:
+    case ReturnType:
+    case VoidType: return 0;
     case MemoryType: errx(1, "Memory has undefined type alignment");
     case BoolType: return __alignof__(bool);
     case ByteType: return __alignof__(uint8_t);
-    case CStringType: return __alignof__(char*);
+    case CStringType: return __alignof__(char *);
     case BigIntType: return __alignof__(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
@@ -601,9 +553,9 @@ PUREFUNC size_t type_align(type_t *t)
     case SetType: return __alignof__(Table_t);
     case ListType: return __alignof__(List_t);
     case TableType: return __alignof__(Table_t);
-    case FunctionType: return __alignof__(void*);
-    case ClosureType: return __alignof__(struct {void *fn, *userdata;});
-    case PointerType: return __alignof__(void*);
+    case FunctionType: return __alignof__(void *);
+    case ClosureType: return __alignof__(struct { void *fn, *userdata; });
+    case PointerType: return __alignof__(void *);
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
@@ -624,7 +576,7 @@ PUREFUNC size_t type_align(type_t *t)
             compiler_err(NULL, NULL, NULL, "The struct type %s is opaque, so I can't get the alignment of it",
                          Match(t, StructType)->name);
         arg_t *fields = Match(t, StructType)->fields;
-        size_t align = t->tag == StructType ? 0 : sizeof(void*);
+        size_t align = t->tag == StructType ? 0 : sizeof(void *);
         for (arg_t *field = fields; field; field = field->next) {
             size_t field_align = type_align(field->type);
             if (field_align > align) align = field_align;
@@ -649,50 +601,39 @@ PUREFUNC size_t type_align(type_t *t)
     return 0;
 }
 
-type_t *get_field_type(type_t *t, const char *field_name)
-{
+type_t *get_field_type(type_t *t, const char *field_name) {
     t = value_type(t);
     switch (t->tag) {
-    case PointerType:
-        return get_field_type(Match(t, PointerType)->pointed, field_name);
+    case PointerType: return get_field_type(Match(t, PointerType)->pointed, field_name);
     case TextType: {
-        if (Match(t, TextType)->lang && streq(field_name, "text"))
-            return TEXT_TYPE;
+        if (Match(t, TextType)->lang && streq(field_name, "text")) return TEXT_TYPE;
         else if (streq(field_name, "length")) return INT_TYPE;
         return NULL;
     }
     case StructType: {
         DeclareMatch(struct_t, t, StructType);
         for (arg_t *field = struct_t->fields; field; field = field->next) {
-            if (streq(field->name, field_name))
-                return field->type;
+            if (streq(field->name, field_name)) return field->type;
         }
         return NULL;
     }
     case EnumType: {
         DeclareMatch(e, t, EnumType);
         for (tag_t *tag = e->tags; tag; tag = tag->next) {
-            if (streq(field_name, tag->name))
-                return Type(BoolType);
+            if (streq(field_name, tag->name)) return Type(BoolType);
         }
         return NULL;
     }
     case SetType: {
-        if (streq(field_name, "length"))
-            return INT_TYPE;
-        else if (streq(field_name, "items"))
-            return Type(ListType, .item_type=Match(t, SetType)->item_type);
+        if (streq(field_name, "length")) return INT_TYPE;
+        else if (streq(field_name, "items")) return Type(ListType, .item_type = Match(t, SetType)->item_type);
         return NULL;
     }
     case TableType: {
-        if (streq(field_name, "length"))
-            return INT_TYPE;
-        else if (streq(field_name, "keys"))
-            return Type(ListType, Match(t, TableType)->key_type);
-        else if (streq(field_name, "values"))
-            return Type(ListType, Match(t, TableType)->value_type);
-        else if (streq(field_name, "fallback"))
-            return Type(OptionalType, .type=t);
+        if (streq(field_name, "length")) return INT_TYPE;
+        else if (streq(field_name, "keys")) return Type(ListType, Match(t, TableType)->key_type);
+        else if (streq(field_name, "values")) return Type(ListType, Match(t, TableType)->value_type);
+        else if (streq(field_name, "fallback")) return Type(OptionalType, .type = t);
         return NULL;
     }
     case ListType: {
@@ -703,28 +644,28 @@ type_t *get_field_type(type_t *t, const char *field_name)
     }
 }
 
-PUREFUNC type_t *get_iterated_type(type_t *t)
-{
+PUREFUNC type_t *get_iterated_type(type_t *t) {
     type_t *iter_value_t = value_type(t);
     switch (iter_value_t->tag) {
-    case BigIntType: case IntType: return iter_value_t; break;
+    case BigIntType:
+    case IntType: return iter_value_t; break;
     case ListType: return Match(iter_value_t, ListType)->item_type; break;
     case SetType: return Match(iter_value_t, SetType)->item_type; break;
     case TableType: return NULL;
-    case FunctionType: case ClosureType: {
+    case FunctionType:
+    case ClosureType: {
         // Iterator function
-        __typeof(iter_value_t->__data.FunctionType) *fn = iter_value_t->tag == ClosureType ?
-            Match(Match(iter_value_t, ClosureType)->fn, FunctionType) : Match(iter_value_t, FunctionType);
-        if (fn->args || fn->ret->tag != OptionalType)
-            return NULL;
+        __typeof(iter_value_t->__data.FunctionType) *fn =
+            iter_value_t->tag == ClosureType ? Match(Match(iter_value_t, ClosureType)->fn, FunctionType)
+                                             : Match(iter_value_t, FunctionType);
+        if (fn->args || fn->ret->tag != OptionalType) return NULL;
         return Match(fn->ret, OptionalType)->type;
     }
     default: return NULL;
     }
 }
 
-CONSTFUNC bool is_incomplete_type(type_t *t)
-{
+CONSTFUNC bool is_incomplete_type(type_t *t) {
     if (t == NULL) return true;
     switch (t->tag) {
     case ReturnType: return is_incomplete_type(Match(t, ReturnType)->ret);
@@ -738,8 +679,7 @@ CONSTFUNC bool is_incomplete_type(type_t *t)
     case FunctionType: {
         DeclareMatch(fn, t, FunctionType);
         for (arg_t *arg = fn->args; arg; arg = arg->next) {
-            if (arg->type == NULL || is_incomplete_type(arg->type))
-                return true;
+            if (arg->type == NULL || is_incomplete_type(arg->type)) return true;
         }
         return fn->ret ? is_incomplete_type(fn->ret) : false;
     }
@@ -749,18 +689,14 @@ CONSTFUNC bool is_incomplete_type(type_t *t)
     }
 }
 
-CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2)
-{
+CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2) {
     if (!t1) return t2;
     if (!t2) return t1;
 
-    if (is_incomplete_type(t1) && is_incomplete_type(t2))
-        return NULL;
-    else if (!is_incomplete_type(t1) && !is_incomplete_type(t2) && type_eq(t1, t2))
-        return t1;
+    if (is_incomplete_type(t1) && is_incomplete_type(t2)) return NULL;
+    else if (!is_incomplete_type(t1) && !is_incomplete_type(t2) && type_eq(t1, t2)) return t1;
 
-    if (t1->tag != t2->tag)
-        return NULL;
+    if (t1->tag != t2->tag) return NULL;
 
     switch (t1->tag) {
     case ReturnType: {
@@ -792,16 +728,15 @@ CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2)
         DeclareMatch(fn2, t2, FunctionType);
         arg_t *args = NULL;
         for (arg_t *arg1 = fn1->args, *arg2 = fn2->args; arg1 || arg2; arg1 = arg1->next, arg2 = arg2->next) {
-            if (!arg1 || !arg2)
-                return NULL;
+            if (!arg1 || !arg2) return NULL;
 
             type_t *arg_type = most_complete_type(arg1->type, arg2->type);
             if (!arg_type) return NULL;
-            args = new(arg_t, .type=arg_type, .next=args);
+            args = new (arg_t, .type = arg_type, .next = args);
         }
         REVERSE_LIST(args);
         type_t *ret = most_complete_type(fn1->ret, fn2->ret);
-        return ret ? Type(FunctionType, .args=args, .ret=ret) : NULL;
+        return ret ? Type(FunctionType, .args = args, .ret = ret) : NULL;
     }
     case ClosureType: {
         type_t *fn = most_complete_type(Match(t1, ClosureType)->fn, Match(t1, ClosureType)->fn);
@@ -810,35 +745,29 @@ CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2)
     case PointerType: {
         DeclareMatch(ptr1, t1, PointerType);
         DeclareMatch(ptr2, t2, PointerType);
-        if (ptr1->is_stack != ptr2->is_stack)
-            return NULL;
+        if (ptr1->is_stack != ptr2->is_stack) return NULL;
         type_t *pointed = most_complete_type(ptr1->pointed, ptr2->pointed);
-        return pointed ? Type(PointerType, .is_stack=ptr1->is_stack, .pointed=pointed) : NULL;
+        return pointed ? Type(PointerType, .is_stack = ptr1->is_stack, .pointed = pointed) : NULL;
     }
     default: {
-        if (is_incomplete_type(t1) || is_incomplete_type(t2))
-            return NULL;
+        if (is_incomplete_type(t1) || is_incomplete_type(t2)) return NULL;
         return type_eq(t1, t2) ? t1 : NULL;
     }
     }
 }
 
-type_t *_make_function_type(type_t *ret, int n, arg_t args[n])
-{
+type_t *_make_function_type(type_t *ret, int n, arg_t args[n]) {
     arg_t *arg_pointers = GC_MALLOC(sizeof(arg_t[n]));
     for (int i = 0; i < n; i++) {
         arg_pointers[i] = args[i];
-        if (i + 1 < n)
-            arg_pointers[i].next = &arg_pointers[i+1];
+        if (i + 1 < n) arg_pointers[i].next = &arg_pointers[i + 1];
     }
-    return Type(FunctionType, .ret=ret, .args=&arg_pointers[0]);
+    return Type(FunctionType, .ret = ret, .args = &arg_pointers[0]);
 }
 
-PUREFUNC bool enum_has_fields(type_t *t)
-{
+PUREFUNC bool enum_has_fields(type_t *t) {
     for (tag_t *e_tag = Match(t, EnumType)->tags; e_tag; e_tag = e_tag->next) {
-        if (e_tag->type != NULL && Match(e_tag->type, StructType)->fields)
-            return true;
+        if (e_tag->type != NULL && Match(e_tag->type, StructType)->fields) return true;
     }
     return false;
 }

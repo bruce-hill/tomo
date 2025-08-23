@@ -11,5 +11,5 @@ static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
 // Use getrandom()
 #include <sys/random.h>
 #else
-    #error "Unsupported platform for secure random number generation"
+#error "Unsupported platform for secure random number generation"
 #endif

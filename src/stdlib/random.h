@@ -1,5 +1,5 @@
-#include <stdint.h>
 #include <assert.h>
+#include <stdint.h>
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 #include <stdlib.h>
@@ -10,9 +10,9 @@ static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
 }
 #elif defined(__linux__)
 // Use getrandom()
-#   include <sys/random.h>
+#include <sys/random.h>
 #else
-    #error "Unsupported platform for secure random number generation"
+#error "Unsupported platform for secure random number generation"
 #endif
 
 static int64_t random_range(int64_t low, int64_t high) {

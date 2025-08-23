@@ -11,31 +11,46 @@
 #include "stdlib/files.h"
 #include "stdlib/util.h"
 
-#define NewAST(_file, _start, _end, ast_tag, ...) (new(ast_t, .file=_file, .start=_start, .end=_end,\
-                                                     .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
-#define NewTypeAST(_file, _start, _end, ast_tag, ...) (new(type_ast_t, .file=_file, .start=_start, .end=_end,\
-                                                     .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
-#define FakeAST(ast_tag, ...) (new(ast_t, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
-#define WrapAST(ast, ast_tag, ...) (new(ast_t, .file=(ast)->file, .start=(ast)->start, .end=(ast)->end, .tag=ast_tag, .__data.ast_tag={__VA_ARGS__}))
-#define TextAST(ast, _str) WrapAST(ast, TextLiteral, .str=GC_strdup(_str))
-#define LiteralCode(code, ...) new(ast_t, .tag=InlineCCode, .__data.InlineCCode={.chunks=new(ast_list_t, .ast=FakeAST(TextLiteral, code)), __VA_ARGS__})
-#define Match(x, _tag) ((x)->tag == _tag ? &(x)->__data._tag : (errx(1, __FILE__ ":%d This was supposed to be a " # _tag "\n", __LINE__), &(x)->__data._tag))
+#define NewAST(_file, _start, _end, ast_tag, ...)                                                                      \
+    (new (ast_t, .file = _file, .start = _start, .end = _end, .tag = ast_tag, .__data.ast_tag = {__VA_ARGS__}))
+#define NewTypeAST(_file, _start, _end, ast_tag, ...)                                                                  \
+    (new (type_ast_t, .file = _file, .start = _start, .end = _end, .tag = ast_tag, .__data.ast_tag = {__VA_ARGS__}))
+#define FakeAST(ast_tag, ...) (new (ast_t, .tag = ast_tag, .__data.ast_tag = {__VA_ARGS__}))
+#define WrapAST(ast, ast_tag, ...)                                                                                     \
+    (new (ast_t, .file = (ast)->file, .start = (ast)->start, .end = (ast)->end, .tag = ast_tag,                        \
+          .__data.ast_tag = {__VA_ARGS__}))
+#define TextAST(ast, _str) WrapAST(ast, TextLiteral, .str = GC_strdup(_str))
+#define LiteralCode(code, ...)                                                                                         \
+    new (ast_t, .tag = InlineCCode,                                                                                    \
+         .__data.InlineCCode = {.chunks = new (ast_list_t, .ast = FakeAST(TextLiteral, code)), __VA_ARGS__})
+#define Match(x, _tag)                                                                                                 \
+    ((x)->tag == _tag ? &(x)->__data._tag                                                                              \
+                      : (errx(1, __FILE__ ":%d This was supposed to be a " #_tag "\n", __LINE__), &(x)->__data._tag))
 #define DeclareMatch(var, x, _tag) __typeof((x)->__data._tag) *var = Match(x, _tag)
-#define BINARY_OPERANDS(ast) ({ if (!is_binary_operation(ast)) errx(1, __FILE__ ":%d This is not a binary operation!", __LINE__); (ast)->__data.Plus; })
-#define UPDATE_OPERANDS(ast) ({ if (!is_update_assignment(ast)) errx(1, __FILE__ ":%d This is not an update assignment!", __LINE__); (ast)->__data.PlusUpdate; })
+#define BINARY_OPERANDS(ast)                                                                                           \
+    ({                                                                                                                 \
+        if (!is_binary_operation(ast)) errx(1, __FILE__ ":%d This is not a binary operation!", __LINE__);              \
+        (ast)->__data.Plus;                                                                                            \
+    })
+#define UPDATE_OPERANDS(ast)                                                                                           \
+    ({                                                                                                                 \
+        if (!is_update_assignment(ast)) errx(1, __FILE__ ":%d This is not an update assignment!", __LINE__);           \
+        (ast)->__data.PlusUpdate;                                                                                      \
+    })
 
-#define REVERSE_LIST(list) do { \
-    __typeof(list) _prev = NULL; \
-    __typeof(list) _next = NULL; \
-    __typeof(list) _current = list; \
-    while (_current != NULL) { \
-        _next = _current->next; \
-        _current->next = _prev; \
-        _prev = _current; \
-        _current = _next; \
-    } \
-    list = _prev; \
-} while(0)
+#define REVERSE_LIST(list)                                                                                             \
+    do {                                                                                                               \
+        __typeof(list) _prev = NULL;                                                                                   \
+        __typeof(list) _next = NULL;                                                                                   \
+        __typeof(list) _current = list;                                                                                \
+        while (_current != NULL) {                                                                                     \
+            _next = _current->next;                                                                                    \
+            _current->next = _prev;                                                                                    \
+            _prev = _current;                                                                                          \
+            _current = _next;                                                                                          \
+        }                                                                                                              \
+        list = _prev;                                                                                                  \
+    } while (0)
 
 struct binding_s;
 typedef struct type_ast_s type_ast_t;
@@ -76,7 +91,7 @@ typedef struct tag_ast_s {
     const char *name;
     arg_ast_t *fields;
     struct tag_ast_s *next;
-    bool secret:1;
+    bool secret : 1;
 } tag_ast_t;
 
 struct type_ast_s {
@@ -84,13 +99,14 @@ struct type_ast_s {
     file_t *file;
     const char *start, *end;
     union {
-        struct {} UnknownTypeAST;
+        struct {
+        } UnknownTypeAST;
         struct {
             const char *name;
         } VarTypeAST;
         struct {
             type_ast_t *pointed;
-            bool is_stack:1;
+            bool is_stack : 1;
         } PointerTypeAST;
         struct {
             type_ast_t *item;
@@ -112,42 +128,143 @@ struct type_ast_s {
     } __data;
 };
 
-#define BINOP_CASES Power: case Multiply: case Divide: case Mod: case Mod1: case Plus: case Minus: case Concat: case LeftShift: case UnsignedLeftShift: \
-    case RightShift: case UnsignedRightShift: case Equals: case NotEquals: case LessThan: case LessThanOrEquals: case GreaterThan: \
-    case GreaterThanOrEquals: case Compare: case And: case Or: case Xor: \
-    case PowerUpdate: case MultiplyUpdate: case DivideUpdate: case ModUpdate: case Mod1Update: case PlusUpdate: case MinusUpdate: case ConcatUpdate: \
-    case LeftShiftUpdate: case UnsignedLeftShiftUpdate
-#define UPDATE_CASES PowerUpdate: case MultiplyUpdate: case DivideUpdate: case ModUpdate: case Mod1Update: case PlusUpdate: case MinusUpdate: \
-    case ConcatUpdate: case LeftShiftUpdate: case UnsignedLeftShiftUpdate: case RightShiftUpdate: case UnsignedRightShiftUpdate: \
-    case AndUpdate: case OrUpdate: case XorUpdate
+#define BINOP_CASES                                                                                                    \
+    Power:                                                                                                             \
+    case Multiply:                                                                                                     \
+    case Divide:                                                                                                       \
+    case Mod:                                                                                                          \
+    case Mod1:                                                                                                         \
+    case Plus:                                                                                                         \
+    case Minus:                                                                                                        \
+    case Concat:                                                                                                       \
+    case LeftShift:                                                                                                    \
+    case UnsignedLeftShift:                                                                                            \
+    case RightShift:                                                                                                   \
+    case UnsignedRightShift:                                                                                           \
+    case Equals:                                                                                                       \
+    case NotEquals:                                                                                                    \
+    case LessThan:                                                                                                     \
+    case LessThanOrEquals:                                                                                             \
+    case GreaterThan:                                                                                                  \
+    case GreaterThanOrEquals:                                                                                          \
+    case Compare:                                                                                                      \
+    case And:                                                                                                          \
+    case Or:                                                                                                           \
+    case Xor:                                                                                                          \
+    case PowerUpdate:                                                                                                  \
+    case MultiplyUpdate:                                                                                               \
+    case DivideUpdate:                                                                                                 \
+    case ModUpdate:                                                                                                    \
+    case Mod1Update:                                                                                                   \
+    case PlusUpdate:                                                                                                   \
+    case MinusUpdate:                                                                                                  \
+    case ConcatUpdate:                                                                                                 \
+    case LeftShiftUpdate:                                                                                              \
+    case UnsignedLeftShiftUpdate
+#define UPDATE_CASES                                                                                                   \
+    PowerUpdate:                                                                                                       \
+    case MultiplyUpdate:                                                                                               \
+    case DivideUpdate:                                                                                                 \
+    case ModUpdate:                                                                                                    \
+    case Mod1Update:                                                                                                   \
+    case PlusUpdate:                                                                                                   \
+    case MinusUpdate:                                                                                                  \
+    case ConcatUpdate:                                                                                                 \
+    case LeftShiftUpdate:                                                                                              \
+    case UnsignedLeftShiftUpdate:                                                                                      \
+    case RightShiftUpdate:                                                                                             \
+    case UnsignedRightShiftUpdate:                                                                                     \
+    case AndUpdate:                                                                                                    \
+    case OrUpdate:                                                                                                     \
+    case XorUpdate
 
 typedef enum {
     Unknown = 0,
-    None, Bool, Var,
-    Int, Num,
-    TextLiteral, TextJoin,
+    None,
+    Bool,
+    Var,
+    Int,
+    Num,
+    TextLiteral,
+    TextJoin,
     Path,
-    Declare, Assign,
-    Power, Multiply, Divide, Mod, Mod1, Plus, Minus, Concat, LeftShift, UnsignedLeftShift,
-    RightShift, UnsignedRightShift, Equals, NotEquals, LessThan, LessThanOrEquals, GreaterThan,
-    GreaterThanOrEquals, Compare, And, Or, Xor,
-    PowerUpdate, MultiplyUpdate, DivideUpdate, ModUpdate, Mod1Update, PlusUpdate, MinusUpdate, ConcatUpdate, LeftShiftUpdate, UnsignedLeftShiftUpdate,
-    RightShiftUpdate, UnsignedRightShiftUpdate, AndUpdate, OrUpdate, XorUpdate,
-    Not, Negative, HeapAllocate, StackReference,
-    Min, Max,
-    List, Set, Table, TableEntry, Comprehension,
-    FunctionDef, Lambda, ConvertDef,
-    FunctionCall, MethodCall,
+    Declare,
+    Assign,
+    Power,
+    Multiply,
+    Divide,
+    Mod,
+    Mod1,
+    Plus,
+    Minus,
+    Concat,
+    LeftShift,
+    UnsignedLeftShift,
+    RightShift,
+    UnsignedRightShift,
+    Equals,
+    NotEquals,
+    LessThan,
+    LessThanOrEquals,
+    GreaterThan,
+    GreaterThanOrEquals,
+    Compare,
+    And,
+    Or,
+    Xor,
+    PowerUpdate,
+    MultiplyUpdate,
+    DivideUpdate,
+    ModUpdate,
+    Mod1Update,
+    PlusUpdate,
+    MinusUpdate,
+    ConcatUpdate,
+    LeftShiftUpdate,
+    UnsignedLeftShiftUpdate,
+    RightShiftUpdate,
+    UnsignedRightShiftUpdate,
+    AndUpdate,
+    OrUpdate,
+    XorUpdate,
+    Not,
+    Negative,
+    HeapAllocate,
+    StackReference,
+    Min,
+    Max,
+    List,
+    Set,
+    Table,
+    TableEntry,
+    Comprehension,
+    FunctionDef,
+    Lambda,
+    ConvertDef,
+    FunctionCall,
+    MethodCall,
     Block,
-    For, While, If, When, Repeat,
+    For,
+    While,
+    If,
+    When,
+    Repeat,
     Reduction,
-    Skip, Stop, Pass,
+    Skip,
+    Stop,
+    Pass,
     Defer,
     Return,
     Extern,
-    StructDef, EnumDef, LangDef,
-    Index, FieldAccess, Optional, NonOptional,
-    DocTest, Assert,
+    StructDef,
+    EnumDef,
+    LangDef,
+    Index,
+    FieldAccess,
+    Optional,
+    NonOptional,
+    DocTest,
+    Assert,
     Use,
     InlineCCode,
     Deserialize,
@@ -160,8 +277,10 @@ struct ast_s {
     file_t *file;
     const char *start, *end;
     union {
-        struct {} Unknown;
-        struct {} None;
+        struct {
+        } Unknown;
+        struct {
+        } None;
         struct {
             bool b;
         } Bool;
@@ -180,7 +299,7 @@ struct ast_s {
         struct {
             const char *lang;
             ast_list_t *children;
-            bool colorize:1;
+            bool colorize : 1;
         } TextJoin;
         struct {
             const char *path;
@@ -189,16 +308,16 @@ struct ast_s {
             ast_t *var;
             type_ast_t *type;
             ast_t *value;
-            bool top_level:1;
+            bool top_level : 1;
         } Declare;
         struct {
             ast_list_t *targets, *values;
         } Assign;
         binary_operands_t Power, Multiply, Divide, Mod, Mod1, Plus, Minus, Concat, LeftShift, UnsignedLeftShift,
-                          RightShift, UnsignedRightShift, Equals, NotEquals, LessThan, LessThanOrEquals, GreaterThan,
-                          GreaterThanOrEquals, Compare, And, Or, Xor,
-                          PowerUpdate, MultiplyUpdate, DivideUpdate, ModUpdate, Mod1Update, PlusUpdate, MinusUpdate, ConcatUpdate, LeftShiftUpdate, UnsignedLeftShiftUpdate,
-                          RightShiftUpdate, UnsignedRightShiftUpdate, AndUpdate, OrUpdate, XorUpdate;
+            RightShift, UnsignedRightShift, Equals, NotEquals, LessThan, LessThanOrEquals, GreaterThan,
+            GreaterThanOrEquals, Compare, And, Or, Xor, PowerUpdate, MultiplyUpdate, DivideUpdate, ModUpdate,
+            Mod1Update, PlusUpdate, MinusUpdate, ConcatUpdate, LeftShiftUpdate, UnsignedLeftShiftUpdate,
+            RightShiftUpdate, UnsignedRightShiftUpdate, AndUpdate, OrUpdate, XorUpdate;
         struct {
             ast_t *value;
         } Not, Negative, HeapAllocate, StackReference;
@@ -281,7 +400,8 @@ struct ast_s {
         struct {
             const char *target;
         } Skip, Stop;
-        struct {} Pass;
+        struct {
+        } Pass;
         struct {
             ast_t *body;
         } Defer;
@@ -296,7 +416,7 @@ struct ast_s {
             const char *name;
             arg_ast_t *fields;
             ast_t *namespace;
-            bool secret:1, external:1, opaque:1;
+            bool secret : 1, external : 1, opaque : 1;
         } StructDef;
         struct {
             const char *name;
@@ -320,7 +440,7 @@ struct ast_s {
         } Optional, NonOptional;
         struct {
             ast_t *expr, *expected;
-            bool skip_source:1;
+            bool skip_source : 1;
         } DocTest;
         struct {
             ast_t *expr, *message;

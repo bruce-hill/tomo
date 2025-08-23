@@ -12,9 +12,9 @@
 #define LIST_REFCOUNT_BITS 3
 #define LIST_STRIDE_BITS 12
 
-#define MAX_FOR_N_BITS(N) ((1L<<(N))-1L)
-#define LIST_MAX_STRIDE MAX_FOR_N_BITS(LIST_STRIDE_BITS-1)
-#define LIST_MIN_STRIDE (~MAX_FOR_N_BITS(LIST_STRIDE_BITS-1))
+#define MAX_FOR_N_BITS(N) ((1L << (N)) - 1L)
+#define LIST_MAX_STRIDE MAX_FOR_N_BITS(LIST_STRIDE_BITS - 1)
+#define LIST_MIN_STRIDE (~MAX_FOR_N_BITS(LIST_STRIDE_BITS - 1))
 #define LIST_MAX_DATA_REFCOUNT MAX_FOR_N_BITS(LIST_REFCOUNT_BITS)
 #define LIST_MAX_FREE_ENTRIES MAX_FOR_N_BITS(LIST_FREE_BITS)
 
@@ -41,15 +41,15 @@ typedef struct {
     // structs can be passed in two 64-bit registers. C will handle doing the
     // bit arithmetic to extract the necessary values, which is cheaper than
     // spilling onto the stack and needing to retrieve data from the stack.
-    int64_t length:LIST_LENGTH_BITS;
-    uint64_t free:LIST_FREE_BITS;
-    bool atomic:LIST_ATOMIC_BITS;
-    uint8_t data_refcount:LIST_REFCOUNT_BITS;
-    int16_t stride:LIST_STRIDE_BITS;
+    int64_t length : LIST_LENGTH_BITS;
+    uint64_t free : LIST_FREE_BITS;
+    bool atomic : LIST_ATOMIC_BITS;
+    uint8_t data_refcount : LIST_REFCOUNT_BITS;
+    int16_t stride : LIST_STRIDE_BITS;
 } List_t;
 
 typedef struct {
-    uint32_t occupied:1, index:31;
+    uint32_t occupied : 1, index : 31;
     uint32_t next_bucket;
 } bucket_t;
 
@@ -57,8 +57,8 @@ typedef struct {
 #define TABLE_MAX_DATA_REFCOUNT 3
 
 typedef struct {
-    uint32_t count:31, last_free:31;
-    uint8_t data_refcount:2;
+    uint32_t count : 31, last_free : 31;
+    uint8_t data_refcount : 2;
     bucket_t buckets[];
 } bucket_info_t;
 
@@ -76,9 +76,9 @@ typedef struct {
 enum text_type { TEXT_ASCII, TEXT_GRAPHEMES, TEXT_CONCAT, TEXT_BLOB };
 
 typedef struct Text_s {
-    int64_t length:54; // Number of grapheme clusters
-    uint8_t tag:2;
-    uint8_t depth:8;
+    int64_t length : 54; // Number of grapheme clusters
+    uint8_t tag : 2;
+    uint8_t depth : 8;
     union {
         struct {
             const char *ascii;
@@ -117,10 +117,9 @@ typedef struct {
 
 typedef struct {
     Byte_t value;
-    bool is_none:1;
+    bool is_none : 1;
 } OptionalByte_t;
 
-#define NONE_BYTE ((OptionalByte_t){.is_none=true})
-
+#define NONE_BYTE ((OptionalByte_t){.is_none = true})
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

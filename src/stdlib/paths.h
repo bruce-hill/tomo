@@ -15,7 +15,7 @@ Path_t Path$from_text(Text_t text);
 const char *Path$as_c_string(Path_t path);
 #define Path(str) Path$from_str(str)
 Path_t Path$_concat(int n, Path_t items[n]);
-#define Path$concat(...) Path$_concat((int)sizeof((Path_t[]){__VA_ARGS__})/sizeof(Path_t), ((Path_t[]){__VA_ARGS__}))
+#define Path$concat(...) Path$_concat((int)sizeof((Path_t[]){__VA_ARGS__}) / sizeof(Path_t), ((Path_t[]){__VA_ARGS__}))
 Path_t Path$resolved(Path_t path, Path_t relative_to);
 Path_t Path$relative_to(Path_t path, Path_t relative_to);
 Path_t Path$expand_home(Path_t path);
@@ -59,7 +59,7 @@ Path_t Path$current_dir(void);
 Closure_t Path$by_line(Path_t path);
 List_t Path$glob(Path_t path);
 
-uint64_t Path$hash(const void *obj, const TypeInfo_t*);
+uint64_t Path$hash(const void *obj, const TypeInfo_t *);
 int32_t Path$compare(const void *a, const void *b, const TypeInfo_t *type);
 bool Path$equal(const void *a, const void *b, const TypeInfo_t *type);
 bool Path$equal_values(Path_t a, Path_t b);
@@ -72,4 +72,3 @@ extern const TypeInfo_t Path$info;
 extern const TypeInfo_t PathType$info;
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
-

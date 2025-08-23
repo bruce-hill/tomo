@@ -20,8 +20,8 @@
 
 static const int tabstop = 4;
 
-public char *resolve_path(const char *path, const char *relative_to, const char *system_path)
-{
+public
+char *resolve_path(const char *path, const char *relative_to, const char *system_path) {
     if (!relative_to || streq(relative_to, "/dev/stdin")) relative_to = ".";
     if (!path || strlen(path) == 0) return NULL;
 
@@ -29,7 +29,7 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
     // it was found in:
     char buf[PATH_MAX] = {0};
     if (streq(path, "~") || starts_with(path, "~/")) {
-        char *resolved = realpath(String(getenv("HOME"), path+1), buf);
+        char *resolved = realpath(String(getenv("HOME"), path + 1), buf);
         if (resolved) return GC_strdup(resolved);
     } else if (streq(path, ".") || starts_with(path, "./") || starts_with(path, "../")) {
         char *relative_dir = dirname(GC_strdup(relative_to));
@@ -49,12 +49,13 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
                 char *resolved = realpath(String(dir, "/", path), buf);
                 if (resolved) return GC_strdup(resolved);
             } else if (dir[0] == '~' && (dir[1] == '\0' || dir[1] == '/')) {
-                char *resolved = realpath(String(getenv("HOME"), dir+1, "/", path), buf);
+                char *resolved = realpath(String(getenv("HOME"), dir + 1, "/", path), buf);
                 if (resolved) return GC_strdup(resolved);
             } else if (streq(dir, ".") || strncmp(dir, "./", 2) == 0) {
                 char *resolved = realpath(String(relative_dir, "/", path), buf);
                 if (resolved) return GC_strdup(resolved);
-            } else if (streq(dir, ".") || streq(dir, "..") || strncmp(dir, "./", 2) == 0 || strncmp(dir, "../", 3) == 0) {
+            } else if (streq(dir, ".") || streq(dir, "..") || strncmp(dir, "./", 2) == 0
+                       || strncmp(dir, "../", 3) == 0) {
                 char *resolved = realpath(String(relative_dir, "/", dir, "/", path), buf);
                 if (resolved) return GC_strdup(resolved);
             } else {
@@ -66,24 +67,23 @@ public char *resolve_path(const char *path, const char *relative_to, const char 
     return NULL;
 }
 
-public char *file_base_name(const char *path)
-{
+public
+char *file_base_name(const char *path) {
     const char *slash = strrchr(path, '/');
     if (slash) path = slash + 1;
     assert(!isdigit(*path));
     const char *end = path + strcspn(path, ".");
     size_t len = (size_t)(end - path);
-    char *buf = GC_MALLOC_ATOMIC(len+1);
+    char *buf = GC_MALLOC_ATOMIC(len + 1);
     strncpy(buf, path, len);
     buf[len] = '\0';
     return buf;
 }
 
-static file_t *_load_file(const char* filename, FILE *file)
-{
+static file_t *_load_file(const char *filename, FILE *file) {
     if (!file) return NULL;
 
-    file_t *ret = new(file_t, .filename=filename);
+    file_t *ret = new (file_t, .filename = filename);
 
     size_t file_size = 0, line_cap = 0;
     char *file_buf = NULL, *line_buf = NULL;
@@ -98,7 +98,7 @@ static file_t *_load_file(const char* filename, FILE *file)
     }
     fclose(file);
 
-    char *copy = GC_MALLOC_ATOMIC(file_size+1);
+    char *copy = GC_MALLOC_ATOMIC(file_size + 1);
     memcpy(copy, file_buf, file_size);
     copy[file_size] = '\0';
     ret->text = copy;
@@ -114,7 +114,7 @@ static file_t *_load_file(const char* filename, FILE *file)
         char *cwd = getcwd(buf, sizeof(buf));
         size_t cwd_len = strlen(cwd);
         if (strncmp(cwd, filename, cwd_len) == 0 && filename[cwd_len] == '/')
-            ret->relative_filename = &filename[cwd_len+1];
+            ret->relative_filename = &filename[cwd_len + 1];
     }
     return ret;
 }
@@ -122,8 +122,8 @@ static file_t *_load_file(const char* filename, FILE *file)
 //
 // Read an entire file into memory.
 //
-public file_t *load_file(const char* filename)
-{
+public
+file_t *load_file(const char *filename) {
     FILE *file = filename[0] ? fopen(filename, "r") : stdin;
     return _load_file(filename, file);
 }
@@ -131,30 +131,27 @@ public file_t *load_file(const char* filename)
 //
 // Create a virtual file from a string.
 //
-public file_t *spoof_file(const char* filename, const char *text)
-{
-    FILE *file = fmemopen((char*)text, strlen(text)+1, "r");
+public
+file_t *spoof_file(const char *filename, const char *text) {
+    FILE *file = fmemopen((char *)text, strlen(text) + 1, "r");
     return _load_file(filename, file);
 }
 
 //
 // Given a pointer, determine which line number it points to (1-indexed)
 //
-public int64_t get_line_number(file_t *f, const char *p)
-{
+public
+int64_t get_line_number(file_t *f, const char *p) {
     // Binary search:
-    int64_t lo = 0, hi = (int64_t)f->num_lines-1;
+    int64_t lo = 0, hi = (int64_t)f->num_lines - 1;
     if (p < f->text) return 0;
     int64_t offset = (int64_t)(p - f->text);
     while (lo <= hi) {
         int64_t mid = (lo + hi) / 2;
         int64_t line_offset = f->line_offsets[mid];
-        if (line_offset == offset)
-            return mid + 1;
-        else if (line_offset < offset)
-            lo = mid + 1;    
-        else if (line_offset > offset)
-            hi = mid - 1;
+        if (line_offset == offset) return mid + 1;
+        else if (line_offset < offset) lo = mid + 1;
+        else if (line_offset > offset) hi = mid - 1;
     }
     return lo; // Return the line number whose line starts closest before p
 }
@@ -162,33 +159,32 @@ public int64_t get_line_number(file_t *f, const char *p)
 //
 // Given a pointer, determine which line column it points to.
 //
-public int64_t get_line_column(file_t *f, const char *p)
-{
+public
+int64_t get_line_column(file_t *f, const char *p) {
     int64_t line_no = get_line_number(f, p);
-    int64_t line_offset = f->line_offsets[line_no-1];
+    int64_t line_offset = f->line_offsets[line_no - 1];
     return 1 + (int64_t)(p - (f->text + line_offset));
 }
 
 //
 // Return a pointer to the line with the specified line number (1-indexed)
 //
-public const char *get_line(file_t *f, int64_t line_number)
-{
+public
+const char *get_line(file_t *f, int64_t line_number) {
     if (line_number == 0 || line_number > (int64_t)f->num_lines) return NULL;
-    int64_t line_offset = f->line_offsets[line_number-1];
+    int64_t line_offset = f->line_offsets[line_number - 1];
     return f->text + line_offset;
 }
 
 //
 // Return a value like /foo:line.col
 //
-public const char *get_file_pos(file_t *f, const char *p)
-{
+public
+const char *get_file_pos(file_t *f, const char *p) {
     return String(f->filename, ":", get_line_number(f, p), ".", get_line_column(f, p));
 }
 
-static int fputc_column(FILE *out, char c, char print_char, int *column)
-{
+static int fputc_column(FILE *out, char c, char print_char, int *column) {
     int printed = 0;
     if (print_char == '\t') print_char = ' ';
     if (c == '\t') {
@@ -206,18 +202,16 @@ static int fputc_column(FILE *out, char c, char print_char, int *column)
 //
 // Print a span from a file
 //
-public int highlight_error(file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines, bool use_color)
-{
+public
+int highlight_error(file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines,
+                    bool use_color) {
     if (!file) return 0;
 
     // Handle spans that come from multiple files:
-    if (start < file->text || start > file->text + file->len)
-        start = end;
-    if (end < file->text || end > file->text + file->len)
-        end = start;
+    if (start < file->text || start > file->text + file->len) start = end;
+    if (end < file->text || end > file->text + file->len) end = start;
     // Just in case neither end of the span came from this file:
-    if (end < file->text || end > file->text + file->len)
-        start = end = file->text;
+    if (end < file->text || end > file->text + file->len) start = end = file->text;
 
     const char *lineno_prefix, *lineno_suffix, *normal_color, *empty_marker;
     bool print_carets = false;
@@ -238,27 +232,25 @@ public int highlight_error(file_t *file, const char *start, const char *end, con
         printed += fprint(stderr, file->relative_filename);
     }
 
-    if (context_lines == 0)
-        return fprint(stderr, hl_color, string_slice(start, (size_t)(end - start)), normal_color);
+    if (context_lines == 0) return fprint(stderr, hl_color, string_slice(start, (size_t)(end - start)), normal_color);
 
-    int64_t start_line = get_line_number(file, start),
-            end_line = get_line_number(file, end);
+    int64_t start_line = get_line_number(file, start), end_line = get_line_number(file, end);
 
-    int64_t first_line = start_line - (context_lines - 1),
-            last_line = end_line + (context_lines - 1);
+    int64_t first_line = start_line - (context_lines - 1), last_line = end_line + (context_lines - 1);
 
     if (first_line < 1) first_line = 1;
     if (last_line > file->num_lines) last_line = file->num_lines;
 
     int digits = 1;
-    for (int64_t i = last_line; i > 0; i /= 10) ++digits;
+    for (int64_t i = last_line; i > 0; i /= 10)
+        ++digits;
 
     for (int64_t line_no = first_line; line_no <= last_line; ++line_no) {
         if (line_no > first_line + 5 && line_no < last_line - 5) {
             if (use_color)
-                printed += fprint(stderr, "\x1b[0;2;3;4m     ... ", (last_line - first_line) - 11, " lines omitted ...     \x1b[m");
-            else
-                printed += fprint(stderr, "     ... ", (last_line - first_line) - 11, " lines omitted ...");
+                printed += fprint(stderr, "\x1b[0;2;3;4m     ... ", (last_line - first_line) - 11,
+                                  " lines omitted ...     \x1b[m");
+            else printed += fprint(stderr, "     ... ", (last_line - first_line) - 11, " lines omitted ...");
             line_no = last_line - 6;
             continue;
         }
@@ -305,14 +297,10 @@ public int highlight_error(file_t *file, const char *start, const char *end, con
             int col = 0;
             for (const char *sp = line; *sp && *sp != '\n'; ++sp) {
                 char print_char;
-                if (sp < start)
-                    print_char = ' ';
-                else if (sp == start && sp == end)
-                    print_char = '^';
-                else if (sp >= start && sp < end)
-                    print_char = '-';
-                else
-                    print_char = ' ';
+                if (sp < start) print_char = ' ';
+                else if (sp == start && sp == end) print_char = '^';
+                else if (sp >= start && sp < end) print_char = '-';
+                else print_char = ' ';
                 printed += fputc_column(stderr, *sp, print_char, &col);
             }
             printed += fputs("\n", stderr);

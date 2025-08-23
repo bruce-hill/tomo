@@ -8,8 +8,8 @@
 #include "types.h"
 #include "util.h"
 
-#define yes (Bool_t)true
-#define no (Bool_t)false
+#define yes (Bool_t) true
+#define no (Bool_t) false
 
 PUREFUNC Text_t Bool$as_text(const void *b, bool colorize, const TypeInfo_t *type);
 OptionalBool_t Bool$parse(Text_t text, Text_t *remainder);

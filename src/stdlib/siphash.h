@@ -2,8 +2,8 @@
 
 // An implementation of the SipHash algorithm.
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "util.h"
 

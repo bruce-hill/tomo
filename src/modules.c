@@ -14,40 +14,41 @@
 #include "stdlib/text.h"
 #include "stdlib/types.h"
 
-#define xsystem(...) ({ int _status = system(String(__VA_ARGS__)); if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0) errx(1, "Failed to run command: %s", String(__VA_ARGS__)); })
+#define xsystem(...)                                                                                                   \
+    ({                                                                                                                 \
+        int _status = system(String(__VA_ARGS__));                                                                     \
+        if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0)                                                          \
+            errx(1, "Failed to run command: %s", String(__VA_ARGS__));                                                 \
+    })
 
-static void read_modules_ini(Path_t ini_file, module_info_t *info)
-{
+static void read_modules_ini(Path_t ini_file, module_info_t *info) {
     OptionalClosure_t by_line = Path$by_line(ini_file);
     if (by_line.fn == NULL) return;
-    OptionalText_t (*next_line)(void*) = by_line.fn;
-  find_section:;
-    for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
+    OptionalText_t (*next_line)(void *) = by_line.fn;
+find_section:;
+    for (Text_t line; (line = next_line(by_line.userdata)).length >= 0;) {
         char *line_str = Text$as_c_string(line);
-        if (line_str[0] == '[' && strncmp(line_str+1, info->name, strlen(info->name)) == 0
-            && line_str[1+strlen(info->name)] == ']')
+        if (line_str[0] == '[' && strncmp(line_str + 1, info->name, strlen(info->name)) == 0
+            && line_str[1 + strlen(info->name)] == ']')
             break;
     }
-    for (Text_t line; (line=next_line(by_line.userdata)).length >= 0; ) {
+    for (Text_t line; (line = next_line(by_line.userdata)).length >= 0;) {
         char *line_str = Text$as_c_string(line);
         if (line_str[0] == '[') goto find_section;
-        if (!strparse(line_str, "version=", &info->version)
-            || !strparse(line_str, "url=", &info->url)
-            || !strparse(line_str, "git=", &info->git)
-            || !strparse(line_str, "path=", &info->path)
+        if (!strparse(line_str, "version=", &info->version) || !strparse(line_str, "url=", &info->url)
+            || !strparse(line_str, "git=", &info->git) || !strparse(line_str, "path=", &info->path)
             || !strparse(line_str, "revision=", &info->revision))
             continue;
     }
 }
 
-module_info_t get_module_info(ast_t *use)
-{
+module_info_t get_module_info(ast_t *use) {
     static Table_t cache = {};
     TypeInfo_t *cache_type = Table$info(Pointer$info("@", &Memory$info), Pointer$info("@", &Memory$info));
     module_info_t **cached = Table$get(cache, &use, cache_type);
     if (cached) return **cached;
     const char *name = Match(use, Use)->path;
-    module_info_t *info = new(module_info_t, .name=name);
+    module_info_t *info = new (module_info_t, .name = name);
     if (streq(name, "commands")) info->version = "v1.0";
     else if (streq(name, "random")) info->version = "v1.0";
     else if (streq(name, "base64")) info->version = "v1.0";
@@ -64,16 +65,14 @@ module_info_t get_module_info(ast_t *use)
     }
     Table$set(&cache, &use, &info, cache_type);
     return *info;
-
 }
 
-bool try_install_module(module_info_t mod)
-{
+bool try_install_module(module_info_t mod) {
     if (mod.git) {
-        OptionalText_t answer = ask(
-            Texts(Text("The module \""), Text$from_str(mod.name), Text("\" is not installed.\nDo you want to install it from git URL "),
-                  Text$from_str(mod.git), Text("? [Y/n] ")),
-            true, true);
+        OptionalText_t answer = ask(Texts(Text("The module \""), Text$from_str(mod.name),
+                                          Text("\" is not installed.\nDo you want to install it from git URL "),
+                                          Text$from_str(mod.git), Text("? [Y/n] ")),
+                                    true, true);
         if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
             return false;
         print("Installing ", mod.name, " from git...");
@@ -85,10 +84,10 @@ bool try_install_module(module_info_t mod)
         Path$remove(tmpdir, true);
         return true;
     } else if (mod.url) {
-        OptionalText_t answer = ask(
-            Texts(Text("The module "), Text$from_str(mod.name), Text(" is not installed.\nDo you want to install it from URL "),
-                  Text$from_str(mod.url), Text("? [Y/n] ")),
-            true, true);
+        OptionalText_t answer = ask(Texts(Text("The module "), Text$from_str(mod.name),
+                                          Text(" is not installed.\nDo you want to install it from URL "),
+                                          Text$from_str(mod.url), Text("? [Y/n] ")),
+                                    true, true);
         if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
             return false;
 
@@ -102,22 +101,19 @@ bool try_install_module(module_info_t mod)
         const char *extension = p + 1;
         Path_t tmpdir = Path$unique_directory(Path("/tmp/tomo-module-XXXXXX"));
         xsystem("curl ", mod.url, " -o ", tmpdir);
-        if (streq(extension, ".zip"))
-            xsystem("unzip ", tmpdir, "/", filename);
-        else if (streq(extension, ".tar.gz") || streq(extension, ".tar"))
-            xsystem("tar xf ", tmpdir, "/", filename);
-        else
-            return false;
+        if (streq(extension, ".zip")) xsystem("unzip ", tmpdir, "/", filename);
+        else if (streq(extension, ".tar.gz") || streq(extension, ".tar")) xsystem("tar xf ", tmpdir, "/", filename);
+        else return false;
         const char *basename = String(string_slice(filename, strcspn(filename, ".")));
         if (mod.path) xsystem("tomo -IL ", tmpdir, "/", basename, "/", mod.path);
         else xsystem("tomo -IL ", tmpdir, "/", basename);
         Path$remove(tmpdir, true);
         return true;
     } else if (mod.path) {
-        OptionalText_t answer = ask(
-            Texts(Text("The module "), Text$from_str(mod.name), Text(" is not installed.\nDo you want to install it from path "),
-                  Text$from_str(mod.path), Text("? [Y/n] ")),
-            true, true);
+        OptionalText_t answer = ask(Texts(Text("The module "), Text$from_str(mod.name),
+                                          Text(" is not installed.\nDo you want to install it from path "),
+                                          Text$from_str(mod.path), Text("? [Y/n] ")),
+                                    true, true);
         if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
             return false;
 

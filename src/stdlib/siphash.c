@@ -5,7 +5,8 @@
 #include "siphash.h"
 #include "util.h"
 
-public uint64_t TOMO_HASH_KEY[2] = {23, 42}; // Randomized in tomo_init()
+public
+uint64_t TOMO_HASH_KEY[2] = {23, 42}; // Randomized in tomo_init()
 
 /* <MIT License>
  Copyright (c) 2013  Marek Majkowski <marek@popcount.org>
@@ -53,10 +54,10 @@ PUREFUNC public uint64_t siphash24(const uint8_t *src, size_t src_sz) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 #endif
-        const uint64_t *in = (uint64_t*)src;
+        const uint64_t *in = (uint64_t *)src;
         /* Find largest src_sz evenly divisible by 8 bytes. */
         const ptrdiff_t src_sz_nearest_8bits = ((ptrdiff_t)src_sz >> 3) << 3;
-        const uint64_t *goal  = (uint64_t*)(src + src_sz_nearest_8bits);
+        const uint64_t *goal = (uint64_t *)(src + src_sz_nearest_8bits);
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
@@ -74,7 +75,8 @@ PUREFUNC public uint64_t siphash24(const uint8_t *src, size_t src_sz) {
             uint64_t in_64;
             memcpy(&in_64, in, sizeof(uint64_t));
             siphashadd64bits(&sh, in_64);
-            in += 8; src_sz -= 8;
+            in += 8;
+            src_sz -= 8;
         }
         return siphashfinish(&sh, (uint8_t *)in, src_sz);
     }

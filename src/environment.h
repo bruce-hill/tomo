@@ -46,7 +46,7 @@ typedef struct env_s {
     loop_ctx_t *loop_ctx;
     deferral_t *deferred;
     Closure_t *comprehension_action;
-    bool do_source_mapping:1;
+    bool do_source_mapping : 1;
     type_t *current_type;
 } env_t;
 
@@ -62,23 +62,21 @@ env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);
 env_t *with_enum_scope(env_t *env, type_t *t);
 env_t *namespace_env(env_t *env, const char *namespace_name);
-#define compiler_err(f, start, end, ...) ({ \
-    file_t *_f = f; \
-    if (USE_COLOR) \
-        fputs("\x1b[31;7;1m ", stderr); \
-    if (_f && start && end) \
-        fprint_inline(stderr, _f->relative_filename, ":", get_line_number(_f, start), ".", get_line_column(_f, start), ": "); \
-    fprint_inline(stderr, __VA_ARGS__); \
-    if (USE_COLOR) \
-        fputs(" \x1b[m", stderr); \
-    fputs("\n\n", stderr); \
-    if (_f && start && end) \
-        highlight_error(_f, start, end, "\x1b[31;1m", 2, USE_COLOR); \
-    if (getenv("TOMO_STACKTRACE")) \
-        print_stacktrace(stderr, 1); \
-    raise(SIGABRT); \
-    exit(1); \
-})
+#define compiler_err(f, start, end, ...)                                                                               \
+    ({                                                                                                                 \
+        file_t *_f = f;                                                                                                \
+        if (USE_COLOR) fputs("\x1b[31;7;1m ", stderr);                                                                 \
+        if (_f && start && end)                                                                                        \
+            fprint_inline(stderr, _f->relative_filename, ":", get_line_number(_f, start), ".",                         \
+                          get_line_column(_f, start), ": ");                                                           \
+        fprint_inline(stderr, __VA_ARGS__);                                                                            \
+        if (USE_COLOR) fputs(" \x1b[m", stderr);                                                                       \
+        fputs("\n\n", stderr);                                                                                         \
+        if (_f && start && end) highlight_error(_f, start, end, "\x1b[31;1m", 2, USE_COLOR);                           \
+        if (getenv("TOMO_STACKTRACE")) print_stacktrace(stderr, 1);                                                    \
+        raise(SIGABRT);                                                                                                \
+        exit(1);                                                                                                       \
+    })
 binding_t *get_binding(env_t *env, const char *name);
 binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, bool allow_underscores);
 PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, ast_t *rhs, type_t *ret);

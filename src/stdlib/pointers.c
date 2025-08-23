@@ -13,22 +13,19 @@
 #include "types.h"
 #include "util.h"
 
-public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
+public
+Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
     __typeof(type->PointerInfo) ptr_info = type->PointerInfo;
     if (!x) {
         Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
-        if (colorize)
-            return Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), typename, Text("\x1b[m"));
-        else
-            return Text$concat(Text$from_str(ptr_info.sigil), typename);
+        if (colorize) return Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), typename, Text("\x1b[m"));
+        else return Text$concat(Text$from_str(ptr_info.sigil), typename);
     }
-    const void *ptr = *(const void**)x;
+    const void *ptr = *(const void **)x;
     if (!ptr) {
         Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
-        if (colorize)
-            return Text$concat(Text("\x1b[34;1m!"), typename, Text("\x1b[m"));
-        else
-            return Text$concat(Text("!"), typename);
+        if (colorize) return Text$concat(Text("\x1b[34;1m!"), typename, Text("\x1b[m"));
+        else return Text$concat(Text("!"), typename);
     }
 
     static const void *root = NULL;
@@ -61,38 +58,38 @@ public Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *ty
     }
 
     Text_t text;
-    if (colorize)
-        text = Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), Text("\x1b[m"), pointed);
-    else
-        text = Text$concat(Text$from_str(ptr_info.sigil), pointed);
+    if (colorize) text = Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), Text("\x1b[m"), pointed);
+    else text = Text$concat(Text$from_str(ptr_info.sigil), pointed);
     return text;
 }
 
 PUREFUNC public int32_t Pointer$compare(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
-    const void *xp = *(const void**)x, *yp = *(const void**)y;
+    const void *xp = *(const void **)x, *yp = *(const void **)y;
     return (xp > yp) - (xp < yp);
 }
 
 PUREFUNC public bool Pointer$equal(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
-    const void *xp = *(const void**)x, *yp = *(const void**)y;
+    const void *xp = *(const void **)x, *yp = *(const void **)y;
     return xp == yp;
 }
 
-PUREFUNC public bool Pointer$is_none(const void *x, const TypeInfo_t *info)
-{
+PUREFUNC public bool Pointer$is_none(const void *x, const TypeInfo_t *info) {
     (void)info;
-    return *(void**)x == NULL;
+    return *(void **)x == NULL;
 }
 
-public void Pointer$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type)
-{
-    void *ptr = *(void**)obj;
+public
+void Pointer$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type) {
+    void *ptr = *(void **)obj;
     assert(ptr != NULL);
 
-    const TypeInfo_t ptr_to_int_table = {.size=sizeof(Table_t), .align=__alignof__(Table_t),
-        .tag=TableInfo, .TableInfo.key=type, .TableInfo.value=&Int64$info};
+    const TypeInfo_t ptr_to_int_table = {.size = sizeof(Table_t),
+                                         .align = __alignof__(Table_t),
+                                         .tag = TableInfo,
+                                         .TableInfo.key = type,
+                                         .TableInfo.value = &Int64$info};
 
     int64_t *id_ptr = Table$get(*pointers, &ptr, &ptr_to_int_table);
     int64_t id;
@@ -105,23 +102,22 @@ public void Pointer$serialize(const void *obj, FILE *out, Table_t *pointers, con
 
     Int64$serialize(&id, out, pointers, &Int64$info);
 
-    if (!id_ptr)
-        _serialize(ptr, out, pointers, type->PointerInfo.pointed);
+    if (!id_ptr) _serialize(ptr, out, pointers, type->PointerInfo.pointed);
 }
 
-public void Pointer$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type)
-{
+public
+void Pointer$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type) {
     int64_t id = 0;
     Int64$deserialize(in, &id, pointers, &Int64$info);
     assert(id != 0);
 
     if (id > pointers->length) {
         void *obj = GC_MALLOC((size_t)type->PointerInfo.pointed->size);
-        List$insert(pointers, &obj, I(0), sizeof(void*));
+        List$insert(pointers, &obj, I(0), sizeof(void *));
         _deserialize(in, obj, pointers, type->PointerInfo.pointed);
-        *(void**)outval = obj;
+        *(void **)outval = obj;
     } else {
-        *(void**)outval = *(void**)(pointers->data + (id-1)*pointers->stride);
+        *(void **)outval = *(void **)(pointers->data + (id - 1) * pointers->stride);
     }
 }
 

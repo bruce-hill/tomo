@@ -51,24 +51,25 @@ struct siphash {
     uint64_t v1;
     uint64_t v2;
     uint64_t v3;
-    uint64_t  b;
+    uint64_t b;
 };
 typedef struct siphash siphash;
-#define ROTATE(x, b) (uint64_t)( ((x) << (b)) | ( (x) >> (64 - (b))) )
+#define ROTATE(x, b) (uint64_t)(((x) << (b)) | ((x) >> (64 - (b))))
 
-#define HALF_ROUND(a,b,c,d,s,t) \
-    a += b; c += d;             \
-    b = ROTATE(b, s) ^ a;       \
-    d = ROTATE(d, t) ^ c;       \
+#define HALF_ROUND(a, b, c, d, s, t)                                                                                   \
+    a += b;                                                                                                            \
+    c += d;                                                                                                            \
+    b = ROTATE(b, s) ^ a;                                                                                              \
+    d = ROTATE(d, t) ^ c;                                                                                              \
     a = ROTATE(a, 32);
 
-#define DOUBLE_ROUND(v0,v1,v2,v3)  \
-    HALF_ROUND(v0,v1,v2,v3,13,16); \
-    HALF_ROUND(v2,v1,v0,v3,17,21); \
-    HALF_ROUND(v0,v1,v2,v3,13,16); \
-    HALF_ROUND(v2,v1,v0,v3,17,21);
+#define DOUBLE_ROUND(v0, v1, v2, v3)                                                                                   \
+    HALF_ROUND(v0, v1, v2, v3, 13, 16);                                                                                \
+    HALF_ROUND(v2, v1, v0, v3, 17, 21);                                                                                \
+    HALF_ROUND(v0, v1, v2, v3, 13, 16);                                                                                \
+    HALF_ROUND(v2, v1, v0, v3, 17, 21);
 
-MACROLIKE void siphashinit (siphash *sh, size_t src_sz) {
+MACROLIKE void siphashinit(siphash *sh, size_t src_sz) {
     const uint64_t k0 = TOMO_HASH_KEY[0];
     const uint64_t k1 = TOMO_HASH_KEY[1];
     sh->b = (uint64_t)src_sz << 56;
@@ -77,20 +78,20 @@ MACROLIKE void siphashinit (siphash *sh, size_t src_sz) {
     sh->v2 = k0 ^ 0x6c7967656e657261ULL;
     sh->v3 = k1 ^ 0x7465646279746573ULL;
 }
-MACROLIKE void siphashadd64bits (siphash *sh, const uint64_t in) {
+MACROLIKE void siphashadd64bits(siphash *sh, const uint64_t in) {
     const uint64_t mi = in;
     sh->v3 ^= mi;
-    DOUBLE_ROUND(sh->v0,sh->v1,sh->v2,sh->v3);
+    DOUBLE_ROUND(sh->v0, sh->v1, sh->v2, sh->v3);
     sh->v0 ^= mi;
 }
-MACROLIKE uint64_t siphashfinish_last_part (siphash *sh, uint64_t t) {
+MACROLIKE uint64_t siphashfinish_last_part(siphash *sh, uint64_t t) {
     sh->b |= t;
     sh->v3 ^= sh->b;
-    DOUBLE_ROUND(sh->v0,sh->v1,sh->v2,sh->v3);
+    DOUBLE_ROUND(sh->v0, sh->v1, sh->v2, sh->v3);
     sh->v0 ^= sh->b;
     sh->v2 ^= 0xff;
-    DOUBLE_ROUND(sh->v0,sh->v1,sh->v2,sh->v3);
-    DOUBLE_ROUND(sh->v0,sh->v1,sh->v2,sh->v3);
+    DOUBLE_ROUND(sh->v0, sh->v1, sh->v2, sh->v3);
+    DOUBLE_ROUND(sh->v0, sh->v1, sh->v2, sh->v3);
     return (sh->v0 ^ sh->v1) ^ (sh->v2 ^ sh->v3);
 }
 /* This union helps us avoid doing weird things with pointers that can cause old
@@ -99,26 +100,26 @@ MACROLIKE uint64_t siphashfinish_last_part (siphash *sh, uint64_t t) {
 union SipHash64_union {
     uint64_t u64;
     uint32_t u32;
-    uint8_t  u8[8];
+    uint8_t u8[8];
 };
-MACROLIKE uint64_t siphashfinish (siphash *sh, const uint8_t *src, size_t src_sz) {
-    union SipHash64_union t = { 0 };
+MACROLIKE uint64_t siphashfinish(siphash *sh, const uint8_t *src, size_t src_sz) {
+    union SipHash64_union t = {0};
     switch (src_sz) {
-        /* Falls through */
-        case 7: t.u8[6] = src[6];
-        /* Falls through */
-        case 6: t.u8[5] = src[5];
-        /* Falls through */
-        case 5: t.u8[4] = src[4];
-        /* Falls through */
-        case 4: t.u8[3] = src[3];
-        /* Falls through */
-        case 3: t.u8[2] = src[2];
-        /* Falls through */
-        case 2: t.u8[1] = src[1];
-        /* Falls through */
-        case 1: t.u8[0] = src[0];
-        default: break;
+    /* Falls through */
+    case 7: t.u8[6] = src[6];
+    /* Falls through */
+    case 6: t.u8[5] = src[5];
+    /* Falls through */
+    case 5: t.u8[4] = src[4];
+    /* Falls through */
+    case 4: t.u8[3] = src[3];
+    /* Falls through */
+    case 3: t.u8[2] = src[2];
+    /* Falls through */
+    case 2: t.u8[1] = src[1];
+    /* Falls through */
+    case 1: t.u8[0] = src[0];
+    default: break;
     }
     return siphashfinish_last_part(sh, t.u64);
 }

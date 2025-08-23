@@ -9,18 +9,17 @@
 #include "types.h"
 #include "util.h"
 
-public Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo_t *type)
-{
+public
+Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo_t *type) {
     Text_t text = Text$from_str(type->FunctionInfo.type_str);
-    if (fn && colorize)
-        text = Text$concat(Text("\x1b[32;1m"), text, Text("\x1b[m"));
+    if (fn && colorize) text = Text$concat(Text("\x1b[32;1m"), text, Text("\x1b[m"));
     return text;
 }
 
-public PUREFUNC bool Func$is_none(const void *obj, const TypeInfo_t *info)
-{
+public
+PUREFUNC bool Func$is_none(const void *obj, const TypeInfo_t *info) {
     (void)info;
-    return *(void**)obj == NULL;
+    return *(void **)obj == NULL;
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

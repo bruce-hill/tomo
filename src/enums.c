@@ -11,8 +11,7 @@
 #include "structs.h"
 #include "typecheck.h"
 
-Text_t compile_enum_typeinfo(env_t *env, ast_t *ast)
-{
+Text_t compile_enum_typeinfo(env_t *env, ast_t *ast) {
     DeclareMatch(def, ast, EnumDef);
 
     // Compile member types and constructors:
@@ -23,8 +22,8 @@ Text_t compile_enum_typeinfo(env_t *env, ast_t *ast)
         const char *tag_name = String(def->name, "$", tag->name);
         type_t *tag_type = Table$str_get(*env->types, tag_name);
         assert(tag_type && tag_type->tag == StructType);
-        member_typeinfos = Texts(
-            member_typeinfos, compile_struct_typeinfo(env, tag_type, tag_name, tag->fields, tag->secret, false));
+        member_typeinfos =
+            Texts(member_typeinfos, compile_struct_typeinfo(env, tag_type, tag_name, tag->fields, tag->secret, false));
     }
 
     int num_tags = 0;
@@ -34,25 +33,25 @@ Text_t compile_enum_typeinfo(env_t *env, ast_t *ast)
     type_t *t = Table$str_get(*env->types, def->name);
     const char *metamethods = is_packed_data(t) ? "PackedDataEnum$metamethods" : "Enum$metamethods";
     Text_t info = namespace_name(env, env->namespace, Texts(def->name, "$$info"));
-    Text_t typeinfo = Texts("public const TypeInfo_t ", info, " = {",
-                             String((int64_t)type_size(t)), "u, ", String((int64_t)type_align(t)), "u, .metamethods=", metamethods,
-                             ", {.tag=EnumInfo, .EnumInfo={.name=\"", def->name, "\", "
-                             ".num_tags=", String((int64_t)num_tags), ", .tags=(NamedType_t[]){");
+    Text_t typeinfo = Texts("public const TypeInfo_t ", info, " = {", String((int64_t)type_size(t)), "u, ",
+                            String((int64_t)type_align(t)), "u, .metamethods=", metamethods,
+                            ", {.tag=EnumInfo, .EnumInfo={.name=\"", def->name,
+                            "\", "
+                            ".num_tags=",
+                            String((int64_t)num_tags), ", .tags=(NamedType_t[]){");
 
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         const char *tag_type_name = String(def->name, "$", tag->name);
         type_t *tag_type = Table$str_get(*env->types, tag_type_name);
         if (tag_type && Match(tag_type, StructType)->fields)
             typeinfo = Texts(typeinfo, "{\"", tag->name, "\", ", compile_type_info(tag_type), "}, ");
-        else
-            typeinfo = Texts(typeinfo, "{\"", tag->name, "\"}, ");
+        else typeinfo = Texts(typeinfo, "{\"", tag->name, "\"}, ");
     }
     typeinfo = Texts(typeinfo, "}}}};\n");
     return Texts(member_typeinfos, typeinfo);
 }
 
-Text_t compile_enum_constructors(env_t *env, ast_t *ast)
-{
+Text_t compile_enum_constructors(env_t *env, ast_t *ast) {
     DeclareMatch(def, ast, EnumDef);
     Text_t constructors = EMPTY_TEXT;
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
@@ -69,7 +68,7 @@ Text_t compile_enum_constructors(env_t *env, ast_t *ast)
         Text_t tagged_name = namespace_name(env, env->namespace, Texts(def->name, "$tagged$", tag->name));
         Text_t tag_name = namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name));
         Text_t constructor_impl = Texts("public inline ", type_name, " ", tagged_name, "(", arg_sig, ") { return (",
-                                         type_name, "){.$tag=", tag_name, ", .", valid_c_name(tag->name), "={");
+                                        type_name, "){.$tag=", tag_name, ", .", valid_c_name(tag->name), "={");
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
             constructor_impl = Texts(constructor_impl, "$", field->name);
             if (field->next) constructor_impl = Texts(constructor_impl, ", ");
@@ -80,8 +79,7 @@ Text_t compile_enum_constructors(env_t *env, ast_t *ast)
     return constructors;
 }
 
-Text_t compile_enum_header(env_t *env, ast_t *ast)
-{
+Text_t compile_enum_header(env_t *env, ast_t *ast) {
     DeclareMatch(def, ast, EnumDef);
     Text_t all_defs = EMPTY_TEXT;
     Text_t none_name = namespace_name(env, env->namespace, Texts(def->name, "$none"));
@@ -104,13 +102,17 @@ Text_t compile_enum_header(env_t *env, ast_t *ast)
     }
 
     Text_t struct_name = namespace_name(env, env->namespace, Texts(def->name, "$$struct"));
-    Text_t enum_def = Texts("struct ", struct_name, " {\n"
-                             "enum ", enum_tags, " $tag;\n"
-                             "union {\n");
+    Text_t enum_def = Texts("struct ", struct_name,
+                            " {\n"
+                            "enum ",
+                            enum_tags,
+                            " $tag;\n"
+                            "union {\n");
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         if (!tag->fields) continue;
         Text_t field_def = compile_struct_header(
-            env, WrapAST(ast, StructDef, .name=Text$as_c_string(Texts(def->name, "$", tag->name)), .fields=tag->fields));
+            env,
+            WrapAST(ast, StructDef, .name = Text$as_c_string(Texts(def->name, "$", tag->name)), .fields = tag->fields));
         all_defs = Texts(all_defs, field_def);
         Text_t tag_type = namespace_name(env, env->namespace, Texts(def->name, "$", tag->name, "$$type"));
         enum_def = Texts(enum_def, tag_type, " ", valid_c_name(tag->name), ";\n");

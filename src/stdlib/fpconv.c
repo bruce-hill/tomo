@@ -6,37 +6,46 @@
 #include "fpconv.h"
 #include "powers.h"
 
-#define fracmask  0x000FFFFFFFFFFFFFU
-#define expmask   0x7FF0000000000000U
+#define fracmask 0x000FFFFFFFFFFFFFU
+#define expmask 0x7FF0000000000000U
 #define hiddenbit 0x0010000000000000U
-#define signmask  0x8000000000000000U
-#define expbias   (1023 + 52)
+#define signmask 0x8000000000000000U
+#define expbias (1023 + 52)
 
 #define absv(n) ((n) < 0 ? -(n) : (n))
 #define minv(a, b) ((a) < (b) ? (a) : (b))
 
-static uint64_t tens[] = {
-    10000000000000000000U, 1000000000000000000U, 100000000000000000U,
-    10000000000000000U, 1000000000000000U, 100000000000000U,
-    10000000000000U, 1000000000000U, 100000000000U,
-    10000000000U, 1000000000U, 100000000U,
-    10000000U, 1000000U, 100000U,
-    10000U, 1000U, 100U,
-    10U, 1U
-};
+static uint64_t tens[] = {10000000000000000000U,
+                          1000000000000000000U,
+                          100000000000000000U,
+                          10000000000000000U,
+                          1000000000000000U,
+                          100000000000000U,
+                          10000000000000U,
+                          1000000000000U,
+                          100000000000U,
+                          10000000000U,
+                          1000000000U,
+                          100000000U,
+                          10000000U,
+                          1000000U,
+                          100000U,
+                          10000U,
+                          1000U,
+                          100U,
+                          10U,
+                          1U};
 
-static inline uint64_t get_dbits(double d)
-{
+static inline uint64_t get_dbits(double d) {
     union {
-        double   dbl;
+        double dbl;
         uint64_t i;
-    } dbl_bits = { d };
+    } dbl_bits = {d};
 
     return dbl_bits.i;
 }
 
-static Fp build_fp(double d)
-{
+static Fp build_fp(double d) {
     uint64_t bits = get_dbits(d);
 
     Fp fp;
@@ -54,8 +63,7 @@ static Fp build_fp(double d)
     return fp;
 }
 
-static void normalize(Fp* fp)
-{
+static void normalize(Fp *fp) {
     while ((fp->frac & hiddenbit) == 0) {
         fp->frac <<= 1;
         fp->exp--;
@@ -66,10 +74,9 @@ static void normalize(Fp* fp)
     fp->exp -= shift;
 }
 
-static void get_normalized_boundaries(Fp* fp, Fp* lower, Fp* upper)
-{
+static void get_normalized_boundaries(Fp *fp, Fp *lower, Fp *upper) {
     upper->frac = (fp->frac << 1) + 1;
-    upper->exp  = fp->exp - 1;
+    upper->exp = fp->exp - 1;
 
     while ((upper->frac & (hiddenbit << 1)) == 0) {
         upper->frac <<= 1;
@@ -81,64 +88,55 @@ static void get_normalized_boundaries(Fp* fp, Fp* lower, Fp* upper)
     upper->frac <<= u_shift;
     upper->exp = upper->exp - u_shift;
 
-
     int l_shift = fp->frac == hiddenbit ? 2 : 1;
 
     lower->frac = (fp->frac << l_shift) - 1;
     lower->exp = fp->exp - l_shift;
 
-
     lower->frac <<= lower->exp - upper->exp;
     lower->exp = upper->exp;
 }
 
-static Fp multiply(Fp* a, Fp* b)
-{
+static Fp multiply(Fp *a, Fp *b) {
     const uint64_t lomask = 0x00000000FFFFFFFF;
 
-    uint64_t ah_bl = (a->frac >> 32)    * (b->frac & lomask);
+    uint64_t ah_bl = (a->frac >> 32) * (b->frac & lomask);
     uint64_t al_bh = (a->frac & lomask) * (b->frac >> 32);
     uint64_t al_bl = (a->frac & lomask) * (b->frac & lomask);
-    uint64_t ah_bh = (a->frac >> 32)    * (b->frac >> 32);
+    uint64_t ah_bh = (a->frac >> 32) * (b->frac >> 32);
 
     uint64_t tmp = (ah_bl & lomask) + (al_bh & lomask) + (al_bl >> 32);
     /* round up */
     tmp += 1U << 31;
 
-    Fp fp = {
-        ah_bh + (ah_bl >> 32) + (al_bh >> 32) + (tmp >> 32),
-        a->exp + b->exp + 64
-    };
+    Fp fp = {ah_bh + (ah_bl >> 32) + (al_bh >> 32) + (tmp >> 32), a->exp + b->exp + 64};
 
     return fp;
 }
 
-static void round_digit(char* digits, int ndigits, uint64_t delta, uint64_t rem, uint64_t kappa, uint64_t frac)
-{
-    while (rem < frac && delta - rem >= kappa &&
-           (rem + kappa < frac || frac - rem > rem + kappa - frac)) {
+static void round_digit(char *digits, int ndigits, uint64_t delta, uint64_t rem, uint64_t kappa, uint64_t frac) {
+    while (rem < frac && delta - rem >= kappa && (rem + kappa < frac || frac - rem > rem + kappa - frac)) {
 
         digits[ndigits - 1]--;
         rem += kappa;
     }
 }
 
-static int generate_digits(Fp* fp, Fp* upper, Fp* lower, char* digits, int* K)
-{
+static int generate_digits(Fp *fp, Fp *upper, Fp *lower, char *digits, int *K) {
     uint64_t wfrac = upper->frac - fp->frac;
     uint64_t delta = upper->frac - lower->frac;
 
     Fp one;
     one.frac = 1ULL << -upper->exp;
-    one.exp  = upper->exp;
+    one.exp = upper->exp;
 
     uint64_t part1 = upper->frac >> -one.exp;
     uint64_t part2 = upper->frac & (one.frac - 1);
 
     int idx = 0, kappa = 10;
-    uint64_t* divp;
+    uint64_t *divp;
     /* 1000000000 */
-    for(divp = tens + 10; kappa > 0; divp++) {
+    for (divp = tens + 10; kappa > 0; divp++) {
 
         uint64_t div = *divp;
         unsigned digit = part1 / div;
@@ -150,7 +148,7 @@ static int generate_digits(Fp* fp, Fp* upper, Fp* lower, char* digits, int* K)
         part1 -= digit * div;
         kappa--;
 
-        uint64_t tmp = (part1 <<-one.exp) + part2;
+        uint64_t tmp = (part1 << -one.exp) + part2;
         if (tmp <= delta) {
             *K += kappa;
             round_digit(digits, idx, delta, tmp, div << -one.exp, wfrac);
@@ -160,7 +158,7 @@ static int generate_digits(Fp* fp, Fp* upper, Fp* lower, char* digits, int* K)
     }
 
     /* 10 */
-    uint64_t* unit = tens + 18;
+    uint64_t *unit = tens + 18;
 
     while (true) {
         part2 *= 10;
@@ -184,8 +182,7 @@ static int generate_digits(Fp* fp, Fp* upper, Fp* lower, char* digits, int* K)
     }
 }
 
-static int grisu2(double d, char* digits, int* K)
-{
+static int grisu2(double d, char *digits, int *K) {
     Fp w = build_fp(d);
 
     Fp lower, upper;
@@ -196,7 +193,7 @@ static int grisu2(double d, char* digits, int* K)
     int k;
     Fp cp = find_cachedpow10(upper.exp, &k);
 
-    w     = multiply(&w,     &cp);
+    w = multiply(&w, &cp);
     upper = multiply(&upper, &cp);
     lower = multiply(&lower, &cp);
 
@@ -208,8 +205,7 @@ static int grisu2(double d, char* digits, int* K)
     return generate_digits(&w, &upper, &lower, digits, K);
 }
 
-static int emit_digits(char* digits, int ndigits, char* dest, int K, bool neg)
-{
+static int emit_digits(char *digits, int ndigits, char *dest, int K, bool neg) {
     int exp = absv(K + ndigits - 1);
 
     int max_trailing_zeros = 7;
@@ -240,7 +236,7 @@ static int emit_digits(char* digits, int ndigits, char* dest, int K, bool neg)
 
             return ndigits + 2 + offset;
 
-        /* fp > 1.0 */
+            /* fp > 1.0 */
         } else {
             memcpy(dest, digits, (size_t)offset);
             dest[offset] = '.';
@@ -288,8 +284,7 @@ static int emit_digits(char* digits, int ndigits, char* dest, int K, bool neg)
     return idx;
 }
 
-static int filter_special(double fp, char* dest)
-{
+static int filter_special(double fp, char *dest) {
     if (fp == 0.0) {
         dest[0] = '0';
         return 1;
@@ -304,17 +299,20 @@ static int filter_special(double fp, char* dest)
     }
 
     if (bits & fracmask) {
-        dest[0] = 'n'; dest[1] = 'a'; dest[2] = 'n';
+        dest[0] = 'n';
+        dest[1] = 'a';
+        dest[2] = 'n';
 
     } else {
-        dest[0] = 'i'; dest[1] = 'n'; dest[2] = 'f';
+        dest[0] = 'i';
+        dest[1] = 'n';
+        dest[2] = 'f';
     }
 
     return 3;
 }
 
-int fpconv_dtoa(double d, char dest[24])
-{
+int fpconv_dtoa(double d, char dest[24]) {
     char digits[18];
 
     int str_len = 0;

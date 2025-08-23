@@ -15,11 +15,13 @@ typedef struct arg_s {
     struct arg_s *next;
 } arg_t;
 
-#define ARG_LIST(...) ({\
-    arg_t *args[] = {__VA_ARGS__}; \
-    for (size_t i = 0; i < sizeof(args)/sizeof(args[0])-1; i++) \
-        args[i]->next = args[i+1]; \
-    args[0]; })
+#define ARG_LIST(...)                                                                                                  \
+    ({                                                                                                                 \
+        arg_t *args[] = {__VA_ARGS__};                                                                                 \
+        for (size_t i = 0; i < sizeof(args) / sizeof(args[0]) - 1; i++)                                                \
+            args[i]->next = args[i + 1];                                                                               \
+        args[0];                                                                                                       \
+    })
 
 typedef struct tag_s {
     const char *name;
@@ -66,15 +68,18 @@ struct type_s {
         struct {
             type_t *ret;
         } ReturnType;
-        struct {} BigIntType;
         struct {
-            enum { TYPE_IBITS8=8, TYPE_IBITS16=16, TYPE_IBITS32=32, TYPE_IBITS64=64 } bits;
+        } BigIntType;
+        struct {
+            enum { TYPE_IBITS8 = 8, TYPE_IBITS16 = 16, TYPE_IBITS32 = 32, TYPE_IBITS64 = 64 } bits;
         } IntType;
-        struct {} ByteType;
         struct {
-            enum { TYPE_NBITS32=32, TYPE_NBITS64=64 } bits;
+        } ByteType;
+        struct {
+            enum { TYPE_NBITS32 = 32, TYPE_NBITS64 = 64 } bits;
         } NumType;
-        struct {} CStringType;
+        struct {
+        } CStringType;
         struct {
             const char *lang;
             struct env_s *env;
@@ -99,13 +104,13 @@ struct type_s {
         } ClosureType;
         struct {
             type_t *pointed;
-            bool is_stack:1;
+            bool is_stack : 1;
         } PointerType;
         struct {
             const char *name;
             arg_t *fields;
             struct env_s *env;
-            bool opaque:1, external:1;
+            bool opaque : 1, external : 1;
         } StructType;
         struct {
             const char *name;
@@ -127,10 +132,11 @@ struct type_s {
     } __data;
 };
 
-#define Type(typetag, ...) new(type_t, .tag=typetag, .__data.typetag={__VA_ARGS__})
+#define Type(typetag, ...) new (type_t, .tag = typetag, .__data.typetag = {__VA_ARGS__})
 #define INT_TYPE Type(BigIntType)
-#define NUM_TYPE Type(NumType, .bits=TYPE_NBITS64)
-#define NewFunctionType(ret, ...) _make_function_type(ret, sizeof((arg_t[]){__VA_ARGS__})/sizeof(arg_t), (arg_t[]){__VA_ARGS__})
+#define NUM_TYPE Type(NumType, .bits = TYPE_NBITS64)
+#define NewFunctionType(ret, ...)                                                                                      \
+    _make_function_type(ret, sizeof((arg_t[]){__VA_ARGS__}) / sizeof(arg_t), (arg_t[]){__VA_ARGS__})
 
 Text_t type_to_text(type_t *t);
 const char *type_to_str(type_t *t);
@@ -139,7 +145,12 @@ PUREFUNC bool type_eq(type_t *a, type_t *b);
 PUREFUNC bool type_is_a(type_t *t, type_t *req);
 type_t *type_or_type(type_t *a, type_t *b);
 type_t *value_type(type_t *a);
-typedef enum {NUM_PRECISION_EQUAL, NUM_PRECISION_LESS, NUM_PRECISION_MORE, NUM_PRECISION_INCOMPARABLE} precision_cmp_e;
+typedef enum {
+    NUM_PRECISION_EQUAL,
+    NUM_PRECISION_LESS,
+    NUM_PRECISION_MORE,
+    NUM_PRECISION_INCOMPARABLE
+} precision_cmp_e;
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b);
 PUREFUNC bool has_heap_memory(type_t *t);
 PUREFUNC bool has_stack_memory(type_t *t);
