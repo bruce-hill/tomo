@@ -3542,7 +3542,8 @@ Text_t compile(env_t *env, ast_t *ast)
                     if (env->current_type == NULL || !type_eq(env->current_type, t)) {
                         for (arg_t *field = struct_->fields; field; field = field->next) {
                             if (field->name[0] == '_')
-                                code_err(ast, "This struct can't be initialized directly because it has private fields (starting with underscore)");
+                                code_err(ast, "This struct can't be initialized directly because it has private fields (starting with underscore).\n"
+                                         "Use a `convert` or `func` to instantiate the type instead.");
                         }
                     }
                     return Texts("((", compile_type(t), "){",
