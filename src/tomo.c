@@ -29,7 +29,6 @@
 #include "stdlib/random.h"
 #include "stdlib/siphash.h"
 #include "stdlib/text.h"
-#include "typecheck.h"
 #include "types.h"
 
 #define run_cmd(...) ({ const char *_cmd = String(__VA_ARGS__); if (verbose) print("\033[34;1m", _cmd, "\033[m"); popen(_cmd, "w"); })

@@ -3,9 +3,7 @@
 #include <stdarg.h>
 
 #include "ast.h"
-#include "types.h"
 #include "stdlib/datatypes.h"
-#include "stdlib/integers.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 

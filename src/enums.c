@@ -1,5 +1,4 @@
 // Logic for compiling tagged unions (enums)
-#include <ctype.h>
 #include <gc.h>
 #include <stdio.h>
 
@@ -8,7 +7,6 @@
 #include "environment.h"
 #include "naming.h"
 #include "stdlib/text.h"
-#include "stdlib/util.h"
 #include "structs.h"
 #include "typecheck.h"
 

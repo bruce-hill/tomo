@@ -1,14 +1,12 @@
 // Logic for the environmental context information during compilation
 // (variable bindings, code sections, etc.)
 #include <stdlib.h>
-#include <signal.h>
 #include <sys/stat.h>
 
 #include "environment.h"
 #include "naming.h"
 #include "parse.h"
 #include "stdlib/datatypes.h"
-#include "stdlib/paths.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"

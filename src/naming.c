@@ -1,12 +1,10 @@
 // Logic for converting user's Tomo names into valid C identifiers
 
-#include <ctype.h>
 #include <string.h>
 #include <sys/stat.h>
 
 #include "environment.h"
 #include "stdlib/paths.h"
-#include "stdlib/print.h"
 #include "stdlib/text.h"
 
 static const char *c_keywords[] = { // Maintain sorted order:

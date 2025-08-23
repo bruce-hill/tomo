@@ -1,7 +1,6 @@
 // Recursive descent parser for parsing code
 #include <ctype.h>
 #include <gc.h>
-#include <math.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -20,8 +19,6 @@
 #include <signal.h>
 
 #include "ast.h"
-#include "stdlib/integers.h"
-#include "stdlib/paths.h"
 #include "stdlib/print.h"
 #include "stdlib/stacktrace.h"
 #include "stdlib/stdlib.h"
