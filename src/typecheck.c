@@ -1763,7 +1763,7 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast) {
     }
     case TextJoin: {
         DeclareMatch(text, ast, TextJoin);
-        if (!text->children) return true;       // Empty string, OK
+        if (!text->children) return true; // Empty string, OK
         if (text->children->next) return false; // Concatenation, not constant
         return is_constant(env, text->children->ast);
     }

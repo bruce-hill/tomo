@@ -1428,7 +1428,7 @@ PARSER(parse_term_no_suffix) {
     spaces(&pos);
     ast_t *term = NULL;
     (void)(false || (term = parse_none(ctx, pos)) || (term = parse_num(ctx, pos)) // Must come before int
-           || (term = parse_int(ctx, pos)) || (term = parse_negative(ctx, pos))   // Must come after num/int
+           || (term = parse_int(ctx, pos)) || (term = parse_negative(ctx, pos)) // Must come after num/int
            || (term = parse_heap_alloc(ctx, pos)) || (term = parse_stack_reference(ctx, pos))
            || (term = parse_bool(ctx, pos)) || (term = parse_text(ctx, pos)) || (term = parse_path(ctx, pos))
            || (term = parse_lambda(ctx, pos)) || (term = parse_parens(ctx, pos)) || (term = parse_table(ctx, pos))
@@ -1554,10 +1554,10 @@ ast_e match_binary_operator(const char **pos) {
     case '<': {
         *pos += 1;
         if (match(pos, "=")) return LessThanOrEquals; // "<="
-        else if (match(pos, ">")) return Compare;     // "<>"
+        else if (match(pos, ">")) return Compare; // "<>"
         else if (match(pos, "<")) {
             if (match(pos, "<")) return UnsignedLeftShift; // "<<<"
-            return LeftShift;                              // "<<"
+            return LeftShift; // "<<"
         } else return LessThan;
     }
     case '>': {
@@ -1565,7 +1565,7 @@ ast_e match_binary_operator(const char **pos) {
         if (match(pos, "=")) return GreaterThanOrEquals; // ">="
         if (match(pos, ">")) {
             if (match(pos, ">")) return UnsignedRightShift; // ">>>"
-            return RightShift;                              // ">>"
+            return RightShift; // ">>"
         }
         return GreaterThan;
     }

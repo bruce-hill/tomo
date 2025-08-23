@@ -105,8 +105,8 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
         fail("Invalid insertion index ", index, " for a list with length ", (int64_t)list->length);
 
     if ((int64_t)list->free >= (int64_t)to_insert.length // Adequate free space
-        && list->data_refcount == 0                      // Not aliased memory
-        && (int64_t)list->stride == padded_item_size) {  // Contiguous list
+        && list->data_refcount == 0 // Not aliased memory
+        && (int64_t)list->stride == padded_item_size) { // Contiguous list
         // If we can fit this within the list's preallocated free space, do that:
         list->free -= to_insert.length;
         list->length += to_insert.length;

@@ -503,7 +503,7 @@ PUREFUNC size_t type_size(type_t *t) {
             size_t size = type_size(tag->type);
             if (size > max_size) max_size = size;
         }
-        size_t size = sizeof(UnknownType);         // generic enum
+        size_t size = sizeof(UnknownType); // generic enum
         if (max_align > 1 && size % max_align > 0) // Padding before first union field
             size += max_align - (size % max_align);
         size += max_size;

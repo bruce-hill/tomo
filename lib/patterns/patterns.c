@@ -694,7 +694,7 @@ success:
             assert(capture_len > 0);
             captures[capture_index] = (capture_t){
                 .index = capture_start + 1, // Skip leading quote/paren
-                .length = capture_len - 2,  // Skip open/close
+                .length = capture_len - 2, // Skip open/close
                 .occupied = true,
                 .recursive = (pat.tag == PAT_PAIR),
             };
