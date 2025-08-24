@@ -21,8 +21,8 @@
 #include "declarations.h"
 #include "doctests.h"
 #include "expressions.h"
-#include "forloops.h"
 #include "functions.h"
+#include "loops.h"
 #include "promotions.h"
 #include "statements.h"
 #include "whens.h"
@@ -113,56 +113,8 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
     case ConvertDef: {
         return EMPTY_TEXT;
     }
-    case Skip: {
-        const char *target = Match(ast, Skip)->target;
-        for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
-            bool matched = !target || strcmp(target, ctx->loop_name) == 0;
-            for (ast_list_t *var = ctx->loop_vars; var && !matched; var = var ? var->next : NULL)
-                matched = (strcmp(target, Match(var->ast, Var)->name) == 0);
-
-            if (matched) {
-                if (ctx->skip_label.length == 0) {
-                    static int64_t skip_label_count = 1;
-                    ctx->skip_label = Texts("skip_", String(skip_label_count));
-                    ++skip_label_count;
-                }
-                Text_t code = EMPTY_TEXT;
-                for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred;
-                     deferred = deferred->next)
-                    code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
-                if (code.length > 0) return Texts("{\n", code, "goto ", ctx->skip_label, ";\n}\n");
-                else return Texts("goto ", ctx->skip_label, ";");
-            }
-        }
-        if (env->loop_ctx) code_err(ast, "This is not inside any loop");
-        else if (target) code_err(ast, "No loop target named '", target, "' was found");
-        else return Text("continue;");
-    }
-    case Stop: {
-        const char *target = Match(ast, Stop)->target;
-        for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
-            bool matched = !target || strcmp(target, ctx->loop_name) == 0;
-            for (ast_list_t *var = ctx->loop_vars; var && !matched; var = var ? var->next : var)
-                matched = (strcmp(target, Match(var->ast, Var)->name) == 0);
-
-            if (matched) {
-                if (ctx->stop_label.length == 0) {
-                    static int64_t stop_label_count = 1;
-                    ctx->stop_label = Texts("stop_", String(stop_label_count));
-                    ++stop_label_count;
-                }
-                Text_t code = EMPTY_TEXT;
-                for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred;
-                     deferred = deferred->next)
-                    code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
-                if (code.length > 0) return Texts("{\n", code, "goto ", ctx->stop_label, ";\n}\n");
-                else return Texts("goto ", ctx->stop_label, ";");
-            }
-        }
-        if (env->loop_ctx) code_err(ast, "This is not inside any loop");
-        else if (target) code_err(ast, "No loop target named '", target, "' was found");
-        else return Text("break;");
-    }
+    case Skip: return compile_skip(env, ast);
+    case Stop: return compile_stop(env, ast);
     case Pass: return Text(";");
     case Defer: {
         ast_t *body = Match(ast, Defer)->body;
@@ -217,37 +169,8 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             return Texts(code, "return;");
         }
     }
-    case While: {
-        DeclareMatch(while_, ast, While);
-        env_t *scope = fresh_scope(env);
-        loop_ctx_t loop_ctx = (loop_ctx_t){
-            .loop_name = "while",
-            .deferred = scope->deferred,
-            .next = env->loop_ctx,
-        };
-        scope->loop_ctx = &loop_ctx;
-        Text_t body = compile_statement(scope, while_->body);
-        if (loop_ctx.skip_label.length > 0) body = Texts(body, "\n", loop_ctx.skip_label, ": continue;");
-        Text_t loop = Texts("while (", while_->condition ? compile(scope, while_->condition) : Text("yes"), ") {\n\t",
-                            body, "\n}");
-        if (loop_ctx.stop_label.length > 0) loop = Texts(loop, "\n", loop_ctx.stop_label, ":;");
-        return loop;
-    }
-    case Repeat: {
-        ast_t *body = Match(ast, Repeat)->body;
-        env_t *scope = fresh_scope(env);
-        loop_ctx_t loop_ctx = (loop_ctx_t){
-            .loop_name = "repeat",
-            .deferred = scope->deferred,
-            .next = env->loop_ctx,
-        };
-        scope->loop_ctx = &loop_ctx;
-        Text_t body_code = compile_statement(scope, body);
-        if (loop_ctx.skip_label.length > 0) body_code = Texts(body_code, "\n", loop_ctx.skip_label, ": continue;");
-        Text_t loop = Texts("for (;;) {\n\t", body_code, "\n}");
-        if (loop_ctx.stop_label.length > 0) loop = Texts(loop, "\n", loop_ctx.stop_label, ":;");
-        return loop;
-    }
+    case While: return compile_while(env, ast);
+    case Repeat: return compile_repeat(env, ast);
     case For: return compile_for_loop(env, ast);
     case If: return compile_if_statement(env, ast);
     case Block: return compile_block(env, ast);
