@@ -8,7 +8,7 @@
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "assignments.h"
+#include "declarations.h"
 #include "functions.h"
 #include "optionals.h"
 #include "promotions.h"

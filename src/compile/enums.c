@@ -7,7 +7,7 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "assignments.h"
+#include "declarations.h"
 #include "pointers.h"
 #include "structs.h"
 #include "types.h"

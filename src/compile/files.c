@@ -13,7 +13,7 @@
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "assignments.h"
+#include "declarations.h"
 #include "enums.h"
 #include "files.h"
 #include "functions.h"

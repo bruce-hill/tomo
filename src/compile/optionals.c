@@ -8,7 +8,7 @@
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "assignments.h"
+#include "declarations.h"
 #include "text.h"
 #include "types.h"
 

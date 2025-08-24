@@ -9,7 +9,7 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "assignments.h"
+#include "declarations.h"
 #include "functions.h"
 #include "pointers.h"
 #include "types.h"

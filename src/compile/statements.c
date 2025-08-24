@@ -17,6 +17,7 @@
 #include "../typecheck.h"
 #include "assignments.h"
 #include "blocks.h"
+#include "declarations.h"
 #include "functions.h"
 #include "optionals.h"
 #include "pointers.h"

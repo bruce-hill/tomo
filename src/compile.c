@@ -5,9 +5,9 @@
 
 #include "ast.h"
 #include "compile.h"
-#include "compile/assignments.h"
 #include "compile/binops.h"
 #include "compile/blocks.h"
+#include "compile/declarations.h"
 #include "compile/enums.h"
 #include "compile/functions.h"
 #include "compile/integers.h"
