@@ -49,6 +49,31 @@ Text_t compile_function_declaration(env_t *env, ast_t *ast) {
 }
 
 public
+Text_t compile_convert_declaration(env_t *env, ast_t *ast) {
+    DeclareMatch(def, ast, ConvertDef);
+
+    Text_t arg_signature = Text("(");
+    for (arg_ast_t *arg = def->args; arg; arg = arg->next) {
+        type_t *arg_type = get_arg_ast_type(env, arg);
+        arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
+        if (arg->next) arg_signature = Texts(arg_signature, ", ");
+    }
+    arg_signature = Texts(arg_signature, ")");
+
+    type_t *ret_t = def->ret_type ? parse_type_ast(env, def->ret_type) : Type(VoidType);
+    Text_t ret_type_code = compile_type(ret_t);
+    Text_t name = Text$from_str(get_type_name(ret_t));
+    if (name.length == 0)
+        code_err(ast,
+                 "Conversions are only supported for text, struct, and enum "
+                 "types, not ",
+                 type_to_str(ret_t));
+    Text_t name_code =
+        namespace_name(env, env->namespace, Texts(name, "$", String(get_line_number(ast->file, ast->start))));
+    return Texts(ret_type_code, " ", name_code, arg_signature, ";\n");
+}
+
+public
 Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args) {
     Table_t used_args = {};
     Text_t code = EMPTY_TEXT;

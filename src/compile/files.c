@@ -269,29 +269,7 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
                      compile_declaration(t, namespace_name(env, env->namespace, Text$from_str(decl_name))), ";\n");
     }
     case FunctionDef: return compile_function_declaration(env, ast);
-    case ConvertDef: {
-        DeclareMatch(def, ast, ConvertDef);
-
-        Text_t arg_signature = Text("(");
-        for (arg_ast_t *arg = def->args; arg; arg = arg->next) {
-            type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
-            if (arg->next) arg_signature = Texts(arg_signature, ", ");
-        }
-        arg_signature = Texts(arg_signature, ")");
-
-        type_t *ret_t = def->ret_type ? parse_type_ast(env, def->ret_type) : Type(VoidType);
-        Text_t ret_type_code = compile_type(ret_t);
-        Text_t name = Text$from_str(get_type_name(ret_t));
-        if (name.length == 0)
-            code_err(ast,
-                     "Conversions are only supported for text, struct, and enum "
-                     "types, not ",
-                     type_to_str(ret_t));
-        Text_t name_code =
-            namespace_name(env, env->namespace, Texts(name, "$", String(get_line_number(ast->file, ast->start))));
-        return Texts(ret_type_code, " ", name_code, arg_signature, ";\n");
-    }
+    case ConvertDef: return compile_convert_declaration(env, ast);
     default: return EMPTY_TEXT;
     }
     assert(ns_env);
