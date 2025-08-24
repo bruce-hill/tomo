@@ -1,5 +1,4 @@
 // Compilation logic
-#include <ctype.h>
 #include <gc.h>
 #include <glob.h>
 #include <gmp.h>
@@ -9,6 +8,7 @@
 #include "ast.h"
 #include "compile.h"
 #include "compile/enums.h"
+#include "compile/functions.h"
 #include "compile/integers.h"
 #include "compile/lists.h"
 #include "compile/optionals.h"
@@ -17,6 +17,7 @@
 #include "compile/sets.h"
 #include "compile/structs.h"
 #include "compile/tables.h"
+#include "compile/text.h"
 #include "config.h"
 #include "environment.h"
 #include "modules.h"
@@ -30,8 +31,6 @@
 
 typedef ast_t *(*comprehension_body_t)(ast_t *, ast_t *);
 
-static Text_t compile_text(env_t *env, ast_t *ast, Text_t color);
-static Text_t compile_text_literal(Text_t literal);
 static Text_t compile_unsigned_type(type_t *t);
 static Text_t compile_declared_value(env_t *env, ast_t *declaration_ast);
 
@@ -1894,78 +1893,6 @@ Text_t compile_statement(env_t *env, ast_t *ast) {
     return with_source_info(env, ast, stmt);
 }
 
-Text_t expr_as_text(Text_t expr, type_t *t, Text_t color) {
-    switch (t->tag) {
-    case MemoryType: return Texts("Memory$as_text(stack(", expr, "), ", color, ", &Memory$info)");
-    case BoolType:
-        // NOTE: this cannot use stack(), since bools may actually be bit
-        // fields:
-        return Texts("Bool$as_text((Bool_t[1]){", expr, "}, ", color, ", &Bool$info)");
-    case CStringType: return Texts("CString$as_text(stack(", expr, "), ", color, ", &CString$info)");
-    case BigIntType:
-    case IntType:
-    case ByteType:
-    case NumType: {
-        Text_t name = type_to_text(t);
-        return Texts(name, "$as_text(stack(", expr, "), ", color, ", &", name, "$info)");
-    }
-    case TextType: return Texts("Text$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case ListType: return Texts("List$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case SetType: return Texts("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case TableType: return Texts("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case FunctionType:
-    case ClosureType: return Texts("Func$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case PointerType: return Texts("Pointer$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case OptionalType: return Texts("Optional$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case StructType:
-    case EnumType: return Texts("generic_as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for ", type_to_str(t));
-    }
-    return EMPTY_TEXT;
-}
-
-Text_t compile_text(env_t *env, ast_t *ast, Text_t color) {
-    type_t *t = get_type(env, ast);
-    Text_t expr = compile(env, ast);
-    return expr_as_text(expr, t, color);
-}
-
-Text_t compile_text_literal(Text_t literal) {
-    Text_t code = Text("\"");
-    const char *utf8 = Text$as_c_string(literal);
-    for (const char *p = utf8; *p; p++) {
-        switch (*p) {
-        case '\\': code = Texts(code, "\\\\"); break;
-        case '"': code = Texts(code, "\\\""); break;
-        case '\a': code = Texts(code, "\\a"); break;
-        case '\b': code = Texts(code, "\\b"); break;
-        case '\n': code = Texts(code, "\\n"); break;
-        case '\r': code = Texts(code, "\\r"); break;
-        case '\t': code = Texts(code, "\\t"); break;
-        case '\v': code = Texts(code, "\\v"); break;
-        default: {
-            if (isprint(*p)) {
-                code = Texts(code, Text$from_strn(p, 1));
-            } else {
-                uint8_t byte = *(uint8_t *)p;
-                code = Texts(code, "\\x", String(hex(byte, .no_prefix = true, .uppercase = true, .digits = 2)), "\"\"");
-            }
-            break;
-        }
-        }
-    }
-    return Texts(code, "\"");
-}
-
-PUREFUNC static bool string_literal_is_all_ascii(Text_t literal) {
-    TextIter_t state = NEW_TEXT_ITER_STATE(literal);
-    for (int64_t i = 0; i < literal.length; i++) {
-        int32_t g = Text$get_grapheme_fast(&state, i);
-        if (g < 0 || g > 127 || !isascii(g)) return false;
-    }
-    return true;
-}
-
 public
 Text_t compile_empty(type_t *t) {
     if (t == NULL) compiler_err(NULL, NULL, NULL, "I can't compile a value with no type");
@@ -2214,64 +2141,8 @@ Text_t compile(env_t *env, ast_t *ast) {
                          op, " 0)");
         }
     }
-    case TextLiteral: {
-        Text_t literal = Match(ast, TextLiteral)->text;
-        if (literal.length == 0) return Text("EMPTY_TEXT");
-
-        if (string_literal_is_all_ascii(literal)) return Texts("Text(", compile_text_literal(literal), ")");
-        else return Texts("Text$from_str(", compile_text_literal(literal), ")");
-    }
-    case TextJoin: {
-        const char *lang = Match(ast, TextJoin)->lang;
-        Text_t colorize = Match(ast, TextJoin)->colorize ? Text("yes") : Text("no");
-
-        type_t *text_t = lang ? Table$str_get(*env->types, lang) : TEXT_TYPE;
-        if (!text_t || text_t->tag != TextType) code_err(ast, quoted(lang), " is not a valid text language name");
-
-        Text_t lang_constructor;
-        if (!lang || streq(lang, "Text")) lang_constructor = Text("Text");
-        else
-            lang_constructor = namespace_name(Match(text_t, TextType)->env,
-                                              Match(text_t, TextType)->env->namespace->parent, Text$from_str(lang));
-
-        ast_list_t *chunks = Match(ast, TextJoin)->children;
-        if (!chunks) {
-            return Texts(lang_constructor, "(\"\")");
-        } else if (!chunks->next && chunks->ast->tag == TextLiteral) {
-            Text_t literal = Match(chunks->ast, TextLiteral)->text;
-            if (string_literal_is_all_ascii(literal))
-                return Texts(lang_constructor, "(", compile_text_literal(literal), ")");
-            return Texts("((", compile_type(text_t), ")", compile(env, chunks->ast), ")");
-        } else {
-            Text_t code = EMPTY_TEXT;
-            for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
-                Text_t chunk_code;
-                type_t *chunk_t = get_type(env, chunk->ast);
-                if (chunk->ast->tag == TextLiteral || type_eq(chunk_t, text_t)) {
-                    chunk_code = compile(env, chunk->ast);
-                } else {
-                    binding_t *constructor =
-                        get_constructor(env, text_t, new (arg_ast_t, .value = chunk->ast),
-                                        env->current_type != NULL && type_eq(env->current_type, text_t));
-                    if (constructor) {
-                        arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
-                        arg_ast_t *args = new (arg_ast_t, .value = chunk->ast);
-                        chunk_code = Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
-                    } else if (type_eq(text_t, TEXT_TYPE)) {
-                        if (chunk_t->tag == TextType) chunk_code = compile(env, chunk->ast);
-                        else chunk_code = compile_text(env, chunk->ast, colorize);
-                    } else {
-                        code_err(chunk->ast, "I don't know how to convert ", type_to_str(chunk_t), " to ",
-                                 type_to_str(text_t));
-                    }
-                }
-                code = Texts(code, chunk_code);
-                if (chunk->next) code = Texts(code, ", ");
-            }
-            if (chunks->next) return Texts(lang_constructor, "s(", code, ")");
-            else return code;
-        }
-    }
+    case TextLiteral:
+    case TextJoin: return compile_text_ast(env, ast);
     case Path: {
         return Texts("Path(", compile_text_literal(Text$from_str(Match(ast, Path)->path)), ")");
     }
@@ -2819,104 +2690,7 @@ Text_t compile(env_t *env, ast_t *ast) {
         }
 #undef EXPECT_POINTER
     }
-    case FunctionCall: {
-        DeclareMatch(call, ast, FunctionCall);
-        type_t *fn_t = get_type(env, call->fn);
-        if (fn_t->tag == FunctionType) {
-            Text_t fn = compile(env, call->fn);
-            if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args, (call_opts_t){.promotion = true})) {
-                if (is_valid_call(env, Match(fn_t, FunctionType)->args, call->args,
-                                  (call_opts_t){.promotion = true, .underscores = true})) {
-                    code_err(ast, "You can't pass underscore arguments to this function (those are private)");
-                } else {
-                    arg_t *args = NULL;
-                    for (arg_ast_t *a = call->args; a; a = a->next)
-                        args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
-                    REVERSE_LIST(args);
-                    code_err(ast,
-                             "This function's public signature doesn't match this call site.\n"
-                             "The signature is: ",
-                             type_to_text(fn_t),
-                             "\n"
-                             "But it's being called with: ",
-                             type_to_text(Type(FunctionType, .args = args)));
-                }
-            }
-            return Texts(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
-        } else if (fn_t->tag == TypeInfoType) {
-            type_t *t = Match(fn_t, TypeInfoType)->type;
-
-            // Literal constructors for numeric types like `Byte(123)` should
-            // not go through any conversion, just a cast:
-            if (is_numeric_type(t) && call->args && !call->args->next && call->args->value->tag == Int)
-                return compile_to_type(env, call->args->value, t);
-            else if (t->tag == NumType && call->args && !call->args->next && call->args->value->tag == Num)
-                return compile_to_type(env, call->args->value, t);
-
-            binding_t *constructor =
-                get_constructor(env, t, call->args, env->current_type != NULL && type_eq(env->current_type, t));
-            if (constructor) {
-                arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
-                return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
-            }
-
-            type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
-            if (t->tag == TextType) {
-                if (!call->args) code_err(ast, "This constructor needs a value");
-                if (!type_eq(t, TEXT_TYPE))
-                    code_err(call->fn, "I don't have a constructor defined for "
-                                       "these arguments");
-                // Text constructor:
-                if (!call->args || call->args->next) code_err(call->fn, "This constructor takes exactly 1 argument");
-                if (type_eq(actual, t)) return compile(env, call->args->value);
-                return expr_as_text(compile(env, call->args->value), actual, Text("no"));
-            } else if (t->tag == CStringType) {
-                // C String constructor:
-                if (!call->args || call->args->next) code_err(call->fn, "This constructor takes exactly 1 argument");
-                if (call->args->value->tag == TextLiteral)
-                    return compile_text_literal(Match(call->args->value, TextLiteral)->text);
-                else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children == NULL)
-                    return Text("\"\"");
-                else if (call->args->value->tag == TextJoin
-                         && Match(call->args->value, TextJoin)->children->next == NULL)
-                    return compile_text_literal(
-                        Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->text);
-                return Texts("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, Text("no")),
-                             ")");
-            } else if (t->tag == StructType) {
-                return compile_struct_literal(env, ast, t, call->args);
-            }
-            code_err(ast,
-                     "I could not find a constructor matching these arguments "
-                     "for ",
-                     type_to_str(t));
-        } else if (fn_t->tag == ClosureType) {
-            fn_t = Match(fn_t, ClosureType)->fn;
-            arg_t *type_args = Match(fn_t, FunctionType)->args;
-
-            arg_t *closure_fn_args = NULL;
-            for (arg_t *arg = Match(fn_t, FunctionType)->args; arg; arg = arg->next)
-                closure_fn_args = new (arg_t, .name = arg->name, .type = arg->type, .default_val = arg->default_val,
-                                       .next = closure_fn_args);
-            closure_fn_args = new (arg_t, .name = "userdata", .type = Type(PointerType, .pointed = Type(MemoryType)),
-                                   .next = closure_fn_args);
-            REVERSE_LIST(closure_fn_args);
-            Text_t fn_type_code =
-                compile_type(Type(FunctionType, .args = closure_fn_args, .ret = Match(fn_t, FunctionType)->ret));
-
-            Text_t closure = compile(env, call->fn);
-            Text_t arg_code = compile_arguments(env, ast, type_args, call->args);
-            if (arg_code.length > 0) arg_code = Texts(arg_code, ", ");
-            if (call->fn->tag == Var) {
-                return Texts("((", fn_type_code, ")", closure, ".fn)(", arg_code, closure, ".userdata)");
-            } else {
-                return Texts("({ Closure_t closure = ", closure, "; ((", fn_type_code, ")closure.fn)(", arg_code,
-                             "closure.userdata); })");
-            }
-        } else {
-            code_err(call->fn, "This is not a function, it's a ", type_to_str(fn_t));
-        }
-    }
+    case FunctionCall: return compile_function_call(env, ast);
     case Deserialize: {
         ast_t *value = Match(ast, Deserialize)->value;
         type_t *value_type = get_type(env, value);

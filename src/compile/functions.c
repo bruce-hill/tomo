@@ -10,6 +10,9 @@
 #include "../typecheck.h"
 #include "../types.h"
 #include "integers.h"
+#include "promotion.h"
+#include "structs.h"
+#include "text.h"
 
 public
 Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args) {
@@ -93,4 +96,102 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
         }
     }
     return code;
+}
+
+public
+Text_t compile_function_call(env_t *env, ast_t *ast) {
+    DeclareMatch(call, ast, FunctionCall);
+    type_t *fn_t = get_type(env, call->fn);
+    if (fn_t->tag == FunctionType) {
+        Text_t fn = compile(env, call->fn);
+        if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args, (call_opts_t){.promotion = true})) {
+            if (is_valid_call(env, Match(fn_t, FunctionType)->args, call->args,
+                              (call_opts_t){.promotion = true, .underscores = true})) {
+                code_err(ast, "You can't pass underscore arguments to this function (those are private)");
+            } else {
+                arg_t *args = NULL;
+                for (arg_ast_t *a = call->args; a; a = a->next)
+                    args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
+                REVERSE_LIST(args);
+                code_err(ast,
+                         "This function's public signature doesn't match this call site.\n"
+                         "The signature is: ",
+                         type_to_text(fn_t),
+                         "\n"
+                         "But it's being called with: ",
+                         type_to_text(Type(FunctionType, .args = args)));
+            }
+        }
+        return Texts(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
+    } else if (fn_t->tag == TypeInfoType) {
+        type_t *t = Match(fn_t, TypeInfoType)->type;
+
+        // Literal constructors for numeric types like `Byte(123)` should
+        // not go through any conversion, just a cast:
+        if (is_numeric_type(t) && call->args && !call->args->next && call->args->value->tag == Int)
+            return compile_to_type(env, call->args->value, t);
+        else if (t->tag == NumType && call->args && !call->args->next && call->args->value->tag == Num)
+            return compile_to_type(env, call->args->value, t);
+
+        binding_t *constructor =
+            get_constructor(env, t, call->args, env->current_type != NULL && type_eq(env->current_type, t));
+        if (constructor) {
+            arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
+            return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
+        }
+
+        type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
+        if (t->tag == TextType) {
+            if (!call->args) code_err(ast, "This constructor needs a value");
+            if (!type_eq(t, TEXT_TYPE))
+                code_err(call->fn, "I don't have a constructor defined for "
+                                   "these arguments");
+            // Text constructor:
+            if (!call->args || call->args->next) code_err(call->fn, "This constructor takes exactly 1 argument");
+            if (type_eq(actual, t)) return compile(env, call->args->value);
+            return expr_as_text(compile(env, call->args->value), actual, Text("no"));
+        } else if (t->tag == CStringType) {
+            // C String constructor:
+            if (!call->args || call->args->next) code_err(call->fn, "This constructor takes exactly 1 argument");
+            if (call->args->value->tag == TextLiteral)
+                return compile_text_literal(Match(call->args->value, TextLiteral)->text);
+            else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children == NULL)
+                return Text("\"\"");
+            else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children->next == NULL)
+                return compile_text_literal(
+                    Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->text);
+            return Texts("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, Text("no")), ")");
+        } else if (t->tag == StructType) {
+            return compile_struct_literal(env, ast, t, call->args);
+        }
+        code_err(ast,
+                 "I could not find a constructor matching these arguments "
+                 "for ",
+                 type_to_str(t));
+    } else if (fn_t->tag == ClosureType) {
+        fn_t = Match(fn_t, ClosureType)->fn;
+        arg_t *type_args = Match(fn_t, FunctionType)->args;
+
+        arg_t *closure_fn_args = NULL;
+        for (arg_t *arg = Match(fn_t, FunctionType)->args; arg; arg = arg->next)
+            closure_fn_args = new (arg_t, .name = arg->name, .type = arg->type, .default_val = arg->default_val,
+                                   .next = closure_fn_args);
+        closure_fn_args = new (arg_t, .name = "userdata", .type = Type(PointerType, .pointed = Type(MemoryType)),
+                               .next = closure_fn_args);
+        REVERSE_LIST(closure_fn_args);
+        Text_t fn_type_code =
+            compile_type(Type(FunctionType, .args = closure_fn_args, .ret = Match(fn_t, FunctionType)->ret));
+
+        Text_t closure = compile(env, call->fn);
+        Text_t arg_code = compile_arguments(env, ast, type_args, call->args);
+        if (arg_code.length > 0) arg_code = Texts(arg_code, ", ");
+        if (call->fn->tag == Var) {
+            return Texts("((", fn_type_code, ")", closure, ".fn)(", arg_code, closure, ".userdata)");
+        } else {
+            return Texts("({ Closure_t closure = ", closure, "; ((", fn_type_code, ")closure.fn)(", arg_code,
+                         "closure.userdata); })");
+        }
+    } else {
+        code_err(call->fn, "This is not a function, it's a ", type_to_str(fn_t));
+    }
 }
