@@ -15,6 +15,7 @@
 #include "statements.h"
 #include "types.h"
 
+public
 Text_t compile_doctest(env_t *env, ast_t *ast) {
     DeclareMatch(test, ast, DocTest);
     type_t *expr_t = get_type(env, test->expr);
