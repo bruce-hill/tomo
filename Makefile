@@ -17,7 +17,7 @@ else
 
 include config.mk
 
-CC=cc
+CC=$(DEFAULT_C_COMPILER)
 CCONFIG=-std=c2x -fPIC \
 		-fno-signed-zeros -fno-finite-math-only -fno-trapping-math \
 		-fvisibility=hidden -fdollars-in-identifiers \

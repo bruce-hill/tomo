@@ -230,7 +230,7 @@ Text_t compile(env_t *env, ast_t *ast) {
     case ExplicitlyTyped: {
         return compile_to_type(env, Match(ast, ExplicitlyTyped)->ast, get_type(env, ast));
     }
-    case When: return compile_when_statement(env, ast);
+    case When: return compile_when_expression(env, ast);
     case If: return compile_if_expression(env, ast);
     case Reduction: return compile_reduction(env, ast);
     case FieldAccess: return compile_field_access(env, ast);
