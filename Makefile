@@ -78,7 +78,7 @@ LDLIBS=-lgc -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
 
 DEFINE_AS_OWNER=as_owner() { \
-	if [ "$$USER" = "$(OWNER)" ]; then \
+	if [ -w '$(PREFIX)' ]; then \
 		"$$@"; \
 	else \
 		$(SUDO) -u "$(OWNER)" "$$@"; \
