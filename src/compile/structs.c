@@ -8,7 +8,9 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
+#include "pointer.h"
 
+public
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret,
                                bool is_opaque) {
     Text_t typeinfo_name = namespace_name(env, env->namespace, Texts(name, "$$info"));
@@ -44,6 +46,7 @@ Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_
     return Texts(typeinfo, "};\n");
 }
 
+public
 Text_t compile_struct_header(env_t *env, ast_t *ast) {
     DeclareMatch(def, ast, StructDef);
     Text_t typeinfo_name = namespace_name(env, env->namespace, Texts(def->name, "$$info"));
@@ -77,4 +80,57 @@ Text_t compile_struct_header(env_t *env, ast_t *ast) {
     }
     return Texts(struct_code, optional_code, typeinfo_code);
 }
+
+public
+Text_t compile_empty_struct(type_t *t) {
+    DeclareMatch(struct_, t, StructType);
+    Text_t code = Texts("((", compile_type(t), "){");
+    for (arg_t *field = struct_->fields; field; field = field->next) {
+        Text_t empty_field =
+            field->default_val ? compile(struct_->env, field->default_val) : compile_empty(field->type);
+        if (empty_field.length == 0) return EMPTY_TEXT;
+
+        code = Texts(code, empty_field);
+        if (field->next) code = Texts(code, ", ");
+    }
+    return Texts(code, "})");
+}
+
+public
+Text_t compile_struct_field_access(env_t *env, ast_t *ast) {
+    DeclareMatch(f, ast, FieldAccess);
+    type_t *fielded_t = get_type(env, ast);
+    type_t *value_t = value_type(fielded_t);
+    for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
+        if (streq(field->name, f->field)) {
+            if (fielded_t->tag == PointerType) {
+                Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
+                return Texts("(", fielded, ")->", valid_c_name(f->field));
+            } else {
+                Text_t fielded = compile(env, f->fielded);
+                return Texts("(", fielded, ").", valid_c_name(f->field));
+            }
+        }
+    }
+    code_err(ast, "The field '", f->field, "' is not a valid field name of ", type_to_str(value_t));
+}
+
+public
+Text_t compile_struct_literal(env_t *env, ast_t *ast, type_t *t, arg_ast_t *args) {
+    DeclareMatch(struct_, t, StructType);
+    if (struct_->opaque) code_err(ast, "This struct is opaque, so I don't know what's inside it!");
+
+    call_opts_t constructor_opts = {
+        .promotion = true,
+        .underscores = (env->current_type != NULL && type_eq(env->current_type, t)),
+    };
+    if (is_valid_call(env, struct_->fields, args, constructor_opts)) {
+        return Texts("((", compile_type(t), "){", compile_arguments(env, ast, struct_->fields, args), "})");
+    } else if (!constructor_opts.underscores
+               && is_valid_call(env, struct_->fields, args, (call_opts_t){.promotion = true, .underscores = true})) {
+        code_err(ast, "This constructor uses private fields that are not exposed.");
+    }
+    code_err(ast, "I could not find a constructor matching these arguments for the struct ", type_to_str(t));
+}
+
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

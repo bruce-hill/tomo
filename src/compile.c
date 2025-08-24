@@ -10,6 +10,7 @@
 #include "compile.h"
 #include "compile/enums.h"
 #include "compile/list.h"
+#include "compile/pointer.h"
 #include "compile/structs.h"
 #include "config.h"
 #include "environment.h"
@@ -25,16 +26,13 @@
 
 typedef ast_t *(*comprehension_body_t)(ast_t *, ast_t *);
 
-static Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref);
 static Text_t compile_text(env_t *env, ast_t *ast, Text_t color);
 static Text_t compile_text_literal(Text_t literal);
-static Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args);
 static Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t);
 static Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
 static Text_t compile_unsigned_type(type_t *t);
 static Text_t promote_to_optional(type_t *t, Text_t code);
 static Text_t compile_none(type_t *t);
-static Text_t compile_empty(type_t *t);
 static Text_t compile_declared_value(env_t *env, ast_t *declaration_ast);
 static Text_t compile_typed_set(env_t *env, ast_t *ast, type_t *set_type);
 static Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type);
@@ -2073,42 +2071,6 @@ Text_t compile_text(env_t *env, ast_t *ast, Text_t color) {
     return expr_as_text(expr, t, color);
 }
 
-Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref) {
-    Text_t val = compile(env, ast);
-    type_t *t = get_type(env, ast);
-    int64_t depth = 0;
-    for (type_t *tt = t; tt->tag == PointerType; tt = Match(tt, PointerType)->pointed)
-        ++depth;
-
-    // Passing a literal value won't trigger an incref, because it's ephemeral,
-    // e.g. [10, 20].reversed()
-    if (t->tag != PointerType && needs_incref && !can_be_mutated(env, ast)) needs_incref = false;
-
-    while (depth != target_depth) {
-        if (depth < target_depth) {
-            if (ast->tag == Var && target_depth == 1) val = Texts("(&", val, ")");
-            else code_err(ast, "This should be a pointer, not ", type_to_str(get_type(env, ast)));
-            t = Type(PointerType, .pointed = t, .is_stack = true);
-            ++depth;
-        } else {
-            DeclareMatch(ptr, t, PointerType);
-            val = Texts("*(", val, ")");
-            t = ptr->pointed;
-            --depth;
-        }
-    }
-
-    while (t->tag == PointerType) {
-        DeclareMatch(ptr, t, PointerType);
-        t = ptr->pointed;
-    }
-
-    if (needs_incref && t->tag == ListType) val = Texts("LIST_COPY(", val, ")");
-    else if (needs_incref && (t->tag == TableType || t->tag == SetType)) val = Texts("TABLE_COPY(", val, ")");
-
-    return val;
-}
-
 public
 Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
     assert(!is_incomplete_type(t));
@@ -2370,6 +2332,7 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
     return EMPTY_TEXT;
 }
 
+public
 Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args) {
     Table_t used_args = {};
     Text_t code = EMPTY_TEXT;
@@ -2531,6 +2494,7 @@ Text_t compile_none(type_t *t) {
     return EMPTY_TEXT;
 }
 
+public
 Text_t compile_empty(type_t *t) {
     if (t == NULL) compiler_err(NULL, NULL, NULL, "I can't compile a value with no type");
 
@@ -2567,30 +2531,8 @@ Text_t compile_empty(type_t *t) {
     case NumType: {
         return Match(t, NumType)->bits == TYPE_NBITS32 ? Text("N32(0.0f)") : Text("N64(0.0)");
     }
-    case StructType: {
-        DeclareMatch(struct_, t, StructType);
-        Text_t code = Texts("((", compile_type(t), "){");
-        for (arg_t *field = struct_->fields; field; field = field->next) {
-            Text_t empty_field =
-                field->default_val ? compile(struct_->env, field->default_val) : compile_empty(field->type);
-            if (empty_field.length == 0) return EMPTY_TEXT;
-
-            code = Texts(code, empty_field);
-            if (field->next) code = Texts(code, ", ");
-        }
-        return Texts(code, "})");
-    }
-    case EnumType: {
-        DeclareMatch(enum_, t, EnumType);
-        tag_t *tag = enum_->tags;
-        assert(tag);
-        assert(tag->type);
-        if (Match(tag->type, StructType)->fields)
-            return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), ", .", tag->name, "=",
-                         compile_empty(tag->type), "})");
-        else if (enum_has_fields(t)) return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), "})");
-        else return Texts("((", compile_type(t), ")", String(tag->tag_value), ")");
-    }
+    case StructType: return compile_empty_struct(t);
+    case EnumType: return compile_empty_enum(t);
     default: return EMPTY_TEXT;
     }
     return EMPTY_TEXT;
@@ -3480,21 +3422,7 @@ Text_t compile(env_t *env, ast_t *ast) {
                 return Texts("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, Text("no")),
                              ")");
             } else if (t->tag == StructType) {
-                DeclareMatch(struct_, t, StructType);
-                if (struct_->opaque) code_err(ast, "This struct is opaque, so I don't know what's inside it!");
-
-                call_opts_t constructor_opts = {
-                    .promotion = true,
-                    .underscores = (env->current_type != NULL && type_eq(env->current_type, t)),
-                };
-                if (is_valid_call(env, struct_->fields, call->args, constructor_opts)) {
-                    return Texts("((", compile_type(t), "){", compile_arguments(env, ast, struct_->fields, call->args),
-                                 "})");
-                } else if (!constructor_opts.underscores
-                           && is_valid_call(env, struct_->fields, call->args,
-                                            (call_opts_t){.promotion = true, .underscores = true})) {
-                    code_err(ast, "This constructor uses private fields that are not exposed.");
-                }
+                return compile_struct_literal(env, ast, t, call->args);
             }
             code_err(ast,
                      "I could not find a constructor matching these arguments "
@@ -3809,37 +3737,10 @@ Text_t compile(env_t *env, ast_t *ast) {
             code_err(ast, "There is no '", f->field, "' field on ", type_to_str(value_t), " values");
         }
         case StructType: {
-            for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
-                if (streq(field->name, f->field)) {
-                    if (fielded_t->tag == PointerType) {
-                        Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return Texts("(", fielded, ")->", valid_c_name(f->field));
-                    } else {
-                        Text_t fielded = compile(env, f->fielded);
-                        return Texts("(", fielded, ").", valid_c_name(f->field));
-                    }
-                }
-            }
-            code_err(ast, "The field '", f->field, "' is not a valid field name of ", type_to_str(value_t));
+            return compile_struct_field_access(env, ast);
         }
         case EnumType: {
-            DeclareMatch(e, value_t, EnumType);
-            for (tag_t *tag = e->tags; tag; tag = tag->next) {
-                if (streq(f->field, tag->name)) {
-                    Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts("tag$", tag->name));
-                    if (fielded_t->tag == PointerType) {
-                        Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                        return Texts("((", fielded, ")->$tag == ", tag_name, ")");
-                    } else if (enum_has_fields(value_t)) {
-                        Text_t fielded = compile(env, f->fielded);
-                        return Texts("((", fielded, ").$tag == ", tag_name, ")");
-                    } else {
-                        Text_t fielded = compile(env, f->fielded);
-                        return Texts("((", fielded, ") == ", tag_name, ")");
-                    }
-                }
-            }
-            code_err(ast, "The field '", f->field, "' is not a valid tag name of ", type_to_str(value_t));
+            return compile_enum_field_access(env, ast);
         }
         case ListType: {
             if (streq(f->field, "length"))

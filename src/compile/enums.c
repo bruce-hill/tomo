@@ -9,6 +9,7 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
+#include "pointer.h"
 #include "structs.h"
 
 Text_t compile_enum_typeinfo(env_t *env, ast_t *ast) {
@@ -138,6 +139,43 @@ Text_t compile_enum_header(env_t *env, ast_t *ast) {
         all_defs = Texts(all_defs, constructor_def);
     }
     return all_defs;
+}
+
+public
+Text_t compile_empty_enum(type_t *t) {
+    DeclareMatch(enum_, t, EnumType);
+    tag_t *tag = enum_->tags;
+    assert(tag);
+    assert(tag->type);
+    if (Match(tag->type, StructType)->fields)
+        return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), ", .", tag->name, "=",
+                     compile_empty(tag->type), "})");
+    else if (enum_has_fields(t)) return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), "})");
+    else return Texts("((", compile_type(t), ")", String(tag->tag_value), ")");
+}
+
+public
+Text_t compile_enum_field_access(env_t *env, ast_t *ast) {
+    DeclareMatch(f, ast, FieldAccess);
+    type_t *fielded_t = get_type(env, ast);
+    type_t *value_t = value_type(fielded_t);
+    DeclareMatch(e, value_t, EnumType);
+    for (tag_t *tag = e->tags; tag; tag = tag->next) {
+        if (streq(f->field, tag->name)) {
+            Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts("tag$", tag->name));
+            if (fielded_t->tag == PointerType) {
+                Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
+                return Texts("((", fielded, ")->$tag == ", tag_name, ")");
+            } else if (enum_has_fields(value_t)) {
+                Text_t fielded = compile(env, f->fielded);
+                return Texts("((", fielded, ").$tag == ", tag_name, ")");
+            } else {
+                Text_t fielded = compile(env, f->fielded);
+                return Texts("((", fielded, ") == ", tag_name, ")");
+            }
+        }
+    }
+    code_err(ast, "The field '", f->field, "' is not a valid tag name of ", type_to_str(value_t));
 }
 
 // vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
