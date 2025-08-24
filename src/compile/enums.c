@@ -9,8 +9,10 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
+#include "assignments.h"
 #include "pointers.h"
 #include "structs.h"
+#include "types.h"
 
 Text_t compile_enum_typeinfo(env_t *env, ast_t *ast) {
     DeclareMatch(def, ast, EnumDef);
@@ -157,7 +159,7 @@ Text_t compile_empty_enum(type_t *t) {
 public
 Text_t compile_enum_field_access(env_t *env, ast_t *ast) {
     DeclareMatch(f, ast, FieldAccess);
-    type_t *fielded_t = get_type(env, ast);
+    type_t *fielded_t = get_type(env, f->fielded);
     type_t *value_t = value_type(fielded_t);
     DeclareMatch(e, value_t, EnumType);
     for (tag_t *tag = e->tags; tag; tag = tag->next) {

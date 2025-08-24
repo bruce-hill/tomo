@@ -11,10 +11,13 @@
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "../types.h"
+#include "assignments.h"
 #include "integers.h"
 #include "promotion.h"
+#include "statements.h"
 #include "structs.h"
 #include "text.h"
+#include "types.h"
 
 public
 Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args) {
@@ -570,4 +573,210 @@ Table_t get_closed_vars(env_t *env, arg_ast_t *args, ast_t *block) {
     Table_t closed_vars = {};
     add_closed_vars(&closed_vars, env, body_scope, block);
     return closed_vars;
+}
+
+public
+Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *staticdefs) {
+    bool is_private = false;
+    const char *function_name;
+    arg_ast_t *args;
+    type_t *ret_t;
+    ast_t *body;
+    ast_t *cache;
+    bool is_inline;
+    if (ast->tag == FunctionDef) {
+        DeclareMatch(fndef, ast, FunctionDef);
+        function_name = Match(fndef->name, Var)->name;
+        is_private = function_name[0] == '_';
+        args = fndef->args;
+        ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
+        body = fndef->body;
+        cache = fndef->cache;
+        is_inline = fndef->is_inline;
+    } else {
+        DeclareMatch(convertdef, ast, ConvertDef);
+        args = convertdef->args;
+        ret_t = convertdef->ret_type ? parse_type_ast(env, convertdef->ret_type) : Type(VoidType);
+        function_name = get_type_name(ret_t);
+        if (!function_name)
+            code_err(ast,
+                     "Conversions are only supported for text, struct, and enum "
+                     "types, not ",
+                     type_to_str(ret_t));
+        body = convertdef->body;
+        cache = convertdef->cache;
+        is_inline = convertdef->is_inline;
+    }
+
+    Text_t arg_signature = Text("(");
+    Table_t used_names = {};
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
+        type_t *arg_type = get_arg_ast_type(env, arg);
+        arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
+        if (arg->next) arg_signature = Texts(arg_signature, ", ");
+        if (Table$str_get(used_names, arg->name))
+            code_err(ast, "The argument name '", arg->name, "' is used more than once");
+        Table$str_set(&used_names, arg->name, arg->name);
+    }
+    arg_signature = Texts(arg_signature, ")");
+
+    Text_t ret_type_code = compile_type(ret_t);
+    if (ret_t->tag == AbortType) ret_type_code = Texts("__attribute__((noreturn)) _Noreturn ", ret_type_code);
+
+    if (is_private) *staticdefs = Texts(*staticdefs, "static ", ret_type_code, " ", name_code, arg_signature, ";\n");
+
+    Text_t code;
+    if (cache) {
+        code = Texts("static ", ret_type_code, " ", name_code, "$uncached", arg_signature);
+    } else {
+        code = Texts(ret_type_code, " ", name_code, arg_signature);
+        if (is_inline) code = Texts("INLINE ", code);
+        if (!is_private) code = Texts("public ", code);
+    }
+
+    env_t *body_scope = fresh_scope(env);
+    while (body_scope->namespace) {
+        body_scope->locals->fallback = body_scope->locals->fallback->fallback;
+        body_scope->namespace = body_scope->namespace->parent;
+    }
+
+    body_scope->deferred = NULL;
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
+        type_t *arg_type = get_arg_ast_type(env, arg);
+        set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
+    }
+
+    body_scope->fn_ret = ret_t;
+
+    type_t *body_type = get_type(body_scope, body);
+    if (ret_t->tag == AbortType) {
+        if (body_type->tag != AbortType) code_err(ast, "This function can reach the end without aborting!");
+    } else if (ret_t->tag == VoidType) {
+        if (body_type->tag == AbortType)
+            code_err(ast, "This function will always abort before it reaches the "
+                          "end, but it's declared as having a Void return. It should "
+                          "be declared as an Abort return instead.");
+    } else {
+        if (body_type->tag != ReturnType && body_type->tag != AbortType)
+            code_err(ast,
+                     "This function looks like it can reach the end without "
+                     "returning a ",
+                     type_to_str(ret_t),
+                     " value! \n "
+                     "If this is not the case, please add a call to "
+                     "`fail(\"Unreachable\")` at the end of the function to "
+                     "help the "
+                     "compiler out.");
+    }
+
+    Text_t body_code = Texts("{\n", compile_inline_block(body_scope, body), "}\n");
+    Text_t definition = with_source_info(env, ast, Texts(code, " ", body_code, "\n"));
+
+    if (cache && args == NULL) { // no-args cache just uses a static var
+        Text_t wrapper =
+            Texts(is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code,
+                  "(void) {\n"
+                  "static ",
+                  compile_declaration(ret_t, Text("cached_result")), ";\n", "static bool initialized = false;\n",
+                  "if (!initialized) {\n"
+                  "\tcached_result = ",
+                  name_code, "$uncached();\n", "\tinitialized = true;\n", "}\n",
+                  "return cached_result;\n"
+                  "}\n");
+        definition = Texts(definition, wrapper);
+    } else if (cache && cache->tag == Int) {
+        assert(args);
+        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NULL);
+        Text_t pop_code = EMPTY_TEXT;
+        if (cache->tag == Int && !cache_size.is_none && cache_size.value > 0) {
+            // FIXME: this currently just deletes the first entry, but this
+            // should be more like a least-recently-used cache eviction policy
+            // or least-frequently-used
+            pop_code = Texts("if (cache.entries.length > ", String(cache_size.value),
+                             ") Table$remove(&cache, cache.entries.data + "
+                             "cache.entries.stride*0, table_type);\n");
+        }
+
+        if (!args->next) {
+            // Single-argument functions have simplified caching logic
+            type_t *arg_type = get_arg_ast_type(env, args);
+            Text_t wrapper =
+                Texts(is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code, arg_signature,
+                      "{\n"
+                      "static Table_t cache = {};\n",
+                      "const TypeInfo_t *table_type = Table$info(", compile_type_info(arg_type), ", ",
+                      compile_type_info(ret_t), ");\n",
+                      compile_declaration(Type(PointerType, .pointed = ret_t), Text("cached")),
+                      " = Table$get_raw(cache, &_$", args->name,
+                      ", table_type);\n"
+                      "if (cached) return *cached;\n",
+                      compile_declaration(ret_t, Text("ret")), " = ", name_code, "$uncached(_$", args->name, ");\n",
+                      pop_code, "Table$set(&cache, &_$", args->name,
+                      ", &ret, table_type);\n"
+                      "return ret;\n"
+                      "}\n");
+            definition = Texts(definition, wrapper);
+        } else {
+            // Multi-argument functions use a custom struct type (only defined
+            // internally) as a cache key:
+            arg_t *fields = NULL;
+            for (arg_ast_t *arg = args; arg; arg = arg->next)
+                fields = new (arg_t, .name = arg->name, .type = get_arg_ast_type(env, arg), .next = fields);
+            REVERSE_LIST(fields);
+            type_t *t = Type(StructType, .name = String("func$", get_line_number(ast->file, ast->start), "$args"),
+                             .fields = fields, .env = env);
+
+            int64_t num_fields = used_names.entries.length;
+            const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
+            Text_t args_typeinfo =
+                Texts("((TypeInfo_t[1]){{.size=sizeof(args), "
+                      ".align=__alignof__(args), .metamethods=",
+                      metamethods,
+                      ", .tag=StructInfo, "
+                      ".StructInfo.name=\"FunctionArguments\", "
+                      ".StructInfo.num_fields=",
+                      String(num_fields), ", .StructInfo.fields=(NamedType_t[", String(num_fields), "]){");
+            Text_t args_type = Text("struct { ");
+            for (arg_t *f = fields; f; f = f->next) {
+                args_typeinfo = Texts(args_typeinfo, "{\"", f->name, "\", ", compile_type_info(f->type), "}");
+                args_type = Texts(args_type, compile_declaration(f->type, Text$from_str(f->name)), "; ");
+                if (f->next) args_typeinfo = Texts(args_typeinfo, ", ");
+            }
+            args_type = Texts(args_type, "}");
+            args_typeinfo = Texts(args_typeinfo, "}}})");
+
+            Text_t all_args = EMPTY_TEXT;
+            for (arg_ast_t *arg = args; arg; arg = arg->next)
+                all_args = Texts(all_args, "_$", arg->name, arg->next ? Text(", ") : EMPTY_TEXT);
+
+            Text_t wrapper = Texts(
+                is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code, arg_signature,
+                "{\n"
+                "static Table_t cache = {};\n",
+                args_type, " args = {", all_args,
+                "};\n"
+                "const TypeInfo_t *table_type = Table$info(",
+                args_typeinfo, ", ", compile_type_info(ret_t), ");\n",
+                compile_declaration(Type(PointerType, .pointed = ret_t), Text("cached")),
+                " = Table$get_raw(cache, &args, table_type);\n"
+                "if (cached) return *cached;\n",
+                compile_declaration(ret_t, Text("ret")), " = ", name_code, "$uncached(", all_args, ");\n", pop_code,
+                "Table$set(&cache, &args, &ret, table_type);\n"
+                "return ret;\n"
+                "}\n");
+            definition = Texts(definition, wrapper);
+        }
+    }
+
+    Text_t qualified_name = Text$from_str(function_name);
+    if (env->namespace && env->namespace->parent && env->namespace->name)
+        qualified_name = Texts(env->namespace->name, ".", qualified_name);
+    Text_t text = Texts("func ", qualified_name, "(");
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
+        text = Texts(text, type_to_text(get_arg_ast_type(env, arg)));
+        if (arg->next) text = Texts(text, ", ");
+    }
+    if (ret_t && ret_t->tag != VoidType) text = Texts(text, "->", type_to_text(ret_t));
+    text = Texts(text, ")");
+    return definition;
 }

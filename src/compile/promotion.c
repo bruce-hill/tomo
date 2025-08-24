@@ -6,12 +6,15 @@
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
+#include "assignments.h"
+#include "functions.h"
 #include "integers.h"
 #include "lists.h"
 #include "optionals.h"
 #include "pointers.h"
 #include "sets.h"
 #include "tables.h"
+#include "types.h"
 
 static Text_t quoted_str(const char *str) { return Text$quoted(Text$from_str(str), false, Text("\"")); }
 

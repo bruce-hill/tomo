@@ -10,6 +10,7 @@
 #include "../environment.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
+#include "assignments.h"
 #include "promotion.h"
 
 public

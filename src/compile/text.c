@@ -10,6 +10,7 @@
 #include "../typecheck.h"
 #include "../types.h"
 #include "functions.h"
+#include "types.h"
 
 public
 Text_t expr_as_text(Text_t expr, type_t *t, Text_t color) {

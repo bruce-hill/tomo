@@ -8,7 +8,10 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
+#include "assignments.h"
+#include "functions.h"
 #include "pointers.h"
+#include "types.h"
 
 public
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret,
@@ -99,7 +102,7 @@ Text_t compile_empty_struct(type_t *t) {
 public
 Text_t compile_struct_field_access(env_t *env, ast_t *ast) {
     DeclareMatch(f, ast, FieldAccess);
-    type_t *fielded_t = get_type(env, ast);
+    type_t *fielded_t = get_type(env, f->fielded);
     type_t *value_t = value_type(fielded_t);
     for (arg_t *field = Match(value_t, StructType)->fields; field; field = field->next) {
         if (streq(field->name, f->field)) {

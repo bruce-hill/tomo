@@ -16,6 +16,8 @@
 #include "optionals.h"
 #include "pointers.h"
 #include "promotion.h"
+#include "statements.h"
+#include "types.h"
 
 static ast_t *add_to_list_comprehension(ast_t *item, ast_t *subject) {
     return WrapAST(item, MethodCall, .name = "insert", .self = subject, .args = new (arg_ast_t, .value = item));

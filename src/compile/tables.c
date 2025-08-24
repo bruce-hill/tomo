@@ -10,6 +10,8 @@
 #include "optionals.h"
 #include "pointers.h"
 #include "promotion.h"
+#include "statements.h"
+#include "types.h"
 
 static ast_t *add_to_table_comprehension(ast_t *entry, ast_t *subject) {
     DeclareMatch(e, entry, TableEntry);
