@@ -14,9 +14,12 @@
 #include "assignments.h"
 #include "blocks.h"
 #include "integers.h"
+#include "lists.h"
 #include "promotions.h"
+#include "sets.h"
 #include "statements.h"
 #include "structs.h"
+#include "tables.h"
 #include "text.h"
 #include "types.h"
 
@@ -780,4 +783,44 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
     if (ret_t && ret_t->tag != VoidType) text = Texts(text, "->", type_to_text(ret_t));
     text = Texts(text, ")");
     return definition;
+}
+
+public
+Text_t compile_method_call(env_t *env, ast_t *ast) {
+    DeclareMatch(call, ast, MethodCall);
+    type_t *self_t = get_type(env, call->self);
+
+    if (streq(call->name, "serialized")) {
+        if (call->args) code_err(ast, ".serialized() doesn't take any arguments");
+        return Texts("generic_serialize((", compile_declaration(self_t, Text("[1]")), "){", compile(env, call->self),
+                     "}, ", compile_type_info(self_t), ")");
+    }
+
+    type_t *self_value_t = value_type(self_t);
+    if (self_value_t->tag == TypeInfoType || self_value_t->tag == ModuleType) {
+        return compile(env, WrapAST(ast, FunctionCall,
+                                    .fn = WrapAST(call->self, FieldAccess, .fielded = call->self, .field = call->name),
+                                    .args = call->args));
+    }
+
+    type_t *field_type = get_field_type(self_value_t, call->name);
+    if (field_type && field_type->tag == ClosureType) field_type = Match(field_type, ClosureType)->fn;
+    if (field_type && field_type->tag == FunctionType)
+        return compile(env, WrapAST(ast, FunctionCall,
+                                    .fn = WrapAST(call->self, FieldAccess, .fielded = call->self, .field = call->name),
+                                    .args = call->args));
+
+    switch (self_value_t->tag) {
+    case ListType: return compile_list_method_call(env, ast);
+    case SetType: return compile_set_method_call(env, ast);
+    case TableType: return compile_table_method_call(env, ast);
+    default: {
+        DeclareMatch(methodcall, ast, MethodCall);
+        type_t *fn_t = get_method_type(env, methodcall->self, methodcall->name);
+        arg_ast_t *args = new (arg_ast_t, .value = methodcall->self, .next = methodcall->args);
+        binding_t *b = get_namespace_binding(env, methodcall->self, methodcall->name);
+        if (!b) code_err(ast, "No such method");
+        return Texts(b->code, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, args), ")");
+    }
+    }
 }
