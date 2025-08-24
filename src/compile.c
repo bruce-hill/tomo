@@ -4005,8 +4005,8 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Return:
     case DocTest:
     case Assert: code_err(ast, "This is not a valid expression");
-    default:
-    case Unknown: code_err(ast, "Unknown AST: ", ast_to_sexp_str(ast));
+    case Unknown:
+    default: code_err(ast, "Unknown AST: ", ast_to_sexp_str(ast));
     }
     return EMPTY_TEXT;
 }
