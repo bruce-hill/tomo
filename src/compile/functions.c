@@ -12,6 +12,7 @@
 #include "../typecheck.h"
 #include "../types.h"
 #include "assignments.h"
+#include "blocks.h"
 #include "integers.h"
 #include "promotion.h"
 #include "statements.h"

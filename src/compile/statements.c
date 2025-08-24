@@ -2,16 +2,19 @@
 
 #include "../ast.h"
 #include "../compile.h"
+#include "../config.h"
 #include "../environment.h"
 #include "../modules.h"
 #include "../naming.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/paths.h"
+#include "../stdlib/print.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "assignments.h"
+#include "blocks.h"
 #include "functions.h"
 #include "optionals.h"
 #include "pointers.h"
@@ -27,26 +30,6 @@ Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
     if (code.length == 0 || !ast || !ast->file || !env->do_source_mapping) return code;
     int64_t line = get_line_number(ast->file, ast->start);
     return Texts("\n#line ", String(line), "\n", code);
-}
-
-public
-Text_t compile_inline_block(env_t *env, ast_t *ast) {
-    if (ast->tag != Block) return compile_statement(env, ast);
-
-    Text_t code = EMPTY_TEXT;
-    ast_list_t *stmts = Match(ast, Block)->statements;
-    deferral_t *prev_deferred = env->deferred;
-    env = fresh_scope(env);
-    for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
-        prebind_statement(env, stmt->ast);
-    for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
-        code = Texts(code, compile_statement(env, stmt->ast), "\n");
-        bind_statement(env, stmt->ast);
-    }
-    for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred; deferred = deferred->next) {
-        code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
-    }
-    return code;
 }
 
 public
@@ -1002,7 +985,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         }
     }
     case Block: {
-        return Texts("{\n", compile_inline_block(env, ast), "}\n");
+        return compile_block(env, ast);
     }
     case Comprehension: {
         if (!env->comprehension_action) code_err(ast, "I don't know what to do with this comprehension!");

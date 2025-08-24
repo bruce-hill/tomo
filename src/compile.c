@@ -6,6 +6,7 @@
 #include "ast.h"
 #include "compile.h"
 #include "compile/assignments.h"
+#include "compile/blocks.h"
 #include "compile/enums.h"
 #include "compile/functions.h"
 #include "compile/integers.h"
@@ -514,31 +515,7 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Path: {
         return Texts("Path(", compile_text_literal(Text$from_str(Match(ast, Path)->path)), ")");
     }
-    case Block: {
-        ast_list_t *stmts = Match(ast, Block)->statements;
-        if (stmts && !stmts->next) return compile(env, stmts->ast);
-
-        Text_t code = Text("({\n");
-        deferral_t *prev_deferred = env->deferred;
-        env = fresh_scope(env);
-        for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next)
-            prebind_statement(env, stmt->ast);
-        for (ast_list_t *stmt = stmts; stmt; stmt = stmt->next) {
-            if (stmt->next) {
-                code = Texts(code, compile_statement(env, stmt->ast), "\n");
-            } else {
-                // TODO: put defer after evaluating block expression
-                for (deferral_t *deferred = env->deferred; deferred && deferred != prev_deferred;
-                     deferred = deferred->next) {
-                    code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
-                }
-                code = Texts(code, compile(env, stmt->ast), ";\n");
-            }
-            bind_statement(env, stmt->ast);
-        }
-
-        return Texts(code, "})");
-    }
+    case Block: return compile_block_expression(env, ast);
     case Min:
     case Max: {
         type_t *t = get_type(env, ast);
