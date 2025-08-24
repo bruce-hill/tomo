@@ -10,6 +10,7 @@
 #include "../typecheck.h"
 #include "binops.h"
 #include "blocks.h"
+#include "comparisons.h"
 #include "conditionals.h"
 #include "declarations.h"
 #include "enums.h"
@@ -150,88 +151,14 @@ Text_t compile(env_t *env, ast_t *ast) {
     case UnsignedRightShift:
     case And:
     case Or:
-    case Xor: {
-        return compile_binary_op(env, ast);
-    }
+    case Xor: return compile_binary_op(env, ast);
     case Equals:
-    case NotEquals: {
-        binary_operands_t binop = BINARY_OPERANDS(ast);
-
-        type_t *lhs_t = get_type(env, binop.lhs);
-        type_t *rhs_t = get_type(env, binop.rhs);
-        type_t *operand_t;
-        if (binop.lhs->tag == Int && is_numeric_type(rhs_t)) {
-            operand_t = rhs_t;
-        } else if (binop.rhs->tag == Int && is_numeric_type(lhs_t)) {
-            operand_t = lhs_t;
-        } else if (can_compile_to_type(env, binop.rhs, lhs_t)) {
-            operand_t = lhs_t;
-        } else if (can_compile_to_type(env, binop.lhs, rhs_t)) {
-            operand_t = rhs_t;
-        } else {
-            code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        }
-
-        Text_t lhs, rhs;
-        lhs = compile_to_type(env, binop.lhs, operand_t);
-        rhs = compile_to_type(env, binop.rhs, operand_t);
-
-        switch (operand_t->tag) {
-        case BigIntType:
-            return Texts(ast->tag == Equals ? EMPTY_TEXT : Text("!"), "Int$equal_value(", lhs, ", ", rhs, ")");
-        case BoolType:
-        case ByteType:
-        case IntType:
-        case NumType:
-        case PointerType:
-        case FunctionType: return Texts("(", lhs, ast->tag == Equals ? " == " : " != ", rhs, ")");
-        default:
-            return Texts(ast->tag == Equals ? EMPTY_TEXT : Text("!"), "generic_equal(stack(", lhs, "), stack(", rhs,
-                         "), ", compile_type_info(operand_t), ")");
-        }
-    }
+    case NotEquals:
     case LessThan:
     case LessThanOrEquals:
     case GreaterThan:
     case GreaterThanOrEquals:
-    case Compare: {
-        binary_operands_t cmp = BINARY_OPERANDS(ast);
-
-        type_t *lhs_t = get_type(env, cmp.lhs);
-        type_t *rhs_t = get_type(env, cmp.rhs);
-        type_t *operand_t;
-        if (cmp.lhs->tag == Int && is_numeric_type(rhs_t)) {
-            operand_t = rhs_t;
-        } else if (cmp.rhs->tag == Int && is_numeric_type(lhs_t)) {
-            operand_t = lhs_t;
-        } else if (can_compile_to_type(env, cmp.rhs, lhs_t)) {
-            operand_t = lhs_t;
-        } else if (can_compile_to_type(env, cmp.lhs, rhs_t)) {
-            operand_t = rhs_t;
-        } else {
-            code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
-        }
-
-        Text_t lhs = compile_to_type(env, cmp.lhs, operand_t);
-        Text_t rhs = compile_to_type(env, cmp.rhs, operand_t);
-
-        if (ast->tag == Compare)
-            return Texts("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(operand_t), ")");
-
-        const char *op = binop_operator(ast->tag);
-        switch (operand_t->tag) {
-        case BigIntType: return Texts("(Int$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
-        case BoolType:
-        case ByteType:
-        case IntType:
-        case NumType:
-        case PointerType:
-        case FunctionType: return Texts("(", lhs, " ", op, " ", rhs, ")");
-        default:
-            return Texts("(generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(operand_t), ") ",
-                         op, " 0)");
-        }
-    }
+    case Compare: return compile_comparison(env, ast);
     case TextLiteral:
     case TextJoin: return compile_text_ast(env, ast);
     case Path: {
