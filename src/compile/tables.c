@@ -4,7 +4,11 @@
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
+#include "../typecheck.h"
 #include "../types.h"
+#include "functions.h"
+#include "optionals.h"
+#include "pointers.h"
 #include "promotion.h"
 
 static ast_t *add_to_table_comprehension(ast_t *entry, ast_t *subject) {
@@ -73,4 +77,70 @@ table_comprehension: {
     code = Texts(code, " ", comprehension_name, "; })");
     return code;
 }
+}
+
+public
+Text_t compile_table_method_call(env_t *env, ast_t *ast) {
+    DeclareMatch(call, ast, MethodCall);
+    type_t *self_t = get_type(env, call->self);
+
+    int64_t pointer_depth = 0;
+    type_t *self_value_t = self_t;
+    for (; self_value_t->tag == PointerType; self_value_t = Match(self_value_t, PointerType)->pointed)
+        pointer_depth += 1;
+
+    Text_t self = compile(env, call->self);
+
+#define EXPECT_POINTER()                                                                                               \
+    do {                                                                                                               \
+        if (pointer_depth < 1) code_err(call->self, "I expected a table pointer here, not a table value");             \
+        else if (pointer_depth > 1)                                                                                    \
+            code_err(call->self, "I expected a table pointer here, not a nested table pointer");                       \
+    } while (0)
+
+    DeclareMatch(table, self_value_t, TableType);
+    if (streq(call->name, "get")) {
+        self = compile_to_pointer_depth(env, call->self, 0, false);
+        arg_t *arg_spec = new (arg_t, .name = "key", .type = table->key_type);
+        return Texts("Table$get_optional(", self, ", ", compile_type(table->key_type), ", ",
+                     compile_type(table->value_type), ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     "_, ", optional_into_nonnone(table->value_type, Text("(*_)")), ", ",
+                     compile_none(table->value_type), ", ", compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "get_or_set")) {
+        self = compile_to_pointer_depth(env, call->self, 1, false);
+        arg_t *arg_spec = new (
+            arg_t, .name = "key", .type = table->key_type,
+            .next = new (arg_t, .name = "default", .type = table->value_type, .default_val = table->default_value));
+        return Texts("*Table$get_or_setdefault(", self, ", ", compile_type(table->key_type), ", ",
+                     compile_type(table->value_type), ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "has")) {
+        self = compile_to_pointer_depth(env, call->self, 0, false);
+        arg_t *arg_spec = new (arg_t, .name = "key", .type = table->key_type);
+        return Texts("Table$has_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "set")) {
+        EXPECT_POINTER();
+        arg_t *arg_spec = new (arg_t, .name = "key", .type = table->key_type,
+                               .next = new (arg_t, .name = "value", .type = table->value_type));
+        return Texts("Table$set_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "remove")) {
+        EXPECT_POINTER();
+        arg_t *arg_spec = new (arg_t, .name = "key", .type = table->key_type);
+        return Texts("Table$remove_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "clear")) {
+        EXPECT_POINTER();
+        (void)compile_arguments(env, ast, NULL, call->args);
+        return Texts("Table$clear(", self, ")");
+    } else if (streq(call->name, "sorted")) {
+        self = compile_to_pointer_depth(env, call->self, 0, false);
+        (void)compile_arguments(env, ast, NULL, call->args);
+        return Texts("Table$sorted(", self, ", ", compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "with_fallback")) {
+        self = compile_to_pointer_depth(env, call->self, 0, false);
+        arg_t *arg_spec = new (arg_t, .name = "fallback", .type = Type(OptionalType, self_value_t));
+        return Texts("Table$with_fallback(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+    } else code_err(ast, "There is no '", call->name, "' method for tables");
 }
