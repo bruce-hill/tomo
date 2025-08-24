@@ -23,6 +23,13 @@
 typedef ast_t *(*comprehension_body_t)(ast_t *, ast_t *);
 
 public
+Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
+    if (code.length == 0 || !ast || !ast->file || !env->do_source_mapping) return code;
+    int64_t line = get_line_number(ast->file, ast->start);
+    return Texts("\n#line ", String(line), "\n", code);
+}
+
+public
 Text_t compile_inline_block(env_t *env, ast_t *ast) {
     if (ast->tag != Block) return compile_statement(env, ast);
 

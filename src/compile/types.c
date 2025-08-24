@@ -5,10 +5,7 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
-
-static Text_t quoted_str(const char *str) { return Text$quoted(Text$from_str(str), false, Text("\"")); }
-
-static inline Text_t quoted_text(Text_t text) { return Text$quoted(text, false, Text("\"")); }
+#include "text.h"
 
 public
 Text_t compile_type(type_t *t) {
