@@ -1300,7 +1300,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
                 DeclareMatch(fn, b->type, FunctionType);
                 if (type_eq(fn->ret, rhs_t)) {
                     arg_ast_t *args = new (arg_ast_t, .value = binop.rhs, .next = new (arg_ast_t, .value = binop.lhs));
-                    if (is_valid_call(env, fn->args, args, true)) return rhs_t;
+                    if (is_valid_call(env, fn->args, args, (call_opts_t){.promotion = true})) return rhs_t;
                 }
             }
         } else if (ast->tag == Multiply && is_numeric_type(rhs_t)) {
@@ -1309,7 +1309,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
                 DeclareMatch(fn, b->type, FunctionType);
                 if (type_eq(fn->ret, lhs_t)) {
                     arg_ast_t *args = new (arg_ast_t, .value = binop.lhs, .next = new (arg_ast_t, .value = binop.rhs));
-                    if (is_valid_call(env, fn->args, args, true)) return lhs_t;
+                    if (is_valid_call(env, fn->args, args, (call_opts_t){.promotion = true})) return lhs_t;
                 }
             }
         } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
@@ -1318,7 +1318,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
                 DeclareMatch(fn, b->type, FunctionType);
                 if (type_eq(fn->ret, lhs_t)) {
                     arg_ast_t *args = new (arg_ast_t, .value = binop.lhs, .next = new (arg_ast_t, .value = binop.rhs));
-                    if (is_valid_call(env, fn->args, args, true)) return lhs_t;
+                    if (is_valid_call(env, fn->args, args, (call_opts_t){.promotion = true})) return lhs_t;
                 }
             }
         }
@@ -1606,19 +1606,22 @@ type_t *get_arg_type(env_t *env, arg_t *arg) {
     return get_type(env, arg->default_val);
 }
 
-bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed) {
+bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts_t options) {
     Table_t used_args = {};
 
     // Populate keyword args:
     for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
         if (!call_arg->name) continue;
+        if (!options.underscores && call_arg->name[0] == '_') return false;
 
-        type_t *call_type = get_arg_ast_type(env, call_arg);
         for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
+            if (!options.underscores && spec_arg->name[0] == '_') continue;
             if (!streq(call_arg->name, spec_arg->name)) continue;
             type_t *spec_type = get_arg_type(env, spec_arg);
-            if (promotion_allowed) {
-                if (!can_compile_to_type(env, call_arg->value, spec_type))
+            env_t *arg_scope = with_enum_scope(env, spec_type);
+            type_t *call_type = get_arg_ast_type(arg_scope, call_arg);
+            if (options.promotion) {
+                if (!can_compile_to_type(arg_scope, call_arg->value, spec_type))
                     return false; // Positional arg trying to fill in
             } else {
                 type_t *complete_call_type =
@@ -1638,22 +1641,25 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool prom
         arg_ast_t *keyworded = Table$str_get(used_args, spec_arg->name);
         if (keyworded) continue;
 
-        type_t *spec_type = get_arg_type(env, spec_arg);
-        for (; unused_args; unused_args = unused_args->next) {
-            if (unused_args->name) continue; // Already handled the keyword args
-            if (promotion_allowed) {
-                if (!can_compile_to_type(env, unused_args->value, spec_type))
-                    return false; // Positional arg trying to fill in
-            } else {
-                type_t *call_type = get_arg_ast_type(env, unused_args);
-                type_t *complete_call_type =
-                    is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
-                if (!complete_call_type) return false;
-                if (!type_eq(complete_call_type, spec_type)) return false; // Positional arg trying to fill in
+        if (spec_arg->name[0] != '_' || options.underscores) {
+            type_t *spec_type = get_arg_type(env, spec_arg);
+            env_t *arg_scope = with_enum_scope(env, spec_type);
+            for (; unused_args; unused_args = unused_args->next) {
+                if (unused_args->name) continue; // Already handled the keyword args
+                if (options.promotion) {
+                    if (!can_compile_to_type(arg_scope, unused_args->value, spec_type))
+                        return false; // Positional arg trying to fill in
+                } else {
+                    type_t *call_type = get_arg_ast_type(arg_scope, unused_args);
+                    type_t *complete_call_type =
+                        is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
+                    if (!complete_call_type) return false;
+                    if (!type_eq(complete_call_type, spec_type)) return false; // Positional arg trying to fill in
+                }
+                Table$str_set(&used_args, spec_arg->name, unused_args);
+                unused_args = unused_args->next;
+                goto found_it;
             }
-            Table$str_set(&used_args, spec_arg->name, unused_args);
-            unused_args = unused_args->next;
-            goto found_it;
         }
 
         if (spec_arg->default_val) goto found_it;
@@ -1752,6 +1758,9 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
 
     type_t *actual = get_type(env, ast);
     if (actual->tag == OptionalType && needed->tag == OptionalType) return can_promote(actual, needed);
+
+    if (is_numeric_type(needed) && ast->tag == Int) return true;
+    if (needed->tag == NumType && ast->tag == Num) return true;
 
     needed = non_optional(needed);
     if (needed->tag == ListType && ast->tag == List) {

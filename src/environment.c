@@ -718,28 +718,18 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, bool
     if (!type_env) return NULL;
     List_t constructors = type_env->namespace->constructors;
     // Prioritize exact matches:
+    call_opts_t options = {.promotion = false, .underscores = allow_underscores};
     for (int64_t i = constructors.length - 1; i >= 0; i--) {
-        binding_t *b = constructors.data + i * constructors.stride;
-        DeclareMatch(fn, b->type, FunctionType);
-        if (!allow_underscores) {
-            for (arg_t *arg = fn->args; arg; arg = arg->next)
-                if (arg->name[0] == '_') goto next_constructor;
-        }
-        if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, false)) return b;
-    next_constructor:
-        continue;
+        binding_t *constructor = constructors.data + i * constructors.stride;
+        DeclareMatch(fn, constructor->type, FunctionType);
+        if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, options)) return constructor;
     }
     // Fall back to promotion:
+    options.promotion = true;
     for (int64_t i = constructors.length - 1; i >= 0; i--) {
-        binding_t *b = constructors.data + i * constructors.stride;
-        DeclareMatch(fn, b->type, FunctionType);
-        if (!allow_underscores) {
-            for (arg_t *arg = fn->args; arg; arg = arg->next)
-                if (arg->name[0] == '_') goto next_constructor2;
-        }
-        if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, true)) return b;
-    next_constructor2:
-        continue;
+        binding_t *constructor = constructors.data + i * constructors.stride;
+        DeclareMatch(fn, constructor->type, FunctionType);
+        if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, options)) return constructor;
     }
     return NULL;
 }
@@ -752,7 +742,7 @@ PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, as
     DeclareMatch(fn, b->type, FunctionType);
     if (!type_eq(fn->ret, ret)) return NULL;
     arg_ast_t *args = new (arg_ast_t, .value = lhs, .next = new (arg_ast_t, .value = rhs));
-    return is_valid_call(env, fn->args, args, true) ? b : NULL;
+    return is_valid_call(env, fn->args, args, (call_opts_t){.promotion = true}) ? b : NULL;
 }
 
 void set_binding(env_t *env, const char *name, type_t *type, Text_t code) {

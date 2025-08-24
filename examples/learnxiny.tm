@@ -182,13 +182,13 @@ func main()
     # different values using the "@" operator (think: "(a)llocate").
     my_arr := @[10, 20, 30]
     my_arr[1] = 999
-    >> my_arr
-    = @[999, 20, 30]
+    >> my_arr[]
+    = [999, 20, 30]
 
     # To call a method, you must use ":" and the name of the method:
     my_arr.sort()
-    >> my_arr
-    = @[20, 30, 999]
+    >> my_arr[]
+    = [20, 30, 999]
 
     # To access the immutable value that resides inside the memory area, you
     # can use the "[]" operator:
@@ -200,8 +200,8 @@ func main()
     # remain unchanged.
     snapshot := my_arr[]
     my_arr.insert(1000)
-    >> my_arr
-    = @[20, 30, 999, 1000]
+    >> my_arr[]
+    = [20, 30, 999, 1000]
     >> snapshot
     = [20, 30, 999]
     # Internally, this is implemented using copy-on-write, so it's quite

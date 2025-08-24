@@ -579,7 +579,7 @@ static Text_t compile_binary_op(env_t *env, ast_t *ast) {
             DeclareMatch(fn, b->type, FunctionType);
             if (type_eq(fn->ret, rhs_t)) {
                 arg_ast_t *args = new (arg_ast_t, .value = binop.rhs, .next = new (arg_ast_t, .value = binop.lhs));
-                if (is_valid_call(env, fn->args, args, true))
+                if (is_valid_call(env, fn->args, args, (call_opts_t){.promotion = true}))
                     return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
@@ -589,7 +589,7 @@ static Text_t compile_binary_op(env_t *env, ast_t *ast) {
             DeclareMatch(fn, b->type, FunctionType);
             if (type_eq(fn->ret, lhs_t)) {
                 arg_ast_t *args = new (arg_ast_t, .value = binop.lhs, .next = new (arg_ast_t, .value = binop.rhs));
-                if (is_valid_call(env, fn->args, args, true))
+                if (is_valid_call(env, fn->args, args, (call_opts_t){.promotion = true}))
                     return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
@@ -599,7 +599,7 @@ static Text_t compile_binary_op(env_t *env, ast_t *ast) {
             DeclareMatch(fn, b->type, FunctionType);
             if (type_eq(fn->ret, lhs_t)) {
                 arg_ast_t *args = new (arg_ast_t, .value = binop.lhs, .next = new (arg_ast_t, .value = binop.rhs));
-                if (is_valid_call(env, fn->args, args, true))
+                if (is_valid_call(env, fn->args, args, (call_opts_t){.promotion = true}))
                     return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
@@ -609,7 +609,7 @@ static Text_t compile_binary_op(env_t *env, ast_t *ast) {
             DeclareMatch(fn, b->type, FunctionType);
             if (type_eq(fn->ret, lhs_t)) {
                 arg_ast_t *args = new (arg_ast_t, .value = binop.lhs, .next = new (arg_ast_t, .value = binop.rhs));
-                if (is_valid_call(env, fn->args, args, true))
+                if (is_valid_call(env, fn->args, args, (call_opts_t){.promotion = true}))
                     return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
@@ -3466,6 +3466,24 @@ Text_t compile(env_t *env, ast_t *ast) {
         type_t *fn_t = get_type(env, call->fn);
         if (fn_t->tag == FunctionType) {
             Text_t fn = compile(env, call->fn);
+            if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args, (call_opts_t){.promotion = true})) {
+                if (is_valid_call(env, Match(fn_t, FunctionType)->args, call->args,
+                                  (call_opts_t){.promotion = true, .underscores = true})) {
+                    code_err(ast, "You can't pass underscore arguments to this function (those are private)");
+                } else {
+                    arg_t *args = NULL;
+                    for (arg_ast_t *a = call->args; a; a = a->next)
+                        args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
+                    REVERSE_LIST(args);
+                    code_err(ast,
+                             "This function's public signature doesn't match this call site.\n"
+                             "The signature is: ",
+                             type_to_text(fn_t),
+                             "\n"
+                             "But it's being called with: ",
+                             type_to_text(Type(FunctionType, .args = args)));
+                }
+            }
             return Texts(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
         } else if (fn_t->tag == TypeInfoType) {
             type_t *t = Match(fn_t, TypeInfoType)->type;
@@ -3509,21 +3527,19 @@ Text_t compile(env_t *env, ast_t *ast) {
                              ")");
             } else if (t->tag == StructType) {
                 DeclareMatch(struct_, t, StructType);
-                if (!struct_->opaque && is_valid_call(env, struct_->fields, call->args, true)) {
-                    if (env->current_type == NULL || !type_eq(env->current_type, t)) {
-                        for (arg_t *field = struct_->fields; field; field = field->next) {
-                            if (field->name[0] == '_')
-                                code_err(ast, "This struct can't be "
-                                              "initialized directly because it "
-                                              "has private fields (starting "
-                                              "with underscore).\n"
-                                              "Use a `convert` or `func` to "
-                                              "instantiate the type "
-                                              "instead.");
-                        }
-                    }
+                if (struct_->opaque) code_err(ast, "This struct is opaque, so I don't know what's inside it!");
+
+                call_opts_t constructor_opts = {
+                    .promotion = true,
+                    .underscores = (env->current_type != NULL && type_eq(env->current_type, t)),
+                };
+                if (is_valid_call(env, struct_->fields, call->args, constructor_opts)) {
                     return Texts("((", compile_type(t), "){", compile_arguments(env, ast, struct_->fields, call->args),
                                  "})");
+                } else if (!constructor_opts.underscores
+                           && is_valid_call(env, struct_->fields, call->args,
+                                            (call_opts_t){.promotion = true, .underscores = true})) {
+                    code_err(ast, "This constructor uses private fields that are not exposed.");
                 }
             }
             code_err(ast,
