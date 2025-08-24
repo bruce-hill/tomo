@@ -391,5 +391,3 @@ MACROLIKE PUREFUNC Int8_t Int8$from_int16(Int16_t i16, bool truncate) {
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

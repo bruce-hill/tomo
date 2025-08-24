@@ -18,5 +18,3 @@ void generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type);
 int generic_print(const void *obj, bool colorize, const TypeInfo_t *type);
 void cannot_serialize(const void *, FILE *, Table_t *, const TypeInfo_t *type);
 void cannot_deserialize(FILE *, void *, List_t *, const TypeInfo_t *type);
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

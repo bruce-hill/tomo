@@ -136,5 +136,3 @@ Text_t compile_struct_literal(env_t *env, ast_t *ast, type_t *t, arg_ast_t *args
     }
     code_err(ast, "I could not find a constructor matching these arguments for the struct ", type_to_str(t));
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

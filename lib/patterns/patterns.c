@@ -1210,5 +1210,3 @@ static Text_t Pattern$as_text(const void *obj, bool colorize, const TypeInfo_t *
     Text_t quote = Pattern$has(pat, Text("/")) && !Pattern$has(pat, Text("|")) ? Text("|") : Text("/");
     return Text$concat(colorize ? Text("\x1b[1m$\033[m") : Text("$"), Text$quoted(pat, colorize, quote));
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

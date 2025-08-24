@@ -177,5 +177,3 @@ Text_t compile_enum_field_access(env_t *env, ast_t *ast) {
     }
     code_err(ast, "The field '", f->field, "' is not a valid tag name of ", type_to_str(value_t));
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

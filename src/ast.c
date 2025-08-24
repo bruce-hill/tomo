@@ -445,5 +445,3 @@ CONSTFUNC ast_e binop_tag(ast_e tag) {
     default: return Unknown;
     }
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

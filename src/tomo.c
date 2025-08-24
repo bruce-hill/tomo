@@ -823,5 +823,3 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     if (!quiet) print("Compiled executable:\t", exe_path);
     return exe_path;
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

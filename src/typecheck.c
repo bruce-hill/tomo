@@ -1798,5 +1798,3 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
         return can_promote(actual, needed);
     }
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

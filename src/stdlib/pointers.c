@@ -120,5 +120,3 @@ void Pointer$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInf
         *(void **)outval = *(void **)(pointers->data + (id - 1) * pointers->stride);
     }
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

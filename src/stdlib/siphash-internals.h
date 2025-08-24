@@ -123,5 +123,3 @@ MACROLIKE uint64_t siphashfinish(siphash *sh, const uint8_t *src, size_t src_sz)
     }
     return siphashfinish_last_part(sh, t.u64);
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

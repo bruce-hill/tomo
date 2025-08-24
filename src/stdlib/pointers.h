@@ -40,5 +40,3 @@ void Pointer$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInf
                    .tag = PointerInfo,                                                                                 \
                    .PointerInfo = {.sigil = sigil_expr, .pointed = pointed_info},                                      \
                    .metamethods = Pointer$metamethods})
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

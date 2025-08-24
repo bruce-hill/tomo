@@ -19,5 +19,3 @@ public
 const TypeInfo_t Void$info = {.size = 0, .align = 0, .tag = StructInfo};
 public
 const TypeInfo_t Abort$info = {.size = 0, .align = 0, .tag = StructInfo};
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

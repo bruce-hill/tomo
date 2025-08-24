@@ -749,5 +749,3 @@ void set_binding(env_t *env, const char *name, type_t *type, Text_t code) {
     assert(name);
     Table$str_set(env->locals, name, new (binding_t, .type = type, .code = code));
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

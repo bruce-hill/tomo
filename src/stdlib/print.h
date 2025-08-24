@@ -164,5 +164,3 @@ FILE *gc_memory_stream(char **buf, size_t *size);
         fprint(stderr, "\033[31;1m", __VA_ARGS__, "\033[m");                                                           \
         exit(EXIT_FAILURE);                                                                                            \
     })
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

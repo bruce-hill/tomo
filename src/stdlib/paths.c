@@ -825,5 +825,3 @@ const TypeInfo_t PathType$info = {
             .tags = ((NamedType_t[3]){{.name = "Relative"}, {.name = "Absolute"}, {.name = "Home"}}),
         },
 };
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

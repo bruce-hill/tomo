@@ -33,5 +33,3 @@ typedef struct {
 } call_opts_t;
 
 bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts_t options);
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

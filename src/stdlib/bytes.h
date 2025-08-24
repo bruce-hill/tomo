@@ -31,5 +31,3 @@ extern const TypeInfo_t Byte$info;
 
 Text_t Byte$hex(Byte_t byte, bool uppercase, bool prefix);
 bool Byte$get_bit(Byte_t x, Int_t bit_index);
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

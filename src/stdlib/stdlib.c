@@ -619,5 +619,3 @@ OptionalText_t getenv_text(Text_t name) {
 
 public
 void setenv_text(Text_t name, Text_t value) { setenv(Text$as_c_string(name), Text$as_c_string(value), 1); }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

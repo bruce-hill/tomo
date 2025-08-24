@@ -98,5 +98,3 @@ void Enum$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t
         _deserialize(in, outval + value_offset(type), pointers, value.type);
     }
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

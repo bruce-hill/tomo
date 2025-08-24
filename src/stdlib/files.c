@@ -309,5 +309,3 @@ int highlight_error(file_t *file, const char *start, const char *end, const char
     fflush(stderr);
     return printed;
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

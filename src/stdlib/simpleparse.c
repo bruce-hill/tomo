@@ -128,5 +128,3 @@ const char *simpleparse(const char *str, int n, parse_type_e types[n], void *des
     }
     return NULL;
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

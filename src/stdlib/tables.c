@@ -763,5 +763,3 @@ void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1

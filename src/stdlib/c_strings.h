@@ -14,5 +14,3 @@ PUREFUNC bool CString$equal(const void *x, const void *y, const TypeInfo_t *type
 PUREFUNC uint64_t CString$hash(const void *str, const TypeInfo_t *type);
 
 extern const TypeInfo_t CString$info;
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

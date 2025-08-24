@@ -70,5 +70,3 @@ void Path$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *t
 
 extern const TypeInfo_t Path$info;
 extern const TypeInfo_t PathType$info;
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

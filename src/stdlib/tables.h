@@ -157,5 +157,3 @@ extern const TypeInfo_t CStrToVoidStarTable;
                    .TableInfo.key = item_info,                                                                         \
                    .TableInfo.value = &Void$info,                                                                      \
                    .metamethods = Table$metamethods})
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1

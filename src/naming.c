@@ -115,5 +115,3 @@ Text_t get_id_suffix(const char *filename) {
     if (id.length < 0) err(1, "Could not read ID file: %s", id_file);
     return Texts(Text("$"), id);
 }
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0

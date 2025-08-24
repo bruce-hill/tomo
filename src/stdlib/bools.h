@@ -21,5 +21,3 @@ MACROLIKE Bool_t Bool$from_int8(Int8_t i) { return (i != 0); }
 MACROLIKE Bool_t Bool$from_byte(uint8_t b) { return (b != 0); }
 
 extern const TypeInfo_t Bool$info;
-
-// vim: ts=4 sw=0 et cino=L2,l1,(0,W4,m1,\:0
