@@ -1,13 +1,13 @@
 // This file defines how to compile assignments
 #include "assignments.h"
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "declarations.h"
+#include "expressions.h"
 #include "integers.h"
 #include "pointers.h"
 #include "promotions.h"
@@ -88,6 +88,51 @@ Text_t compile_update_assignment(env_t *env, ast_t *ast) {
 public
 Text_t compile_assignment(env_t *env, ast_t *target, Text_t value) {
     return Texts(compile_lvalue(env, target), " = ", value);
+}
+
+public
+Text_t compile_assignment_statement(env_t *env, ast_t *ast) {
+    DeclareMatch(assign, ast, Assign);
+    // Single assignment, no temp vars needed:
+    if (assign->targets && !assign->targets->next) {
+        type_t *lhs_t = get_type(env, assign->targets->ast);
+        if (assign->targets->ast->tag == Index && lhs_t->tag == OptionalType
+            && value_type(get_type(env, Match(assign->targets->ast, Index)->indexed))->tag == TableType)
+            lhs_t = Match(lhs_t, OptionalType)->type;
+        if (has_stack_memory(lhs_t))
+            code_err(ast, "Stack references cannot be assigned to "
+                          "variables because the "
+                          "variable's scope may outlive the scope of the "
+                          "stack memory.");
+        env_t *val_env = with_enum_scope(env, lhs_t);
+        Text_t val = compile_to_type(val_env, assign->values->ast, lhs_t);
+        return Texts(compile_assignment(env, assign->targets->ast, val), ";\n");
+    }
+
+    Text_t code = Text("{ // Assignment\n");
+    int64_t i = 1;
+    for (ast_list_t *value = assign->values, *target = assign->targets; value && target;
+         value = value->next, target = target->next) {
+        type_t *lhs_t = get_type(env, target->ast);
+        if (target->ast->tag == Index && lhs_t->tag == OptionalType
+            && value_type(get_type(env, Match(target->ast, Index)->indexed))->tag == TableType)
+            lhs_t = Match(lhs_t, OptionalType)->type;
+        if (has_stack_memory(lhs_t))
+            code_err(ast, "Stack references cannot be assigned to "
+                          "variables because the "
+                          "variable's scope may outlive the scope of the "
+                          "stack memory.");
+        env_t *val_env = with_enum_scope(env, lhs_t);
+        Text_t val = compile_to_type(val_env, value->ast, lhs_t);
+        code = Texts(code, compile_type(lhs_t), " $", String(i), " = ", val, ";\n");
+        i += 1;
+    }
+    i = 1;
+    for (ast_list_t *target = assign->targets; target; target = target->next) {
+        code = Texts(code, compile_assignment(env, target->ast, Texts("$", String(i))), ";\n");
+        i += 1;
+    }
+    return Texts(code, "\n}");
 }
 
 public
