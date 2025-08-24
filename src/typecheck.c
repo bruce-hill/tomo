@@ -188,7 +188,7 @@ static env_t *load_module(env_t *env, ast_t *module_ast) {
         if (glob(String(TOMO_PREFIX "/share/tomo_" TOMO_VERSION "/installed/", folder, "/[!._0-9]*.tm"), GLOB_TILDE,
                  NULL, &tm_files)
             != 0) {
-            if (!try_install_module(mod)) code_err(module_ast, "Could not find or install library");
+            if (!try_install_module(mod)) code_err(module_ast, "Couldn't find or install library: ", folder);
         }
 
         env_t *module_env = fresh_scope(env);
