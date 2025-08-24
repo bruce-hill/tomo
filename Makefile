@@ -77,14 +77,6 @@ CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')"
 LDLIBS=-lgc -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
 
-DEFINE_AS_OWNER=as_owner() { \
-	if [ -w '$(PREFIX)' ]; then \
-		"$$@"; \
-	else \
-		$(SUDO) -u "$(OWNER)" "$$@"; \
-	fi; \
-} \
-
 ifeq ($(OS),OpenBSD)
 	LDLIBS += -lexecinfo
 else
@@ -212,26 +204,44 @@ install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) 
 		printf "\n\033[1mexport PATH=\"$(PREFIX):\$$PATH\"\033[m\n\n" >&2; \
 		exit 1; \
 	fi
-	$(DEFINE_AS_OWNER); \
-	as_owner mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo_$(TOMO_VERSION)" "$(PREFIX)/lib"; \
-	as_owner cp src/stdlib/*.h "$(PREFIX)/include/tomo_$(TOMO_VERSION)/"; \
-	as_owner cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"; \
-	as_owner rm -f "$(PREFIX)/bin/$(EXE_FILE)"; \
-	as_owner cp build/bin/$(EXE_FILE) "$(PREFIX)/bin/"; \
-	as_owner cp man/man1/* "$(PREFIX)/man/man1/"; \
-	as_owner cp man/man3/* "$(PREFIX)/man/man3/"; \
-	as_owner sh link_versions.sh
+	install-stuff() { \
+		mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo_$(TOMO_VERSION)" "$(PREFIX)/lib"; \
+		cp src/stdlib/*.h "$(PREFIX)/include/tomo_$(TOMO_VERSION)/"; \
+		cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"; \
+		rm -f "$(PREFIX)/bin/$(EXE_FILE)"; \
+		cp build/bin/$(EXE_FILE) "$(PREFIX)/bin/"; \
+		cp man/man1/* "$(PREFIX)/man/man1/"; \
+		cp man/man3/* "$(PREFIX)/man/man3/"; \
+		sh link_versions.sh; \
+	}; \
+	if [ -w '$(PREFIX)' ]; then \
+		install-stuff; \
+	else \
+		$(SUDO) -u "$(OWNER)" install-stuff; \
+	fi
 
 install-libs: build/bin/$(EXE_FILE) check-utilities
-	$(DEFINE_AS_OWNER); \
-	./local-tomo -qIL lib/patterns lib/json lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
+	install-libs() { \
+		./local-tomo -qIL lib/patterns lib/json lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core; \
+	}; \
+	if [ -w '$(PREFIX)' ]; then \
+		install-libs; \
+	else \
+		install-libs; \
+	fi
 
 install: install-files install-libs
 
 uninstall:
-	$(DEFINE_AS_OWNER); \
-	as_owner rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"[0-9]* "$(PREFIX)/bin/tomo_v"* "$(PREFIX)/include/tomo_v"* "$(PREFIX)/lib/libtomo_v*" "$(PREFIX)/share/tomo_$(TOMO_VERSION)"; \
-	as_owner sh link_versions.sh
+	uninstall-stuff() { \
+		rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"[0-9]* "$(PREFIX)/bin/tomo_v"* "$(PREFIX)/include/tomo_v"* "$(PREFIX)/lib/libtomo_v*" "$(PREFIX)/share/tomo_$(TOMO_VERSION)"; \
+		sh link_versions.sh; \
+	}; \
+	if [ -w '$(PREFIX)' ]; then \
+		uninstall-stuff; \
+	else \
+		$(SUDO) -u "$(OWNER)" uninstall-stuff; \
+	fi
 
 endif
 
