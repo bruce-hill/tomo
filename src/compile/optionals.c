@@ -4,7 +4,10 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
+#include "../typecheck.h"
 #include "../types.h"
+#include "assignments.h"
+#include "text.h"
 #include "types.h"
 
 Text_t optional_into_nonnone(type_t *t, Text_t value) {
@@ -109,4 +112,25 @@ Text_t check_none(type_t *t, Text_t value) {
     }
     print_err("Optional check not implemented for: ", type_to_str(t));
     return EMPTY_TEXT;
+}
+
+public
+Text_t compile_optional(env_t *env, ast_t *ast) {
+    ast_t *value = Match(ast, Optional)->value;
+    Text_t value_code = compile(env, value);
+    return promote_to_optional(get_type(env, value), value_code);
+}
+
+public
+Text_t compile_non_optional(env_t *env, ast_t *ast) {
+    ast_t *value = Match(ast, NonOptional)->value;
+    type_t *t = get_type(env, value);
+    Text_t value_code = compile(env, value);
+    int64_t line = get_line_number(ast->file, ast->start);
+    return Texts("({ ", compile_declaration(t, Text("opt")), " = ", value_code, "; ", "if unlikely (",
+                 check_none(t, Text("opt")), ")\n", "#line ", String(line), "\n", "fail_source(",
+                 quoted_str(ast->file->filename), ", ", String((int64_t)(value->start - value->file->text)), ", ",
+                 String((int64_t)(value->end - value->file->text)), ", ",
+                 "\"This was expected to be a value, but it's none\");\n", optional_into_nonnone(t, Text("opt")),
+                 "; })");
 }

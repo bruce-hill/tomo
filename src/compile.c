@@ -148,26 +148,9 @@ Text_t compile(env_t *env, ast_t *ast) {
         code_err(ast, "I don't know how to get the negative value of type ", type_to_str(t));
     }
     case HeapAllocate:
-    case StackReference: {
-        return compile_typed_allocation(env, ast, get_type(env, ast));
-    }
-    case Optional: {
-        ast_t *value = Match(ast, Optional)->value;
-        Text_t value_code = compile(env, value);
-        return promote_to_optional(get_type(env, value), value_code);
-    }
-    case NonOptional: {
-        ast_t *value = Match(ast, NonOptional)->value;
-        type_t *t = get_type(env, value);
-        Text_t value_code = compile(env, value);
-        int64_t line = get_line_number(ast->file, ast->start);
-        return Texts("({ ", compile_declaration(t, Text("opt")), " = ", value_code, "; ", "if unlikely (",
-                     check_none(t, Text("opt")), ")\n", "#line ", String(line), "\n", "fail_source(",
-                     quoted_str(ast->file->filename), ", ", String((int64_t)(value->start - value->file->text)), ", ",
-                     String((int64_t)(value->end - value->file->text)), ", ",
-                     "\"This was expected to be a value, but it's none\");\n", optional_into_nonnone(t, Text("opt")),
-                     "; })");
-    }
+    case StackReference: return compile_typed_allocation(env, ast, get_type(env, ast));
+    case Optional: return compile_optional(env, ast);
+    case NonOptional: return compile_non_optional(env, ast);
     case Power:
     case Multiply:
     case Divide:
