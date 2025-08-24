@@ -6,13 +6,11 @@
 #include <uninorm.h>
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../config.h"
 #include "../environment.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "assignments.h"
-#include "promotions.h"
+#include "compilation.h"
 
 public
 Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref) {

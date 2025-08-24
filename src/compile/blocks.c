@@ -1,14 +1,12 @@
 // This file defines how to compile blocks
 
-#include "blocks.h"
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "statements.h"
+#include "compilation.h"
 
 public
 Text_t compile_block(env_t *env, ast_t *ast) { return Texts("{\n", compile_inline_block(env, ast), "}\n"); }

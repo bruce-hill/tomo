@@ -1,18 +1,12 @@
 // This file defines how to compile tables
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "functions.h"
-#include "optionals.h"
-#include "pointers.h"
-#include "promotions.h"
-#include "statements.h"
-#include "types.h"
+#include "compilation.h"
 
 static ast_t *add_to_table_comprehension(ast_t *entry, ast_t *subject) {
     DeclareMatch(e, entry, TableEntry);

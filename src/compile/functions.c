@@ -1,8 +1,6 @@
 // This file defines how to compile functions
 
-#include "functions.h"
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../naming.h"
 #include "../stdlib/datatypes.h"
@@ -13,17 +11,7 @@
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "blocks.h"
-#include "declarations.h"
-#include "integers.h"
-#include "lists.h"
-#include "promotions.h"
-#include "sets.h"
-#include "statements.h"
-#include "structs.h"
-#include "tables.h"
-#include "text.h"
-#include "types.h"
+#include "compilation.h"
 
 public
 Text_t compile_function_declaration(env_t *env, ast_t *ast) {

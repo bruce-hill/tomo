@@ -1,6 +1,5 @@
 // This file defines how to compile optionals and null
 
-#include "expressions.h"
 #include "../environment.h"
 #include "../naming.h"
 #include "../stdlib/datatypes.h"
@@ -8,9 +7,7 @@
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "declarations.h"
-#include "text.h"
-#include "types.h"
+#include "compilation.h"
 
 Text_t optional_into_nonnone(type_t *t, Text_t value) {
     if (t->tag == OptionalType) t = Match(t, OptionalType)->type;

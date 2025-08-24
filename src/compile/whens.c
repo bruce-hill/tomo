@@ -1,6 +1,5 @@
 // This file defines how to compile 'when' statements/expressions
 
-#include "whens.h"
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
@@ -9,11 +8,7 @@
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "blocks.h"
-#include "declarations.h"
-#include "expressions.h"
-#include "statements.h"
-#include "types.h"
+#include "compilation.h"
 
 public
 Text_t compile_when_statement(env_t *env, ast_t *ast) {

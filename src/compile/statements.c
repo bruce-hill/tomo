@@ -14,18 +14,7 @@
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "assertions.h"
-#include "assignments.h"
-#include "blocks.h"
-#include "conditionals.h"
-#include "declarations.h"
-#include "doctests.h"
-#include "expressions.h"
-#include "functions.h"
-#include "loops.h"
-#include "promotions.h"
-#include "statements.h"
-#include "whens.h"
+#include "compilation.h"
 
 typedef ast_t *(*comprehension_body_t)(ast_t *, ast_t *);
 

@@ -3,16 +3,12 @@
 #include <gc.h>
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../naming.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "declarations.h"
-#include "functions.h"
-#include "pointers.h"
-#include "types.h"
+#include "compilation.h"
 
 public
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret,

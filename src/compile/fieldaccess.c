@@ -1,4 +1,5 @@
 // This file defines how to compile field accessing like `foo.x`
+
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
@@ -6,11 +7,7 @@
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "declarations.h"
-#include "enums.h"
-#include "expressions.h"
-#include "pointers.h"
-#include "structs.h"
+#include "compilation.h"
 
 Text_t compile_field_access(env_t *env, ast_t *ast) {
     DeclareMatch(f, ast, FieldAccess);

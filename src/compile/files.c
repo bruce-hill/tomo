@@ -1,6 +1,5 @@
 // This file defines how to compile files
 
-#include "files.h"
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
@@ -11,12 +10,7 @@
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "declarations.h"
-#include "enums.h"
-#include "functions.h"
-#include "statements.h"
-#include "structs.h"
-#include "text.h"
+#include "compilation.h"
 
 static void initialize_vars_and_statics(env_t *env, ast_t *ast) {
     if (!ast) return;

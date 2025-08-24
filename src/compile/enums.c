@@ -1,16 +1,12 @@
 // This file defines how to compile enums
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../naming.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "declarations.h"
-#include "pointers.h"
-#include "structs.h"
-#include "types.h"
+#include "compilation.h"
 
 Text_t compile_enum_typeinfo(env_t *env, ast_t *ast) {
     DeclareMatch(def, ast, EnumDef);

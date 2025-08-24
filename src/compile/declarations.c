@@ -1,13 +1,11 @@
 // This file defines how to compile variable declarations
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "promotions.h"
-#include "types.h"
+#include "compilation.h"
 
 public
 Text_t compile_declaration(type_t *t, Text_t name) {

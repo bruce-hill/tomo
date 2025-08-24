@@ -8,12 +8,7 @@
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "assignments.h"
-#include "declarations.h"
-#include "expressions.h"
-#include "promotions.h"
-#include "statements.h"
-#include "types.h"
+#include "compilation.h"
 
 public
 Text_t compile_doctest(env_t *env, ast_t *ast) {

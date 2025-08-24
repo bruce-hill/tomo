@@ -1,17 +1,12 @@
 // This file defines how to compile assignments
-#include "assignments.h"
+
 #include "../ast.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "declarations.h"
-#include "expressions.h"
-#include "integers.h"
-#include "pointers.h"
-#include "promotions.h"
-#include "types.h"
+#include "compilation.h"
 
 public
 Text_t compile_update_assignment(env_t *env, ast_t *ast) {

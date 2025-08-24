@@ -1,19 +1,13 @@
 // This file defines how to compile binary operations
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "declarations.h"
-#include "functions.h"
-#include "optionals.h"
-#include "promotions.h"
-#include "statements.h"
-#include "types.h"
+#include "compilation.h"
 
 static PUREFUNC Text_t compile_unsigned_type(type_t *t) {
     if (t->tag != IntType) errx(1, "Not an int type, so unsigned doesn't make sense!");

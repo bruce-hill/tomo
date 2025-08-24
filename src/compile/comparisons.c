@@ -5,8 +5,7 @@
 #include "../environment.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "promotions.h"
-#include "types.h"
+#include "compilation.h"
 
 Text_t compile_comparison(env_t *env, ast_t *ast) {
 

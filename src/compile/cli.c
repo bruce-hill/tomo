@@ -1,16 +1,12 @@
 // This file defines how to compile CLI argument parsing
 
-#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "declarations.h"
-#include "optionals.h"
-#include "text.h"
-#include "types.h"
+#include "compilation.h"
 
 static Text_t get_flag_options(type_t *t, const char *separator) {
     if (t->tag == BoolType) {

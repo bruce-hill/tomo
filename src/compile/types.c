@@ -6,7 +6,7 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
-#include "text.h"
+#include "compilation.h"
 
 public
 Text_t compile_type(type_t *t) {

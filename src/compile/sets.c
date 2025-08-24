@@ -1,17 +1,12 @@
 // This file defines how to compile sets
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "functions.h"
-#include "pointers.h"
-#include "promotions.h"
-#include "statements.h"
-#include "types.h"
+#include "compilation.h"
 
 static ast_t *add_to_set_comprehension(ast_t *item, ast_t *subject) {
     return WrapAST(item, MethodCall, .name = "add", .self = subject, .args = new (arg_ast_t, .value = item));

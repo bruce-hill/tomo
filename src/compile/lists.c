@@ -6,18 +6,12 @@
 #include <uninorm.h>
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../config.h"
 #include "../environment.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "functions.h"
-#include "optionals.h"
-#include "pointers.h"
-#include "promotions.h"
-#include "statements.h"
-#include "types.h"
+#include "compilation.h"
 
 static ast_t *add_to_list_comprehension(ast_t *item, ast_t *subject) {
     return WrapAST(item, MethodCall, .name = "insert", .self = subject, .args = new (arg_ast_t, .value = item));

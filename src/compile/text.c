@@ -2,7 +2,6 @@
 #include <ctype.h>
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../naming.h"
 #include "../stdlib/datatypes.h"
@@ -10,8 +9,7 @@
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "functions.h"
-#include "types.h"
+#include "compilation.h"
 
 public
 Text_t expr_as_text(Text_t expr, type_t *t, Text_t color) {

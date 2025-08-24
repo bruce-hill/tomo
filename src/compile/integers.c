@@ -3,7 +3,6 @@
 #include <gmp.h>
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
@@ -11,7 +10,7 @@
 #include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "promotions.h"
+#include "compilation.h"
 
 public
 Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {

@@ -12,14 +12,7 @@
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "declarations.h"
-#include "enums.h"
-#include "functions.h"
-#include "headers.h"
-#include "statements.h"
-#include "structs.h"
-#include "text.h"
-#include "types.h"
+#include "compilation.h"
 
 public
 Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t *ast) {

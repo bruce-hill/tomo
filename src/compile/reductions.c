@@ -6,10 +6,7 @@
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "declarations.h"
-#include "expressions.h"
-#include "optionals.h"
-#include "statements.h"
+#include "compilation.h"
 
 public
 Text_t compile_reduction(env_t *env, ast_t *ast) {

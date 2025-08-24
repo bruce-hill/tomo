@@ -6,12 +6,7 @@
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
-#include "expressions.h"
-#include "integers.h"
-#include "optionals.h"
-#include "pointers.h"
-#include "promotions.h"
-#include "types.h"
+#include "compilation.h"
 
 public
 Text_t compile_indexing(env_t *env, ast_t *ast) {
