@@ -3,7 +3,6 @@
 #include <glob.h>
 
 #include "../ast.h"
-#include "expressions.h"
 #include "../config.h"
 #include "../environment.h"
 #include "../modules.h"
@@ -17,7 +16,9 @@
 #include "../typecheck.h"
 #include "assignments.h"
 #include "blocks.h"
+#include "conditionals.h"
 #include "declarations.h"
+#include "expressions.h"
 #include "functions.h"
 #include "optionals.h"
 #include "pointers.h"
@@ -33,28 +34,6 @@ Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
     if (code.length == 0 || !ast || !ast->file || !env->do_source_mapping) return code;
     int64_t line = get_line_number(ast->file, ast->start);
     return Texts("\n#line ", String(line), "\n", code);
-}
-
-public
-Text_t compile_condition(env_t *env, ast_t *ast) {
-    type_t *t = get_type(env, ast);
-    if (t->tag == BoolType) {
-        return compile(env, ast);
-    } else if (t->tag == TextType) {
-        return Texts("(", compile(env, ast), ").length");
-    } else if (t->tag == ListType) {
-        return Texts("(", compile(env, ast), ").length");
-    } else if (t->tag == TableType || t->tag == SetType) {
-        return Texts("(", compile(env, ast), ").entries.length");
-    } else if (t->tag == OptionalType) {
-        return Texts("!", check_none(t, compile(env, ast)));
-    } else if (t->tag == PointerType) {
-        code_err(ast, "This pointer will always be non-none, so it should not be "
-                      "used in a conditional.");
-    } else {
-        code_err(ast, type_to_str(t), " values cannot be used for conditionals");
-    }
-    return EMPTY_TEXT;
 }
 
 static Text_t _compile_statement(env_t *env, ast_t *ast) {
@@ -955,38 +934,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_str(iter_t));
         }
     }
-    case If: {
-        DeclareMatch(if_, ast, If);
-        ast_t *condition = if_->condition;
-        if (condition->tag == Declare) {
-            if (Match(condition, Declare)->value == NULL) code_err(condition, "This declaration must have a value");
-            env_t *truthy_scope = fresh_scope(env);
-            Text_t code = Texts("IF_DECLARE(", compile_statement(truthy_scope, condition), ", ");
-            bind_statement(truthy_scope, condition);
-            ast_t *var = Match(condition, Declare)->var;
-            code = Texts(code, compile_condition(truthy_scope, var), ", ");
-            type_t *cond_t = get_type(truthy_scope, var);
-            if (cond_t->tag == OptionalType) {
-                set_binding(truthy_scope, Match(var, Var)->name, Match(cond_t, OptionalType)->type,
-                            optional_into_nonnone(cond_t, compile(truthy_scope, var)));
-            }
-            code = Texts(code, compile_statement(truthy_scope, if_->body), ")");
-            if (if_->else_body) code = Texts(code, "\nelse ", compile_statement(env, if_->else_body));
-            return code;
-        } else {
-            Text_t code = Texts("if (", compile_condition(env, condition), ")");
-            env_t *truthy_scope = env;
-            type_t *cond_t = get_type(env, condition);
-            if (condition->tag == Var && cond_t->tag == OptionalType) {
-                truthy_scope = fresh_scope(env);
-                set_binding(truthy_scope, Match(condition, Var)->name, Match(cond_t, OptionalType)->type,
-                            optional_into_nonnone(cond_t, compile(truthy_scope, condition)));
-            }
-            code = Texts(code, compile_statement(truthy_scope, if_->body));
-            if (if_->else_body) code = Texts(code, "\nelse ", compile_statement(env, if_->else_body));
-            return code;
-        }
-    }
+    case If: return compile_if_statement(env, ast);
     case Block: {
         return compile_block(env, ast);
     }

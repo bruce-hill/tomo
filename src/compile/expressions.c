@@ -355,60 +355,6 @@ Text_t compile(env_t *env, ast_t *ast) {
                      "when; })");
     }
     case If: {
-        DeclareMatch(if_, ast, If);
-        ast_t *condition = if_->condition;
-        Text_t decl_code = EMPTY_TEXT;
-        env_t *truthy_scope = env, *falsey_scope = env;
-
-        Text_t condition_code;
-        if (condition->tag == Declare) {
-            DeclareMatch(decl, condition, Declare);
-            if (decl->value == NULL) code_err(condition, "This declaration must have a value");
-            type_t *condition_type =
-                decl->type ? parse_type_ast(env, decl->type) : get_type(env, Match(condition, Declare)->value);
-            if (condition_type->tag != OptionalType)
-                code_err(condition,
-                         "This `if var := ...:` declaration should be an "
-                         "optional "
-                         "type, not ",
-                         type_to_str(condition_type));
-
-            if (is_incomplete_type(condition_type)) code_err(condition, "This type is incomplete!");
-
-            decl_code = compile_statement(env, condition);
-            ast_t *var = Match(condition, Declare)->var;
-            truthy_scope = fresh_scope(env);
-            bind_statement(truthy_scope, condition);
-            condition_code = compile_condition(truthy_scope, var);
-            set_binding(truthy_scope, Match(var, Var)->name, Match(condition_type, OptionalType)->type,
-                        optional_into_nonnone(condition_type, compile(truthy_scope, var)));
-        } else if (condition->tag == Var) {
-            type_t *condition_type = get_type(env, condition);
-            condition_code = compile_condition(env, condition);
-            if (condition_type->tag == OptionalType) {
-                truthy_scope = fresh_scope(env);
-                set_binding(truthy_scope, Match(condition, Var)->name, Match(condition_type, OptionalType)->type,
-                            optional_into_nonnone(condition_type, compile(truthy_scope, condition)));
-            }
-        } else {
-            condition_code = compile_condition(env, condition);
-        }
-
-        type_t *true_type = get_type(truthy_scope, if_->body);
-        type_t *false_type = get_type(falsey_scope, if_->else_body);
-        if (true_type->tag == AbortType || true_type->tag == ReturnType)
-            return Texts("({ ", decl_code, "if (", condition_code, ") ", compile_statement(truthy_scope, if_->body),
-                         "\n", compile(falsey_scope, if_->else_body), "; })");
-        else if (false_type->tag == AbortType || false_type->tag == ReturnType)
-            return Texts("({ ", decl_code, "if (!(", condition_code, ")) ",
-                         compile_statement(falsey_scope, if_->else_body), "\n", compile(truthy_scope, if_->body),
-                         "; })");
-        else if (decl_code.length > 0)
-            return Texts("({ ", decl_code, "(", condition_code, ") ? ", compile(truthy_scope, if_->body), " : ",
-                         compile(falsey_scope, if_->else_body), ";})");
-        else
-            return Texts("((", condition_code, ") ? ", compile(truthy_scope, if_->body), " : ",
-                         compile(falsey_scope, if_->else_body), ")");
     }
     case Reduction: {
         DeclareMatch(reduction, ast, Reduction);
