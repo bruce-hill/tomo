@@ -1606,59 +1606,7 @@ type_t *get_arg_type(env_t *env, arg_t *arg) {
     return get_type(env, arg->default_val);
 }
 
-static Table_t *get_arg_bindings_with_promotion(env_t *env, arg_t *spec_args, arg_ast_t *call_args) {
-    Table_t used_args = {};
-
-    // Populate keyword args:
-    for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
-        if (!call_arg->name) continue;
-
-        for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
-            if (!streq(call_arg->name, spec_arg->name)) continue;
-            type_t *spec_type = get_arg_type(env, spec_arg);
-            if (!can_compile_to_type(env, call_arg->value, spec_type)) return NULL;
-            Table$str_set(&used_args, call_arg->name, call_arg);
-            goto next_call_arg;
-        }
-        return NULL;
-    next_call_arg:;
-    }
-
-    arg_ast_t *unused_args = call_args;
-    for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
-        arg_ast_t *keyworded = Table$str_get(used_args, spec_arg->name);
-        if (keyworded) continue;
-
-        type_t *spec_type = get_arg_type(env, spec_arg);
-        for (; unused_args; unused_args = unused_args->next) {
-            if (unused_args->name) continue; // Already handled the keyword args
-            if (!can_compile_to_type(env, unused_args->value, spec_type))
-                return NULL; // Positional arg trying to fill in
-            Table$str_set(&used_args, spec_arg->name, unused_args);
-            unused_args = unused_args->next;
-            goto found_it;
-        }
-
-        if (spec_arg->default_val) goto found_it;
-
-        return NULL;
-    found_it:
-        continue;
-    }
-
-    while (unused_args && unused_args->name)
-        unused_args = unused_args->next;
-
-    if (unused_args != NULL) return NULL;
-
-    Table_t *ret = new (Table_t);
-    *ret = used_args;
-    return ret;
-}
-
-Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed) {
-    if (promotion_allowed) return get_arg_bindings_with_promotion(env, spec_args, call_args);
-
+bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed) {
     Table_t used_args = {};
 
     // Populate keyword args:
@@ -1669,14 +1617,19 @@ Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bo
         for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
             if (!streq(call_arg->name, spec_arg->name)) continue;
             type_t *spec_type = get_arg_type(env, spec_arg);
-            type_t *complete_call_type =
-                is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
-            if (!complete_call_type) return NULL;
-            if (!type_eq(complete_call_type, spec_type)) return NULL;
+            if (promotion_allowed) {
+                if (!can_compile_to_type(env, call_arg->value, spec_type))
+                    return false; // Positional arg trying to fill in
+            } else {
+                type_t *complete_call_type =
+                    is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
+                if (!complete_call_type) return false;
+                if (!type_eq(complete_call_type, spec_type)) return false;
+            }
             Table$str_set(&used_args, call_arg->name, call_arg);
             goto next_call_arg;
         }
-        return NULL;
+        return false;
     next_call_arg:;
     }
 
@@ -1688,11 +1641,16 @@ Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bo
         type_t *spec_type = get_arg_type(env, spec_arg);
         for (; unused_args; unused_args = unused_args->next) {
             if (unused_args->name) continue; // Already handled the keyword args
-            type_t *call_type = get_arg_ast_type(env, unused_args);
-            type_t *complete_call_type =
-                is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
-            if (!complete_call_type) return NULL;
-            if (!type_eq(complete_call_type, spec_type)) return NULL; // Positional arg trying to fill in
+            if (promotion_allowed) {
+                if (!can_compile_to_type(env, unused_args->value, spec_type))
+                    return false; // Positional arg trying to fill in
+            } else {
+                type_t *call_type = get_arg_ast_type(env, unused_args);
+                type_t *complete_call_type =
+                    is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
+                if (!complete_call_type) return false;
+                if (!type_eq(complete_call_type, spec_type)) return false; // Positional arg trying to fill in
+            }
             Table$str_set(&used_args, spec_arg->name, unused_args);
             unused_args = unused_args->next;
             goto found_it;
@@ -1700,7 +1658,7 @@ Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bo
 
         if (spec_arg->default_val) goto found_it;
 
-        return NULL;
+        return false;
     found_it:
         continue;
     }
@@ -1708,16 +1666,7 @@ Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bo
     while (unused_args && unused_args->name)
         unused_args = unused_args->next;
 
-    if (unused_args != NULL) return NULL;
-
-    Table_t *ret = new (Table_t);
-    *ret = used_args;
-    return ret;
-}
-
-bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed) {
-    Table_t *arg_bindings = get_arg_bindings(env, spec_args, call_args, promotion_allowed);
-    return (arg_bindings != NULL);
+    return (unused_args == NULL);
 }
 
 PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast) {

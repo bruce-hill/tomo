@@ -25,7 +25,6 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast);
 type_t *parse_type_string(env_t *env, const char *str);
 type_t *get_method_type(env_t *env, ast_t *self, const char *name);
 PUREFUNC bool is_constant(env_t *env, ast_t *ast);
-Table_t *get_arg_bindings(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed);
 bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, bool promotion_allowed);
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed);
 
