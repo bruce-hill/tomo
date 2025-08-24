@@ -1,3 +1,5 @@
+// This file defines how to do type promotions during compilation
+
 #include "promotions.h"
 #include "../ast.h"
 #include "../compile.h"

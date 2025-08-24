@@ -1,3 +1,6 @@
+// This file defines how to compile tables
+#pragma once
+
 #include "../ast.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"

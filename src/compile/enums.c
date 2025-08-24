@@ -1,6 +1,4 @@
-// Logic for compiling tagged unions (enums)
-#include <gc.h>
-#include <stdio.h>
+// This file defines how to compile enums
 
 #include "../ast.h"
 #include "../compile.h"

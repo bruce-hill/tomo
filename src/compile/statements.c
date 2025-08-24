@@ -1,3 +1,5 @@
+// This file defines how to compile statements
+
 #include <glob.h>
 
 #include "../ast.h"

@@ -1,3 +1,5 @@
+// This file defines how to compile functions
+
 #include "functions.h"
 #include "../ast.h"
 #include "../compile.h"

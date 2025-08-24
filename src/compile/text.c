@@ -1,3 +1,4 @@
+// This file defines how to compile text
 #include <ctype.h>
 
 #include "../ast.h"

@@ -1,4 +1,4 @@
-// Compilation logic for lists
+// This file defines how to compile lists
 
 #include <gc.h>
 #include <glob.h>

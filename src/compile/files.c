@@ -1,7 +1,8 @@
+// This file defines how to compile files
+
 #include <glob.h>
 
 #include "../ast.h"
-#include "../compile.h"
 #include "../config.h"
 #include "../environment.h"
 #include "../modules.h"

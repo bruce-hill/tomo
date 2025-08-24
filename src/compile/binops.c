@@ -1,3 +1,4 @@
+// This file defines how to compile binary operations
 
 #include "../ast.h"
 #include "../compile.h"

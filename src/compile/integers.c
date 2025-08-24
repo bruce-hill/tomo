@@ -1,3 +1,5 @@
+// This file defines how to compile integers
+
 #include <gmp.h>
 
 #include "../ast.h"

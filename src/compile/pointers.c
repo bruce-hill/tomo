@@ -1,4 +1,5 @@
-// Compilation logic
+// This file defines how to compile pointers and allocated memory
+
 #include <gc.h>
 #include <glob.h>
 #include <gmp.h>

@@ -1,3 +1,5 @@
+// This file defines how to compile binary operations
+#pragma once
 
 #include "../ast.h"
 #include "../environment.h"

@@ -1,3 +1,4 @@
+// This file defines how to compile blocks
 
 #include "blocks.h"
 #include "../ast.h"

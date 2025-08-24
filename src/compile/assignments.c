@@ -1,3 +1,4 @@
+// This file defines how to compile assignments
 #include "assignments.h"
 #include "../ast.h"
 #include "../compile.h"

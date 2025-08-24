@@ -1,3 +1,5 @@
+// This file defines how to compile integers
+#pragma once
 
 #include "../ast.h"
 #include "../environment.h"

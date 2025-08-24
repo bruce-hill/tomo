@@ -1,6 +1,5 @@
+// This file defines how to compile enums
 #pragma once
-
-// Compilation of tagged unions (enums)
 
 #include "../ast.h"
 #include "../environment.h"

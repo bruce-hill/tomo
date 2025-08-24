@@ -1,3 +1,4 @@
+// This file defines how to compile types and type info values
 #include "../types.h"
 #include "../ast.h"
 #include "../environment.h"

@@ -1,3 +1,4 @@
+// This file defines how to compile sets
 
 #include "../ast.h"
 #include "../compile.h"
@@ -7,7 +8,6 @@
 #include "../typecheck.h"
 #include "../types.h"
 #include "functions.h"
-#include "optionals.h"
 #include "pointers.h"
 #include "promotions.h"
 #include "statements.h"

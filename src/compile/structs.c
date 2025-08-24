@@ -1,4 +1,5 @@
-// Logic for compiling new struct types defined in code
+// This file defines how to compile structs
+
 #include <gc.h>
 
 #include "../ast.h"

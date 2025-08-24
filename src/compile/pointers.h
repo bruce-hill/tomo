@@ -1,3 +1,6 @@
+// This file defines how to compile pointers and allocated memory
+#pragma once
+
 #include <stdbool.h>
 
 #include "../ast.h"
