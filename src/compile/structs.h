@@ -4,6 +4,7 @@
 
 #include "../ast.h"
 #include "../environment.h"
+#include "../types.h"
 
 Text_t compile_empty_struct(type_t *t);
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret,

@@ -10,7 +10,9 @@
 #include "../environment.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
+#include "promotion.h"
 
+public
 Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref) {
     Text_t val = compile(env, ast);
     type_t *t = get_type(env, ast);
@@ -45,4 +47,23 @@ Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bo
     else if (needs_incref && (t->tag == TableType || t->tag == SetType)) val = Texts("TABLE_COPY(", val, ")");
 
     return val;
+}
+
+public
+Text_t compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type) {
+    // TODO: for constructors, do new(T, ...) instead of heap((T){...})
+    type_t *pointed = Match(pointer_type, PointerType)->pointed;
+    switch (ast->tag) {
+    case HeapAllocate: {
+        return Texts("heap(", compile_to_type(env, Match(ast, HeapAllocate)->value, pointed), ")");
+    }
+    case StackReference: {
+        ast_t *subject = Match(ast, StackReference)->value;
+        if (can_be_mutated(env, subject) && type_eq(pointed, get_type(env, subject)))
+            return Texts("(&", compile_lvalue(env, subject), ")");
+        else return Texts("stack(", compile_to_type(env, subject, pointed), ")");
+    }
+    default: code_err(ast, "Not an allocation!");
+    }
+    return EMPTY_TEXT;
 }

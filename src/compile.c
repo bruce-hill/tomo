@@ -9,15 +9,19 @@
 #include "ast.h"
 #include "compile.h"
 #include "compile/enums.h"
+#include "compile/integers.h"
 #include "compile/lists.h"
+#include "compile/optionals.h"
 #include "compile/pointers.h"
+#include "compile/promotion.h"
+#include "compile/sets.h"
 #include "compile/structs.h"
+#include "compile/tables.h"
 #include "config.h"
 #include "environment.h"
 #include "modules.h"
 #include "naming.h"
 #include "stdlib/integers.h"
-#include "stdlib/nums.h"
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
@@ -28,46 +32,12 @@ typedef ast_t *(*comprehension_body_t)(ast_t *, ast_t *);
 
 static Text_t compile_text(env_t *env, ast_t *ast, Text_t color);
 static Text_t compile_text_literal(Text_t literal);
-static Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t);
-static Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target);
 static Text_t compile_unsigned_type(type_t *t);
-static Text_t promote_to_optional(type_t *t, Text_t code);
-static Text_t compile_none(type_t *t);
 static Text_t compile_declared_value(env_t *env, ast_t *declaration_ast);
-static Text_t compile_typed_set(env_t *env, ast_t *ast, type_t *set_type);
-static Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type);
-static Text_t compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type);
-static Text_t check_none(type_t *t, Text_t value);
-static Text_t optional_into_nonnone(type_t *t, Text_t value);
-static ast_t *add_to_table_comprehension(ast_t *entry, ast_t *subject);
-static ast_t *add_to_set_comprehension(ast_t *item, ast_t *subject);
-static Text_t compile_lvalue(env_t *env, ast_t *ast);
 
 static Text_t quoted_str(const char *str) { return Text$quoted(Text$from_str(str), false, Text("\"")); }
 
 static inline Text_t quoted_text(Text_t text) { return Text$quoted(text, false, Text("\"")); }
-
-Text_t promote_to_optional(type_t *t, Text_t code) {
-    if (t == PATH_TYPE || t == PATH_TYPE_TYPE) {
-        return code;
-    } else if (t->tag == IntType) {
-        switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return Texts("((OptionalInt8_t){.value=", code, "})");
-        case TYPE_IBITS16: return Texts("((OptionalInt16_t){.value=", code, "})");
-        case TYPE_IBITS32: return Texts("((OptionalInt32_t){.value=", code, "})");
-        case TYPE_IBITS64: return Texts("((OptionalInt64_t){.value=", code, "})");
-        default: errx(1, "Unsupported in type: %s", type_to_str(t));
-        }
-        return code;
-    } else if (t->tag == ByteType) {
-        return Texts("((OptionalByte_t){.value=", code, "})");
-    } else if (t->tag == StructType) {
-        return Texts("({ ", compile_type(Type(OptionalType, .type = t)), " nonnull = {.value=", code,
-                     "}; nonnull.is_none = false; nonnull; })");
-    } else {
-        return code;
-    }
-}
 
 static Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
     if (code.length == 0 || !ast || !ast->file || !env->do_source_mapping) return code;
@@ -75,106 +45,7 @@ static Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
     return Texts("\n#line ", String(line), "\n", code);
 }
 
-static bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *needed) {
-    if (type_eq(actual, needed)) return true;
-
-    if (!can_promote(actual, needed)) return false;
-
-    if (needed->tag == ClosureType && actual->tag == FunctionType) {
-        *code = Texts("((Closure_t){", *code, ", NULL})");
-        return true;
-    }
-
-    // Empty promotion:
-    type_t *more_complete = most_complete_type(actual, needed);
-    if (more_complete) return true;
-
-    // Optional promotion:
-    if (needed->tag == OptionalType && type_eq(actual, Match(needed, OptionalType)->type)) {
-        *code = promote_to_optional(actual, *code);
-        return true;
-    }
-
-    // Optional -> Bool promotion
-    if (actual->tag == OptionalType && needed->tag == BoolType) {
-        *code = Texts("(!", check_none(actual, *code), ")");
-        return true;
-    }
-
-    // Lang to Text_t:
-    if (actual->tag == TextType && needed->tag == TextType && streq(Match(needed, TextType)->lang, "Text")) return true;
-
-    // Automatic optional checking for nums:
-    if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
-        int64_t line = get_line_number(ast->file, ast->start);
-        *code = Texts("({ ", compile_declaration(actual, Text("opt")), " = ", *code, "; ", "if unlikely (",
-                      check_none(actual, Text("opt")), ")\n", "#line ", String(line), "\n", "fail_source(",
-                      quoted_str(ast->file->filename), ", ", String((int64_t)(ast->start - ast->file->text)), ", ",
-                      String((int64_t)(ast->end - ast->file->text)), ", ",
-                      "\"This was expected to be a value, but it's none\");\n",
-                      optional_into_nonnone(actual, Text("opt")), "; })");
-        return true;
-    }
-
-    // Numeric promotions/demotions
-    if ((is_numeric_type(actual) || actual->tag == BoolType) && (is_numeric_type(needed) || needed->tag == BoolType)) {
-        arg_ast_t *args = new (arg_ast_t, .value = LiteralCode(*code, .type = actual));
-        binding_t *constructor = get_constructor(
-            env, needed, args, env->current_type != NULL && type_eq(env->current_type, value_type(needed)));
-        if (constructor) {
-            DeclareMatch(fn, constructor->type, FunctionType);
-            if (fn->args->next == NULL) {
-                *code = Texts(constructor->code, "(", compile_arguments(env, ast, fn->args, args), ")");
-                return true;
-            }
-        }
-    }
-
-    if (needed->tag == EnumType) {
-        const char *tag = enum_single_value_tag(needed, actual);
-        binding_t *b = get_binding(Match(needed, EnumType)->env, tag);
-        assert(b && b->type->tag == FunctionType);
-        // Single-value enum constructor:
-        if (!promote(env, ast, code, actual, Match(b->type, FunctionType)->args->type)) return false;
-        *code = Texts(b->code, "(", *code, ")");
-        return true;
-    }
-
-    // Text_t to C String
-    if (actual->tag == TextType && type_eq(actual, TEXT_TYPE) && needed->tag == CStringType) {
-        *code = Texts("Text$as_c_string(", *code, ")");
-        return true;
-    }
-
-    // Automatic dereferencing:
-    if (actual->tag == PointerType && can_promote(Match(actual, PointerType)->pointed, needed)) {
-        *code = Texts("*(", *code, ")");
-        return promote(env, ast, code, Match(actual, PointerType)->pointed, needed);
-    }
-
-    // Stack ref promotion:
-    if (actual->tag == PointerType && needed->tag == PointerType) return true;
-
-    // Cross-promotion between tables with default values and without
-    if (needed->tag == TableType && actual->tag == TableType) return true;
-
-    if (needed->tag == ClosureType && actual->tag == ClosureType) return true;
-
-    if (needed->tag == FunctionType && actual->tag == FunctionType) {
-        *code = Texts("(", compile_type(needed), ")", *code);
-        return true;
-    }
-
-    // Set -> List promotion:
-    if (needed->tag == ListType && actual->tag == SetType
-        && type_eq(Match(needed, ListType)->item_type, Match(actual, SetType)->item_type)) {
-        *code = Texts("(", *code, ").entries");
-        return true;
-    }
-
-    return false;
-}
-
+public
 Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t) {
     if (is_idempotent(ast) && can_be_mutated(env, ast)) {
         if (t->tag == ListType) return Texts("LIST_COPY(", compile_to_type(env, ast, t), ")");
@@ -968,18 +839,6 @@ static Text_t compile_inline_block(env_t *env, ast_t *ast) {
         code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
     }
     return code;
-}
-
-Text_t optional_into_nonnone(type_t *t, Text_t value) {
-    if (t->tag == OptionalType) t = Match(t, OptionalType)->type;
-    switch (t->tag) {
-    case IntType:
-    case ByteType: return Texts(value, ".value");
-    case StructType:
-        if (t == PATH_TYPE || t == PATH_TYPE_TYPE) return value;
-        return Texts(value, ".value");
-    default: return value;
-    }
 }
 
 Text_t check_none(type_t *t, Text_t value) {
@@ -2071,351 +1930,6 @@ Text_t compile_text(env_t *env, ast_t *ast, Text_t color) {
     return expr_as_text(expr, t, color);
 }
 
-public
-Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
-    assert(!is_incomplete_type(t));
-    if (ast->tag == Int && is_numeric_type(non_optional(t))) {
-        return compile_int_to_type(env, ast, t);
-    } else if (ast->tag == Num && t->tag == NumType) {
-        double n = Match(ast, Num)->n;
-        switch (Match(t, NumType)->bits) {
-        case TYPE_NBITS64: return Text$from_str(String(hex_double(n)));
-        case TYPE_NBITS32: return Text$from_str(String(hex_double(n), "f"));
-        default: code_err(ast, "This is not a valid number bit width");
-        }
-    } else if (ast->tag == None) {
-        if (t->tag != OptionalType) code_err(ast, "This is not supposed to be an optional type");
-        else if (Match(t, OptionalType)->type == NULL)
-            code_err(ast, "I don't know what kind of `none` this is supposed to "
-                          "be!\nPlease "
-                          "tell me by declaring a variable like `foo : Type = none`");
-        return compile_none(t);
-    } else if (t->tag == PointerType && (ast->tag == HeapAllocate || ast->tag == StackReference)) {
-        return compile_typed_allocation(env, ast, t);
-    } else if (t->tag == ListType && ast->tag == List) {
-        return compile_typed_list(env, ast, t);
-    } else if (t->tag == TableType && ast->tag == Table) {
-        return compile_typed_table(env, ast, t);
-    } else if (t->tag == SetType && ast->tag == Set) {
-        return compile_typed_set(env, ast, t);
-    }
-
-    type_t *actual = get_type(env, ast);
-
-    // Edge case: there are some situations where a method call needs to have
-    // the `self` value get compiled to a specific type that can't be fully
-    // inferred from the expression itself. We can infer what the specific type
-    // should be from what we know the specific type of the return value is,
-    // but it requires a bit of special logic.
-    // For example:
-    //    x : [Int?] = [none].sorted()
-    // Here, we know that `[none]` is `[Int?]`, but we need to thread that
-    // information through the compiler using an `ExplicitlyTyped` node.
-    if (ast->tag == MethodCall) {
-        DeclareMatch(methodcall, ast, MethodCall);
-        type_t *self_type = get_type(env, methodcall->self);
-        // Currently, this is only implemented for cases where you have the
-        // return type and the self type equal to each other, because that's the
-        // main case I care about with list and set methods (e.g.
-        // `List.sorted()`)
-        if (is_incomplete_type(self_type) && type_eq(self_type, actual)) {
-            type_t *completed_self = most_complete_type(self_type, t);
-            if (completed_self) {
-                ast_t *explicit_self =
-                    WrapAST(methodcall->self, ExplicitlyTyped, .ast = methodcall->self, .type = completed_self);
-                ast_t *new_methodcall =
-                    WrapAST(ast, MethodCall, .self = explicit_self, .name = methodcall->name, .args = methodcall->args);
-                return compile_to_type(env, new_methodcall, t);
-            }
-        }
-    }
-
-    // Promote values to views-of-values if needed:
-    if (t->tag == PointerType && Match(t, PointerType)->is_stack && actual->tag != PointerType)
-        return Texts("stack(", compile_to_type(env, ast, Match(t, PointerType)->pointed), ")");
-
-    if (!is_incomplete_type(actual)) {
-        Text_t code = compile(env, ast);
-        if (promote(env, ast, &code, actual, t)) return code;
-    }
-
-    arg_ast_t *constructor_args = new (arg_ast_t, .value = ast);
-    binding_t *constructor = get_constructor(env, t, constructor_args, true);
-    if (constructor) {
-        arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
-        return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, constructor_args), ")");
-    }
-
-    code_err(ast, "I expected a ", type_to_str(t), " here, but this is a ", type_to_str(actual));
-}
-
-Text_t compile_typed_set(env_t *env, ast_t *ast, type_t *set_type) {
-    DeclareMatch(set, ast, Set);
-    if (!set->items) return Text("((Table_t){})");
-
-    type_t *item_type = Match(set_type, SetType)->item_type;
-
-    int64_t n = 0;
-    for (ast_list_t *item = set->items; item; item = item->next) {
-        ++n;
-        if (item->ast->tag == Comprehension) goto set_comprehension;
-    }
-
-    { // No comprehension:
-        Text_t code = Texts("Set(", compile_type(item_type), ", ", compile_type_info(item_type), ", ", String(n));
-        env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
-        for (ast_list_t *item = set->items; item; item = item->next) {
-            code = Texts(code, ", ", compile_to_type(scope, item->ast, item_type));
-        }
-        return Texts(code, ")");
-    }
-
-set_comprehension: {
-    static int64_t comp_num = 1;
-    env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
-    const char *comprehension_name = String("set$", comp_num++);
-    ast_t *comprehension_var =
-        LiteralCode(Texts("&", comprehension_name), .type = Type(PointerType, .pointed = set_type, .is_stack = true));
-    Text_t code = Texts("({ Table_t ", comprehension_name, " = {};");
-    Closure_t comp_action = {.fn = add_to_set_comprehension, .userdata = comprehension_var};
-    scope->comprehension_action = &comp_action;
-    for (ast_list_t *item = set->items; item; item = item->next) {
-        if (item->ast->tag == Comprehension) code = Texts(code, "\n", compile_statement(scope, item->ast));
-        else code = Texts(code, compile_statement(env, add_to_set_comprehension(item->ast, comprehension_var)));
-    }
-    code = Texts(code, " ", comprehension_name, "; })");
-    return code;
-}
-}
-
-Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type) {
-    DeclareMatch(table, ast, Table);
-    if (!table->entries) {
-        Text_t code = Text("((Table_t){");
-        if (table->fallback) code = Texts(code, ".fallback=heap(", compile(env, table->fallback), ")");
-        return Texts(code, "})");
-    }
-
-    type_t *key_t = Match(table_type, TableType)->key_type;
-    type_t *value_t = Match(table_type, TableType)->value_type;
-
-    if (value_t->tag == OptionalType)
-        code_err(ast, "Tables whose values are optional (", type_to_str(value_t), ") are not currently supported.");
-
-    for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-        if (entry->ast->tag == Comprehension) goto table_comprehension;
-    }
-
-    { // No comprehension:
-        env_t *key_scope = key_t->tag == EnumType ? with_enum_scope(env, key_t) : env;
-        env_t *value_scope = value_t->tag == EnumType ? with_enum_scope(env, value_t) : env;
-        Text_t code = Texts("Table(", compile_type(key_t), ", ", compile_type(value_t), ", ", compile_type_info(key_t),
-                            ", ", compile_type_info(value_t));
-        if (table->fallback) code = Texts(code, ", /*fallback:*/ heap(", compile(env, table->fallback), ")");
-        else code = Texts(code, ", /*fallback:*/ NULL");
-
-        size_t n = 0;
-        for (ast_list_t *entry = table->entries; entry; entry = entry->next)
-            ++n;
-        code = Texts(code, ", ", String((int64_t)n));
-
-        for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-            DeclareMatch(e, entry->ast, TableEntry);
-            code = Texts(code, ",\n\t{", compile_to_type(key_scope, e->key, key_t), ", ",
-                         compile_to_type(value_scope, e->value, value_t), "}");
-        }
-        return Texts(code, ")");
-    }
-
-table_comprehension: {
-    static int64_t comp_num = 1;
-    env_t *scope = fresh_scope(env);
-    const char *comprehension_name = String("table$", comp_num++);
-    ast_t *comprehension_var =
-        LiteralCode(Texts("&", comprehension_name), .type = Type(PointerType, .pointed = table_type, .is_stack = true));
-
-    Text_t code = Texts("({ Table_t ", comprehension_name, " = {");
-    if (table->fallback) code = Texts(code, ".fallback=heap(", compile(env, table->fallback), "), ");
-
-    code = Texts(code, "};");
-
-    Closure_t comp_action = {.fn = add_to_table_comprehension, .userdata = comprehension_var};
-    scope->comprehension_action = &comp_action;
-    for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-        if (entry->ast->tag == Comprehension) code = Texts(code, "\n", compile_statement(scope, entry->ast));
-        else code = Texts(code, compile_statement(env, add_to_table_comprehension(entry->ast, comprehension_var)));
-    }
-    code = Texts(code, " ", comprehension_name, "; })");
-    return code;
-}
-}
-
-Text_t compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type) {
-    // TODO: for constructors, do new(T, ...) instead of heap((T){...})
-    type_t *pointed = Match(pointer_type, PointerType)->pointed;
-    switch (ast->tag) {
-    case HeapAllocate: {
-        return Texts("heap(", compile_to_type(env, Match(ast, HeapAllocate)->value, pointed), ")");
-    }
-    case StackReference: {
-        ast_t *subject = Match(ast, StackReference)->value;
-        if (can_be_mutated(env, subject) && type_eq(pointed, get_type(env, subject)))
-            return Texts("(&", compile_lvalue(env, subject), ")");
-        else return Texts("stack(", compile_to_type(env, subject, pointed), ")");
-    }
-    default: code_err(ast, "Not an allocation!");
-    }
-    return EMPTY_TEXT;
-}
-
-Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
-    if (ast->tag != Int) {
-        Text_t code = compile(env, ast);
-        type_t *actual_type = get_type(env, ast);
-        if (!promote(env, ast, &code, actual_type, target))
-            code_err(ast, "I couldn't promote this ", type_to_str(actual_type), " to a ", type_to_str(target));
-        return code;
-    }
-
-    if (target->tag == BigIntType) return compile(env, ast);
-
-    if (target->tag == OptionalType && Match(target, OptionalType)->type)
-        return compile_int_to_type(env, ast, Match(target, OptionalType)->type);
-
-    const char *literal = Match(ast, Int)->str;
-    OptionalInt_t int_val = Int$from_str(literal);
-    if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
-
-    mpz_t i;
-    mpz_init_set_int(i, int_val);
-
-    char *c_literal;
-    if (strncmp(literal, "0x", 2) == 0 || strncmp(literal, "0X", 2) == 0 || strncmp(literal, "0b", 2) == 0) {
-        gmp_asprintf(&c_literal, "0x%ZX", i);
-    } else if (strncmp(literal, "0o", 2) == 0) {
-        gmp_asprintf(&c_literal, "%#Zo", i);
-    } else {
-        gmp_asprintf(&c_literal, "%#Zd", i);
-    }
-
-    if (target->tag == ByteType) {
-        if (mpz_cmp_si(i, UINT8_MAX) <= 0 && mpz_cmp_si(i, 0) >= 0) return Texts("(Byte_t)(", c_literal, ")");
-        code_err(ast, "This integer cannot fit in a byte");
-    } else if (target->tag == NumType) {
-        if (Match(target, NumType)->bits == TYPE_NBITS64) {
-            return Texts("N64(", c_literal, ")");
-        } else {
-            return Texts("N32(", c_literal, ")");
-        }
-    } else if (target->tag == IntType) {
-        int64_t target_bits = (int64_t)Match(target, IntType)->bits;
-        switch (target_bits) {
-        case TYPE_IBITS64:
-            if (mpz_cmp_si(i, INT64_MIN) == 0) return Text("I64(INT64_MIN)");
-            if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) return Texts("I64(", c_literal, "L)");
-            break;
-        case TYPE_IBITS32:
-            if (mpz_cmp_si(i, INT32_MAX) <= 0 && mpz_cmp_si(i, INT32_MIN) >= 0) return Texts("I32(", c_literal, ")");
-            break;
-        case TYPE_IBITS16:
-            if (mpz_cmp_si(i, INT16_MAX) <= 0 && mpz_cmp_si(i, INT16_MIN) >= 0) return Texts("I16(", c_literal, ")");
-            break;
-        case TYPE_IBITS8:
-            if (mpz_cmp_si(i, INT8_MAX) <= 0 && mpz_cmp_si(i, INT8_MIN) >= 0) return Texts("I8(", c_literal, ")");
-            break;
-        default: break;
-        }
-        code_err(ast, "This integer cannot fit in a ", target_bits, "-bit value");
-    } else {
-        code_err(ast, "I don't know how to compile this to a ", type_to_str(target));
-    }
-    return EMPTY_TEXT;
-}
-
-public
-Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args) {
-    Table_t used_args = {};
-    Text_t code = EMPTY_TEXT;
-    env_t *default_scope = new (env_t);
-    *default_scope = *env;
-    default_scope->locals = new (Table_t, .fallback = env->namespace_bindings ? env->namespace_bindings : env->globals);
-    for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
-        int64_t i = 1;
-        // Find keyword:
-        if (spec_arg->name) {
-            for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
-                if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
-                    Text_t value;
-                    if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
-                        value = compile_int_to_type(env, call_arg->value, spec_arg->type);
-                    } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                        OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
-                        if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
-                        if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
-                            value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
-                        else value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
-                    } else {
-                        env_t *arg_env = with_enum_scope(env, spec_arg->type);
-                        value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
-                    }
-                    Table$str_set(&used_args, call_arg->name, call_arg);
-                    if (code.length > 0) code = Texts(code, ", ");
-                    code = Texts(code, value);
-                    goto found_it;
-                }
-            }
-        }
-        // Find positional:
-        for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
-            if (call_arg->name) continue;
-            const char *pseudoname = String(i++);
-            if (!Table$str_get(used_args, pseudoname)) {
-                Text_t value;
-                if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
-                    value = compile_int_to_type(env, call_arg->value, spec_arg->type);
-                } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                    OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
-                    if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
-                    if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
-                        value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
-                    else value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
-                } else {
-                    env_t *arg_env = with_enum_scope(env, spec_arg->type);
-                    value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
-                }
-
-                Table$str_set(&used_args, pseudoname, call_arg);
-                if (code.length > 0) code = Texts(code, ", ");
-                code = Texts(code, value);
-                goto found_it;
-            }
-        }
-
-        if (spec_arg->default_val) {
-            if (code.length > 0) code = Texts(code, ", ");
-            code = Texts(code, compile_maybe_incref(default_scope, spec_arg->default_val, get_arg_type(env, spec_arg)));
-            goto found_it;
-        }
-
-        assert(spec_arg->name);
-        code_err(call_ast, "The required argument '", spec_arg->name, "' was not provided");
-    found_it:
-        continue;
-    }
-
-    int64_t i = 1;
-    for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
-        if (call_arg->name) {
-            if (!Table$str_get(used_args, call_arg->name))
-                code_err(call_arg->value, "There is no argument with the name '", call_arg->name, "'");
-        } else {
-            const char *pseudoname = String(i++);
-            if (!Table$str_get(used_args, pseudoname)) code_err(call_arg->value, "This is one argument too many!");
-        }
-    }
-    return code;
-}
-
 Text_t compile_text_literal(Text_t literal) {
     Text_t code = Text("\"");
     const char *utf8 = Text$as_c_string(literal);
@@ -2450,48 +1964,6 @@ PUREFUNC static bool string_literal_is_all_ascii(Text_t literal) {
         if (g < 0 || g > 127 || !isascii(g)) return false;
     }
     return true;
-}
-
-Text_t compile_none(type_t *t) {
-    if (t == NULL) compiler_err(NULL, NULL, NULL, "I can't compile a `none` value with no type");
-
-    if (t->tag == OptionalType) t = Match(t, OptionalType)->type;
-
-    if (t == NULL) compiler_err(NULL, NULL, NULL, "I can't compile a `none` value with no type");
-
-    if (t == PATH_TYPE) return Text("NONE_PATH");
-    else if (t == PATH_TYPE_TYPE) return Text("((OptionalPathType_t){})");
-
-    switch (t->tag) {
-    case BigIntType: return Text("NONE_INT");
-    case IntType: {
-        switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return Text("NONE_INT8");
-        case TYPE_IBITS16: return Text("NONE_INT16");
-        case TYPE_IBITS32: return Text("NONE_INT32");
-        case TYPE_IBITS64: return Text("NONE_INT64");
-        default: errx(1, "Invalid integer bit size");
-        }
-        break;
-    }
-    case BoolType: return Text("NONE_BOOL");
-    case ByteType: return Text("NONE_BYTE");
-    case ListType: return Text("NONE_LIST");
-    case TableType: return Text("NONE_TABLE");
-    case SetType: return Text("NONE_TABLE");
-    case TextType: return Text("NONE_TEXT");
-    case CStringType: return Text("NULL");
-    case PointerType: return Texts("((", compile_type(t), ")NULL)");
-    case ClosureType: return Text("NONE_CLOSURE");
-    case NumType: return Text("nan(\"none\")");
-    case StructType: return Texts("((", compile_type(Type(OptionalType, .type = t)), "){.is_none=true})");
-    case EnumType: {
-        env_t *enum_env = Match(t, EnumType)->env;
-        return Texts("((", compile_type(t), "){", namespace_name(enum_env, enum_env->namespace, Text("none")), "})");
-    }
-    default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: ", type_to_str(t));
-    }
-    return EMPTY_TEXT;
 }
 
 public
@@ -2559,16 +2031,6 @@ static Text_t compile_declared_value(env_t *env, ast_t *declare_ast) {
                      ") cannot be uninitialized. You must provide a value.");
         return val_code;
     }
-}
-
-ast_t *add_to_table_comprehension(ast_t *entry, ast_t *subject) {
-    DeclareMatch(e, entry, TableEntry);
-    return WrapAST(entry, MethodCall, .name = "set", .self = subject,
-                   .args = new (arg_ast_t, .value = e->key, .next = new (arg_ast_t, .value = e->value)));
-}
-
-ast_t *add_to_set_comprehension(ast_t *item, ast_t *subject) {
-    return WrapAST(item, MethodCall, .name = "add", .self = subject, .args = new (arg_ast_t, .value = item));
 }
 
 Text_t compile(env_t *env, ast_t *ast) {
