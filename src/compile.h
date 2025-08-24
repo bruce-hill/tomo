@@ -7,6 +7,7 @@
 #include "environment.h"
 #include "stdlib/datatypes.h"
 
+Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t);
 Text_t expr_as_text(Text_t expr, type_t *t, Text_t color);
 Text_t compile_file(env_t *env, ast_t *ast);
 Text_t compile_file_header(env_t *env, Path_t header_path, ast_t *ast);

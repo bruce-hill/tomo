@@ -95,7 +95,7 @@ else
 endif
 EXE_FILE=tomo_$(TOMO_VERSION)
 
-COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c))
+COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c src/compile/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
 API_YAML=$(wildcard api/*.yaml)

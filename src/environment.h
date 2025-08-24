@@ -4,6 +4,7 @@
 
 #include "stdlib/datatypes.h"
 #include "stdlib/print.h"
+#include "stdlib/stdlib.h"
 #include "types.h"
 
 typedef struct {
