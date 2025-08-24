@@ -2,8 +2,8 @@
 
 // Compilation of user-defined structs
 
-#include "ast.h"
-#include "environment.h"
+#include "../ast.h"
+#include "../environment.h"
 
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret,
                                bool is_opaque);

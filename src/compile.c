@@ -8,9 +8,10 @@
 
 #include "ast.h"
 #include "compile.h"
+#include "compile/enums.h"
 #include "compile/list.h"
+#include "compile/structs.h"
 #include "config.h"
-#include "enums.h"
 #include "environment.h"
 #include "modules.h"
 #include "naming.h"
@@ -20,7 +21,6 @@
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
-#include "structs.h"
 #include "typecheck.h"
 
 typedef ast_t *(*comprehension_body_t)(ast_t *, ast_t *);

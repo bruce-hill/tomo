@@ -2,9 +2,9 @@
 
 // Compilation of tagged unions (enums)
 
-#include "ast.h"
-#include "environment.h"
-#include "stdlib/datatypes.h"
+#include "../ast.h"
+#include "../environment.h"
+#include "../stdlib/datatypes.h"
 
 Text_t compile_enum_typeinfo(env_t *env, ast_t *ast);
 Text_t compile_enum_constructors(env_t *env, ast_t *ast);

@@ -2,14 +2,14 @@
 #include <gc.h>
 #include <stdio.h>
 
-#include "ast.h"
-#include "compile.h"
-#include "environment.h"
-#include "naming.h"
-#include "stdlib/tables.h"
-#include "stdlib/text.h"
+#include "../ast.h"
+#include "../compile.h"
+#include "../environment.h"
+#include "../naming.h"
+#include "../stdlib/tables.h"
+#include "../stdlib/text.h"
+#include "../typecheck.h"
 #include "structs.h"
-#include "typecheck.h"
 
 Text_t compile_enum_typeinfo(env_t *env, ast_t *ast) {
     DeclareMatch(def, ast, EnumDef);

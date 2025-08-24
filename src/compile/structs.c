@@ -1,13 +1,13 @@
 // Logic for compiling new struct types defined in code
 #include <gc.h>
 
-#include "ast.h"
-#include "compile.h"
-#include "environment.h"
-#include "naming.h"
-#include "stdlib/tables.h"
-#include "stdlib/text.h"
-#include "typecheck.h"
+#include "../ast.h"
+#include "../compile.h"
+#include "../environment.h"
+#include "../naming.h"
+#include "../stdlib/tables.h"
+#include "../stdlib/text.h"
+#include "../typecheck.h"
 
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret,
                                bool is_opaque) {
