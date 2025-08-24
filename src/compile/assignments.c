@@ -8,7 +8,7 @@
 #include "../typecheck.h"
 #include "integers.h"
 #include "pointers.h"
-#include "promotion.h"
+#include "promotions.h"
 #include "types.h"
 
 public

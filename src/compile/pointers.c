@@ -11,7 +11,7 @@
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "assignments.h"
-#include "promotion.h"
+#include "promotions.h"
 
 public
 Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref) {

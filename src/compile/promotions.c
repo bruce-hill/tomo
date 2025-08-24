@@ -1,4 +1,4 @@
-#include "promotion.h"
+#include "promotions.h"
 #include "../ast.h"
 #include "../compile.h"
 #include "../environment.h"

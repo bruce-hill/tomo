@@ -13,7 +13,7 @@
 #include "compile/lists.h"
 #include "compile/optionals.h"
 #include "compile/pointers.h"
-#include "compile/promotion.h"
+#include "compile/promotions.h"
 #include "compile/sets.h"
 #include "compile/statements.h"
 #include "compile/structs.h"

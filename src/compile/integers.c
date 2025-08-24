@@ -8,7 +8,7 @@
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
-#include "promotion.h"
+#include "promotions.h"
 
 Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
     if (ast->tag != Int) {

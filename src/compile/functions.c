@@ -14,7 +14,7 @@
 #include "assignments.h"
 #include "blocks.h"
 #include "integers.h"
-#include "promotion.h"
+#include "promotions.h"
 #include "statements.h"
 #include "structs.h"
 #include "text.h"
