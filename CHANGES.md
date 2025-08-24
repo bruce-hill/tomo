@@ -44,6 +44,7 @@
   - Memory offsets for enums with different member alignments were miscalculated.
   - Optional types with trailing padding were not correctly being detected as `none`
   - Tomo identifiers that happened to coincide with C keywords were not allowed.
+  - Compatibility issues caused compilation failure on some platforms.
 
 ## v0.2
 
