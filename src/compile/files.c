@@ -268,27 +268,7 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
         return Texts(decl->value ? compile_statement_type_header(env, header_path, decl->value) : EMPTY_TEXT, "extern ",
                      compile_declaration(t, namespace_name(env, env->namespace, Text$from_str(decl_name))), ";\n");
     }
-    case FunctionDef: {
-        DeclareMatch(fndef, ast, FunctionDef);
-        const char *decl_name = Match(fndef->name, Var)->name;
-        bool is_private = decl_name[0] == '_';
-        if (is_private) return EMPTY_TEXT;
-        Text_t arg_signature = Text("(");
-        for (arg_ast_t *arg = fndef->args; arg; arg = arg->next) {
-            type_t *arg_type = get_arg_ast_type(env, arg);
-            arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
-            if (arg->next) arg_signature = Texts(arg_signature, ", ");
-        }
-        arg_signature = Texts(arg_signature, ")");
-
-        type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
-        Text_t ret_type_code = compile_type(ret_t);
-        if (ret_t->tag == AbortType) ret_type_code = Texts("__attribute__((noreturn)) _Noreturn ", ret_type_code);
-        Text_t name = namespace_name(env, env->namespace, Text$from_str(decl_name));
-        if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
-            name = namespace_name(env, env->namespace, Text$from_str(String(get_line_number(ast->file, ast->start))));
-        return Texts(ret_type_code, " ", name, arg_signature, ";\n");
-    }
+    case FunctionDef: return compile_function_declaration(env, ast);
     case ConvertDef: {
         DeclareMatch(def, ast, ConvertDef);
 
