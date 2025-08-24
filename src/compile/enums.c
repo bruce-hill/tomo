@@ -9,7 +9,7 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "pointer.h"
+#include "pointers.h"
 #include "structs.h"
 
 Text_t compile_enum_typeinfo(env_t *env, ast_t *ast) {

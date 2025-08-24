@@ -10,7 +10,6 @@
 #include "../environment.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "list.h"
 
 Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bool needs_incref) {
     Text_t val = compile(env, ast);

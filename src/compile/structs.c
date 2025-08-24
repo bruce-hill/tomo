@@ -8,7 +8,7 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "pointer.h"
+#include "pointers.h"
 
 public
 Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_t *fields, bool is_secret,
