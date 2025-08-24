@@ -11,6 +11,7 @@
 #include "optionals.h"
 #include "statements.h"
 
+public
 Text_t compile_reduction(env_t *env, ast_t *ast) {
     DeclareMatch(reduction, ast, Reduction);
     ast_e op = reduction->op;
