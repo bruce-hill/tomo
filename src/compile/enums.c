@@ -1,7 +1,7 @@
 // This file defines how to compile enums
 
 #include "../ast.h"
-#include "../compile.h"
+#include "expressions.h"
 #include "../environment.h"
 #include "../naming.h"
 #include "../stdlib/tables.h"

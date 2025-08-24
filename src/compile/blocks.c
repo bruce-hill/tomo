@@ -2,7 +2,7 @@
 
 #include "blocks.h"
 #include "../ast.h"
-#include "../compile.h"
+#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"

@@ -3,7 +3,7 @@
 #include <glob.h>
 
 #include "../ast.h"
-#include "../compile.h"
+#include "expressions.h"
 #include "../config.h"
 #include "../environment.h"
 #include "../modules.h"

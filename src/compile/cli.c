@@ -1,6 +1,6 @@
 // This file defines how to compile CLI argument parsing
 
-#include "../compile.h"
+#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"

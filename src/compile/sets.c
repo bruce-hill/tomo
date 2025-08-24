@@ -1,7 +1,7 @@
 // This file defines how to compile sets
 
 #include "../ast.h"
-#include "../compile.h"
+#include "expressions.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
