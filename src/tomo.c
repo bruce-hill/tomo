@@ -15,6 +15,7 @@
 #include "ast.h"
 #include "changes.md.h"
 #include "compile.h"
+#include "compile/cli.h"
 #include "compile/files.h"
 #include "config.h"
 #include "modules.h"

@@ -8,7 +8,6 @@
 #include "types.h"
 
 Text_t compile(env_t *env, ast_t *ast);
-Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const char *version);
 Text_t compile_empty(type_t *t);
 Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t);
 
