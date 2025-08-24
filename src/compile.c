@@ -23,7 +23,6 @@
 #include "compile/types.h"
 #include "config.h"
 #include "environment.h"
-#include "stdlib/integers.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
@@ -95,20 +94,7 @@ Text_t compile(env_t *env, ast_t *ast) {
         // return Texts("_$", Match(ast, Var)->name);
         code_err(ast, "I don't know of any variable by this name");
     }
-    case Int: {
-        const char *str = Match(ast, Int)->str;
-        OptionalInt_t int_val = Int$from_str(str);
-        if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
-        mpz_t i;
-        mpz_init_set_int(i, int_val);
-        if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
-            return Texts("I_small(", str, ")");
-        } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
-            return Texts("Int$from_int64(", str, ")");
-        } else {
-            return Texts("Int$from_str(\"", str, "\")");
-        }
-    }
+    case Int: return compile_int(ast);
     case Num: {
         return Text$from_str(String(hex_double(Match(ast, Num)->n)));
     }

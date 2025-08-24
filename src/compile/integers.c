@@ -6,10 +6,12 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
 #include "../stdlib/text.h"
+#include "../stdlib/util.h"
 #include "../typecheck.h"
 #include "../types.h"
 #include "promotions.h"
 
+public
 Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
     if (ast->tag != Int) {
         Text_t code = compile(env, ast);
@@ -72,4 +74,20 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
         code_err(ast, "I don't know how to compile this to a ", type_to_str(target));
     }
     return EMPTY_TEXT;
+}
+
+public
+Text_t compile_int(ast_t *ast) {
+    const char *str = Match(ast, Int)->str;
+    OptionalInt_t int_val = Int$from_str(str);
+    if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
+    mpz_t i;
+    mpz_init_set_int(i, int_val);
+    if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
+        return Texts("I_small(", str, ")");
+    } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
+        return Texts("Int$from_int64(", str, ")");
+    } else {
+        return Texts("Int$from_str(\"", str, "\")");
+    }
 }
