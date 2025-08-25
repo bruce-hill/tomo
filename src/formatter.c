@@ -99,7 +99,8 @@ static OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
 }
 
 static Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
-    (void)comments;
+    OptionalText_t inline_arg = format_inline_arg(arg, comments);
+    if (inline_arg.length >= 0) return inline_arg;
     Text_t code = Text$from_str(arg->name);
     if (arg->type) code = Texts(code, ":", format_type(arg->type, comments, indent));
     if (arg->value) code = Texts(code, " = ", format_code(arg->value, comments, indent));
@@ -134,11 +135,53 @@ static Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
     return code;
 }
 
-ast_t *unwrap_block(ast_t *ast) {
+static OptionalText_t format_inline_tag(tag_ast_t *tag, Table_t comments) {
+    if (range_has_comment(tag->start, tag->end, comments)) return NONE_TEXT;
+    Text_t code = Texts(Text$from_str(tag->name), "(", must(format_inline_args(tag->fields, comments)));
+    if (tag->secret) code = Texts(code, "; secret");
+    return Texts(code, ")");
+}
+
+static Text_t format_tag(tag_ast_t *tag, Table_t comments, Text_t indent) {
+    OptionalText_t inline_tag = format_inline_tag(tag, comments);
+    if (inline_tag.length >= 0) return inline_tag;
+    Text_t code =
+        Texts(Text$from_str(tag->name), "(", format_args(tag->fields, comments, Texts(indent, single_indent)));
+    if (tag->secret) code = Texts(code, "; secret");
+    return Texts(code, ")");
+}
+
+static OptionalText_t format_inline_tags(tag_ast_t *tags, Table_t comments) {
+    Text_t code = EMPTY_TEXT;
+    for (; tags; tags = tags->next) {
+        code = Texts(code, must(format_inline_tag(tags, comments)));
+        if (tags->next) code = Texts(code, ", ");
+        if (tags->next && range_has_comment(tags->end, tags->next->start, comments)) return NONE_TEXT;
+    }
+    return code;
+}
+
+static Text_t format_tags(tag_ast_t *tags, Table_t comments, Text_t indent) {
+    OptionalText_t inline_tags = format_inline_tags(tags, comments);
+    if (inline_tags.length >= 0) return inline_tags;
+    Text_t code = EMPTY_TEXT;
+    for (; tags; tags = tags->next) {
+        add_line(&code, Texts(format_tag(tags, comments, indent), ","), indent);
+    }
+    return code;
+}
+
+static CONSTFUNC ast_t *unwrap_block(ast_t *ast) {
+    if (ast == NULL) return NULL;
     while (ast->tag == Block && Match(ast, Block)->statements && Match(ast, Block)->statements->next == NULL) {
         ast = Match(ast, Block)->statements->ast;
     }
     return ast;
+}
+
+static Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent) {
+    if (unwrap_block(namespace) == NULL) return EMPTY_TEXT;
+    return Texts("\n", indent, single_indent, format_code(namespace, comments, Texts(indent, single_indent)));
 }
 
 OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
@@ -150,6 +193,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         else if (statements->next == NULL) return format_inline_code(statements->ast, comments);
         else return NONE_TEXT;
     }
+    case StructDef:
+    case EnumDef:
+    case LangDef:
+    case Extend:
     case FunctionDef: return NONE_TEXT;
     case If: {
         DeclareMatch(if_, ast, If);
@@ -254,8 +301,30 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             code = Texts(code, func->args ? Text(" -> ") : Text("-> "), format_type(func->ret_type, comments, indent));
         if (func->cache) code = Texts(code, "; cache=", format_code(func->cache, comments, indent));
         if (func->is_inline) code = Texts(code, "; inline");
-        code = Texts(code, ")\n", single_indent, format_code(func->body, comments, Texts(indent, single_indent)));
-        return Texts(code, "\n");
+        code =
+            Texts(code, ")\n", indent, single_indent, format_code(func->body, comments, Texts(indent, single_indent)));
+        return Texts(code);
+    }
+    case StructDef: {
+        DeclareMatch(def, ast, StructDef);
+        Text_t code = Texts("struct ", Text$from_str(def->name), "(", format_args(def->fields, comments, indent));
+        if (def->secret) code = Texts(code, "; secret");
+        if (def->external) code = Texts(code, "; external");
+        if (def->opaque) code = Texts(code, "; opaque");
+        return Texts(code, ")", format_namespace(def->namespace, comments, indent));
+    }
+    case EnumDef: {
+        DeclareMatch(def, ast, EnumDef);
+        Text_t code = Texts("enum ", Text$from_str(def->name), "(", format_tags(def->tags, comments, indent));
+        return Texts(code, ")", format_namespace(def->namespace, comments, indent));
+    }
+    case LangDef: {
+        DeclareMatch(def, ast, LangDef);
+        return Texts("lang ", Text$from_str(def->name), format_namespace(def->namespace, comments, indent));
+    }
+    case Extend: {
+        DeclareMatch(extend, ast, Extend);
+        return Texts("lang ", Text$from_str(extend->name), format_namespace(extend->body, comments, indent));
     }
     default: {
         if (inlined_fits) return inlined;

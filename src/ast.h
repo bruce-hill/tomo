@@ -90,6 +90,7 @@ typedef enum {
 } type_ast_e;
 
 typedef struct tag_ast_s {
+    const char *start, *end;
     const char *name;
     arg_ast_t *fields;
     struct tag_ast_s *next;
