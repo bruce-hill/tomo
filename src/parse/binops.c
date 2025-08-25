@@ -9,33 +9,6 @@
 #include "suffixes.h"
 #include "utils.h"
 
-int op_tightness[] = {
-    [Power] = 9,
-    [Multiply] = 8,
-    [Divide] = 8,
-    [Mod] = 8,
-    [Mod1] = 8,
-    [Plus] = 7,
-    [Minus] = 7,
-    [Concat] = 6,
-    [LeftShift] = 5,
-    [RightShift] = 5,
-    [UnsignedLeftShift] = 5,
-    [UnsignedRightShift] = 5,
-    [Min] = 4,
-    [Max] = 4,
-    [Equals] = 3,
-    [NotEquals] = 3,
-    [LessThan] = 2,
-    [LessThanOrEquals] = 2,
-    [GreaterThan] = 2,
-    [GreaterThanOrEquals] = 2,
-    [Compare] = 2,
-    [And] = 1,
-    [Or] = 1,
-    [Xor] = 1,
-};
-
 ast_e match_binary_operator(const char **pos) {
     switch (**pos) {
     case '+': {

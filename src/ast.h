@@ -274,6 +274,7 @@ typedef enum {
     Extend,
     ExplicitlyTyped,
 } ast_e;
+#define NUM_AST_TAGS (ExplicitlyTyped + 1)
 
 struct ast_s {
     ast_e tag;
@@ -472,6 +473,8 @@ struct ast_s {
         } ExplicitlyTyped;
     } __data;
 };
+
+extern const int op_tightness[NUM_AST_TAGS];
 
 const char *ast_source(ast_t *ast);
 

@@ -8,6 +8,33 @@
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 
+const int op_tightness[NUM_AST_TAGS] = {
+    [Power] = 9,
+    [Multiply] = 8,
+    [Divide] = 8,
+    [Mod] = 8,
+    [Mod1] = 8,
+    [Plus] = 7,
+    [Minus] = 7,
+    [Concat] = 6,
+    [LeftShift] = 5,
+    [RightShift] = 5,
+    [UnsignedLeftShift] = 5,
+    [UnsignedRightShift] = 5,
+    [Min] = 4,
+    [Max] = 4,
+    [Equals] = 3,
+    [NotEquals] = 3,
+    [LessThan] = 2,
+    [LessThanOrEquals] = 2,
+    [GreaterThan] = 2,
+    [GreaterThanOrEquals] = 2,
+    [Compare] = 2,
+    [And] = 1,
+    [Or] = 1,
+    [Xor] = 1,
+};
+
 static Text_t quoted_text(const char *text) { return Text$quoted(Text$from_str(text), false, Text("\"")); }
 
 CONSTFUNC const char *binop_method_name(ast_e tag) {
@@ -44,7 +71,7 @@ CONSTFUNC const char *binop_method_name(ast_e tag) {
     case XorUpdate: return "bit_xor";
     default: return NULL;
     }
-};
+}
 
 CONSTFUNC const char *binop_operator(ast_e tag) {
     switch (tag) {
@@ -76,7 +103,7 @@ CONSTFUNC const char *binop_operator(ast_e tag) {
     case GreaterThanOrEquals: return ">=";
     default: return NULL;
     }
-};
+}
 
 static Text_t ast_list_to_sexp(ast_list_t *asts);
 static Text_t arg_list_to_sexp(arg_ast_t *args);
