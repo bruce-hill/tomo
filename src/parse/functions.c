@@ -18,7 +18,6 @@
 #include "types.h"
 #include "utils.h"
 
-public
 arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
     arg_ast_t *args = NULL;
     for (;;) {
@@ -74,7 +73,6 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
     return args;
 }
 
-public
 ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;
@@ -146,7 +144,6 @@ ast_t *parse_convert_def(parse_ctx_t *ctx, const char *pos) {
                   .cache = cache_ast, .is_inline = is_inline);
 }
 
-public
 ast_t *parse_lambda(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;

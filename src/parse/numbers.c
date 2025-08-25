@@ -17,7 +17,6 @@
 
 static const double RADIANS_PER_DEGREE = 0.0174532925199432957692369076848861271344287188854172545609719144;
 
-public
 ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     (void)match(&pos, "-");
@@ -51,7 +50,6 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Int, .str = str);
 }
 
-public
 ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     bool negative = match(&pos, "-");

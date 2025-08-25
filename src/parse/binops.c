@@ -36,7 +36,6 @@ int op_tightness[] = {
     [Xor] = 1,
 };
 
-public
 ast_e match_binary_operator(const char **pos) {
     switch (**pos) {
     case '+': {
@@ -85,7 +84,6 @@ ast_e match_binary_operator(const char **pos) {
     }
 }
 
-public
 ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightness) {
     ast_t *lhs = optional(ctx, &pos, parse_term);
     if (!lhs) return NULL;

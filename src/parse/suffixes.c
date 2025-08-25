@@ -11,7 +11,6 @@
 #include "parse.h"
 #include "utils.h"
 
-public
 ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (!lhs) return NULL;
     const char *pos = lhs->end;
@@ -26,7 +25,6 @@ ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     return NewAST(ctx->file, lhs->start, pos, FieldAccess, .fielded = lhs, .field = field);
 }
 
-public
 ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (!lhs) return NULL;
     const char *pos = lhs->end;
@@ -34,7 +32,6 @@ ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     else return NULL;
 }
 
-public
 ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (!lhs) return NULL;
     const char *pos = lhs->end;
@@ -42,7 +39,6 @@ ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     else return NULL;
 }
 
-public
 ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (!lhs) return NULL;
     const char *start = lhs->start;
@@ -56,7 +52,6 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     return NewAST(ctx->file, start, pos, Index, .indexed = lhs, .index = index, .unchecked = unchecked);
 }
 
-public
 ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
     // <expr> "for" [<index>,]<var> "in" <iter> ["if" <condition> | "unless" <condition>]
     if (!expr) return NULL;
@@ -91,7 +86,6 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
     return NewAST(ctx->file, start, pos, Comprehension, .expr = expr, .vars = vars, .iter = iter, .filter = filter);
 }
 
-public
 ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
     // <statement> "if" <condition> | <statement> "unless" <condition>
     if (!stmt) return stmt;
@@ -109,7 +103,6 @@ ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
     }
 }
 
-public
 ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
     if (!self) return NULL;
 

@@ -13,7 +13,6 @@
 #include "suffixes.h"
 #include "utils.h"
 
-public
 ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     spaces(&pos);
@@ -75,13 +74,11 @@ ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Block, .statements = statements);
 }
 
-public
 ast_t *parse_pass(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     return match_word(&pos, "pass") ? NewAST(ctx->file, start, pos, Pass) : NULL;
 }
 
-public
 ast_t *parse_defer(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "defer")) return NULL;
@@ -89,7 +86,6 @@ ast_t *parse_defer(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Defer, .body = body);
 }
 
-public
 ast_t *parse_skip(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "continue") && !match_word(&pos, "skip")) return NULL;
@@ -102,7 +98,6 @@ ast_t *parse_skip(parse_ctx_t *ctx, const char *pos) {
     return skip;
 }
 
-public
 ast_t *parse_stop(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "stop") && !match_word(&pos, "break")) return NULL;
@@ -115,7 +110,6 @@ ast_t *parse_stop(parse_ctx_t *ctx, const char *pos) {
     return stop;
 }
 
-public
 ast_t *parse_return(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "return")) return NULL;
@@ -125,7 +119,6 @@ ast_t *parse_return(parse_ctx_t *ctx, const char *pos) {
     return ret;
 }
 
-public
 ast_t *parse_do(parse_ctx_t *ctx, const char *pos) {
     // do [<indent>] body
     const char *start = pos;
@@ -134,7 +127,6 @@ ast_t *parse_do(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Block, .statements = Match(body, Block)->statements);
 }
 
-public
 ast_t *parse_while(parse_ctx_t *ctx, const char *pos) {
     // while condition ["do"] [<indent>] body
     const char *start = pos;
@@ -155,7 +147,6 @@ ast_t *parse_while(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, While, .condition = condition, .body = body);
 }
 
-public
 ast_t *parse_repeat(parse_ctx_t *ctx, const char *pos) {
     // repeat [<indent>] body
     const char *start = pos;
@@ -164,7 +155,6 @@ ast_t *parse_repeat(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Repeat, .body = body);
 }
 
-public
 ast_t *parse_if(parse_ctx_t *ctx, const char *pos) {
     // "if" <condition> ["then"] <body> ["else" <body>] | "unless" <condition> <body> ["else" <body>]
     const char *start = pos;
@@ -196,7 +186,6 @@ ast_t *parse_if(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, If, .condition = condition, .body = body, .else_body = else_body);
 }
 
-public
 ast_t *parse_when(parse_ctx_t *ctx, const char *pos) {
     // when <expr> (is var : Tag <body>)* [else <body>]
     const char *start = pos;
@@ -241,7 +230,6 @@ ast_t *parse_when(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, When, .subject = subject, .clauses = clauses, .else_body = else_body);
 }
 
-public
 ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
     // for [k,] v in iter [<indent>] body
     const char *start = pos;

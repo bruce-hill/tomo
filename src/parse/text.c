@@ -116,7 +116,6 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, ch
     return chunks;
 }
 
-public
 ast_t *parse_text(parse_ctx_t *ctx, const char *pos) {
     // ('"' ... '"' / "'" ... "'" / "`" ... "`")
     // "$" [name] [interp-char] quote-char ... close-quote
@@ -157,7 +156,6 @@ ast_t *parse_text(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, TextJoin, .lang = lang, .children = chunks, .colorize = colorize);
 }
 
-public
 ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "C_code")) return NULL;
@@ -184,7 +182,6 @@ ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, InlineCCode, .chunks = chunks, .type_ast = type);
 }
 
-public
 ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
     // "(" ("~/" / "./" / "../" / "/") ... ")"
     const char *start = pos;

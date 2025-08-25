@@ -18,7 +18,6 @@ static const char *keywords[] = {
     "struct", "then",  "unless", "use",    "when",   "while", "xor",      "yes",
 };
 
-public
 CONSTFUNC bool is_keyword(const char *word) {
     int64_t lo = 0, hi = sizeof(keywords) / sizeof(keywords[0]) - 1;
     while (lo <= hi) {
@@ -31,30 +30,25 @@ CONSTFUNC bool is_keyword(const char *word) {
     return false;
 }
 
-public
 size_t some_of(const char **pos, const char *allow) {
     size_t len = strspn(*pos, allow);
     *pos += len;
     return len;
 }
 
-public
 size_t some_not(const char **pos, const char *forbid) {
     size_t len = strcspn(*pos, forbid);
     *pos += len;
     return len;
 }
 
-public
 size_t spaces(const char **pos) { return some_of(pos, " \t"); }
 
-public
 void whitespace(const char **pos) {
     while (some_of(pos, " \t\r\n") || comment(pos))
         continue;
 }
 
-public
 size_t match(const char **pos, const char *target) {
     size_t len = strlen(target);
     if (strncmp(*pos, target, len) != 0) return 0;
@@ -62,14 +56,12 @@ size_t match(const char **pos, const char *target) {
     return len;
 }
 
-public
 bool is_xid_continue_next(const char *pos) {
     ucs4_t point = 0;
     u8_next(&point, (const uint8_t *)pos);
     return uc_is_property_xid_continue(point);
 }
 
-public
 size_t match_word(const char **out, const char *word) {
     const char *pos = *out;
     spaces(&pos);
@@ -79,7 +71,6 @@ size_t match_word(const char **out, const char *word) {
     return strlen(word);
 }
 
-public
 const char *get_word(const char **inout) {
     const char *word = *inout;
     spaces(&word);
@@ -95,7 +86,6 @@ const char *get_word(const char **inout) {
     return GC_strndup(word, (size_t)((const char *)pos - word));
 }
 
-public
 const char *get_id(const char **inout) {
     const char *pos = *inout;
     const char *word = get_word(&pos);
@@ -104,10 +94,8 @@ const char *get_id(const char **inout) {
     return word;
 }
 
-public
 const char *eol(const char *str) { return str + strcspn(str, "\r\n"); }
 
-public
 bool comment(const char **pos) {
     if ((*pos)[0] == '#') {
         *pos += strcspn(*pos, "\r\n");
@@ -117,7 +105,6 @@ bool comment(const char **pos) {
     }
 }
 
-public
 PUREFUNC int64_t get_indent(parse_ctx_t *ctx, const char *pos) {
     int64_t line_num = get_line_number(ctx->file, pos);
     const char *line = get_line(ctx->file, line_num);
@@ -140,7 +127,6 @@ PUREFUNC int64_t get_indent(parse_ctx_t *ctx, const char *pos) {
     }
 }
 
-public
 bool indent(parse_ctx_t *ctx, const char **out) {
     const char *pos = *out;
     int64_t starting_indent = get_indent(ctx, pos);
@@ -154,7 +140,6 @@ bool indent(parse_ctx_t *ctx, const char **out) {
     return true;
 }
 
-public
 bool newline_with_indentation(const char **out, int64_t target) {
     const char *pos = *out;
     if (*pos == '\r') ++pos;
@@ -255,7 +240,6 @@ const char *unescape(parse_ctx_t *ctx, const char **out) {
 #pragma GCC diagnostic pop
 #endif
 
-public
 bool match_separator(const char **pos) { // Either comma or newline
     const char *p = *pos;
     int separators = 0;

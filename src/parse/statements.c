@@ -15,7 +15,6 @@
 #include "types.h"
 #include "utils.h"
 
-public
 ast_t *parse_declaration(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     ast_t *var = parse_var(ctx, pos);
@@ -38,7 +37,6 @@ ast_t *parse_declaration(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Declare, .var = var, .type = type, .value = val);
 }
 
-public
 ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     ast_list_t *targets = NULL;
@@ -73,7 +71,6 @@ ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Assign, .targets = targets, .values = values);
 }
 
-public
 ast_t *parse_update(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     ast_t *lhs = optional(ctx, &pos, parse_expr);
@@ -99,7 +96,6 @@ ast_t *parse_update(parse_ctx_t *ctx, const char *pos) {
                 .__data.PlusUpdate.rhs = rhs);
 }
 
-public
 ast_t *parse_doctest(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, ">>")) return NULL;
@@ -116,7 +112,6 @@ ast_t *parse_doctest(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, DocTest, .expr = expr, .expected = expected);
 }
 
-public
 ast_t *parse_assert(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "assert")) return NULL;
@@ -133,7 +128,6 @@ ast_t *parse_assert(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Assert, .expr = expr, .message = message);
 }
 
-public
 ast_t *parse_statement(parse_ctx_t *ctx, const char *pos) {
     ast_t *stmt = NULL;
     if ((stmt = parse_declaration(ctx, pos)) || (stmt = parse_doctest(ctx, pos)) || (stmt = parse_assert(ctx, pos)))
