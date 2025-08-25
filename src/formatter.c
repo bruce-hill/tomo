@@ -189,6 +189,7 @@ static Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent
 OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
     switch (ast->tag) {
+    case Unknown: fail("Invalid AST");
     case Block: {
         ast_list_t *statements = Match(ast, Block)->statements;
         if (statements == NULL) return Text("pass");
@@ -244,6 +245,20 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         if (decl->value)
             code =
                 Texts(code, decl->type ? Text(" = ") : Text(" := "), must(format_inline_code(decl->value, comments)));
+        return code;
+    }
+    case Assign: {
+        DeclareMatch(assign, ast, Assign);
+        Text_t code = EMPTY_TEXT;
+        for (ast_list_t *target = assign->targets; target; target = target->next) {
+            code = Texts(code, must(format_inline_code(target->ast, comments)));
+            if (target->next) code = Texts(code, ", ");
+        }
+        code = Texts(code, " = ");
+        for (ast_list_t *value = assign->values; value; value = value->next) {
+            code = Texts(code, must(format_inline_code(value->ast, comments)));
+            if (value->next) code = Texts(code, ", ");
+        }
         return code;
     }
     case Return: {
@@ -327,6 +342,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     bool inlined_fits = (inlined.length >= 0 && indent.length + inlined.length <= MAX_WIDTH);
 
     switch (ast->tag) {
+    case Unknown: fail("Invalid AST");
     case Block: {
         Text_t code = EMPTY_TEXT;
         bool gap_before_comment = false;
@@ -445,6 +461,20 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (decl->type) code = Texts(code, " : ", format_type(decl->type, comments, indent));
         if (decl->value)
             code = Texts(code, decl->type ? Text(" = ") : Text(" := "), format_code(decl->value, comments, indent));
+        return code;
+    }
+    case Assign: {
+        DeclareMatch(assign, ast, Assign);
+        Text_t code = EMPTY_TEXT;
+        for (ast_list_t *target = assign->targets; target; target = target->next) {
+            code = Texts(code, format_code(target->ast, comments, indent));
+            if (target->next) code = Texts(code, ", ");
+        }
+        code = Texts(code, " = ");
+        for (ast_list_t *value = assign->values; value; value = value->next) {
+            code = Texts(code, format_code(value->ast, comments, indent));
+            if (value->next) code = Texts(code, ", ");
+        }
         return code;
     }
     case Return: {
