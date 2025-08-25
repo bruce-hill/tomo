@@ -5,7 +5,7 @@
 
 #include "environment.h"
 #include "naming.h"
-#include "parse/parse.h"
+#include "parse/files.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
@@ -19,7 +19,7 @@ public
 type_t *PATH_TYPE_TYPE = NULL;
 
 static type_t *declare_type(env_t *env, const char *def_str) {
-    ast_t *ast = parse(def_str);
+    ast_t *ast = parse_file_str(def_str);
     if (!ast) errx(1, "Couldn't not parse struct def: %s", def_str);
     if (ast->tag != Block) errx(1, "Couldn't not parse struct def: %s", def_str);
     ast_list_t *statements = Match(ast, Block)->statements;

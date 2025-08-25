@@ -11,6 +11,7 @@
 #include "../ast.h"
 #include "../stdlib/util.h"
 #include "context.h"
+#include "controlflow.h"
 #include "errors.h"
 #include "functions.h"
 #include "parse.h"

@@ -14,7 +14,10 @@
 #include "files.h"
 #include "functions.h"
 #include "parse.h"
+#include "statements.h"
 #include "text.h"
+#include "typedefs.h"
+#include "types.h"
 #include "utils.h"
 
 // The cache of {filename -> parsed AST} will hold at most this many entries:
@@ -28,7 +31,6 @@ static ast_t *parse_top_declaration(parse_ctx_t *ctx, const char *pos) {
     return declaration;
 }
 
-public
 ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     whitespace(&pos);
@@ -109,5 +111,71 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
 
     // Save the AST in the cache:
     Table$str_set(&cached, path, ast);
+    return ast;
+}
+
+ast_t *parse_use(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+
+    ast_t *var = parse_var(ctx, pos);
+    if (var) {
+        pos = var->end;
+        spaces(&pos);
+        if (!match(&pos, ":=")) return NULL;
+        spaces(&pos);
+    }
+
+    if (!match_word(&pos, "use")) return NULL;
+    spaces(&pos);
+    size_t name_len = strcspn(pos, " \t\r\n;");
+    if (name_len < 1) parser_err(ctx, start, pos, "There is no module name here to use");
+    char *name = GC_strndup(pos, name_len);
+    pos += name_len;
+    while (match(&pos, ";"))
+        continue;
+    int what;
+    if (name[0] == '<' || ends_with(name, ".h")) {
+        what = USE_HEADER;
+    } else if (starts_with(name, "-l")) {
+        what = USE_SHARED_OBJECT;
+    } else if (ends_with(name, ".c")) {
+        what = USE_C_CODE;
+    } else if (ends_with(name, ".S") || ends_with(name, ".s")) {
+        what = USE_ASM;
+    } else if (starts_with(name, "./") || starts_with(name, "/") || starts_with(name, "../")
+               || starts_with(name, "~/")) {
+        what = USE_LOCAL;
+    } else {
+        what = USE_MODULE;
+    }
+    return NewAST(ctx->file, start, pos, Use, .var = var, .path = name, .what = what);
+}
+
+ast_t *parse_extern(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    if (!match_word(&pos, "extern")) return NULL;
+    spaces(&pos);
+    const char *name = get_id(&pos);
+    spaces(&pos);
+    if (!match(&pos, ":")) parser_err(ctx, start, pos, "I couldn't get a type for this extern");
+    type_ast_t *type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this extern");
+    return NewAST(ctx->file, start, pos, Extern, .name = name, .type = type);
+}
+
+public
+ast_t *parse_file_str(const char *str) {
+    file_t *file = spoof_file("<string>", str);
+    parse_ctx_t ctx = {
+        .file = file,
+        .on_err = NULL,
+    };
+
+    const char *pos = file->text;
+    whitespace(&pos);
+    ast_t *ast = parse_file_body(&ctx, pos);
+    pos = ast->end;
+    whitespace(&pos);
+    if (pos < file->text + file->len && *pos != '\0')
+        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the string");
     return ast;
 }

@@ -1,49 +1,22 @@
-#pragma once
-
 // Parsing logic
+#pragma once
 
 #include "../ast.h"
 #include "context.h"
 
-ast_t *parse(const char *str);
-ast_t *parse_expression(const char *str);
+ast_t *parse_expr_str(const char *str);
 
-ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_block(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_bool(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_declaration(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_defer(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_do(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_doctest(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_assert(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_expr(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_extended_expr(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_extern(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_for(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_heap_alloc(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_if(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_lang_def(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_extend(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_negative(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_not(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_none(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_parens(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_pass(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_repeat(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_return(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_skip(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_stack_reference(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_statement(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_stop(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_term(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_update(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_use(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_var(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_when(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_while(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_deserialize(parse_ctx_t *ctx, const char *pos);
