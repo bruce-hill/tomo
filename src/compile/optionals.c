@@ -92,21 +92,20 @@ Text_t check_none(type_t *t, Text_t value) {
     t = Match(t, OptionalType)->type;
     // NOTE: these use statement expressions ({...;}) because some compilers
     // complain about excessive parens around equality comparisons
-    if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType)
-        return Texts("({", value, " == NULL;})");
-    else if (t == PATH_TYPE) return Texts("({(", value, ").type.$tag == PATH_NONE;})");
-    else if (t == PATH_TYPE_TYPE) return Texts("({(", value, ").$tag == PATH_NONE;})");
-    else if (t->tag == BigIntType) return Texts("({(", value, ").small == 0;})");
-    else if (t->tag == ClosureType) return Texts("({(", value, ").fn == NULL;})");
+    if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType) return Texts("(", value, " == NULL)");
+    else if (t == PATH_TYPE) return Texts("((", value, ").type.$tag == PATH_NONE)");
+    else if (t == PATH_TYPE_TYPE) return Texts("((", value, ").$tag == PATH_NONE)");
+    else if (t->tag == BigIntType) return Texts("((", value, ").small == 0)");
+    else if (t->tag == ClosureType) return Texts("((", value, ").fn == NULL)");
     else if (t->tag == NumType)
         return Texts(Match(t, NumType)->bits == TYPE_NBITS64 ? "Num$isnan(" : "Num32$isnan(", value, ")");
-    else if (t->tag == ListType) return Texts("({(", value, ").length < 0;})");
-    else if (t->tag == TableType || t->tag == SetType) return Texts("({(", value, ").entries.length < 0;})");
-    else if (t->tag == BoolType) return Texts("({(", value, ") == NONE_BOOL;})");
-    else if (t->tag == TextType) return Texts("({(", value, ").length < 0;})");
+    else if (t->tag == ListType) return Texts("((", value, ").length < 0)");
+    else if (t->tag == TableType || t->tag == SetType) return Texts("((", value, ").entries.length < 0)");
+    else if (t->tag == BoolType) return Texts("((", value, ") == NONE_BOOL)");
+    else if (t->tag == TextType) return Texts("((", value, ").length < 0)");
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType) return Texts("(", value, ").is_none");
     else if (t->tag == EnumType) {
-        if (enum_has_fields(t)) return Texts("({(", value, ").$tag == 0;})");
+        if (enum_has_fields(t)) return Texts("((", value, ").$tag == 0)");
         else return Texts("((", value, ") == 0)");
     }
     print_err("Optional check not implemented for: ", type_to_str(t));

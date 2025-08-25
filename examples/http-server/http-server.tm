@@ -52,7 +52,7 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
         int opt = 1;
         if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
             err(1, "Couldn't set socket option");
-            
+
         struct sockaddr_in addr = {AF_INET, htons(@port), INADDR_ANY};
         if (bind(s, (struct sockaddr*)&addr, sizeof(addr)) < 0)
             err(1, "Couldn't bind to socket");

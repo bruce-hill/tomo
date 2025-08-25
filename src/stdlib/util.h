@@ -21,17 +21,6 @@
         &var;                                                                                                          \
     })
 
-#define IF_DECLARE(decl, expr, block)                                                                                  \
-    if (({                                                                                                             \
-            decl;                                                                                                      \
-            expr ? ({                                                                                                  \
-                block;                                                                                                 \
-                1;                                                                                                     \
-            })                                                                                                         \
-                 : 0;                                                                                                  \
-        })) {                                                                                                          \
-    }
-
 #define WHEN(type, subj, var, body)                                                                                    \
     {                                                                                                                  \
         type var = subj;                                                                                               \

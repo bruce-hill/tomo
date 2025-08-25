@@ -36,19 +36,38 @@ Text_t compile_if_statement(env_t *env, ast_t *ast) {
     DeclareMatch(if_, ast, If);
     ast_t *condition = if_->condition;
     if (condition->tag == Declare) {
-        if (Match(condition, Declare)->value == NULL) code_err(condition, "This declaration must have a value");
+        DeclareMatch(decl, condition, Declare);
+        if (decl->value == NULL) code_err(condition, "This declaration must have a value");
+
         env_t *truthy_scope = fresh_scope(env);
-        Text_t code = Texts("IF_DECLARE(", compile_statement(truthy_scope, condition), ", ");
+        ast_t *var = decl->var;
+        type_t *var_type = get_type(truthy_scope, decl->value);
+
+        const char *name = Match(var, Var)->name;
         bind_statement(truthy_scope, condition);
-        ast_t *var = Match(condition, Declare)->var;
-        code = Texts(code, compile_condition(truthy_scope, var), ", ");
-        type_t *cond_t = get_type(truthy_scope, var);
-        if (cond_t->tag == OptionalType) {
-            set_binding(truthy_scope, Match(var, Var)->name, Match(cond_t, OptionalType)->type,
-                        optional_into_nonnone(cond_t, compile(truthy_scope, var)));
+
+        Text_t code = Texts("if (true) {\n", compile_statement(env, condition), //
+                            "if (", compile_condition(truthy_scope, var), ")");
+
+        env_t *nonnull_scope = truthy_scope;
+        if (var_type->tag == OptionalType) {
+            nonnull_scope = fresh_scope(truthy_scope);
+            set_binding(nonnull_scope, name, Match(var_type, OptionalType)->type,
+                        optional_into_nonnone(var_type, compile(truthy_scope, var)));
         }
-        code = Texts(code, compile_statement(truthy_scope, if_->body), ")");
-        if (if_->else_body) code = Texts(code, "\nelse ", compile_statement(env, if_->else_body));
+
+        code = Texts(code, compile_block(nonnull_scope, if_->body));
+
+        if (if_->else_body) {
+            Text_t label = Texts("_falsey_", String((int64_t)(ast->start - ast->file->text)));
+            code = Texts(code, "else goto ", label,
+                         ";\n"
+                         "} else {\n",
+                         label, ":;\n", compile_inline_block(env, if_->else_body), "}\n");
+        } else {
+            code = Texts(code, "}\n");
+        }
+
         return code;
     } else {
         Text_t code = Texts("if (", compile_condition(env, condition), ")");
