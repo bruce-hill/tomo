@@ -1,6 +1,6 @@
 // This code defines functions for transforming ASTs back into Tomo source text
 
-#include <gc.h>
+#include <assert.h>
 #include <setjmp.h>
 
 #include "ast.h"
@@ -9,7 +9,9 @@
 #include "parse/files.h"
 #include "parse/utils.h"
 #include "stdlib/datatypes.h"
+#include "stdlib/integers.h"
 #include "stdlib/optionals.h"
+#include "stdlib/stdlib.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 
@@ -197,7 +199,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     case EnumDef:
     case LangDef:
     case Extend:
-    case FunctionDef: return NONE_TEXT;
+    case FunctionDef:
+    case DocTest: return NONE_TEXT;
     case If: {
         DeclareMatch(if_, ast, If);
 
@@ -224,10 +227,97 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         return Texts("while ", must(format_inline_code(loop->condition, comments)), " do ",
                      must(format_inline_code(loop->body, comments)));
     }
-    default: {
+    case List:
+    case Set: {
+        ast_list_t *items = ast->tag == List ? Match(ast, List)->items : Match(ast, Set)->items;
+        Text_t code = EMPTY_TEXT;
+        for (ast_list_t *item = items; item; item = item->next) {
+            code = Texts(code, must(format_inline_code(item->ast, comments)));
+            if (item->next) code = Texts(code, ", ");
+        }
+        return ast->tag == List ? Texts("[", code, "]") : Texts("|", code, "|");
+    }
+    case Declare: {
+        DeclareMatch(decl, ast, Declare);
+        Text_t code = must(format_inline_code(decl->var, comments));
+        if (decl->type) code = Texts(code, " : ", must(format_inline_type(decl->type, comments)));
+        if (decl->value)
+            code =
+                Texts(code, decl->type ? Text(" = ") : Text(" := "), must(format_inline_code(decl->value, comments)));
+        return code;
+    }
+    case Return: {
+        ast_t *value = Match(ast, Return)->value;
+        return value ? Texts("return ", must(format_inline_code(value, comments))) : Text("return");
+    }
+    case Optional: {
+        ast_t *val = Match(ast, Optional)->value;
+        return Texts(must(format_inline_code(val, comments)), "?");
+    }
+    case NonOptional: {
+        ast_t *val = Match(ast, NonOptional)->value;
+        return Texts(must(format_inline_code(val, comments)), "!");
+    }
+    case FieldAccess: {
+        DeclareMatch(access, ast, FieldAccess);
+        return Texts(must(format_inline_code(access->fielded, comments)), ".", Text$from_str(access->field));
+    }
+    case Index: {
+        DeclareMatch(index, ast, Index);
+        if (index->index)
+            return Texts(must(format_inline_code(index->indexed, comments)), "[",
+                         must(format_inline_code(index->index, comments)), "]");
+        else return Texts(must(format_inline_code(index->indexed, comments)), "[]");
+    }
+    case TextJoin: {
+        // TODO: choose quotation mark more smartly
+        Text_t source = Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
+        Text_t quote = Text$to(source, I(1));
+        const char *lang = Match(ast, TextJoin)->lang;
+        Text_t code = lang ? Texts("$", Text$from_str(lang), quote) : quote;
+        for (ast_list_t *chunk = Match(ast, TextJoin)->children; chunk; chunk = chunk->next) {
+            if (chunk->ast->tag == TextLiteral) {
+                Text_t literal = Match(chunk->ast, TextLiteral)->text;
+                code = Texts(code, Text$slice(Text$quoted(literal, false, quote), I(2), I(-2)));
+            } else {
+                code = Texts(code, "$(", must(format_inline_code(chunk->ast, comments)), ")");
+            }
+        }
+        return Texts(code, quote);
+    }
+    case TextLiteral: {
+        fail("Something went wrong, we shouldn't be formatting text literals directly");
+    }
+    case Stop: {
+        const char *target = Match(ast, Stop)->target;
+        return target ? Texts("stop ", Text$from_str(target)) : Text("stop");
+    }
+    case Skip: {
+        const char *target = Match(ast, Skip)->target;
+        return target ? Texts("skip ", Text$from_str(target)) : Text("skip");
+    }
+    case None:
+    case Bool:
+    case Int:
+    case Num:
+    case Var: {
         Text_t code = Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
         if (Text$has(code, Text("\n"))) return NONE_TEXT;
         return code;
+    }
+    case FunctionCall: {
+        DeclareMatch(call, ast, FunctionCall);
+        return Texts(must(format_inline_code(call->fn, comments)), "(", must(format_inline_args(call->args, comments)),
+                     ")");
+    }
+    case BINOP_CASES: {
+        binary_operands_t operands = BINARY_OPERANDS(ast);
+        const char *op = binop_operator(ast->tag);
+        return Texts("(", must(format_inline_code(operands.lhs, comments)), " ", Text$from_str(op), " ",
+                     must(format_inline_code(operands.rhs, comments)), ")");
+    }
+    default: {
+        fail("Formatting not implemented for: ", ast_to_sexp(ast));
     }
     }
 }
@@ -242,6 +332,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         bool gap_before_comment = false;
         const char *comment_pos = ast->start;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+            if (should_have_blank_line(stmt->ast)) add_line(&code, Text(""), indent);
+
             for (OptionalText_t comment;
                  (comment = next_comment(comments, &comment_pos, stmt->ast->start)).length > 0;) {
                 if (gap_before_comment) {
@@ -254,7 +346,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             add_line(&code, format_code(stmt->ast, comments, indent), indent);
             comment_pos = stmt->ast->end;
 
-            if (should_have_blank_line(stmt->ast) && stmt->next) add_line(&code, Text(""), indent);
+            if (should_have_blank_line(stmt->ast) && stmt->next && !should_have_blank_line(stmt->next->ast))
+                add_line(&code, Text(""), indent);
             else gap_before_comment = true;
         }
 
@@ -326,10 +419,126 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         DeclareMatch(extend, ast, Extend);
         return Texts("lang ", Text$from_str(extend->name), format_namespace(extend->body, comments, indent));
     }
+    case List:
+    case Set: {
+        if (inlined_fits) return inlined;
+        ast_list_t *items = ast->tag == List ? Match(ast, List)->items : Match(ast, Set)->items;
+        Text_t code = EMPTY_TEXT;
+        const char *comment_pos = ast->start;
+        for (ast_list_t *item = items; item; item = item->next) {
+            for (OptionalText_t comment;
+                 (comment = next_comment(comments, &comment_pos, item->ast->start)).length > 0;) {
+                add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
+            }
+            add_line(&code, Texts(format_code(item->ast, comments, Texts(indent, single_indent)), ","),
+                     Texts(indent, single_indent));
+        }
+        for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
+            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
+        }
+        return ast->tag == List ? Texts("[\n", indent, single_indent, code, "\n", indent, "]")
+                                : Texts("|\n", indent, single_indent, code, "\n", indent, "|");
+    }
+    case Declare: {
+        DeclareMatch(decl, ast, Declare);
+        Text_t code = format_code(decl->var, comments, indent);
+        if (decl->type) code = Texts(code, " : ", format_type(decl->type, comments, indent));
+        if (decl->value)
+            code = Texts(code, decl->type ? Text(" = ") : Text(" := "), format_code(decl->value, comments, indent));
+        return code;
+    }
+    case Return: {
+        ast_t *value = Match(ast, Return)->value;
+        return value ? Texts("return ", format_code(value, comments, indent)) : Text("return");
+    }
+    case Optional: {
+        if (inlined_fits) return inlined;
+        ast_t *val = Match(ast, Optional)->value;
+        return Texts("(", format_code(val, comments, indent), ")?");
+    }
+    case NonOptional: {
+        if (inlined_fits) return inlined;
+        ast_t *val = Match(ast, NonOptional)->value;
+        return Texts("(", format_code(val, comments, indent), ")!");
+    }
+    case FieldAccess: {
+        DeclareMatch(access, ast, FieldAccess);
+        return Texts(format_code(access->fielded, comments, indent), ".", Text$from_str(access->field));
+    }
+    case Index: {
+        DeclareMatch(index, ast, Index);
+        if (index->index)
+            return Texts(format_code(index->indexed, comments, indent), "[",
+                         format_code(index->index, comments, indent), "]");
+        else return Texts(format_code(index->indexed, comments, indent), "[]");
+    }
+    case TextJoin: {
+        if (inlined_fits) return inlined;
+        // TODO: choose quotation mark more smartly
+        Text_t source = Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
+        Text_t quote = Text$to(source, I(1));
+        const char *lang = Match(ast, TextJoin)->lang;
+        Text_t code = EMPTY_TEXT;
+        Text_t current_line = EMPTY_TEXT;
+        for (ast_list_t *chunk = Match(ast, TextJoin)->children; chunk; chunk = chunk->next) {
+            if (chunk->ast->tag == TextLiteral) {
+                Text_t literal = Match(chunk->ast, TextLiteral)->text;
+                List_t lines = Text$lines(literal);
+                if (lines.length == 0) continue;
+                current_line = Texts(current_line, *(Text_t *)lines.data);
+                for (int64_t i = 1; i < lines.length; i += 1) {
+                    add_line(&code, current_line, Texts(indent, single_indent));
+                    current_line = *(Text_t *)(lines.data + i * lines.stride);
+                }
+            } else {
+                code = Texts(code, "$(", must(format_inline_code(chunk->ast, comments)), ")");
+            }
+        }
+        code = Texts(quote, "\n", code, "\n", indent, quote);
+        if (lang) code = Texts("$", Text$from_str(lang), code);
+        return code;
+    }
+    case TextLiteral: {
+        fail("Something went wrong, we shouldn't be formatting text literals directly");
+    }
+    case Stop:
+    case Skip:
+    case None:
+    case Bool:
+    case Int:
+    case Num:
+    case Var: {
+        assert(inlined.length >= 0);
+        return inlined;
+    }
+    case FunctionCall: {
+        if (inlined_fits) return inlined;
+        DeclareMatch(call, ast, FunctionCall);
+        return Texts(format_code(call->fn, comments, indent), "(",
+                     format_args(call->args, comments, Texts(indent, single_indent)), ")");
+    }
+    case DocTest: {
+        DeclareMatch(test, ast, DocTest);
+        Text_t expr = format_code(test->expr, comments, indent);
+        Text_t code = Texts(">> ", Text$replace(expr, Texts("\n", indent), Texts("\n", indent, ".. ")));
+        if (test->expected) {
+            Text_t expected = format_code(test->expected, comments, indent);
+            code = Texts(code, "\n", indent, "= ",
+                         Text$replace(expected, Texts("\n", indent), Texts("\n", indent, ".. ")));
+        }
+        return code;
+    }
+    case BINOP_CASES: {
+        if (inlined_fits) return inlined;
+        binary_operands_t operands = BINARY_OPERANDS(ast);
+        const char *op = binop_operator(ast->tag);
+        return Texts("(\n", indent, single_indent, format_code(operands.lhs, comments, Texts(indent, single_indent)),
+                     " ", Text$from_str(op), " ", format_code(operands.rhs, comments, Texts(indent, single_indent)),
+                     "\n", indent, ")");
+    }
     default: {
         if (inlined_fits) return inlined;
-        Text_t code = Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
-        return Text$replace(code, Text("\t"), single_indent);
+        fail("Formatting not implemented for: ", ast_to_sexp(ast));
     }
     }
 }
