@@ -1,4 +1,5 @@
 // Some common parsing utilities
+#pragma once
 
 #include <stdbool.h>
 

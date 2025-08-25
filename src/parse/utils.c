@@ -93,7 +93,7 @@ const char *get_id(const char **inout) {
     return word;
 }
 
-const char *eol(const char *str) { return str + strcspn(str, "\r\n"); }
+PUREFUNC const char *eol(const char *str) { return str + strcspn(str, "\r\n"); }
 
 bool comment(const char **pos) {
     if ((*pos)[0] == '#') {
