@@ -104,6 +104,7 @@ static Text_t format_type(type_ast_t *type, Table_t comments, Text_t indent) {
 
 static OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
     if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;
+    if (arg->name == NULL && arg->value) return must(format_inline_code(arg->value, comments));
     Text_t code = Text$from_str(arg->name);
     if (arg->type) code = Texts(code, ":", must(format_inline_type(arg->type, comments)));
     if (arg->value) code = Texts(code, " = ", must(format_inline_code(arg->value, comments)));
@@ -112,7 +113,8 @@ static OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
 
 static Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
     OptionalText_t inline_arg = format_inline_arg(arg, comments);
-    if (inline_arg.length >= 0) return inline_arg;
+    if (inline_arg.length >= 0 && inline_arg.length <= MAX_WIDTH) return inline_arg;
+    if (arg->name == NULL && arg->value) return format_code(arg->value, comments, indent);
     Text_t code = Text$from_str(arg->name);
     if (arg->type) code = Texts(code, ":", format_type(arg->type, comments, indent));
     if (arg->value) code = Texts(code, " = ", format_code(arg->value, comments, indent));
@@ -122,8 +124,8 @@ static Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
 static OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
     Text_t code = EMPTY_TEXT;
     for (; args; args = args->next) {
-        if (args->next && args->type == args->next->type && args->value == args->next->value) {
-            code = Texts(code, must(Text$from_str(args->name)), ",");
+        if (args->name && args->next && args->type == args->next->type && args->value == args->next->value) {
+            code = Texts(code, Text$from_str(args->name), ",");
         } else {
             code = Texts(code, must(format_inline_arg(args, comments)));
             if (args->next) code = Texts(code, ", ");
@@ -135,11 +137,11 @@ static OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
 
 static Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
     OptionalText_t inline_args = format_inline_args(args, comments);
-    if (inline_args.length >= 0) return inline_args;
+    if (inline_args.length >= 0 && inline_args.length <= MAX_WIDTH) return inline_args;
     Text_t code = EMPTY_TEXT;
     for (; args; args = args->next) {
-        if (args->next && args->type == args->next->type && args->value == args->next->value) {
-            code = Texts(code, must(Text$from_str(args->name)), ",");
+        if (args->name && args->next && args->type == args->next->type && args->value == args->next->value) {
+            code = Texts(code, Text$from_str(args->name), ",");
         } else {
             add_line(&code, Texts(format_arg(args, comments, indent), ","), indent);
         }
@@ -384,11 +386,9 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             return Texts(lhs, " ", Text$from_str(op), " ", rhs);
         }
 
-        if (Text$has(lhs, Text("\n"))
-            || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
+        if (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag])
             lhs = parenthesize(lhs, EMPTY_TEXT);
-        if (Text$has(rhs, Text("\n"))
-            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
+        if (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag])
             rhs = parenthesize(rhs, EMPTY_TEXT);
 
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
@@ -587,7 +587,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                 code = Texts(code, "$(", must(format_inline_code(chunk->ast, comments)), ")");
             }
         }
-        code = Texts(quote, "\n", code, "\n", indent, quote);
+        add_line(&code, current_line, Texts(indent, single_indent));
+        code = Texts(quote, "\n", indent, single_indent, code, "\n", indent, quote);
         if (lang) code = Texts("$", Text$from_str(lang), code);
         return code;
     }
@@ -607,8 +608,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     case FunctionCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, FunctionCall);
-        return Texts(format_code(call->fn, comments, indent), "(",
-                     format_args(call->args, comments, Texts(indent, single_indent)), ")");
+        return Texts(format_code(call->fn, comments, indent), "(\n", indent, single_indent,
+                     format_args(call->args, comments, Texts(indent, single_indent)), "\n", indent, ")");
     }
     case DocTest: {
         DeclareMatch(test, ast, DocTest);
@@ -625,18 +626,16 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
         binary_operands_t operands = BINARY_OPERANDS(ast);
         const char *op = binop_tomo_operator(ast->tag);
-        Text_t lhs = format_code(operands.lhs, comments, Texts(indent, single_indent));
-        Text_t rhs = format_code(operands.rhs, comments, Texts(indent, single_indent));
+        Text_t lhs = format_code(operands.lhs, comments, indent);
+        Text_t rhs = format_code(operands.rhs, comments, indent);
 
         if (is_update_assignment(ast)) {
             return Texts(lhs, " ", Text$from_str(op), " ", rhs);
         }
 
-        if (Text$has(lhs, Text("\n"))
-            || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
+        if (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag])
             lhs = parenthesize(lhs, indent);
-        if (Text$has(rhs, Text("\n"))
-            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
+        if (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag])
             rhs = parenthesize(rhs, indent);
 
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
