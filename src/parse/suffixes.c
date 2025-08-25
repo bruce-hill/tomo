@@ -132,7 +132,7 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
             if (name) parser_err(ctx, arg_start, pos, "I expected an argument here");
             break;
         }
-        args = new (arg_ast_t, .name = name, .value = arg, .next = args);
+        args = new (arg_ast_t, .start = arg_start, .end = arg->end, .name = name, .value = arg, .next = args);
         if (!match_separator(ctx, &pos)) break;
     }
     REVERSE_LIST(args);
