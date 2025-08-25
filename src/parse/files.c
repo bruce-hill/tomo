@@ -14,6 +14,7 @@
 #include "files.h"
 #include "functions.h"
 #include "parse.h"
+#include "text.h"
 #include "utils.h"
 
 // The cache of {filename -> parsed AST} will hold at most this many entries:
