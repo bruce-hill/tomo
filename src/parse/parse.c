@@ -6,14 +6,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-#ifndef __GLIBC__
-#define __GLIBC__ 2
-#include <unistr.h>
-#undef __GLIBC__
-#else
-#include <unistr.h>
-#endif
-
 #include <signal.h>
 #include <unictype.h>
 #include <uniname.h>
@@ -25,6 +17,8 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
+#include "../unistr-fixed.h"
+#include "parse.h"
 
 // The cache of {filename -> parsed AST} will hold at most this many entries:
 #ifndef PARSE_CACHE_SIZE
@@ -34,15 +28,7 @@
 static const double RADIANS_PER_DEGREE = 0.0174532925199432957692369076848861271344287188854172545609719144;
 static const char closing[128] = {['('] = ')', ['['] = ']', ['<'] = '>', ['{'] = '}'};
 
-typedef struct {
-    file_t *file;
-    jmp_buf *on_err;
-    int64_t next_lambda_id;
-} parse_ctx_t;
-
 #define SPACES_PER_INDENT 4
-
-#define PARSER(name) ast_t *name(parse_ctx_t *ctx, const char *pos)
 
 int op_tightness[] = {
     [Power] = 9,
@@ -108,57 +94,57 @@ static type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
 static type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos);
-static PARSER(parse_list);
-static PARSER(parse_assignment);
-static PARSER(parse_block);
-static PARSER(parse_bool);
-static PARSER(parse_convert_def);
-static PARSER(parse_declaration);
-static PARSER(parse_defer);
-static PARSER(parse_do);
-static PARSER(parse_doctest);
-static PARSER(parse_assert);
-static PARSER(parse_enum_def);
-static PARSER(parse_expr);
-static PARSER(parse_extended_expr);
-static PARSER(parse_extern);
-static PARSER(parse_file_body);
-static PARSER(parse_for);
-static PARSER(parse_func_def);
-static PARSER(parse_heap_alloc);
-static PARSER(parse_if);
-static PARSER(parse_inline_c);
-static PARSER(parse_int);
-static PARSER(parse_lambda);
-static PARSER(parse_lang_def);
-static PARSER(parse_extend);
-static PARSER(parse_namespace);
-static PARSER(parse_negative);
-static PARSER(parse_not);
-static PARSER(parse_none);
-static PARSER(parse_num);
-static PARSER(parse_parens);
-static PARSER(parse_pass);
-static PARSER(parse_path);
-static PARSER(parse_reduction);
-static PARSER(parse_repeat);
-static PARSER(parse_return);
-static PARSER(parse_set);
-static PARSER(parse_skip);
-static PARSER(parse_stack_reference);
-static PARSER(parse_statement);
-static PARSER(parse_stop);
-static PARSER(parse_struct_def);
-static PARSER(parse_table);
-static PARSER(parse_term);
-static PARSER(parse_term_no_suffix);
-static PARSER(parse_text);
-static PARSER(parse_update);
-static PARSER(parse_use);
-static PARSER(parse_var);
-static PARSER(parse_when);
-static PARSER(parse_while);
-static PARSER(parse_deserialize);
+static ast_t *parse_list(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_block(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_bool(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_convert_def(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_declaration(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_defer(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_do(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_doctest(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_assert(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_expr(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_extended_expr(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_extern(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_for(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_heap_alloc(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_if(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_int(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_lambda(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_lang_def(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_extend(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_negative(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_not(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_none(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_num(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_parens(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_pass(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_path(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_repeat(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_return(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_set(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_skip(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_stack_reference(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_statement(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_stop(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_table(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_term(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_text(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_update(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_use(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_var(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_when(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_while(parse_ctx_t *ctx, const char *pos);
+static ast_t *parse_deserialize(parse_ctx_t *ctx, const char *pos);
 static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open_quote, char close_quote,
                                       char open_interp, bool allow_escapes);
 
@@ -467,7 +453,7 @@ bool newline_with_indentation(const char **out, int64_t target) {
 ////////////////////////////////////     AST-based parsers    /////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-PARSER(parse_parens) {
+ast_t *parse_parens(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     spaces(&pos);
     if (!match(&pos, "(")) return NULL;
@@ -489,7 +475,7 @@ PARSER(parse_parens) {
     return new (ast_t, .file = (ctx)->file, .start = start, .end = pos, .tag = expr->tag, .__data = expr->__data);
 }
 
-PARSER(parse_int) {
+ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     (void)match(&pos, "-");
     if (!isdigit(*pos)) return NULL;
@@ -644,7 +630,7 @@ type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos) {
     return type;
 }
 
-PARSER(parse_num) {
+ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     bool negative = match(&pos, "-");
     if (!isdigit(*pos) && *pos != '.') return NULL;
@@ -690,7 +676,7 @@ static INLINE bool match_separator(const char **pos) { // Either comma or newlin
     }
 }
 
-PARSER(parse_list) {
+ast_t *parse_list(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "[")) return NULL;
 
@@ -716,7 +702,7 @@ PARSER(parse_list) {
     return NewAST(ctx->file, start, pos, List, .items = items);
 }
 
-PARSER(parse_table) {
+ast_t *parse_table(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "{")) return NULL;
 
@@ -775,7 +761,7 @@ PARSER(parse_table) {
                   .fallback = fallback);
 }
 
-PARSER(parse_set) {
+ast_t *parse_set(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (match(&pos, "||")) return NewAST(ctx->file, start, pos, Set);
 
@@ -833,7 +819,7 @@ ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     else return NULL;
 }
 
-PARSER(parse_reduction) {
+ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "(")) return NULL;
 
@@ -935,7 +921,7 @@ ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
     }
 }
 
-PARSER(parse_if) {
+ast_t *parse_if(parse_ctx_t *ctx, const char *pos) {
     // "if" <condition> ["then"] <body> ["else" <body>] | "unless" <condition> <body> ["else" <body>]
     const char *start = pos;
     int64_t starting_indent = get_indent(ctx, pos);
@@ -966,7 +952,7 @@ PARSER(parse_if) {
     return NewAST(ctx->file, start, pos, If, .condition = condition, .body = body, .else_body = else_body);
 }
 
-PARSER(parse_when) {
+ast_t *parse_when(parse_ctx_t *ctx, const char *pos) {
     // when <expr> (is var : Tag <body>)* [else <body>]
     const char *start = pos;
     int64_t starting_indent = get_indent(ctx, pos);
@@ -1010,7 +996,7 @@ PARSER(parse_when) {
     return NewAST(ctx->file, start, pos, When, .subject = subject, .clauses = clauses, .else_body = else_body);
 }
 
-PARSER(parse_for) {
+ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
     // for [k,] v in iter [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "for")) return NULL;
@@ -1045,7 +1031,7 @@ PARSER(parse_for) {
     return NewAST(ctx->file, start, pos, For, .vars = vars, .iter = iter, .body = body, .empty = empty);
 }
 
-PARSER(parse_do) {
+ast_t *parse_do(parse_ctx_t *ctx, const char *pos) {
     // do [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "do")) return NULL;
@@ -1053,7 +1039,7 @@ PARSER(parse_do) {
     return NewAST(ctx->file, start, pos, Block, .statements = Match(body, Block)->statements);
 }
 
-PARSER(parse_while) {
+ast_t *parse_while(parse_ctx_t *ctx, const char *pos) {
     // while condition ["do"] [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "while")) return NULL;
@@ -1073,7 +1059,7 @@ PARSER(parse_while) {
     return NewAST(ctx->file, start, pos, While, .condition = condition, .body = body);
 }
 
-PARSER(parse_repeat) {
+ast_t *parse_repeat(parse_ctx_t *ctx, const char *pos) {
     // repeat [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "repeat")) return NULL;
@@ -1081,7 +1067,7 @@ PARSER(parse_repeat) {
     return NewAST(ctx->file, start, pos, Repeat, .body = body);
 }
 
-PARSER(parse_heap_alloc) {
+ast_t *parse_heap_alloc(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "@")) return NULL;
     spaces(&pos);
@@ -1106,7 +1092,7 @@ PARSER(parse_heap_alloc) {
     return ast;
 }
 
-PARSER(parse_stack_reference) {
+ast_t *parse_stack_reference(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "&")) return NULL;
     spaces(&pos);
@@ -1131,7 +1117,7 @@ PARSER(parse_stack_reference) {
     return ast;
 }
 
-PARSER(parse_not) {
+ast_t *parse_not(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "not")) return NULL;
     spaces(&pos);
@@ -1139,7 +1125,7 @@ PARSER(parse_not) {
     return NewAST(ctx->file, start, pos, Not, .value = val);
 }
 
-PARSER(parse_negative) {
+ast_t *parse_negative(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "-")) return NULL;
     spaces(&pos);
@@ -1147,7 +1133,7 @@ PARSER(parse_negative) {
     return NewAST(ctx->file, start, pos, Negative, .value = val);
 }
 
-PARSER(parse_bool) {
+ast_t *parse_bool(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (match_word(&pos, "yes")) return NewAST(ctx->file, start, pos, Bool, .b = true);
     else if (match_word(&pos, "no")) return NewAST(ctx->file, start, pos, Bool, .b = false);
@@ -1251,7 +1237,7 @@ ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open
     return chunks;
 }
 
-PARSER(parse_text) {
+ast_t *parse_text(parse_ctx_t *ctx, const char *pos) {
     // ('"' ... '"' / "'" ... "'" / "`" ... "`")
     // "$" [name] [interp-char] quote-char ... close-quote
     const char *start = pos;
@@ -1291,7 +1277,7 @@ PARSER(parse_text) {
     return NewAST(ctx->file, start, pos, TextJoin, .lang = lang, .children = chunks, .colorize = colorize);
 }
 
-PARSER(parse_path) {
+ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
     // "(" ("~/" / "./" / "../" / "/") ... ")"
     const char *start = pos;
 
@@ -1332,19 +1318,19 @@ PARSER(parse_path) {
     return NewAST(ctx->file, start, pos, Path, .path = path);
 }
 
-PARSER(parse_pass) {
+ast_t *parse_pass(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     return match_word(&pos, "pass") ? NewAST(ctx->file, start, pos, Pass) : NULL;
 }
 
-PARSER(parse_defer) {
+ast_t *parse_defer(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "defer")) return NULL;
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a block to be deferred here");
     return NewAST(ctx->file, start, pos, Defer, .body = body);
 }
 
-PARSER(parse_skip) {
+ast_t *parse_skip(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "continue") && !match_word(&pos, "skip")) return NULL;
     const char *target;
@@ -1356,7 +1342,7 @@ PARSER(parse_skip) {
     return skip;
 }
 
-PARSER(parse_stop) {
+ast_t *parse_stop(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "stop") && !match_word(&pos, "break")) return NULL;
     const char *target;
@@ -1368,7 +1354,7 @@ PARSER(parse_stop) {
     return stop;
 }
 
-PARSER(parse_return) {
+ast_t *parse_return(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "return")) return NULL;
     ast_t *value = optional(ctx, &pos, parse_expr);
@@ -1377,7 +1363,7 @@ PARSER(parse_return) {
     return ret;
 }
 
-PARSER(parse_lambda) {
+ast_t *parse_lambda(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;
     spaces(&pos);
@@ -1393,13 +1379,13 @@ PARSER(parse_lambda) {
                   .body = body);
 }
 
-PARSER(parse_none) {
+ast_t *parse_none(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "none")) return NULL;
     return NewAST(ctx->file, start, pos, None);
 }
 
-PARSER(parse_deserialize) {
+ast_t *parse_deserialize(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "deserialize")) return NULL;
 
@@ -1417,14 +1403,14 @@ PARSER(parse_deserialize) {
     return NewAST(ctx->file, start, pos, Deserialize, .value = value, .type = type);
 }
 
-PARSER(parse_var) {
+ast_t *parse_var(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     const char *name = get_id(&pos);
     if (!name) return NULL;
     return NewAST(ctx->file, start, pos, Var, .name = name);
 }
 
-PARSER(parse_term_no_suffix) {
+ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     ast_t *term = NULL;
     (void)(false || (term = parse_none(ctx, pos)) || (term = parse_num(ctx, pos)) // Must come before int
@@ -1440,7 +1426,7 @@ PARSER(parse_term_no_suffix) {
     return term;
 }
 
-PARSER(parse_term) {
+ast_t *parse_term(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (match(&pos, "???")) parser_err(ctx, start, pos, "This value needs to be filled in!");
 
@@ -1628,9 +1614,9 @@ static ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightn
     return lhs;
 }
 
-PARSER(parse_expr) { return parse_infix_expr(ctx, pos, 0); }
+ast_t *parse_expr(parse_ctx_t *ctx, const char *pos) { return parse_infix_expr(ctx, pos, 0); }
 
-PARSER(parse_declaration) {
+ast_t *parse_declaration(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     ast_t *var = parse_var(ctx, pos);
     if (!var) return NULL;
@@ -1652,13 +1638,13 @@ PARSER(parse_declaration) {
     return NewAST(ctx->file, start, pos, Declare, .var = var, .type = type, .value = val);
 }
 
-PARSER(parse_top_declaration) {
+ast_t *parse_top_declaration(parse_ctx_t *ctx, const char *pos) {
     ast_t *declaration = parse_declaration(ctx, pos);
     if (declaration) declaration->__data.Declare.top_level = true;
     return declaration;
 }
 
-PARSER(parse_update) {
+ast_t *parse_update(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     ast_t *lhs = optional(ctx, &pos, parse_expr);
     if (!lhs) return NULL;
@@ -1683,7 +1669,7 @@ PARSER(parse_update) {
                 .__data.PlusUpdate.rhs = rhs);
 }
 
-PARSER(parse_assignment) {
+ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     ast_list_t *targets = NULL;
     for (;;) {
@@ -1717,7 +1703,7 @@ PARSER(parse_assignment) {
     return NewAST(ctx->file, start, pos, Assign, .targets = targets, .values = values);
 }
 
-PARSER(parse_statement) {
+ast_t *parse_statement(parse_ctx_t *ctx, const char *pos) {
     ast_t *stmt = NULL;
     if ((stmt = parse_declaration(ctx, pos)) || (stmt = parse_doctest(ctx, pos)) || (stmt = parse_assert(ctx, pos)))
         return stmt;
@@ -1741,7 +1727,7 @@ PARSER(parse_statement) {
     return stmt;
 }
 
-PARSER(parse_extended_expr) {
+ast_t *parse_extended_expr(parse_ctx_t *ctx, const char *pos) {
     ast_t *expr = NULL;
 
     if (false || (expr = optional(ctx, &pos, parse_for)) || (expr = optional(ctx, &pos, parse_while))
@@ -1752,7 +1738,7 @@ PARSER(parse_extended_expr) {
     return parse_expr(ctx, pos);
 }
 
-PARSER(parse_block) {
+ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     spaces(&pos);
 
@@ -1813,7 +1799,7 @@ PARSER(parse_block) {
     return NewAST(ctx->file, start, pos, Block, .statements = statements);
 }
 
-PARSER(parse_namespace) {
+ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     whitespace(&pos);
     int64_t indent = get_indent(ctx, pos);
@@ -1845,7 +1831,7 @@ PARSER(parse_namespace) {
     return NewAST(ctx->file, start, pos, Block, .statements = statements);
 }
 
-PARSER(parse_file_body) {
+ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     whitespace(&pos);
     ast_list_t *statements = NULL;
@@ -1874,7 +1860,7 @@ PARSER(parse_file_body) {
     return NewAST(ctx->file, start, pos, Block, .statements = statements);
 }
 
-PARSER(parse_struct_def) {
+ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
     // struct Foo(...) [: \n body]
     const char *start = pos;
     if (!match_word(&pos, "struct")) return NULL;
@@ -1926,7 +1912,7 @@ PARSER(parse_struct_def) {
                   .secret = secret, .external = external, .opaque = opaque);
 }
 
-PARSER(parse_enum_def) {
+ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
     // tagged union: enum Foo(a, b(x:Int,y:Int)=5, ...) [: \n namespace]
     const char *start = pos;
     if (!match_word(&pos, "enum")) return NULL;
@@ -1986,7 +1972,7 @@ PARSER(parse_enum_def) {
     return NewAST(ctx->file, start, pos, EnumDef, .name = name, .tags = tags, .namespace = namespace);
 }
 
-PARSER(parse_lang_def) {
+ast_t *parse_lang_def(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     // lang Name: [namespace...]
     if (!match_word(&pos, "lang")) return NULL;
@@ -2009,7 +1995,7 @@ PARSER(parse_lang_def) {
     return NewAST(ctx->file, start, pos, LangDef, .name = name, .namespace = namespace);
 }
 
-PARSER(parse_extend) {
+ast_t *parse_extend(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     // extend Name: body...
     if (!match_word(&pos, "extend")) return NULL;
@@ -2086,7 +2072,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
     return args;
 }
 
-PARSER(parse_func_def) {
+ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;
 
@@ -2123,7 +2109,7 @@ PARSER(parse_func_def) {
                   .cache = cache_ast, .is_inline = is_inline);
 }
 
-PARSER(parse_convert_def) {
+ast_t *parse_convert_def(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "convert")) return NULL;
 
@@ -2157,7 +2143,7 @@ PARSER(parse_convert_def) {
                   .cache = cache_ast, .is_inline = is_inline);
 }
 
-PARSER(parse_extern) {
+ast_t *parse_extern(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "extern")) return NULL;
     spaces(&pos);
@@ -2168,7 +2154,7 @@ PARSER(parse_extern) {
     return NewAST(ctx->file, start, pos, Extern, .name = name, .type = type);
 }
 
-PARSER(parse_inline_c) {
+ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "C_code")) return NULL;
 
@@ -2194,7 +2180,7 @@ PARSER(parse_inline_c) {
     return NewAST(ctx->file, start, pos, InlineCCode, .chunks = chunks, .type_ast = type);
 }
 
-PARSER(parse_doctest) {
+ast_t *parse_doctest(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, ">>")) return NULL;
     spaces(&pos);
@@ -2210,7 +2196,7 @@ PARSER(parse_doctest) {
     return NewAST(ctx->file, start, pos, DocTest, .expr = expr, .expected = expected);
 }
 
-PARSER(parse_assert) {
+ast_t *parse_assert(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "assert")) return NULL;
     spaces(&pos);
@@ -2226,7 +2212,7 @@ PARSER(parse_assert) {
     return NewAST(ctx->file, start, pos, Assert, .expr = expr, .message = message);
 }
 
-PARSER(parse_use) {
+ast_t *parse_use(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
 
     ast_t *var = parse_var(ctx, pos);

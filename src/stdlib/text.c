@@ -99,11 +99,12 @@
 #include <stdlib.h>
 #include <sys/param.h>
 
+#include "../unistr-fixed.h"
+
 #include <unicase.h>
 #include <unictype.h>
 #include <unigbrk.h>
 #include <uniname.h>
-#include <unistr.h>
 #include <unistring/version.h>
 #include <uniwidth.h>
 

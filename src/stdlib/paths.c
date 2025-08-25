@@ -15,8 +15,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <unistr.h>
 
+#include "../unistr-fixed.h"
 #include "enums.h"
 #include "integers.h"
 #include "lists.h"
