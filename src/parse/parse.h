@@ -8,6 +8,8 @@
 #include "../ast.h"
 #include "../stdlib/files.h"
 
+#define SPACES_PER_INDENT 4
+
 typedef struct {
     file_t *file;
     jmp_buf *on_err;

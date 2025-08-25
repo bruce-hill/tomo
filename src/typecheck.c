@@ -13,6 +13,7 @@
 #include "modules.h"
 #include "naming.h"
 #include "parse/parse.h"
+#include "parse/types.h"
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
