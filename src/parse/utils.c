@@ -6,6 +6,7 @@
 #include <unictype.h>
 #include <uniname.h>
 
+#include "../stdlib/tables.h"
 #include "../stdlib/util.h"
 #include "errors.h"
 #include "utils.h"
@@ -43,8 +44,8 @@ size_t some_not(const char **pos, const char *forbid) {
 
 size_t spaces(const char **pos) { return some_of(pos, " \t"); }
 
-void whitespace(const char **pos) {
-    while (some_of(pos, " \t\r\n") || comment(pos))
+void whitespace(parse_ctx_t *ctx, const char **pos) {
+    while (some_of(pos, " \t\r\n") || comment(ctx, pos))
         continue;
 }
 
@@ -95,9 +96,12 @@ const char *get_id(const char **inout) {
 
 PUREFUNC const char *eol(const char *str) { return str + strcspn(str, "\r\n"); }
 
-bool comment(const char **pos) {
+bool comment(parse_ctx_t *ctx, const char **pos) {
     if ((*pos)[0] == '#') {
+        const char *start = *pos;
         *pos += strcspn(*pos, "\r\n");
+        const char *end = *pos;
+        Table$set(&ctx->comments, &start, &end, parse_comments_info);
         return true;
     } else {
         return false;
@@ -129,7 +133,7 @@ PUREFUNC int64_t get_indent(parse_ctx_t *ctx, const char *pos) {
 bool indent(parse_ctx_t *ctx, const char **out) {
     const char *pos = *out;
     int64_t starting_indent = get_indent(ctx, pos);
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     const char *next_line = get_line(ctx->file, get_line_number(ctx->file, pos));
     if (next_line <= *out) return false;
 
@@ -239,12 +243,12 @@ const char *unescape(parse_ctx_t *ctx, const char **out) {
 #pragma GCC diagnostic pop
 #endif
 
-bool match_separator(const char **pos) { // Either comma or newline
+bool match_separator(parse_ctx_t *ctx, const char **pos) { // Either comma or newline
     const char *p = *pos;
     int separators = 0;
     for (;;) {
         if (some_of(&p, "\r\n,")) ++separators;
-        else if (!comment(&p) && !some_of(&p, " \t")) break;
+        else if (!comment(ctx, &p) && !some_of(&p, " \t")) break;
     }
     if (separators > 0) {
         *pos = p;

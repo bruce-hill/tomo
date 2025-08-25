@@ -11,9 +11,9 @@
 #include "../stdlib/util.h"
 #include "context.h"
 #include "errors.h"
+#include "expressions.h"
 #include "files.h"
 #include "functions.h"
-#include "expressions.h"
 #include "statements.h"
 #include "text.h"
 #include "typedefs.h"
@@ -33,11 +33,11 @@ static ast_t *parse_top_declaration(parse_ctx_t *ctx, const char *pos) {
 
 ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     ast_list_t *statements = NULL;
     for (;;) {
         const char *next = pos;
-        whitespace(&next);
+        whitespace(ctx, &next);
         if (get_indent(ctx, next) != 0) break;
         ast_t *stmt;
         if ((stmt = optional(ctx, &pos, parse_struct_def)) || (stmt = optional(ctx, &pos, parse_func_def))
@@ -47,12 +47,12 @@ ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
             || (stmt = optional(ctx, &pos, parse_inline_c)) || (stmt = optional(ctx, &pos, parse_top_declaration))) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
-            whitespace(&pos); // TODO: check for newline
+            whitespace(ctx, &pos); // TODO: check for newline
         } else {
             break;
         }
     }
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     if (pos < ctx->file->text + ctx->file->len && *pos != '\0') {
         parser_err(ctx, pos, eol(pos), "I expect all top-level statements to be declarations of some kind");
     }
@@ -90,10 +90,10 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
     if (match(&pos, "#!")) // shebang
         some_not(&pos, "\r\n");
 
-    whitespace(&pos);
+    whitespace(&ctx, &pos);
     ast = parse_file_body(&ctx, pos);
     pos = ast->end;
-    whitespace(&pos);
+    whitespace(&ctx, &pos);
     if (pos < file->text + file->len && *pos != '\0') {
         parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file");
     }
@@ -171,10 +171,10 @@ ast_t *parse_file_str(const char *str) {
     };
 
     const char *pos = file->text;
-    whitespace(&pos);
+    whitespace(&ctx, &pos);
     ast_t *ast = parse_file_body(&ctx, pos);
     pos = ast->end;
-    whitespace(&pos);
+    whitespace(&ctx, &pos);
     if (pos < file->text + file->len && *pos != '\0')
         parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the string");
     return ast;

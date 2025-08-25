@@ -108,7 +108,7 @@ ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightness) {
             else if (key) pos = key->end;
         }
 
-        whitespace(&pos);
+        whitespace(ctx, &pos);
         if (get_line_number(ctx->file, pos) != starting_line && get_indent(ctx, pos) < starting_indent)
             parser_err(ctx, pos, eol(pos), "I expected this line to be at least as indented than the line above it");
 
