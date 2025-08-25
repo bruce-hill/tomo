@@ -8,7 +8,7 @@
 #include "../stdlib/files.h"
 #include "../stdlib/types.h"
 
-const TypeInfo_t *parse_comments_info;
+extern const TypeInfo_t *parse_comments_info;
 
 typedef struct {
     file_t *file;
