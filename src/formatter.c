@@ -171,6 +171,12 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         if (if_->else_body) code = Texts(code, " else ", must(format_inline_code(if_->else_body, comments)));
         return code;
     }
+    case Repeat: return Texts("repeat ", must(format_inline_code(Match(ast, Repeat)->body, comments)));
+    case While: {
+        DeclareMatch(loop, ast, While);
+        return Texts("while ", must(format_inline_code(loop->condition, comments)), " do ",
+                     must(format_inline_code(loop->body, comments)));
+    }
     default: {
         Text_t code = Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
         if (Text$has(code, Text("\n"))) return NONE_TEXT;
@@ -195,7 +201,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                     add_line(&code, Text(""), indent);
                     gap_before_comment = false;
                 }
-                add_line(&code, Texts("# ", Text$trim(comment, Text("# \t\r\n\v"), true, true)), indent);
+                add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), indent);
             }
 
             add_line(&code, format_code(stmt->ast, comments, indent), indent);
@@ -210,7 +216,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                 add_line(&code, Text(""), indent);
                 gap_before_comment = false;
             }
-            add_line(&code, Texts("# ", Text$trim(comment, Text("# \t\r\n\v"), true, true)), indent);
+            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), indent);
         }
         return code;
     }
@@ -224,6 +230,15 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             code = Texts(code, "\n", indent, "else \n", indent, single_indent,
                          format_code(if_->else_body, comments, Texts(indent, single_indent)));
         return code;
+    }
+    case Repeat: {
+        return Texts("repeat\n", indent, single_indent,
+                     format_code(Match(ast, Repeat)->body, comments, Texts(indent, single_indent)));
+    }
+    case While: {
+        DeclareMatch(loop, ast, While);
+        return Texts("while ", format_code(loop->condition, comments, indent), "\n", indent, single_indent,
+                     format_code(loop->body, comments, Texts(indent, single_indent)));
     }
     case FunctionDef: {
         DeclareMatch(func, ast, FunctionDef);
@@ -280,11 +295,11 @@ Text_t format_file(const char *path) {
     const char *fmt_pos = file->text;
     Text_t code = EMPTY_TEXT;
     for (OptionalText_t comment; (comment = next_comment(ctx.comments, &fmt_pos, ast->start)).length > 0;) {
-        code = Texts(code, Texts("# ", Text$trim(comment, Text("# \t\r\n\v"), true, true)), "\n");
+        code = Texts(code, Text$trim(comment, Text(" \t\r\n"), false, true), "\n");
     }
     code = Texts(code, format_code(ast, ctx.comments, EMPTY_TEXT));
     for (OptionalText_t comment; (comment = next_comment(ctx.comments, &fmt_pos, ast->start)).length > 0;) {
-        code = Texts(code, Texts("# ", Text$trim(comment, Text("# \t\r\n\v"), true, true)), "\n");
+        code = Texts(code, Text$trim(comment, Text(" \t\r\n"), false, true), "\n");
     }
     return code;
 }
