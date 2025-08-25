@@ -8,7 +8,7 @@
 
 #include "../stdlib/util.h"
 #include "errors.h"
-#include "parse.h"
+#include "expressions.h"
 #include "utils.h"
 
 static const char *keywords[] = {

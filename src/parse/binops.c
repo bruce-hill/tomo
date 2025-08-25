@@ -5,7 +5,7 @@
 #include "../stdlib/util.h"
 #include "context.h"
 #include "errors.h"
-#include "parse.h"
+#include "expressions.h"
 #include "suffixes.h"
 #include "utils.h"
 

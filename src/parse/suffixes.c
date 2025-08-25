@@ -8,7 +8,7 @@
 #include "../stdlib/util.h"
 #include "context.h"
 #include "errors.h"
-#include "parse.h"
+#include "expressions.h"
 #include "utils.h"
 
 ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {

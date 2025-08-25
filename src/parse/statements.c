@@ -9,7 +9,7 @@
 #include "context.h"
 #include "errors.h"
 #include "files.h"
-#include "parse.h"
+#include "expressions.h"
 #include "statements.h"
 #include "suffixes.h"
 #include "types.h"
