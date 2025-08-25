@@ -8,7 +8,6 @@
 ast_t *parse(const char *str);
 ast_t *parse_expression(const char *str);
 
-ast_e match_binary_operator(const char **pos);
 ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr);
 ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
 ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn);
@@ -40,7 +39,6 @@ ast_t *parse_not(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_none(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_parens(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_pass(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_path(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_repeat(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_return(parse_ctx_t *ctx, const char *pos);

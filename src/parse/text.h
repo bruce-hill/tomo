@@ -6,3 +6,4 @@
 
 ast_t *parse_text(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos);
+ast_t *parse_path(parse_ctx_t *ctx, const char *pos);

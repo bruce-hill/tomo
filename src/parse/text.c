@@ -183,3 +183,45 @@ ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
 
     return NewAST(ctx->file, start, pos, InlineCCode, .chunks = chunks, .type_ast = type);
 }
+
+public
+ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
+    // "(" ("~/" / "./" / "../" / "/") ... ")"
+    const char *start = pos;
+
+    if (!match(&pos, "(")) return NULL;
+
+    if (!(*pos == '~' || *pos == '.' || *pos == '/')) return NULL;
+
+    const char *path_start = pos;
+    size_t len = 1;
+    int paren_depth = 1;
+    while (pos + len < ctx->file->text + ctx->file->len - 1) {
+        if (pos[len] == '\\') {
+            len += 2;
+            continue;
+        } else if (pos[len] == '(') {
+            paren_depth += 1;
+        } else if (pos[len] == ')') {
+            paren_depth -= 1;
+            if (paren_depth <= 0) break;
+        } else if (pos[len] == '\r' || pos[len] == '\n') {
+            parser_err(ctx, path_start, &pos[len - 1], "This path was not closed");
+        }
+        len += 1;
+    }
+    pos += len + 1;
+    char *path = String(string_slice(path_start, .length = len));
+    for (char *src = path, *dest = path;;) {
+        if (src[0] == '\\') {
+            *(dest++) = src[1];
+            src += 2;
+        } else if (*src) {
+            *(dest++) = *(src++);
+        } else {
+            *(dest++) = '\0';
+            break;
+        }
+    }
+    return NewAST(ctx->file, start, pos, Path, .path = path);
+}
