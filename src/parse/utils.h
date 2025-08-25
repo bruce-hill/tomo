@@ -3,7 +3,9 @@
 #include <stdbool.h>
 
 #include "../stdlib/util.h"
-#include "parse.h"
+#include "context.h"
+
+#define SPACES_PER_INDENT 4
 
 CONSTFUNC bool is_keyword(const char *word);
 size_t some_of(const char **pos, const char *allow);

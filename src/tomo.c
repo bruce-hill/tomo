@@ -20,7 +20,7 @@
 #include "config.h"
 #include "modules.h"
 #include "naming.h"
-#include "parse/parse.h"
+#include "parse/files.h"
 #include "stdlib/bools.h"
 #include "stdlib/bytes.h"
 #include "stdlib/datatypes.h"

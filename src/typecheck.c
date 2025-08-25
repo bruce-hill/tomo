@@ -12,7 +12,7 @@
 #include "environment.h"
 #include "modules.h"
 #include "naming.h"
-#include "parse/parse.h"
+#include "parse/files.h"
 #include "parse/types.h"
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"

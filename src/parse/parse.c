@@ -1,8 +1,6 @@
 // Recursive descent parser for parsing code
 #include <ctype.h>
 #include <gc.h>
-#include <setjmp.h>
-#include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
@@ -13,18 +11,13 @@
 
 #include "../ast.h"
 #include "../stdlib/print.h"
-#include "../stdlib/stdlib.h"
-#include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
+#include "context.h"
 #include "errors.h"
+#include "files.h"
 #include "parse.h"
 #include "utils.h"
-
-// The cache of {filename -> parsed AST} will hold at most this many entries:
-#ifndef PARSE_CACHE_SIZE
-#define PARSE_CACHE_SIZE 100
-#endif
 
 static const double RADIANS_PER_DEGREE = 0.0174532925199432957692369076848861271344287188854172545609719144;
 static const char closing[128] = {['('] = ')', ['['] = ']', ['<'] = '>', ['{'] = '}'};
@@ -55,78 +48,6 @@ int op_tightness[] = {
     [Or] = 1,
     [Xor] = 1,
 };
-
-static INLINE ast_e match_binary_operator(const char **pos);
-static ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr);
-static ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn);
-static ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
-static ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt);
-static ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
-static arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos);
-static type_ast_t *parse_list_type(parse_ctx_t *ctx, const char *pos);
-static type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos);
-static type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos);
-static type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos);
-static type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos);
-static type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos);
-static type_ast_t *parse_type(parse_ctx_t *ctx, const char *pos);
-static type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_list(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_block(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_bool(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_convert_def(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_declaration(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_defer(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_do(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_doctest(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_assert(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_expr(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_extended_expr(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_extern(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_for(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_heap_alloc(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_if(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_int(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_lambda(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_lang_def(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_extend(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_negative(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_not(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_none(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_num(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_parens(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_pass(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_path(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_repeat(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_return(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_set(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_skip(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_stack_reference(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_statement(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_stop(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_table(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_term(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_text(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_update(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_use(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_var(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_when(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_while(parse_ctx_t *ctx, const char *pos);
-static ast_t *parse_deserialize(parse_ctx_t *ctx, const char *pos);
-static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open_quote, char close_quote,
-                                      char open_interp, bool allow_escapes);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////     AST-based parsers    /////////////////////////////////////////////
@@ -1302,12 +1223,6 @@ ast_t *parse_declaration(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Declare, .var = var, .type = type, .value = val);
 }
 
-ast_t *parse_top_declaration(parse_ctx_t *ctx, const char *pos) {
-    ast_t *declaration = parse_declaration(ctx, pos);
-    if (declaration) declaration->__data.Declare.top_level = true;
-    return declaration;
-}
-
 ast_t *parse_update(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     ast_t *lhs = optional(ctx, &pos, parse_expr);
@@ -1490,35 +1405,6 @@ ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos) {
                 parser_err(ctx, next, eol(next), "I couldn't parse this namespace declaration");
             break;
         }
-    }
-    REVERSE_LIST(statements);
-    return NewAST(ctx->file, start, pos, Block, .statements = statements);
-}
-
-ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
-    const char *start = pos;
-    whitespace(&pos);
-    ast_list_t *statements = NULL;
-    for (;;) {
-        const char *next = pos;
-        whitespace(&next);
-        if (get_indent(ctx, next) != 0) break;
-        ast_t *stmt;
-        if ((stmt = optional(ctx, &pos, parse_struct_def)) || (stmt = optional(ctx, &pos, parse_func_def))
-            || (stmt = optional(ctx, &pos, parse_enum_def)) || (stmt = optional(ctx, &pos, parse_lang_def))
-            || (stmt = optional(ctx, &pos, parse_extend)) || (stmt = optional(ctx, &pos, parse_convert_def))
-            || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_extern))
-            || (stmt = optional(ctx, &pos, parse_inline_c)) || (stmt = optional(ctx, &pos, parse_top_declaration))) {
-            statements = new (ast_list_t, .ast = stmt, .next = statements);
-            pos = stmt->end;
-            whitespace(&pos); // TODO: check for newline
-        } else {
-            break;
-        }
-    }
-    whitespace(&pos);
-    if (pos < ctx->file->text + ctx->file->len && *pos != '\0') {
-        parser_err(ctx, pos, eol(pos), "I expect all top-level statements to be declarations of some kind");
     }
     REVERSE_LIST(statements);
     return NewAST(ctx->file, start, pos, Block, .statements = statements);
@@ -1911,59 +1797,6 @@ ast_t *parse_use(parse_ctx_t *ctx, const char *pos) {
         what = USE_MODULE;
     }
     return NewAST(ctx->file, start, pos, Use, .var = var, .path = name, .what = what);
-}
-
-ast_t *parse_file(const char *path, jmp_buf *on_err) {
-    if (path[0] != '<' && path[0] != '/') fail("Path is not fully resolved: ", path);
-    // NOTE: this cache leaks a bounded amount of memory. The cache will never
-    // hold more than PARSE_CACHE_SIZE entries (see below), but each entry's
-    // AST holds onto a reference to the file it came from, so they could
-    // potentially be somewhat large.
-    static Table_t cached = {};
-    ast_t *ast = Table$str_get(cached, path);
-    if (ast) return ast;
-
-    file_t *file;
-    if (path[0] == '<') {
-        const char *endbracket = strchr(path, '>');
-        if (!endbracket) return NULL;
-        file = spoof_file(GC_strndup(path, (size_t)(endbracket + 1 - path)), endbracket + 1);
-    } else {
-        file = load_file(path);
-        if (!file) return NULL;
-    }
-
-    parse_ctx_t ctx = {
-        .file = file,
-        .on_err = on_err,
-    };
-
-    const char *pos = file->text;
-    if (match(&pos, "#!")) // shebang
-        some_not(&pos, "\r\n");
-
-    whitespace(&pos);
-    ast = parse_file_body(&ctx, pos);
-    pos = ast->end;
-    whitespace(&pos);
-    if (pos < file->text + file->len && *pos != '\0') {
-        parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the file");
-    }
-
-    // If cache is getting too big, evict a random entry:
-    if (cached.entries.length > PARSE_CACHE_SIZE) {
-        // FIXME: this currently evicts the first entry, but it should be more like
-        // an LRU cache
-        struct {
-            const char *path;
-            ast_t *ast;
-        } *to_remove = Table$entry(cached, 1);
-        Table$str_remove(&cached, to_remove->path);
-    }
-
-    // Save the AST in the cache:
-    Table$str_set(&cached, path, ast);
-    return ast;
 }
 
 type_ast_t *parse_type_str(const char *str) {
