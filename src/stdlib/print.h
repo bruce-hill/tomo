@@ -1,5 +1,3 @@
-#pragma once
-
 // This file defines some functions to make it easy to do formatted text
 // without using printf style specifiers:
 //
@@ -7,7 +5,8 @@
 //     fprint(file, ...) - print text to file
 //     print_err(...) - print an error message and exit with EXIT_FAILURE
 //     String(...) - return an allocated string
-//
+
+#pragma once
 
 #include <assert.h>
 #include <gc.h>

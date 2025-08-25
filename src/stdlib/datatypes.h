@@ -1,6 +1,6 @@
-#pragma once
-
 // Common datastructures (lists, tables, closures)
+
+#pragma once
 
 #include <gmp.h>
 #include <stdbool.h>

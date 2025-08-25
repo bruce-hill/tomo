@@ -1,4 +1,5 @@
 // Type info and methods for CString datatype (char*)
+
 #include <err.h>
 #include <gc.h>
 #include <stdbool.h>

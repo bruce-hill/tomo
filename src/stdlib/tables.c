@@ -1,8 +1,3 @@
-// table.c - C Hash table implementation
-// Copyright 2024 Bruce Hill
-// Provided under the MIT license with the Commons Clause
-// See included LICENSE for details.
-
 // Hash table (aka Dictionary) Implementation
 // Hash keys and values are stored *by value*
 // The hash insertion/lookup implementation is based on Lua's tables,

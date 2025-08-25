@@ -1,4 +1,5 @@
 // This file defines how to compile optionals and null
+
 #pragma once
 
 #include "../ast.h"

@@ -1,4 +1,5 @@
 // The main program that runs compilation
+
 #include <ctype.h>
 #include <errno.h>
 #include <gc.h>

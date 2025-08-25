@@ -1,6 +1,6 @@
-#pragma once
-
 // Type info and methods for CString datatype, which represents C's `char*`
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

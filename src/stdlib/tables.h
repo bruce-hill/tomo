@@ -1,6 +1,6 @@
-#pragma once
-
 // Hash table datastructure with methods and type information
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

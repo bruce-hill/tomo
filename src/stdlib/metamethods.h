@@ -1,5 +1,6 @@
-#pragma once
 // Metamethods are methods that all types share:
+
+#pragma once
 
 #include <stdint.h>
 

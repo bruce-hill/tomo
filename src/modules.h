@@ -1,3 +1,5 @@
+// Logic for getting information about and installing modules
+
 #pragma once
 
 #include <stdbool.h>

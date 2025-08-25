@@ -1,6 +1,6 @@
-#pragma once
-
 // Type info and methods for "Memory" opaque type
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

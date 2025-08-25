@@ -1,6 +1,6 @@
-#pragma once
-
 // Type infos and methods for Pointer types
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

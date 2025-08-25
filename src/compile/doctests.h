@@ -1,4 +1,5 @@
 // This file defines how to compile doctests
+
 #pragma once
 
 #include "../ast.h"

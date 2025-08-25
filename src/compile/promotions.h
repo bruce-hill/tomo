@@ -1,4 +1,5 @@
 // This file defines how to do type promotions during compilation
+
 #pragma once
 
 #include "../ast.h"

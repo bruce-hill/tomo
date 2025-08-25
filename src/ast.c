@@ -1,5 +1,6 @@
 // Some basic operations defined on AST nodes, mainly converting to
 // strings for debugging.
+
 #include <stdarg.h>
 
 #include "ast.h"

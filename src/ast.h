@@ -1,6 +1,6 @@
-#pragma once
-
 // Logic defining ASTs (abstract syntax trees) to represent code
+
+#pragma once
 
 #include <err.h>
 #include <stdbool.h>

@@ -1,4 +1,5 @@
 // This file defines how to compile 'if' conditionals
+
 #pragma once
 
 #include "../ast.h"

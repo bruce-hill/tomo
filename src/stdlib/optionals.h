@@ -1,6 +1,6 @@
-#pragma once
-
 // Optional types
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

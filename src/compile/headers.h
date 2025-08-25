@@ -1,4 +1,5 @@
 // This file defines how to compile header files
+
 #pragma once
 
 #include "../ast.h"

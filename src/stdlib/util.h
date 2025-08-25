@@ -1,6 +1,6 @@
-#pragma once
-
 // Built-in utility functions
+
+#pragma once
 
 #include <assert.h>
 #include <err.h>

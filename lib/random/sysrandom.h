@@ -1,3 +1,5 @@
+// Logic for using system random numbers
+
 #pragma once
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)

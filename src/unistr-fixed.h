@@ -1,7 +1,7 @@
-#pragma once
-
 // This is a workaround fix for an issue on some systems that don't have `__GLIBC__` defined
 // and run into problems with <unistr.h>
+
+#pragma once
 
 #ifndef __GLIBC__
 #define __GLIBC__ 2

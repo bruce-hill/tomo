@@ -1,6 +1,6 @@
-#pragma once
-
 // Integer type infos and methods
+
+#pragma once
 
 #include <gmp.h>
 #include <stdbool.h>

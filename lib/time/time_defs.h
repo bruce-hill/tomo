@@ -1,3 +1,5 @@
+// Some helper logic for working with times.
+
 #pragma once
 #include <stdlib.h>
 #include <sys/time.h>

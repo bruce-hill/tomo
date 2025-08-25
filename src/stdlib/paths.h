@@ -1,6 +1,6 @@
-#pragma once
-
 // A lang for filesystem paths
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

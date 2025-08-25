@@ -1,4 +1,5 @@
 // This file defines how to compile variable declarations
+
 #pragma once
 
 #include "../ast.h"

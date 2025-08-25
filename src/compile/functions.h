@@ -1,4 +1,5 @@
 // This file defines how to compile functions
+
 #pragma once
 
 #include "../ast.h"

@@ -1,4 +1,5 @@
 // Type information and methods for TypeInfos (i.e. runtime representations of types)
+
 #include <err.h>
 #include <gc.h>
 #include <sys/param.h>

@@ -1,3 +1,5 @@
+// Logic for running system commands
+
 #pragma once
 
 #include <errno.h>

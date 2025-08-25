@@ -8,7 +8,6 @@
 
 #include "ast.h"
 #include "environment.h"
-#include "stdlib/datatypes.h"
 #include "types.h"
 
 type_t *parse_type_ast(env_t *env, type_ast_t *ast);

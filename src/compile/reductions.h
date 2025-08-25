@@ -1,4 +1,5 @@
 // This file defines how to compile reductions like `(+: nums)`
+
 #pragma once
 
 #include "../ast.h"

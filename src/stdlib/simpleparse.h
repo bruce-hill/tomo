@@ -1,5 +1,3 @@
-#pragma once
-
 // This file defines some functions to make it easy to parse simply formatted
 // strings **correctly** without memory bugs.
 //
@@ -15,6 +13,8 @@
 //     const char *item1, *item2;
 //     if ((err=strparse("one, two", &item1, ",", PARSE_WHITESPACE, &item2)))
 //         errx(1, "Failed to parse items at: ", err);
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

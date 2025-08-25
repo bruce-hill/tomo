@@ -1,8 +1,8 @@
-#pragma once
-
 // This file holds the internals for the SipHash implementation. For a few
 // cases, we want to include this for incrementally computing hashes.
 // Otherwise, it suffices to just use the siphash24() function from siphash.h
+
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>

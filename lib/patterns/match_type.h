@@ -1,3 +1,5 @@
+// A datatype used for pattern match results
+
 #pragma once
 
 typedef struct {

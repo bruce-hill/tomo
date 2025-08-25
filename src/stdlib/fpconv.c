@@ -1,5 +1,6 @@
 // This file defines a function to convert floating point numbers to strings.
 // For license, see: fpconv_license.txt
+
 #include <stdbool.h>
 #include <string.h>
 

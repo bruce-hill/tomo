@@ -1,3 +1,5 @@
+// This file defines some wrapper logic around different systems' random functions
+
 #include <assert.h>
 #include <stdint.h>
 

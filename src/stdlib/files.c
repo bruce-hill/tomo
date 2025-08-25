@@ -1,6 +1,4 @@
-//
-// files.c - Implementation of some file loading functionality.
-//
+// Implementation of some file loading functionality.
 
 #include <ctype.h>
 #include <err.h>

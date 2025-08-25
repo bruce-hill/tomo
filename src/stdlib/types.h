@@ -1,6 +1,6 @@
-#pragma once
-
 // Type information and methods for TypeInfos (i.e. runtime representations of types)
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

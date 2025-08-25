@@ -1,4 +1,5 @@
 // This file defines how to compile variable declarations
+
 #include "../ast.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"

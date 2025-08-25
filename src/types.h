@@ -1,6 +1,6 @@
-#pragma once
-
 // Logic for defining and working with types
+
+#pragma once
 
 #include <stdlib.h>
 

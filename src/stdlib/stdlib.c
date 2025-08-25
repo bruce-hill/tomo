@@ -14,6 +14,7 @@
 #include <sys/param.h>
 #include <time.h>
 
+#include "../config.h"
 #include "bools.h"
 #include "files.h"
 #include "integers.h"

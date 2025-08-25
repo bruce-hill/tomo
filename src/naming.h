@@ -1,6 +1,6 @@
-#pragma once
-
 // Compilation environments
+
+#pragma once
 
 #include "environment.h"
 #include "stdlib/datatypes.h"

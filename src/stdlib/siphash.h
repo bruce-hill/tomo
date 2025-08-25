@@ -1,6 +1,6 @@
-#pragma once
-
 // An implementation of the SipHash algorithm.
+
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>

@@ -1,8 +1,8 @@
-#pragma once
-
 // This file defines a MAP_LIST(fn, ...) function that applies a function to
 // every one of the varargs.
 // For example: baz(MAP_LIST(foo, 1, "x")) -> baz(foo(1), foo("x"))
+
+#pragma once
 
 #define EVAL0(...) __VA_ARGS__
 #define EVAL1(...) EVAL0(EVAL0(EVAL0(__VA_ARGS__)))

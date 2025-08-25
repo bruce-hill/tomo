@@ -1,4 +1,5 @@
 // This file defines how to compile CLI argument parsing
+
 #pragma once
 
 #include "../environment.h"

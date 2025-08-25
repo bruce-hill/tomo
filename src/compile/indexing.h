@@ -1,4 +1,5 @@
 // This file defines how to compile indexing like `list[i]` or `ptr[]`
+
 #pragma once
 
 #include "../ast.h"

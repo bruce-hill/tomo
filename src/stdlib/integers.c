@@ -1,4 +1,5 @@
 // Integer type infos and methods
+
 #include <stdio.h> // Must be before gmp.h
 
 #include <ctype.h>

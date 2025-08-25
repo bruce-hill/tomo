@@ -1,4 +1,5 @@
 // This file defines how to compile 'when' statements/expressions
+
 #pragma once
 
 #include "../ast.h"

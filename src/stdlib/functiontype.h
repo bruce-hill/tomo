@@ -1,3 +1,5 @@
+// Logic for handling function type values
+
 #pragma once
 
 #include <stdbool.h>
@@ -5,8 +7,6 @@
 
 #include "types.h"
 #include "util.h"
-
-// Logic for handling function type values
 
 void register_function(void *fn, Text_t filename, int64_t line_num, Text_t name);
 OptionalText_t get_function_name(void *fn);

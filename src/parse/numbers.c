@@ -10,7 +10,6 @@
 #include <uniname.h>
 
 #include "../ast.h"
-#include "../stdlib/util.h"
 #include "context.h"
 #include "errors.h"
 #include "utils.h"

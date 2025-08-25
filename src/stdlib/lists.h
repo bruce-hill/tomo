@@ -1,6 +1,6 @@
-#pragma once
-
 // Functions that operate on lists
+
+#pragma once
 
 #include <stdbool.h>
 

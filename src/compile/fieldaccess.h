@@ -1,4 +1,5 @@
 // This file defines how to compile field accessing like `foo.x`
+
 #pragma once
 
 #include "../ast.h"

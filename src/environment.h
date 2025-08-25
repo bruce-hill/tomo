@@ -1,10 +1,10 @@
-#pragma once
-
 // Compilation environments
 
+#pragma once
+
 #include "stdlib/datatypes.h"
-#include "stdlib/print.h"
-#include "stdlib/stdlib.h"
+#include "stdlib/print.h" // IWYU pragma: export
+#include "stdlib/stdlib.h" // IWYU pragma: export
 #include "types.h"
 
 typedef struct {

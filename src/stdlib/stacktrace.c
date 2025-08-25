@@ -1,3 +1,5 @@
+// This file defines some code to print stack traces.
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif

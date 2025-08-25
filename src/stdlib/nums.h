@@ -1,6 +1,6 @@
-#pragma once
-
 // Type infos and methods for Nums (floating point)
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

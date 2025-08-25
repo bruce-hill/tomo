@@ -1,4 +1,5 @@
 // Common header files for compilation
+
 #pragma once
 
 #include "assertions.h" // IWYU pragma: export
@@ -6,8 +7,8 @@
 #include "binops.h" // IWYU pragma: export
 #include "blocks.h" // IWYU pragma: export
 #include "cli.h" // IWYU pragma: export
-#include "compilation.h" // IWYU pragma: export
 #include "comparisons.h" // IWYU pragma: export
+#include "compilation.h" // IWYU pragma: export
 #include "conditionals.h" // IWYU pragma: export
 #include "declarations.h" // IWYU pragma: export
 #include "doctests.h" // IWYU pragma: export

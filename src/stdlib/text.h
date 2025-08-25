@@ -1,7 +1,7 @@
-#pragma once
-
 // Type info and methods for Text datatype, which uses a struct inspired by
 // Raku's string representation and libunistr
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>

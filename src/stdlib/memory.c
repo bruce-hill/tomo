@@ -1,4 +1,5 @@
 // Type info and methods for "Memory" opaque type
+
 #include <err.h>
 #include <gc.h>
 #include <stdbool.h>

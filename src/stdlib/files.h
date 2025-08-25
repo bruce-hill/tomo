@@ -1,6 +1,5 @@
-//
-// files.h - Definitions of an API for loading files.
-//
+// Definitions of an API for loading files.
+
 #pragma once
 
 #include <stdbool.h>

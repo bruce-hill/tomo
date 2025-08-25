@@ -1,3 +1,5 @@
+// The ChaCha stream cipher used for pseudorandom number generation
+
 #pragma once
 /*
 chacha-merged.c version 20080118

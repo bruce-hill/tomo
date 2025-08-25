@@ -1,3 +1,5 @@
+// This file has an implementation of the SipHash hashing function.
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>

@@ -1,6 +1,6 @@
-#pragma once
-
 // Built-in functions
+
+#pragma once
 
 #include <signal.h>
 #include <stdbool.h>
@@ -9,7 +9,7 @@
 
 #include "datatypes.h"
 #include "print.h"
-#include "stacktrace.h"
+#include "stacktrace.h" // IWYU pragma: export
 #include "types.h"
 
 extern bool USE_COLOR;

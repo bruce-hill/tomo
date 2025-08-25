@@ -1,3 +1,4 @@
+// A coroutine library
 // Copyright 2018 Sen Han <00hnes@gmail.com>
 // Modifications copyright 2025 Bruce Hill <bruce@bruce-hill.com>
 //
