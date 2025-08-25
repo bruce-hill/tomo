@@ -9,6 +9,7 @@
 #include "context.h"
 #include "errors.h"
 #include "parse.h"
+#include "suffixes.h"
 #include "utils.h"
 
 ast_t *parse_list(parse_ctx_t *ctx, const char *pos) {

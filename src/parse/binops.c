@@ -2,17 +2,11 @@
 #include <string.h>
 
 #include "../ast.h"
-#include "../stdlib/print.h"
 #include "../stdlib/util.h"
-#include "containers.h"
 #include "context.h"
 #include "errors.h"
-#include "files.h"
-#include "functions.h"
-#include "numbers.h"
 #include "parse.h"
-#include "text.h"
-#include "types.h"
+#include "suffixes.h"
 #include "utils.h"
 
 int op_tightness[] = {
