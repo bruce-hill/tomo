@@ -12,8 +12,8 @@
 #include "context.h"
 #include "errors.h"
 #include "files.h"
+#include "functions.h"
 #include "parse.h"
-#include "types.h"
 #include "utils.h"
 
 // The cache of {filename -> parsed AST} will hold at most this many entries:
