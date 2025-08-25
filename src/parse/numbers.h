@@ -1,8 +1,6 @@
 // Logic for parsing numbers
 #pragma once
 
-// Parsing logic
-
 #include "../ast.h"
 #include "context.h"
 
