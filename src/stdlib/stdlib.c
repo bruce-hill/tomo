@@ -457,7 +457,7 @@ void start_inspect(const char *filename, int64_t start, int64_t end) {
                  line += strcspn(line, "\r\n")) {
                 line += strspn(line, "\r\n");
                 if ((int64_t)strspn(line, " \t") >= indent_len) line += indent_len;
-                print(repeated_char(' ', 3 * _inspect_depth), USE_COLOR ? "\x1b[33m.. " : ".. ",
+                print(repeated_char(' ', 3 * _inspect_depth), USE_COLOR ? "\x1b[33m..\033[m " : ".. ",
                       string_slice(line, strcspn(line, "\r\n")));
             }
         }
