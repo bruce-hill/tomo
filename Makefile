@@ -95,7 +95,7 @@ else
 endif
 EXE_FILE=tomo_$(TOMO_VERSION)
 
-COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c src/compile/*.c))
+COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c src/compile/*.c src/parse/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
 API_YAML=$(wildcard api/*.yaml)
@@ -129,7 +129,7 @@ build/lib/$(AR_FILE): $(STDLIB_OBJS)
 	ar -rcs $@ $^
 
 tags:
-	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h}
+	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h}
 
 config.mk: configure.sh
 	bash ./configure.sh

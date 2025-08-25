@@ -18,13 +18,13 @@
 #include <unictype.h>
 #include <uniname.h>
 
-#include "ast.h"
-#include "stdlib/print.h"
-#include "stdlib/stacktrace.h"
-#include "stdlib/stdlib.h"
-#include "stdlib/tables.h"
-#include "stdlib/text.h"
-#include "stdlib/util.h"
+#include "../ast.h"
+#include "../stdlib/print.h"
+#include "../stdlib/stacktrace.h"
+#include "../stdlib/stdlib.h"
+#include "../stdlib/tables.h"
+#include "../stdlib/text.h"
+#include "../stdlib/util.h"
 
 // The cache of {filename -> parsed AST} will hold at most this many entries:
 #ifndef PARSE_CACHE_SIZE

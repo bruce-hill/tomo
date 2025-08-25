@@ -3,10 +3,10 @@
 This directory contains the source files for the Tomo compiler:
 
 - Abstract syntax trees: [ast.c](ast.c)/[ast.h](ast.h)
-- Compilation: [compile.c](compile.c)/[compile.h](compile.h)
+- Compilation: [compile/](compile)
 - Compilation logic for enums: [enums.c](enums.c)/[enums.h](enums.h)
 - Compilation environments: [environment.c](environment.c)/[environment.h](environment.h)
-- Parsing: [parse.c](parse.c)/[parse.h](parse.h)
+- Parsing: [parse/](parse)
 - Compilation logic for structs: [structs.c](structs.c)/[structs.h](structs.h)
 - The compiler executable: [tomo.c](tomo.c)/[tomo.h](tomo.h)
 - Typechecking logic: [typecheck.c](typecheck.c)/[typecheck.h](typecheck.h)

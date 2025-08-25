@@ -5,7 +5,7 @@
 
 #include "environment.h"
 #include "naming.h"
-#include "parse.h"
+#include "parse/parse.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
