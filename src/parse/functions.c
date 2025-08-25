@@ -14,6 +14,7 @@
 #include "errors.h"
 #include "functions.h"
 #include "parse.h"
+#include "types.h"
 #include "utils.h"
 
 public
