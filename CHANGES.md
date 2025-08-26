@@ -4,6 +4,7 @@
 
 - Added a versioning system based on `CHANGES.md` files and `modules.ini`
   configuration for module aliases.
+- Added a `--format` flag to the `tomo` binary that autoformats your code.
 - When attempting to run a program with a module that is not installed, Tomo
   can prompt the user to automatically install it.
 - Programs can use `--version` as a CLI flag to print a Tomo program's version
