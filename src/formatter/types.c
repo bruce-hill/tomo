@@ -18,7 +18,7 @@ Text_t format_type(type_ast_t *type) {
         return Texts("[", format_type(Match(type, ListTypeAST)->item), "]");
     }
     case SetTypeAST: {
-        return Texts("|", format_type(Match(type, ListTypeAST)->item), "|");
+        return Texts("|", format_type(Match(type, SetTypeAST)->item), "|");
     }
     case TableTypeAST: {
         DeclareMatch(table, type, TableTypeAST);
