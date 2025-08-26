@@ -46,6 +46,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case FunctionDef:
     /*inline*/ case ConvertDef:
     /*inline*/ case DocTest:
+    /*inline*/ case Extern:
         return NONE_TEXT;
     /*inline*/ case Assert: {
         DeclareMatch(assert, ast, Assert);
@@ -461,7 +462,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         DeclareMatch(extend, ast, Extend);
         return Texts("lang ", Text$from_str(extend->name), format_namespace(extend->body, comments, indent));
     }
-    /*inline*/ case Defer:
+    /*multiline*/ case Extern: {
+        DeclareMatch(ext, ast, Extern);
+        return Texts("extern ", Text$from_str(ext->name), " : ", format_type(ext->type));
+    }
+    /*multiline*/ case Defer:
         return Texts("defer ", format_namespace(Match(ast, Defer)->body, comments, indent));
     /*multiline*/ case List:
     /*multiline*/ case Set: {
