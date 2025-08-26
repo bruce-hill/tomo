@@ -3,30 +3,24 @@
 #include <assert.h>
 #include <setjmp.h>
 
-#include "ast.h"
+#include "../ast.h"
+#include "../parse/context.h"
+#include "../parse/files.h"
+#include "../parse/utils.h"
+#include "../stdlib/datatypes.h"
+#include "../stdlib/integers.h"
+#include "../stdlib/optionals.h"
+#include "../stdlib/stdlib.h"
+#include "../stdlib/tables.h"
+#include "../stdlib/text.h"
+#include "args.h"
+#include "enums.h"
 #include "formatter.h"
-#include "parse/context.h"
-#include "parse/files.h"
-#include "parse/utils.h"
-#include "stdlib/datatypes.h"
-#include "stdlib/integers.h"
-#include "stdlib/optionals.h"
-#include "stdlib/stdlib.h"
-#include "stdlib/tables.h"
-#include "stdlib/text.h"
-
-#define MAX_WIDTH 100
-
-#define must(expr)                                                                                                     \
-    ({                                                                                                                 \
-        OptionalText_t _expr = expr;                                                                                   \
-        if (_expr.length < 0) return NONE_TEXT;                                                                        \
-        (Text_t) _expr;                                                                                                \
-    })
+#include "types.h"
 
 const Text_t single_indent = Text("    ");
 
-static void add_line(Text_t *code, Text_t line, Text_t indent) {
+void add_line(Text_t *code, Text_t line, Text_t indent) {
     if (code->length == 0) {
         *code = line;
     } else {
@@ -46,7 +40,7 @@ OptionalText_t next_comment(Table_t comments, const char **pos, const char *end)
     return NONE_TEXT;
 }
 
-static bool range_has_comment(const char *start, const char *end, Table_t comments) {
+bool range_has_comment(const char *start, const char *end, Table_t comments) {
     OptionalText_t comment = next_comment(comments, &start, end);
     return (comment.length >= 0);
 }
@@ -77,112 +71,6 @@ static Text_t indent_code(Text_t code) {
 static Text_t parenthesize(Text_t code, Text_t indent) {
     if (Text$has(code, Text("\n"))) return Texts("(\n", indent, indent_code(code), "\n", indent, ")");
     else return Texts("(", code, ")");
-}
-
-static OptionalText_t format_inline_type(type_ast_t *type, Table_t comments) {
-    if (range_has_comment(type->start, type->end, comments)) return NONE_TEXT;
-    switch (type->tag) {
-    default: {
-        Text_t code = Text$from_strn(type->start, (int64_t)(type->end - type->start));
-        if (Text$has(code, Text("\n"))) return NONE_TEXT;
-        return Text$replace(code, Text("\t"), single_indent);
-    }
-    }
-}
-
-static Text_t format_type(type_ast_t *type, Table_t comments, Text_t indent) {
-    (void)comments, (void)indent;
-    switch (type->tag) {
-    default: {
-        OptionalText_t inline_type = format_inline_type(type, comments);
-        if (inline_type.length >= 0) return inline_type;
-        Text_t code = Text$from_strn(type->start, (int64_t)(type->end - type->start));
-        return Text$replace(code, Text("\t"), single_indent);
-    }
-    }
-}
-
-static OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
-    if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;
-    if (arg->name == NULL && arg->value) return must(format_inline_code(arg->value, comments));
-    Text_t code = Text$from_str(arg->name);
-    if (arg->type) code = Texts(code, ":", must(format_inline_type(arg->type, comments)));
-    if (arg->value) code = Texts(code, " = ", must(format_inline_code(arg->value, comments)));
-    return code;
-}
-
-static Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
-    OptionalText_t inline_arg = format_inline_arg(arg, comments);
-    if (inline_arg.length >= 0 && inline_arg.length <= MAX_WIDTH) return inline_arg;
-    if (arg->name == NULL && arg->value) return format_code(arg->value, comments, indent);
-    Text_t code = Text$from_str(arg->name);
-    if (arg->type) code = Texts(code, ":", format_type(arg->type, comments, indent));
-    if (arg->value) code = Texts(code, " = ", format_code(arg->value, comments, indent));
-    return code;
-}
-
-static OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
-    Text_t code = EMPTY_TEXT;
-    for (; args; args = args->next) {
-        if (args->name && args->next && args->type == args->next->type && args->value == args->next->value) {
-            code = Texts(code, Text$from_str(args->name), ",");
-        } else {
-            code = Texts(code, must(format_inline_arg(args, comments)));
-            if (args->next) code = Texts(code, ", ");
-        }
-        if (args->next && range_has_comment(args->end, args->next->start, comments)) return NONE_TEXT;
-    }
-    return code;
-}
-
-static Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
-    OptionalText_t inline_args = format_inline_args(args, comments);
-    if (inline_args.length >= 0 && inline_args.length <= MAX_WIDTH) return inline_args;
-    Text_t code = EMPTY_TEXT;
-    for (; args; args = args->next) {
-        if (args->name && args->next && args->type == args->next->type && args->value == args->next->value) {
-            code = Texts(code, Text$from_str(args->name), ",");
-        } else {
-            add_line(&code, Texts(format_arg(args, comments, indent), ","), indent);
-        }
-    }
-    return code;
-}
-
-static OptionalText_t format_inline_tag(tag_ast_t *tag, Table_t comments) {
-    if (range_has_comment(tag->start, tag->end, comments)) return NONE_TEXT;
-    Text_t code = Texts(Text$from_str(tag->name), "(", must(format_inline_args(tag->fields, comments)));
-    if (tag->secret) code = Texts(code, "; secret");
-    return Texts(code, ")");
-}
-
-static Text_t format_tag(tag_ast_t *tag, Table_t comments, Text_t indent) {
-    OptionalText_t inline_tag = format_inline_tag(tag, comments);
-    if (inline_tag.length >= 0) return inline_tag;
-    Text_t code =
-        Texts(Text$from_str(tag->name), "(", format_args(tag->fields, comments, Texts(indent, single_indent)));
-    if (tag->secret) code = Texts(code, "; secret");
-    return Texts(code, ")");
-}
-
-static OptionalText_t format_inline_tags(tag_ast_t *tags, Table_t comments) {
-    Text_t code = EMPTY_TEXT;
-    for (; tags; tags = tags->next) {
-        code = Texts(code, must(format_inline_tag(tags, comments)));
-        if (tags->next) code = Texts(code, ", ");
-        if (tags->next && range_has_comment(tags->end, tags->next->start, comments)) return NONE_TEXT;
-    }
-    return code;
-}
-
-static Text_t format_tags(tag_ast_t *tags, Table_t comments, Text_t indent) {
-    OptionalText_t inline_tags = format_inline_tags(tags, comments);
-    if (inline_tags.length >= 0) return inline_tags;
-    Text_t code = EMPTY_TEXT;
-    for (; tags; tags = tags->next) {
-        add_line(&code, Texts(format_tag(tags, comments, indent), ","), indent);
-    }
-    return code;
 }
 
 static CONSTFUNC ast_t *unwrap_block(ast_t *ast) {

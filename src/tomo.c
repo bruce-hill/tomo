@@ -19,7 +19,7 @@
 #include "compile/files.h"
 #include "compile/headers.h"
 #include "config.h"
-#include "formatter.h"
+#include "formatter/formatter.h"
 #include "modules.h"
 #include "naming.h"
 #include "parse/files.h"
