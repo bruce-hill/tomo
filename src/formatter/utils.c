@@ -9,6 +9,7 @@
 #include "../stdlib/optionals.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
+#include "formatter.h"
 
 const Text_t single_indent = Text("    ");
 
@@ -108,5 +109,24 @@ CONSTFUNC const char *binop_tomo_operator(ast_e tag) {
     case GreaterThan: return ">";
     case GreaterThanOrEquals: return ">=";
     default: return NULL;
+    }
+}
+
+OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
+    if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
+    switch (ast->tag) {
+    case BINOP_CASES:
+    case Not:
+    case Negative: return parenthesize(format_inline_code(ast, comments), EMPTY_TEXT);
+    default: return format_inline_code(ast, comments);
+    }
+}
+
+Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
+    switch (ast->tag) {
+    case BINOP_CASES:
+    case Not:
+    case Negative: return parenthesize(format_code(ast, comments, indent), indent);
+    default: return format_inline_code(ast, comments);
     }
 }

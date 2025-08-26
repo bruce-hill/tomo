@@ -129,7 +129,7 @@ build/lib/$(AR_FILE): $(STDLIB_OBJS)
 	ar -rcs $@ $^
 
 tags:
-	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h}
+	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h} src/format/*.{c,h}
 
 config.mk: configure.sh
 	bash ./configure.sh

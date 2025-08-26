@@ -165,31 +165,39 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         ast_t *value = Match(ast, Return)->value;
         return value ? Texts("return ", fmt_inline(value, comments)) : Text("return");
     }
+    /*inline*/ case Not: {
+        ast_t *val = Match(ast, Not)->value;
+        return Texts("not ", must(termify_inline(val, comments)));
+    }
+    /*inline*/ case Negative: {
+        ast_t *val = Match(ast, Negative)->value;
+        return Texts("-", must(termify_inline(val, comments)));
+    }
     /*inline*/ case HeapAllocate: {
         ast_t *val = Match(ast, HeapAllocate)->value;
-        return Texts("@", fmt_inline(val, comments));
+        return Texts("@", must(termify_inline(val, comments)));
     }
     /*inline*/ case StackReference: {
         ast_t *val = Match(ast, StackReference)->value;
-        return Texts("&", fmt_inline(val, comments));
+        return Texts("&", must(termify_inline(val, comments)));
     }
     /*inline*/ case Optional: {
         ast_t *val = Match(ast, Optional)->value;
-        return Texts(fmt_inline(val, comments), "?");
+        return Texts(must(termify_inline(val, comments)), "?");
     }
     /*inline*/ case NonOptional: {
         ast_t *val = Match(ast, NonOptional)->value;
-        return Texts(fmt_inline(val, comments), "!");
+        return Texts(must(termify_inline(val, comments)), "!");
     }
     /*inline*/ case FieldAccess: {
         DeclareMatch(access, ast, FieldAccess);
-        return Texts(fmt_inline(access->fielded, comments), ".", Text$from_str(access->field));
+        return Texts(must(termify_inline(access->fielded, comments)), ".", Text$from_str(access->field));
     }
     /*inline*/ case Index: {
         DeclareMatch(index, ast, Index);
-        if (index->index)
-            return Texts(fmt_inline(index->indexed, comments), "[", fmt_inline(index->index, comments), "]");
-        else return Texts(fmt_inline(index->indexed, comments), "[]");
+        Text_t indexed = must(termify_inline(index->indexed, comments));
+        if (index->index) return Texts(indexed, "[", fmt_inline(index->index, comments), "]");
+        else return Texts(indexed, "[]");
     }
     /*inline*/ case TextJoin: {
         // TODO: choose quotation mark more smartly
@@ -231,8 +239,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case MethodCall: {
         DeclareMatch(call, ast, MethodCall);
-        return Texts(fmt_inline(call->self, comments), ".", Text$from_str(call->name), "(",
-                     must(format_inline_args(call->args, comments)), ")");
+        Text_t self = fmt_inline(call->self, comments);
+        if (is_binary_operation(call->self) || call->self->tag == Negative || call->self->tag == Not)
+            self = parenthesize(self, EMPTY_TEXT);
+        return Texts(self, ".", Text$from_str(call->name), "(", must(format_inline_args(call->args, comments)), ")");
     }
     /*inline*/ case BINOP_CASES: {
         binary_operands_t operands = BINARY_OPERANDS(ast);
@@ -488,35 +498,45 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         ast_t *value = Match(ast, Return)->value;
         return value ? Texts("return ", fmt(value, comments, indent)) : Text("return");
     }
+    /*inline*/ case Not: {
+        ast_t *val = Match(ast, Not)->value;
+        if (is_binary_operation(val)) return Texts("not ", termify(val, comments, indent));
+        else return Texts("not ", fmt(val, comments, indent));
+    }
+    /*inline*/ case Negative: {
+        ast_t *val = Match(ast, Negative)->value;
+        if (is_binary_operation(val)) return Texts("-", termify(val, comments, indent));
+        else return Texts("-", fmt(val, comments, indent));
+    }
     /*multiline*/ case HeapAllocate: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, HeapAllocate)->value;
-        return Texts("@(", fmt(val, comments, indent), ")");
+        return Texts("@", termify(val, comments, indent), "");
     }
     /*multiline*/ case StackReference: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, StackReference)->value;
-        return Texts("&(", fmt(val, comments, indent), ")");
+        return Texts("&(", termify(val, comments, indent), ")");
     }
     /*multiline*/ case Optional: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, Optional)->value;
-        return Texts("(", fmt(val, comments, indent), ")?");
+        return Texts(termify(val, comments, indent), "?");
     }
     /*multiline*/ case NonOptional: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, NonOptional)->value;
-        return Texts("(", fmt(val, comments, indent), ")!");
+        return Texts(termify(val, comments, indent), "!");
     }
     /*multiline*/ case FieldAccess: {
         DeclareMatch(access, ast, FieldAccess);
-        return Texts(fmt(access->fielded, comments, indent), ".", Text$from_str(access->field));
+        return Texts(termify(access->fielded, comments, indent), ".", Text$from_str(access->field));
     }
     /*multiline*/ case Index: {
         DeclareMatch(index, ast, Index);
         if (index->index)
-            return Texts(fmt(index->indexed, comments, indent), "[", fmt(index->index, comments, indent), "]");
-        else return Texts(fmt(index->indexed, comments, indent), "[]");
+            return Texts(termify(index->indexed, comments, indent), "[", fmt(index->index, comments, indent), "]");
+        else return Texts(termify(index->indexed, comments, indent), "[]");
     }
     /*multiline*/ case TextJoin: {
         if (inlined_fits) return inlined;
@@ -565,8 +585,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case MethodCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, MethodCall);
-        return Texts(fmt(call->self, comments, indent), ".", Text$from_str(call->name), "(\n", indent, single_indent,
-                     format_args(call->args, comments, Texts(indent, single_indent)), "\n", indent, ")");
+        return Texts(termify(call->self, comments, indent), ".", Text$from_str(call->name), "(\n", indent,
+                     single_indent, format_args(call->args, comments, Texts(indent, single_indent)), "\n", indent, ")");
     }
     /*multiline*/ case DocTest: {
         DeclareMatch(test, ast, DocTest);
