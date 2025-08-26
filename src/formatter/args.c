@@ -6,6 +6,7 @@
 #include "../stdlib/text.h"
 #include "formatter.h"
 #include "types.h"
+#include "utils.h"
 
 OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
     if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;

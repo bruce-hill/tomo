@@ -5,8 +5,7 @@
 #include "../stdlib/optionals.h"
 #include "../stdlib/text.h"
 #include "args.h"
-#include "formatter.h"
-#include "types.h"
+#include "utils.h"
 
 OptionalText_t format_inline_tag(tag_ast_t *tag, Table_t comments) {
     if (range_has_comment(tag->start, tag->end, comments)) return NONE_TEXT;

@@ -4,7 +4,7 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/optionals.h"
 #include "../stdlib/text.h"
-#include "formatter.h"
+#include "utils.h"
 
 OptionalText_t format_inline_type(type_ast_t *type, Table_t comments) {
     if (range_has_comment(type->start, type->end, comments)) return NONE_TEXT;
