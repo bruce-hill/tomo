@@ -51,7 +51,8 @@ CONSTFUNC bool should_have_blank_line(ast_t *ast) {
     case EnumDef:
     case LangDef:
     case ConvertDef:
-    case Extend: return true;
+    case Extend:
+    case Defer: return true;
     default: return false;
     }
 }
