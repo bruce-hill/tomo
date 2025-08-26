@@ -216,6 +216,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         return Texts(code, quote);
     }
     /*inline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
+    /*inline*/ case Path: { return Texts("(", Text$from_str(Match(ast, Path)->path), ")"); }
     /*inline*/ case Stop: {
         const char *target = Match(ast, Stop)->target;
         return target ? Texts("stop ", Text$from_str(target)) : Text("stop");
@@ -224,15 +225,27 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         const char *target = Match(ast, Skip)->target;
         return target ? Texts("skip ", Text$from_str(target)) : Text("skip");
     }
-    /*inline*/ case None:
-    /*inline*/ case Bool:
-    /*inline*/ case Int:
-    /*inline*/ case Num:
-    /*inline*/ case Var: {
-        Text_t code = Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
-        if (Text$has(code, Text("\n"))) return NONE_TEXT;
-        return code;
+    /*inline*/ case Min:
+    /*inline*/ case Max: {
+        Text_t lhs = fmt_inline(ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs, comments);
+        Text_t rhs = fmt_inline(ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs, comments);
+        ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
+        return Texts(lhs, key ? fmt_inline(key, comments) : (ast->tag == Min ? Text(" _min_ ") : Text(" _max_ ")), rhs);
     }
+    /*inline*/ case None:
+        return Text("none");
+    /*inline*/ case Bool:
+        return Match(ast, Bool)->b ? Text("yes") : Text("no");
+    /*inline*/ case Int: {
+        OptionalText_t source = ast_source(ast);
+        return source.length > 0 ? source : Text$from_str(Match(ast, Int)->str);
+    }
+    /*inline*/ case Num: {
+        OptionalText_t source = ast_source(ast);
+        return source.length > 0 ? source : Text$from_str(String(Match(ast, Num)->n));
+    }
+    /*inline*/ case Var:
+        return Text$from_str(Match(ast, Var)->name);
     /*inline*/ case FunctionCall: {
         DeclareMatch(call, ast, FunctionCall);
         return Texts(fmt_inline(call->fn, comments), "(", must(format_inline_args(call->args, comments)), ")");
@@ -566,6 +579,18 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         return code;
     }
     /*multiline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
+    /*multiline*/ case Path: {
+        assert(inlined.length > 0);
+        return inlined;
+    }
+    /*inline*/ case Min:
+    /*inline*/ case Max: {
+        Text_t lhs = termify(ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs, comments, indent);
+        Text_t rhs = termify(ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs, comments, indent);
+        ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
+        Text_t op = key ? fmt(key, comments, indent) : (ast->tag == Min ? Text("_min_") : Text("_max_"));
+        return Texts(lhs, " ", op, " ", rhs);
+    }
     /*multiline*/ case Stop:
     /*multiline*/ case Skip:
     /*multiline*/ case None:

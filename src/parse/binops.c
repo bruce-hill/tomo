@@ -67,7 +67,7 @@ ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightness) {
     for (ast_e op; (op = match_binary_operator(&pos)) != Unknown && op_tightness[op] >= min_tightness; spaces(&pos)) {
         ast_t *key = NULL;
         if (op == Min || op == Max) {
-            key = NewAST(ctx->file, pos, pos, Var, .name = "$");
+            key = NewAST(ctx->file, pos, pos, Var, .name = (op == Min ? "_min_" : "_max_"));
             for (bool progress = true; progress;) {
                 ast_t *new_term;
                 progress =

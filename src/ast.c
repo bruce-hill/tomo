@@ -5,6 +5,7 @@
 
 #include "ast.h"
 #include "stdlib/datatypes.h"
+#include "stdlib/optionals.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 
@@ -202,8 +203,8 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(None, "(None)");
         T(Bool, "(Bool ", data.b ? "yes" : "no", ")");
         T(Var, "(Var ", quoted_text(data.name), ")");
-        T(Int, "(Int ", quoted_text(ast_source(ast)), ")");
-        T(Num, "(Num ", quoted_text(ast_source(ast)), ")");
+        T(Int, "(Int ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
+        T(Num, "(Num ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
         T(TextLiteral, Text$quoted(data.text, false, Text("\"")));
         T(TextJoin, "(Text", data.lang ? Texts(" :lang ", quoted_text(data.lang)) : EMPTY_TEXT,
           ast_list_to_sexp(data.children), ")");
@@ -312,13 +313,9 @@ Text_t ast_to_sexp(ast_t *ast) {
 
 const char *ast_to_sexp_str(ast_t *ast) { return Text$as_c_string(ast_to_sexp(ast)); }
 
-const char *ast_source(ast_t *ast) {
-    if (!ast) return NULL;
-    size_t len = (size_t)(ast->end - ast->start);
-    char *source = GC_MALLOC_ATOMIC(len + 1);
-    memcpy(source, ast->start, len);
-    source[len] = '\0';
-    return source;
+OptionalText_t ast_source(ast_t *ast) {
+    if (ast == NULL || ast->start == NULL || ast->end == NULL) return NONE_TEXT;
+    return Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
 }
 
 PUREFUNC bool is_idempotent(ast_t *ast) {
@@ -427,6 +424,8 @@ void visit_topologically(ast_list_t *asts, Closure_t fn) {
 
 CONSTFUNC bool is_binary_operation(ast_t *ast) {
     switch (ast->tag) {
+    case Min:
+    case Max:
     case BINOP_CASES: return true;
     default: return false;
     }

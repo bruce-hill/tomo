@@ -481,7 +481,7 @@ struct ast_s {
 
 extern const int op_tightness[NUM_AST_TAGS];
 
-const char *ast_source(ast_t *ast);
+OptionalText_t ast_source(ast_t *ast);
 
 Text_t ast_to_sexp(ast_t *ast);
 const char *ast_to_sexp_str(ast_t *ast);

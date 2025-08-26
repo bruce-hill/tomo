@@ -6,6 +6,7 @@
 
 #include "../ast.h"
 #include "../stdlib/datatypes.h"
+#include "../stdlib/optionals.h"
 
 #define MAX_WIDTH 100
 
