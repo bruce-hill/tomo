@@ -117,7 +117,9 @@ OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
     switch (ast->tag) {
     case BINOP_CASES:
     case Not:
-    case Negative: return parenthesize(format_inline_code(ast, comments), EMPTY_TEXT);
+    case Negative:
+    case HeapAllocate:
+    case StackReference: return parenthesize(format_inline_code(ast, comments), EMPTY_TEXT);
     default: return format_inline_code(ast, comments);
     }
 }
@@ -126,7 +128,9 @@ Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
     switch (ast->tag) {
     case BINOP_CASES:
     case Not:
-    case Negative: return parenthesize(format_code(ast, comments, indent), indent);
+    case Negative:
+    case HeapAllocate:
+    case StackReference: return parenthesize(format_code(ast, comments, indent), indent);
     default: return format_inline_code(ast, comments);
     }
 }
