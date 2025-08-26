@@ -305,9 +305,14 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
 
         Text_t code = Texts("if ", fmt(if_->condition, comments, indent), "\n", indent, single_indent,
                             fmt(if_->body, comments, Texts(indent, single_indent)));
-        if (if_->else_body)
-            code = Texts(code, "\n", indent, "else \n", indent, single_indent,
-                         fmt(if_->else_body, comments, Texts(indent, single_indent)));
+        if (if_->else_body) {
+            if (if_->else_body->tag != If) {
+                code = Texts(code, "\n", indent, "else\n", indent, single_indent,
+                             fmt(if_->else_body, comments, Texts(indent, single_indent)));
+            } else {
+                code = Texts(code, "\n", indent, "else ", fmt(if_->else_body, comments, indent));
+            }
+        }
         return code;
     }
     /*multiline*/ case When: {
