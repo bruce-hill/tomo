@@ -46,6 +46,14 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case FunctionDef:
     /*inline*/ case DocTest:
         return NONE_TEXT;
+    /*inline*/ case Lambda: {
+        DeclareMatch(lambda, ast, Lambda);
+        Text_t code = Texts("func(", format_inline_args(lambda->args, comments));
+        if (lambda->ret_type)
+            code = Texts(code, lambda->args ? Text(" -> ") : Text("-> "), format_type(lambda->ret_type));
+        code = Texts(code, ") ", fmt_inline(lambda->body, comments));
+        return Texts(code);
+    }
     /*inline*/ case If: {
         DeclareMatch(if_, ast, If);
 
@@ -61,6 +69,20 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
 
         Text_t code = Texts("if ", fmt_inline(if_->condition, comments), " then ", fmt_inline(if_->body, comments));
         if (if_->else_body) code = Texts(code, " else ", fmt_inline(if_->else_body, comments));
+        return code;
+    }
+    /*inline*/ case When: {
+        DeclareMatch(when, ast, When);
+        Text_t code = Texts("when ", fmt_inline(when->subject, comments));
+        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+            code = Texts(code, " is ", fmt_inline(clause->pattern, comments));
+            while (clause->next && clause->next->body == clause->body) {
+                clause = clause->next;
+                code = Texts(code, ", ", fmt_inline(clause->pattern, comments));
+            }
+            code = Texts(code, " then ", fmt_inline(clause->body, comments));
+        }
+        if (when->else_body) code = Texts(code, " else ", fmt_inline(when->else_body, comments));
         return code;
     }
     /*inline*/ case Repeat:
@@ -288,6 +310,21 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                          fmt(if_->else_body, comments, Texts(indent, single_indent)));
         return code;
     }
+    /*multiline*/ case When: {
+        DeclareMatch(when, ast, When);
+        Text_t code = Texts("when ", fmt(when->subject, comments, indent));
+        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+            code = Texts(code, "\n", indent, "is ", fmt(clause->pattern, comments, indent));
+            while (clause->next && clause->next->body == clause->body) {
+                clause = clause->next;
+                code = Texts(code, ", ", fmt(clause->pattern, comments, indent));
+            }
+            code = Texts(code, format_namespace(clause->body, comments, indent));
+        }
+        if (when->else_body)
+            code = Texts(code, "\n", indent, "else", format_namespace(when->else_body, comments, indent));
+        return code;
+    }
     /*multiline*/ case Repeat: {
         return Texts("repeat\n", indent, single_indent,
                      fmt(Match(ast, Repeat)->body, comments, Texts(indent, single_indent)));
@@ -331,17 +368,20 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case FunctionDef: {
         DeclareMatch(func, ast, FunctionDef);
-        // ast_t *name;
-        // arg_ast_t *args;
-        // type_ast_t *ret_type;
-        // ast_t *body;
-        // ast_t *cache;
-        // bool is_inline;
         Text_t code = Texts("func ", fmt(func->name, comments, indent), "(", format_args(func->args, comments, indent));
         if (func->ret_type) code = Texts(code, func->args ? Text(" -> ") : Text("-> "), format_type(func->ret_type));
         if (func->cache) code = Texts(code, "; cache=", fmt(func->cache, comments, indent));
         if (func->is_inline) code = Texts(code, "; inline");
         code = Texts(code, ")\n", indent, single_indent, fmt(func->body, comments, Texts(indent, single_indent)));
+        return Texts(code);
+    }
+    /*multiline*/ case Lambda: {
+        if (inlined_fits) return inlined;
+        DeclareMatch(lambda, ast, Lambda);
+        Text_t code = Texts("func(", format_args(lambda->args, comments, indent));
+        if (lambda->ret_type)
+            code = Texts(code, lambda->args ? Text(" -> ") : Text("-> "), format_type(lambda->ret_type));
+        code = Texts(code, ")\n", indent, single_indent, fmt(lambda->body, comments, Texts(indent, single_indent)));
         return Texts(code);
     }
     /*multiline*/ case StructDef: {
