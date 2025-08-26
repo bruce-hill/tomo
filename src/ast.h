@@ -163,7 +163,12 @@ struct type_ast_s {
     case MinusUpdate:                                                                                                  \
     case ConcatUpdate:                                                                                                 \
     case LeftShiftUpdate:                                                                                              \
-    case UnsignedLeftShiftUpdate
+    case UnsignedLeftShiftUpdate:                                                                                      \
+    case RightShiftUpdate:                                                                                             \
+    case UnsignedRightShiftUpdate:                                                                                     \
+    case AndUpdate:                                                                                                    \
+    case OrUpdate:                                                                                                     \
+    case XorUpdate
 #define UPDATE_CASES                                                                                                   \
     PowerUpdate:                                                                                                       \
     case MultiplyUpdate:                                                                                               \
