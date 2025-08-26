@@ -76,32 +76,40 @@ CONSTFUNC const char *binop_method_name(ast_e tag) {
 
 CONSTFUNC const char *binop_operator(ast_e tag) {
     switch (tag) {
-    case Multiply:
-    case MultiplyUpdate: return "*";
-    case Divide:
-    case DivideUpdate: return "/";
-    case Mod:
-    case ModUpdate: return "%";
-    case Plus:
-    case PlusUpdate: return "+";
-    case Minus:
-    case MinusUpdate: return "-";
-    case LeftShift:
-    case LeftShiftUpdate: return "<<";
-    case RightShift:
-    case RightShiftUpdate: return ">>";
-    case And:
-    case AndUpdate: return "&";
-    case Or:
-    case OrUpdate: return "|";
-    case Xor:
-    case XorUpdate: return "^";
+    case Power: return "^";
+    case PowerUpdate: return "^=";
+    case Concat: return "++";
+    case ConcatUpdate: return "++=";
+    case Multiply: return "*";
+    case MultiplyUpdate: return "*=";
+    case Divide: return "/";
+    case DivideUpdate: return "/=";
+    case Mod: return "mod";
+    case ModUpdate: return "mod=";
+    case Mod1: return "mod1";
+    case Mod1Update: return "mod1=";
+    case Plus: return "+";
+    case PlusUpdate: return "+=";
+    case Minus: return "-";
+    case MinusUpdate: return "-=";
+    case LeftShift: return "<<";
+    case LeftShiftUpdate: return "<<=";
+    case RightShift: return ">>";
+    case RightShiftUpdate: return ">>=";
+    case And: return "and";
+    case AndUpdate: return "and=";
+    case Or: return "or";
+    case OrUpdate: return "or=";
+    case Xor: return "xor";
+    case XorUpdate: return "xor=";
     case Equals: return "==";
     case NotEquals: return "!=";
     case LessThan: return "<";
     case LessThanOrEquals: return "<=";
     case GreaterThan: return ">";
     case GreaterThanOrEquals: return ">=";
+    case Min: return "_min_";
+    case Max: return "_max_";
     default: return NULL;
     }
 }

@@ -44,6 +44,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case LangDef:
     /*inline*/ case Extend:
     /*inline*/ case FunctionDef:
+    /*inline*/ case ConvertDef:
     /*inline*/ case DocTest:
         return NONE_TEXT;
     /*inline*/ case Lambda: {
@@ -232,6 +233,14 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
         return Texts(lhs, key ? fmt_inline(key, comments) : (ast->tag == Min ? Text(" _min_ ") : Text(" _max_ ")), rhs);
     }
+    /*inline*/ case Reduction: {
+        DeclareMatch(reduction, ast, Reduction);
+        if (reduction->key) {
+            return Texts("(", fmt_inline(reduction->key, comments), ": ", fmt_inline(reduction->iter, comments));
+        } else {
+            return Texts("(", binop_operator(reduction->op), ": ", fmt_inline(reduction->iter, comments));
+        }
+    }
     /*inline*/ case None:
         return Text("none");
     /*inline*/ case Bool:
@@ -259,7 +268,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case BINOP_CASES: {
         binary_operands_t operands = BINARY_OPERANDS(ast);
-        const char *op = binop_tomo_operator(ast->tag);
+        const char *op = binop_operator(ast->tag);
 
         Text_t lhs = fmt_inline(operands.lhs, comments);
         Text_t rhs = fmt_inline(operands.rhs, comments);
@@ -274,7 +283,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             rhs = parenthesize(rhs, EMPTY_TEXT);
 
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
-        return Texts(lhs, space, Text$from_str(binop_tomo_operator(ast->tag)), space, rhs);
+        return Texts(lhs, space, Text$from_str(binop_operator(ast->tag)), space, rhs);
     }
     default: {
         fail("Formatting not implemented for: ", ast_to_sexp(ast));
@@ -412,6 +421,16 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         code = Texts(code, ")\n", indent, single_indent, fmt(lambda->body, comments, Texts(indent, single_indent)));
         return Texts(code);
     }
+    /*multiline*/ case ConvertDef: {
+        DeclareMatch(convert, ast, ConvertDef);
+        Text_t code = Texts("convert (", format_args(convert->args, comments, indent));
+        if (convert->ret_type)
+            code = Texts(code, convert->args ? Text(" -> ") : Text("-> "), format_type(convert->ret_type));
+        if (convert->cache) code = Texts(code, "; cache=", fmt(convert->cache, comments, indent));
+        if (convert->is_inline) code = Texts(code, "; inline");
+        code = Texts(code, ")\n", indent, single_indent, fmt(convert->body, comments, Texts(indent, single_indent)));
+        return Texts(code);
+    }
     /*multiline*/ case StructDef: {
         DeclareMatch(def, ast, StructDef);
         Text_t code = Texts("struct ", Text$from_str(def->name), "(", format_args(def->fields, comments, indent));
@@ -484,6 +503,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         return Texts(fmt(entry->key, comments, indent), "=", fmt(entry->value, comments, indent));
     }
     /*multiline*/ case Declare: {
+        if (inlined_fits) return inlined;
         DeclareMatch(decl, ast, Declare);
         Text_t code = fmt(decl->var, comments, indent);
         if (decl->type) code = Texts(code, " : ", format_type(decl->type));
@@ -492,6 +512,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         return code;
     }
     /*multiline*/ case Assign: {
+        if (inlined_fits) return inlined;
         DeclareMatch(assign, ast, Assign);
         Text_t code = EMPTY_TEXT;
         for (ast_list_t *target = assign->targets; target; target = target->next) {
@@ -508,15 +529,18 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Pass:
         return Text("pass");
     /*multiline*/ case Return: {
+        if (inlined_fits) return inlined;
         ast_t *value = Match(ast, Return)->value;
         return value ? Texts("return ", fmt(value, comments, indent)) : Text("return");
     }
     /*inline*/ case Not: {
+        if (inlined_fits) return inlined;
         ast_t *val = Match(ast, Not)->value;
         if (is_binary_operation(val)) return Texts("not ", termify(val, comments, indent));
         else return Texts("not ", fmt(val, comments, indent));
     }
     /*inline*/ case Negative: {
+        if (inlined_fits) return inlined;
         ast_t *val = Match(ast, Negative)->value;
         if (is_binary_operation(val)) return Texts("-", termify(val, comments, indent));
         else return Texts("-", fmt(val, comments, indent));
@@ -542,10 +566,12 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         return Texts(termify(val, comments, indent), "!");
     }
     /*multiline*/ case FieldAccess: {
+        if (inlined_fits) return inlined;
         DeclareMatch(access, ast, FieldAccess);
         return Texts(termify(access->fielded, comments, indent), ".", Text$from_str(access->field));
     }
     /*multiline*/ case Index: {
+        if (inlined_fits) return inlined;
         DeclareMatch(index, ast, Index);
         if (index->index)
             return Texts(termify(index->indexed, comments, indent), "[", fmt(index->index, comments, indent), "]");
@@ -583,13 +609,25 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         assert(inlined.length > 0);
         return inlined;
     }
-    /*inline*/ case Min:
-    /*inline*/ case Max: {
+    /*multiline*/ case Min:
+    /*multiline*/ case Max: {
+        if (inlined_fits) return inlined;
         Text_t lhs = termify(ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs, comments, indent);
         Text_t rhs = termify(ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs, comments, indent);
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
         Text_t op = key ? fmt(key, comments, indent) : (ast->tag == Min ? Text("_min_") : Text("_max_"));
         return Texts(lhs, " ", op, " ", rhs);
+    }
+    /*multiline*/ case Reduction: {
+        if (inlined_fits) return inlined;
+        DeclareMatch(reduction, ast, Reduction);
+        if (reduction->key) {
+            return Texts("(", fmt(reduction->key, comments, Texts(indent, single_indent)), ": ",
+                         fmt(reduction->iter, comments, Texts(indent, single_indent)));
+        } else {
+            return Texts("(", binop_operator(reduction->op), ": ",
+                         fmt(reduction->iter, comments, Texts(indent, single_indent)));
+        }
     }
     /*multiline*/ case Stop:
     /*multiline*/ case Skip:
@@ -627,7 +665,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case BINOP_CASES: {
         if (inlined_fits) return inlined;
         binary_operands_t operands = BINARY_OPERANDS(ast);
-        const char *op = binop_tomo_operator(ast->tag);
+        const char *op = binop_operator(ast->tag);
         Text_t lhs = fmt(operands.lhs, comments, indent);
         Text_t rhs = fmt(operands.rhs, comments, indent);
 
@@ -641,7 +679,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             rhs = parenthesize(rhs, indent);
 
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
-        return Texts(lhs, space, Text$from_str(binop_tomo_operator(ast->tag)), space, rhs);
+        return Texts(lhs, space, Text$from_str(binop_operator(ast->tag)), space, rhs);
     }
     default: {
         if (inlined_fits) return inlined;

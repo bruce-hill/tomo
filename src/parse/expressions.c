@@ -49,7 +49,9 @@ ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos) {
     ast_e op = match_binary_operator(&pos);
     if (op == Unknown) return NULL;
 
-    ast_t *key = NewAST(ctx->file, pos, pos, Var, .name = "$");
+    const char *op_str = binop_operator(op);
+    assert(op_str);
+    ast_t *key = NewAST(ctx->file, pos, pos, Var, .name = op_str);
     for (bool progress = true; progress;) {
         ast_t *new_term;
         progress =

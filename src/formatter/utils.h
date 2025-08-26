@@ -26,6 +26,5 @@ CONSTFUNC bool should_have_blank_line(ast_t *ast);
 Text_t indent_code(Text_t code);
 Text_t parenthesize(Text_t code, Text_t indent);
 CONSTFUNC ast_t *unwrap_block(ast_t *ast);
-CONSTFUNC const char *binop_tomo_operator(ast_e tag);
 OptionalText_t termify_inline(ast_t *ast, Table_t comments);
 Text_t termify(ast_t *ast, Table_t comments, Text_t indent);

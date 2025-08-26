@@ -12,6 +12,7 @@ public
 Text_t compile_reduction(env_t *env, ast_t *ast) {
     DeclareMatch(reduction, ast, Reduction);
     ast_e op = reduction->op;
+    const char *op_str = binop_operator(op);
 
     type_t *iter_t = get_type(env, reduction->iter);
     type_t *item_t = get_iterated_type(iter_t);
@@ -29,7 +30,7 @@ Text_t compile_reduction(env_t *env, ast_t *ast) {
         type_t *item_value_type = item_t;
         ast_t *item_value = item;
         if (reduction->key) {
-            set_binding(body_scope, "$", item_t, compile(body_scope, item));
+            set_binding(body_scope, op_str, item_t, compile(body_scope, item));
             item_value = reduction->key;
             item_value_type = get_type(body_scope, reduction->key);
         }
@@ -67,7 +68,7 @@ Text_t compile_reduction(env_t *env, ast_t *ast) {
         ast_e cmp_op = op == Min ? LessThan : GreaterThan;
         if (reduction->key) {
             env_t *key_scope = fresh_scope(env);
-            set_binding(key_scope, "$", item_t, item_code);
+            set_binding(key_scope, op_str, item_t, item_code);
             type_t *key_type = get_type(key_scope, reduction->key);
             Text_t superlative_key = op == Min ? Text("min_key") : Text("max_key");
             code = Texts(code, compile_declaration(key_type, superlative_key), ";\n");
@@ -111,7 +112,7 @@ Text_t compile_reduction(env_t *env, ast_t *ast) {
         type_t *reduction_type = Match(get_type(env, ast), OptionalType)->type;
         ast_t *item_value = item;
         if (reduction->key) {
-            set_binding(body_scope, "$", item_t, compile(body_scope, item));
+            set_binding(body_scope, op_str, item_t, compile(body_scope, item));
             item_value = reduction->key;
         }
 

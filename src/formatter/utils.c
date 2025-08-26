@@ -74,44 +74,6 @@ CONSTFUNC ast_t *unwrap_block(ast_t *ast) {
     return ast;
 }
 
-CONSTFUNC const char *binop_tomo_operator(ast_e tag) {
-    switch (tag) {
-    case Power: return "^";
-    case PowerUpdate: return "^=";
-    case Concat: return "++";
-    case ConcatUpdate: return "++=";
-    case Multiply: return "*";
-    case MultiplyUpdate: return "*=";
-    case Divide: return "/";
-    case DivideUpdate: return "/=";
-    case Mod: return "mod";
-    case ModUpdate: return "mod=";
-    case Mod1: return "mod1";
-    case Mod1Update: return "mod1=";
-    case Plus: return "+";
-    case PlusUpdate: return "+=";
-    case Minus: return "-";
-    case MinusUpdate: return "-=";
-    case LeftShift: return "<<";
-    case LeftShiftUpdate: return "<<=";
-    case RightShift: return ">>";
-    case RightShiftUpdate: return ">>=";
-    case And: return "and";
-    case AndUpdate: return "and=";
-    case Or: return "or";
-    case OrUpdate: return "or=";
-    case Xor: return "xor";
-    case XorUpdate: return "xor=";
-    case Equals: return "==";
-    case NotEquals: return "!=";
-    case LessThan: return "<";
-    case LessThanOrEquals: return "<=";
-    case GreaterThan: return ">";
-    case GreaterThanOrEquals: return ">=";
-    default: return NULL;
-    }
-}
-
 OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
     if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
     switch (ast->tag) {

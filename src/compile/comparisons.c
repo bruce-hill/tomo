@@ -7,6 +7,18 @@
 #include "../typecheck.h"
 #include "compilation.h"
 
+static CONSTFUNC const char *comparison_operator(ast_e tag) {
+    switch (tag) {
+    case Equals: return "==";
+    case NotEquals: return "!=";
+    case LessThan: return "<";
+    case LessThanOrEquals: return "<=";
+    case GreaterThan: return ">";
+    case GreaterThanOrEquals: return ">=";
+    default: return NULL;
+    }
+}
+
 Text_t compile_comparison(env_t *env, ast_t *ast) {
 
     switch (ast->tag) {
@@ -75,7 +87,7 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         if (ast->tag == Compare)
             return Texts("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(operand_t), ")");
 
-        const char *op = binop_operator(ast->tag);
+        const char *op = comparison_operator(ast->tag);
         switch (operand_t->tag) {
         case BigIntType: return Texts("(Int$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
         case BoolType:
