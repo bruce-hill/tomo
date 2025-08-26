@@ -12,7 +12,7 @@ OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
     if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;
     if (arg->name == NULL && arg->value) return must(format_inline_code(arg->value, comments));
     Text_t code = Text$from_str(arg->name);
-    if (arg->type) code = Texts(code, ":", must(format_inline_type(arg->type, comments)));
+    if (arg->type) code = Texts(code, ":", must(format_type(arg->type)));
     if (arg->value) code = Texts(code, " = ", must(format_inline_code(arg->value, comments)));
     return code;
 }
@@ -22,7 +22,7 @@ Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
     if (inline_arg.length >= 0 && inline_arg.length <= MAX_WIDTH) return inline_arg;
     if (arg->name == NULL && arg->value) return format_code(arg->value, comments, indent);
     Text_t code = Text$from_str(arg->name);
-    if (arg->type) code = Texts(code, ":", format_type(arg->type, comments, indent));
+    if (arg->type) code = Texts(code, ":", format_type(arg->type));
     if (arg->value) code = Texts(code, " = ", format_code(arg->value, comments, indent));
     return code;
 }

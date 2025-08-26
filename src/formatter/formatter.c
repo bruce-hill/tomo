@@ -119,7 +119,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case Declare: {
         DeclareMatch(decl, ast, Declare);
         Text_t code = fmt_inline(decl->var, comments);
-        if (decl->type) code = Texts(code, " : ", must(format_inline_type(decl->type, comments)));
+        if (decl->type) code = Texts(code, " : ", format_type(decl->type));
         if (decl->value) code = Texts(code, decl->type ? Text(" = ") : Text(" := "), fmt_inline(decl->value, comments));
         return code;
     }
@@ -338,8 +338,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         // ast_t *cache;
         // bool is_inline;
         Text_t code = Texts("func ", fmt(func->name, comments, indent), "(", format_args(func->args, comments, indent));
-        if (func->ret_type)
-            code = Texts(code, func->args ? Text(" -> ") : Text("-> "), format_type(func->ret_type, comments, indent));
+        if (func->ret_type) code = Texts(code, func->args ? Text(" -> ") : Text("-> "), format_type(func->ret_type));
         if (func->cache) code = Texts(code, "; cache=", fmt(func->cache, comments, indent));
         if (func->is_inline) code = Texts(code, "; inline");
         code = Texts(code, ")\n", indent, single_indent, fmt(func->body, comments, Texts(indent, single_indent)));
@@ -419,7 +418,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Declare: {
         DeclareMatch(decl, ast, Declare);
         Text_t code = fmt(decl->var, comments, indent);
-        if (decl->type) code = Texts(code, " : ", format_type(decl->type, comments, indent));
+        if (decl->type) code = Texts(code, " : ", format_type(decl->type));
         if (decl->value)
             code = Texts(code, decl->type ? Text(" = ") : Text(" := "), fmt(decl->value, comments, indent));
         return code;
