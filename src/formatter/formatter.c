@@ -47,6 +47,13 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case ConvertDef:
     /*inline*/ case DocTest:
         return NONE_TEXT;
+    /*inline*/ case Assert: {
+        DeclareMatch(assert, ast, Assert);
+        Text_t expr = fmt_inline(assert->expr, comments);
+        if (!assert->message) return Texts("assert ", expr);
+        Text_t message = fmt_inline(assert->message, comments);
+        return Texts("assert ", expr, ", ", message);
+    }
     /*inline*/ case Lambda: {
         DeclareMatch(lambda, ast, Lambda);
         Text_t code = Texts("func(", format_inline_args(lambda->args, comments));
@@ -661,6 +668,13 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                          Text$replace(expected, Texts("\n", indent), Texts("\n", indent, ".. ")));
         }
         return code;
+    }
+    /*multiline*/ case Assert: {
+        DeclareMatch(assert, ast, Assert);
+        Text_t expr = fmt(assert->expr, comments, indent);
+        if (!assert->message) return Texts("assert ", expr);
+        Text_t message = fmt(assert->message, comments, indent);
+        return Texts("assert ", expr, ", ", message);
     }
     /*multiline*/ case BINOP_CASES: {
         if (inlined_fits) return inlined;
