@@ -226,6 +226,20 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         }
         return Texts(code, quote);
     }
+    /*inline*/ case InlineCCode: {
+        DeclareMatch(c_code, ast, InlineCCode);
+        Text_t code = c_code->type_ast ? Texts("C_code:", format_type(c_code->type_ast), "(") : Text("C_code{");
+        for (ast_list_t *chunk = c_code->chunks; chunk; chunk = chunk->next) {
+            if (chunk->ast->tag == TextLiteral) {
+                Text_t literal = Match(chunk->ast, TextLiteral)->text;
+                if (Text$has(literal, Text("\n"))) return NONE_TEXT;
+                code = Texts(code, Text$slice(Text$quoted(literal, false, Text("`")), I(2), I(-2)));
+            } else {
+                code = Texts(code, "@(", fmt_inline(chunk->ast, comments), ")");
+            }
+        }
+        return Texts(code, c_code->type_ast ? Text(")") : Text("}"));
+    }
     /*inline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
     /*inline*/ case Path: { return Texts("(", Text$from_str(Match(ast, Path)->path), ")"); }
     /*inline*/ case Stop: {
@@ -612,13 +626,42 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                     current_line = *(Text_t *)(lines.data + i * lines.stride);
                 }
             } else {
-                code = Texts(code, "$(", fmt_inline(chunk->ast, comments), ")");
+                current_line = Texts(current_line, "$(", fmt_inline(chunk->ast, comments), ")");
             }
         }
         add_line(&code, current_line, Texts(indent, single_indent));
         code = Texts(quote, "\n", indent, single_indent, code, "\n", indent, quote);
         if (lang) code = Texts("$", Text$from_str(lang), code);
         return code;
+    }
+    /*multiline*/ case InlineCCode: {
+        DeclareMatch(c_code, ast, InlineCCode);
+        if (inlined_fits && c_code->type_ast) return inlined;
+
+        Text_t code = EMPTY_TEXT;
+        Text_t current_line = EMPTY_TEXT;
+        for (ast_list_t *chunk = c_code->chunks; chunk; chunk = chunk->next) {
+            if (chunk->ast->tag == TextLiteral) {
+                Text_t literal = Match(chunk->ast, TextLiteral)->text;
+                List_t lines = Text$lines(literal);
+                if (lines.length == 0) continue;
+                current_line = Texts(current_line, *(Text_t *)lines.data);
+                for (int64_t i = 1; i < lines.length; i += 1) {
+                    add_line(&code, current_line, Texts(indent, single_indent));
+                    current_line = *(Text_t *)(lines.data + i * lines.stride);
+                }
+            } else {
+                current_line = Texts(current_line, "@(", fmt_inline(chunk->ast, comments), ")");
+            }
+        }
+        add_line(&code, current_line, Texts(indent, single_indent));
+
+        if (c_code->type_ast) {
+            return Texts("C_code:", format_type(c_code->type_ast), "(\n", indent, single_indent, code, "\n", indent,
+                         ")");
+        } else {
+            return Texts("C_code{\n", indent, single_indent, code, "\n", indent, "}");
+        }
     }
     /*multiline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
     /*multiline*/ case Path: {
