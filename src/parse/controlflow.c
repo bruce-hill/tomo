@@ -137,7 +137,7 @@ ast_t *parse_while(parse_ctx_t *ctx, const char *pos) {
     if (match_word(&tmp, "when")) {
         ast_t *when = expect(ctx, start, &pos, parse_when, "I expected a 'when' block after this");
         if (!when->__data.When.else_body) when->__data.When.else_body = NewAST(ctx->file, pos, pos, Stop);
-        return NewAST(ctx->file, start, pos, While, .body = when);
+        return NewAST(ctx->file, start, pos, Repeat, .body = when);
     }
 
     (void)match_word(&pos, "do"); // Optional 'do'
