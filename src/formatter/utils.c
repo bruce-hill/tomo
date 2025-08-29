@@ -38,7 +38,7 @@ bool range_has_comment(const char *start, const char *end, Table_t comments) {
     return (comment.length >= 0);
 }
 
-CONSTFUNC bool should_have_blank_line(ast_t *ast) {
+CONSTFUNC int suggested_blank_lines(ast_t *ast) {
     switch (ast->tag) {
     case If:
     case When:
@@ -46,14 +46,15 @@ CONSTFUNC bool should_have_blank_line(ast_t *ast) {
     case While:
     case For:
     case Block:
-    case FunctionDef:
+    case Defer: return 1;
+    case Use: return 1;
+    case ConvertDef:
+    case FunctionDef: return 1;
     case StructDef:
     case EnumDef:
     case LangDef:
-    case ConvertDef:
-    case Extend:
-    case Defer: return true;
-    default: return false;
+    case Extend: return 2;
+    default: return 0;
     }
 }
 

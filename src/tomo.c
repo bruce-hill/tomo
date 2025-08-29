@@ -75,7 +75,7 @@ static const char *paths_str(List_t paths) {
 
 static OptionalList_t files = NONE_LIST, args = NONE_LIST, uninstall = NONE_LIST, libraries = NONE_LIST;
 static OptionalBool_t verbose = false, quiet = false, show_version = false, show_parse_tree = false,
-                      do_format_code = false, format_inplace = true, show_prefix = false, stop_at_transpile = false,
+                      do_format_code = false, format_inplace = false, show_prefix = false, stop_at_transpile = false,
                       stop_at_obj_compilation = false, compile_exe = false, should_install = false, clean_build = false,
                       source_mapping = true, show_changelog = false;
 
