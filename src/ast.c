@@ -291,7 +291,7 @@ Text_t ast_to_sexp(ast_t *ast) {
           ")");
         T(When, "(When ", ast_to_sexp(data.subject), when_clauses_to_sexp(data.clauses),
           optional_sexp("else", data.else_body), ")");
-        T(Reduction, "(Reduction ", quoted_text(binop_method_name(data.op)), " ", ast_to_sexp(data.key), " ",
+        T(Reduction, "(Reduction ", quoted_text(binop_operator(data.op)), " ", ast_to_sexp(data.key), " ",
           ast_to_sexp(data.iter), ")");
         T(Skip, "(Skip ", quoted_text(data.target), ")");
         T(Stop, "(Stop ", quoted_text(data.target), ")");

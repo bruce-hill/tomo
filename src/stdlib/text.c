@@ -1390,17 +1390,8 @@ Text_t Text$title(Text_t text, Text_t language) {
 }
 
 public
-Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark) {
-    if (quotation_mark.length != 1) fail("Invalid quote text: ", quotation_mark, " (must have length == 1)");
-
+Text_t Text$escaped(Text_t text, bool colorize, Text_t extra_escapes) {
     Text_t ret = colorize ? Text("\x1b[35m") : EMPTY_TEXT;
-    if (!Text$equal_values(quotation_mark, Text("\"")) && !Text$equal_values(quotation_mark, Text("'"))
-        && !Text$equal_values(quotation_mark, Text("`")))
-        ret = concat2_assuming_safe(ret, Text("$"));
-
-    ret = concat2_assuming_safe(ret, quotation_mark);
-    int32_t quote_char = Text$get_grapheme(quotation_mark, 0);
-
 #define flush_unquoted()                                                                                               \
     ({                                                                                                                 \
         if (unquoted_span > 0) {                                                                                       \
@@ -1454,15 +1445,18 @@ Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark) {
             break;
         }
         default: {
-            if (g == quote_char) {
-                flush_unquoted();
-                if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));
-                ret = concat2_assuming_safe(ret, Text("\\"));
-                ret = concat2_assuming_safe(ret, quotation_mark);
-                if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[0;35m"));
-            } else {
-                unquoted_span += 1;
+            TextIter_t esc_state = NEW_TEXT_ITER_STATE(extra_escapes);
+            for (int64_t j = 0; j < extra_escapes.length; j++) {
+                int32_t esc = Text$get_grapheme_fast(&esc_state, j);
+                if (g == esc) {
+                    flush_unquoted();
+                    if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));
+                    ret = concat2_assuming_safe(ret, Text("\\"));
+                    if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[0;35m"));
+                    break;
+                }
             }
+            unquoted_span += 1;
             break;
         }
         }
@@ -1470,10 +1464,19 @@ Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark) {
     flush_unquoted();
 #undef add_escaped
 #undef flush_unquoted
-
-    ret = concat2_assuming_safe(ret, quotation_mark);
     if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[m"));
+    return ret;
+}
 
+public
+Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark) {
+    if (quotation_mark.length != 1) fail("Invalid quote text: ", quotation_mark, " (must have length == 1)");
+
+    Text_t ret = Text$escaped(text, colorize, quotation_mark);
+    if (!(Text$equal_values(quotation_mark, Text("\"")) || Text$equal_values(quotation_mark, Text("'"))
+          || Text$equal_values(quotation_mark, Text("`"))))
+        ret = Texts("$", quotation_mark, ret, quotation_mark);
+    else ret = Texts(quotation_mark, ret, quotation_mark);
     return ret;
 }
 

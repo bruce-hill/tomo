@@ -162,23 +162,19 @@ ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
 
     spaces(&pos);
     type_ast_t *type = NULL;
-    ast_list_t *chunks;
     if (match(&pos, ":")) {
         type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this C_code code");
         spaces(&pos);
-        if (!match(&pos, "(")) parser_err(ctx, start, pos, "I expected a '(' here");
-        chunks = new (ast_list_t, .ast = NewAST(ctx->file, pos, pos, TextLiteral, Text("({")),
-                      .next = _parse_text_helper(ctx, &pos, '(', ')', '@', false));
-        if (type) {
-            REVERSE_LIST(chunks);
-            chunks = new (ast_list_t, .ast = NewAST(ctx->file, pos, pos, TextLiteral, Text("; })")), .next = chunks);
-            REVERSE_LIST(chunks);
-        }
-    } else {
-        if (!match(&pos, "{")) parser_err(ctx, start, pos, "I expected a '{' here");
-        chunks = _parse_text_helper(ctx, &pos, '{', '}', '@', false);
     }
 
+    static const char *quote_chars = "\"'`|/;([{<";
+    if (!strchr(quote_chars, *pos))
+        parser_err(ctx, pos, pos + 1,
+                   "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
+
+    char quote = *(pos++);
+    char unquote = closing[(int)quote] ? closing[(int)quote] : quote;
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos, quote, unquote, '@', false);
     return NewAST(ctx->file, start, pos, InlineCCode, .chunks = chunks, .type_ast = type);
 }
 

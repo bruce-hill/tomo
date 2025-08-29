@@ -10,7 +10,6 @@
 #include "../parse/files.h"
 #include "../parse/utils.h"
 #include "../stdlib/datatypes.h"
-#include "../stdlib/integers.h"
 #include "../stdlib/optionals.h"
 #include "../stdlib/stdlib.h"
 #include "../stdlib/text.h"
@@ -26,6 +25,66 @@
 Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent) {
     if (unwrap_block(namespace) == NULL) return EMPTY_TEXT;
     return Texts("\n", indent, single_indent, fmt(namespace, comments, Texts(indent, single_indent)));
+}
+
+typedef struct {
+    Text_t quote, unquote, interp;
+} text_opts_t;
+
+text_opts_t choose_text_options(ast_list_t *chunks) {
+    int double_quotes = 0, single_quotes = 0, backticks = 0;
+    for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
+        if (chunk->ast->tag == TextLiteral) {
+            Text_t literal = Match(chunk->ast, TextLiteral)->text;
+            if (Text$has(literal, Text("\""))) double_quotes += 1;
+            if (Text$has(literal, Text("'"))) single_quotes += 1;
+            if (Text$has(literal, Text("`"))) backticks += 1;
+        }
+    }
+    Text_t quote;
+    if (double_quotes == 0) quote = Text("\"");
+    else if (single_quotes == 0) quote = Text("'");
+    else if (backticks == 0) quote = Text("`");
+    else quote = Text("\"");
+
+    text_opts_t opts = {.quote = quote, .unquote = quote, .interp = Text("$")};
+    return opts;
+}
+
+static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, Table_t comments) {
+    Text_t code = opts.quote;
+    for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
+        if (chunk->ast->tag == TextLiteral) {
+            Text_t literal = Match(chunk->ast, TextLiteral)->text;
+            Text_t segment = Text$escaped(literal, false, Texts(opts.unquote, opts.interp));
+            code = Texts(code, segment);
+        } else {
+            code = Texts(code, opts.interp, "(", fmt_inline(chunk->ast, comments), ")");
+        }
+    }
+    return Texts(code, opts.unquote);
+}
+
+static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments, Text_t indent) {
+    Text_t code = EMPTY_TEXT;
+    Text_t current_line = EMPTY_TEXT;
+    for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
+        if (chunk->ast->tag == TextLiteral) {
+            Text_t literal = Match(chunk->ast, TextLiteral)->text;
+            List_t lines = Text$lines(literal);
+            if (lines.length == 0) continue;
+            current_line = Texts(current_line, Text$escaped(*(Text_t *)lines.data, false, opts.interp));
+            for (int64_t i = 1; i < lines.length; i += 1) {
+                add_line(&code, current_line, Texts(indent, single_indent));
+                current_line = Text$escaped(*(Text_t *)(lines.data + i * lines.stride), false, opts.interp);
+            }
+        } else {
+            current_line = Texts(current_line, opts.interp, "(", fmt(chunk->ast, comments, indent), ")");
+        }
+    }
+    add_line(&code, current_line, Texts(indent, single_indent));
+    code = Texts(opts.quote, "\n", indent, single_indent, code, "\n", indent, opts.unquote);
+    return code;
 }
 
 OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
@@ -211,37 +270,21 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         else return Texts(indexed, "[]");
     }
     /*inline*/ case TextJoin: {
-        // TODO: choose quotation mark more smartly
-        Text_t source = Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
-        Text_t quote = Text$to(source, I(1));
+        text_opts_t opts = choose_text_options(Match(ast, TextJoin)->children);
+        Text_t ret = must(format_inline_text(opts, Match(ast, TextJoin)->children, comments));
         const char *lang = Match(ast, TextJoin)->lang;
-        Text_t code = lang ? Texts("$", Text$from_str(lang), quote) : quote;
-        for (ast_list_t *chunk = Match(ast, TextJoin)->children; chunk; chunk = chunk->next) {
-            if (chunk->ast->tag == TextLiteral) {
-                Text_t literal = Match(chunk->ast, TextLiteral)->text;
-                code = Texts(code, Text$slice(Text$quoted(literal, false, quote), I(2), I(-2)));
-            } else {
-                code = Texts(code, "$(", fmt_inline(chunk->ast, comments), ")");
-            }
-        }
-        return Texts(code, quote);
+        return lang ? Texts("$", Text$from_str(lang), ret) : ret;
     }
     /*inline*/ case InlineCCode: {
         DeclareMatch(c_code, ast, InlineCCode);
-        Text_t code = c_code->type_ast ? Texts("C_code:", format_type(c_code->type_ast), "(") : Text("C_code{");
-        for (ast_list_t *chunk = c_code->chunks; chunk; chunk = chunk->next) {
-            if (chunk->ast->tag == TextLiteral) {
-                Text_t literal = Match(chunk->ast, TextLiteral)->text;
-                if (Text$has(literal, Text("\n"))) return NONE_TEXT;
-                code = Texts(code, Text$slice(Text$quoted(literal, false, Text("`")), I(2), I(-2)));
-            } else {
-                code = Texts(code, "@(", fmt_inline(chunk->ast, comments), ")");
-            }
-        }
-        return Texts(code, c_code->type_ast ? Text(")") : Text("}"));
+        Text_t code = c_code->type_ast ? Texts("C_code:", format_type(c_code->type_ast)) : Text("C_code");
+        text_opts_t opts = {.quote = Text("`"), .unquote = Text("`"), .interp = Text("@")};
+        return Texts(code, must(format_inline_text(opts, Match(ast, InlineCCode)->chunks, comments)));
     }
     /*inline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
-    /*inline*/ case Path: { return Texts("(", Text$from_str(Match(ast, Path)->path), ")"); }
+    /*inline*/ case Path: {
+        return Texts("(", Text$escaped(Text$from_str(Match(ast, Path)->path), false, Text("()")), ")");
+    }
     /*inline*/ case Stop: {
         const char *target = Match(ast, Stop)->target;
         return target ? Texts("stop ", Text$from_str(target)) : Text("stop");
@@ -609,59 +652,18 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case TextJoin: {
         if (inlined_fits) return inlined;
-        // TODO: choose quotation mark more smartly
-        Text_t source = Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
-        Text_t quote = Text$to(source, I(1));
+
+        text_opts_t opts = choose_text_options(Match(ast, TextJoin)->children);
+        Text_t ret = format_text(opts, Match(ast, TextJoin)->children, comments, indent);
         const char *lang = Match(ast, TextJoin)->lang;
-        Text_t code = EMPTY_TEXT;
-        Text_t current_line = EMPTY_TEXT;
-        for (ast_list_t *chunk = Match(ast, TextJoin)->children; chunk; chunk = chunk->next) {
-            if (chunk->ast->tag == TextLiteral) {
-                Text_t literal = Match(chunk->ast, TextLiteral)->text;
-                List_t lines = Text$lines(literal);
-                if (lines.length == 0) continue;
-                current_line = Texts(current_line, *(Text_t *)lines.data);
-                for (int64_t i = 1; i < lines.length; i += 1) {
-                    add_line(&code, current_line, Texts(indent, single_indent));
-                    current_line = *(Text_t *)(lines.data + i * lines.stride);
-                }
-            } else {
-                current_line = Texts(current_line, "$(", fmt_inline(chunk->ast, comments), ")");
-            }
-        }
-        add_line(&code, current_line, Texts(indent, single_indent));
-        code = Texts(quote, "\n", indent, single_indent, code, "\n", indent, quote);
-        if (lang) code = Texts("$", Text$from_str(lang), code);
-        return code;
+        return lang ? Texts("$", Text$from_str(lang), ret) : ret;
     }
     /*multiline*/ case InlineCCode: {
         DeclareMatch(c_code, ast, InlineCCode);
-        if (inlined_fits && c_code->type_ast) return inlined;
-
-        Text_t code = EMPTY_TEXT;
-        Text_t current_line = EMPTY_TEXT;
-        for (ast_list_t *chunk = c_code->chunks; chunk; chunk = chunk->next) {
-            if (chunk->ast->tag == TextLiteral) {
-                Text_t literal = Match(chunk->ast, TextLiteral)->text;
-                List_t lines = Text$lines(literal);
-                if (lines.length == 0) continue;
-                current_line = Texts(current_line, *(Text_t *)lines.data);
-                for (int64_t i = 1; i < lines.length; i += 1) {
-                    add_line(&code, current_line, Texts(indent, single_indent));
-                    current_line = *(Text_t *)(lines.data + i * lines.stride);
-                }
-            } else {
-                current_line = Texts(current_line, "@(", fmt_inline(chunk->ast, comments), ")");
-            }
-        }
-        add_line(&code, current_line, Texts(indent, single_indent));
-
-        if (c_code->type_ast) {
-            return Texts("C_code:", format_type(c_code->type_ast), "(\n", indent, single_indent, code, "\n", indent,
-                         ")");
-        } else {
-            return Texts("C_code{\n", indent, single_indent, code, "\n", indent, "}");
-        }
+        if (inlined_fits && c_code->type != NULL) return inlined;
+        Text_t code = c_code->type_ast ? Texts("C_code:", format_type(c_code->type_ast)) : Text("C_code");
+        text_opts_t opts = {.quote = Text("`"), .unquote = Text("`"), .interp = Text("@")};
+        return Texts(code, format_text(opts, Match(ast, InlineCCode)->chunks, comments, indent));
     }
     /*multiline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
     /*multiline*/ case Path: {

@@ -237,7 +237,8 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Index: return compile_indexing(env, ast);
     case InlineCCode: {
         type_t *t = get_type(env, ast);
-        if (t->tag == VoidType) return Texts("{\n", compile_statement(env, ast), "\n}");
+        if (Match(ast, InlineCCode)->type_ast != NULL) return Texts("({", compile_statement(env, ast), "; })");
+        else if (t->tag == VoidType) return Texts("{\n", compile_statement(env, ast), "\n}");
         else return compile_statement(env, ast);
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");
