@@ -75,7 +75,7 @@ static const char *paths_str(List_t paths) {
 
 static OptionalList_t files = NONE_LIST, args = NONE_LIST, uninstall = NONE_LIST, libraries = NONE_LIST;
 static OptionalBool_t verbose = false, quiet = false, show_version = false, show_parse_tree = false,
-                      do_format_code = false, show_prefix = false, stop_at_transpile = false,
+                      do_format_code = false, format_inplace = true, show_prefix = false, stop_at_transpile = false,
                       stop_at_obj_compilation = false, compile_exe = false, should_install = false, clean_build = false,
                       source_mapping = true, show_changelog = false;
 
@@ -195,6 +195,7 @@ int main(int argc, char *argv[]) {
                     {"parse", false, &Bool$info, &show_parse_tree}, //
                     {"p", false, &Bool$info, &show_parse_tree}, //
                     {"format", false, &Bool$info, &do_format_code}, //
+                    {"format-inplace", false, &Bool$info, &format_inplace}, //
                     {"prefix", false, &Bool$info, &show_prefix}, //
                     {"quiet", false, &Bool$info, &quiet}, //
                     {"q", false, &Bool$info, &quiet}, //
@@ -315,9 +316,14 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        if (do_format_code) {
+        if (do_format_code || format_inplace) {
             Text_t formatted = format_file(Path$as_c_string(path));
-            print(formatted);
+            if (format_inplace) {
+                print("Formatted ", path);
+                Path$write(path, formatted, 0644);
+            } else {
+                print(formatted);
+            }
             continue;
         }
 
