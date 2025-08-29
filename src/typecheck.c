@@ -1373,7 +1373,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
             code_err(reduction->iter, "I don't know how to do a reduction over ", type_to_str(iter_t), " values");
         if (reduction->key && !(reduction->op == Min || reduction->op == Max)) {
             env_t *item_scope = fresh_scope(env);
-            set_binding(item_scope, "$", iterated, EMPTY_TEXT);
+            const char *op_str = binop_operator(reduction->op);
+            set_binding(item_scope, op_str, iterated, EMPTY_TEXT);
             iterated = get_type(item_scope, reduction->key);
         }
         return iterated->tag == OptionalType ? iterated : Type(OptionalType, .type = iterated);
