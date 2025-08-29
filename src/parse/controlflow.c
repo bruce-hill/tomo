@@ -131,18 +131,8 @@ ast_t *parse_while(parse_ctx_t *ctx, const char *pos) {
     // while condition ["do"] [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "while")) return NULL;
-
-    const char *tmp = pos;
-    // Shorthand form: `while when ...`
-    if (match_word(&tmp, "when")) {
-        ast_t *when = expect(ctx, start, &pos, parse_when, "I expected a 'when' block after this");
-        if (!when->__data.When.else_body) when->__data.When.else_body = NewAST(ctx->file, pos, pos, Stop);
-        return NewAST(ctx->file, start, pos, Repeat, .body = when);
-    }
-
-    (void)match_word(&pos, "do"); // Optional 'do'
-
     ast_t *condition = expect(ctx, start, &pos, parse_expr, "I don't see a viable condition for this 'while'");
+    (void)match_word(&pos, "do"); // Optional 'do'
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'while'");
     return NewAST(ctx->file, start, pos, While, .condition = condition, .body = body);
 }
