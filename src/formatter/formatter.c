@@ -433,8 +433,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             comment_pos = stmt->ast->end;
 
             if (stmt->next) {
-                for (int blanks = suggested_blank_lines(stmt->ast, stmt->next->ast); blanks > 0; blanks--)
+                int suggested_blanks = suggested_blank_lines(stmt->ast, stmt->next->ast);
+                for (int blanks = suggested_blanks; blanks > 0; blanks--)
                     add_line(&code, Text(""), indent);
+                gap_before_comment = (suggested_blanks == 0);
             } else gap_before_comment = true;
         }
 
