@@ -423,7 +423,13 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                 add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), indent);
             }
 
-            add_line(&code, fmt(stmt->ast, comments, indent), indent);
+            if (stmt->ast->tag == Block) {
+                add_line(&code,
+                         Texts("do\n", indent, single_indent, fmt(stmt->ast, comments, Texts(indent, single_indent))),
+                         indent);
+            } else {
+                add_line(&code, fmt(stmt->ast, comments, indent), indent);
+            }
             comment_pos = stmt->ast->end;
 
             if (stmt->next) {
