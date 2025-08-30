@@ -180,10 +180,22 @@ int main(int argc, char *argv[]) {
                         "\x1b[1mUninstall libraries:\x1b[m   tomo -u lib...\n"
                         "\x1b[1mOther flags:\x1b[m\n"
                         "  --verbose|-v: verbose output\n"
+                        "  --prefix: print the Tomo prefix directory\n"
                         "  --quiet|-q: quiet output\n"
                         "  --parse|-p: show parse tree\n"
+                        "  --transpile|-t: transpile C code without compiling\n"
+                        "  --show-codegen|-c <pager>: show generated code\n"
+                        "  --compile-obj|-c: compile C code for object file\n"
+                        "  --compile-exe|-e: compile to standalone executable without running\n"
+                        "  --format: print formatted code\n"
+                        "  --format-inplace: format the code in a file (in place)\n"
+                        "  --library|-L: build a folder as a library\n"
                         "  --install|-I: install the executable or library\n"
+                        "  --uninstall|-u: uninstall an executable or library\n"
                         "  --optimization|-O <level>: set optimization level\n"
+                        "  --force-rebuild|-f: force rebuilding\n"
+                        "  --source-mapping|-m <yes|no>: toggle source mapping in generated code\n"
+                        "  --changelog: show the Tomo changelog\n"
                         "  --run|-r: run a program from " TOMO_PREFIX "/share/tomo_" TOMO_VERSION "/installed\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(argc, argv, usage, help, TOMO_VERSION, //
@@ -215,7 +227,8 @@ int main(int argc, char *argv[]) {
                     {"I", false, &Bool$info, &should_install}, //
                     {"optimization", false, &Text$info, &optimization}, //
                     {"O", false, &Text$info, &optimization}, //
-                    {"force-rebuild", false, &Bool$info, &clean_build}, {"f", false, &Bool$info, &clean_build}, //
+                    {"force-rebuild", false, &Bool$info, &clean_build}, //
+                    {"f", false, &Bool$info, &clean_build}, //
                     {"source-mapping", false, &Bool$info, &source_mapping},
                     {"m", false, &Bool$info, &source_mapping}, //
                     {"changelog", false, &Bool$info, &show_changelog}, );
