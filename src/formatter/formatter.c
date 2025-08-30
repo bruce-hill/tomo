@@ -774,11 +774,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case DocTest: {
         DeclareMatch(test, ast, DocTest);
         Text_t expr = fmt(test->expr, comments, indent);
-        Text_t code = Texts(">> ", Text$replace(expr, Texts("\n", indent), Texts("\n", indent, ".. ")));
+        Text_t code = Texts(">> ", Text$replace(expr, Texts("\n", indent), Texts("\n", indent, single_indent)));
         if (test->expected) {
             Text_t expected = fmt(test->expected, comments, indent);
             code = Texts(code, "\n", indent, "= ",
-                         Text$replace(expected, Texts("\n", indent), Texts("\n", indent, ".. ")));
+                         Text$replace(expected, Texts("\n", indent), Texts("\n", indent, single_indent)));
         }
         return code;
     }
