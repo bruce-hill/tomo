@@ -38,24 +38,45 @@ bool range_has_comment(const char *start, const char *end, Table_t comments) {
     return (comment.length >= 0);
 }
 
-CONSTFUNC int suggested_blank_lines(ast_t *ast) {
-    switch (ast->tag) {
+CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
+    if (second == NULL) return 0;
+
+    if (first->tag == Use && second->tag != Use) return 1;
+
+    switch (first->tag) {
     case If:
     case When:
     case Repeat:
     case While:
     case For:
     case Block:
-    case Defer: return 1;
-    case Use: return 1;
+    case Defer:
     case ConvertDef:
-    case FunctionDef: return 1;
+    case FunctionDef:
     case StructDef:
     case EnumDef:
     case LangDef:
-    case Extend: return 2;
-    default: return 0;
+    case Extend: return 1;
+    default: break;
     }
+
+    switch (second->tag) {
+    case If:
+    case When:
+    case Repeat:
+    case While:
+    case For:
+    case Block:
+    case Defer:
+    case ConvertDef:
+    case FunctionDef:
+    case StructDef:
+    case EnumDef:
+    case LangDef:
+    case Extend: return 1;
+    default: break;
+    }
+    return 0;
 }
 
 Text_t indent_code(Text_t code) {
@@ -73,6 +94,7 @@ CONSTFUNC ast_t *unwrap_block(ast_t *ast) {
     while (ast->tag == Block && Match(ast, Block)->statements && Match(ast, Block)->statements->next == NULL) {
         ast = Match(ast, Block)->statements->ast;
     }
+    if (ast->tag == Block && Match(ast, Block)->statements == NULL) return NULL;
     return ast;
 }
 

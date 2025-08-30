@@ -22,7 +22,7 @@ extern const Text_t single_indent;
 void add_line(Text_t *code, Text_t line, Text_t indent);
 OptionalText_t next_comment(Table_t comments, const char **pos, const char *end);
 bool range_has_comment(const char *start, const char *end, Table_t comments);
-CONSTFUNC int suggested_blank_lines(ast_t *ast);
+CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second);
 Text_t indent_code(Text_t code);
 Text_t parenthesize(Text_t code, Text_t indent);
 CONSTFUNC ast_t *unwrap_block(ast_t *ast);

@@ -414,9 +414,6 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         bool gap_before_comment = false;
         const char *comment_pos = ast->start;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-            for (int blanks = suggested_blank_lines(stmt->ast); blanks > 0; blanks--)
-                add_line(&code, Text(""), indent);
-
             for (OptionalText_t comment;
                  (comment = next_comment(comments, &comment_pos, stmt->ast->start)).length > 0;) {
                 if (gap_before_comment) {
@@ -430,8 +427,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             comment_pos = stmt->ast->end;
 
             if (stmt->next) {
-                for (int blanks = suggested_blank_lines(stmt->ast) - suggested_blank_lines(stmt->next->ast); blanks > 0;
-                     blanks--)
+                for (int blanks = suggested_blank_lines(stmt->ast, stmt->next->ast); blanks > 0; blanks--)
                     add_line(&code, Text(""), indent);
             } else gap_before_comment = true;
         }
