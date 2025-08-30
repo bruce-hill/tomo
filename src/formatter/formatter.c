@@ -374,6 +374,17 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
 }
 
+static int64_t trailing_line_len(Text_t text) {
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
+    int64_t len = 0;
+    for (int64_t i = text.length - 1; i >= 0; i--) {
+        int32_t g = Text$get_grapheme_fast(&state, i);
+        if (g == '\n' || g == '\r') break;
+        len += 1;
+    }
+    return len;
+}
+
 Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     OptionalText_t inlined = format_inline_code(ast, comments);
     bool inlined_fits = (inlined.length >= 0 && indent.length + inlined.length <= MAX_WIDTH);
@@ -548,34 +559,49 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Set: {
         if (inlined_fits) return inlined;
         ast_list_t *items = ast->tag == List ? Match(ast, List)->items : Match(ast, Set)->items;
-        Text_t code = EMPTY_TEXT;
+        Text_t code = ast->tag == List ? Text("[") : Text("|");
         const char *comment_pos = ast->start;
         for (ast_list_t *item = items; item; item = item->next) {
             for (OptionalText_t comment;
                  (comment = next_comment(comments, &comment_pos, item->ast->start)).length > 0;) {
                 add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
             }
-            add_line(&code, Texts(fmt(item->ast, comments, Texts(indent, single_indent)), ","),
-                     Texts(indent, single_indent));
+            Text_t item_text = fmt(item->ast, comments, Texts(indent, single_indent));
+            if (Text$ends_with(code, Text(","), NULL)) {
+                if (!Text$has(item_text, Text("\n")) && trailing_line_len(code) + 1 + item_text.length + 1 <= MAX_WIDTH)
+                    code = Texts(code, " ", item_text, ",");
+                else code = Texts(code, "\n", indent, single_indent, item_text, ",");
+            } else {
+                add_line(&code, Texts(item_text, ","), Texts(indent, single_indent));
+            }
         }
         for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
             add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
         }
-        return ast->tag == List ? Texts("[\n", indent, single_indent, code, "\n", indent, "]")
-                                : Texts("|\n", indent, single_indent, code, "\n", indent, "|");
+        return ast->tag == List ? Texts(code, "\n", indent, "]") : Texts(code, "\n", indent, "|");
     }
     /*multiline*/ case Table: {
         if (inlined_fits) return inlined;
         DeclareMatch(table, ast, Table);
-        Text_t code = EMPTY_TEXT;
+        Text_t code = Texts("{");
         const char *comment_pos = ast->start;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             for (OptionalText_t comment;
                  (comment = next_comment(comments, &comment_pos, entry->ast->start)).length > 0;) {
                 add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
             }
-            add_line(&code, Texts(fmt(entry->ast, comments, Texts(indent, single_indent)), ","),
-                     Texts(indent, single_indent));
+
+            Text_t entry_text = fmt(entry->ast, comments, Texts(indent, single_indent));
+            if (Text$ends_with(code, Text(","), NULL)) {
+                if (!Text$has(entry_text, Text("\n"))
+                    && trailing_line_len(code) + 1 + entry_text.length + 1 <= MAX_WIDTH)
+                    code = Texts(code, " ", entry_text, ",");
+                else code = Texts(code, "\n", indent, single_indent, entry_text, ",");
+            } else {
+                add_line(&code, Texts(entry_text, ","), Texts(indent, single_indent));
+            }
+
+            add_line(&code, Texts(entry_text, ","), Texts(indent, single_indent));
         }
         for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
             add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
@@ -587,7 +613,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (table->default_value)
             code = Texts(code, ";\n", indent, single_indent, "default=", fmt(table->default_value, comments, indent));
 
-        return Texts("{\n", indent, single_indent, code, "\n", indent, "}");
+        return Texts(code, "\n", indent, "}");
     }
     /*multiline*/ case TableEntry: {
         if (inlined_fits) return inlined;
