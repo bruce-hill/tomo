@@ -29,14 +29,14 @@ Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
 
 OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
     Text_t code = EMPTY_TEXT;
-    for (; args; args = args->next) {
-        if (args->name && args->next && args->type == args->next->type && args->value == args->next->value) {
-            code = Texts(code, Text$from_str(args->name), ",");
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
+        if (arg->name && arg->next && arg->type == arg->next->type && arg->value == arg->next->value) {
+            code = Texts(code, Text$from_str(arg->name), ",");
         } else {
-            code = Texts(code, must(format_inline_arg(args, comments)));
-            if (args->next) code = Texts(code, ", ");
+            code = Texts(code, must(format_inline_arg(arg, comments)));
+            if (arg->next) code = Texts(code, ", ");
         }
-        if (args->next && range_has_comment(args->end, args->next->start, comments)) return NONE_TEXT;
+        if (arg->next && range_has_comment(arg->end, arg->next->start, comments)) return NONE_TEXT;
     }
     return code;
 }
@@ -45,12 +45,12 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
     OptionalText_t inline_args = format_inline_args(args, comments);
     if (inline_args.length >= 0 && inline_args.length <= MAX_WIDTH) return inline_args;
     Text_t code = EMPTY_TEXT;
-    for (; args; args = args->next) {
-        if (args->name && args->next && args->type == args->next->type && args->value == args->next->value) {
-            code = Texts(code, Text$from_str(args->name), ",");
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
+        if (arg->name && arg->next && arg->type == arg->next->type && arg->value == arg->next->value) {
+            code = Texts(code, Text$from_str(arg->name), ",");
         } else {
-            code =
-                Texts(code, "\n", indent, single_indent, format_arg(args, comments, Texts(indent, single_indent)), ",");
+            code = Texts(code, "\n", indent, single_indent, format_arg(arg, comments, Texts(indent, single_indent)));
+            if (args->next) code = Texts(code, ",");
         }
     }
     return code;

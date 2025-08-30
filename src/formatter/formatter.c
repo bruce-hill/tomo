@@ -774,14 +774,16 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case FunctionCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, FunctionCall);
-        return Texts(fmt(call->fn, comments, indent), "(\n", indent, single_indent,
-                     format_args(call->args, comments, indent), "\n", Texts(indent, single_indent), ")");
+        Text_t args = format_args(call->args, comments, indent);
+        return Texts(fmt(call->fn, comments, indent), "(", args,
+                     Text$has(args, Text("\n")) ? Texts("\n", indent) : EMPTY_TEXT, ")");
     }
     /*multiline*/ case MethodCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, MethodCall);
-        return Texts(termify(call->self, comments, indent), ".", Text$from_str(call->name), "(\n", indent,
-                     single_indent, format_args(call->args, comments, indent), "\n", Texts(indent, single_indent), ")");
+        Text_t args = format_args(call->args, comments, indent);
+        return Texts(termify(call->self, comments, indent), ".", Text$from_str(call->name), "(", args,
+                     Text$has(args, Text("\n")) ? Texts("\n", indent) : EMPTY_TEXT, ")");
     }
     /*multiline*/ case DocTest: {
         DeclareMatch(test, ast, DocTest);
