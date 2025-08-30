@@ -41,7 +41,21 @@ bool range_has_comment(const char *start, const char *end, Table_t comments) {
 CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     if (second == NULL) return 0;
 
-    if (first->tag == Use && second->tag != Use) return 1;
+    for (;;) {
+        if (first->tag == Declare && Match(first, Declare)->value) {
+            first = Match(first, Declare)->value;
+        } else if (first->tag == DocTest && Match(first, DocTest)->expr && Match(first, DocTest)->expected == NULL) {
+            first = Match(first, DocTest)->expr;
+        } else break;
+    }
+
+    for (;;) {
+        if (second->tag == Declare && Match(second, Declare)->value) {
+            second = Match(second, Declare)->value;
+        } else if (second->tag == DocTest && Match(second, DocTest)->expr && Match(second, DocTest)->expected == NULL) {
+            second = Match(second, DocTest)->expr;
+        } else break;
+    }
 
     switch (first->tag) {
     case If:
@@ -53,10 +67,27 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     case Defer:
     case ConvertDef:
     case FunctionDef:
+    case Lambda:
     case StructDef:
     case EnumDef:
     case LangDef:
     case Extend: return 1;
+    case Use: {
+        if (second->tag != Use) return 1;
+        break;
+    }
+    case Declare: {
+        DeclareMatch(decl, first, Declare);
+        if (decl->value) return suggested_blank_lines(decl->value, second);
+        break;
+    }
+    case Assign: {
+        DeclareMatch(assign, first, Assign);
+        for (ast_list_t *val = assign->values; val; val = val->next) {
+            if (suggested_blank_lines(val->ast, second) > 0) return 1;
+        }
+        break;
+    }
     default: break;
     }
 
@@ -70,6 +101,7 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     case Defer:
     case ConvertDef:
     case FunctionDef:
+    case Lambda:
     case StructDef:
     case EnumDef:
     case LangDef:
