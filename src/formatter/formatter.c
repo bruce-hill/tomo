@@ -526,7 +526,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (func->ret_type) code = Texts(code, func->args ? Text(" -> ") : Text("-> "), format_type(func->ret_type));
         if (func->cache) code = Texts(code, "; cache=", fmt(func->cache, comments, indent));
         if (func->is_inline) code = Texts(code, "; inline");
-        code = Texts(code, ")\n", indent, single_indent, fmt(func->body, comments, Texts(indent, single_indent)));
+        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
+                     single_indent, fmt(func->body, comments, Texts(indent, single_indent)));
         return Texts(code);
     }
     /*multiline*/ case Lambda: {
@@ -535,7 +536,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         Text_t code = Texts("func(", format_args(lambda->args, comments, indent));
         if (lambda->ret_type)
             code = Texts(code, lambda->args ? Text(" -> ") : Text("-> "), format_type(lambda->ret_type));
-        code = Texts(code, ")\n", indent, single_indent, fmt(lambda->body, comments, Texts(indent, single_indent)));
+        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
+                     single_indent, fmt(lambda->body, comments, Texts(indent, single_indent)));
         return Texts(code);
     }
     /*multiline*/ case ConvertDef: {
@@ -545,21 +547,25 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             code = Texts(code, convert->args ? Text(" -> ") : Text("-> "), format_type(convert->ret_type));
         if (convert->cache) code = Texts(code, "; cache=", fmt(convert->cache, comments, indent));
         if (convert->is_inline) code = Texts(code, "; inline");
-        code = Texts(code, ")\n", indent, single_indent, fmt(convert->body, comments, Texts(indent, single_indent)));
+        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
+                     single_indent, fmt(convert->body, comments, Texts(indent, single_indent)));
         return Texts(code);
     }
     /*multiline*/ case StructDef: {
         DeclareMatch(def, ast, StructDef);
-        Text_t code = Texts("struct ", Text$from_str(def->name), "(", format_args(def->fields, comments, indent));
+        Text_t args = format_args(def->fields, comments, indent);
+        Text_t code = Texts("struct ", Text$from_str(def->name), "(", args);
         if (def->secret) code = Texts(code, "; secret");
         if (def->external) code = Texts(code, "; external");
         if (def->opaque) code = Texts(code, "; opaque");
-        return Texts(code, ")", format_namespace(def->namespace, comments, indent));
+        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"));
+        return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case EnumDef: {
         DeclareMatch(def, ast, EnumDef);
         Text_t code = Texts("enum ", Text$from_str(def->name), "(", format_tags(def->tags, comments, indent));
-        return Texts(code, ")", format_namespace(def->namespace, comments, indent));
+        return Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"),
+                     format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case LangDef: {
         DeclareMatch(def, ast, LangDef);
@@ -769,13 +775,13 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, FunctionCall);
         return Texts(fmt(call->fn, comments, indent), "(\n", indent, single_indent,
-                     format_args(call->args, comments, Texts(indent, single_indent)), "\n", indent, ")");
+                     format_args(call->args, comments, indent), "\n", Texts(indent, single_indent), ")");
     }
     /*multiline*/ case MethodCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, MethodCall);
         return Texts(termify(call->self, comments, indent), ".", Text$from_str(call->name), "(\n", indent,
-                     single_indent, format_args(call->args, comments, Texts(indent, single_indent)), "\n", indent, ")");
+                     single_indent, format_args(call->args, comments, indent), "\n", Texts(indent, single_indent), ")");
     }
     /*multiline*/ case DocTest: {
         DeclareMatch(test, ast, DocTest);

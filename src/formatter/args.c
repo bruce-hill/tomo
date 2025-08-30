@@ -49,7 +49,8 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
         if (args->name && args->next && args->type == args->next->type && args->value == args->next->value) {
             code = Texts(code, Text$from_str(args->name), ",");
         } else {
-            add_line(&code, Texts(format_arg(args, comments, indent), ","), indent);
+            code = Texts(code, "\n", indent, single_indent,
+                         format_arg(args, comments, Texts(indent, single_indent, single_indent)), ",");
         }
     }
     return code;
