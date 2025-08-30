@@ -140,17 +140,21 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case If: {
         DeclareMatch(if_, ast, If);
 
+        Text_t if_condition = if_->condition->tag == Not
+                                  ? Texts("unless ", fmt_inline(Match(if_->condition, Not)->value, comments))
+                                  : Texts("if ", fmt_inline(if_->condition, comments));
+
         if (if_->else_body == NULL && if_->condition->tag != Declare) {
             ast_t *stmt = unwrap_block(if_->body);
             switch (stmt->tag) {
             case Return:
             case Skip:
-            case Stop: return Texts(fmt_inline(stmt, comments), " if ", fmt_inline(if_->condition, comments));
+            case Stop: return Texts(fmt_inline(stmt, comments), " ", if_condition);
             default: break;
             }
         }
 
-        Text_t code = Texts("if ", fmt_inline(if_->condition, comments), " then ", fmt_inline(if_->body, comments));
+        Text_t code = Texts(if_condition, " then ", fmt_inline(if_->body, comments));
         if (if_->else_body) code = Texts(code, " else ", fmt_inline(if_->else_body, comments));
         return code;
     }
@@ -443,8 +447,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case If: {
         DeclareMatch(if_, ast, If);
-        Text_t code = Texts("if ", fmt(if_->condition, comments, indent), "\n", indent, single_indent,
-                            fmt(if_->body, comments, Texts(indent, single_indent)));
+        Text_t code = if_->condition->tag == Not
+                          ? Texts("unless ", fmt(Match(if_->condition, Not)->value, comments, indent))
+                          : Texts("if ", fmt(if_->condition, comments, indent));
+
+        code = Texts(code, "\n", indent, single_indent, fmt(if_->body, comments, Texts(indent, single_indent)));
         if (if_->else_body) {
             if (if_->else_body->tag != If) {
                 code = Texts(code, "\n", indent, "else\n", indent, single_indent,
