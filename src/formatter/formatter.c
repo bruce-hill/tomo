@@ -430,8 +430,6 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case If: {
         DeclareMatch(if_, ast, If);
-        if (inlined_fits && if_->else_body == NULL) return inlined;
-
         Text_t code = Texts("if ", fmt(if_->condition, comments, indent), "\n", indent, single_indent,
                             fmt(if_->body, comments, Texts(indent, single_indent)));
         if (if_->else_body) {
