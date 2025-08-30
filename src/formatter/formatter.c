@@ -4,12 +4,14 @@
 #include <setjmp.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <unictype.h>
 
 #include "../ast.h"
 #include "../parse/context.h"
 #include "../parse/files.h"
 #include "../parse/utils.h"
 #include "../stdlib/datatypes.h"
+#include "../stdlib/integers.h"
 #include "../stdlib/optionals.h"
 #include "../stdlib/stdlib.h"
 #include "../stdlib/text.h"
@@ -51,6 +53,11 @@ text_opts_t choose_text_options(ast_list_t *chunks) {
     return opts;
 }
 
+static bool starts_with_id(Text_t text) {
+    List_t codepoints = Text$utf32_codepoints(Text$slice(text, I_small(1), I_small(1)));
+    return uc_is_property_xid_continue(*(ucs4_t *)codepoints.data);
+}
+
 static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, Table_t comments) {
     Text_t code = opts.quote;
     for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
@@ -59,7 +66,13 @@ static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, T
             Text_t segment = Text$escaped(literal, false, Texts(opts.unquote, opts.interp));
             code = Texts(code, segment);
         } else {
-            code = Texts(code, opts.interp, "(", fmt_inline(chunk->ast, comments), ")");
+            if (chunk->ast->tag == Var
+                && (!chunk->next || chunk->next->ast->tag != TextLiteral
+                    || !starts_with_id(Match(chunk->next->ast, TextLiteral)->text))) {
+                code = Texts(code, opts.interp, fmt_inline(chunk->ast, comments));
+            } else {
+                code = Texts(code, opts.interp, "(", fmt_inline(chunk->ast, comments), ")");
+            }
         }
     }
     return Texts(code, opts.unquote);
