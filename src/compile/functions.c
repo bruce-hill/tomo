@@ -71,29 +71,31 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
     for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
         int64_t i = 1;
         // Find keyword:
-        if (spec_arg->name) {
-            for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
-                if (call_arg->name && streq(call_arg->name, spec_arg->name)) {
-                    Text_t value;
-                    if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
-                        value = compile_int_to_type(env, call_arg->value, spec_arg->type);
-                    } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
-                        OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
-                        if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
-                        if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
-                            value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
-                        else value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
-                    } else {
-                        env_t *arg_env = with_enum_scope(env, spec_arg->type);
-                        value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
-                    }
-                    Table$str_set(&used_args, call_arg->name, call_arg);
-                    if (code.length > 0) code = Texts(code, ", ");
-                    code = Texts(code, value);
-                    goto found_it;
-                }
+        assert(spec_arg->name);
+        for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
+            if (!call_arg->name) continue;
+            if (!(streq(call_arg->name, spec_arg->name) || (spec_arg->alias && streq(call_arg->name, spec_arg->alias))))
+                continue;
+
+            Text_t value;
+            if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
+                value = compile_int_to_type(env, call_arg->value, spec_arg->type);
+            } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
+                OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
+                if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
+                if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
+                    value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
+                else value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
+            } else {
+                env_t *arg_env = with_enum_scope(env, spec_arg->type);
+                value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
             }
+            Table$str_set(&used_args, call_arg->name, call_arg);
+            if (code.length > 0) code = Texts(code, ", ");
+            code = Texts(code, value);
+            goto found_it;
         }
+
         // Find positional:
         for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
             if (call_arg->name) continue;
@@ -161,7 +163,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
                     args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
                 REVERSE_LIST(args);
                 code_err(ast,
-                         "This function's public signature doesn't match this call site.\n"
+                         "This function's signature doesn't match this call site.\n"
                          "The signature is: ",
                          type_to_text(fn_t),
                          "\n"

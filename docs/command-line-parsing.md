@@ -5,7 +5,7 @@ Here's a simple example:
 
 ```tomo
 # greet.tm
-func main(name:Text, be_excited=no)
+func main(name:Text, be_excited|E:Bool=no)
     if be_excited
         say("Hello $name!!!")
     else
@@ -16,29 +16,44 @@ This program will automatically support command line argument parsing
 for the arguments to `main()`:
 
 ```bash
-$ tomo greet.tm 
+$ tomo -e greet.tm
+Compiled executable: greet
+
+$ ./greet
 greet: Required argument 'name' was not provided!
-Signature: greet [--help] <name> [--be-excited]
+Signature: greet [--help] <name> [--be-excited|-E|--no-be-exited]
 
-$ tomo greet.tm --help
-Signature: greet [--help] <name> [--be-excited]
+$ ./greet --help
+Signature: greet [--help] <name> [--be-excited|-E|--no-be-excited]
 
-$ tomo greet.tm "Zaphod"
+$ ./greet "Zaphod"
 Hi Zaphod. 
 
-$ tomo greet.tm "Zaphod" --be-excited
+$ ./greet "Zaphod" --be-excited
 Hello Zaphod!!!
 
-$ tomo greet.tm --no-be-excited --name="Zaphod"
+$ ./greet "Zaphod" -E
+Hello Zaphod!!!
+
+$ ./greet --no-be-excited --name="Zaphod"
 Hi Zaphod.
 
-$ tomo greet.tm --not-a-real-argument "Bob"
+$ ./greet --not-a-real-argument "Bob"
 greet: Unrecognized argument: --not-a-real-argument
-Signature: greet [--help] <name> [--be-excited]
+Signature: greet [--help] <name> [--be-excited|-E|--no-be-excited]
 ```
 
 Underscores in argument names are converted to dashes when parsing command line
 arguments.
+
+## Running Programs Directly
+
+If you want to run a program directly (instead of compiling to an executable
+with `tomo -e`), you can run the program with `tomo program.tm -- [program
+arguments...]`. The `--` is required to separate the arguments passed to the
+Tomo compiler from those being passed to your program. For example, `tomo
+greet.tm -- --help` will pass the argument `--help` to your program, whereas
+`tomo greet.tm --help` will pass `--help` to `tomo`.
 
 ## Positional vs Default Arguments
 
@@ -120,4 +135,27 @@ $ tomo many-texts.tm --args=one,two,three
 
 $ tomo many-texts.tm -- one --not-a-flag 'a space'
 >> ["one", "--not-a-flag", "a space"] : [Text]
+```
+
+## Aliases and Flag Arguments
+
+Each argument may optionally have an alias of the form `name|alias`. This allows
+you to specify a long-form argument and a single-letter flag like `verbose|v =
+no`. Single letter flags (whether as an alias or as a main flag name) have
+slightly different command line parsing rules:
+
+- Single letter flags use only a single dash: `-v` vs `--verbose`
+- Single letter flags can coalesce with other single letter flags: `-abc` is the
+same as `-a -b -c`
+
+When single letter flags coalesce together, the first flags in the cluster must
+be boolean values, while the last one is allowed to be any type. This lets you
+specify several flags at once while still providing arguments:
+
+```tomo
+func main(output|o:Path? = none, verbose|v:Bool = no)
+    ...
+```
+```bash
+$ tomo -e program.tm && ./program -vo outfile.txt`
 ```

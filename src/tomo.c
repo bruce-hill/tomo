@@ -319,7 +319,7 @@ int main(int argc, char *argv[]) {
 
     if (files.length < 1) print_err("No file specified!");
 
-    quiet = !verbose;
+    if (!compile_exe && !stop_at_transpile && !stop_at_obj_compilation) quiet = !verbose;
 
     for (int64_t i = 0; i < files.length; i++) {
         Path_t path = *(Path_t *)(files.data + i * files.stride);
@@ -445,7 +445,7 @@ void build_library(Path_t lib_dir) {
     int status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
 
-    if (!quiet) print("Compiled library:\t", shared_lib);
+    if (!quiet) print("Compiled library:\t", Path$relative_to(shared_lib, Path$current_dir()));
 }
 
 void install_library(Path_t lib_dir) {
@@ -767,7 +767,7 @@ void transpile_header(env_t *base_env, Path_t path) {
     Text$print(header, h_code);
     if (fclose(header) == -1) print_err("Failed to write header file: ", h_filename);
 
-    if (!quiet) print("Transpiled header:\t", h_filename);
+    if (!quiet) print("Transpiled header:\t", Path$relative_to(h_filename, Path$current_dir()));
 
     if (show_codegen.length > 0) xsystem(show_codegen, " <", h_filename);
 }
@@ -806,7 +806,7 @@ void transpile_code(env_t *base_env, Path_t path) {
 
     if (fclose(c_file) == -1) print_err("Failed to output C code to ", c_filename);
 
-    if (!quiet) print("Transpiled code:\t", c_filename);
+    if (!quiet) print("Transpiled code:\t", Path$relative_to(c_filename, Path$current_dir()));
 
     if (show_codegen.length > 0) xsystem(show_codegen, " <", c_filename);
 }
@@ -822,7 +822,7 @@ void compile_object_file(Path_t path) {
 
     Path$write(build_file(path, ".config"), config_summary, 0644);
 
-    if (!quiet) print("Compiled object:\t", obj_file);
+    if (!quiet) print("Compiled object:\t", Path$relative_to(obj_file, Path$current_dir()));
 }
 
 Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs) {
@@ -862,6 +862,6 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     int status = pclose(runner);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
 
-    if (!quiet) print("Compiled executable:\t", exe_path);
+    if (!quiet) print("Compiled executable:\t", Path$relative_to(exe_path, Path$current_dir()));
     return exe_path;
 }

@@ -104,7 +104,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
                               "longer exist on the stack.");
         arg_t *type_args = NULL;
         for (arg_ast_t *arg = fn->args; arg; arg = arg->next) {
-            type_args = new (arg_t, .name = arg->name, .next = type_args);
+            type_args = new (arg_t, .name = arg->name, .alias = arg->alias, .next = type_args);
             if (arg->type) type_args->type = parse_type_ast(env, arg->type);
             else if (arg->value) type_args->type = get_type(env, arg->value);
 
@@ -397,8 +397,8 @@ void bind_statement(env_t *env, ast_t *statement) {
                                      "\nTry using a @",
                                      type_to_str(field_t), " pointer for this field.");
                 }
-                fields = new (arg_t, .name = field_ast->name, .type = field_t, .default_val = field_ast->value,
-                              .next = fields);
+                fields = new (arg_t, .name = field_ast->name, .alias = field_ast->alias, .type = field_t,
+                              .default_val = field_ast->value, .next = fields);
             }
             REVERSE_LIST(fields);
             type->__data.StructType.fields = fields; // populate placeholder
@@ -453,8 +453,8 @@ void bind_statement(env_t *env, ast_t *statement) {
                                      "\nTry using a @",
                                      type_to_str(field_t), " pointer for this field.");
                 }
-                fields = new (arg_t, .name = field_ast->name, .type = field_t, .default_val = field_ast->value,
-                              .next = fields);
+                fields = new (arg_t, .name = field_ast->name, .alias = field_ast->alias, .type = field_t,
+                              .default_val = field_ast->value, .next = fields);
             }
             REVERSE_LIST(fields);
             env_t *member_ns = namespace_env(env, String(def->name, "$", tag_ast->name));
@@ -586,7 +586,7 @@ type_t *get_function_def_type(env_t *env, ast_t *ast) {
     env_t *scope = fresh_scope(env);
     for (arg_ast_t *arg = arg_asts; arg; arg = arg->next) {
         type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
-        args = new (arg_t, .name = arg->name, .type = t, .default_val = arg->value, .next = args);
+        args = new (arg_t, .name = arg->name, .alias = arg->alias, .type = t, .default_val = arg->value, .next = args);
         set_binding(scope, arg->name, t, EMPTY_TEXT);
     }
     REVERSE_LIST(args);
@@ -918,7 +918,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
                 return t; // Constructor
             arg_t *arg_types = NULL;
             for (arg_ast_t *arg = call->args; arg; arg = arg->next)
-                arg_types = new (arg_t, .type = get_type(env, arg->value), .name = arg->name, .next = arg_types);
+                arg_types = new (arg_t, .type = get_type(env, arg->value), .name = arg->name, .alias = arg->alias,
+                                 .next = arg_types);
             REVERSE_LIST(arg_types);
             code_err(call->fn, "I couldn't find a type constructor for ",
                      type_to_text(Type(FunctionType, .args = arg_types, .ret = t)));
@@ -1400,7 +1401,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         env_t *scope = fresh_scope(env); // For now, just use closed variables in scope normally
         for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
             type_t *t = get_arg_ast_type(env, arg);
-            args = new (arg_t, .name = arg->name, .type = t, .next = args);
+            args = new (arg_t, .name = arg->name, .alias = arg->alias, .type = t, .next = args);
             set_binding(scope, arg->name, t, EMPTY_TEXT);
         }
         REVERSE_LIST(args);
@@ -1618,7 +1619,8 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
 
         for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
             if (!options.underscores && spec_arg->name[0] == '_') continue;
-            if (!streq(call_arg->name, spec_arg->name)) continue;
+            if (!(streq(call_arg->name, spec_arg->name) || (spec_arg->alias && streq(call_arg->name, spec_arg->alias))))
+                continue;
             type_t *spec_type = get_arg_type(env, spec_arg);
             env_t *arg_scope = with_enum_scope(env, spec_type);
             type_t *call_type = get_arg_ast_type(arg_scope, call_arg);

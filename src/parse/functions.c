@@ -27,7 +27,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
 
         typedef struct name_list_s {
             const char *start, *end;
-            const char *name;
+            const char *name, *alias;
             struct name_list_s *next;
         } name_list_t;
 
@@ -39,19 +39,29 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
             const char *name_start = *pos;
             whitespace(ctx, pos);
 
+            const char *alias = NULL;
+            if (match(pos, "|")) {
+                whitespace(pos);
+                alias = get_id(pos);
+                if (!alias) parser_err(ctx, *pos, *pos, "I expected an argument alias after `|`");
+            }
+
             if (match(pos, ":")) {
                 type = expect(ctx, *pos - 1, pos, parse_type, "I expected a type here");
                 whitespace(ctx, pos);
                 if (match(pos, "="))
                     default_val = expect(ctx, *pos - 1, pos, parse_term, "I expected a value after this '='");
-                names = new (name_list_t, .start = name_start, .end = *pos, .name = name, .next = names);
+                names =
+                    new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names);
                 break;
             } else if (strncmp(*pos, "==", 2) != 0 && match(pos, "=")) {
                 default_val = expect(ctx, *pos - 1, pos, parse_term, "I expected a value after this '='");
-                names = new (name_list_t, .start = name_start, .end = *pos, .name = name, .next = names);
+                names =
+                    new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names);
                 break;
             } else if (name) {
-                names = new (name_list_t, .start = name_start, .end = *pos, .name = name, .next = names);
+                names =
+                    new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names);
                 spaces(pos);
                 if (!match(pos, ",")) break;
             } else {
@@ -66,8 +76,8 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
 
         REVERSE_LIST(names);
         for (; names; names = names->next)
-            args = new (arg_ast_t, .start = names->start, .end = names->end, .name = names->name, .type = type,
-                        .value = default_val, .next = args);
+            args = new (arg_ast_t, .start = names->start, .end = names->end, .name = names->name, .alias = names->name,
+                        .type = type, .value = default_val, .next = args);
 
         if (!match_separator(ctx, pos)) break;
     }

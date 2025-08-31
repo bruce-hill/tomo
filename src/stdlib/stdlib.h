@@ -5,7 +5,7 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
+#include <stdio.h> // IWYU pragma: export
 
 #include "datatypes.h"
 #include "print.h"
@@ -15,19 +15,7 @@
 extern bool USE_COLOR;
 extern Text_t TOMO_VERSION_TEXT;
 
-typedef struct {
-    const char *name;
-    bool required;
-    const TypeInfo_t *type;
-    void *dest;
-} cli_arg_t;
-
 void tomo_init(void);
-void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const char *version, int spec_len,
-                      cli_arg_t spec[spec_len]);
-#define tomo_parse_args(argc, argv, usage, help, version, ...)                                                         \
-    _tomo_parse_args(argc, argv, usage, help, version, sizeof((cli_arg_t[]){__VA_ARGS__}) / sizeof(cli_arg_t),         \
-                     (cli_arg_t[]){__VA_ARGS__})
 
 #define fail(...)                                                                                                      \
     ({                                                                                                                 \
@@ -95,7 +83,6 @@ Text_t ask(Text_t prompt, bool bold, bool force_tty);
 _Noreturn void tomo_exit(Text_t text, int32_t status);
 
 Closure_t spawn(Closure_t fn);
-bool pop_flag(char **argv, int *i, const char *flag, Text_t *result);
 void sleep_num(double seconds);
 OptionalText_t getenv_text(Text_t name);
 void setenv_text(Text_t name, Text_t value);

@@ -67,7 +67,7 @@ typedef struct ast_list_s {
 typedef struct arg_ast_s {
     file_t *file;
     const char *start, *end;
-    const char *name;
+    const char *name, *alias;
     type_ast_t *type;
     ast_t *value;
     struct arg_ast_s *next;
