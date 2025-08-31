@@ -13,6 +13,7 @@
 
 #include "../config.h"
 #include "bools.h"
+#include "bytes.h"
 #include "cli.h"
 #include "integers.h"
 #include "metamethods.h"
@@ -24,6 +25,11 @@
 #include "tables.h"
 #include "text.h"
 #include "util.h"
+
+static bool is_numeric_type(const TypeInfo_t *info) {
+    return (info == &Num$info || info == &Num32$info || info == &Int$info || info == &Int64$info || info == &Int32$info
+            || info == &Int16$info || info == &Int8$info || info == &Byte$info);
+}
 
 static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest) {
     if (!arg) return false;
@@ -52,6 +58,10 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest) {
     } else if (info == &Int8$info) {
         OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
         if (!parsed.is_none) *(OptionalInt8_t *)dest = parsed;
+        return !parsed.is_none;
+    } else if (info == &Byte$info) {
+        OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NULL);
+        if (!parsed.is_none) *(OptionalByte_t *)dest = parsed;
         return !parsed.is_none;
     } else if (info == &Bool$info) {
         OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
@@ -256,7 +266,11 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
                     while (non_opt_type->tag == OptionalInfo)
                         non_opt_type = non_opt_type->OptionalInfo.type;
 
-                    if (non_opt_type->tag == ListInfo) {
+                    if (f[1] == '=') {
+                        populated_args[s] = parse_single_arg(spec[s].type, f + 2, spec[s].dest);
+                        if (!populated_args[s]) print_err("Couldn't parse argument: ", argv[i], "\n", usage);
+                        f += strlen(f) - 1;
+                    } else if (non_opt_type->tag == ListInfo) {
                         if (f[1]) print_err("No value provided for ", flag, "\n", usage);
                         int num_args = 0;
                         while (i + 1 + num_args < argc) {
@@ -279,6 +293,12 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
                     } else if (non_opt_type == &Bool$info) { // -f
                         populated_args[s] = true;
                         *(OptionalBool_t *)spec[s].dest = true;
+                    } else if (is_numeric_type(non_opt_type) && (f[1] == '-' || f[1] == '.' || isdigit(f[1]))) { // -O3
+                        size_t len = strspn(f + 1, "-0123456789._");
+                        populated_args[s] =
+                            parse_single_arg(spec[s].type, String(string_slice(f + 1, len)), spec[s].dest);
+                        if (!populated_args[s]) print_err("Couldn't parse argument: ", argv[i], "\n", usage);
+                        f += len;
                     } else {
                         if (f[1] || i + 1 >= argc) print_err("No value provided for ", flag, "\n", usage);
                         used_args[i + 1] = true;
