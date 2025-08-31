@@ -25,6 +25,7 @@
 #include "parse/files.h"
 #include "stdlib/bools.h"
 #include "stdlib/bytes.h"
+#include "stdlib/cli.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
 #include "stdlib/lists.h"

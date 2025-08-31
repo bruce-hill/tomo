@@ -41,7 +41,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
 
             const char *alias = NULL;
             if (match(pos, "|")) {
-                whitespace(pos);
+                whitespace(ctx, pos);
                 alias = get_id(pos);
                 if (!alias) parser_err(ctx, *pos, *pos, "I expected an argument alias after `|`");
             }
