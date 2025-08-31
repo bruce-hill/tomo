@@ -19,7 +19,7 @@ include config.mk
 
 CC=$(DEFAULT_C_COMPILER)
 CCONFIG=-std=c2x -fPIC \
-		-fno-signed-zeros -fno-finite-math-only -fno-trapping-math \
+		-fno-signed-zeros -fno-trapping-math \
 		-fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
 LTO=
@@ -59,6 +59,10 @@ ifeq ($(shell $(CC) -v 2>&1 | grep -c "gcc version"), 1)
 			 -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure \
 			 -Wsync-nand -Wtrampolines -Wvector-operation-performance -Wcast-align=strict
 	CCONFIG += -fsanitize=signed-integer-overflow -fno-sanitize-recover -fno-signaling-nans
+endif
+
+ifeq ($(shell $(CC) -v 2>&1 | grep -c "clang version"), 1)
+	CCONFIG += -fno-finite-math-only 
 endif
 
 OS := $(shell uname -s)
