@@ -58,11 +58,7 @@ ifeq ($(shell $(CC) -v 2>&1 | grep -c "gcc version"), 1)
 			 -Wlogical-op -Wpacked-not-aligned -Wshadow=compatible-local -Wshadow=global -Wshadow=local \
 			 -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure \
 			 -Wsync-nand -Wtrampolines -Wvector-operation-performance -Wcast-align=strict
-	CCONFIG += -fsanitize=signed-integer-overflow -fno-sanitize-recover -fno-signaling-nans
-endif
-
-ifeq ($(shell $(CC) -v 2>&1 | grep -c "clang version"), 1)
-	CCONFIG += -fno-finite-math-only 
+	CCONFIG += -fsanitize=signed-integer-overflow -fno-sanitize-recover -fno-signaling-nans -fno-finite-math-only 
 endif
 
 OS := $(shell uname -s)
