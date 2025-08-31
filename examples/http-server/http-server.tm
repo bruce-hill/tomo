@@ -22,7 +22,7 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
         workers.insert(pthread_t.new(func()
             repeat
                 connection := connections.dequeue()
-                request_text := C_code:Text(
+                request_text := C_code:Text```
                     Text_t request = EMPTY_TEXT;
                     char buf[1024] = {};
                     for (ssize_t n; (n = read(@connection, buf, sizeof(buf) - 1)) > 0; ) {
@@ -32,20 +32,20 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
                             break;
                     }
                     request
-                )
+                ```
 
                 request := HTTPRequest.from_text(request_text) or skip
                 response := handler(request).bytes()
-                C_code {
+                C_code `
                     if (@response.stride != 1)
                         List$compact(&@response, 1);
                     write(@connection, @response.data, @response.length);
                     close(@connection);
-                }
+                `
         ))
 
 
-    sock := C_code:Int32(
+    sock := C_code:Int32 `
         int s = socket(AF_INET, SOCK_STREAM, 0);
         if (s < 0) err(1, "Couldn't connect to socket!");
 
@@ -60,10 +60,10 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
             err(1, "Couldn't listen on socket");
 
         s
-    )
+    `
 
     repeat
-        conn := C_code:Int32(accept(@sock, NULL, NULL))
+        conn := C_code:Int32`accept(@sock, NULL, NULL)`
         stop if conn < 0 
         connections.enqueue(conn)
 
@@ -77,8 +77,8 @@ struct HTTPRequest(method:Text, path:Text, version:Text, headers:[Text], body:Te
         method := m[1]
         path := m[2].replace_pattern($Pat'{2+ /}', '/')
         version := m[3]
-        rest := m[-1].pattern_captures($Pat/{..}{2 crlf}{0+ ..}/) or return none
-        headers := rest[1].split_pattern($Pat/{crlf}/)
+        rest := m[-1].pattern_captures($Pat'{..}{2 crlf}{0+ ..}') or return none
+        headers := rest[1].split_pattern($Pat'{crlf}')
         body := rest[-1]
         return HTTPRequest(method, path, version, headers, body)
 

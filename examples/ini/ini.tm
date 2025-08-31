@@ -15,24 +15,24 @@ func parse_ini(path:Path -> {Text={Text=Text}})
     current_section : @{Text=Text}
 
     # Line wraps:
-    text = text.replace_pattern($Pat/\\{1 nl}{0+space}/, " ")
+    text = text.replace_pattern($Pat`\\{1 nl}{0+space}`, " ")
 
     for line in text.lines()
         line = line.trim()
         skip if line.starts_with(";") or line.starts_with("#")
-        if line.matches_pattern($Pat/[?]/)
-            section_name := line.replace($Pat/[?]/, "@1").trim().lower()
+        if line.matches_pattern($Pat`[?]`)
+            section_name := line.replace($Pat`[?]`, "@1").trim().lower()
             current_section = @{}
             sections[section_name] = current_section
-        else if line.matches_pattern($Pat/{..}={..}/)
-            key := line.replace_pattern($Pat/{..}={..}/, "@1").trim().lower()
-            value := line.replace_pattern($Pat/{..}={..}/, "@2").trim()
+        else if line.matches_pattern($Pat`{..}={..}`)
+            key := line.replace_pattern($Pat`{..}={..}`, "@1").trim().lower()
+            value := line.replace_pattern($Pat`{..}={..}`, "@2").trim()
             current_section[key] = value
 
     return {k=v[] for k,v in sections[]}
 
 func main(path:Path, key:Text?)
-    keys := (key or "").split($|/|)
+    keys := (key or "").split(`/`)
     if keys.length > 2
         exit("
             Too many arguments! 

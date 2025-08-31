@@ -1,3 +1,5 @@
+use patterns
+
 HELP := "
     wrap: A tool for wrapping lines of text
 
@@ -15,7 +17,7 @@ UNICODE_HYPHEN := "\{hyphen}"
 
 func unwrap(text:Text, preserve_paragraphs=yes, hyphen=UNICODE_HYPHEN -> Text)
     if preserve_paragraphs
-        paragraphs := text.split($/{2+ nl}/)
+        paragraphs := text.split_pattern($Pat"{2+ nl}")
         if paragraphs.length > 1
             return "\n\n".join([unwrap(p, hyphen=hyphen, preserve_paragraphs=no) for p in paragraphs])
 
@@ -35,7 +37,7 @@ func wrap(text:Text, width:Int, min_split=3, hyphen="-" -> Text)
 
     lines : @[Text]
     line := ""
-    for word in text.split($/{whitespace}/)
+    for word in text.split_pattern($Pat"{whitespace}")
         letters := word.split()
         skip if letters.length == 0
 
@@ -94,7 +96,7 @@ func main(files:[Path], width=80, inplace=no, min_split=3, rewrap=yes, hyphen=UN
 
         first := yes
         wrapped_paragraphs : @[Text]
-        for paragraph in text.split($/{2+ nl}/)
+        for paragraph in text.split_pattern($Pat"{2+ nl}")
             wrapped_paragraphs.insert(
                 wrap(paragraph, width=width, min_split=min_split, hyphen=hyphen)
             )

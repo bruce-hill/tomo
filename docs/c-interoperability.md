@@ -23,12 +23,12 @@ without evaluating to anything:
 
 ```tomo
 # Inline C block:
-C_code {
+C_code `
     printf("This is just a block that is executed without a return value\n");
-}
+`
 
 # Inline C expression (you must specify a type)
-val := C_code : Int32 (int x = 1; x + 1)
+val := C_code : Int32 `int x = 1; x + 1`
 ```
 
 Inline C expressions must specify a type and they can be [compound statement

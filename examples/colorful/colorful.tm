@@ -45,18 +45,18 @@ func main(texts:[Text], files:[Path]=[], by_line=no)
 
 
 func _for_terminal(c:Colorful, state:_TermState -> Text)
-    return c.text.map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch) _add_ansi_sequences(m.captures[1], state))
+    return c.text.map_pattern(recursive=no, $Pat"@(?)", func(m:PatternMatch) _add_ansi_sequences(m.captures[1], state))
 
 enum _Color(Default, Bright(color:Int16), Color8Bit(color:Int16), Color24Bit(color:Int32))
     func from_text(text:Text -> _Color?)
-        if text.matches_pattern($Pat/#{3-6 hex}/)
+        if text.matches_pattern($Pat"#{3-6 hex}")
             hex := text.from(2)
             return none unless hex.length == 3 or hex.length == 6
             if hex.length == 3
                 hex = hex[1]++hex[1]++hex[2]++hex[2]++hex[3]++hex[3]
             n := Int32.parse("0x" ++ hex) or return none
             return Color24Bit(n)
-        else if text.matches_pattern($Pat/{1-3 digit}/)
+        else if text.matches_pattern($Pat"{1-3 digit}")
             n := Int16.parse(text) or return none
             if n >= 0 and n <= 255 return Color8Bit(n)
         else if text == "black" return _Color.Color8Bit(0)
@@ -171,10 +171,10 @@ func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text)
     else if text == "rparen" return ")"
     else if text == "@" or text == "at" return "@"
     parts := (
-        text.pattern_captures($Pat/{0+..}:{0+..}/) or
+        text.pattern_captures($Pat"{0+..}:{0+..}") or
         return "@("++_for_terminal(Colorful.from_text(text), prev_state)++")"
     )
-    attributes := parts[1].split_pattern($Pat/{0+space},{0+space}/)
+    attributes := parts[1].split_pattern($Pat"{0+space},{0+space}")
     new_state := prev_state
     for attr in attributes
         if attr.starts_with("fg=")
@@ -215,6 +215,6 @@ func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text)
             fail("Invalid attribute: '$attr'")
 
     result := prev_state.apply(new_state)
-    result ++= parts[2].map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch) _add_ansi_sequences(m.captures[1], new_state))
+    result ++= parts[2].map_pattern(recursive=no, $Pat"@(?)", func(m:PatternMatch) _add_ansi_sequences(m.captures[1], new_state))
     result ++= new_state.apply(prev_state)
     return result

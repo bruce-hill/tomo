@@ -37,31 +37,31 @@ struct Coroutine(co:@aco_t)
 
         main_co := _main_co
         shared_stack := _shared_stack
-        aco_ptr := C_code:@aco_t(
+        aco_ptr := C_code:@aco_t `
             aco_create(@main_co, @shared_stack, 0, (void*)@fn.fn, @fn.userdata)
-        )
+        `
         return Coroutine(aco_ptr)
 
     func is_finished(co:Coroutine->Bool; inline)
-        return C_code:Bool(((aco_t*)@co.co)->is_finished)
+        return C_code:Bool`((aco_t*)@co.co)->is_finished`
 
     func resume(co:Coroutine->Bool)
         if co.is_finished()
             return no
-        C_code { aco_resume(@co.co); }
+        C_code `aco_resume(@co.co);`
         return yes
 
 func _init()
-    C_code {
+    C_code `
         aco_set_allocator(GC_malloc, NULL);
         aco_thread_init(aco_exit_fn);
-    }
-    _main_co = C_code:@aco_t(aco_create(NULL, NULL, 0, NULL, NULL))
+    `
+    _main_co = C_code:@aco_t`aco_create(NULL, NULL, 0, NULL, NULL)`
 
-    _shared_stack = C_code:@aco_shared_stack_t(aco_shared_stack_new(0))
+    _shared_stack = C_code:@aco_shared_stack_t`aco_shared_stack_new(0)`
 
 func yield(; inline)
-    C_code {
+    C_code `
         aco_yield();
-    }
+    `
 
