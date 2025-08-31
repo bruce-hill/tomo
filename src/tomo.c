@@ -81,7 +81,7 @@ static OptionalBool_t verbose = false, quiet = false, show_version = false, show
 static OptionalText_t show_codegen = NONE_TEXT,
                       cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
                                     " -ffunction-sections -fdata-sections"
-                                    " -fno-signed-zeros -fno-finite-math-only "
+                                    " -fno-signed-zeros "
                                     " -D_XOPEN_SOURCE -D_DEFAULT_SOURCE -fPIC -ggdb"
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
                                     " -D_BSD_SOURCE"
@@ -222,7 +222,7 @@ int main(int argc, char *argv[]) {
     bool is_gcc = (system(String(cc, " -v 2>&1 | grep -q 'gcc version'")) == 0);
     if (is_gcc) {
         cflags = Texts(cflags, Text(" -fsanitize=signed-integer-overflow -fno-sanitize-recover"
-                                    " -fno-signaling-nans -fno-trapping-math"));
+                                    " -fno-signaling-nans -fno-trapping-math -fno-finite-math-only"));
     }
 
     bool is_clang = (system(String(cc, " -v 2>&1 | grep -q 'clang version'")) == 0);
