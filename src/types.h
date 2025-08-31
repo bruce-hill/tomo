@@ -9,7 +9,7 @@
 typedef struct type_s type_t;
 
 typedef struct arg_s {
-    const char *name;
+    const char *name, *alias;
     type_t *type;
     ast_t *default_val;
     struct arg_s *next;

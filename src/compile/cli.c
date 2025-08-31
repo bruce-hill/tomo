@@ -2,6 +2,7 @@
 
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
+#include "../stdlib/optionals.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
@@ -23,6 +24,14 @@ static Text_t get_flag_options(type_t *t, const char *separator) {
     } else {
         return Text("...");
     }
+}
+
+static OptionalText_t flagify(const char *name, bool prefix) {
+    if (!name) return NONE_TEXT;
+    Text_t flag = Text$from_str(name);
+    flag = Text$replace(flag, Text("_"), Text("-"));
+    if (prefix) flag = flag.length == 1 ? Texts("-", flag) : Texts("--", flag);
+    return flag;
 }
 
 public
@@ -49,20 +58,22 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
         for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
             usage = Texts(usage, " ");
             type_t *t = get_arg_type(main_env, arg);
-            Text_t flag = Text$replace(Text$from_str(arg->name), Text("_"), Text("-"));
             if (arg->default_val || arg->type->tag == OptionalType) {
-                if (strlen(arg->name) == 1) {
-                    if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                        usage = Texts(usage, "[-", flag, "]");
-                    else usage = Texts(usage, "[-", flag, " ", get_flag_options(t, "|"), "]");
-                } else {
-                    if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                        usage = Texts(usage, "[--", flag, "]");
-                    else if (t->tag == ListType) usage = Texts(usage, "[--", flag, " ", get_flag_options(t, "|"), "]");
-                    else usage = Texts(usage, "[--", flag, "=", get_flag_options(t, "|"), "]");
-                }
+                OptionalText_t flag = flagify(arg->name, true);
+                assert(flag.length >= 0);
+                OptionalText_t alias_flag = flagify(arg->alias, true);
+                Text_t flags = alias_flag.length >= 0 ? Texts(flag, "|", alias_flag) : flag;
+                if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+                    usage = Texts(usage, "[", flags, "]");
+                else if (t->tag == ListType) usage = Texts(usage, "[", flags, " ", get_flag_options(t, "|"), "]");
+                else usage = Texts(usage, "[", flags, "=", get_flag_options(t, "|"), "]");
             } else {
-                if (t->tag == BoolType) usage = Texts(usage, "<--", flag, "|--no-", flag, ">");
+                OptionalText_t flag = flagify(arg->name, false);
+                assert(flag.length >= 0);
+                OptionalText_t alias_flag = flagify(arg->alias, true);
+                if (t->tag == BoolType)
+                    usage = Texts(usage, "<--", flag, alias_flag.length >= 0 ? Texts("|", alias_flag) : EMPTY_TEXT,
+                                  "|--no-", flag, ">");
                 else if (t->tag == EnumType) usage = Texts(usage, get_flag_options(t, "|"));
                 else if (t->tag == ListType) usage = Texts(usage, "[", flag, "...]");
                 else usage = Texts(usage, "<", flag, ">");
@@ -76,9 +87,10 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         type_t *opt_type = arg->type->tag == OptionalType ? arg->type : Type(OptionalType, .type = arg->type);
-        code = Texts(code, compile_declaration(opt_type, Texts("_$", arg->name)));
+        code = Texts(code, compile_declaration(opt_type, Texts("_$", Text$from_str(arg->name))));
         if (arg->default_val) {
-            Text_t default_val = compile(env, arg->default_val);
+            Text_t default_val =
+                arg->type ? compile_to_type(env, arg->default_val, arg->type) : compile(env, arg->default_val);
             if (arg->type->tag != OptionalType) default_val = promote_to_optional(arg->type, default_val);
             code = Texts(code, " = ", default_val);
         } else {
@@ -92,7 +104,12 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         code = Texts(code, ",\n{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", ",
                      (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",
-                     compile_type_info(arg->type), ", &", Texts("_$", arg->name), "}");
+                     compile_type_info(arg->type), ", &", Texts("_$", Text$from_str(arg->name)), "}");
+        if (arg->alias) {
+            code = Texts(code, ",\n{", quoted_text(Text$replace(Text$from_str(arg->alias), Text("_"), Text("-"))), ", ",
+                         (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",
+                         compile_type_info(arg->type), ", &", Texts("_$", Text$from_str(arg->name)), "}");
+        }
     }
     code = Texts(code, ");\n");
 

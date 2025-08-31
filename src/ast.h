@@ -65,7 +65,7 @@ typedef struct ast_list_s {
 } ast_list_t;
 
 typedef struct arg_ast_s {
-    const char *name;
+    const char *name, *alias;
     type_ast_t *type;
     ast_t *value;
     struct arg_ast_s *next;

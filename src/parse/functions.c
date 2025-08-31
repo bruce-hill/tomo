@@ -13,8 +13,8 @@
 #include "context.h"
 #include "controlflow.h"
 #include "errors.h"
-#include "functions.h"
 #include "expressions.h"
+#include "functions.h"
 #include "types.h"
 #include "utils.h"
 
@@ -26,7 +26,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
         type_ast_t *type = NULL;
 
         typedef struct name_list_s {
-            const char *name;
+            const char *name, *alias;
             struct name_list_s *next;
         } name_list_t;
 
@@ -37,19 +37,26 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
             if (!name) break;
             whitespace(pos);
 
+            const char *alias = NULL;
+            if (match(pos, "|")) {
+                whitespace(pos);
+                alias = get_id(pos);
+                if (!alias) parser_err(ctx, *pos, *pos, "I expected an argument alias after `|`");
+            }
+
             if (match(pos, ":")) {
                 type = expect(ctx, *pos - 1, pos, parse_type, "I expected a type here");
-                names = new (name_list_t, .name = name, .next = names);
+                names = new (name_list_t, .name = name, .alias = alias, .next = names);
                 whitespace(pos);
                 if (match(pos, "="))
                     default_val = expect(ctx, *pos - 1, pos, parse_term, "I expected a value after this '='");
                 break;
             } else if (strncmp(*pos, "==", 2) != 0 && match(pos, "=")) {
                 default_val = expect(ctx, *pos - 1, pos, parse_term, "I expected a value after this '='");
-                names = new (name_list_t, .name = name, .next = names);
+                names = new (name_list_t, .name = name, .alias = alias, .next = names);
                 break;
             } else if (name) {
-                names = new (name_list_t, .name = name, .next = names);
+                names = new (name_list_t, .name = name, .alias = alias, .next = names);
                 spaces(pos);
                 if (!match(pos, ",")) break;
             } else {
@@ -64,7 +71,8 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
 
         REVERSE_LIST(names);
         for (; names; names = names->next)
-            args = new (arg_ast_t, .name = names->name, .type = type, .value = default_val, .next = args);
+            args = new (arg_ast_t, .name = names->name, .alias = names->alias, .type = type, .value = default_val,
+                        .next = args);
 
         if (!match_separator(pos)) break;
     }
