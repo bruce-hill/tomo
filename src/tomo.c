@@ -27,7 +27,6 @@
 #include "stdlib/bytes.h"
 #include "stdlib/cli.h"
 #include "stdlib/datatypes.h"
-#include "stdlib/integers.h"
 #include "stdlib/lists.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
