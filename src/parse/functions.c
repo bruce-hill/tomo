@@ -76,7 +76,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
 
         REVERSE_LIST(names);
         for (; names; names = names->next)
-            args = new (arg_ast_t, .start = names->start, .end = names->end, .name = names->name, .alias = names->name,
+            args = new (arg_ast_t, .start = names->start, .end = names->end, .name = names->name, .alias = names->alias,
                         .type = type, .value = default_val, .next = args);
 
         if (!match_separator(ctx, pos)) break;
