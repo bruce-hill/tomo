@@ -11,4 +11,5 @@ typedef struct {
 } module_info_t;
 
 module_info_t get_module_info(ast_t *use);
-bool try_install_module(module_info_t mod);
+bool install_from_modules_ini(Path_t ini_file, bool ask_confirmation);
+bool try_install_module(module_info_t mod, bool ask_confirmation);

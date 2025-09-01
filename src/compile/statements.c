@@ -204,10 +204,10 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             module_info_t mod = get_module_info(ast);
             glob_t tm_files;
             const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
-            if (glob(String(TOMO_PREFIX "/share/tomo_" TOMO_VERSION "/installed/", folder, "/[!._0-9]*.tm"), GLOB_TILDE,
-                     NULL, &tm_files)
+            if (glob(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
+                     &tm_files)
                 != 0) {
-                if (!try_install_module(mod)) code_err(ast, "Could not find library");
+                if (!try_install_module(mod, true)) code_err(ast, "Could not find library");
             }
 
             Text_t initialization = EMPTY_TEXT;

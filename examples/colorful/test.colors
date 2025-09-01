@@ -1,9 +1,0 @@
-This is some text that has @(bold:@(red:c)@(yellow:o)@(green:l)@(cyan:o)@(blue:r)@(magenta:s))!
-
-@(fg=#aaf,b:You can have @(red:nested) color directives and stuff (even in
-parens) will be handled @(i:right))
-
-@(dim:The output @(bold:ANSI) sequences will be optimal, even if you have
-nested stuff like bold and dim)
-
-(which is distinct from @(bold:BOLD) by itself)

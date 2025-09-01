@@ -7,8 +7,5 @@ if [ ! -e "$here/build/bin/tomo_$version" ]; then
 fi
 
 PATH="$here/build/bin${PATH:+:$PATH}" \
-LD_LIBRARY_PATH="$here/build/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-LIBRARY_PATH="$here/build/lib${LIBRARY_PATH:+:$LIBRARY_PATH}" \
-C_INCLUDE_PATH="$here/build/include${C_INCLUDE_PATH:+:$C_INCLUDE_PATH}" \
-CPATH="$here/build/include${CPATH:+:$CPATH}" \
+TOMO_PATH="$here/build" \
 tomo_"$version" "$@"

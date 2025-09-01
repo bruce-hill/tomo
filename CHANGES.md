@@ -1,6 +1,11 @@
 # Version History
 
-## v1.0
+## v0.4
+- Tomo libraries are now installed to `$TOMO_PATH/lib/tomo_vX.Y/module_vZ.W`
+  instead of `$TOMO_PATH/share/tomo_vX.Y/installed/module_vZ.W`
+- Core libraries are no longer shipped with the compiler, they have moved to
+  separate repositories.
+- Library installation has been cleaned up a bit.
 - List indexing now gives an optional value
 
 ## v0.3

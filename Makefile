@@ -71,7 +71,7 @@ O=-O3
 TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print $$2; exit}' CHANGES.md)
 GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h")
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
-	   -DTOMO_PREFIX='"$(PREFIX)"' -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
+	   -DTOMO_INSTALL='"$(PREFIX)"' -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DTOMO_VERSION='"$(TOMO_VERSION)"' -DGIT_VERSION='"$(GIT_VERSION)"'
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lm -lunistring -lgmp
@@ -97,11 +97,14 @@ EXE_FILE=tomo_$(TOMO_VERSION)
 
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c src/compile/*.c src/parse/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
-TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
+TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm))
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
-all: config.mk check-c-compiler check-libs build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/$(EXE_FILE)
+all: config.mk check-c-compiler check-libs build/include/tomo_$(TOMO_VERSION) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/$(EXE_FILE)
+
+build/include/tomo_$(TOMO_VERSION):
+	ln -s ../../src/stdlib $@
 
 version:
 	@echo $(TOMO_VERSION)
@@ -184,9 +187,11 @@ man/man1/tomo.1: docs/tomo.1.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples:
-	./local-tomo -qIL examples/log examples/ini examples/vectors examples/http examples/wrap examples/colorful
-	./local-tomo -e examples/game/game.tm examples/http-server/http-server.tm
+	./local-tomo -L modules/examples.ini
 	./local-tomo examples/learnxiny.tm
+
+core-libs:
+	./local-tomo -L modules/core.ini
 
 deps:
 	bash ./install_dependencies.sh
@@ -217,14 +222,7 @@ install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) 
 	cp man/man3/* "$(PREFIX)/man/man3/"; \
 	sh link_versions.sh
 
-install-libs: build/bin/$(EXE_FILE) check-utilities
-	if ! [ -w "$(PREFIX)" ]; then \
-		$(SUDO) -u $(OWNER) $(MAKE) install-libs; \
-		exit 0; \
-	fi; \
-	./local-tomo -qIL lib/patterns lib/json lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
-
-install: install-files install-libs
+install: install-files
 
 uninstall:
 	if ! [ -w "$(PREFIX)" ]; then \
@@ -232,10 +230,10 @@ uninstall:
 		exit 0; \
 	fi; \
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"[0-9]* "$(PREFIX)/bin/tomo_v"* "$(PREFIX)/include/tomo_v"* \
-		"$(PREFIX)/lib/libtomo_v*" "$(PREFIX)/share/tomo_$(TOMO_VERSION)"; \
+		"$(PREFIX)/lib/libtomo_v*" "$(PREFIX)/lib/tomo_$(TOMO_VERSION)"; \
 	sh link_versions.sh
 
 endif
 
 .SUFFIXES:
-.PHONY: all clean install install-files install-libs uninstall test tags examples deps check-utilities check-c-compiler check-libs version
+.PHONY: all clean install install-files uninstall test tags core-libs examples deps check-utilities check-c-compiler check-libs version
