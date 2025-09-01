@@ -101,7 +101,10 @@ TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/*.tm))
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
-all: config.mk check-c-compiler check-libs build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/$(EXE_FILE)
+all: config.mk check-c-compiler check-libs build/include/tomo_$(TOMO_VERSION) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/$(EXE_FILE)
+
+build/include/tomo_$(TOMO_VERSION):
+	ln -s ../../src/stdlib $@
 
 version:
 	@echo $(TOMO_VERSION)
