@@ -22,6 +22,7 @@
         bool is_none : 1;                                                                                              \
     } Optional##type_name##_t;                                                                                         \
     Text_t type_name##$as_text(const void *i, bool colorize, const TypeInfo_t *type);                                  \
+    Text_t type_name##$value_as_text(c_type i);                                                                        \
     PUREFUNC int32_t type_name##$compare(const void *x, const void *y, const TypeInfo_t *type);                        \
     PUREFUNC bool type_name##$equal(const void *x, const void *y, const TypeInfo_t *type);                             \
     Text_t type_name##$hex(c_type i, Int_t digits, bool uppercase, bool prefix);                                       \

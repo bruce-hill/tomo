@@ -25,7 +25,7 @@ Text_t compile_typed_set(env_t *env, ast_t *ast, type_t *set_type) {
     }
 
     { // No comprehension:
-        Text_t code = Texts("Set(", compile_type(item_type), ", ", compile_type_info(item_type), ", ", String(n));
+        Text_t code = Texts("Set(", compile_type(item_type), ", ", compile_type_info(item_type), ", ", n);
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
         for (ast_list_t *item = set->items; item; item = item->next) {
             code = Texts(code, ", ", compile_to_type(scope, item->ast, item_type));

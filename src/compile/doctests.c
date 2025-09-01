@@ -4,7 +4,6 @@
 #include "../config.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
-#include "../stdlib/print.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
@@ -69,12 +68,12 @@ Text_t compile_doctest(env_t *env, ast_t *ast) {
                 if (target == assign->targets) expr_t = lhs_t;
                 env_t *val_scope = with_enum_scope(env, lhs_t);
                 Text_t val_code = compile_to_type(val_scope, value->ast, lhs_t);
-                test_code = Texts(test_code, compile_type(lhs_t), " $", String(i), " = ", val_code, ";\n");
+                test_code = Texts(test_code, compile_type(lhs_t), " $", i, " = ", val_code, ";\n");
                 i += 1;
             }
             i = 1;
             for (ast_list_t *target = assign->targets; target; target = target->next) {
-                test_code = Texts(test_code, compile_assignment(env, target->ast, Texts("$", String(i))), ";\n");
+                test_code = Texts(test_code, compile_assignment(env, target->ast, Texts("$", i)), ";\n");
                 i += 1;
             }
 
@@ -104,16 +103,16 @@ Text_t compile_doctest(env_t *env, ast_t *ast) {
     if (test->expected) {
         return Texts(setup, "test(", compile_type(expr_t), ", ", test_code, ", ",
                      compile_to_type(env, test->expected, expr_t), ", ", compile_type_info(expr_t), ", ",
-                     String((int64_t)(test->expr->start - test->expr->file->text)), ", ",
-                     String((int64_t)(test->expr->end - test->expr->file->text)), ");");
+                     (int64_t)(test->expr->start - test->expr->file->text), ", ",
+                     (int64_t)(test->expr->end - test->expr->file->text), ");");
     } else {
         if (expr_t->tag == VoidType || expr_t->tag == AbortType) {
             return Texts(setup, "inspect_void(", test_code, ", ", compile_type_info(expr_t), ", ",
-                         String((int64_t)(test->expr->start - test->expr->file->text)), ", ",
-                         String((int64_t)(test->expr->end - test->expr->file->text)), ");");
+                         (int64_t)(test->expr->start - test->expr->file->text), ", ",
+                         (int64_t)(test->expr->end - test->expr->file->text), ");");
         }
         return Texts(setup, "inspect(", compile_type(expr_t), ", ", test_code, ", ", compile_type_info(expr_t), ", ",
-                     String((int64_t)(test->expr->start - test->expr->file->text)), ", ",
-                     String((int64_t)(test->expr->end - test->expr->file->text)), ");");
+                     (int64_t)(test->expr->start - test->expr->file->text), ", ",
+                     (int64_t)(test->expr->end - test->expr->file->text), ");");
     }
 }

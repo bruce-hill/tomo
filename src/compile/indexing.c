@@ -43,8 +43,8 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
                                               : Texts("(Int64_t)(", compile(env, indexing->index), ")"));
         if (checked) {
             int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
-            return Texts("List_get_checked(", list, ", ", index_code, ", ", compile_type(item_type), ", ",
-                         String(start), ", ", String(end), ")");
+            return Texts("List_get_checked(", list, ", ", index_code, ", ", compile_type(item_type), ", ", start, ", ",
+                         end, ")");
         } else {
             return Texts("List_get(", list, ", ", index_code, ", ", compile_type(item_type), ", value, ",
                          promote_to_optional(item_type, Text("value")), ", ", compile_none(item_type), ")");
@@ -61,8 +61,8 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
             int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
             return Texts("Table$get_checked(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                          compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",
-                         compile(env, indexing->index), ", ", String(start), ", ", String(end), ", ",
-                         compile_type_info(container_t), ")");
+                         compile(env, indexing->index), ", ", start, ", ", end, ", ", compile_type_info(container_t),
+                         ")");
         } else {
             return Texts("Table$get_optional(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                          compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",
@@ -76,8 +76,7 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
         if (checked) {
             int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
             return Texts("Text$cluster_checked(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
-                         compile_to_type(env, indexing->index, Type(BigIntType)), ", ", String(start), ", ",
-                         String(end), ")");
+                         compile_to_type(env, indexing->index, Type(BigIntType)), ", ", start, ", ", end, ")");
         } else {
             return Texts("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                          compile_to_type(env, indexing->index, Type(BigIntType)), ")");

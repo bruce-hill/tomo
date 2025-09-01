@@ -14,13 +14,18 @@
 #include "types.h"
 
 public
-PUREFUNC Text_t Num$as_text(const void *f, bool colorize, const TypeInfo_t *info) {
-    (void)info;
-    if (!f) return Text("Num");
+PUREFUNC Text_t Num$value_as_text(double x) {
     char *str = GC_MALLOC_ATOMIC(24);
-    int len = fpconv_dtoa(*(double *)f, str);
+    int len = fpconv_dtoa(x, str);
+    return Text$from_strn(str, (size_t)len);
+}
+
+public
+PUREFUNC Text_t Num$as_text(const void *x, bool colorize, const TypeInfo_t *info) {
+    (void)info;
+    if (!x) return Text("Num");
     static const Text_t color_prefix = Text("\x1b[35m"), color_suffix = Text("\x1b[m");
-    Text_t text = Text$from_strn(str, (size_t)len);
+    Text_t text = Num$value_as_text(*(double *)x);
     return colorize ? Texts(color_prefix, text, color_suffix) : text;
 }
 
@@ -60,10 +65,10 @@ CONSTFUNC bool Num$near(double a, double b, double ratio, double absolute) {
 }
 
 public
-Text_t Num$percent(double f, double precision) {
-    double d = 100. * f;
+Text_t Num$percent(double x, double precision) {
+    double d = 100. * x;
     d = Num$with_precision(d, precision);
-    return Texts(Num$as_text(&d, false, &Num$info), Text("%"));
+    return Texts(Num$value_as_text(d), Text("%"));
 }
 
 public
@@ -142,10 +147,13 @@ const TypeInfo_t Num$info = {
 };
 
 public
-PUREFUNC Text_t Num32$as_text(const void *f, bool colorize, const TypeInfo_t *info) {
+PUREFUNC Text_t Num32$value_as_text(float x) { return Num$value_as_text((double)x); }
+
+public
+PUREFUNC Text_t Num32$as_text(const void *x, bool colorize, const TypeInfo_t *info) {
     (void)info;
-    if (!f) return Text("Num32");
-    double d = (double)(*(float *)f);
+    if (!x) return Text("Num32");
+    double d = (double)(*(float *)x);
     return Num$as_text(&d, colorize, &Num$info);
 }
 
@@ -178,10 +186,10 @@ CONSTFUNC bool Num32$near(float a, float b, float ratio, float absolute) {
 }
 
 public
-Text_t Num32$percent(float f, float precision) {
-    double d = 100. * (double)f;
+Text_t Num32$percent(float x, float precision) {
+    double d = 100. * (double)x;
     d = Num$with_precision(d, (double)precision);
-    return Texts(Num$as_text(&d, false, &Num$info), Text("%"));
+    return Texts(Num$value_as_text(d), Text("%"));
 }
 
 public
