@@ -17,6 +17,21 @@ else
 
 include config.mk
 
+# Modified progress counter based on: https://stackoverflow.com/a/35320895
+ifndef NO_PROGRESS
+ifndef ECHO
+T := $(shell $(MAKE) ECHO="COUNTTHIS" $(MAKECMDGOALS) --no-print-directory \
+      -n | grep -c "COUNTTHIS")
+N := x
+C = $(words $N)$(eval N := x $N)
+ECHO = echo -e "[`expr $C '*' 100 / $T`%]"
+endif
+endif
+ifndef ECHO
+ECHO = echo
+endif
+# End of progress counter
+
 CC=$(DEFAULT_C_COMPILER)
 CCONFIG=-std=c2x -fPIC \
 		-fno-signed-zeros -fno-trapping-math \
@@ -102,6 +117,7 @@ API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
 all: config.mk check-c-compiler check-libs build/include/tomo_$(TOMO_VERSION) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/$(EXE_FILE)
+	@$(ECHO) "All done!"
 
 build/include/tomo_$(TOMO_VERSION):
 	ln -s ../../src/stdlib $@
@@ -119,12 +135,12 @@ check-libs: check-c-compiler
 
 build/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS)
 	@mkdir -p build/bin
-	@echo $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 build/lib/$(LIB_FILE): $(STDLIB_OBJS)
 	@mkdir -p build/lib
-	@echo $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
+	@$(ECHO) $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 
 build/lib/$(AR_FILE): $(STDLIB_OBJS)
@@ -138,15 +154,16 @@ config.mk: configure.sh
 	bash ./configure.sh
 
 %.o: %.c src/ast.h src/environment.h src/types.h config.mk
-	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
+	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Specifically src/tomo.c needs to recompile if CHANGES.md changes:
 src/tomo.o: src/tomo.c src/ast.h src/environment.h src/types.h config.mk src/changes.md.h
-	@echo $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
+	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 src/changes.md.h: CHANGES.md
+	@$(ECHO) "Embedding changes.md"
 	xxd -i $< > $@
 
 %: %.tm
