@@ -23,10 +23,10 @@ Text_t compile_type(type_t *t) {
     case ByteType: return Text("Byte_t");
     case CStringType: return Text("const char*");
     case BigIntType: return Text("Int_t");
-    case IntType: return Texts("Int", String(Match(t, IntType)->bits), "_t");
+    case IntType: return Texts("Int", (int32_t)Match(t, IntType)->bits, "_t");
     case NumType:
         return Match(t, NumType)->bits == TYPE_NBITS64 ? Text("Num_t")
-                                                       : Texts("Num", String(Match(t, NumType)->bits), "_t");
+                                                       : Texts("Num", (int32_t)Match(t, NumType)->bits, "_t");
     case TextType: {
         DeclareMatch(text, t, TextType);
         if (!text->lang || streq(text->lang, "Text")) return Text("Text_t");

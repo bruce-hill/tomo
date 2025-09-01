@@ -22,7 +22,7 @@ public
 Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
     if (code.length == 0 || !ast || !ast->file || !env->do_source_mapping) return code;
     int64_t line = get_line_number(ast->file, ast->start);
-    return Texts("\n#line ", String(line), "\n", code);
+    return Texts("\n#line ", line, "\n", code);
 }
 
 static Text_t _compile_statement(env_t *env, ast_t *ast) {
@@ -121,7 +121,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             if (Text$starts_with(entry->b->code, Text("userdata->"), NULL)) {
                 Table$str_set(defer_env->locals, entry->name, entry->b);
             } else {
-                Text_t defer_name = Texts("defer$", String(++defer_id), "$", entry->name);
+                Text_t defer_name = Texts("defer$", ++defer_id, "$", entry->name);
                 defer_id += 1;
                 code = Texts(code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
                 set_binding(defer_env, entry->name, entry->b->type, defer_name);

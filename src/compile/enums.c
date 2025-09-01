@@ -30,12 +30,12 @@ Text_t compile_enum_typeinfo(env_t *env, ast_t *ast) {
     type_t *t = Table$str_get(*env->types, def->name);
     const char *metamethods = is_packed_data(t) ? "PackedDataEnum$metamethods" : "Enum$metamethods";
     Text_t info = namespace_name(env, env->namespace, Texts(def->name, "$$info"));
-    Text_t typeinfo = Texts("public const TypeInfo_t ", info, " = {", String((int64_t)type_size(t)), "u, ",
-                            String((int64_t)type_align(t)), "u, .metamethods=", metamethods,
-                            ", {.tag=EnumInfo, .EnumInfo={.name=\"", def->name,
-                            "\", "
-                            ".num_tags=",
-                            String((int64_t)num_tags), ", .tags=(NamedType_t[]){");
+    Text_t typeinfo =
+        Texts("public const TypeInfo_t ", info, " = {", (int64_t)type_size(t), "u, ", (int64_t)type_align(t),
+              "u, .metamethods=", metamethods, ", {.tag=EnumInfo, .EnumInfo={.name=\"", def->name,
+              "\", "
+              ".num_tags=",
+              (int64_t)num_tags, ", .tags=(NamedType_t[]){");
 
     for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
         const char *tag_type_name = String(def->name, "$", tag->name);
@@ -144,10 +144,10 @@ Text_t compile_empty_enum(type_t *t) {
     assert(tag);
     assert(tag->type);
     if (Match(tag->type, StructType)->fields)
-        return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), ", .", tag->name, "=",
-                     compile_empty(tag->type), "})");
-    else if (enum_has_fields(t)) return Texts("((", compile_type(t), "){.$tag=", String(tag->tag_value), "})");
-    else return Texts("((", compile_type(t), ")", String(tag->tag_value), ")");
+        return Texts("((", compile_type(t), "){.$tag=", tag->tag_value, ", .", tag->name, "=", compile_empty(tag->type),
+                     "})");
+    else if (enum_has_fields(t)) return Texts("((", compile_type(t), "){.$tag=", tag->tag_value, "})");
+    else return Texts("((", compile_type(t), ")", tag->tag_value, ")");
 }
 
 public

@@ -32,7 +32,7 @@ Text_t compile_function_declaration(env_t *env, ast_t *ast) {
     if (ret_t->tag == AbortType) ret_type_code = Texts("__attribute__((noreturn)) _Noreturn ", ret_type_code);
     Text_t name = namespace_name(env, env->namespace, Text$from_str(decl_name));
     if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
-        name = namespace_name(env, env->namespace, Text$from_str(String(get_line_number(ast->file, ast->start))));
+        name = namespace_name(env, env->namespace, Texts(get_line_number(ast->file, ast->start)));
     return Texts(ret_type_code, " ", name, arg_signature, ";\n");
 }
 
@@ -56,8 +56,7 @@ Text_t compile_convert_declaration(env_t *env, ast_t *ast) {
                  "Conversions are only supported for text, struct, and enum "
                  "types, not ",
                  type_to_str(ret_t));
-    Text_t name_code =
-        namespace_name(env, env->namespace, Texts(name, "$", String(get_line_number(ast->file, ast->start))));
+    Text_t name_code = namespace_name(env, env->namespace, Texts(name, "$", get_line_number(ast->file, ast->start)));
     return Texts(ret_type_code, " ", name_code, arg_signature, ";\n");
 }
 
@@ -248,7 +247,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
 public
 Text_t compile_lambda(env_t *env, ast_t *ast) {
     DeclareMatch(lambda, ast, Lambda);
-    Text_t name = namespace_name(env, env->namespace, Texts("lambda$", String(lambda->id)));
+    Text_t name = namespace_name(env, env->namespace, Texts("lambda$", lambda->id));
 
     env_t *body_scope = fresh_scope(env);
     body_scope->deferred = NULL;
@@ -736,7 +735,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             // FIXME: this currently just deletes the first entry, but this
             // should be more like a least-recently-used cache eviction policy
             // or least-frequently-used
-            pop_code = Texts("if (cache.entries.length > ", String(cache_size.value),
+            pop_code = Texts("if (cache.entries.length > ", cache_size.value,
                              ") Table$remove(&cache, cache.entries.data + "
                              "cache.entries.stride*0, table_type);\n");
         }
@@ -772,14 +771,13 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
 
             int64_t num_fields = used_names.entries.length;
             const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
-            Text_t args_typeinfo =
-                Texts("((TypeInfo_t[1]){{.size=sizeof(args), "
-                      ".align=__alignof__(args), .metamethods=",
-                      metamethods,
-                      ", .tag=StructInfo, "
-                      ".StructInfo.name=\"FunctionArguments\", "
-                      ".StructInfo.num_fields=",
-                      String(num_fields), ", .StructInfo.fields=(NamedType_t[", String(num_fields), "]){");
+            Text_t args_typeinfo = Texts("((TypeInfo_t[1]){{.size=sizeof(args), "
+                                         ".align=__alignof__(args), .metamethods=",
+                                         metamethods,
+                                         ", .tag=StructInfo, "
+                                         ".StructInfo.name=\"FunctionArguments\", "
+                                         ".StructInfo.num_fields=",
+                                         num_fields, ", .StructInfo.fields=(NamedType_t[", num_fields, "]){");
             Text_t args_type = Text("struct { ");
             for (arg_t *f = fields; f; f = f->next) {
                 args_typeinfo = Texts(args_typeinfo, "{\"", f->name, "\", ", compile_type_info(f->type), "}");

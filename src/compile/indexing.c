@@ -44,8 +44,8 @@ Text_t compile_indexing(env_t *env, ast_t *ast) {
             return Texts("List_get_unchecked(", compile_type(item_type), ", ", list, ", ", index_code, ")");
         else
             return Texts("List_get(", compile_type(item_type), ", ", list, ", ", index_code, ", ",
-                         String((int64_t)(indexing->index->start - f->text)), ", ",
-                         String((int64_t)(indexing->index->end - f->text)), ")");
+                         (int64_t)(indexing->index->start - f->text), ", ", (int64_t)(indexing->index->end - f->text),
+                         ")");
     } else if (container_t->tag == TableType) {
         DeclareMatch(table_type, container_t, TableType);
         if (indexing->unchecked) code_err(ast, "Table indexes cannot be unchecked");

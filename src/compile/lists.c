@@ -33,7 +33,7 @@ Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type) {
     {
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
         if (is_incomplete_type(item_type)) code_err(ast, "This list's type can't be inferred!");
-        Text_t code = Texts("TypedListN(", compile_type(item_type), ", ", String(n));
+        Text_t code = Texts("TypedListN(", compile_type(item_type), ", ", n);
         for (ast_list_t *item = list->items; item; item = item->next) {
             code = Texts(code, ", ", compile_to_type(scope, item->ast, item_type));
         }

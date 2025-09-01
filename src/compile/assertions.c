@@ -53,27 +53,26 @@ Text_t compile_assertion(env_t *env, ast_t *ast) {
         ast_t *var_comparison = new (ast_t, .file = expr->file, .start = expr->start, .end = expr->end,
                                      .tag = expr->tag, .__data.Equals = {.lhs = lhs_var, .rhs = rhs_var});
         int64_t line = get_line_number(ast->file, ast->start);
-        return Texts("{ // assertion\n", compile_declaration(operand_t, Text("_lhs")), " = ",
-                     compile_to_type(env, cmp.lhs, operand_t), ";\n", "\n#line ", String(line), "\n",
-                     compile_declaration(operand_t, Text("_rhs")), " = ", compile_to_type(env, cmp.rhs, operand_t),
-                     ";\n", "\n#line ", String(line), "\n", "if (!(", compile_condition(env, var_comparison), "))\n",
-                     "#line ", String(line), "\n",
-                     Texts("fail_source(", quoted_str(ast->file->filename), ", ",
-                           String((int64_t)(expr->start - expr->file->text)), ", ",
-                           String((int64_t)(expr->end - expr->file->text)), ", ",
-                           message ? Texts("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
-                                   : Text("\"This assertion failed!\""),
-                           ", ", "\" (\", ", expr_as_text(Text("_lhs"), operand_t, Text("no")),
-                           ", "
-                           "\" ",
-                           failure, " \", ", expr_as_text(Text("_rhs"), operand_t, Text("no")), ", \")\");\n"),
-                     "}\n");
+        return Texts(
+            "{ // assertion\n", compile_declaration(operand_t, Text("_lhs")), " = ",
+            compile_to_type(env, cmp.lhs, operand_t), ";\n", "\n#line ", line, "\n",
+            compile_declaration(operand_t, Text("_rhs")), " = ", compile_to_type(env, cmp.rhs, operand_t), ";\n",
+            "\n#line ", line, "\n", "if (!(", compile_condition(env, var_comparison), "))\n", "#line ", line, "\n",
+            Texts("fail_source(", quoted_str(ast->file->filename), ", ", (int64_t)(expr->start - expr->file->text),
+                  ", ", (int64_t)(expr->end - expr->file->text), ", ",
+                  message ? Texts("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
+                          : Text("\"This assertion failed!\""),
+                  ", ", "\" (\", ", expr_as_text(Text("_lhs"), operand_t, Text("no")),
+                  ", "
+                  "\" ",
+                  failure, " \", ", expr_as_text(Text("_rhs"), operand_t, Text("no")), ", \")\");\n"),
+            "}\n");
     }
     default: {
         int64_t line = get_line_number(ast->file, ast->start);
-        return Texts("if (!(", compile_condition(env, expr), "))\n", "#line ", String(line), "\n", "fail_source(",
-                     quoted_str(ast->file->filename), ", ", String((int64_t)(expr->start - expr->file->text)), ", ",
-                     String((int64_t)(expr->end - expr->file->text)), ", ",
+        return Texts("if (!(", compile_condition(env, expr), "))\n", "#line ", line, "\n", "fail_source(",
+                     quoted_str(ast->file->filename), ", ", (int64_t)(expr->start - expr->file->text), ", ",
+                     (int64_t)(expr->end - expr->file->text), ", ",
                      message ? Texts("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
                              : Text("\"This assertion failed!\""),
                      ");\n");

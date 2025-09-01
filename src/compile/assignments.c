@@ -119,12 +119,12 @@ Text_t compile_assignment_statement(env_t *env, ast_t *ast) {
                           "stack memory.");
         env_t *val_env = with_enum_scope(env, lhs_t);
         Text_t val = compile_to_type(val_env, value->ast, lhs_t);
-        code = Texts(code, compile_type(lhs_t), " $", String(i), " = ", val, ";\n");
+        code = Texts(code, compile_type(lhs_t), " $", i, " = ", val, ";\n");
         i += 1;
     }
     i = 1;
     for (ast_list_t *target = assign->targets; target; target = target->next) {
-        code = Texts(code, compile_assignment(env, target->ast, Texts("$", String(i))), ";\n");
+        code = Texts(code, compile_assignment(env, target->ast, Texts("$", i)), ";\n");
         i += 1;
     }
     return Texts(code, "\n}");
@@ -171,8 +171,7 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
                              ")");
             } else {
                 return Texts("List_lvalue(", compile_type(item_type), ", ", target_code, ", ", index_code, ", ",
-                             String((int)(ast->start - ast->file->text)), ", ",
-                             String((int)(ast->end - ast->file->text)), ")");
+                             (int64_t)(ast->start - ast->file->text), ", ", (int64_t)(ast->end - ast->file->text), ")");
             }
         } else if (container_t->tag == TableType) {
             DeclareMatch(table_type, container_t, TableType);
