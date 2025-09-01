@@ -1,10 +1,16 @@
 # Version History
 
+## v0.4
+- Tomo libraries are now installed to `$TOMO_PATH/lib/tomo_vX.Y/module_vZ.W`
+  instead of `$TOMO_PATH/share/tomo_vX.Y/installed/module_vZ.W`
+- Core libraries are no longer shipped with the compiler, they have moved to
+  separate repositories.
+- Library installation has been cleaned up a bit.
+
 ## v0.3
 
 - Added a versioning system based on `CHANGES.md` files and `modules.ini`
-  configuration for module aliases (now installed to
-  `$TOMO_PREFIX/lib/tomo_vX.Y/module_vZ.W`).
+  configuration for module aliases.
 - When attempting to run a program with a module that is not installed, Tomo
   can prompt the user to automatically install it.
 - Programs can use `--version` as a CLI flag to print a Tomo program's version
