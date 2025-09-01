@@ -368,21 +368,25 @@ static const char *get_version(Path_t lib_dir) {
     return String(string_slice(version_line + 4, strcspn(version_line + 4, "\r\n")));
 }
 
-static Text_t get_version_suffix(Path_t lib_dir) { return Texts(Text("_"), Text$from_str(get_version(lib_dir))); }
+static Path_t with_version_suffix(Path_t lib_dir) {
+    Text_t suffix = Texts(Text("_"), Text$from_str(get_version(lib_dir)));
+    return Text$ends_with(Path$base_name(lib_dir), suffix, NULL)
+               ? lib_dir
+               : Path$sibling(lib_dir, Texts(Path$base_name(lib_dir), suffix));
+}
 
 void build_library(Path_t lib_dir) {
     lib_dir = Path$resolved(lib_dir, Path$current_dir());
     if (!Path$is_directory(lib_dir, true)) print_err("Not a valid directory: ", lib_dir);
 
-    Text_t lib_dir_name = Path$base_name(lib_dir);
     List_t tm_files = Path$glob(Path$child(lib_dir, Text("[!._0-9]*.tm")));
     env_t *env = fresh_scope(global_env(source_mapping));
     List_t object_files = {}, extra_ldlibs = {};
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
 
-    Text_t version_suffix = get_version_suffix(lib_dir);
-    Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), lib_dir_name, version_suffix, Text(SHARED_SUFFIX)));
+    Text_t versioned_dir = Path$base_name(with_version_suffix(lib_dir));
+    Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), versioned_dir, Text(SHARED_SUFFIX)));
     if (!is_stale_for_any(shared_lib, object_files, false)) {
         if (verbose) whisper("Unchanged: ", shared_lib);
         return;
@@ -390,10 +394,10 @@ void build_library(Path_t lib_dir) {
 
     FILE *prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
 #ifdef __APPLE__
-                         " -Wl,-install_name,@rpath/'lib", lib_dir_name, version_suffix, SHARED_SUFFIX,
+                         " -Wl,-install_name,@rpath/'lib", Path$base_name(lib_dir), version_suffix, SHARED_SUFFIX,
                          "'"
 #else
-                         " -Wl,-soname,'lib", lib_dir_name, version_suffix, SHARED_SUFFIX,
+                         " -Wl,-soname,'lib", versioned_dir, SHARED_SUFFIX,
                          "'"
 #endif
                          " -shared ",
@@ -408,8 +412,9 @@ void build_library(Path_t lib_dir) {
 
 void install_library(Path_t lib_dir) {
     Text_t lib_dir_name = Path$base_name(lib_dir);
-    Text_t version_suffix = get_version_suffix(lib_dir);
-    Path_t dest = Path$child(Path$from_str(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION), Texts(lib_dir_name, version_suffix));
+    Text_t versioned_dir = Path$base_name(with_version_suffix(lib_dir));
+    Path_t dest = Path$child(Path$from_str(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION), versioned_dir);
+    print("Installing ", lib_dir, " into ", dest);
     if (!Path$equal_values(lib_dir, dest)) {
         if (verbose) whisper("Clearing out any pre-existing version of ", lib_dir_name);
         xsystem(as_owner, "rm -rf '", dest, "'");
@@ -424,12 +429,11 @@ void install_library(Path_t lib_dir) {
     int result = system(String(as_owner, "debugedit -b ", lib_dir, " -d '", dest,
                                "'"
                                " '",
-                               dest, "/lib", lib_dir_name, version_suffix, SHARED_SUFFIX,
+                               dest, "/lib", versioned_dir, SHARED_SUFFIX,
                                "' "
                                ">/dev/null 2>/dev/null"));
     (void)result;
-    print("Installed \033[1m", lib_dir_name, "\033[m to " TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/", lib_dir_name,
-          version_suffix);
+    print("Installed \033[1m", lib_dir_name, "\033[m to " TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/", versioned_dir);
 }
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs) {

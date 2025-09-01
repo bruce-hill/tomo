@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/wait.h>
 
+#include "config.h"
 #include "modules.h"
 #include "stdlib/memory.h"
 #include "stdlib/paths.h"
@@ -57,6 +58,8 @@ module_info_t get_module_info(ast_t *use) {
 }
 
 bool try_install_module(module_info_t mod) {
+    Path_t dest = Path$from_text(
+        Texts(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/", Text$from_str(mod.name), "_", Text$from_str(mod.version)));
     if (mod.git) {
         OptionalText_t answer = ask(Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
                                           " is not installed.\nDo you want to install it from git URL ",
@@ -65,15 +68,9 @@ bool try_install_module(module_info_t mod) {
         if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
             return false;
         print("Installing ", mod.name, " from git...");
-        Path_t tmpdir = Path$unique_directory(Path("/tmp/tomo-module-XXXXXX"));
-        tmpdir = Path$child(tmpdir, Text$from_str(mod.name));
-        Path$create_directory(tmpdir, 0755);
-
-        if (mod.revision) xsystem("git clone --depth=1 --revision ", mod.revision, " ", mod.git, " ", tmpdir);
-        else xsystem("git clone --depth=1 ", mod.git, " ", tmpdir);
-        if (mod.path) xsystem("tomo -IL ", tmpdir, "/", mod.path);
-        else xsystem("tomo -IL ", tmpdir);
-        Path$remove(tmpdir, true);
+        if (mod.revision) xsystem("git clone --depth=1 --revision ", mod.revision, " ", mod.git, " ", dest);
+        else xsystem("git clone --depth=1 ", mod.git, " ", dest);
+        xsystem("tomo -L ", dest);
         return true;
     } else if (mod.url) {
         OptionalText_t answer =
@@ -96,12 +93,12 @@ bool try_install_module(module_info_t mod) {
         Path$create_directory(tmpdir, 0755);
 
         xsystem("curl ", mod.url, " -o ", tmpdir);
-        if (streq(extension, ".zip")) xsystem("unzip ", tmpdir, "/", filename);
-        else if (streq(extension, ".tar.gz") || streq(extension, ".tar")) xsystem("tar xf ", tmpdir, "/", filename);
+        Path$create_directory(dest, 0755);
+        if (streq(extension, ".zip")) xsystem("unzip ", tmpdir, "/", filename, " -d ", dest);
+        else if (streq(extension, ".tar.gz") || streq(extension, ".tar"))
+            xsystem("tar xf ", tmpdir, "/", filename, " -C ", dest);
         else return false;
-        const char *basename = String(string_slice(filename, strcspn(filename, ".")));
-        if (mod.path) xsystem("tomo -IL ", tmpdir, "/", basename, "/", mod.path);
-        else xsystem("tomo -IL ", tmpdir, "/", basename);
+        xsystem("tomo -L ", dest);
         Path$remove(tmpdir, true);
         return true;
     } else if (mod.path) {
@@ -113,7 +110,8 @@ bool try_install_module(module_info_t mod) {
             return false;
 
         print("Installing ", mod.name, " from path...");
-        xsystem("tomo -IL ", mod.path);
+        xsystem("ln -s ", mod.path, " ", dest);
+        xsystem("tomo -L ", dest);
         return true;
     }
 
