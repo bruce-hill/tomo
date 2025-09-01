@@ -27,7 +27,7 @@ OptionalText_t next_comment(Table_t comments, const char **pos, const char *end)
         const char **comment_end = Table$get(comments, &p, parse_comments_info);
         if (comment_end) {
             *pos = *comment_end;
-            return Text$from_strn(p, (int64_t)(*comment_end - p));
+            return Text$from_strn(p, (size_t)(*comment_end - p));
         }
     }
     return NONE_TEXT;

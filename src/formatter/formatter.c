@@ -33,7 +33,7 @@ typedef struct {
     Text_t quote, unquote, interp;
 } text_opts_t;
 
-text_opts_t choose_text_options(ast_list_t *chunks) {
+PUREFUNC text_opts_t choose_text_options(ast_list_t *chunks) {
     int double_quotes = 0, single_quotes = 0, backticks = 0;
     for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
         if (chunk->ast->tag == TextLiteral) {
@@ -146,6 +146,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
 
         if (if_->else_body == NULL && if_->condition->tag != Declare) {
             ast_t *stmt = unwrap_block(if_->body);
+            if (!stmt) return Texts("pass ", if_condition);
             switch (stmt->tag) {
             case Return:
             case Skip:
@@ -391,7 +392,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
 }
 
-static int64_t trailing_line_len(Text_t text) {
+PUREFUNC static int64_t trailing_line_len(Text_t text) {
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     int64_t len = 0;
     for (int64_t i = text.length - 1; i >= 0; i--) {

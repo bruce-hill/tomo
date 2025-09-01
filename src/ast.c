@@ -323,7 +323,7 @@ const char *ast_to_sexp_str(ast_t *ast) { return Text$as_c_string(ast_to_sexp(as
 
 OptionalText_t ast_source(ast_t *ast) {
     if (ast == NULL || ast->start == NULL || ast->end == NULL) return NONE_TEXT;
-    return Text$from_strn(ast->start, (int64_t)(ast->end - ast->start));
+    return Text$from_strn(ast->start, (size_t)(ast->end - ast->start));
 }
 
 PUREFUNC bool is_idempotent(ast_t *ast) {
