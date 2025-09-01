@@ -44,7 +44,7 @@ Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
         TypeInfo_t rec_table = *Table$info(type, &Int64$info);
         int64_t *id = Table$get(pending, x, &rec_table);
         if (id) {
-            Text_t text = Texts(Text$from_str(ptr_info.sigil), Int64$as_text(id, false, &Int64$info));
+            Text_t text = Texts(Text$from_str(ptr_info.sigil), Int64$value_as_text(*id));
             return colorize ? Texts(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
         }
         int64_t next_id = pending.entries.length + 2;
