@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (show_changelog) {
-        print_inline(string_slice((const char *)CHANGES_md, CHANGES_md_len));
+        print_inline(string_slice((const char *)CHANGES_md, (size_t)CHANGES_md_len));
         return 0;
     }
 
