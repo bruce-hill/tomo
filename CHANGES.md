@@ -6,12 +6,13 @@
 - Core libraries are no longer shipped with the compiler, they have moved to
   separate repositories.
 - Library installation has been cleaned up a bit.
+- Added a `--format` flag to the `tomo` binary that autoformats your code
+  (currently unstable, do not rely on it just yet).
 
 ## v0.3
 
 - Added a versioning system based on `CHANGES.md` files and `modules.ini`
   configuration for module aliases.
-- Added a `--format` flag to the `tomo` binary that autoformats your code.
 - When attempting to run a program with a module that is not installed, Tomo
   can prompt the user to automatically install it.
 - Programs can use `--version` as a CLI flag to print a Tomo program's version
