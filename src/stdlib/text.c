@@ -1729,10 +1729,9 @@ Int_t Text$memory_size(Text_t text) {
 public
 Text_t Text$layout(Text_t text) {
     switch (text.tag) {
-    case TEXT_ASCII: return Texts(Text("ASCII("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
-    case TEXT_GRAPHEMES:
-        return Texts(Text("Graphemes("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
-    case TEXT_BLOB: return Texts(Text("Blob("), Int64$as_text((int64_t[1]){text.length}, false, NULL), Text(")"));
+    case TEXT_ASCII: return Texts(Text("ASCII("), Int64$value_as_text(text.length), Text(")"));
+    case TEXT_GRAPHEMES: return Texts(Text("Graphemes("), Int64$value_as_text(text.length), Text(")"));
+    case TEXT_BLOB: return Texts(Text("Blob("), Int64$value_as_text(text.length), Text(")"));
     case TEXT_CONCAT:
         return Texts(Text("Concat("), Text$layout(*text.left), Text(", "), Text$layout(*text.right), Text(")"));
     default: errx(1, "Invalid text tag: %d", text.tag);

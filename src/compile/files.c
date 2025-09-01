@@ -103,7 +103,7 @@ static Text_t compile_top_level_code(env_t *env, ast_t *ast) {
                      "types, not ",
                      type_to_str(Match(type, FunctionType)->ret));
         Text_t name_code =
-            namespace_name(env, env->namespace, Texts(name, "$", String(get_line_number(ast->file, ast->start))));
+            namespace_name(env, env->namespace, Texts(name, "$", get_line_number(ast->file, ast->start)));
         return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case StructDef: {
@@ -125,7 +125,7 @@ static Text_t compile_top_level_code(env_t *env, ast_t *ast) {
         DeclareMatch(def, ast, LangDef);
         Text_t code =
             Texts("public const TypeInfo_t ", namespace_name(env, env->namespace, Texts(def->name, "$$info")), " = {",
-                  String((int64_t)sizeof(Text_t)), ", ", String((int64_t)__alignof__(Text_t)),
+                  (int64_t)sizeof(Text_t), ", ", (int64_t)__alignof__(Text_t),
                   ", .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={", quoted_str(def->name), "}};\n");
         env_t *ns_env = namespace_env(env, def->name);
         return Texts(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : EMPTY_TEXT);

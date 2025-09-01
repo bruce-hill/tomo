@@ -618,6 +618,8 @@ void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_
         return colorize ? Texts(Text("\033[35m"), text, Text("\033[m")) : text;                                        \
     }                                                                                                                  \
   public                                                                                                               \
+    Text_t KindOfInt##$value_as_text(c_type i) { return _int64_to_text((int64_t)i); }                                  \
+  public                                                                                                               \
     PUREFUNC int32_t KindOfInt##$compare(const void *x, const void *y, const TypeInfo_t *info) {                       \
         (void)info;                                                                                                    \
         return (*(c_type *)x > *(c_type *)y) - (*(c_type *)x < *(c_type *)y);                                          \

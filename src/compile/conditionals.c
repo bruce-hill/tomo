@@ -59,7 +59,7 @@ Text_t compile_if_statement(env_t *env, ast_t *ast) {
         code = Texts(code, compile_block(nonnull_scope, if_->body));
 
         if (if_->else_body) {
-            Text_t label = Texts("_falsey_", String((int64_t)(ast->start - ast->file->text)));
+            Text_t label = Texts("_falsey_", (int64_t)(ast->start - ast->file->text));
             code = Texts(code, "else goto ", label,
                          ";\n"
                          "} else {\n",

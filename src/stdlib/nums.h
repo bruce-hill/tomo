@@ -15,11 +15,12 @@
 #define N32(n) ((float)(n))
 #define N64(n) ((double)(n))
 
-Text_t Num$as_text(const void *f, bool colorize, const TypeInfo_t *type);
+Text_t Num$as_text(const void *x, bool colorize, const TypeInfo_t *type);
+Text_t Num$value_as_text(double x);
 PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool Num$equal(const void *x, const void *y, const TypeInfo_t *type);
 CONSTFUNC bool Num$near(double a, double b, double ratio, double absolute);
-Text_t Num$percent(double f, double precision);
+Text_t Num$percent(double x, double precision);
 double CONSTFUNC Num$with_precision(double num, double precision);
 double Num$mod(double num, double modulus);
 double Num$mod1(double num, double modulus);
@@ -70,11 +71,12 @@ MACROLIKE CONSTFUNC double Num$from_byte(Byte_t i) { return (double)i; }
 
 extern const TypeInfo_t Num$info;
 
-Text_t Num32$as_text(const void *f, bool colorize, const TypeInfo_t *type);
+Text_t Num32$as_text(const void *x, bool colorize, const TypeInfo_t *type);
+Text_t Num32$value_as_text(float x);
 PUREFUNC int32_t Num32$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool Num32$equal(const void *x, const void *y, const TypeInfo_t *type);
 CONSTFUNC bool Num32$near(float a, float b, float ratio, float absolute);
-Text_t Num32$percent(float f, float precision);
+Text_t Num32$percent(float x, float precision);
 float CONSTFUNC Num32$with_precision(float num, float precision);
 float Num32$mod(float num, float modulus);
 float Num32$mod1(float num, float modulus);

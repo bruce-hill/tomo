@@ -405,7 +405,7 @@ Text_t compile_skip(env_t *env, ast_t *ast) {
         if (matched) {
             if (ctx->skip_label.length == 0) {
                 static int64_t skip_label_count = 1;
-                ctx->skip_label = Texts("skip_", String(skip_label_count));
+                ctx->skip_label = Texts("skip_", skip_label_count);
                 ++skip_label_count;
             }
             Text_t code = EMPTY_TEXT;
@@ -431,7 +431,7 @@ Text_t compile_stop(env_t *env, ast_t *ast) {
         if (matched) {
             if (ctx->stop_label.length == 0) {
                 static int64_t stop_label_count = 1;
-                ctx->stop_label = Texts("stop_", String(stop_label_count));
+                ctx->stop_label = Texts("stop_", stop_label_count);
                 ++stop_label_count;
             }
             Text_t code = EMPTY_TEXT;

@@ -43,12 +43,12 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
     // Automatic optional checking for nums:
     if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
         int64_t line = get_line_number(ast->file, ast->start);
-        *code = Texts("({ ", compile_declaration(actual, Text("opt")), " = ", *code, "; ", "if unlikely (",
-                      check_none(actual, Text("opt")), ")\n", "#line ", String(line), "\n", "fail_source(",
-                      quoted_str(ast->file->filename), ", ", String((int64_t)(ast->start - ast->file->text)), ", ",
-                      String((int64_t)(ast->end - ast->file->text)), ", ",
-                      "\"This was expected to be a value, but it's none\");\n",
-                      optional_into_nonnone(actual, Text("opt")), "; })");
+        *code =
+            Texts("({ ", compile_declaration(actual, Text("opt")), " = ", *code, "; ", "if unlikely (",
+                  check_none(actual, Text("opt")), ")\n", "#line ", line, "\n", "fail_source(",
+                  quoted_str(ast->file->filename), ", ", (int64_t)(ast->start - ast->file->text), ", ",
+                  (int64_t)(ast->end - ast->file->text), ", ", "\"This was expected to be a value, but it's none\");\n",
+                  optional_into_nonnone(actual, Text("opt")), "; })");
         return true;
     }
 
