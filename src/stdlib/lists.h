@@ -10,6 +10,16 @@
 #include "util.h"
 
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
+#define List_get_checked(list_expr, index_expr, item_type, start, end)                                                 \
+    ({                                                                                                                 \
+        const List_t list = list_expr;                                                                                 \
+        int64_t index = index_expr;                                                                                    \
+        int64_t off = index + (index < 0) * (list.length + 1) - 1;                                                     \
+        if (unlikely(off < 0 || off >= list.length))                                                                   \
+            fail_source(__SOURCE_FILE__, start, end, "Invalid list index: ", index, " (list has length ",              \
+                        (int64_t)list.length, ")\n");                                                                  \
+        *(item_type *)(list.data + list.stride * off);                                                                 \
+    })
 #define List_get(list_expr, index_expr, item_type, var, optional_expr, none_expr)                                      \
     ({                                                                                                                 \
         const List_t list = list_expr;                                                                                 \

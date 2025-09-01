@@ -1,5 +1,7 @@
 // This file defines how to compile indexing like `list[i]` or `ptr[]`
 
+#include <stdbool.h>
+
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
@@ -9,7 +11,7 @@
 #include "compilation.h"
 
 public
-Text_t compile_indexing(env_t *env, ast_t *ast) {
+Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
     DeclareMatch(indexing, ast, Index);
     type_t *indexed_type = get_type(env, indexing->indexed);
     if (!indexing->index) {
@@ -39,8 +41,14 @@ Text_t compile_indexing(env_t *env, ast_t *ast) {
                 ? compile_int_to_type(env, indexing->index, Type(IntType, .bits = TYPE_IBITS64))
                 : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, indexing->index), ", no)")
                                               : Texts("(Int64_t)(", compile(env, indexing->index), ")"));
-        return Texts("List_get(", list, ", ", index_code, ", ", compile_type(item_type), ", value, ",
-                     promote_to_optional(item_type, Text("value")), ", ", compile_none(item_type), ")");
+        if (checked) {
+            int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
+            return Texts("List_get_checked(", list, ", ", index_code, ", ", compile_type(item_type), ", ",
+                         String(start), ", ", String(end), ")");
+        } else {
+            return Texts("List_get(", list, ", ", index_code, ", ", compile_type(item_type), ", value, ",
+                         promote_to_optional(item_type, Text("value")), ", ", compile_none(item_type), ")");
+        }
     } else if (container_t->tag == TableType) {
         DeclareMatch(table_type, container_t, TableType);
         if (table_type->default_value) {
@@ -48,6 +56,12 @@ Text_t compile_indexing(env_t *env, ast_t *ast) {
                          compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",
                          compile(env, indexing->index), ", ",
                          compile_to_type(env, table_type->default_value, table_type->value_type), ", ",
+                         compile_type_info(container_t), ")");
+        } else if (checked) {
+            int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
+            return Texts("Table$get_checked(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
+                         compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",
+                         compile(env, indexing->index), ", ", String(start), ", ", String(end), ", ",
                          compile_type_info(container_t), ")");
         } else {
             return Texts("Table$get_optional(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",

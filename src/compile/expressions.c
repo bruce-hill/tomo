@@ -234,7 +234,7 @@ Text_t compile(env_t *env, ast_t *ast) {
     case If: return compile_if_expression(env, ast);
     case Reduction: return compile_reduction(env, ast);
     case FieldAccess: return compile_field_access(env, ast);
-    case Index: return compile_indexing(env, ast);
+    case Index: return compile_indexing(env, ast, false);
     case InlineCCode: {
         type_t *t = get_type(env, ast);
         if (t->tag == VoidType) return Texts("{\n", compile_statement(env, ast), "\n}");
