@@ -47,9 +47,8 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     whitespace(&pos);
     ast_t *index = optional(ctx, &pos, parse_extended_expr);
     whitespace(&pos);
-    bool unchecked = match(&pos, ";") && (spaces(&pos), match_word(&pos, "unchecked") != 0);
     expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this index");
-    return NewAST(ctx->file, start, pos, Index, .indexed = lhs, .index = index, .unchecked = unchecked);
+    return NewAST(ctx->file, start, pos, Index, .indexed = lhs, .index = index);
 }
 
 ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {

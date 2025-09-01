@@ -79,7 +79,7 @@ enum JSON(
                         string ++= esc
                         pos += 2
                     else if m := text.matching_pattern($Pat/u{4 digit}/)
-                        string ++= Text.from_codepoints([Int32.parse(m.captures[1])!])
+                        string ++= Text.from_codepoints([Int32.parse(m.captures[1]!)!])
                         pos += 1 + m.text.length
                     else
                         if remainder

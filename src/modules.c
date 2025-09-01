@@ -52,14 +52,14 @@ module_info_t get_module_info(ast_t *use) {
     module_info_t *info = new (module_info_t, .name = name);
     if (streq(name, "commands")) info->version = "v1.0";
     else if (streq(name, "random")) info->version = "v1.0";
-    else if (streq(name, "base64")) info->version = "v1.0";
+    else if (streq(name, "base64")) info->version = "v1.1";
     else if (streq(name, "core")) info->version = "v1.0";
     else if (streq(name, "patterns")) info->version = "v1.1";
-    else if (streq(name, "json")) info->version = "v1.0";
+    else if (streq(name, "json")) info->version = "v1.1";
     else if (streq(name, "pthreads")) info->version = "v1.0";
     else if (streq(name, "shell")) info->version = "v1.0";
     else if (streq(name, "time")) info->version = "v1.0";
-    else if (streq(name, "uuid")) info->version = "v1.0";
+    else if (streq(name, "uuid")) info->version = "v1.1";
     else {
         read_modules_ini(Path$sibling(Path$from_str(use->file->filename), Text("modules.ini")), info);
         read_modules_ini(Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false), info);

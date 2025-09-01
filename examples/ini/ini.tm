@@ -40,20 +40,20 @@ func main(path:Path, key:Text?)
         ")
 
     data := parse_ini(path)
-    if keys.length < 1 or keys[1] == '*'
+    if keys.length < 1 or keys[1]! == '*'
         say("$data")
         return
 
-    section := keys[1].lower()
+    section := keys[1]!.lower()
     section_data := data[section] or exit("
         Invalid section name: \[31;1]$section\[]
         Valid names: \[1]$(", ".join([k.quoted() for k in data.keys]))\[]
     ")
-    if keys.length < 2 or keys[2] == '*'
+    if keys.length < 2 or keys[2]! == '*'
         say("$section_data")
         return
 
-    section_key := keys[2].lower()
+    section_key := keys[2]!.lower()
     value := section_data[section_key] or exit("
         Invalid key: \[31;1]$section_key\[]
         Valid keys: \[1]$(", ".join([s.quoted() for s in section_data.keys]))\[]

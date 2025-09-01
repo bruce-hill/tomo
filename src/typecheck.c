@@ -890,7 +890,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             if (!indexing->index) return indexed_t;
             type_t *index_t = get_type(env, indexing->index);
             if (index_t->tag == IntType || index_t->tag == BigIntType || index_t->tag == ByteType)
-                return Match(value_t, ListType)->item_type;
+                return Type(OptionalType, Match(value_t, ListType)->item_type);
             code_err(indexing->index, "I only know how to index lists using integers, not ", type_to_str(index_t));
         } else if (value_t->tag == TableType) {
             DeclareMatch(table_type, value_t, TableType);

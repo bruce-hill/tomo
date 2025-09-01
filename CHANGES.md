@@ -1,5 +1,8 @@
 # Version History
 
+## v1.0
+- List indexing now gives an optional value
+
 ## v0.3
 
 - Added a versioning system based on `CHANGES.md` files and `modules.ini`

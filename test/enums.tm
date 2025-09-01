@@ -61,7 +61,7 @@ func main()
 
 	i := 1
 	cases := [Foo.One(1), Foo.One(2), Foo.Zero]
-	while when cases[i] is One(x)
+	while when cases[i]! is One(x)
 		>> x
 		i += 1
 
@@ -77,7 +77,7 @@ func main()
 	]
 	= ["Zero", "Small 1", "Small 2", "Other"]
 	
-	>> expr := when cases[1] is One(y)
+	>> expr := when cases[1]! is One(y)
 		y + 1
 	else
 		-1

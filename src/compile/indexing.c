@@ -34,21 +34,15 @@ Text_t compile_indexing(env_t *env, ast_t *ast) {
             code_err(indexing->index, "Lists can only be indexed by integers, not ", type_to_str(index_t));
         type_t *item_type = Match(container_t, ListType)->item_type;
         Text_t list = compile_to_pointer_depth(env, indexing->indexed, 0, false);
-        file_t *f = indexing->index->file;
         Text_t index_code =
             indexing->index->tag == Int
                 ? compile_int_to_type(env, indexing->index, Type(IntType, .bits = TYPE_IBITS64))
                 : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, indexing->index), ", no)")
                                               : Texts("(Int64_t)(", compile(env, indexing->index), ")"));
-        if (indexing->unchecked)
-            return Texts("List_get_unchecked(", compile_type(item_type), ", ", list, ", ", index_code, ")");
-        else
-            return Texts("List_get(", compile_type(item_type), ", ", list, ", ", index_code, ", ",
-                         String((int64_t)(indexing->index->start - f->text)), ", ",
-                         String((int64_t)(indexing->index->end - f->text)), ")");
+        return Texts("List_get(", list, ", ", index_code, ", ", compile_type(item_type), ", value, ",
+                     promote_to_optional(item_type, Text("value")), ", ", compile_none(item_type), ")");
     } else if (container_t->tag == TableType) {
         DeclareMatch(table_type, container_t, TableType);
-        if (indexing->unchecked) code_err(ast, "Table indexes cannot be unchecked");
         if (table_type->default_value) {
             return Texts("Table$get_or_default(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                          compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",

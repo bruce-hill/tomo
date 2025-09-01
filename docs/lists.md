@@ -62,24 +62,23 @@ last item, `-2` is the second-to-last, and so on.
 ```tomo
 list := [10, 20, 30, 40]
 >> list[1]
-= 10
+= 10?
 
 >> list[2]
-= 20
+= 20?
+
+>> list[999]
+= none
 
 >> list[-1]
-= 40
+= 40?
 
 >> list[-2]
-= 30
+= 30?
 ```
 
 If a list index of `0` or any value larger than the length of the list is
-used, it will trigger a runtime error that will print what the invalid list
-index was, the length of the list, and a stack trace. As a performance
-operation, if list bounds checking proves to be a performance hot spot, you
-can explicitly disable bounds checking by adding `list[i; unchecked]` to the
-list access.
+used, a `none` value will be returned.
 
 ## Iteration
 

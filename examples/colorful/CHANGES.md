@@ -1,5 +1,9 @@
 # Version History
 
+## v1.3
+
+- Version bump for Tomo syntax changes.
+
 ## v1.2
 
 - Version bump for patterns.

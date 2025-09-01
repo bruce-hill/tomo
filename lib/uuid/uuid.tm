@@ -4,8 +4,8 @@ use time_v1.0
 lang UUID
     func v4(-> UUID) # Random UUID
         bytes := &random.bytes(16)
-        bytes[7; unchecked] = 0x40 or (bytes[7; unchecked] and 0x0F)
-        bytes[9; unchecked] = (Byte(random.int8(0x8, 0xB)) << 4) or (bytes[9; unchecked] and 0x0F)
+        bytes[7] = 0x40 or (bytes[7]! and 0x0F)
+        bytes[9] = (Byte(random.int8(0x8, 0xB)) << 4) or (bytes[9]! and 0x0F)
         hex := "".join([b.hex() for b in bytes])
         uuid := "$(hex.slice(1, 8))-$(hex.slice(9, 12))-$(hex.slice(13, 16))-$(hex.slice(17, -1))"
         return UUID.from_text(uuid)

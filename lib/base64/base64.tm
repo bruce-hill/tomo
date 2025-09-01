@@ -33,28 +33,28 @@ lang Base64
         dest := Int64(1)
         while src + 2 <= Int64(bytes.length)
             chunk24 := (
-                (Int32(bytes[src]) <<< 16) or (Int32(bytes[src+1]) <<< 8) or Int32(bytes[src+2])
+                (Int32(bytes[src]!) <<< 16) or (Int32(bytes[src+1]!) <<< 8) or Int32(bytes[src+2]!)
             )
             src += 3
 
-            output[dest]   = _enc[1 + ((chunk24 >>> 18) and 0b111111)]
-            output[dest+1] = _enc[1 + ((chunk24 >>> 12) and 0b111111)]
-            output[dest+2] = _enc[1 + ((chunk24 >>> 6) and 0b111111)]
-            output[dest+3] = _enc[1 + (chunk24 and 0b111111)]
+            output[dest]   = _enc[1 + ((chunk24 >>> 18) and 0b111111)]!
+            output[dest+1] = _enc[1 + ((chunk24 >>> 12) and 0b111111)]!
+            output[dest+2] = _enc[1 + ((chunk24 >>> 6) and 0b111111)]!
+            output[dest+3] = _enc[1 + (chunk24 and 0b111111)]!
             dest += 4
 
         if src + 1 == bytes.length
             chunk16 := (
-                (Int32(bytes[src]) <<< 8) or Int32(bytes[src+1])
+                (Int32(bytes[src]!) <<< 8) or Int32(bytes[src+1]!)
             )
-            output[dest]   = _enc[1 + ((chunk16 >>> 10) and 0b11111)]
-            output[dest+1] = _enc[1 + ((chunk16 >>> 4) and 0b111111)]
-            output[dest+2] = _enc[1 + ((chunk16 <<< 2)and 0b111111)]
+            output[dest]   = _enc[1 + ((chunk16 >>> 10) and 0b11111)]!
+            output[dest+1] = _enc[1 + ((chunk16 >>> 4) and 0b111111)]!
+            output[dest+2] = _enc[1 + ((chunk16 <<< 2)and 0b111111)]!
             output[dest+3] = _EQUAL_BYTE
         else if src == bytes.length
-            chunk8 := Int32(bytes[src])
-            output[dest]   = _enc[1 + ((chunk8 >>> 2) and 0b111111)]
-            output[dest+1] = _enc[1 + ((chunk8 <<< 4) and 0b111111)]
+            chunk8 := Int32(bytes[src]!)
+            output[dest]   = _enc[1 + ((chunk8 >>> 2) and 0b111111)]!
+            output[dest+1] = _enc[1 + ((chunk8 <<< 4) and 0b111111)]!
             output[dest+2] = _EQUAL_BYTE
             output[dest+3] = _EQUAL_BYTE
 
@@ -70,10 +70,10 @@ lang Base64
         dest := Int64(1)
         while src + 3 <= Int64(bytes.length)
             chunk24 := (
-                (Int32(_dec[1+bytes[src]]) <<< 18) or
-                (Int32(_dec[1+bytes[src+1]]) <<< 12) or
-                (Int32(_dec[1+bytes[src+2]]) <<< 6) or
-                Int32(_dec[1+bytes[src+3]])
+                (Int32(_dec[1+bytes[src]!]!) <<< 18) or
+                (Int32(_dec[1+bytes[src+1]!]!) <<< 12) or
+                (Int32(_dec[1+bytes[src+2]!]!) <<< 6) or
+                Int32(_dec[1+bytes[src+3]!]!)
             )
             src += 4
 
@@ -82,7 +82,7 @@ lang Base64
             output[dest+2] = Byte(chunk24 and 0xFF)
             dest += 3
 
-        while output[-1] == 0xFF
+        while output[-1]! == 0xFF
             output[] = output.to(-2)
 
         return output[]

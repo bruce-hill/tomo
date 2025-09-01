@@ -74,12 +74,12 @@ func serve(port:Int32, handler:func(request:HTTPRequest -> HTTPResponse), num_th
 struct HTTPRequest(method:Text, path:Text, version:Text, headers:[Text], body:Text)
     func from_text(text:Text -> HTTPRequest?)
         m := text.pattern_captures($Pat'{word} {..} HTTP/{..}{crlf}{..}') or return none
-        method := m[1]
-        path := m[2].replace_pattern($Pat'{2+ /}', '/')
-        version := m[3]
-        rest := m[-1].pattern_captures($Pat/{..}{2 crlf}{0+ ..}/) or return none
-        headers := rest[1].split_pattern($Pat/{crlf}/)
-        body := rest[-1]
+        method := m[1]!
+        path := m[2]!.replace_pattern($Pat'{2+ /}', '/')
+        version := m[3]!
+        rest := m[-1]!.pattern_captures($Pat/{..}{2 crlf}{0+ ..}/) or return none
+        headers := rest[1]!.split_pattern($Pat/{crlf}/)
+        body := rest[-1]!
         return HTTPRequest(method, path, version, headers, body)
 
 struct HTTPResponse(body:Text, status=200, content_type="text/plain", headers:{Text=Text}={})

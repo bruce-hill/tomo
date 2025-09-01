@@ -45,7 +45,7 @@ func main(texts:[Text], files:[Path]=[], by_line=no)
 
 
 func _for_terminal(c:Colorful, state:_TermState -> Text)
-    return c.text.map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch) _add_ansi_sequences(m.captures[1], state))
+    return c.text.map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch) _add_ansi_sequences(m.captures[1]!, state))
 
 enum _Color(Default, Bright(color:Int16), Color8Bit(color:Int16), Color24Bit(color:Int32))
     func from_text(text:Text -> _Color?)
@@ -174,7 +174,7 @@ func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text)
         text.pattern_captures($Pat/{0+..}:{0+..}/) or
         return "@("++_for_terminal(Colorful.from_text(text), prev_state)++")"
     )
-    attributes := parts[1].split_pattern($Pat/{0+space},{0+space}/)
+    attributes := parts[1]!.split_pattern($Pat/{0+space},{0+space}/)
     new_state := prev_state
     for attr in attributes
         if attr.starts_with("fg=")
@@ -215,6 +215,6 @@ func _add_ansi_sequences(text:Text, prev_state:_TermState -> Text)
             fail("Invalid attribute: '$attr'")
 
     result := prev_state.apply(new_state)
-    result ++= parts[2].map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch) _add_ansi_sequences(m.captures[1], new_state))
+    result ++= parts[2]!.map_pattern(recursive=no, $Pat/@(?)/, func(m:PatternMatch) _add_ansi_sequences(m.captures[1]!, new_state))
     result ++= new_state.apply(prev_state)
     return result
