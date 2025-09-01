@@ -49,7 +49,7 @@ The version for the Tomo language itself will come into play in a few ways:
    (e.g. `~/.local/lib/libtomo_v1.2.so`) and headers (e.g.
    `~/.local/include/tomo_v1.2/tomo.h`).
 4. Tomo libraries will be installed to a separate subdirectory for each version
-   of the compiler (e.g. `~/.local/share/tomo_v1.2/installed`).
+   of the compiler (e.g. `~/.local/lib/tomo_v1.2/`).
 
 ## Tomo Program Versions
 

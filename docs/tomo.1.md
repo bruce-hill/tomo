@@ -69,4 +69,4 @@ C code, which is then compiled using a C compiler of your choice.
 : Print the Tomo installation prefix and exit.
 
 `-r`, `--run`
-: Run an installed tomo program from `~/.local/share/tomo_vX.Y/installed`.
+: Run an installed tomo program from `~/.local/lib/tomo_vX.Y/`.

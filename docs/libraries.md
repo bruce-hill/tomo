@@ -151,7 +151,7 @@ that can be used by other Tomo projects. You can build a library by running
 
 If you additionally add the `-I` flag, Tomo will copy the entire directory
 (excluding files and directories that begin with `.` such as `.git`) into
-`~/.local/share/tomo_vX.Y/installed/` (where `X` and `Y` are the major/minor
+`~/.local/lib/tomo_vX.Y/` (where `X` and `Y` are the major/minor
 version of the compiler).
 
 ### Using Shared Libraries
@@ -169,7 +169,7 @@ When you build and install a library, its version is determined from a
 [Versions](versions.md)). The library's version number is added to the file
 path where the library is installed, so if the library `foo` has version
 `v1.2`, then it will be installed to
-`~/.local/share/tomo_vX.Y/installed/foo_v1.2/`. When using a library, you must
+`~/.local/lib/tomo_vX.Y/foo_v1.2/`. When using a library, you must
 explicitly supply either the exact version in the `use` statement like this:
 `use foo_v1.2`, or provide a `modules.ini` file that lists version information
 and other details about modules being used. For each module, you should provide

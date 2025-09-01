@@ -174,8 +174,8 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
             module_info_t mod = get_module_info(ast);
             glob_t tm_files;
             const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
-            if (glob(String(TOMO_PREFIX "/share/tomo_" TOMO_VERSION "/installed/", folder, "/[!._0-9]*.tm"), GLOB_TILDE,
-                     NULL, &tm_files)
+            if (glob(String(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
+                     &tm_files)
                 != 0) {
                 if (!try_install_module(mod)) code_err(ast, "Could not find library");
             }

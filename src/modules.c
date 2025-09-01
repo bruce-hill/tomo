@@ -50,34 +50,25 @@ module_info_t get_module_info(ast_t *use) {
     if (cached) return **cached;
     const char *name = Match(use, Use)->path;
     module_info_t *info = new (module_info_t, .name = name);
-    if (streq(name, "commands")) info->version = "v1.0";
-    else if (streq(name, "random")) info->version = "v1.0";
-    else if (streq(name, "base64")) info->version = "v1.0";
-    else if (streq(name, "core")) info->version = "v1.0";
-    else if (streq(name, "patterns")) info->version = "v1.1";
-    else if (streq(name, "json")) info->version = "v1.0";
-    else if (streq(name, "pthreads")) info->version = "v1.0";
-    else if (streq(name, "shell")) info->version = "v1.0";
-    else if (streq(name, "time")) info->version = "v1.0";
-    else if (streq(name, "uuid")) info->version = "v1.0";
-    else {
-        read_modules_ini(Path$sibling(Path$from_str(use->file->filename), Text("modules.ini")), info);
-        read_modules_ini(Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false), info);
-    }
+    read_modules_ini(Path$sibling(Path$from_str(use->file->filename), Text("modules.ini")), info);
+    read_modules_ini(Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false), info);
     Table$set(&cache, &use, &info, cache_type);
     return *info;
 }
 
 bool try_install_module(module_info_t mod) {
     if (mod.git) {
-        OptionalText_t answer = ask(Texts(Text("The module \""), Text$from_str(mod.name),
-                                          Text("\" is not installed.\nDo you want to install it from git URL "),
-                                          Text$from_str(mod.git), Text("? [Y/n] ")),
+        OptionalText_t answer = ask(Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
+                                          " is not installed.\nDo you want to install it from git URL ",
+                                          Text$from_str(mod.git), "? [Y/n] "),
                                     true, true);
         if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
             return false;
         print("Installing ", mod.name, " from git...");
         Path_t tmpdir = Path$unique_directory(Path("/tmp/tomo-module-XXXXXX"));
+        tmpdir = Path$child(tmpdir, Text$from_str(mod.name));
+        Path$create_directory(tmpdir, 0755);
+
         if (mod.revision) xsystem("git clone --depth=1 --revision ", mod.revision, " ", mod.git, " ", tmpdir);
         else xsystem("git clone --depth=1 ", mod.git, " ", tmpdir);
         if (mod.path) xsystem("tomo -IL ", tmpdir, "/", mod.path);
@@ -85,10 +76,10 @@ bool try_install_module(module_info_t mod) {
         Path$remove(tmpdir, true);
         return true;
     } else if (mod.url) {
-        OptionalText_t answer = ask(Texts(Text("The module "), Text$from_str(mod.name),
-                                          Text(" is not installed.\nDo you want to install it from URL "),
-                                          Text$from_str(mod.url), Text("? [Y/n] ")),
-                                    true, true);
+        OptionalText_t answer =
+            ask(Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
+                      " is not installed.\nDo you want to install it from URL ", Text$from_str(mod.url), "? [Y/n] "),
+                true, true);
         if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
             return false;
 
@@ -101,6 +92,9 @@ bool try_install_module(module_info_t mod) {
         if (!p) return false;
         const char *extension = p + 1;
         Path_t tmpdir = Path$unique_directory(Path("/tmp/tomo-module-XXXXXX"));
+        tmpdir = Path$child(tmpdir, Text$from_str(mod.name));
+        Path$create_directory(tmpdir, 0755);
+
         xsystem("curl ", mod.url, " -o ", tmpdir);
         if (streq(extension, ".zip")) xsystem("unzip ", tmpdir, "/", filename);
         else if (streq(extension, ".tar.gz") || streq(extension, ".tar")) xsystem("tar xf ", tmpdir, "/", filename);
@@ -111,10 +105,10 @@ bool try_install_module(module_info_t mod) {
         Path$remove(tmpdir, true);
         return true;
     } else if (mod.path) {
-        OptionalText_t answer = ask(Texts(Text("The module "), Text$from_str(mod.name),
-                                          Text(" is not installed.\nDo you want to install it from path "),
-                                          Text$from_str(mod.path), Text("? [Y/n] ")),
-                                    true, true);
+        OptionalText_t answer =
+            ask(Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
+                      " is not installed.\nDo you want to install it from path ", Text$from_str(mod.path), "? [Y/n] "),
+                true, true);
         if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
             return false;
 
