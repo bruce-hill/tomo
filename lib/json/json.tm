@@ -65,8 +65,8 @@ enum JSON(
             string := ""
             pos := 2
             escapes := {"n"="\n", "t"="\t", "r"="\r", '"'='"', "\\"="\\", "/"="/", "b"="\b", "f"="\f"}
-            while pos <= text.length
-                c := text[pos]
+            repeat
+                c := text[pos] or stop
                 if c == '"'
                     if remainder
                         remainder[] = text.from(pos + 1)

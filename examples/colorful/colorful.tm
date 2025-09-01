@@ -53,7 +53,7 @@ enum _Color(Default, Bright(color:Int16), Color8Bit(color:Int16), Color24Bit(col
             hex := text.from(2)
             return none unless hex.length == 3 or hex.length == 6
             if hex.length == 3
-                hex = hex[1]++hex[1]++hex[2]++hex[2]++hex[3]++hex[3]
+                hex = hex[1]!++hex[1]!++hex[2]!++hex[2]!++hex[3]!++hex[3]!
             n := Int32.parse("0x" ++ hex) or return none
             return Color24Bit(n)
         else if text.matches_pattern($Pat/{1-3 digit}/)

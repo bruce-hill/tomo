@@ -73,8 +73,15 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
                          compile_none(table_type->value_type), ", ", compile_type_info(container_t), ")");
         }
     } else if (container_t->tag == TextType) {
-        return Texts("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
-                     compile_to_type(env, indexing->index, Type(BigIntType)), ")");
+        if (checked) {
+            int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
+            return Texts("Text$cluster_checked(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
+                         compile_to_type(env, indexing->index, Type(BigIntType)), ", ", String(start), ", ",
+                         String(end), ")");
+        } else {
+            return Texts("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
+                         compile_to_type(env, indexing->index, Type(BigIntType)), ")");
+        }
     } else {
         code_err(ast, "Indexing is not supported for type: ", type_to_str(container_t));
     }

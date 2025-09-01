@@ -897,7 +897,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             if (table_type->default_value) return table_type->value_type;
             return Type(OptionalType, table_type->value_type);
         } else if (value_t->tag == TextType) {
-            return value_t;
+            return Type(OptionalType, value_t);
         } else {
             code_err(ast, "I don't know how to index ", type_to_str(indexed_t), " values");
         }
