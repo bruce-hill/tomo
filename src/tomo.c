@@ -34,6 +34,7 @@
 #include "stdlib/siphash.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
+#include "stdlib/util.h"
 #include "types.h"
 
 #define run_cmd(...)                                                                                                   \
@@ -87,16 +88,13 @@ static OptionalText_t show_codegen = NONE_TEXT,
                                     " -D_BSD_SOURCE"
 #endif
                                     " -DGC_THREADS"
-                                    " -I'" TOMO_PREFIX "/include' -I'" TOMO_PREFIX "/lib/tomo_" TOMO_VERSION
-                                    "' -I/usr/local/include"),
+                                    " -I/usr/local/include"),
                       ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo_" TOMO_VERSION),
-                      ldflags = Text("-Wl,-rpath,'" TOMO_PREFIX "/lib',-rpath,/usr/local/lib"
-                                     " -L/usr/local/lib"),
-                      optimization = Text("2"), cc = Text(DEFAULT_C_COMPILER);
+                      ldflags = Text(" -L/usr/local/lib"), optimization = Text("2"), cc = Text(DEFAULT_C_COMPILER);
 
 static Text_t config_summary,
     // This will be either "" or "sudo -u <user>" or "doas -u <user>"
-    // to allow a command to put stuff into TOMO_PREFIX as the owner
+    // to allow a command to put stuff into TOMO_PATH as the owner
     // of that directory.
     as_owner = Text("");
 
@@ -149,40 +147,48 @@ int main(int argc, char *argv[]) {
 #error "Unsupported platform for secure random number generation"
 #endif
 
+    if (getenv("TOMO_PATH")) TOMO_PATH = getenv("TOMO_PATH");
+
+    cflags = Texts("-I'", TOMO_PATH, "/include' -I'", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "' ", cflags);
+
     // Set up environment variables:
     const char *PATH = getenv("PATH");
-    setenv("PATH", PATH ? String(TOMO_PREFIX "/bin:", PATH) : TOMO_PREFIX "/bin", 1);
+    setenv("PATH", PATH ? String(TOMO_PATH, "/bin:", PATH) : String(TOMO_PATH, "/bin"), 1);
     const char *LD_LIBRARY_PATH = getenv("LD_LIBRARY_PATH");
-    setenv("LD_LIBRARY_PATH", LD_LIBRARY_PATH ? String(TOMO_PREFIX "/lib:", LD_LIBRARY_PATH) : TOMO_PREFIX "/lib", 1);
-    const char *LIBRARY_PATH = getenv("LIBRARY_PATH");
-    setenv("LIBRARY_PATH", LIBRARY_PATH ? String(TOMO_PREFIX "/lib:", LIBRARY_PATH) : TOMO_PREFIX "/lib", 1);
-    const char *C_INCLUDE_PATH = getenv("C_INCLUDE_PATH");
-    setenv("C_INCLUDE_PATH", C_INCLUDE_PATH ? String(TOMO_PREFIX "/include:", C_INCLUDE_PATH) : TOMO_PREFIX "/include",
+    setenv("LD_LIBRARY_PATH", LD_LIBRARY_PATH ? String(TOMO_PATH, "/lib:", LD_LIBRARY_PATH) : String(TOMO_PATH, "/lib"),
            1);
+    const char *LIBRARY_PATH = getenv("LIBRARY_PATH");
+    setenv("LIBRARY_PATH", LIBRARY_PATH ? String(TOMO_PATH, "/lib:", LIBRARY_PATH) : String(TOMO_PATH, "/lib"), 1);
+    const char *C_INCLUDE_PATH = getenv("C_INCLUDE_PATH");
+    setenv("C_INCLUDE_PATH",
+           C_INCLUDE_PATH ? String(TOMO_PATH, "/include:", C_INCLUDE_PATH) : String(TOMO_PATH, "/include"), 1);
+    const char *CPATH = getenv("CPATH");
+    setenv("CPATH", CPATH ? String(TOMO_PATH, "/include:", CPATH) : String(TOMO_PATH, "/include"), 1);
 
     // Run a tool:
     if ((streq(argv[1], "-r") || streq(argv[1], "--run")) && argc >= 3) {
         if (strcspn(argv[2], "/;$") == strlen(argv[2])) {
-            const char *program = String("'" TOMO_PREFIX "'/lib/tomo_" TOMO_VERSION "/", argv[2], "/", argv[2]);
+            const char *program = String("'", TOMO_PATH, "'/lib/tomo_" TOMO_VERSION "/", argv[2], "/", argv[2]);
             execv(program, &argv[2]);
         }
         print_err("This is not an installed tomo program: ", argv[2]);
     }
 
-    Text_t usage = Text("\x1b[33;4;1mUsage:\x1b[m\n"
-                        "\x1b[1mRun a program:\x1b[m         tomo file.tm [-- args...]\n"
-                        "\x1b[1mTranspile files:\x1b[m       tomo -t file.tm...\n"
-                        "\x1b[1mCompile object files:\x1b[m  tomo -c file.tm...\n"
-                        "\x1b[1mCompile executables:\x1b[m   tomo -e file.tm...\n"
-                        "\x1b[1mBuild libraries:\x1b[m       tomo -L lib...\n"
-                        "\x1b[1mUninstall libraries:\x1b[m   tomo -u lib...\n"
-                        "\x1b[1mOther flags:\x1b[m\n"
-                        "  --verbose|-v: verbose output\n"
-                        "  --quiet|-q: quiet output\n"
-                        "  --parse|-p: show parse tree\n"
-                        "  --install|-I: install the executable or library\n"
-                        "  --optimization|-O <level>: set optimization level\n"
-                        "  --run|-r: run a program from " TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "\n");
+    Text_t usage = Texts("\x1b[33;4;1mUsage:\x1b[m\n"
+                         "\x1b[1mRun a program:\x1b[m         tomo file.tm [-- args...]\n"
+                         "\x1b[1mTranspile files:\x1b[m       tomo -t file.tm...\n"
+                         "\x1b[1mCompile object files:\x1b[m  tomo -c file.tm...\n"
+                         "\x1b[1mCompile executables:\x1b[m   tomo -e file.tm...\n"
+                         "\x1b[1mBuild libraries:\x1b[m       tomo -L lib...\n"
+                         "\x1b[1mUninstall libraries:\x1b[m   tomo -u lib...\n"
+                         "\x1b[1mOther flags:\x1b[m\n"
+                         "  --verbose|-v: verbose output\n"
+                         "  --quiet|-q: quiet output\n"
+                         "  --parse|-p: show parse tree\n"
+                         "  --install|-I: install the executable or library\n"
+                         "  --optimization|-O <level>: set optimization level\n"
+                         "  --run|-r: run a program from ",
+                         TOMO_PATH, "/lib/tomo_" TOMO_VERSION "\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(
         argc, argv, usage, help, TOMO_VERSION, {"files", true, List$info(&Path$info), &files},
@@ -203,7 +209,7 @@ int main(int argc, char *argv[]) {
         {"m", false, &Bool$info, &source_mapping}, {"changelog", false, &Bool$info, &show_changelog}, );
 
     if (show_prefix) {
-        print(TOMO_PREFIX);
+        print(TOMO_PATH);
         return 0;
     }
 
@@ -229,6 +235,8 @@ int main(int argc, char *argv[]) {
         cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
     }
 
+    ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib',-rpath,/usr/local/lib ", ldflags);
+
 #ifdef __APPLE__
     cflags = Texts(cflags, Text(" -I/opt/homebrew/include"));
     ldflags = Texts(ldflags, Text(" -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib"));
@@ -239,7 +247,7 @@ int main(int argc, char *argv[]) {
 
     config_summary = Text$from_str(String(cc, " ", cflags, " -O", optimization));
 
-    Text_t owner = Path$owner(Path$from_str(TOMO_PREFIX), true);
+    Text_t owner = Path$owner(Path$from_str(TOMO_PATH), true);
     Text_t user = Text$from_str(getenv("USER"));
     if (!Text$equal_values(user, owner)) {
         as_owner = Texts(Text(SUDO " -u "), owner, Text(" "));
@@ -247,7 +255,7 @@ int main(int argc, char *argv[]) {
 
     for (int64_t i = 0; i < uninstall.length; i++) {
         Text_t *u = (Text_t *)(uninstall.data + i * uninstall.stride);
-        xsystem(as_owner, "rm -rvf '" TOMO_PREFIX "'/lib/tomo_" TOMO_VERSION "/", *u);
+        xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo_" TOMO_VERSION "/", *u);
         print("Uninstalled ", *u);
     }
 
@@ -333,7 +341,7 @@ int main(int argc, char *argv[]) {
         for (int64_t i = 0; i < files.length; i++) {
             Path_t path = *(Path_t *)(files.data + i * files.stride);
             Path_t exe = Path$with_extension(path, Text(""), true);
-            xsystem(as_owner, "cp -v '", exe, "' '" TOMO_PREFIX "'/bin/");
+            xsystem(as_owner, "cp -v '", exe, "' '", TOMO_PATH, "'/bin/");
         }
     }
     return 0;
@@ -420,7 +428,7 @@ void build_library(Path_t lib_dir) {
 void install_library(Path_t lib_dir) {
     Text_t lib_dir_name = Path$base_name(lib_dir);
     Text_t versioned_dir = Path$base_name(with_version_suffix(lib_dir));
-    Path_t dest = Path$child(Path$from_str(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION), versioned_dir);
+    Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION)), versioned_dir);
     print("Installing ", lib_dir, " into ", dest);
     if (!Path$equal_values(lib_dir, dest)) {
         if (verbose) whisper("Clearing out any pre-existing version of ", lib_dir_name);
@@ -440,7 +448,7 @@ void install_library(Path_t lib_dir) {
                                "' "
                                ">/dev/null 2>/dev/null"));
     (void)result;
-    print("Installed \033[1m", lib_dir_name, "\033[m to " TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/", versioned_dir);
+    print("Installed \033[1m", lib_dir_name, "\033[m to ", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", versioned_dir);
 }
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs) {
@@ -600,14 +608,13 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         case USE_MODULE: {
             module_info_t mod = get_module_info(stmt_ast);
             const char *full_name = mod.version ? String(mod.name, "_", mod.version) : mod.name;
-            Text_t lib =
-                Texts(Text("-Wl,-rpath,'"), Text(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/"), Text$from_str(full_name),
-                      Text("' '" TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/"), Text$from_str(full_name), Text("/lib"),
-                      Text$from_str(full_name), Text(SHARED_SUFFIX "'"));
+            Text_t lib = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", Text$from_str(full_name),
+                               "' '", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", Text$from_str(full_name), "/lib",
+                               Text$from_str(full_name), SHARED_SUFFIX "'");
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
             List_t children =
-                Path$glob(Path$from_str(String(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/", full_name, "/[!._0-9]*.tm")));
+                Path$glob(Path$from_str(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", full_name, "/[!._0-9]*.tm")));
             for (int64_t i = 0; i < children.length; i++) {
                 Path_t *child = (Path_t *)(children.data + i * children.stride);
                 Table_t discarded = {.fallback = to_compile};

@@ -86,8 +86,8 @@ module_info_t get_module_info(ast_t *use) {
 }
 
 bool try_install_module(module_info_t mod, bool ask_confirmation) {
-    Path_t dest = Path$from_text(
-        Texts(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/", Text$from_str(mod.name), "_", Text$from_str(mod.version)));
+    Path_t dest = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo_" TOMO_VERSION "/", Text$from_str(mod.name),
+                                       "_", Text$from_str(mod.version)));
     if (Path$exists(dest)) return true;
 
     if (mod.git) {

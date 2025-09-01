@@ -98,7 +98,7 @@ void print_stacktrace(FILE *out, int offset) {
     cwd[cwd_len++] = '/';
     cwd[cwd_len] = '\0';
 
-    const char *install_dir = TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/";
+    const char *install_dir = String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/");
 
     static void *stack[1024];
     int64_t size = (int64_t)backtrace(stack, sizeof(stack) / sizeof(stack[0]));
