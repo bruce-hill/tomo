@@ -184,9 +184,11 @@ man/man1/tomo.1: docs/tomo.1.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples:
-	./local-tomo -qIL examples/log examples/ini examples/vectors examples/http examples/wrap examples/colorful
-	./local-tomo -e examples/game/game.tm examples/http-server/http-server.tm
+	./local-tomo -L modules/examples.ini
 	./local-tomo examples/learnxiny.tm
+
+core-libs:
+	./local-tomo -L modules/core.ini
 
 deps:
 	bash ./install_dependencies.sh
@@ -217,14 +219,7 @@ install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) 
 	cp man/man3/* "$(PREFIX)/man/man3/"; \
 	sh link_versions.sh
 
-install-libs: build/bin/$(EXE_FILE) check-utilities
-	if ! [ -w "$(PREFIX)" ]; then \
-		$(SUDO) -u $(OWNER) $(MAKE) install-libs; \
-		exit 0; \
-	fi; \
-	./local-tomo -qIL lib/patterns lib/json lib/time lib/commands lib/shell lib/random lib/base64 lib/pthreads lib/uuid lib/core
-
-install: install-files install-libs
+install: install-files
 
 uninstall:
 	if ! [ -w "$(PREFIX)" ]; then \
@@ -238,4 +233,4 @@ uninstall:
 endif
 
 .SUFFIXES:
-.PHONY: all clean install install-files install-libs uninstall test tags examples deps check-utilities check-c-compiler check-libs version
+.PHONY: all clean install install-files uninstall test tags core-libs examples deps check-utilities check-c-compiler check-libs version

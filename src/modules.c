@@ -15,6 +15,7 @@
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/types.h"
+#include "stdlib/util.h"
 
 #define xsystem(...)                                                                                                   \
     ({                                                                                                                 \
@@ -22,6 +23,33 @@
         if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0)                                                          \
             errx(1, "Failed to run command: %s", String(__VA_ARGS__));                                                 \
     })
+
+bool install_from_modules_ini(Path_t ini_file, bool ask_confirmation) {
+    OptionalClosure_t by_line = Path$by_line(ini_file);
+    if (by_line.fn == NULL) return false;
+    OptionalText_t (*next_line)(void *) = by_line.fn;
+    module_info_t info = {};
+    for (Text_t line; (line = next_line(by_line.userdata)).length >= 0;) {
+        char *line_str = Text$as_c_string(line);
+        const char *next_section = NULL;
+        if (!strparse(line_str, "[", &next_section, "]")) {
+            if (info.name) {
+                if (!try_install_module(info, ask_confirmation)) return false;
+            }
+            print("Checking module ", next_section, "...");
+            info = (module_info_t){.name = next_section};
+            continue;
+        }
+        if (!strparse(line_str, "version=", &info.version) || !strparse(line_str, "url=", &info.url)
+            || !strparse(line_str, "git=", &info.git) || !strparse(line_str, "path=", &info.path)
+            || !strparse(line_str, "revision=", &info.revision))
+            continue;
+    }
+    if (info.name) {
+        if (!try_install_module(info, ask_confirmation)) return false;
+    }
+    return true;
+}
 
 static void read_modules_ini(Path_t ini_file, module_info_t *info) {
     OptionalClosure_t by_line = Path$by_line(ini_file);
@@ -57,28 +85,35 @@ module_info_t get_module_info(ast_t *use) {
     return *info;
 }
 
-bool try_install_module(module_info_t mod) {
+bool try_install_module(module_info_t mod, bool ask_confirmation) {
     Path_t dest = Path$from_text(
         Texts(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/", Text$from_str(mod.name), "_", Text$from_str(mod.version)));
+    if (Path$exists(dest)) return true;
+
     if (mod.git) {
-        OptionalText_t answer = ask(Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
-                                          " is not installed.\nDo you want to install it from git URL ",
-                                          Text$from_str(mod.git), "? [Y/n] "),
-                                    true, true);
-        if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
-            return false;
+        if (ask_confirmation) {
+            OptionalText_t answer =
+                ask(Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
+                          " is not installed.\nDo you want to install it from git URL ", Text$from_str(mod.git),
+                          "? [Y/n] "),
+                    true, true);
+            if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
+                return false;
+        }
         print("Installing ", mod.name, " from git...");
         if (mod.revision) xsystem("git clone --depth=1 --revision ", mod.revision, " ", mod.git, " ", dest);
         else xsystem("git clone --depth=1 ", mod.git, " ", dest);
         xsystem("tomo -L ", dest);
         return true;
     } else if (mod.url) {
-        OptionalText_t answer =
-            ask(Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
+        if (ask_confirmation) {
+            OptionalText_t answer = ask(
+                Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
                       " is not installed.\nDo you want to install it from URL ", Text$from_str(mod.url), "? [Y/n] "),
                 true, true);
-        if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
-            return false;
+            if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
+                return false;
+        }
 
         print("Installing ", mod.name, " from URL...");
 
@@ -102,12 +137,14 @@ bool try_install_module(module_info_t mod) {
         Path$remove(tmpdir, true);
         return true;
     } else if (mod.path) {
-        OptionalText_t answer =
-            ask(Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
+        if (ask_confirmation) {
+            OptionalText_t answer = ask(
+                Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
                       " is not installed.\nDo you want to install it from path ", Text$from_str(mod.path), "? [Y/n] "),
                 true, true);
-        if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
-            return false;
+            if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
+                return false;
+        }
 
         print("Installing ", mod.name, " from path...");
         xsystem("ln -s ", mod.path, " ", dest);

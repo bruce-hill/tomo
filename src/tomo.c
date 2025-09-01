@@ -260,8 +260,15 @@ int main(int argc, char *argv[]) {
         // This *could* be done in parallel, but there may be some dependency issues.
         pid_t child = fork();
         if (child == 0) {
-            build_library(*lib);
-            if (should_install) install_library(*lib);
+            if (Text$equal_values(Path$extension(*lib, false), Text("ini"))) {
+                if (!install_from_modules_ini(*lib, false)) {
+                    print("Failed to install modules from file: ", *lib);
+                    _exit(1);
+                }
+            } else {
+                build_library(*lib);
+                if (should_install) install_library(*lib);
+            }
             _exit(0);
         }
         wait_for_child_success(child);

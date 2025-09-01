@@ -177,7 +177,7 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
             if (glob(String(TOMO_PREFIX "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
                      &tm_files)
                 != 0) {
-                if (!try_install_module(mod)) code_err(ast, "Could not find library");
+                if (!try_install_module(mod, true)) code_err(ast, "Could not find library");
             }
 
             Text_t includes = EMPTY_TEXT;
