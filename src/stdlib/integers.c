@@ -430,7 +430,7 @@ OptionalInt_t Int$parse(Text_t text, Text_t *remainder) {
         else if (*end != '\0') return NONE_INT;
         result = mpz_init_set_str(i, str + 2, 2);
     } else {
-        const char *end = str + 2 + strspn(str + 2, "0123456789");
+        const char *end = str + strspn(str, "0123456789");
         if (remainder) *remainder = Text$from_str(end);
         else if (*end != '\0') return NONE_INT;
         result = mpz_init_set_str(i, str, 10);

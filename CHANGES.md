@@ -8,6 +8,8 @@
 - Library installation has been cleaned up a bit.
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
+- Fixed bugs:
+  - `Int.parse()` had a memory bug.
 
 ## v0.3
 
