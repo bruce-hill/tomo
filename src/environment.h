@@ -43,7 +43,7 @@ typedef struct env_s {
     Text_t id_suffix;
     Table_t *imports;
     compilation_unit_t *code;
-    type_t *fn_ret;
+    ast_t *fn;
     loop_ctx_t *loop_ctx;
     deferral_t *deferred;
     Closure_t *comprehension_action;

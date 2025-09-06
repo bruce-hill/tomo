@@ -95,13 +95,13 @@ static Text_t compile_top_level_code(env_t *env, ast_t *ast) {
         return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case ConvertDef: {
-        type_t *type = get_function_def_type(env, ast);
-        const char *name = get_type_name(Match(type, FunctionType)->ret);
+        type_t *type = get_function_return_type(env, ast);
+        const char *name = get_type_name(type);
         if (!name)
             code_err(ast,
                      "Conversions are only supported for text, struct, and enum "
                      "types, not ",
-                     type_to_str(Match(type, FunctionType)->ret));
+                     type_to_str(type));
         Text_t name_code =
             namespace_name(env, env->namespace, Texts(name, "$", get_line_number(ast->file, ast->start)));
         return compile_function(env, name_code, ast, &env->code->staticdefs);

@@ -131,7 +131,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         return code;
     }
     case Return: {
-        if (!env->fn_ret) code_err(ast, "This return statement is not inside any function");
+        if (!env->fn) code_err(ast, "This return statement is not inside any function");
         ast_t *ret = Match(ast, Return)->value;
 
         Text_t code = EMPTY_TEXT;
@@ -139,22 +139,30 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
         }
 
+        type_t *ret_type = get_function_return_type(env, env->fn);
         if (ret) {
-            if (env->fn_ret->tag == VoidType || env->fn_ret->tag == AbortType)
+            if (ret_type->tag == VoidType || ret_type->tag == AbortType)
                 code_err(ast, "This function is not supposed to return any values, "
                               "according to its type signature");
 
-            env = with_enum_scope(env, env->fn_ret);
-            Text_t value = compile_to_type(env, ret, env->fn_ret);
+            env = with_enum_scope(env, ret_type);
+            if (env->fn->tag == ConvertDef) {
+                type_t *value_type = get_type(env, ret);
+                if (!type_eq(value_type, ret_type)) {
+                    code_err(ret, "This value is a ", type_to_text(value_type),
+                             " but this conversion needs an explicit ", type_to_text(ret_type));
+                }
+            }
+            Text_t value = compile_to_type(env, ret, ret_type);
             if (env->deferred) {
-                code = Texts(compile_declaration(env->fn_ret, Text("ret")), " = ", value, ";\n", code);
+                code = Texts(compile_declaration(ret_type, Text("ret")), " = ", value, ";\n", code);
                 value = Text("ret");
             }
 
             return Texts(code, "return ", value, ";");
         } else {
-            if (env->fn_ret->tag != VoidType)
-                code_err(ast, "This function expects you to return a ", type_to_str(env->fn_ret), " value");
+            if (ret_type->tag != VoidType)
+                code_err(ast, "This function expects you to return a ", type_to_text(ret_type), " value");
             return Texts(code, "return;");
         }
     }
