@@ -158,9 +158,7 @@ ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
         parser_err(ctx, pos, pos + 1,
                    "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
 
-    char quote = *(pos++);
-    char unquote = closing[(int)quote] ? closing[(int)quote] : quote;
-    ast_list_t *chunks = _parse_text_helper(ctx, &pos, quote, unquote, '@', false);
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos);
     return NewAST(ctx->file, start, pos, InlineCCode, .chunks = chunks, .type_ast = type);
 }
 
