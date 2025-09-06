@@ -430,7 +430,7 @@ OptionalInt_t Int$parse(Text_t text, Text_t *remainder) {
         else if (*end != '\0') return NONE_INT;
         result = mpz_init_set_str(i, str + 2, 2);
     } else {
-        const char *end = str + 2 + strspn(str + 2, "0123456789");
+        const char *end = str + strspn(str, "0123456789");
         if (remainder) *remainder = Text$from_str(end);
         else if (*end != '\0') return NONE_INT;
         result = mpz_init_set_str(i, str, 10);
@@ -617,6 +617,8 @@ void Int32$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_
         Text_t text = _int64_to_text((int64_t)(*(c_type *)i));                                                         \
         return colorize ? Texts(Text("\033[35m"), text, Text("\033[m")) : text;                                        \
     }                                                                                                                  \
+  public                                                                                                               \
+    Text_t KindOfInt##$value_as_text(c_type i) { return _int64_to_text((int64_t)i); }                                  \
   public                                                                                                               \
     PUREFUNC int32_t KindOfInt##$compare(const void *x, const void *y, const TypeInfo_t *info) {                       \
         (void)info;                                                                                                    \

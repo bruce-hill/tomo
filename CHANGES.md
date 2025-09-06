@@ -1,5 +1,16 @@
 # Version History
 
+## v0.4
+- Tomo libraries are now installed to `$TOMO_PATH/lib/tomo_vX.Y/module_vZ.W`
+  instead of `$TOMO_PATH/share/tomo_vX.Y/installed/module_vZ.W`
+- Core libraries are no longer shipped with the compiler, they have moved to
+  separate repositories.
+- Library installation has been cleaned up a bit.
+- Added a `--format` flag to the `tomo` binary that autoformats your code
+  (currently unstable, do not rely on it just yet).
+- Fixed bugs:
+  - `Int.parse()` had a memory bug.
+
 ## v0.3
 
 - Added a versioning system based on `CHANGES.md` files and `modules.ini`

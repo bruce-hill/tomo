@@ -10,10 +10,10 @@
 #include "context.h"
 #include "controlflow.h"
 #include "errors.h"
+#include "expressions.h"
 #include "files.h"
 #include "functions.h"
 #include "numbers.h"
-#include "expressions.h"
 #include "suffixes.h"
 #include "text.h"
 #include "types.h"
@@ -23,7 +23,7 @@ ast_t *parse_parens(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     spaces(&pos);
     if (!match(&pos, "(")) return NULL;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     ast_t *expr = optional(ctx, &pos, parse_extended_expr);
     if (!expr) return NULL;
 
@@ -34,7 +34,7 @@ ast_t *parse_parens(parse_ctx_t *ctx, const char *pos) {
         comprehension = parse_comprehension_suffix(ctx, expr);
     }
 
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this expression");
 
     // Update the span to include the parens:
@@ -45,11 +45,13 @@ ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "(")) return NULL;
 
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     ast_e op = match_binary_operator(&pos);
     if (op == Unknown) return NULL;
 
-    ast_t *key = NewAST(ctx->file, pos, pos, Var, .name = "$");
+    const char *op_str = binop_info[op].operator;
+    assert(op_str);
+    ast_t *key = NewAST(ctx->file, pos, pos, Var, .name = op_str);
     for (bool progress = true; progress;) {
         ast_t *new_term;
         progress =
@@ -61,7 +63,7 @@ ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos) {
     if (key && key->tag == Var) key = NULL;
     else if (key) pos = key->end;
 
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     if (!match(&pos, ":")) return NULL;
 
     ast_t *iter = optional(ctx, &pos, parse_extended_expr);
@@ -73,7 +75,7 @@ ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos) {
         suffixed = parse_comprehension_suffix(ctx, iter);
     }
 
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this reduction");
 
     return NewAST(ctx->file, start, pos, Reduction, .iter = iter, .op = op, .key = key);
@@ -164,14 +166,14 @@ ast_t *parse_deserialize(parse_ctx_t *ctx, const char *pos) {
 
     spaces(&pos);
     expect_str(ctx, start, &pos, "(", "I expected arguments for this `deserialize` call");
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     ast_t *value = expect(ctx, start, &pos, parse_extended_expr, "I expected an expression here");
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     expect_str(ctx, start, &pos, "->",
                "I expected a `-> Type` for this `deserialize` call so I know what it deserializes to");
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     type_ast_t *type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this deserialization");
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, ")", "I expected a closing ')' for this `deserialize` call");
     return NewAST(ctx->file, start, pos, Deserialize, .value = value, .type = type);
 }
@@ -238,10 +240,10 @@ ast_t *parse_expr_str(const char *str) {
     };
 
     const char *pos = file->text;
-    whitespace(&pos);
+    whitespace(&ctx, &pos);
     ast_t *ast = parse_extended_expr(&ctx, pos);
     pos = ast->end;
-    whitespace(&pos);
+    whitespace(&ctx, &pos);
     if (pos < file->text + file->len && *pos != '\0')
         parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the string");
     return ast;

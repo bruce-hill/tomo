@@ -125,10 +125,9 @@ Text_t compile_non_optional(env_t *env, ast_t *ast) {
     type_t *t = get_type(env, value);
     Text_t value_code = compile(env, value);
     int64_t line = get_line_number(ast->file, ast->start);
-    return Texts("({ ", compile_declaration(t, Text("opt")), " = ", value_code, "; ", "if unlikely (",
-                 check_none(t, Text("opt")), ")\n", "#line ", String(line), "\n", "fail_source(",
-                 quoted_str(ast->file->filename), ", ", String((int64_t)(value->start - value->file->text)), ", ",
-                 String((int64_t)(value->end - value->file->text)), ", ",
-                 "\"This was expected to be a value, but it's none\");\n", optional_into_nonnone(t, Text("opt")),
-                 "; })");
+    return Texts(
+        "({ ", compile_declaration(t, Text("opt")), " = ", value_code, "; ", "if unlikely (",
+        check_none(t, Text("opt")), ")\n", "#line ", line, "\n", "fail_source(", quoted_str(ast->file->filename), ", ",
+        (int64_t)(value->start - value->file->text), ", ", (int64_t)(value->end - value->file->text), ", ",
+        "\"This was expected to be a value, but it's none\");\n", optional_into_nonnone(t, Text("opt")), "; })");
 }

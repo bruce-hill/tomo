@@ -152,7 +152,7 @@ Text_t compile(env_t *env, ast_t *ast) {
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
         ast_t *lhs = ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs;
         ast_t *rhs = ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs;
-        const char *key_name = "$";
+        const char *key_name = ast->tag == Min ? "_min_" : "_max_";
         if (key == NULL) key = FakeAST(Var, key_name);
 
         env_t *expr_env = fresh_scope(env);
@@ -237,7 +237,8 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Index: return compile_indexing(env, ast);
     case InlineCCode: {
         type_t *t = get_type(env, ast);
-        if (t->tag == VoidType) return Texts("{\n", compile_statement(env, ast), "\n}");
+        if (Match(ast, InlineCCode)->type_ast != NULL) return Texts("({", compile_statement(env, ast), "; })");
+        else if (t->tag == VoidType) return Texts("{\n", compile_statement(env, ast), "\n}");
         else return compile_statement(env, ast);
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");

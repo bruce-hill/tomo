@@ -67,7 +67,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             }
         }
     } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
-        b = get_namespace_binding(env, binop.lhs, binop_method_name(ast->tag));
+        b = get_namespace_binding(env, binop.lhs, binop_info[ast->tag].method_name);
         if (b && b->type->tag == FunctionType) {
             DeclareMatch(fn, b->type, FunctionType);
             if (type_eq(fn->ret, lhs_t)) {

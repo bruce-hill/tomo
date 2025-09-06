@@ -8,7 +8,6 @@
 
 #include "environment.h"
 #include "stdlib/integers.h"
-#include "stdlib/print.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
 #include "types.h"
@@ -30,7 +29,7 @@ Text_t type_to_text(type_t *t) {
     case CStringType: return Text("CString");
     case TextType: return Match(t, TextType)->lang ? Text$from_str(Match(t, TextType)->lang) : Text("Text");
     case BigIntType: return Text("Int");
-    case IntType: return Texts("Int", String(Match(t, IntType)->bits));
+    case IntType: return Texts("Int", (int32_t)Match(t, IntType)->bits);
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS32 ? Text("Num32") : Text("Num");
     case ListType: {
         DeclareMatch(list, t, ListType);
@@ -84,7 +83,7 @@ Text_t type_to_text(type_t *t) {
     }
     default: {
         raise(SIGABRT);
-        return Texts("Unknown type: ", String(t->tag));
+        return Texts("Unknown type: ", (int32_t)t->tag);
     }
     }
 }

@@ -41,6 +41,9 @@ bool USE_COLOR;
 public
 Text_t TOMO_VERSION_TEXT = Text(TOMO_VERSION);
 
+public
+const char *TOMO_PATH = TOMO_INSTALL;
+
 static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
     (void)info, (void)userdata;
     assert(sig == SIGILL);

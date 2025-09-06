@@ -22,7 +22,15 @@ public
 Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
     if (code.length == 0 || !ast || !ast->file || !env->do_source_mapping) return code;
     int64_t line = get_line_number(ast->file, ast->start);
-    return Texts("\n#line ", String(line), "\n", code);
+    return Texts("\n#line ", line, "\n", code);
+}
+
+static Text_t compile_simple_update_assignment(env_t *env, ast_t *ast, const char *op) {
+    binary_operands_t update = BINARY_OPERANDS(ast);
+    type_t *lhs_t = get_type(env, update.lhs);
+    if (is_idempotent(update.lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
+        return Texts(compile_lvalue(env, update.lhs), " ", op, "= ", compile_to_type(env, update.rhs, lhs_t), ";");
+    return compile_update_assignment(env, ast);
 }
 
 static Text_t _compile_statement(env_t *env, ast_t *ast) {
@@ -47,41 +55,12 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         }
     }
     case Assign: return compile_assignment_statement(env, ast);
-    case PlusUpdate: {
-        DeclareMatch(update, ast, PlusUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " += ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
-    case MinusUpdate: {
-        DeclareMatch(update, ast, MinusUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " -= ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
-    case MultiplyUpdate: {
-        DeclareMatch(update, ast, MultiplyUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " *= ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
-    case DivideUpdate: {
-        DeclareMatch(update, ast, DivideUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " /= ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
-    case ModUpdate: {
-        DeclareMatch(update, ast, ModUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " %= ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
+    case PlusUpdate: return compile_simple_update_assignment(env, ast, "+");
+    case MinusUpdate: return compile_simple_update_assignment(env, ast, "-");
+    case MultiplyUpdate: return compile_simple_update_assignment(env, ast, "*");
+    case DivideUpdate: return compile_simple_update_assignment(env, ast, "/");
+    case ModUpdate: return compile_simple_update_assignment(env, ast, "%");
+
     case PowerUpdate:
     case Mod1Update:
     case ConcatUpdate:
@@ -121,7 +100,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             if (Text$starts_with(entry->b->code, Text("userdata->"), NULL)) {
                 Table$str_set(defer_env->locals, entry->name, entry->b);
             } else {
-                Text_t defer_name = Texts("defer$", String(++defer_id), "$", entry->name);
+                Text_t defer_name = Texts("defer$", ++defer_id, "$", entry->name);
                 defer_id += 1;
                 code = Texts(code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
                 set_binding(defer_env, entry->name, entry->b->type, defer_name);
@@ -131,7 +110,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         return code;
     }
     case Return: {
-        if (!env->fn_ret) code_err(ast, "This return statement is not inside any function");
+        if (!env->fn) code_err(ast, "This return statement is not inside any function");
         ast_t *ret = Match(ast, Return)->value;
 
         Text_t code = EMPTY_TEXT;
@@ -139,22 +118,30 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
         }
 
+        type_t *ret_type = get_function_return_type(env, env->fn);
         if (ret) {
-            if (env->fn_ret->tag == VoidType || env->fn_ret->tag == AbortType)
+            if (ret_type->tag == VoidType || ret_type->tag == AbortType)
                 code_err(ast, "This function is not supposed to return any values, "
                               "according to its type signature");
 
-            env = with_enum_scope(env, env->fn_ret);
-            Text_t value = compile_to_type(env, ret, env->fn_ret);
+            env = with_enum_scope(env, ret_type);
+            if (env->fn->tag == ConvertDef) {
+                type_t *value_type = get_type(env, ret);
+                if (!type_eq(value_type, ret_type)) {
+                    code_err(ret, "This value is a ", type_to_text(value_type),
+                             " but this conversion needs an explicit ", type_to_text(ret_type));
+                }
+            }
+            Text_t value = compile_to_type(env, ret, ret_type);
             if (env->deferred) {
-                code = Texts(compile_declaration(env->fn_ret, Text("ret")), " = ", value, ";\n", code);
+                code = Texts(compile_declaration(ret_type, Text("ret")), " = ", value, ";\n", code);
                 value = Text("ret");
             }
 
             return Texts(code, "return ", value, ";");
         } else {
-            if (env->fn_ret->tag != VoidType)
-                code_err(ast, "This function expects you to return a ", type_to_str(env->fn_ret), " value");
+            if (ret_type->tag != VoidType)
+                code_err(ast, "This function expects you to return a ", type_to_text(ret_type), " value");
             return Texts(code, "return;");
         }
     }
@@ -204,10 +191,10 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             module_info_t mod = get_module_info(ast);
             glob_t tm_files;
             const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
-            if (glob(String(TOMO_PREFIX "/share/tomo_" TOMO_VERSION "/installed/", folder, "/[!._0-9]*.tm"), GLOB_TILDE,
-                     NULL, &tm_files)
+            if (glob(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
+                     &tm_files)
                 != 0) {
-                if (!try_install_module(mod)) code_err(ast, "Could not find library");
+                if (!try_install_module(mod, true)) code_err(ast, "Could not find library");
             }
 
             Text_t initialization = EMPTY_TEXT;

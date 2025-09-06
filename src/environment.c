@@ -73,7 +73,9 @@ env_t *global_env(bool source_mapping) {
     } ns_entry_t;
 
 #define MAKE_TYPE(name, type, type_name, type_info, ...)                                                               \
-    {name, type, type_name, type_info, TypedList(ns_entry_t, __VA_ARGS__)}
+    {                                                                                                                  \
+        name, type, type_name, type_info, TypedList(ns_entry_t, __VA_ARGS__)                                           \
+    }
     struct {
         const char *name;
         type_t *type;
@@ -736,7 +738,7 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, bool
 }
 
 PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, ast_t *rhs, type_t *ret) {
-    const char *method_name = binop_method_name(tag);
+    const char *method_name = binop_info[tag].method_name;
     if (!method_name) return NULL;
     binding_t *b = get_namespace_binding(env, lhs, method_name);
     if (!b || b->type->tag != FunctionType) return NULL;

@@ -43,7 +43,7 @@ Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type) {
         size_t n = 0;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next)
             ++n;
-        code = Texts(code, ", ", String((int64_t)n));
+        code = Texts(code, ", ", (int64_t)n);
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             DeclareMatch(e, entry->ast, TableEntry);
