@@ -103,7 +103,7 @@ func main()
                 break x # This is the same as `stop x`
 
     # Tables are efficient hash maps
-    table := {"one"=1, "two"=2}
+    table := {"one": 1, "two": 2}
     >> table["two"]
     = 2?
 
@@ -122,7 +122,7 @@ func main()
     = 0
 
     # Empty tables require specifying the key and value types:
-    empty_table : {Text=Int}
+    empty_table : {Text:Int}
 
     # Tables can be iterated over either by key or key,value:
     for key in table
@@ -140,22 +140,22 @@ func main()
 
     # Tables can have a fallback table that's used as a fallback when the key
     # isn't found in the table itself:
-    table2 := {"three"=3; fallback=table}
+    table2 := {"three": 3; fallback=table}
     >> table2["two"]!
     = 2
     >> table2["three"]!
     = 3
 
     # Tables can also be created with comprehension loops:
-    >> {x=10*x for x in 5}
-    = {1=10, 2=20, 3=30, 4=40, 5=50}
+    >> {x: 10*x for x in 5}
+    = {1: 10, 2: 20, 3: 30, 4: 40, 5: 50}
 
     # If no default is provided and a missing key is looked up, the program
     # will print an error message and halt.
 
     # Any types can be used in tables, for example, a table mapping lists to
     # strings:
-    table3 := {[10, 20]="one", [30, 40, 50]="two"}
+    table3 := {[10, 20]: "one", [30, 40, 50]: "two"}
     >> table3[[10, 20]]!
     = "one"
 
@@ -242,7 +242,7 @@ func takes_many_types(
     floating_point_number:Num,
     text_aka_string:Text,
     list_of_ints:[Int],
-    table_of_text_to_bools:{Text=Bool},
+    table_of_text_to_bools:{Text:Bool},
     set_of_ints:|Int|,
     pointer_to_mutable_list_of_ints:@[Int],
     optional_int:Int?,
@@ -293,7 +293,7 @@ func demo_structs()
     >> "$alice" == 'Person(name="Alice", age=30)'
     = yes
 
-    table := {alice="first", bob="second"}
+    table := {alice: "first", bob: "second"}
     >> table[alice]!
     = "first"
 
@@ -338,8 +338,8 @@ func demo_enums()
     >> "$my_shape" == "Circle(1)"
     = yes
 
-    >> {my_shape="nice"}
-    = {Shape.Circle(1)="nice"}
+    >> {my_shape: "nice"}
+    = {Shape.Circle(1): "nice"}
 
 func demo_lambdas()
     # Lambdas, or anonymous functions, can be used like this:

@@ -783,7 +783,7 @@ last | `Int` | The index of the last grapheme cluster to include (1-indexed).  |
 ## Text.translate
 
 ```tomo
-Text.translate : func(text: Text, translations: {Text=Text} -> Text)
+Text.translate : func(text: Text, translations: {Text:Text} -> Text)
 ```
 
 Takes a table mapping target texts to their replacements and performs all the replacements in the table on the whole text. At each position, the first matching replacement is applied and the matching moves on to *after* the replacement text, so replacement text is not recursively modified. See Text.replace() for more information about replacement behavior.
@@ -791,7 +791,7 @@ Takes a table mapping target texts to their replacements and performs all the re
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be translated.  | -
-translations | `{Text=Text}` | A table mapping from target text to its replacement.  | -
+translations | `{Text:Text}` | A table mapping from target text to its replacement.  | -
 
 **Return:** The text with all occurrences of the targets replaced with their corresponding replacement text.
 
@@ -799,11 +799,11 @@ translations | `{Text=Text}` | A table mapping from target text to its replaceme
 **Example:**
 ```tomo
 >> "A <tag> & an amperand".translate({
-    "&" = "&amp;",
-    "<" = "&lt;",
-    ">" = "&gt;",
-    '"" = "&quot",
-    "'" = "&#39;",
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"": "&quot",
+    "'": "&#39;",
 })
 = "A &lt;tag&gt; &amp; an ampersand"
 

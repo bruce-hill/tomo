@@ -328,7 +328,7 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
         return true; // || -> |T|
     if (actual->tag == TableType && needed->tag == TableType && Match(actual, TableType)->key_type == NULL
         && Match(actual, TableType)->value_type == NULL)
-        return true; // {} -> {K=V}
+        return true; // {} -> {K:V}
 
     // Cross-promotion between tables with default values and without
     if (needed->tag == TableType && actual->tag == TableType) {

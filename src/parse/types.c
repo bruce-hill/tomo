@@ -23,15 +23,14 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     pos = key_type->end;
     whitespace(ctx, &pos);
     type_ast_t *value_type = NULL;
-    if (match(&pos, "=")) {
+    if (match(&pos, ":")) {
         value_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the rest of this table type");
     } else {
         return NULL;
     }
     spaces(&pos);
     ast_t *default_value = NULL;
-    if (match(&pos, ";") && match_word(&pos, "default")) {
-        expect_str(ctx, pos, &pos, "=", "I expected an '=' here");
+    if (match(&pos, "=")) {
         default_value =
             expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the default value for this table");
     }

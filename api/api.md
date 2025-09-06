@@ -3846,14 +3846,14 @@ other | `|T|` | The set of items to remove from the original set.  | -
 ## Table.clear
 
 ```tomo
-Table.clear : func(t: &{K=V} -> Void)
+Table.clear : func(t: &{K:V} -> Void)
 ```
 
 Removes all key-value pairs from the table.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `&{K=V}` | The reference to the table.  | -
+t | `&{K:V}` | The reference to the table.  | -
 
 **Return:** Nothing.
 
@@ -3866,7 +3866,7 @@ t | `&{K=V}` | The reference to the table.  | -
 ## Table.get
 
 ```tomo
-Table.get : func(t: {K=V}, key: K -> V?)
+Table.get : func(t: {K:V}, key: K -> V?)
 ```
 
 Retrieves the value associated with a key, or returns `none` if the key is not present.
@@ -3875,7 +3875,7 @@ Default values for the table are ignored.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The table.  | -
+t | `{K:V}` | The table.  | -
 key | `K` | The key whose associated value is to be retrieved.  | -
 
 **Return:** The value associated with the key or `none` if the key is not found.
@@ -3883,7 +3883,7 @@ key | `K` | The key whose associated value is to be retrieved.  | -
 
 **Example:**
 ```tomo
->> t := {"A"=1, "B"=2}
+>> t := {"A": 1, "B": 2}
 >> t.get("A")
 = 1?
 
@@ -3900,7 +3900,7 @@ key | `K` | The key whose associated value is to be retrieved.  | -
 ## Table.get_or_set
 
 ```tomo
-Table.get_or_set : func(t: &{K=V}, key: K, default: V -> V?)
+Table.get_or_set : func(t: &{K:V}, key: K, default: V -> V?)
 ```
 
 If the given key is in the table, return the associated value. Otherwise, insert the given default value into the table and return it.
@@ -3910,7 +3910,7 @@ The default value is only evaluated if the key is missing.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `&{K=V}` | The table.  | -
+t | `&{K:V}` | The table.  | -
 key | `K` | The key whose associated value is to be retrieved.  | -
 default | `V` | The default value to insert and return if the key is not present in the table.  | -
 
@@ -3919,29 +3919,29 @@ default | `V` | The default value to insert and return if the key is not present
 
 **Example:**
 ```tomo
->> t := &{"A"=@[1, 2, 3]; default=@[]}
+>> t := &{"A": @[1, 2, 3]; default=@[]}
 >> t.get_or_set("A").insert(4)
 >> t.get_or_set("B").insert(99)
 >> t
-= &{"A"=@[1, 2, 3, 4], "B"=@[99]}
+= &{"A": @[1, 2, 3, 4], "B": @[99]}
 
 >> t.get_or_set("C", @[0, 0, 0])
 = @[0, 0, 0]
 >> t
-= &{"A"=@[1, 2, 3, 4], "B"=@[99], "C"=@[0, 0, 0]}
+= &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
 
 ```
 ## Table.has
 
 ```tomo
-Table.has : func(t: {K=V}, key: K -> Bool)
+Table.has : func(t: {K:V}, key: K -> Bool)
 ```
 
 Checks if the table contains a specified key.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The table.  | -
+t | `{K:V}` | The table.  | -
 key | `K` | The key to check for presence.  | -
 
 **Return:** `yes` if the key is present, `no` otherwise.
@@ -3949,23 +3949,23 @@ key | `K` | The key to check for presence.  | -
 
 **Example:**
 ```tomo
->> {"A"=1, "B"=2}.has("A")
+>> {"A": 1, "B": 2}.has("A")
 = yes
->> {"A"=1, "B"=2}.has("xxx")
+>> {"A": 1, "B": 2}.has("xxx")
 = no
 
 ```
 ## Table.remove
 
 ```tomo
-Table.remove : func(t: {K=V}, key: K -> Void)
+Table.remove : func(t: {K:V}, key: K -> Void)
 ```
 
 Removes the key-value pair associated with a specified key.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The reference to the table.  | -
+t | `{K:V}` | The reference to the table.  | -
 key | `K` | The key of the key-value pair to remove.  | -
 
 **Return:** Nothing.
@@ -3973,23 +3973,23 @@ key | `K` | The key of the key-value pair to remove.  | -
 
 **Example:**
 ```tomo
-t := {"A"=1, "B"=2}
+t := {"A": 1, "B": 2}
 t.remove("A")
 >> t
-= {"B"=2}
+= {"B": 2}
 
 ```
 ## Table.set
 
 ```tomo
-Table.set : func(t: {K=V}, key: K, value: V -> Void)
+Table.set : func(t: {K:V}, key: K, value: V -> Void)
 ```
 
 Sets or updates the value associated with a specified key.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The reference to the table.  | -
+t | `{K:V}` | The reference to the table.  | -
 key | `K` | The key to set or update.  | -
 value | `V` | The value to associate with the key.  | -
 
@@ -3998,32 +3998,32 @@ value | `V` | The value to associate with the key.  | -
 
 **Example:**
 ```tomo
-t := {"A"=1, "B"=2}
+t := {"A": 1, "B": 2}
 t.set("C", 3)
 >> t
-= {"A"=1, "B"=2, "C"=3}
+= {"A": 1, "B": 2, "C": 3}
 
 ```
 ## Table.with_fallback
 
 ```tomo
-Table.with_fallback : func(t: {K=V}, fallback: {K=V}? -> {K=V})
+Table.with_fallback : func(t: {K:V}, fallback: {K:V}? -> {K:V})
 ```
 
 Return a copy of a table with a different fallback table.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-t | `{K=V}` | The table whose fallback will be replaced.  | -
-fallback | `{K=V}?` | The new fallback table value.  | -
+t | `{K:V}` | The table whose fallback will be replaced.  | -
+fallback | `{K:V}?` | The new fallback table value.  | -
 
 **Return:** The original table with a different fallback.
 
 
 **Example:**
 ```tomo
-t := {"A"=1; fallback={"B"=2}}
-t2 = t.with_fallback({"B"=3"})
+t := {"A": 1; fallback={"B": 2}}
+t2 = t.with_fallback({"B": 3"})
 >> t2["B"]
 = 3?
 t3 = t.with_fallback(none)
@@ -4835,7 +4835,7 @@ last | `Int` | The index of the last grapheme cluster to include (1-indexed).  |
 ## Text.translate
 
 ```tomo
-Text.translate : func(text: Text, translations: {Text=Text} -> Text)
+Text.translate : func(text: Text, translations: {Text:Text} -> Text)
 ```
 
 Takes a table mapping target texts to their replacements and performs all the replacements in the table on the whole text. At each position, the first matching replacement is applied and the matching moves on to *after* the replacement text, so replacement text is not recursively modified. See Text.replace() for more information about replacement behavior.
@@ -4843,7 +4843,7 @@ Takes a table mapping target texts to their replacements and performs all the re
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to be translated.  | -
-translations | `{Text=Text}` | A table mapping from target text to its replacement.  | -
+translations | `{Text:Text}` | A table mapping from target text to its replacement.  | -
 
 **Return:** The text with all occurrences of the targets replaced with their corresponding replacement text.
 
@@ -4851,11 +4851,11 @@ translations | `{Text=Text}` | A table mapping from target text to its replaceme
 **Example:**
 ```tomo
 >> "A <tag> & an amperand".translate({
-    "&" = "&amp;",
-    "<" = "&lt;",
-    ">" = "&gt;",
-    '"" = "&quot",
-    "'" = "&#39;",
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"": "&quot",
+    "'": "&#39;",
 })
 = "A &lt;tag&gt; &amp; an ampersand"
 

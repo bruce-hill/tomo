@@ -203,7 +203,7 @@ func main()
 	>> "Hello".replace("ello", "i")
 	= "Hi"
 
-	>> "<tag>".translate({"<"="&lt;", ">"="&gt;"})
+	>> "<tag>".translate({"<": "&lt;", ">": "&gt;"})
 	= "&lt;tag&gt;"
 
 	>> "Abc".repeat(3)

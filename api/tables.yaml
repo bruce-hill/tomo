@@ -8,7 +8,7 @@ Table.clear:
       Nothing.
   args:
     t:
-      type: '&{K=V}'
+      type: '&{K:V}'
       description: >
         The reference to the table.
   example: |
@@ -26,7 +26,7 @@ Table.get:
       The value associated with the key or `none` if the key is not found.
   args:
     t:
-      type: '{K=V}'
+      type: '{K:V}'
       description: >
         The table.
     key:
@@ -34,7 +34,7 @@ Table.get:
       description: >
         The key whose associated value is to be retrieved.
   example: |
-    >> t := {"A"=1, "B"=2}
+    >> t := {"A": 1, "B": 2}
     >> t.get("A")
     = 1?
 
@@ -64,7 +64,7 @@ Table.get_or_set:
       table will be mutated if the key is not already present.
   args:
     t:
-      type: "&{K=V}"
+      type: "&{K:V}"
       description: >
         The table.
     key:
@@ -76,16 +76,16 @@ Table.get_or_set:
       description: >
         The default value to insert and return if the key is not present in the table.
   example: |
-    >> t := &{"A"=@[1, 2, 3]; default=@[]}
+    >> t := &{"A": @[1, 2, 3]; default=@[]}
     >> t.get_or_set("A").insert(4)
     >> t.get_or_set("B").insert(99)
     >> t
-    = &{"A"=@[1, 2, 3, 4], "B"=@[99]}
+    = &{"A": @[1, 2, 3, 4], "B": @[99]}
 
     >> t.get_or_set("C", @[0, 0, 0])
     = @[0, 0, 0]
     >> t
-    = &{"A"=@[1, 2, 3, 4], "B"=@[99], "C"=@[0, 0, 0]}
+    = &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
 
 Table.has:
   short: check for a key
@@ -97,7 +97,7 @@ Table.has:
       `yes` if the key is present, `no` otherwise.
   args:
     t:
-      type: '{K=V}'
+      type: '{K:V}'
       description: >
         The table.
     key:
@@ -105,9 +105,9 @@ Table.has:
       description: >
         The key to check for presence.
   example: |
-    >> {"A"=1, "B"=2}.has("A")
+    >> {"A": 1, "B": 2}.has("A")
     = yes
-    >> {"A"=1, "B"=2}.has("xxx")
+    >> {"A": 1, "B": 2}.has("xxx")
     = no
 
 Table.remove:
@@ -120,7 +120,7 @@ Table.remove:
       Nothing.
   args:
     t:
-      type: '{K=V}'
+      type: '{K:V}'
       description: >
         The reference to the table.
     key:
@@ -128,10 +128,10 @@ Table.remove:
       description: >
         The key of the key-value pair to remove.
   example: |
-    t := {"A"=1, "B"=2}
+    t := {"A": 1, "B": 2}
     t.remove("A")
     >> t
-    = {"B"=2}
+    = {"B": 2}
 
 Table.set:
   short: set a table entry
@@ -143,7 +143,7 @@ Table.set:
       Nothing.
   args:
     t:
-      type: '{K=V}'
+      type: '{K:V}'
       description: >
         The reference to the table.
     key:
@@ -155,31 +155,31 @@ Table.set:
       description: >
         The value to associate with the key.
   example: |
-    t := {"A"=1, "B"=2}
+    t := {"A": 1, "B": 2}
     t.set("C", 3)
     >> t
-    = {"A"=1, "B"=2, "C"=3}
+    = {"A": 1, "B": 2, "C": 3}
 
 Table.with_fallback:
   short: return a table with a new fallback
   description: >
     Return a copy of a table with a different fallback table.
   return:
-    type: '{K=V}'
+    type: '{K:V}'
     description: >
       The original table with a different fallback.
   args:
     t:
-      type: '{K=V}'
+      type: '{K:V}'
       description: >
         The table whose fallback will be replaced.
     fallback:
-      type: '{K=V}?'
+      type: '{K:V}?'
       description: >
         The new fallback table value.
   example: |
-    t := {"A"=1; fallback={"B"=2}}
-    t2 = t.with_fallback({"B"=3"})
+    t := {"A": 1; fallback={"B": 2}}
+    t2 = t.with_fallback({"B": 3"})
     >> t2["B"]
     = 3?
     t3 = t.with_fallback(none)

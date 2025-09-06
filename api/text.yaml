@@ -829,16 +829,16 @@ Text.translate:
       description: >
         The text to be translated.
     translations:
-      type: '{Text=Text}'
+      type: '{Text:Text}'
       description: >
         A table mapping from target text to its replacement.
   example: |
     >> "A <tag> & an amperand".translate({
-        "&" = "&amp;",
-        "<" = "&lt;",
-        ">" = "&gt;",
-        '"" = "&quot",
-        "'" = "&#39;",
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"": "&quot",
+        "'": "&#39;",
     })
     = "A &lt;tag&gt; &amp; an ampersand"
 

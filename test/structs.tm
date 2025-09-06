@@ -66,9 +66,9 @@ func main()
 	= Password("Swordfish")
 	>> "$my_pass"
 	= "Password(...)"
-	>> users_by_password := {my_pass="User1", Password("xxx")="User2"}
+	>> users_by_password := {my_pass: "User1", Password("xxx"): "User2"}
 	>> "$users_by_password"
-	= '{Password(...)="User1", Password(...)="User2"}'
+	= '{Password(...): "User1", Password(...): "User2"}'
 	>> users_by_password[my_pass]!
 	= "User1"
 
