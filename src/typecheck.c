@@ -1356,7 +1356,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
                 }
             }
         } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
-            binding_t *b = get_namespace_binding(env, binop.lhs, binop_method_name(ast->tag));
+            binding_t *b = get_namespace_binding(env, binop.lhs, binop_info[ast->tag].method_name);
             if (b && b->type->tag == FunctionType) {
                 DeclareMatch(fn, b->type, FunctionType);
                 if (type_eq(fn->ret, lhs_t)) {
@@ -1415,7 +1415,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             code_err(reduction->iter, "I don't know how to do a reduction over ", type_to_str(iter_t), " values");
         if (reduction->key && !(reduction->op == Min || reduction->op == Max)) {
             env_t *item_scope = fresh_scope(env);
-            const char *op_str = binop_operator(reduction->op);
+            const char *op_str = binop_info[reduction->op].operator;
             set_binding(item_scope, op_str, iterated, EMPTY_TEXT);
             iterated = get_type(item_scope, reduction->key);
         }

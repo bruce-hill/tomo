@@ -323,7 +323,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         if (reduction->key) {
             return Texts("(", fmt_inline(reduction->key, comments), ": ", fmt_inline(reduction->iter, comments));
         } else {
-            return Texts("(", binop_operator(reduction->op), ": ", fmt_inline(reduction->iter, comments));
+            return Texts("(", Text$from_str(binop_info[reduction->op].operator), ": ",
+                         fmt_inline(reduction->iter, comments));
         }
     }
     /*inline*/ case None:
@@ -353,7 +354,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case BINOP_CASES: {
         binary_operands_t operands = BINARY_OPERANDS(ast);
-        const char *op = binop_operator(ast->tag);
+        const char *op = binop_info[ast->tag].operator;
 
         Text_t lhs = fmt_inline(operands.lhs, comments);
         Text_t rhs = fmt_inline(operands.rhs, comments);
@@ -368,7 +369,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             rhs = parenthesize(rhs, EMPTY_TEXT);
 
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
-        return Texts(lhs, space, Text$from_str(binop_operator(ast->tag)), space, rhs);
+        return Texts(lhs, space, Text$from_str(binop_info[ast->tag].operator), space, rhs);
     }
     /*inline*/ case Deserialize: {
         DeclareMatch(deserialize, ast, Deserialize);
@@ -760,7 +761,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             return Texts("(", fmt(reduction->key, comments, Texts(indent, single_indent)), ": ",
                          fmt(reduction->iter, comments, Texts(indent, single_indent)));
         } else {
-            return Texts("(", binop_operator(reduction->op), ": ",
+            return Texts("(", binop_info[reduction->op].operator, ": ",
                          fmt(reduction->iter, comments, Texts(indent, single_indent)));
         }
     }
@@ -808,7 +809,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case BINOP_CASES: {
         if (inlined_fits) return inlined;
         binary_operands_t operands = BINARY_OPERANDS(ast);
-        const char *op = binop_operator(ast->tag);
+        const char *op = binop_info[ast->tag].operator;
         Text_t lhs = fmt(operands.lhs, comments, indent);
         Text_t rhs = fmt(operands.rhs, comments, indent);
 
@@ -822,7 +823,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             rhs = parenthesize(rhs, indent);
 
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
-        return Texts(lhs, space, Text$from_str(binop_operator(ast->tag)), space, rhs);
+        return Texts(lhs, space, Text$from_str(binop_info[ast->tag].operator), space, rhs);
     }
     /*multiline*/ case Deserialize: {
         if (inlined_fits) return inlined;

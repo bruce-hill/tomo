@@ -481,6 +481,13 @@ struct ast_s {
 
 extern const int op_tightness[NUM_AST_TAGS];
 
+typedef struct {
+    const char *method_name;
+    const char *operator;
+} binop_info_t;
+
+extern const binop_info_t binop_info[NUM_AST_TAGS];
+
 OptionalText_t ast_source(ast_t *ast);
 
 Text_t ast_to_sexp(ast_t *ast);
@@ -490,7 +497,5 @@ Text_t type_ast_to_sexp(type_ast_t *ast);
 PUREFUNC bool is_idempotent(ast_t *ast);
 void visit_topologically(ast_list_t *ast, Closure_t fn);
 CONSTFUNC bool is_update_assignment(ast_t *ast);
-CONSTFUNC const char *binop_method_name(ast_e tag);
-CONSTFUNC const char *binop_operator(ast_e tag);
 CONSTFUNC ast_e binop_tag(ast_e tag);
 CONSTFUNC bool is_binary_operation(ast_t *ast);

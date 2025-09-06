@@ -12,7 +12,7 @@ public
 Text_t compile_reduction(env_t *env, ast_t *ast) {
     DeclareMatch(reduction, ast, Reduction);
     ast_e op = reduction->op;
-    const char *op_str = binop_operator(op);
+    const char *op_str = binop_info[op].operator;
 
     type_t *iter_t = get_type(env, reduction->iter);
     type_t *item_t = get_iterated_type(iter_t);

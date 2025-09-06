@@ -12,7 +12,16 @@
 #include "../types.h"
 #include "compilation.h"
 
-static void initialize_vars_and_statics(env_t *env, ast_t *ast) {
+static void initialize_vars_and_statics(env_t *env, ast_t *ast);
+static void initialize_namespace(env_t *env, const char *name, ast_t *namespace);
+static Text_t compile_top_level_code(env_t *env, ast_t *ast);
+static Text_t compile_namespace(env_t *env, const char *name, ast_t *namespace);
+
+void initialize_namespace(env_t *env, const char *name, ast_t *namespace) {
+    initialize_vars_and_statics(namespace_env(env, name), namespace);
+}
+
+void initialize_vars_and_statics(env_t *env, ast_t *ast) {
     if (!ast) return;
 
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
@@ -27,24 +36,20 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast) {
             if (t->tag == FunctionType) t = Type(ClosureType, t);
             Text_t val_code = compile_declared_value(env, stmt->ast);
             if ((decl->value && !is_constant(env, decl->value)) || (!decl->value && has_heap_memory(t))) {
-                Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
+                Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$initialized"));
                 env->code->variable_initializers =
                     Texts(env->code->variable_initializers,
                           with_source_info(env, stmt->ast,
                                            Texts(full_name, " = ", val_code, ",\n", initialized_name, " = true;\n")));
             }
         } else if (stmt->ast->tag == StructDef) {
-            initialize_vars_and_statics(namespace_env(env, Match(stmt->ast, StructDef)->name),
-                                        Match(stmt->ast, StructDef)->namespace);
+            initialize_namespace(env, Match(stmt->ast, StructDef)->name, Match(stmt->ast, StructDef)->namespace);
         } else if (stmt->ast->tag == EnumDef) {
-            initialize_vars_and_statics(namespace_env(env, Match(stmt->ast, EnumDef)->name),
-                                        Match(stmt->ast, EnumDef)->namespace);
+            initialize_namespace(env, Match(stmt->ast, EnumDef)->name, Match(stmt->ast, EnumDef)->namespace);
         } else if (stmt->ast->tag == LangDef) {
-            initialize_vars_and_statics(namespace_env(env, Match(stmt->ast, LangDef)->name),
-                                        Match(stmt->ast, LangDef)->namespace);
+            initialize_namespace(env, Match(stmt->ast, LangDef)->name, Match(stmt->ast, LangDef)->namespace);
         } else if (stmt->ast->tag == Extend) {
-            initialize_vars_and_statics(namespace_env(env, Match(stmt->ast, Extend)->name),
-                                        Match(stmt->ast, Extend)->body);
+            initialize_namespace(env, Match(stmt->ast, Extend)->name, Match(stmt->ast, Extend)->body);
         } else if (stmt->ast->tag == Use) {
             continue;
         } else {
@@ -54,7 +59,12 @@ static void initialize_vars_and_statics(env_t *env, ast_t *ast) {
     }
 }
 
-static Text_t compile_top_level_code(env_t *env, ast_t *ast) {
+Text_t compile_namespace(env_t *env, const char *name, ast_t *namespace) {
+    env_t *ns_env = namespace_env(env, name);
+    return namespace ? compile_top_level_code(ns_env, namespace) : EMPTY_TEXT;
+}
+
+Text_t compile_top_level_code(env_t *env, ast_t *ast) {
     if (!ast) return EMPTY_TEXT;
 
     switch (ast->tag) {
@@ -111,15 +121,13 @@ static Text_t compile_top_level_code(env_t *env, ast_t *ast) {
         type_t *t = Table$str_get(*env->types, def->name);
         assert(t && t->tag == StructType);
         Text_t code = compile_struct_typeinfo(env, t, def->name, def->fields, def->secret, def->opaque);
-        env_t *ns_env = namespace_env(env, def->name);
-        return Texts(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : EMPTY_TEXT);
+        return Texts(code, compile_namespace(env, def->name, def->namespace));
     }
     case EnumDef: {
         DeclareMatch(def, ast, EnumDef);
         Text_t code = compile_enum_typeinfo(env, ast);
         code = Texts(code, compile_enum_constructors(env, ast));
-        env_t *ns_env = namespace_env(env, def->name);
-        return Texts(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : EMPTY_TEXT);
+        return Texts(code, compile_namespace(env, def->name, def->namespace));
     }
     case LangDef: {
         DeclareMatch(def, ast, LangDef);
@@ -127,8 +135,7 @@ static Text_t compile_top_level_code(env_t *env, ast_t *ast) {
             Texts("public const TypeInfo_t ", namespace_name(env, env->namespace, Texts(def->name, "$$info")), " = {",
                   (int64_t)sizeof(Text_t), ", ", (int64_t)__alignof__(Text_t),
                   ", .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={", quoted_str(def->name), "}};\n");
-        env_t *ns_env = namespace_env(env, def->name);
-        return Texts(code, def->namespace ? compile_top_level_code(ns_env, def->namespace) : EMPTY_TEXT);
+        return Texts(code, compile_namespace(env, def->name, def->namespace));
     }
     case Extend: {
         DeclareMatch(extend, ast, Extend);

@@ -36,83 +36,46 @@ const int op_tightness[NUM_AST_TAGS] = {
     [Xor] = 1,
 };
 
-static Text_t quoted_text(const char *text) { return Text$quoted(Text$from_str(text), false, Text("\"")); }
-
-CONSTFUNC const char *binop_method_name(ast_e tag) {
-    switch (tag) {
-    case Power:
-    case PowerUpdate: return "power";
-    case Multiply:
-    case MultiplyUpdate: return "times";
-    case Divide:
-    case DivideUpdate: return "divided_by";
-    case Mod:
-    case ModUpdate: return "modulo";
-    case Mod1:
-    case Mod1Update: return "modulo1";
-    case Plus:
-    case PlusUpdate: return "plus";
-    case Minus:
-    case MinusUpdate: return "minus";
-    case Concat:
-    case ConcatUpdate: return "concatenated_with";
-    case LeftShift:
-    case LeftShiftUpdate: return "left_shifted";
-    case RightShift:
-    case RightShiftUpdate: return "right_shifted";
-    case UnsignedLeftShift:
-    case UnsignedLeftShiftUpdate: return "unsigned_left_shifted";
-    case UnsignedRightShift:
-    case UnsignedRightShiftUpdate: return "unsigned_right_shifted";
-    case And:
-    case AndUpdate: return "bit_and";
-    case Or:
-    case OrUpdate: return "bit_or";
-    case Xor:
-    case XorUpdate: return "bit_xor";
-    default: return NULL;
-    }
-}
-
-CONSTFUNC const char *binop_operator(ast_e tag) {
-    switch (tag) {
-    case Power: return "^";
-    case PowerUpdate: return "^=";
-    case Concat: return "++";
-    case ConcatUpdate: return "++=";
-    case Multiply: return "*";
-    case MultiplyUpdate: return "*=";
-    case Divide: return "/";
-    case DivideUpdate: return "/=";
-    case Mod: return "mod";
-    case ModUpdate: return "mod=";
-    case Mod1: return "mod1";
-    case Mod1Update: return "mod1=";
-    case Plus: return "+";
-    case PlusUpdate: return "+=";
-    case Minus: return "-";
-    case MinusUpdate: return "-=";
-    case LeftShift: return "<<";
-    case LeftShiftUpdate: return "<<=";
-    case RightShift: return ">>";
-    case RightShiftUpdate: return ">>=";
-    case And: return "and";
-    case AndUpdate: return "and=";
-    case Or: return "or";
-    case OrUpdate: return "or=";
-    case Xor: return "xor";
-    case XorUpdate: return "xor=";
-    case Equals: return "==";
-    case NotEquals: return "!=";
-    case LessThan: return "<";
-    case LessThanOrEquals: return "<=";
-    case GreaterThan: return ">";
-    case GreaterThanOrEquals: return ">=";
-    case Min: return "_min_";
-    case Max: return "_max_";
-    default: return NULL;
-    }
-}
+const binop_info_t binop_info[NUM_AST_TAGS] = {
+    [Power] = {"power", "^"},
+    [PowerUpdate] = {"power", "^="},
+    [Multiply] = {"times", "*"},
+    [MultiplyUpdate] = {"times", "*="},
+    [Divide] = {"divided_by", "/"},
+    [DivideUpdate] = {"divided_by", "/="},
+    [Mod] = {"modulo", "mod"},
+    [ModUpdate] = {"modulo", "mod="},
+    [Mod1] = {"modulo1", "mod1"},
+    [Mod1Update] = {"modulo1", "mod1="},
+    [Plus] = {"plus", "+"},
+    [PlusUpdate] = {"plus", "+="},
+    [Minus] = {"minus", "-"},
+    [MinusUpdate] = {"minus", "-="},
+    [Concat] = {"concatenated_with", "++"},
+    [ConcatUpdate] = {"concatenated_with", "++="},
+    [LeftShift] = {"left_shifted", "<<"},
+    [LeftShiftUpdate] = {"left_shifted", "<<="},
+    [RightShift] = {"right_shifted", ">>"},
+    [RightShiftUpdate] = {"right_shifted", ">>="},
+    [UnsignedLeftShift] = {"unsigned_left_shifted", NULL},
+    [UnsignedLeftShiftUpdate] = {"unsigned_left_shifted", NULL},
+    [UnsignedRightShift] = {"unsigned_right_shifted", NULL},
+    [UnsignedRightShiftUpdate] = {"unsigned_right_shifted", NULL},
+    [And] = {"bit_and", "and"},
+    [AndUpdate] = {"bit_and", "and="},
+    [Or] = {"bit_or", "or"},
+    [OrUpdate] = {"bit_or", "or="},
+    [Xor] = {"bit_xor", "xor"},
+    [XorUpdate] = {"bit_xor", "xor="},
+    [Equals] = {NULL, "=="},
+    [NotEquals] = {NULL, "!="},
+    [LessThan] = {NULL, "<"},
+    [LessThanOrEquals] = {NULL, "<="},
+    [GreaterThan] = {NULL, ">"},
+    [GreaterThanOrEquals] = {NULL, ">="},
+    [Min] = {NULL, "_min_"},
+    [Max] = {NULL, "_max_"},
+};
 
 static Text_t ast_list_to_sexp(ast_list_t *asts);
 static Text_t arg_list_to_sexp(arg_ast_t *args);
@@ -121,6 +84,8 @@ static Text_t when_clauses_to_sexp(when_clause_t *clauses);
 static Text_t tags_to_sexp(tag_ast_t *tags);
 static Text_t optional_sexp(const char *tag, ast_t *ast);
 static Text_t optional_type_sexp(const char *tag, type_ast_t *ast);
+
+static Text_t quoted_text(const char *text) { return Text$quoted(Text$from_str(text), false, Text("\"")); }
 
 Text_t ast_list_to_sexp(ast_list_t *asts) {
     Text_t c = EMPTY_TEXT;
@@ -291,7 +256,7 @@ Text_t ast_to_sexp(ast_t *ast) {
           ")");
         T(When, "(When ", ast_to_sexp(data.subject), when_clauses_to_sexp(data.clauses),
           optional_sexp("else", data.else_body), ")");
-        T(Reduction, "(Reduction ", quoted_text(binop_operator(data.op)), " ", ast_to_sexp(data.key), " ",
+        T(Reduction, "(Reduction ", quoted_text(binop_info[data.op].operator), " ", ast_to_sexp(data.key), " ",
           ast_to_sexp(data.iter), ")");
         T(Skip, "(Skip ", quoted_text(data.target), ")");
         T(Stop, "(Stop ", quoted_text(data.target), ")");

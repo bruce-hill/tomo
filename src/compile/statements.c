@@ -25,6 +25,14 @@ Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
     return Texts("\n#line ", line, "\n", code);
 }
 
+static Text_t compile_simple_update_assignment(env_t *env, ast_t *ast, const char *op) {
+    binary_operands_t update = BINARY_OPERANDS(ast);
+    type_t *lhs_t = get_type(env, update.lhs);
+    if (is_idempotent(update.lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
+        return Texts(compile_lvalue(env, update.lhs), " ", op, "= ", compile_to_type(env, update.rhs, lhs_t), ";");
+    return compile_update_assignment(env, ast);
+}
+
 static Text_t _compile_statement(env_t *env, ast_t *ast) {
     switch (ast->tag) {
     case When: return compile_when_statement(env, ast);
@@ -47,41 +55,12 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         }
     }
     case Assign: return compile_assignment_statement(env, ast);
-    case PlusUpdate: {
-        DeclareMatch(update, ast, PlusUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " += ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
-    case MinusUpdate: {
-        DeclareMatch(update, ast, MinusUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " -= ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
-    case MultiplyUpdate: {
-        DeclareMatch(update, ast, MultiplyUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " *= ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
-    case DivideUpdate: {
-        DeclareMatch(update, ast, DivideUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " /= ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
-    case ModUpdate: {
-        DeclareMatch(update, ast, ModUpdate);
-        type_t *lhs_t = get_type(env, update->lhs);
-        if (is_idempotent(update->lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
-            return Texts(compile_lvalue(env, update->lhs), " %= ", compile_to_type(env, update->rhs, lhs_t), ";");
-        return compile_update_assignment(env, ast);
-    }
+    case PlusUpdate: return compile_simple_update_assignment(env, ast, "+");
+    case MinusUpdate: return compile_simple_update_assignment(env, ast, "-");
+    case MultiplyUpdate: return compile_simple_update_assignment(env, ast, "*");
+    case DivideUpdate: return compile_simple_update_assignment(env, ast, "/");
+    case ModUpdate: return compile_simple_update_assignment(env, ast, "%");
+
     case PowerUpdate:
     case Mod1Update:
     case ConcatUpdate:
