@@ -36,7 +36,7 @@ void initialize_vars_and_statics(env_t *env, ast_t *ast) {
             if (t->tag == FunctionType) t = Type(ClosureType, t);
             Text_t val_code = compile_declared_value(env, stmt->ast);
             if ((decl->value && !is_constant(env, decl->value)) || (!decl->value && has_heap_memory(t))) {
-                Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$initialized"));
+                Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
                 env->code->variable_initializers =
                     Texts(env->code->variable_initializers,
                           with_source_info(env, stmt->ast,

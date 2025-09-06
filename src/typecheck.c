@@ -606,6 +606,8 @@ type_t *get_function_type(env_t *env, ast_t *ast) {
 
     if (ast->tag == Lambda) {
         ast_t *body = Match(ast, Lambda)->body;
+
+        scope->fn = NULL;
         type_t *ret_t = get_type(scope, body);
         if (ret_t->tag == ReturnType) ret_t = Match(ret_t, ReturnType)->ret;
         if (ret_t->tag == AbortType) ret_t = Type(VoidType);
