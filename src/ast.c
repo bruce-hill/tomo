@@ -5,77 +5,76 @@
 
 #include "ast.h"
 #include "stdlib/datatypes.h"
+#include "stdlib/optionals.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 
-static Text_t quoted_text(const char *text) { return Text$quoted(Text$from_str(text), false, Text("\"")); }
-
-CONSTFUNC const char *binop_method_name(ast_e tag) {
-    switch (tag) {
-    case Power:
-    case PowerUpdate: return "power";
-    case Multiply:
-    case MultiplyUpdate: return "times";
-    case Divide:
-    case DivideUpdate: return "divided_by";
-    case Mod:
-    case ModUpdate: return "modulo";
-    case Mod1:
-    case Mod1Update: return "modulo1";
-    case Plus:
-    case PlusUpdate: return "plus";
-    case Minus:
-    case MinusUpdate: return "minus";
-    case Concat:
-    case ConcatUpdate: return "concatenated_with";
-    case LeftShift:
-    case LeftShiftUpdate: return "left_shifted";
-    case RightShift:
-    case RightShiftUpdate: return "right_shifted";
-    case UnsignedLeftShift:
-    case UnsignedLeftShiftUpdate: return "unsigned_left_shifted";
-    case UnsignedRightShift:
-    case UnsignedRightShiftUpdate: return "unsigned_right_shifted";
-    case And:
-    case AndUpdate: return "bit_and";
-    case Or:
-    case OrUpdate: return "bit_or";
-    case Xor:
-    case XorUpdate: return "bit_xor";
-    default: return NULL;
-    }
+const int op_tightness[NUM_AST_TAGS] = {
+    [Power] = 9,
+    [Multiply] = 8,
+    [Divide] = 8,
+    [Mod] = 8,
+    [Mod1] = 8,
+    [Plus] = 7,
+    [Minus] = 7,
+    [Concat] = 6,
+    [LeftShift] = 5,
+    [RightShift] = 5,
+    [UnsignedLeftShift] = 5,
+    [UnsignedRightShift] = 5,
+    [Min] = 4,
+    [Max] = 4,
+    [Equals] = 3,
+    [NotEquals] = 3,
+    [LessThan] = 2,
+    [LessThanOrEquals] = 2,
+    [GreaterThan] = 2,
+    [GreaterThanOrEquals] = 2,
+    [Compare] = 2,
+    [And] = 1,
+    [Or] = 1,
+    [Xor] = 1,
 };
 
-CONSTFUNC const char *binop_operator(ast_e tag) {
-    switch (tag) {
-    case Multiply:
-    case MultiplyUpdate: return "*";
-    case Divide:
-    case DivideUpdate: return "/";
-    case Mod:
-    case ModUpdate: return "%";
-    case Plus:
-    case PlusUpdate: return "+";
-    case Minus:
-    case MinusUpdate: return "-";
-    case LeftShift:
-    case LeftShiftUpdate: return "<<";
-    case RightShift:
-    case RightShiftUpdate: return ">>";
-    case And:
-    case AndUpdate: return "&";
-    case Or:
-    case OrUpdate: return "|";
-    case Xor:
-    case XorUpdate: return "^";
-    case Equals: return "==";
-    case NotEquals: return "!=";
-    case LessThan: return "<";
-    case LessThanOrEquals: return "<=";
-    case GreaterThan: return ">";
-    case GreaterThanOrEquals: return ">=";
-    default: return NULL;
-    }
+const binop_info_t binop_info[NUM_AST_TAGS] = {
+    [Power] = {"power", "^"},
+    [PowerUpdate] = {"power", "^="},
+    [Multiply] = {"times", "*"},
+    [MultiplyUpdate] = {"times", "*="},
+    [Divide] = {"divided_by", "/"},
+    [DivideUpdate] = {"divided_by", "/="},
+    [Mod] = {"modulo", "mod"},
+    [ModUpdate] = {"modulo", "mod="},
+    [Mod1] = {"modulo1", "mod1"},
+    [Mod1Update] = {"modulo1", "mod1="},
+    [Plus] = {"plus", "+"},
+    [PlusUpdate] = {"plus", "+="},
+    [Minus] = {"minus", "-"},
+    [MinusUpdate] = {"minus", "-="},
+    [Concat] = {"concatenated_with", "++"},
+    [ConcatUpdate] = {"concatenated_with", "++="},
+    [LeftShift] = {"left_shifted", "<<"},
+    [LeftShiftUpdate] = {"left_shifted", "<<="},
+    [RightShift] = {"right_shifted", ">>"},
+    [RightShiftUpdate] = {"right_shifted", ">>="},
+    [UnsignedLeftShift] = {"unsigned_left_shifted", NULL},
+    [UnsignedLeftShiftUpdate] = {"unsigned_left_shifted", NULL},
+    [UnsignedRightShift] = {"unsigned_right_shifted", NULL},
+    [UnsignedRightShiftUpdate] = {"unsigned_right_shifted", NULL},
+    [And] = {"bit_and", "and"},
+    [AndUpdate] = {"bit_and", "and="},
+    [Or] = {"bit_or", "or"},
+    [OrUpdate] = {"bit_or", "or="},
+    [Xor] = {"bit_xor", "xor"},
+    [XorUpdate] = {"bit_xor", "xor="},
+    [Equals] = {NULL, "=="},
+    [NotEquals] = {NULL, "!="},
+    [LessThan] = {NULL, "<"},
+    [LessThanOrEquals] = {NULL, "<="},
+    [GreaterThan] = {NULL, ">"},
+    [GreaterThanOrEquals] = {NULL, ">="},
+    [Min] = {NULL, "_min_"},
+    [Max] = {NULL, "_max_"},
 };
 
 static Text_t ast_list_to_sexp(ast_list_t *asts);
@@ -85,6 +84,8 @@ static Text_t when_clauses_to_sexp(when_clause_t *clauses);
 static Text_t tags_to_sexp(tag_ast_t *tags);
 static Text_t optional_sexp(const char *tag, ast_t *ast);
 static Text_t optional_type_sexp(const char *tag, type_ast_t *ast);
+
+static Text_t quoted_text(const char *text) { return Text$quoted(Text$from_str(text), false, Text("\"")); }
 
 Text_t ast_list_to_sexp(ast_list_t *asts) {
     Text_t c = EMPTY_TEXT;
@@ -175,8 +176,8 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(None, "(None)");
         T(Bool, "(Bool ", data.b ? "yes" : "no", ")");
         T(Var, "(Var ", quoted_text(data.name), ")");
-        T(Int, "(Int ", quoted_text(ast_source(ast)), ")");
-        T(Num, "(Num ", quoted_text(ast_source(ast)), ")");
+        T(Int, "(Int ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
+        T(Num, "(Num ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
         T(TextLiteral, Text$quoted(data.text, false, Text("\"")));
         T(TextJoin, "(Text", data.lang ? Texts(" :lang ", quoted_text(data.lang)) : EMPTY_TEXT,
           ast_list_to_sexp(data.children), ")");
@@ -255,7 +256,7 @@ Text_t ast_to_sexp(ast_t *ast) {
           ")");
         T(When, "(When ", ast_to_sexp(data.subject), when_clauses_to_sexp(data.clauses),
           optional_sexp("else", data.else_body), ")");
-        T(Reduction, "(Reduction ", quoted_text(binop_method_name(data.op)), " ", ast_to_sexp(data.key), " ",
+        T(Reduction, "(Reduction ", quoted_text(binop_info[data.op].operator), " ", ast_to_sexp(data.key), " ",
           ast_to_sexp(data.iter), ")");
         T(Skip, "(Skip ", quoted_text(data.target), ")");
         T(Stop, "(Stop ", quoted_text(data.target), ")");
@@ -285,13 +286,9 @@ Text_t ast_to_sexp(ast_t *ast) {
 
 const char *ast_to_sexp_str(ast_t *ast) { return Text$as_c_string(ast_to_sexp(ast)); }
 
-const char *ast_source(ast_t *ast) {
-    if (!ast) return NULL;
-    size_t len = (size_t)(ast->end - ast->start);
-    char *source = GC_MALLOC_ATOMIC(len + 1);
-    memcpy(source, ast->start, len);
-    source[len] = '\0';
-    return source;
+OptionalText_t ast_source(ast_t *ast) {
+    if (ast == NULL || ast->start == NULL || ast->end == NULL) return NONE_TEXT;
+    return Text$from_strn(ast->start, (size_t)(ast->end - ast->start));
 }
 
 PUREFUNC bool is_idempotent(ast_t *ast) {
@@ -400,6 +397,8 @@ void visit_topologically(ast_list_t *asts, Closure_t fn) {
 
 CONSTFUNC bool is_binary_operation(ast_t *ast) {
     switch (ast->tag) {
+    case Min:
+    case Max:
     case BINOP_CASES: return true;
     default: return false;
     }

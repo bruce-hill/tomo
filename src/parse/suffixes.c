@@ -14,10 +14,10 @@
 ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (!lhs) return NULL;
     const char *pos = lhs->end;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     if (!match(&pos, ".")) return NULL;
     if (*pos == '.') return NULL;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     bool dollar = match(&pos, "$");
     const char *field = get_id(&pos);
     if (!field) return NULL;
@@ -44,9 +44,9 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     const char *start = lhs->start;
     const char *pos = lhs->end;
     if (!match(&pos, "[")) return NULL;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     ast_t *index = optional(ctx, &pos, parse_extended_expr);
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, "]", "I wasn't able to parse the rest of this index");
     return NewAST(ctx->file, start, pos, Index, .indexed = lhs, .index = index);
 }
@@ -56,7 +56,7 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
     if (!expr) return NULL;
     const char *start = expr->start;
     const char *pos = expr->end;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     if (!match_word(&pos, "for")) return NULL;
 
     ast_list_t *vars = NULL;
@@ -72,7 +72,7 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
     const char *next_pos = pos;
-    whitespace(&next_pos);
+    whitespace(ctx, &next_pos);
     ast_t *filter = NULL;
     if (match_word(&next_pos, "if")) {
         pos = next_pos;
@@ -114,13 +114,13 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
     if (!fn) return NULL;
     spaces(&pos);
     if (!match(&pos, "(")) return NULL;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
 
     arg_ast_t *args = NULL;
     for (;;) {
         const char *arg_start = pos;
         const char *name = get_id(&pos);
-        whitespace(&pos);
+        whitespace(ctx, &pos);
         if (!name || !match(&pos, "=")) {
             name = NULL;
             pos = arg_start;
@@ -131,12 +131,12 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
             if (name) parser_err(ctx, arg_start, pos, "I expected an argument here");
             break;
         }
-        args = new (arg_ast_t, .name = name, .value = arg, .next = args);
-        if (!match_separator(&pos)) break;
+        args = new (arg_ast_t, .start = arg_start, .end = arg->end, .name = name, .value = arg, .next = args);
+        if (!match_separator(ctx, &pos)) break;
     }
     REVERSE_LIST(args);
 
-    whitespace(&pos);
+    whitespace(ctx, &pos);
 
     if (!match(&pos, ")")) parser_err(ctx, start, pos, "This parenthesis is unclosed");
 
@@ -151,13 +151,13 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn) {
 
     if (!match(&pos, "(")) return NULL;
 
-    whitespace(&pos);
+    whitespace(ctx, &pos);
 
     arg_ast_t *args = NULL;
     for (;;) {
         const char *arg_start = pos;
         const char *name = get_id(&pos);
-        whitespace(&pos);
+        whitespace(ctx, &pos);
         if (!name || !match(&pos, "=")) {
             name = NULL;
             pos = arg_start;
@@ -169,10 +169,10 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn) {
             break;
         }
         args = new (arg_ast_t, .name = name, .value = arg, .next = args);
-        if (!match_separator(&pos)) break;
+        if (!match_separator(ctx, &pos)) break;
     }
 
-    whitespace(&pos);
+    whitespace(ctx, &pos);
 
     if (!match(&pos, ")")) parser_err(ctx, start, pos, "This parenthesis is unclosed");
 

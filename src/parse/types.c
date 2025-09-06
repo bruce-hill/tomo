@@ -9,19 +9,19 @@
 #include "../stdlib/print.h"
 #include "context.h"
 #include "errors.h"
-#include "functions.h"
 #include "expressions.h"
+#include "functions.h"
 #include "types.h"
 #include "utils.h"
 
 type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "{")) return NULL;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     type_ast_t *key_type = parse_type(ctx, pos);
     if (!key_type) return NULL;
     pos = key_type->end;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     type_ast_t *value_type = NULL;
     if (match(&pos, "=")) {
         value_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the rest of this table type");
@@ -35,7 +35,7 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
         default_value =
             expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the default value for this table");
     }
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this table type");
     return NewTypeAST(ctx->file, start, pos, TableTypeAST, .key = key_type, .value = value_type,
                       .default_value = default_value);
@@ -44,11 +44,11 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
 type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "|")) return NULL;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     type_ast_t *item_type = parse_type(ctx, pos);
     if (!item_type) return NULL;
     pos = item_type->end;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this set type");
     return NewTypeAST(ctx->file, start, pos, SetTypeAST, .item = item_type);
 }
@@ -113,10 +113,10 @@ type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos) {
                     || (type = parse_table_type(ctx, pos)) || (type = parse_set_type(ctx, pos))
                     || (type = parse_type_name(ctx, pos)) || (type = parse_func_type(ctx, pos)));
     if (!success && match(&pos, "(")) {
-        whitespace(&pos);
+        whitespace(ctx, &pos);
         type = optional(ctx, &pos, parse_type);
         if (!type) return NULL;
-        whitespace(&pos);
+        whitespace(ctx, &pos);
         expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this type");
         type->start = start;
         type->end = pos;
@@ -144,11 +144,11 @@ type_ast_t *parse_type_str(const char *str) {
     };
 
     const char *pos = file->text;
-    whitespace(&pos);
+    whitespace(&ctx, &pos);
     type_ast_t *ast = parse_type(&ctx, pos);
     if (!ast) return ast;
     pos = ast->end;
-    whitespace(&pos);
+    whitespace(&ctx, &pos);
     if (strlen(pos) > 0) {
         parser_err(&ctx, pos, pos + strlen(pos), "I couldn't parse this part of the type");
     }

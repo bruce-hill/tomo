@@ -8,8 +8,8 @@
 #include "../stdlib/util.h"
 #include "context.h"
 #include "errors.h"
-#include "files.h"
 #include "expressions.h"
+#include "files.h"
 #include "statements.h"
 #include "suffixes.h"
 #include "types.h"
@@ -46,7 +46,7 @@ ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos) {
         targets = new (ast_list_t, .ast = lhs, .next = targets);
         spaces(&pos);
         if (!match(&pos, ",")) break;
-        whitespace(&pos);
+        whitespace(ctx, &pos);
     }
 
     if (!targets) return NULL;
@@ -62,7 +62,7 @@ ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos) {
         values = new (ast_list_t, .ast = rhs, .next = values);
         spaces(&pos);
         if (!match(&pos, ",")) break;
-        whitespace(&pos);
+        whitespace(ctx, &pos);
     }
 
     REVERSE_LIST(targets);
@@ -101,7 +101,7 @@ ast_t *parse_doctest(parse_ctx_t *ctx, const char *pos) {
     if (!match(&pos, ">>")) return NULL;
     spaces(&pos);
     ast_t *expr = expect(ctx, start, &pos, parse_statement, "I couldn't parse the expression for this doctest");
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     ast_t *expected = NULL;
     if (match(&pos, "=")) {
         spaces(&pos);
@@ -120,7 +120,7 @@ ast_t *parse_assert(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     ast_t *message = NULL;
     if (match(&pos, ",")) {
-        whitespace(&pos);
+        whitespace(ctx, &pos);
         message = expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the error message for this assert");
     } else {
         pos = expr->end;

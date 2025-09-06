@@ -36,7 +36,7 @@ ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
     if (indent(ctx, &pos)) {
     indented:;
         int64_t block_indent = get_indent(ctx, pos);
-        whitespace(&pos);
+        whitespace(ctx, &pos);
         while (*pos) {
             ast_t *stmt = optional(ctx, &pos, parse_statement);
             if (!stmt) {
@@ -55,7 +55,7 @@ ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
                 break;
             }
             statements = new (ast_list_t, .ast = stmt, .next = statements);
-            whitespace(&pos);
+            whitespace(ctx, &pos);
 
             // Guard against having two valid statements on the same line, separated by spaces (but no newlines):
             if (!memchr(stmt->end, '\n', (size_t)(pos - stmt->end))) {
@@ -131,18 +131,8 @@ ast_t *parse_while(parse_ctx_t *ctx, const char *pos) {
     // while condition ["do"] [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "while")) return NULL;
-
-    const char *tmp = pos;
-    // Shorthand form: `while when ...`
-    if (match_word(&tmp, "when")) {
-        ast_t *when = expect(ctx, start, &pos, parse_when, "I expected a 'when' block after this");
-        if (!when->__data.When.else_body) when->__data.When.else_body = NewAST(ctx->file, pos, pos, Stop);
-        return NewAST(ctx->file, start, pos, While, .body = when);
-    }
-
-    (void)match_word(&pos, "do"); // Optional 'do'
-
     ast_t *condition = expect(ctx, start, &pos, parse_expr, "I don't see a viable condition for this 'while'");
+    (void)match_word(&pos, "do"); // Optional 'do'
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'while'");
     return NewAST(ctx->file, start, pos, While, .condition = condition, .body = body);
 }
@@ -174,7 +164,7 @@ ast_t *parse_if(parse_ctx_t *ctx, const char *pos) {
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'if' statement");
 
     const char *tmp = pos;
-    whitespace(&tmp);
+    whitespace(ctx, &tmp);
     ast_t *else_body = NULL;
     const char *else_start = pos;
     if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "else")) {
@@ -198,7 +188,7 @@ ast_t *parse_when(parse_ctx_t *ctx, const char *pos) {
 
     when_clause_t *clauses = NULL;
     const char *tmp = pos;
-    whitespace(&tmp);
+    whitespace(ctx, &tmp);
     while (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "is")) {
         pos = tmp;
         spaces(&pos);
@@ -217,7 +207,7 @@ ast_t *parse_when(parse_ctx_t *ctx, const char *pos) {
         }
         clauses = new_clauses;
         tmp = pos;
-        whitespace(&tmp);
+        whitespace(ctx, &tmp);
     }
     REVERSE_LIST(clauses);
 
@@ -255,7 +245,7 @@ ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'for'");
 
     const char *else_start = pos;
-    whitespace(&else_start);
+    whitespace(ctx, &else_start);
     ast_t *empty = NULL;
     if (match_word(&else_start, "else") && get_indent(ctx, else_start) == starting_indent) {
         pos = else_start;

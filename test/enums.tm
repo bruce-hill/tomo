@@ -61,9 +61,10 @@ func main()
 
 	i := 1
 	cases := [Foo.One(1), Foo.One(2), Foo.Zero]
-	while when cases[i]! is One(x)
+	repeat when cases[i]! is One(x)
 		>> x
 		i += 1
+	else stop
 
 	>> [
 		(

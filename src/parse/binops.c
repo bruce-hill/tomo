@@ -9,33 +9,6 @@
 #include "suffixes.h"
 #include "utils.h"
 
-int op_tightness[] = {
-    [Power] = 9,
-    [Multiply] = 8,
-    [Divide] = 8,
-    [Mod] = 8,
-    [Mod1] = 8,
-    [Plus] = 7,
-    [Minus] = 7,
-    [Concat] = 6,
-    [LeftShift] = 5,
-    [RightShift] = 5,
-    [UnsignedLeftShift] = 5,
-    [UnsignedRightShift] = 5,
-    [Min] = 4,
-    [Max] = 4,
-    [Equals] = 3,
-    [NotEquals] = 3,
-    [LessThan] = 2,
-    [LessThanOrEquals] = 2,
-    [GreaterThan] = 2,
-    [GreaterThanOrEquals] = 2,
-    [Compare] = 2,
-    [And] = 1,
-    [Or] = 1,
-    [Xor] = 1,
-};
-
 ast_e match_binary_operator(const char **pos) {
     switch (**pos) {
     case '+': {
@@ -94,7 +67,7 @@ ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightness) {
     for (ast_e op; (op = match_binary_operator(&pos)) != Unknown && op_tightness[op] >= min_tightness; spaces(&pos)) {
         ast_t *key = NULL;
         if (op == Min || op == Max) {
-            key = NewAST(ctx->file, pos, pos, Var, .name = "$");
+            key = NewAST(ctx->file, pos, pos, Var, .name = (op == Min ? "_min_" : "_max_"));
             for (bool progress = true; progress;) {
                 ast_t *new_term;
                 progress =
@@ -108,7 +81,7 @@ ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightness) {
             else if (key) pos = key->end;
         }
 
-        whitespace(&pos);
+        whitespace(ctx, &pos);
         if (get_line_number(ctx->file, pos) != starting_line && get_indent(ctx, pos) < starting_indent)
             parser_err(ctx, pos, eol(pos), "I expected this line to be at least as indented than the line above it");
 

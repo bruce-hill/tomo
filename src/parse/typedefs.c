@@ -16,12 +16,12 @@
 
 ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     int64_t indent = get_indent(ctx, pos);
     ast_list_t *statements = NULL;
     for (;;) {
         const char *next = pos;
-        whitespace(&next);
+        whitespace(ctx, &next);
         if (get_indent(ctx, next) != indent) break;
         ast_t *stmt;
         if ((stmt = optional(ctx, &pos, parse_struct_def)) || (stmt = optional(ctx, &pos, parse_func_def))
@@ -31,7 +31,7 @@ ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos) {
             || (stmt = optional(ctx, &pos, parse_inline_c)) || (stmt = optional(ctx, &pos, parse_declaration))) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
-            whitespace(&pos); // TODO: check for newline
+            whitespace(ctx, &pos); // TODO: check for newline
             // if (!(space_types & WHITESPACE_NEWLINES)) {
             //     pos = stmt->end;
             //     break;
@@ -62,10 +62,10 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
 
     arg_ast_t *fields = parse_args(ctx, &pos);
 
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     bool secret = false, external = false, opaque = false;
     if (match(&pos, ";")) { // Extra flags
-        whitespace(&pos);
+        whitespace(ctx, &pos);
         for (;;) {
             if (match_word(&pos, "secret")) {
                 secret = true;
@@ -79,7 +79,7 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
                 break;
             }
 
-            if (!match_separator(&pos)) break;
+            if (!match_separator(ctx, &pos)) break;
         }
     }
 
@@ -87,7 +87,7 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
 
     ast_t *namespace = NULL;
     const char *ns_pos = pos;
-    whitespace(&ns_pos);
+    whitespace(ctx, &ns_pos);
     int64_t ns_indent = get_indent(ctx, ns_pos);
     if (ns_indent > starting_indent) {
         pos = ns_pos;
@@ -110,9 +110,10 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
     if (!match(&pos, "(")) return NULL;
 
     tag_ast_t *tags = NULL;
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     for (;;) {
         spaces(&pos);
+        const char *tag_start = pos;
         const char *tag_name = get_id(&pos);
         if (!tag_name) break;
 
@@ -120,25 +121,26 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
         arg_ast_t *fields;
         bool secret = false;
         if (match(&pos, "(")) {
-            whitespace(&pos);
+            whitespace(ctx, &pos);
             fields = parse_args(ctx, &pos);
-            whitespace(&pos);
+            whitespace(ctx, &pos);
             if (match(&pos, ";")) { // Extra flags
-                whitespace(&pos);
+                whitespace(ctx, &pos);
                 secret = match_word(&pos, "secret");
-                whitespace(&pos);
+                whitespace(ctx, &pos);
             }
             expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this tagged union member");
         } else {
             fields = NULL;
         }
 
-        tags = new (tag_ast_t, .name = tag_name, .fields = fields, .secret = secret, .next = tags);
+        tags = new (tag_ast_t, .start = tag_start, .end = pos, .name = tag_name, .fields = fields, .secret = secret,
+                    .next = tags);
 
-        if (!match_separator(&pos)) break;
+        if (!match_separator(ctx, &pos)) break;
     }
 
-    whitespace(&pos);
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this enum definition");
 
     REVERSE_LIST(tags);
@@ -147,7 +149,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
 
     ast_t *namespace = NULL;
     const char *ns_pos = pos;
-    whitespace(&ns_pos);
+    whitespace(ctx, &ns_pos);
     int64_t ns_indent = get_indent(ctx, ns_pos);
     if (ns_indent > starting_indent) {
         pos = ns_pos;
@@ -170,7 +172,7 @@ ast_t *parse_lang_def(parse_ctx_t *ctx, const char *pos) {
 
     ast_t *namespace = NULL;
     const char *ns_pos = pos;
-    whitespace(&ns_pos);
+    whitespace(ctx, &ns_pos);
     int64_t ns_indent = get_indent(ctx, ns_pos);
     if (ns_indent > starting_indent) {
         pos = ns_pos;
@@ -192,7 +194,7 @@ ast_t *parse_extend(parse_ctx_t *ctx, const char *pos) {
 
     ast_t *body = NULL;
     const char *ns_pos = pos;
-    whitespace(&ns_pos);
+    whitespace(ctx, &ns_pos);
     int64_t ns_indent = get_indent(ctx, ns_pos);
     if (ns_indent > starting_indent) {
         pos = ns_pos;

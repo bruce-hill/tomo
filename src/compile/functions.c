@@ -256,18 +256,7 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
         set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
     }
 
-    type_t *ret_t = get_type(body_scope, lambda->body);
-    if (ret_t->tag == ReturnType) ret_t = Match(ret_t, ReturnType)->ret;
-
-    if (lambda->ret_type) {
-        type_t *declared = parse_type_ast(env, lambda->ret_type);
-        if (can_promote(ret_t, declared)) ret_t = declared;
-        else
-            code_err(ast, "This function was declared to return a value of type ", type_to_str(declared),
-                     ", but actually returns a value of type ", type_to_str(ret_t));
-    }
-
-    body_scope->fn_ret = ret_t;
+    body_scope->fn = ast;
 
     Table_t closed_vars = get_closed_vars(env, lambda->args, ast);
     if (Table$length(closed_vars) > 0) { // Create a typedef for the lambda's closure userdata
@@ -289,6 +278,7 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
         env->code->local_typedefs = Texts(env->code->local_typedefs, def);
     }
 
+    type_t *ret_t = get_function_return_type(env, ast);
     Text_t code = Texts("static ", compile_type(ret_t), " ", name, "(");
     for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
@@ -623,7 +613,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
     bool is_private = false;
     const char *function_name;
     arg_ast_t *args;
-    type_t *ret_t;
+    type_t *ret_t = get_function_return_type(env, ast);
     ast_t *body;
     ast_t *cache;
     bool is_inline;
@@ -632,14 +622,12 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         function_name = Match(fndef->name, Var)->name;
         is_private = function_name[0] == '_';
         args = fndef->args;
-        ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
         body = fndef->body;
         cache = fndef->cache;
         is_inline = fndef->is_inline;
     } else {
         DeclareMatch(convertdef, ast, ConvertDef);
         args = convertdef->args;
-        ret_t = convertdef->ret_type ? parse_type_ast(env, convertdef->ret_type) : Type(VoidType);
         function_name = get_type_name(ret_t);
         if (!function_name)
             code_err(ast,
@@ -689,7 +677,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
     }
 
-    body_scope->fn_ret = ret_t;
+    body_scope->fn = ast;
 
     type_t *body_type = get_type(body_scope, body);
     if (ret_t->tag == AbortType) {

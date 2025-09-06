@@ -19,6 +19,7 @@
 #include "compile/files.h"
 #include "compile/headers.h"
 #include "config.h"
+#include "formatter/formatter.h"
 #include "modules.h"
 #include "naming.h"
 #include "parse/files.h"
@@ -75,9 +76,9 @@ static const char *paths_str(List_t paths) {
 
 static OptionalList_t files = NONE_LIST, args = NONE_LIST, uninstall = NONE_LIST, libraries = NONE_LIST;
 static OptionalBool_t verbose = false, quiet = false, show_version = false, show_parse_tree = false,
-                      show_prefix = false, stop_at_transpile = false, stop_at_obj_compilation = false,
-                      compile_exe = false, should_install = false, clean_build = false, source_mapping = true,
-                      show_changelog = false;
+                      do_format_code = false, format_inplace = false, show_prefix = false, stop_at_transpile = false,
+                      stop_at_obj_compilation = false, compile_exe = false, should_install = false, clean_build = false,
+                      source_mapping = true, show_changelog = false;
 
 static OptionalText_t show_codegen = NONE_TEXT,
                       cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
@@ -183,30 +184,59 @@ int main(int argc, char *argv[]) {
                          "\x1b[1mUninstall libraries:\x1b[m   tomo -u lib...\n"
                          "\x1b[1mOther flags:\x1b[m\n"
                          "  --verbose|-v: verbose output\n"
+                         "  --prefix: print the Tomo prefix directory\n"
                          "  --quiet|-q: quiet output\n"
                          "  --parse|-p: show parse tree\n"
+                         "  --transpile|-t: transpile C code without compiling\n"
+                         "  --show-codegen|-c <pager>: show generated code\n"
+                         "  --compile-obj|-c: compile C code for object file\n"
+                         "  --compile-exe|-e: compile to standalone executable without running\n"
+                         "  --format: print formatted code\n"
+                         "  --format-inplace: format the code in a file (in place)\n"
+                         "  --library|-L: build a folder as a library\n"
                          "  --install|-I: install the executable or library\n"
+                         "  --uninstall|-u: uninstall an executable or library\n"
                          "  --optimization|-O <level>: set optimization level\n"
+                         "  --force-rebuild|-f: force rebuilding\n"
+                         "  --source-mapping|-m <yes|no>: toggle source mapping in generated code\n"
+                         "  --changelog: show the Tomo changelog\n"
                          "  --run|-r: run a program from ",
-                         TOMO_PATH, "/lib/tomo_" TOMO_VERSION "\n");
+                         TOMO_PATH, "/share/tomo_" TOMO_VERSION "/installed\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
-    tomo_parse_args(
-        argc, argv, usage, help, TOMO_VERSION, {"files", true, List$info(&Path$info), &files},
-        {"args", true, List$info(&Text$info), &args}, {"verbose", false, &Bool$info, &verbose},
-        {"v", false, &Bool$info, &verbose}, {"version", false, &Bool$info, &show_version},
-        {"parse", false, &Bool$info, &show_parse_tree}, {"p", false, &Bool$info, &show_parse_tree},
-        {"prefix", false, &Bool$info, &show_prefix}, {"quiet", false, &Bool$info, &quiet},
-        {"q", false, &Bool$info, &quiet}, {"transpile", false, &Bool$info, &stop_at_transpile},
-        {"t", false, &Bool$info, &stop_at_transpile}, {"compile-obj", false, &Bool$info, &stop_at_obj_compilation},
-        {"c", false, &Bool$info, &stop_at_obj_compilation}, {"compile-exe", false, &Bool$info, &compile_exe},
-        {"e", false, &Bool$info, &compile_exe}, {"uninstall", false, List$info(&Text$info), &uninstall},
-        {"u", false, List$info(&Text$info), &uninstall}, {"library", false, List$info(&Path$info), &libraries},
-        {"L", false, List$info(&Path$info), &libraries}, {"show-codegen", false, &Text$info, &show_codegen},
-        {"C", false, &Text$info, &show_codegen}, {"install", false, &Bool$info, &should_install},
-        {"I", false, &Bool$info, &should_install}, {"optimization", false, &Text$info, &optimization},
-        {"O", false, &Text$info, &optimization}, {"force-rebuild", false, &Bool$info, &clean_build},
-        {"f", false, &Bool$info, &clean_build}, {"source-mapping", false, &Bool$info, &source_mapping},
-        {"m", false, &Bool$info, &source_mapping}, {"changelog", false, &Bool$info, &show_changelog}, );
+    tomo_parse_args(argc, argv, usage, help, TOMO_VERSION, //
+                    {"files", true, List$info(&Path$info), &files}, //
+                    {"args", true, List$info(&Text$info), &args}, //
+                    {"verbose", false, &Bool$info, &verbose}, //
+                    {"v", false, &Bool$info, &verbose}, //
+                    {"version", false, &Bool$info, &show_version}, //
+                    {"parse", false, &Bool$info, &show_parse_tree}, //
+                    {"p", false, &Bool$info, &show_parse_tree}, //
+                    {"format", false, &Bool$info, &do_format_code}, //
+                    {"format-inplace", false, &Bool$info, &format_inplace}, //
+                    {"prefix", false, &Bool$info, &show_prefix}, //
+                    {"quiet", false, &Bool$info, &quiet}, //
+                    {"q", false, &Bool$info, &quiet}, //
+                    {"transpile", false, &Bool$info, &stop_at_transpile}, //
+                    {"t", false, &Bool$info, &stop_at_transpile}, //
+                    {"compile-obj", false, &Bool$info, &stop_at_obj_compilation}, //
+                    {"c", false, &Bool$info, &stop_at_obj_compilation}, //
+                    {"compile-exe", false, &Bool$info, &compile_exe}, //
+                    {"e", false, &Bool$info, &compile_exe}, //
+                    {"uninstall", false, List$info(&Text$info), &uninstall}, //
+                    {"u", false, List$info(&Text$info), &uninstall}, //
+                    {"library", false, List$info(&Path$info), &libraries}, //
+                    {"L", false, List$info(&Path$info), &libraries}, //
+                    {"show-codegen", false, &Text$info, &show_codegen}, //
+                    {"C", false, &Text$info, &show_codegen}, //
+                    {"install", false, &Bool$info, &should_install}, //
+                    {"I", false, &Bool$info, &should_install}, //
+                    {"optimization", false, &Text$info, &optimization}, //
+                    {"O", false, &Text$info, &optimization}, //
+                    {"force-rebuild", false, &Bool$info, &clean_build}, //
+                    {"f", false, &Bool$info, &clean_build}, //
+                    {"source-mapping", false, &Bool$info, &source_mapping},
+                    {"m", false, &Bool$info, &source_mapping}, //
+                    {"changelog", false, &Bool$info, &show_changelog}, );
 
     if (show_prefix) {
         print(TOMO_PATH);
@@ -214,7 +244,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (show_changelog) {
-        print_inline(string_slice((const char *)CHANGES_md, CHANGES_md_len));
+        print_inline(string_slice((const char *)CHANGES_md, (size_t)CHANGES_md_len));
         return 0;
     }
 
@@ -310,6 +340,17 @@ int main(int argc, char *argv[]) {
         if (show_parse_tree) {
             ast_t *ast = parse_file(Path$as_c_string(path), NULL);
             print(ast_to_sexp_str(ast));
+            continue;
+        }
+
+        if (do_format_code || format_inplace) {
+            Text_t formatted = format_file(Path$as_c_string(path));
+            if (format_inplace) {
+                print("Formatted ", path);
+                Path$write(path, formatted, 0644);
+            } else {
+                print(formatted);
+            }
             continue;
         }
 

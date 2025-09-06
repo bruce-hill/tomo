@@ -14,8 +14,7 @@
 /src/changes.md.h
 
 .build
-/build/bin
-/build/lib
+/build
 *.o
 *.so
 *.dylib

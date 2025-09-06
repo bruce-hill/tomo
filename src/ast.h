@@ -65,6 +65,8 @@ typedef struct ast_list_s {
 } ast_list_t;
 
 typedef struct arg_ast_s {
+    file_t *file;
+    const char *start, *end;
     const char *name, *alias;
     type_ast_t *type;
     ast_t *value;
@@ -88,6 +90,7 @@ typedef enum {
 } type_ast_e;
 
 typedef struct tag_ast_s {
+    const char *start, *end;
     const char *name;
     arg_ast_t *fields;
     struct tag_ast_s *next;
@@ -160,7 +163,12 @@ struct type_ast_s {
     case MinusUpdate:                                                                                                  \
     case ConcatUpdate:                                                                                                 \
     case LeftShiftUpdate:                                                                                              \
-    case UnsignedLeftShiftUpdate
+    case UnsignedLeftShiftUpdate:                                                                                      \
+    case RightShiftUpdate:                                                                                             \
+    case UnsignedRightShiftUpdate:                                                                                     \
+    case AndUpdate:                                                                                                    \
+    case OrUpdate:                                                                                                     \
+    case XorUpdate
 #define UPDATE_CASES                                                                                                   \
     PowerUpdate:                                                                                                       \
     case MultiplyUpdate:                                                                                               \
@@ -271,6 +279,7 @@ typedef enum {
     Extend,
     ExplicitlyTyped,
 } ast_e;
+#define NUM_AST_TAGS (ExplicitlyTyped + 1)
 
 struct ast_s {
     ast_e tag;
@@ -469,7 +478,16 @@ struct ast_s {
     } __data;
 };
 
-const char *ast_source(ast_t *ast);
+extern const int op_tightness[NUM_AST_TAGS];
+
+typedef struct {
+    const char *method_name;
+    const char *operator;
+} binop_info_t;
+
+extern const binop_info_t binop_info[NUM_AST_TAGS];
+
+OptionalText_t ast_source(ast_t *ast);
 
 Text_t ast_to_sexp(ast_t *ast);
 const char *ast_to_sexp_str(ast_t *ast);
@@ -478,7 +496,5 @@ Text_t type_ast_to_sexp(type_ast_t *ast);
 PUREFUNC bool is_idempotent(ast_t *ast);
 void visit_topologically(ast_list_t *ast, Closure_t fn);
 CONSTFUNC bool is_update_assignment(ast_t *ast);
-CONSTFUNC const char *binop_method_name(ast_e tag);
-CONSTFUNC const char *binop_operator(ast_e tag);
 CONSTFUNC ast_e binop_tag(ast_e tag);
 CONSTFUNC bool is_binary_operation(ast_t *ast);
