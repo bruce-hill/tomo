@@ -411,26 +411,6 @@ Path_t build_file(Path_t path, const char *extension) {
     return Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
 }
 
-static const char *get_version(Path_t lib_dir) {
-    Path_t changes_file = Path$child(lib_dir, Text("CHANGES.md"));
-    OptionalText_t changes = Path$read(changes_file);
-    if (changes.length <= 0) {
-        return "v0.0";
-    }
-    const char *changes_str = Text$as_c_string(Texts(Text("\n"), changes));
-    const char *version_line = strstr(changes_str, "\n## ");
-    if (version_line == NULL)
-        print_err("CHANGES.md in ", lib_dir, " does not have any valid versions starting with '## '");
-    return String(string_slice(version_line + 4, strcspn(version_line + 4, "\r\n")));
-}
-
-static Path_t with_version_suffix(Path_t lib_dir) {
-    Text_t suffix = Texts(Text("_"), Text$from_str(get_version(lib_dir)));
-    return Text$ends_with(Path$base_name(lib_dir), suffix, NULL)
-               ? lib_dir
-               : Path$sibling(lib_dir, Texts(Path$base_name(lib_dir), suffix));
-}
-
 void build_library(Path_t lib_dir) {
     lib_dir = Path$resolved(lib_dir, Path$current_dir());
     if (!Path$is_directory(lib_dir, true)) print_err("Not a valid directory: ", lib_dir);
@@ -441,8 +421,8 @@ void build_library(Path_t lib_dir) {
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
 
-    Text_t versioned_dir = Path$base_name(with_version_suffix(lib_dir));
-    Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), versioned_dir, Text(SHARED_SUFFIX)));
+    Text_t lib_name = get_library_name(lib_dir);
+    Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), lib_name, Text(SHARED_SUFFIX)));
     if (!is_stale_for_any(shared_lib, object_files, false)) {
         if (verbose) whisper("Unchanged: ", shared_lib);
         return;
@@ -453,7 +433,7 @@ void build_library(Path_t lib_dir) {
                          " -Wl,-install_name,@rpath/'lib", Path$base_name(lib_dir), version_suffix, SHARED_SUFFIX,
                          "'"
 #else
-                         " -Wl,-soname,'lib", versioned_dir, SHARED_SUFFIX,
+                         " -Wl,-soname,'lib", lib_name, SHARED_SUFFIX,
                          "'"
 #endif
                          " -shared ",
@@ -467,12 +447,11 @@ void build_library(Path_t lib_dir) {
 }
 
 void install_library(Path_t lib_dir) {
-    Text_t lib_dir_name = Path$base_name(lib_dir);
-    Text_t versioned_dir = Path$base_name(with_version_suffix(lib_dir));
-    Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION)), versioned_dir);
+    Text_t lib_name = get_library_name(lib_dir);
+    Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION)), lib_name);
     print("Installing ", lib_dir, " into ", dest);
     if (!Path$equal_values(lib_dir, dest)) {
-        if (verbose) whisper("Clearing out any pre-existing version of ", lib_dir_name);
+        if (verbose) whisper("Clearing out any pre-existing version of ", lib_name);
         xsystem(as_owner, "rm -rf '", dest, "'");
         if (verbose) whisper("Moving files to ", dest);
         xsystem(as_owner, "mkdir -p '", dest, "'");
@@ -481,15 +460,15 @@ void install_library(Path_t lib_dir) {
     }
     // If we have `debugedit` on this system, use it to remap the debugging source information
     // to point to the installed version of the source file. Otherwise, fail silently.
-    if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_dir_name, SHARED_SUFFIX);
+    if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_name, SHARED_SUFFIX);
     int result = system(String(as_owner, "debugedit -b ", lib_dir, " -d '", dest,
                                "'"
                                " '",
-                               dest, "/lib", versioned_dir, SHARED_SUFFIX,
+                               dest, "/lib", lib_name, SHARED_SUFFIX,
                                "' "
                                ">/dev/null 2>/dev/null"));
     (void)result;
-    print("Installed \033[1m", lib_dir_name, "\033[m to ", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", versioned_dir);
+    print("Installed \033[1m", lib_dir, "\033[m to ", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", lib_name);
 }
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs) {
@@ -647,7 +626,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_MODULE: {
-            module_info_t mod = get_module_info(stmt_ast);
+            module_info_t mod = get_used_module_info(stmt_ast);
             const char *full_name = mod.version ? String(mod.name, "_", mod.version) : mod.name;
             Text_t lib = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", Text$from_str(full_name),
                                "' '", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", Text$from_str(full_name), "/lib",
@@ -802,7 +781,7 @@ void transpile_code(env_t *base_env, Path_t path) {
 
     Text$print(c_file, c_code);
 
-    const char *version = get_version(Path$parent(path));
+    const char *version = get_library_version(Path$parent(path));
     binding_t *main_binding = get_binding(module_env, "main");
     if (main_binding && main_binding->type->tag == FunctionType) {
         type_t *ret = Match(main_binding->type, FunctionType)->ret;
