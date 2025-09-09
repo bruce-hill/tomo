@@ -836,8 +836,6 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         return exe_path;
     }
 
-    FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ",
-                           list_text(extra_ldlibs), " ", paths_str(object_files), " -x c - -o ", exe_path);
     Text_t program = Texts("extern int parse_and_run$$", main_binding->code,
                            "(int argc, char *argv[]);\n"
                            "__attribute__ ((noinline))\n"
@@ -846,6 +844,11 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
                            main_binding->code,
                            "(argc, argv);\n"
                            "}\n");
+    Path_t runner_file = build_file(path, ".runner.c");
+    Path$write(runner_file, program, 0644);
+
+    FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ",
+                           list_text(extra_ldlibs), " ", paths_str(object_files), " ", runner_file, " -o ", exe_path);
 
     if (show_codegen.length > 0) {
         FILE *out = run_cmd(show_codegen);
