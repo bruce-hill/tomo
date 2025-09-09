@@ -47,8 +47,8 @@
 // (U+1F680) followed by THUMBS UP (U+1F44D), it will render on your screen as
 // two things: a female astronaut and a thumbs up, and this is how most people
 // will think about the text. If you wish to operate on the raw codepoints that
-// comprise the message, you are free to do so with the `.utf32_codepoints()`
-// method and `Text.from_codepoints()`, but this is not the default behavior.
+// comprise the message, you are free to do so with the `.utf32()`
+// method and `Text.from_utf32()`, but this is not the default behavior.
 // The behavior for the given example is that `text.length == 2`, `text[1]` is
 // the grapheme cluster representing a female astronaut emoji, and `text[2]` is
 // the grapheme cluster representing the thumbs up emoji.
@@ -244,7 +244,7 @@ int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_len) {
     synthetic_graphemes[-grapheme_id - 1].utf32_cluster = codepoint_copy;
     arena += sizeof(ucs4_t[1 + utf32_len]);
 
-    // Copy UTF8 bytes into the arena and store where they live:
+    // Copy UTF8 units into the arena and store where they live:
     uint8_t *utf8_final = arena;
     memcpy(utf8_final, u8, sizeof(uint8_t[u8_len]));
     utf8_final[u8_len] = '\0'; // Add a terminating NUL byte
@@ -520,8 +520,9 @@ static Text_t concat2(Text_t a, Text_t b) {
         return concat2_assuming_safe(a, b);
     }
 
-    Text_t glue =
-        Text$from_codepoints((List_t){.data = norm_buf, .length = (int64_t)norm_length, .stride = sizeof(int32_t)});
+    OptionalText_t glue =
+        Text$from_utf32((List_t){.data = norm_buf, .length = (int64_t)norm_length, .stride = sizeof(int32_t)});
+    assert(glue.length >= 0);
 
     if (normalized != norm_buf) free(normalized);
 
@@ -815,7 +816,7 @@ OptionalText_t Text$from_strn(const char *str, size_t len) {
 public
 OptionalText_t Text$from_str(const char *str) { return str ? Text$from_strn(str, strlen(str)) : Text(""); }
 
-static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i) {
+static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t *i) {
     switch (text.tag) {
     case TEXT_ASCII: {
         if (*i + text.length > (int64_t)*capacity) {
@@ -902,7 +903,7 @@ static void u8_buf_append(Text_t text, char **buf, int64_t *capacity, int64_t *i
 public
 char *Text$as_c_string(Text_t text) {
     int64_t capacity = text.length + 1;
-    char *buf = GC_MALLOC_ATOMIC((size_t)capacity);
+    Byte_t *buf = GC_MALLOC_ATOMIC((size_t)capacity);
     int64_t i = 0;
     u8_buf_append(text, &buf, &capacity, &i);
 
@@ -911,7 +912,7 @@ char *Text$as_c_string(Text_t text) {
         buf = GC_REALLOC(buf, (size_t)capacity);
     }
     buf[i] = '\0';
-    return buf;
+    return (char *)buf;
 }
 
 PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t *info) {
@@ -1359,33 +1360,39 @@ PUREFUNC public bool Text$equal_ignoring_case(Text_t a, Text_t b, Text_t languag
 public
 Text_t Text$upper(Text_t text, Text_t language) {
     if (text.length == 0) return text;
-    List_t codepoints = Text$utf32_codepoints(text);
+    List_t codepoints = Text$utf32(text);
     const char *uc_language = Text$as_c_string(language);
     size_t out_len = 0;
     ucs4_t *upper = u32_toupper(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
-    Text_t ret = Text$from_codepoints((List_t){.data = upper, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
+    OptionalText_t ret =
+        Text$from_utf32((List_t){.data = upper, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
+    assert(ret.length >= 0);
     return ret;
 }
 
 public
 Text_t Text$lower(Text_t text, Text_t language) {
     if (text.length == 0) return text;
-    List_t codepoints = Text$utf32_codepoints(text);
+    List_t codepoints = Text$utf32(text);
     const char *uc_language = Text$as_c_string(language);
     size_t out_len = 0;
     ucs4_t *lower = u32_tolower(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
-    Text_t ret = Text$from_codepoints((List_t){.data = lower, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
+    OptionalText_t ret =
+        Text$from_utf32((List_t){.data = lower, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
+    assert(ret.length >= 0);
     return ret;
 }
 
 public
 Text_t Text$title(Text_t text, Text_t language) {
     if (text.length == 0) return text;
-    List_t codepoints = Text$utf32_codepoints(text);
+    List_t codepoints = Text$utf32(text);
     const char *uc_language = Text$as_c_string(language);
     size_t out_len = 0;
     ucs4_t *title = u32_totitle(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
-    Text_t ret = Text$from_codepoints((List_t){.data = title, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
+    OptionalText_t ret =
+        Text$from_utf32((List_t){.data = title, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
+    assert(ret.length >= 0);
     return ret;
 }
 
@@ -1541,7 +1548,33 @@ List_t Text$clusters(Text_t text) {
 }
 
 public
-List_t Text$utf32_codepoints(Text_t text) {
+List_t Text$utf8(Text_t text) {
+    int64_t capacity = text.length + 1;
+    Byte_t *buf = GC_MALLOC_ATOMIC((size_t)capacity);
+    int64_t i = 0;
+    u8_buf_append(text, &buf, &capacity, &i);
+    return (List_t){.data = buf, .length = i, .stride = 1, .atomic = 1};
+}
+
+public
+List_t Text$utf16(Text_t text) {
+    if (text.length == 0) return (List_t){};
+    List_t utf32 = Text$utf32(text);
+    List_t utf16 = {.free = MIN(LIST_MAX_FREE_ENTRIES, (uint64_t)utf32.length), .atomic = 1};
+    utf16.data = GC_MALLOC_ATOMIC(sizeof(int32_t[utf16.free]));
+    for (int64_t i = 0; i < utf32.length; i++) {
+        uint16_t u16_buf[4];
+        size_t u16_len = sizeof(u16_buf) / sizeof(u16_buf[0]);
+        uint16_t *chunk_u16 = u32_to_u16(utf32.data + utf32.stride * i, 1, u16_buf, &u16_len);
+        if (chunk_u16 == NULL) fail("Invalid codepoints encountered!");
+        List$insert_all(&utf16, (List_t){.data = u16_buf, .stride = sizeof(uint16_t), .length = (int64_t)u16_len}, I(0),
+                        sizeof(uint16_t));
+    }
+    return utf16;
+}
+
+public
+List_t Text$utf32(Text_t text) {
     List_t codepoints = {.atomic = 1};
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
@@ -1556,12 +1589,6 @@ List_t Text$utf32_codepoints(Text_t text) {
         }
     }
     return codepoints;
-}
-
-public
-List_t Text$utf8_bytes(Text_t text) {
-    const char *str = Text$as_c_string(text);
-    return (List_t){.length = (int64_t)strlen(str), .stride = 1, .atomic = 1, .data = (void *)str};
 }
 
 static INLINE const char *codepoint_name(ucs4_t c) {
@@ -1595,7 +1622,28 @@ List_t Text$codepoint_names(Text_t text) {
 }
 
 public
-Text_t Text$from_codepoints(List_t codepoints) {
+OptionalText_t Text$from_utf8(List_t units) {
+    if (units.stride != sizeof(int8_t)) List$compact(&units, sizeof(int8_t));
+    return Text$from_strn(units.data, (size_t)units.length);
+}
+
+public
+OptionalText_t Text$from_utf16(List_t units) {
+    if (units.length == 0) return EMPTY_TEXT;
+    if (units.stride != sizeof(int16_t)) List$compact(&units, sizeof(int16_t));
+
+    size_t length = 256;
+    uint8_t buf[length];
+    uint8_t *u8 = u16_to_u8(units.data, (size_t)units.length, buf, &length);
+    Text_t ret =
+        Text$from_utf8((List_t){.data = u8, .length = (int64_t)length, .stride = sizeof(uint8_t), .atomic = 1});
+    if (u8 != buf) free(u8);
+    return ret;
+}
+
+public
+OptionalText_t Text$from_utf32(List_t codepoints) {
+    if (codepoints.length == 0) return EMPTY_TEXT;
     if (codepoints.stride != sizeof(uint32_t)) List$compact(&codepoints, sizeof(uint32_t));
 
     List_t graphemes = {};
@@ -1607,6 +1655,7 @@ Text_t Text$from_codepoints(List_t codepoints) {
         // Buffer for normalized cluster:
         uint32_t buf[256];
         size_t u32_normlen = sizeof(buf) / sizeof(buf[0]);
+        if (u32_check(pos, (size_t)(next - pos)) != NULL) return NONE_TEXT;
         uint32_t *u32s_normalized = u32_normalize(UNINORM_NFC, pos, (size_t)(next - pos), buf, &u32_normlen);
 
         int32_t g = get_synthetic_grapheme(u32s_normalized, (int64_t)u32_normlen);
@@ -1622,8 +1671,9 @@ Text_t Text$from_codepoints(List_t codepoints) {
                 .data = (void *)next,
                 .stride = sizeof(int32_t),
             };
-            return concat2_assuming_safe(Text$from_components(graphemes, unique_clusters),
-                                         Text$from_codepoints(remaining_codepoints));
+            OptionalText_t remainder = Text$from_utf32(remaining_codepoints);
+            if (remainder.length < 0) return NONE_TEXT;
+            return concat2_assuming_safe(Text$from_components(graphemes, unique_clusters), remainder);
         }
     }
     return Text$from_components(graphemes, unique_clusters);
@@ -1639,14 +1689,7 @@ OptionalText_t Text$from_codepoint_names(List_t codepoint_names) {
         if (codepoint == UNINAME_INVALID) return NONE_TEXT;
         List$insert(&codepoints, &codepoint, I_small(0), sizeof(ucs4_t));
     }
-    return Text$from_codepoints(codepoints);
-}
-
-public
-OptionalText_t Text$from_bytes(List_t bytes) {
-    if (bytes.stride != sizeof(int8_t)) List$compact(&bytes, sizeof(int8_t));
-
-    return Text$from_strn(bytes.data, (size_t)bytes.length);
+    return Text$from_utf32(codepoints);
 }
 
 public
