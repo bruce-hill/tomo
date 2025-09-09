@@ -88,10 +88,9 @@ static OptionalText_t show_codegen = NONE_TEXT,
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
                                     " -D_BSD_SOURCE"
 #endif
-                                    " -DGC_THREADS"
-                                    " -I/usr/local/include"),
-                      ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo_" TOMO_VERSION),
-                      ldflags = Text(" -L/usr/local/lib"), optimization = Text("2"), cc = Text(DEFAULT_C_COMPILER);
+                                    " -DGC_THREADS"),
+                      ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo_" TOMO_VERSION), ldflags = Text(""),
+                      optimization = Text("2"), cc = Text(DEFAULT_C_COMPILER);
 
 static Text_t config_summary,
     // This will be either "" or "sudo -u <user>" or "doas -u <user>"
@@ -265,7 +264,7 @@ int main(int argc, char *argv[]) {
         cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
     }
 
-    ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib',-rpath,/usr/local/lib ", ldflags);
+    ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags);
 
 #ifdef __APPLE__
     cflags = Texts(cflags, Text(" -I/opt/homebrew/include"));
