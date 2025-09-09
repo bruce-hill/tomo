@@ -275,7 +275,8 @@ int main(int argc, char *argv[]) {
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
         show_codegen = Text("{ sed '/^#line/d;/^$/d' | clang-format | bat -l c -P; }");
 
-    config_summary = Text$from_str(String(cc, " ", cflags, " -O", optimization));
+    config_summary = Texts("TOMO_VERSION=", TOMO_VERSION, "\n", "COMPILER=", cc, " ", cflags, " -O", optimization, "\n",
+                           "SOURCE_MAPPING=", source_mapping ? Text("yes") : Text("no"), "\n");
 
     Text_t owner = Path$owner(Path$from_str(TOMO_PATH), true);
     Text_t user = Text$from_str(getenv("USER"));
