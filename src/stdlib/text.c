@@ -521,7 +521,7 @@ static Text_t concat2(Text_t a, Text_t b) {
     }
 
     OptionalText_t glue =
-        Text$from_utf32((List_t){.data = norm_buf, .length = (int64_t)norm_length, .stride = sizeof(int32_t)});
+        Text$from_utf32((List_t){.data = normalized, .length = (int64_t)norm_length, .stride = sizeof(int32_t)});
     assert(glue.length >= 0);
 
     if (normalized != norm_buf) free(normalized);
@@ -1575,8 +1575,9 @@ List_t Text$utf16(Text_t text) {
         size_t u16_len = sizeof(u16_buf) / sizeof(u16_buf[0]);
         uint16_t *chunk_u16 = u32_to_u16(utf32.data + utf32.stride * i, 1, u16_buf, &u16_len);
         if (chunk_u16 == NULL) fail("Invalid codepoints encountered!");
-        List$insert_all(&utf16, (List_t){.data = u16_buf, .stride = sizeof(uint16_t), .length = (int64_t)u16_len}, I(0),
-                        sizeof(uint16_t));
+        List$insert_all(&utf16, (List_t){.data = chunk_u16, .stride = sizeof(uint16_t), .length = (int64_t)u16_len},
+                        I(0), sizeof(uint16_t));
+        if (chunk_u16 != u16_buf) free(chunk_u16);
     }
     return utf16;
 }
