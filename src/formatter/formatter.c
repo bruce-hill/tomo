@@ -54,7 +54,9 @@ PUREFUNC text_opts_t choose_text_options(ast_list_t *chunks) {
 }
 
 static bool starts_with_id(Text_t text) {
+    if (text.length <= 0) return false;
     List_t codepoints = Text$utf32(Text$slice(text, I_small(1), I_small(1)));
+    if (codepoints.length <= 0 || codepoints.data == NULL) return false;
     return uc_is_property_xid_continue(*(ucs4_t *)codepoints.data);
 }
 
