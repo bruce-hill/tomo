@@ -1361,6 +1361,7 @@ public
 Text_t Text$upper(Text_t text, Text_t language) {
     if (text.length == 0) return text;
     List_t codepoints = Text$utf32(text);
+    if (codepoints.stride != sizeof(int32_t)) List$compact(&codepoints, sizeof(int32_t));
     const char *uc_language = Text$as_c_string(language);
     size_t out_len = 256;
     uint32_t buf[out_len];
@@ -1376,6 +1377,7 @@ public
 Text_t Text$lower(Text_t text, Text_t language) {
     if (text.length == 0) return text;
     List_t codepoints = Text$utf32(text);
+    if (codepoints.stride != sizeof(int32_t)) List$compact(&codepoints, sizeof(int32_t));
     const char *uc_language = Text$as_c_string(language);
     size_t out_len = 256;
     uint32_t buf[out_len];
@@ -1391,6 +1393,7 @@ public
 Text_t Text$title(Text_t text, Text_t language) {
     if (text.length == 0) return text;
     List_t codepoints = Text$utf32(text);
+    if (codepoints.stride != sizeof(int32_t)) List$compact(&codepoints, sizeof(int32_t));
     const char *uc_language = Text$as_c_string(language);
     size_t out_len = 256;
     uint32_t buf[out_len];
@@ -1633,7 +1636,8 @@ List_t Text$codepoint_names(Text_t text) {
 
 public
 OptionalText_t Text$from_utf8(List_t units) {
-    if (units.stride != sizeof(int8_t)) List$compact(&units, sizeof(int8_t));
+    if (units.length == 0) return EMPTY_TEXT;
+    if (units.stride != sizeof(uint8_t)) List$compact(&units, sizeof(uint8_t));
     return Text$from_strn(units.data, (size_t)units.length);
 }
 
