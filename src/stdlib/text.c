@@ -907,7 +907,7 @@ char *Text$as_c_string(Text_t text) {
     int64_t i = 0;
     u8_buf_append(text, &buf, &capacity, &i);
 
-    if (i + 1 > (int64_t)capacity) {
+    if (i > (int64_t)capacity - 1) {
         capacity = i + 1;
         buf = GC_REALLOC(buf, (size_t)capacity);
     }
@@ -1362,11 +1362,13 @@ Text_t Text$upper(Text_t text, Text_t language) {
     if (text.length == 0) return text;
     List_t codepoints = Text$utf32(text);
     const char *uc_language = Text$as_c_string(language);
-    size_t out_len = 0;
-    ucs4_t *upper = u32_toupper(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
+    size_t out_len = 256;
+    uint32_t buf[out_len];
+    ucs4_t *upper = u32_toupper(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
     OptionalText_t ret =
         Text$from_utf32((List_t){.data = upper, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
     assert(ret.length >= 0);
+    if (upper != buf) free(upper);
     return ret;
 }
 
@@ -1375,11 +1377,13 @@ Text_t Text$lower(Text_t text, Text_t language) {
     if (text.length == 0) return text;
     List_t codepoints = Text$utf32(text);
     const char *uc_language = Text$as_c_string(language);
-    size_t out_len = 0;
-    ucs4_t *lower = u32_tolower(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
+    size_t out_len = 256;
+    uint32_t buf[out_len];
+    ucs4_t *lower = u32_tolower(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
     OptionalText_t ret =
         Text$from_utf32((List_t){.data = lower, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
     assert(ret.length >= 0);
+    if (lower != buf) free(lower);
     return ret;
 }
 
@@ -1388,11 +1392,13 @@ Text_t Text$title(Text_t text, Text_t language) {
     if (text.length == 0) return text;
     List_t codepoints = Text$utf32(text);
     const char *uc_language = Text$as_c_string(language);
-    size_t out_len = 0;
-    ucs4_t *title = u32_totitle(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, NULL, &out_len);
+    size_t out_len = 256;
+    uint32_t buf[out_len];
+    ucs4_t *title = u32_totitle(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
     OptionalText_t ret =
         Text$from_utf32((List_t){.data = title, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
     assert(ret.length >= 0);
+    if (title != buf) free(title);
     return ret;
 }
 
@@ -1549,11 +1555,13 @@ List_t Text$clusters(Text_t text) {
 
 public
 List_t Text$utf8(Text_t text) {
-    int64_t capacity = text.length + 1;
-    Byte_t *buf = GC_MALLOC_ATOMIC((size_t)capacity);
+    if (text.length == 0) return (List_t){};
+    int64_t capacity = text.length;
+    Byte_t *buf = GC_MALLOC_ATOMIC(sizeof(Byte_t[capacity]));
     int64_t i = 0;
     u8_buf_append(text, &buf, &capacity, &i);
-    return (List_t){.data = buf, .length = i, .stride = 1, .atomic = 1};
+    return (List_t){
+        .data = buf, .length = i, .stride = 1, .atomic = 1, .free = MIN(LIST_MAX_FREE_ENTRIES, capacity - i)};
 }
 
 public
@@ -1575,6 +1583,7 @@ List_t Text$utf16(Text_t text) {
 
 public
 List_t Text$utf32(Text_t text) {
+    if (text.length == 0) return (List_t){};
     List_t codepoints = {.atomic = 1};
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
