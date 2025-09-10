@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.bytes 3 2025-04-30 "Tomo man-pages"
+.TH Text.utf8 3 2025-09-09 "Tomo man-pages"
 .SH NAME
-Text.bytes \- get UTF8 bytes
+Text.utf8 \- get UTF8 bytes
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Text.bytes\ :\ func(text:\ Text\ ->\ [Byte])
+.BI Text.utf8\ :\ func(text:\ Text\ ->\ [Byte])
 .fi
 .SH DESCRIPTION
 Converts a `Text` value to a list of bytes representing a UTF8 encoding of the text.
@@ -29,6 +29,6 @@ A list of bytes (`[Byte]`) representing the text in UTF8 encoding.
 
 .SH EXAMPLES
 .EX
->> "Amélie".bytes()
+>> "Amélie".utf8()
 = [65, 109, 195, 169, 108, 105, 101]
 .EE

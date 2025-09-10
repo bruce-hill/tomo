@@ -54,7 +54,7 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
         if (table_type->default_value) {
             return Texts("Table$get_or_default(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                          compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",
-                         compile(env, indexing->index), ", ",
+                         compile_to_type(env, indexing->index, table_type->key_type), ", ",
                          compile_to_type(env, table_type->default_value, table_type->value_type), ", ",
                          compile_type_info(container_t), ")");
         } else if (checked) {
@@ -66,7 +66,7 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
         } else {
             return Texts("Table$get_optional(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                          compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",
-                         compile(env, indexing->index),
+                         compile_to_type(env, indexing->index, table_type->key_type),
                          ", "
                          "_, ",
                          promote_to_optional(table_type->value_type, Text("(*_)")), ", ",

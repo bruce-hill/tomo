@@ -165,15 +165,15 @@ PUREFUNC type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rh
     return NULL;
 }
 
-static env_t *load_module(env_t *env, ast_t *module_ast) {
-    DeclareMatch(use, module_ast, Use);
+static env_t *load_module(env_t *env, ast_t *use_ast) {
+    DeclareMatch(use, use_ast, Use);
     switch (use->what) {
     case USE_LOCAL: {
-        Path_t source_path = Path$from_str(module_ast->file->filename);
+        Path_t source_path = Path$from_str(use_ast->file->filename);
         Path_t source_dir = Path$parent(source_path);
         Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
 
-        if (!Path$exists(used_path)) code_err(module_ast, "No such file exists: ", quoted(use->path));
+        if (!Path$exists(used_path)) code_err(use_ast, "No such file exists: ", quoted(use->path));
 
         env_t *module_env = Table$str_get(*env->imports, String(used_path));
         if (module_env) return module_env;
@@ -183,12 +183,12 @@ static env_t *load_module(env_t *env, ast_t *module_ast) {
         return load_module_env(env, ast);
     }
     case USE_MODULE: {
-        module_info_t mod = get_module_info(module_ast);
+        module_info_t mod = get_used_module_info(use_ast);
         glob_t tm_files;
         const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
         if (glob(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files)
             != 0) {
-            if (!try_install_module(mod, true)) code_err(module_ast, "Couldn't find or install library: ", folder);
+            if (!try_install_module(mod, true)) code_err(use_ast, "Couldn't find or install library: ", folder);
         }
 
         env_t *module_env = fresh_scope(env);

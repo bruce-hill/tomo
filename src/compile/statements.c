@@ -188,7 +188,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             Text_t suffix = get_id_suffix(Path$as_c_string(path));
             return with_source_info(env, ast, Texts("$initialize", suffix, "();\n"));
         } else if (use->what == USE_MODULE) {
-            module_info_t mod = get_module_info(ast);
+            module_info_t mod = get_used_module_info(ast);
             glob_t tm_files;
             const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
             if (glob(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,

@@ -343,16 +343,16 @@ env_t *global_env(bool source_mapping) {
             {"by_line", "Text$by_line", "func(text:Text -> func(->Text?))"}, //
             {"by_split", "Text$by_split", "func(text:Text, delimiter='' -> func(->Text?))"}, //
             {"by_split_any", "Text$by_split_any", "func(text:Text, delimiters=' \\t\\r\\n' -> func(->Text?))"}, //
-            {"bytes", "Text$utf8_bytes", "func(text:Text -> [Byte])"}, //
             {"caseless_equals", "Text$equal_ignoring_case", "func(a,b:Text, language='C' -> Bool)"}, //
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"}, //
             {"ends_with", "Text$ends_with", "func(text,suffix:Text, remainder:&Text? = none -> Bool)"}, //
             {"from", "Text$from", "func(text:Text, first:Int -> Text)"}, //
-            {"from_bytes", "Text$from_bytes", "func(bytes:[Byte] -> Text?)"}, //
             {"from_c_string", "Text$from_str", "func(str:CString -> Text?)"}, //
             {"from_codepoint_names", "Text$from_codepoint_names", "func(codepoint_names:[Text] -> Text?)"}, //
-            {"from_codepoints", "Text$from_codepoints", "func(codepoints:[Int32] -> Text)"}, //
             {"from_text", "Path$from_text", "func(text:Text -> Path)"}, //
+            {"from_utf8", "Text$from_utf8", "func(bytes:[Byte] -> Text?)"}, //
+            {"from_utf16", "Text$from_utf16", "func(codepoints:[Int16] -> Text?)"}, //
+            {"from_utf32", "Text$from_utf32", "func(codepoints:[Int32] -> Text?)"}, //
             {"has", "Text$has", "func(text:Text, target:Text -> Bool)"}, //
             {"join", "Text$join", "func(glue:Text, pieces:[Text] -> Text)"}, //
             {"layout", "Text$layout", "func(text:Text -> Text)"}, //
@@ -375,7 +375,9 @@ env_t *global_env(bool source_mapping) {
             {"translate", "Text$translate", "func(text:Text, translations:{Text=Text} -> Text)"}, //
             {"trim", "Text$trim", "func(text:Text, to_trim=\" \t\r\n\", left=yes, right=yes -> Text)"}, //
             {"upper", "Text$upper", "func(text:Text, language='C' -> Text)"}, //
-            {"utf32_codepoints", "Text$utf32_codepoints", "func(text:Text -> [Int32])"}, //
+            {"utf8", "Text$utf8", "func(text:Text -> [Byte])"}, //
+            {"utf16", "Text$utf16", "func(text:Text -> [Int16])"}, //
+            {"utf32", "Text$utf32", "func(text:Text -> [Int32])"}, //
             {"width", "Text$width", "func(text:Text, language='C' -> Int)"}, //
             {"without_prefix", "Text$without_prefix", "func(text,prefix:Text -> Text)"}, //
             {"without_suffix", "Text$without_suffix", "func(text,suffix:Text -> Text)"}),
