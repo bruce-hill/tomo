@@ -1,0 +1,39 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.from_utf16 3 2025-09-09 "Tomo man-pages"
+.SH NAME
+Text.from_utf16 \- convert UTF16 list to text
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Text.from_utf16\ :\ func(bytes:\ [Int16]\ ->\ [Text])
+.fi
+.SH DESCRIPTION
+Returns text that has been constructed from the given UTF16 sequence.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+bytes	[Int16]	The UTF-16 integers of the desired text. 	-
+.TE
+.SH RETURN
+A new text based on the input UTF16 sequence after normalization has been applied.
+
+.SH NOTES
+The text will be normalized, so the resulting text's UTF16 sequence may not exactly match the input.
+
+.SH EXAMPLES
+.EX
+>> Text.from_utf16([197, 107, 101])
+= "Åke"
+>> Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028])
+= "こんにちは世界".utf16()
+.EE

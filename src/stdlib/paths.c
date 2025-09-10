@@ -290,7 +290,7 @@ static void _write(Path_t path, List_t bytes, int mode, int permissions) {
 
 public
 void Path$write(Path_t path, Text_t text, int permissions) {
-    List_t bytes = Text$utf8_bytes(text);
+    List_t bytes = Text$utf8(text);
     _write(path, bytes, O_WRONLY | O_CREAT | O_TRUNC, permissions);
 }
 
@@ -301,7 +301,7 @@ void Path$write_bytes(Path_t path, List_t bytes, int permissions) {
 
 public
 void Path$append(Path_t path, Text_t text, int permissions) {
-    List_t bytes = Text$utf8_bytes(text);
+    List_t bytes = Text$utf8(text);
     _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
 }
 
@@ -367,7 +367,7 @@ public
 OptionalText_t Path$read(Path_t path) {
     List_t bytes = Path$read_bytes(path, NONE_INT);
     if (bytes.length < 0) return NONE_TEXT;
-    return Text$from_bytes(bytes);
+    return Text$from_utf8(bytes);
 }
 
 public
@@ -537,7 +537,7 @@ Path_t Path$write_unique_bytes(Path_t path, List_t bytes) {
 }
 
 public
-Path_t Path$write_unique(Path_t path, Text_t text) { return Path$write_unique_bytes(path, Text$utf8_bytes(text)); }
+Path_t Path$write_unique(Path_t path, Text_t text) { return Path$write_unique_bytes(path, Text$utf8(text)); }
 
 public
 Path_t Path$parent(Path_t path) {
