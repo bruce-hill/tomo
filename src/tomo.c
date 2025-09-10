@@ -493,9 +493,10 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         Path_t id_file = build_file(entry->filename, ".id");
         if (!Path$exists(id_file)) {
             static const char id_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            int64_t num_id_chars = (int64_t)strlen(id_chars);
             char id_str[8];
             for (int j = 0; j < (int)sizeof(id_str); j++) {
-                id_str[j] = id_chars[random_range(0, sizeof(id_chars) - 1)];
+                id_str[j] = id_chars[random_range(0, num_id_chars - 1)];
             }
             Text_t filename_id = Text("");
             Text_t base = Path$base_name(entry->filename);
