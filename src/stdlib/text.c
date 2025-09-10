@@ -521,7 +521,7 @@ static Text_t concat2(Text_t a, Text_t b) {
     }
 
     OptionalText_t glue =
-        Text$from_utf32((List_t){.data = normalized, .length = (int64_t)norm_length, .stride = sizeof(int32_t)});
+        Text$from_utf32((List_t){.data = normalized, .length = (int64_t)norm_length, .stride = sizeof(ucs4_t)});
     assert(glue.length >= 0);
 
     if (normalized != norm_buf) free(normalized);
@@ -821,7 +821,7 @@ static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t 
     case TEXT_ASCII: {
         if (*i + text.length > (int64_t)*capacity) {
             *capacity = *i + text.length + 1;
-            *buf = GC_REALLOC(*buf, (size_t)*capacity);
+            *buf = GC_REALLOC(*buf, sizeof(Byte_t[*capacity]));
         }
 
         const char *bytes = text.ascii;
@@ -840,7 +840,7 @@ static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t 
 
                 if (*i + (int64_t)u8_len > (int64_t)*capacity) {
                     *capacity = *i + (int64_t)u8_len + 1;
-                    *buf = GC_REALLOC(*buf, (size_t)*capacity);
+                    *buf = GC_REALLOC(*buf, sizeof(Byte_t[*capacity]));
                 }
 
                 memcpy(*buf + *i, u8, u8_len);
@@ -851,7 +851,7 @@ static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t 
                 size_t u8_len = u8_strlen(u8);
                 if (*i + (int64_t)u8_len > (int64_t)*capacity) {
                     *capacity = *i + (int64_t)u8_len + 1;
-                    *buf = GC_REALLOC(*buf, (size_t)*capacity);
+                    *buf = GC_REALLOC(*buf, sizeof(Byte_t[*capacity]));
                 }
 
                 memcpy(*buf + *i, u8, u8_len);
@@ -871,7 +871,7 @@ static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t 
 
                 if (*i + (int64_t)u8_len > (int64_t)*capacity) {
                     *capacity = *i + (int64_t)u8_len + 1;
-                    *buf = GC_REALLOC(*buf, (size_t)*capacity);
+                    *buf = GC_REALLOC(*buf, sizeof(Byte_t[*capacity]));
                 }
 
                 memcpy(*buf + *i, u8, u8_len);
@@ -882,7 +882,7 @@ static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t 
                 size_t u8_len = u8_strlen(u8);
                 if (*i + (int64_t)u8_len > (int64_t)*capacity) {
                     *capacity = *i + (int64_t)u8_len + 1;
-                    *buf = GC_REALLOC(*buf, (size_t)*capacity);
+                    *buf = GC_REALLOC(*buf, sizeof(Byte_t[*capacity]));
                 }
 
                 memcpy(*buf + *i, u8, u8_len);
@@ -903,16 +903,16 @@ static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t 
 public
 char *Text$as_c_string(Text_t text) {
     int64_t capacity = text.length + 1;
-    Byte_t *buf = GC_MALLOC_ATOMIC((size_t)capacity);
+    char *buf = GC_MALLOC_ATOMIC((size_t)capacity);
     int64_t i = 0;
-    u8_buf_append(text, &buf, &capacity, &i);
+    u8_buf_append(text, (Byte_t **)&buf, &capacity, &i);
 
-    if (i > (int64_t)capacity - 1) {
+    if (i + 1 > (int64_t)capacity) {
         capacity = i + 1;
         buf = GC_REALLOC(buf, (size_t)capacity);
     }
     buf[i] = '\0';
-    return (char *)buf;
+    return buf;
 }
 
 PUREFUNC public uint64_t Text$hash(const void *obj, const TypeInfo_t *info) {
@@ -1558,7 +1558,7 @@ List_t Text$clusters(Text_t text) {
 
 public
 List_t Text$utf8(Text_t text) {
-    if (text.length == 0) return (List_t){};
+    if (text.length == 0) return (List_t){.atomic = 1};
     int64_t capacity = text.length;
     Byte_t *buf = GC_MALLOC_ATOMIC(sizeof(Byte_t[capacity]));
     int64_t i = 0;
@@ -1569,7 +1569,7 @@ List_t Text$utf8(Text_t text) {
 
 public
 List_t Text$utf16(Text_t text) {
-    if (text.length == 0) return (List_t){};
+    if (text.length == 0) return (List_t){.atomic = 1};
     List_t utf32 = Text$utf32(text);
     List_t utf16 = {.free = MIN(LIST_MAX_FREE_ENTRIES, (uint64_t)utf32.length), .atomic = 1};
     utf16.data = GC_MALLOC_ATOMIC(sizeof(int32_t[utf16.free]));
@@ -1587,7 +1587,7 @@ List_t Text$utf16(Text_t text) {
 
 public
 List_t Text$utf32(Text_t text) {
-    if (text.length == 0) return (List_t){};
+    if (text.length == 0) return (List_t){.atomic = 1};
     List_t codepoints = {.atomic = 1};
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
