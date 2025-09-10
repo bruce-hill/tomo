@@ -4182,27 +4182,6 @@ for chunk in text.by_split_any(",;")
 say(chunk)
 
 ```
-## Text.bytes
-
-```tomo
-Text.bytes : func(text: Text -> [Byte])
-```
-
-Converts a `Text` value to a list of bytes representing a UTF8 encoding of the text.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-text | `Text` | The text to be converted to UTF8 bytes.  | -
-
-**Return:** A list of bytes (`[Byte]`) representing the text in UTF8 encoding.
-
-
-**Example:**
-```tomo
->> "Amélie".bytes()
-= [65, 109, 195, 169, 108, 105, 101]
-
-```
 ## Text.caseless_equals
 
 ```tomo
@@ -4306,29 +4285,6 @@ first | `Int` | The index to begin the slice.  | -
 = "lo"
 
 ```
-## Text.from_bytes
-
-```tomo
-Text.from_bytes : func(bytes: [Byte] -> [Text])
-```
-
-Returns text that has been constructed from the given UTF8 bytes.
-
-The text will be normalized, so the resulting text's UTF8 bytes may not exactly match the input.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-bytes | `[Byte]` | The UTF-8 bytes of the desired text.  | -
-
-**Return:** A new text based on the input UTF8 bytes after normalization has been applied.
-
-
-**Example:**
-```tomo
->> Text.from_bytes([195, 133, 107, 101])
-= "Åke"
-
-```
 ## Text.from_c_string
 
 ```tomo
@@ -4377,10 +4333,35 @@ codepoint_names | `[Text]` | The names of each codepoint in the desired text (ca
 = "Åke"
 
 ```
-## Text.from_codepoints
+## Text.from_utf16
 
 ```tomo
-Text.from_codepoints : func(codepoints: [Int32] -> [Text])
+Text.from_utf16 : func(bytes: [Int16] -> [Text])
+```
+
+Returns text that has been constructed from the given UTF16 sequence.
+
+The text will be normalized, so the resulting text's UTF16 sequence may not exactly match the input.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+bytes | `[Int16]` | The UTF-16 integers of the desired text.  | -
+
+**Return:** A new text based on the input UTF16 sequence after normalization has been applied.
+
+
+**Example:**
+```tomo
+>> Text.from_utf16([197, 107, 101])
+= "Åke"
+>> Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028])
+= "こんにちは世界".utf16()
+
+```
+## Text.from_utf32
+
+```tomo
+Text.from_utf32 : func(codepoints: [Int32] -> [Text])
 ```
 
 Returns text that has been constructed from the given UTF32 codepoints.
@@ -4396,7 +4377,30 @@ codepoints | `[Int32]` | The UTF32 codepoints in the desired text.  | -
 
 **Example:**
 ```tomo
->> Text.from_codepoints([197, 107, 101])
+>> Text.from_utf32([197, 107, 101])
+= "Åke"
+
+```
+## Text.from_utf8
+
+```tomo
+Text.from_utf8 : func(bytes: [Byte] -> [Text])
+```
+
+Returns text that has been constructed from the given UTF8 bytes.
+
+The text will be normalized, so the resulting text's UTF8 bytes may not exactly match the input.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+bytes | `[Byte]` | The UTF-8 bytes of the desired text.  | -
+
+**Return:** A new text based on the input UTF8 bytes after normalization has been applied.
+
+
+**Example:**
+```tomo
+>> Text.from_utf8([195, 133, 107, 101])
 = "Åke"
 
 ```
@@ -4916,10 +4920,33 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 = "İ"
 
 ```
-## Text.utf32_codepoints
+## Text.utf16
 
 ```tomo
-Text.utf32_codepoints : func(text: Text -> [Int32])
+Text.utf16 : func(text: Text -> [Int16])
+```
+
+Returns a list of Unicode code points for UTF16 encoding of the text.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+text | `Text` | The text from which to extract Unicode code points.  | -
+
+**Return:** A list of 16-bit integer Unicode code points (`[Int16]`).
+
+
+**Example:**
+```tomo
+>> "Åke".utf16()
+= [197, 107, 101]
+>> "こんにちは世界".utf16()
+= [12371, 12435, 12395, 12385, 12399, 19990, 30028]
+
+```
+## Text.utf32
+
+```tomo
+Text.utf32 : func(text: Text -> [Int32])
 ```
 
 Returns a list of Unicode code points for UTF32 encoding of the text.
@@ -4933,8 +4960,29 @@ text | `Text` | The text from which to extract Unicode code points.  | -
 
 **Example:**
 ```tomo
->> "Amélie".utf32_codepoints()
+>> "Amélie".utf32()
 = [65, 109, 233, 108, 105, 101]
+
+```
+## Text.utf8
+
+```tomo
+Text.utf8 : func(text: Text -> [Byte])
+```
+
+Converts a `Text` value to a list of bytes representing a UTF8 encoding of the text.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+text | `Text` | The text to be converted to UTF8 bytes.  | -
+
+**Return:** A list of bytes (`[Byte]`) representing the text in UTF8 encoding.
+
+
+**Example:**
+```tomo
+>> "Amélie".utf8()
+= [65, 109, 195, 169, 108, 105, 101]
 
 ```
 ## Text.width

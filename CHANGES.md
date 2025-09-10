@@ -8,6 +8,10 @@
 - Library installation has been cleaned up a bit.
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
+- Standardized text methods for Unicode encodings:
+  - `Text.from_utf8()`/`Text.utf8()`
+  - `Text.from_utf16()`/`Text.utf16()`
+  - `Text.from_utf32()`/`Text.utf32()`
 - Fixed bugs:
   - `Int.parse()` had a memory bug.
 

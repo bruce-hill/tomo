@@ -129,7 +129,7 @@ Text.by_split_any:
     # Prints: "one" then "two" then "three":
     say(chunk)
 
-Text.bytes:
+Text.utf8:
   short: get UTF8 bytes
   description: >
     Converts a `Text` value to a list of bytes representing a UTF8 encoding of
@@ -144,7 +144,7 @@ Text.bytes:
       description: >
         The text to be converted to UTF8 bytes.
   example: |
-    >> "Amélie".bytes()
+    >> "Amélie".utf8()
     = [65, 109, 195, 169, 108, 105, 101]
 
 Text.caseless_equals:
@@ -255,7 +255,7 @@ Text.from:
     >> "hello".from(-2)
     = "lo"
 
-Text.from_bytes:
+Text.from_utf8:
   short: convert UTF8 byte list to text
   description: >
     Returns text that has been constructed from the given UTF8 bytes.
@@ -272,8 +272,30 @@ Text.from_bytes:
       description: >
         The UTF-8 bytes of the desired text.
   example: |
-    >> Text.from_bytes([195, 133, 107, 101])
+    >> Text.from_utf8([195, 133, 107, 101])
     = "Åke"
+
+Text.from_utf16:
+  short: convert UTF16 list to text
+  description: >
+    Returns text that has been constructed from the given UTF16 sequence.
+  note: >
+    The text will be normalized, so the resulting text's UTF16 sequence may not
+    exactly match the input.
+  return:
+    type: '[Text]'
+    description: >
+      A new text based on the input UTF16 sequence after normalization has been applied.
+  args:
+    bytes:
+      type: '[Int16]'
+      description: >
+        The UTF-16 integers of the desired text.
+  example: |
+    >> Text.from_utf16([197, 107, 101])
+    = "Åke"
+    >> Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028])
+    = "こんにちは世界".utf16()
 
 Text.from_c_string:
   short: convert C-style string to text
@@ -318,7 +340,7 @@ Text.from_codepoint_names:
     ]
     = "Åke"
 
-Text.from_codepoints:
+Text.from_utf32:
   short: convert UTF32 codepoints to text
   description: >
     Returns text that has been constructed from the given UTF32 codepoints.
@@ -335,7 +357,7 @@ Text.from_codepoints:
       description: >
         The UTF32 codepoints in the desired text.
   example: |
-    >> Text.from_codepoints([197, 107, 101])
+    >> Text.from_utf32([197, 107, 101])
     = "Åke"
 
 Text.has:
@@ -906,7 +928,26 @@ Text.upper:
     >> "i".upper(language="tr_TR")
     = "İ"
 
-Text.utf32_codepoints:
+Text.utf16:
+  short: get UTF16 codepoints
+  description: >
+    Returns a list of Unicode code points for UTF16 encoding of the text.
+  return:
+    type: '[Int16]'
+    description: >
+      A list of 16-bit integer Unicode code points (`[Int16]`).
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text from which to extract Unicode code points.
+  example: |
+    >> "Åke".utf16()
+    = [197, 107, 101]
+    >> "こんにちは世界".utf16()
+    = [12371, 12435, 12395, 12385, 12399, 19990, 30028]
+
+Text.utf32:
   short: get UTF32 codepoints
   description: >
     Returns a list of Unicode code points for UTF32 encoding of the text.
@@ -920,7 +961,7 @@ Text.utf32_codepoints:
       description: >
         The text from which to extract Unicode code points.
   example: |
-    >> "Amélie".utf32_codepoints()
+    >> "Amélie".utf32()
     = [65, 109, 233, 108, 105, 101]
 
 Text.width:

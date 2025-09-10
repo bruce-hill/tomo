@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from_bytes 3 2025-09-06 "Tomo man-pages"
+.TH Text.from_utf8 3 2025-09-09 "Tomo man-pages"
 .SH NAME
-Text.from_bytes \- convert UTF8 byte list to text
+Text.from_utf8 \- convert UTF8 byte list to text
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Text.from_bytes\ :\ func(bytes:\ [Byte]\ ->\ [Text])
+.BI Text.from_utf8\ :\ func(bytes:\ [Byte]\ ->\ [Text])
 .fi
 .SH DESCRIPTION
 Returns text that has been constructed from the given UTF8 bytes.
@@ -32,6 +32,6 @@ The text will be normalized, so the resulting text's UTF8 bytes may not exactly 
 
 .SH EXAMPLES
 .EX
->> Text.from_bytes([195, 133, 107, 101])
+>> Text.from_utf8([195, 133, 107, 101])
 = "Åke"
 .EE

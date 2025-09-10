@@ -24,6 +24,28 @@
             errx(1, "Failed to run command: %s", String(__VA_ARGS__));                                                 \
     })
 
+const char *get_library_version(Path_t lib_dir) {
+    Path_t changes_file = Path$child(lib_dir, Text("CHANGES.md"));
+    OptionalText_t changes = Path$read(changes_file);
+    if (changes.length <= 0) {
+        return "v0.0";
+    }
+    const char *changes_str = Text$as_c_string(Texts(Text("\n"), changes));
+    const char *version_line = strstr(changes_str, "\n## ");
+    if (version_line == NULL)
+        print_err("CHANGES.md in ", lib_dir, " does not have any valid versions starting with '## '");
+    return String(string_slice(version_line + 4, strcspn(version_line + 4, "\r\n")));
+}
+
+Text_t get_library_name(Path_t lib_dir) {
+    Text_t name = Path$base_name(lib_dir);
+    name = Text$without_prefix(name, Text("tomo-"));
+    name = Text$without_suffix(name, Text("-tomo"));
+    Text_t suffix = Texts(Text("_"), Text$from_str(get_library_version(lib_dir)));
+    if (!Text$ends_with(name, suffix, NULL)) name = Texts(name, suffix);
+    return name;
+}
+
 bool install_from_modules_ini(Path_t ini_file, bool ask_confirmation) {
     OptionalClosure_t by_line = Path$by_line(ini_file);
     if (by_line.fn == NULL) return false;
@@ -72,7 +94,7 @@ find_section:;
     }
 }
 
-module_info_t get_module_info(ast_t *use) {
+module_info_t get_used_module_info(ast_t *use) {
     static Table_t cache = {};
     TypeInfo_t *cache_type = Table$info(Pointer$info("@", &Memory$info), Pointer$info("@", &Memory$info));
     module_info_t **cached = Table$get(cache, &use, cache_type);
@@ -89,6 +111,8 @@ bool try_install_module(module_info_t mod, bool ask_confirmation) {
     Path_t dest = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo_" TOMO_VERSION "/", Text$from_str(mod.name),
                                        "_", Text$from_str(mod.version)));
     if (Path$exists(dest)) return true;
+
+    print("No such path: ", dest);
 
     if (mod.git) {
         if (ask_confirmation) {

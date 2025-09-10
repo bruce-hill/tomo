@@ -171,7 +171,7 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
         switch (use->what) {
         case USE_MODULE: {
-            module_info_t mod = get_module_info(ast);
+            module_info_t mod = get_used_module_info(ast);
             glob_t tm_files;
             const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
             if (glob(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,

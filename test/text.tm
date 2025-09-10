@@ -51,21 +51,21 @@ func main()
 	amelie := "Am\{UE9}lie"
 	>> amelie.split()
 	= ["A", "m", "é", "l", "i", "e"]
-	>> amelie.utf32_codepoints()
+	>> amelie.utf32()
 	= [65, 109, 233, 108, 105, 101]
-	>> amelie.bytes()
+	>> amelie.utf8()
 	= [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
-	>> Text.from_bytes([0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
+	>> Text.from_utf8([0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])!
 	= "Amélie"
-	>> Text.from_bytes([Byte(0xFF)])
+	>> Text.from_utf8([Byte(0xFF)])
 	= none
 
 	amelie2 := "Am\{U65}\{U301}lie"
 	>> amelie2.split()
 	= ["A", "m", "é", "l", "i", "e"]
-	>> amelie2.utf32_codepoints()
+	>> amelie2.utf32()
 	= [65, 109, 233, 108, 105, 101]
-	>> amelie2.bytes()
+	>> amelie2.utf8()
 	= [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
 
 	>> amelie.codepoint_names()
@@ -120,8 +120,8 @@ func main()
 	>> c.codepoint_names()
 	= ["LATIN CAPITAL LETTER E WITH ACUTE", "COMBINING VERTICAL LINE BELOW"]
 	assert c == Text.from_codepoint_names(c.codepoint_names())!
-	assert c == Text.from_codepoints(c.utf32_codepoints())
-	assert c == Text.from_bytes(c.bytes())!
+	assert c == Text.from_utf32(c.utf32())!
+	assert c == Text.from_utf8(c.utf8())!
 
 	>> "one\ntwo\nthree".lines()
 	= ["one", "two", "three"]
@@ -191,7 +191,7 @@ func main()
 	= 1
 	>> house.codepoint_names()
 	= ["CJK Unified Ideographs-5BB6"]
-	>> house.utf32_codepoints()
+	>> house.utf32()
 	= [23478]
 
 	>> "🐧".codepoint_names()
@@ -250,24 +250,24 @@ func main()
 
 
 	do
-		concat := "e" ++ Text.from_codepoints([Int32(0x300)])
+		concat := "e" ++ Text.from_utf32([Int32(0x300)])!
 		>> concat.length
 		= 1
 
-		concat2 := concat ++ Text.from_codepoints([Int32(0x302)])
+		concat2 := concat ++ Text.from_utf32([Int32(0x302)])!
 		>> concat2.length
 		= 1
 
-		concat3 := concat2 ++ Text.from_codepoints([Int32(0x303)])
+		concat3 := concat2 ++ Text.from_utf32([Int32(0x303)])!
 		>> concat3.length
 		= 1
 
-		final := Text.from_codepoints([Int32(0x65), Int32(0x300), Int32(0x302), Int32(0x303)])
+		final := Text.from_utf32([Int32(0x65), Int32(0x300), Int32(0x302), Int32(0x303)])!
 		>> final.length
 		= 1
 		assert concat3 == final
 
-		concat4 := Text.from_codepoints([Int32(0x65), Int32(0x300)]) ++ Text.from_codepoints([Int32(0x302), Int32(0x303)])
+		concat4 := Text.from_utf32([Int32(0x65), Int32(0x300)])! ++ Text.from_utf32([Int32(0x302), Int32(0x303)])!
 		>> concat4.length
 		= 1
 		assert concat4 == final
@@ -309,3 +309,13 @@ func main()
 	= ""
 	>> "  ".trim(" ,", left=no)
 	= ""
+
+	do
+		test := "𤭢"
+		assert test.utf32() == [150370]
+		assert test.utf16() == [-10158, -8350]
+		assert test.utf8() == [0xf0, 0xa4, 0xad, 0xa2]
+
+		assert Text.from_utf32([150370]) == test
+		assert Text.from_utf16([-10158, -8350]) == test
+		assert Text.from_utf8([0xf0, 0xa4, 0xad, 0xa2]) == test
