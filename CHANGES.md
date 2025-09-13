@@ -6,6 +6,7 @@
 - Core libraries are no longer shipped with the compiler, they have moved to
   separate repositories.
 - Library installation has been cleaned up a bit.
+- List indexing now gives an optional value
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
 - Standardized text methods for Unicode encodings:

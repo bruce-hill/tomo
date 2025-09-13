@@ -92,7 +92,8 @@ Text_t compile_assignment_statement(env_t *env, ast_t *ast) {
     if (assign->targets && !assign->targets->next) {
         type_t *lhs_t = get_type(env, assign->targets->ast);
         if (assign->targets->ast->tag == Index && lhs_t->tag == OptionalType
-            && value_type(get_type(env, Match(assign->targets->ast, Index)->indexed))->tag == TableType)
+            && (value_type(get_type(env, Match(assign->targets->ast, Index)->indexed))->tag == TableType
+                || value_type(get_type(env, Match(assign->targets->ast, Index)->indexed))->tag == ListType))
             lhs_t = Match(lhs_t, OptionalType)->type;
         if (has_stack_memory(lhs_t))
             code_err(ast, "Stack references cannot be assigned to "
@@ -110,7 +111,8 @@ Text_t compile_assignment_statement(env_t *env, ast_t *ast) {
          value = value->next, target = target->next) {
         type_t *lhs_t = get_type(env, target->ast);
         if (target->ast->tag == Index && lhs_t->tag == OptionalType
-            && value_type(get_type(env, Match(target->ast, Index)->indexed))->tag == TableType)
+            && (value_type(get_type(env, Match(target->ast, Index)->indexed))->tag == TableType
+                || value_type(get_type(env, Match(target->ast, Index)->indexed))->tag == ListType))
             lhs_t = Match(lhs_t, OptionalType)->type;
         if (has_stack_memory(lhs_t))
             code_err(ast, "Stack references cannot be assigned to "
@@ -166,13 +168,8 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
                     ? compile_int_to_type(env, index->index, Type(IntType, .bits = TYPE_IBITS64))
                     : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, index->index), ", no)")
                                                   : Texts("(Int64_t)(", compile(env, index->index), ")"));
-            if (index->unchecked) {
-                return Texts("List_lvalue_unchecked(", compile_type(item_type), ", ", target_code, ", ", index_code,
-                             ")");
-            } else {
-                return Texts("List_lvalue(", compile_type(item_type), ", ", target_code, ", ", index_code, ", ",
-                             (int64_t)(ast->start - ast->file->text), ", ", (int64_t)(ast->end - ast->file->text), ")");
-            }
+            return Texts("List_lvalue(", compile_type(item_type), ", ", target_code, ", ", index_code, ", ",
+                         (int64_t)(ast->start - ast->file->text), ", ", (int64_t)(ast->end - ast->file->text), ")");
         } else if (container_t->tag == TableType) {
             DeclareMatch(table_type, container_t, TableType);
             if (table_type->default_value) {
@@ -183,7 +180,6 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
                              compile_to_type(env, table_type->default_value, table_type->value_type), ", ",
                              compile_type_info(container_t), ")");
             }
-            if (index->unchecked) code_err(ast, "Table indexes cannot be unchecked");
             return Texts("*(", compile_type(Type(PointerType, table_type->value_type)), ")Table$reserve(",
                          compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
                          compile_to_type(env, index->index, Type(PointerType, table_type->key_type, .is_stack = true)),

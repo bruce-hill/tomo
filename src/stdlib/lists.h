@@ -10,26 +10,29 @@
 #include "util.h"
 
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
-#define List_get(item_type, arr_expr, index_expr, start, end)                                                          \
-    *({                                                                                                                \
-        const List_t list = arr_expr;                                                                                  \
+#define List_get_checked(list_expr, index_expr, item_type, start, end)                                                 \
+    ({                                                                                                                 \
+        const List_t list = list_expr;                                                                                 \
         int64_t index = index_expr;                                                                                    \
         int64_t off = index + (index < 0) * (list.length + 1) - 1;                                                     \
         if (unlikely(off < 0 || off >= list.length))                                                                   \
             fail_source(__SOURCE_FILE__, start, end, "Invalid list index: ", index, " (list has length ",              \
                         (int64_t)list.length, ")\n");                                                                  \
-        (item_type *)(list.data + list.stride * off);                                                                  \
+        *(item_type *)(list.data + list.stride * off);                                                                 \
     })
-#define List_get_unchecked(type, x, i)                                                                                 \
-    *({                                                                                                                \
-        const List_t list = x;                                                                                         \
-        int64_t index = i;                                                                                             \
-        int64_t off = index + (index < 0) * (list.length + 1) - 1;                                                     \
-        (type *)(list.data + list.stride * off);                                                                       \
+#define List_get(list_expr, index_expr, item_type, var, optional_expr, none_expr)                                      \
+    ({                                                                                                                 \
+        const List_t list = list_expr;                                                                                 \
+        int64_t index = index_expr;                                                                                    \
+        int64_t offset = index + (index < 0) * (list.length + 1) - 1;                                                  \
+        unlikely(offset < 0 || offset >= list.length) ? none_expr : ({                                                 \
+            item_type var = *(item_type *)(list.data + list.stride * offset);                                          \
+            optional_expr;                                                                                             \
+        });                                                                                                            \
     })
-#define List_lvalue(item_type, arr_expr, index_expr, start, end)                                                       \
+#define List_lvalue(item_type, list_expr, index_expr, start, end)                                                      \
     *({                                                                                                                \
-        List_t *list = arr_expr;                                                                                       \
+        List_t *list = list_expr;                                                                                      \
         int64_t index = index_expr;                                                                                    \
         int64_t off = index + (index < 0) * (list->length + 1) - 1;                                                    \
         if (unlikely(off < 0 || off >= list->length))                                                                  \
@@ -38,15 +41,7 @@
         if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                            \
         (item_type *)(list->data + list->stride * off);                                                                \
     })
-#define List_lvalue_unchecked(item_type, arr_expr, index_expr)                                                         \
-    *({                                                                                                                \
-        List_t *list = arr_expr;                                                                                       \
-        int64_t index = index_expr;                                                                                    \
-        int64_t off = index + (index < 0) * (list->length + 1) - 1;                                                    \
-        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                            \
-        (item_type *)(list->data + list->stride * off);                                                                \
-    })
-#define List_set(item_type, list, index, value, start, end) List_lvalue(item_type, arr_expr, index, start, end) = value
+#define List_set(item_type, list, index, value, start, end) List_lvalue(item_type, list_expr, index, start, end) = value
 #define is_atomic(x)                                                                                                   \
     _Generic(x,                                                                                                        \
         bool: true,                                                                                                    \
@@ -103,9 +98,9 @@ void List$remove_item(List_t *list, void *item, Int_t max_removals, const TypeIn
 #define List$remove_item_value(list, item_expr, max, type)                                                             \
     List$remove_item(list, (__typeof(item_expr)[1]){item_expr}, max, type)
 
-#define List$pop(arr_expr, index_expr, item_type, nonnone_var, nonnone_expr, none_expr)                                \
+#define List$pop(list_expr, index_expr, item_type, nonnone_var, nonnone_expr, none_expr)                               \
     ({                                                                                                                 \
-        List_t *list = arr_expr;                                                                                       \
+        List_t *list = list_expr;                                                                                      \
         Int_t index = index_expr;                                                                                      \
         int64_t index64 = Int64$from_int(index, false);                                                                \
         int64_t off = index64 + (index64 < 0) * (list->length + 1) - 1;                                                \
@@ -131,9 +126,9 @@ List_t List$shuffled(List_t list, OptionalClosure_t random_int64, int64_t padded
 void *List$random(List_t list, OptionalClosure_t random_int64);
 #define List$random_value(list, random_int64, t)                                                                       \
     ({                                                                                                                 \
-        List_t _arr = list;                                                                                            \
-        if (_arr.length == 0) fail("Cannot get a random value from an empty list!");                                   \
-        *(t *)List$random(_arr, random_int64);                                                                         \
+        List_t _list_expr = list;                                                                                      \
+        if (_list_expr.length == 0) fail("Cannot get a random value from an empty list!");                             \
+        *(t *)List$random(_list_expr, random_int64);                                                                   \
     })
 List_t List$sample(List_t list, Int_t n, List_t weights, Closure_t random_num, int64_t padded_item_size);
 Table_t List$counts(List_t list, const TypeInfo_t *type);

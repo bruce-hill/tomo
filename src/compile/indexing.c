@@ -1,5 +1,7 @@
 // This file defines how to compile indexing like `list[i]` or `ptr[]`
 
+#include <stdbool.h>
+
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
@@ -9,7 +11,7 @@
 #include "compilation.h"
 
 public
-Text_t compile_indexing(env_t *env, ast_t *ast) {
+Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
     DeclareMatch(indexing, ast, Index);
     type_t *indexed_type = get_type(env, indexing->indexed);
     if (!indexing->index) {
@@ -34,27 +36,33 @@ Text_t compile_indexing(env_t *env, ast_t *ast) {
             code_err(indexing->index, "Lists can only be indexed by integers, not ", type_to_str(index_t));
         type_t *item_type = Match(container_t, ListType)->item_type;
         Text_t list = compile_to_pointer_depth(env, indexing->indexed, 0, false);
-        file_t *f = indexing->index->file;
         Text_t index_code =
             indexing->index->tag == Int
                 ? compile_int_to_type(env, indexing->index, Type(IntType, .bits = TYPE_IBITS64))
                 : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, indexing->index), ", no)")
                                               : Texts("(Int64_t)(", compile(env, indexing->index), ")"));
-        if (indexing->unchecked)
-            return Texts("List_get_unchecked(", compile_type(item_type), ", ", list, ", ", index_code, ")");
-        else
-            return Texts("List_get(", compile_type(item_type), ", ", list, ", ", index_code, ", ",
-                         (int64_t)(indexing->index->start - f->text), ", ", (int64_t)(indexing->index->end - f->text),
-                         ")");
+        if (checked) {
+            int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
+            return Texts("List_get_checked(", list, ", ", index_code, ", ", compile_type(item_type), ", ", start, ", ",
+                         end, ")");
+        } else {
+            return Texts("List_get(", list, ", ", index_code, ", ", compile_type(item_type), ", value, ",
+                         promote_to_optional(item_type, Text("value")), ", ", compile_none(item_type), ")");
+        }
     } else if (container_t->tag == TableType) {
         DeclareMatch(table_type, container_t, TableType);
-        if (indexing->unchecked) code_err(ast, "Table indexes cannot be unchecked");
         if (table_type->default_value) {
             return Texts("Table$get_or_default(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                          compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",
                          compile_to_type(env, indexing->index, table_type->key_type), ", ",
                          compile_to_type(env, table_type->default_value, table_type->value_type), ", ",
                          compile_type_info(container_t), ")");
+        } else if (checked) {
+            int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
+            return Texts("Table$get_checked(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
+                         compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",
+                         compile(env, indexing->index), ", ", start, ", ", end, ", ", compile_type_info(container_t),
+                         ")");
         } else {
             return Texts("Table$get_optional(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
                          compile_type(table_type->key_type), ", ", compile_type(table_type->value_type), ", ",
@@ -65,8 +73,14 @@ Text_t compile_indexing(env_t *env, ast_t *ast) {
                          compile_none(table_type->value_type), ", ", compile_type_info(container_t), ")");
         }
     } else if (container_t->tag == TextType) {
-        return Texts("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
-                     compile_to_type(env, indexing->index, Type(BigIntType)), ")");
+        if (checked) {
+            int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
+            return Texts("Text$cluster_checked(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
+                         compile_to_type(env, indexing->index, Type(BigIntType)), ", ", start, ", ", end, ")");
+        } else {
+            return Texts("Text$cluster(", compile_to_pointer_depth(env, indexing->indexed, 0, false), ", ",
+                         compile_to_type(env, indexing->index, Type(BigIntType)), ")");
+        }
     } else {
         code_err(ast, "Indexing is not supported for type: ", type_to_str(container_t));
     }

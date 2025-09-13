@@ -726,7 +726,10 @@ Text_t Text$reversed(Text_t text) {
 }
 
 public
-PUREFUNC Text_t Text$cluster(Text_t text, Int_t index) { return Text$slice(text, index, index); }
+PUREFUNC OptionalText_t Text$cluster(Text_t text, Int_t index) {
+    Text_t slice = Text$slice(text, index, index);
+    return slice.length <= 0 ? NONE_TEXT : slice;
+}
 
 static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters) {
     size_t blob_size = (sizeof(int32_t[unique_clusters.entries.length]) + sizeof(uint8_t[graphemes.length]));

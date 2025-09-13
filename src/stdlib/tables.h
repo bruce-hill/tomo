@@ -49,6 +49,18 @@ void *Table$get(Table_t t, const void *key, const TypeInfo_t *type);
         val_t *nonnull_var = Table$get(t, &k, info_expr);                                                              \
         nonnull_var ? nonnull_expr : null_expr;                                                                        \
     })
+#define Table$get_checked(table_expr, key_t, val_t, key_expr, start, end, info_expr)                                   \
+    ({                                                                                                                 \
+        const Table_t t = table_expr;                                                                                  \
+        const key_t key = key_expr;                                                                                    \
+        const TypeInfo_t *info = info_expr;                                                                            \
+        val_t *value = Table$get(t, &key, info);                                                                       \
+        if (unlikely(value == NULL))                                                                                   \
+            fail_source(__SOURCE_FILE__, start, end,                                                                   \
+                        "This key was not found in the table: ", generic_as_text(&key, false, info->TableInfo.key),    \
+                        "\n");                                                                                         \
+        *value;                                                                                                        \
+    })
 #define Table$get_or_setdefault(table_expr, key_t, val_t, key_expr, default_expr, info_expr)                           \
     ({                                                                                                                 \
         Table_t *t = table_expr;                                                                                       \

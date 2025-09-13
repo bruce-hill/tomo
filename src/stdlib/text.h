@@ -53,7 +53,17 @@ Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int);
 Text_t Text$from(Text_t text, Int_t first);
 Text_t Text$to(Text_t text, Int_t last);
 Text_t Text$reversed(Text_t text);
-Text_t Text$cluster(Text_t text, Int_t index_int);
+OptionalText_t Text$cluster(Text_t text, Int_t index_int);
+#define Text$cluster_checked(text_expr, index_expr, start, end)                                                        \
+    ({                                                                                                                 \
+        const Text_t text = text_expr;                                                                                 \
+        Int_t index = index_expr;                                                                                      \
+        OptionalText_t cluster = Text$cluster(text, index);                                                            \
+        if (unlikely(cluster.length < 0))                                                                              \
+            fail_source(__SOURCE_FILE__, start, end, "Invalid text index: ", index, " (text has length ",              \
+                        (int64_t)text.length, ")\n");                                                                  \
+        cluster;                                                                                                       \
+    })
 OptionalText_t Text$from_str(const char *str);
 OptionalText_t Text$from_strn(const char *str, size_t len);
 PUREFUNC uint64_t Text$hash(const void *text, const TypeInfo_t *);
