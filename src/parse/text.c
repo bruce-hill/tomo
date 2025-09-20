@@ -17,17 +17,33 @@
 #include "types.h"
 #include "utils.h"
 
-static const char closing[128] = {['('] = ')', ['['] = ']', ['<'] = '>', ['{'] = '}'};
-
-static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, char open_quote, char close_quote,
-                                      char open_interp, bool allow_escapes) {
+static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos) {
     const char *pos = *out_pos;
+
     int64_t starting_indent = get_indent(ctx, pos);
     int64_t string_indent = starting_indent + SPACES_PER_INDENT;
+
+    const char *quote, *interp;
+    bool allow_escapes = true;
+    if (match(&pos, "\"\"\"")) { // Triple double quote
+        quote = "\"\"\"", interp = "$", allow_escapes = false;
+    } else if (match(&pos, "'''")) { // Triple single quote
+        quote = "'''", interp = "$", allow_escapes = false;
+    } else if (match(&pos, "```")) { // Triple backtick
+        quote = "```", interp = "@", allow_escapes = false;
+    } else if (match(&pos, "\"")) { // Double quote
+        quote = "\"", interp = "$", allow_escapes = true;
+    } else if (match(&pos, "'")) { // Single quote
+        quote = "'", interp = "$", allow_escapes = true;
+    } else if (match(&pos, "`")) { // Backtick
+        quote = "`", interp = "@", allow_escapes = true;
+    } else {
+        parser_err(ctx, pos, pos, "I expected a valid text here");
+    }
+
     ast_list_t *chunks = NULL;
     Text_t chunk = EMPTY_TEXT;
     const char *chunk_start = pos;
-    int depth = 1;
     bool leading_newline = false;
     int64_t plain_span_len = 0;
 #define FLUSH_PLAIN_SPAN()                                                                                             \
@@ -37,38 +53,30 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, ch
             plain_span_len = 0;                                                                                        \
         }                                                                                                              \
     } while (0)
-    for (const char *end = ctx->file->text + ctx->file->len; pos < end && depth > 0;) {
+
+    for (const char *end = ctx->file->text + ctx->file->len; pos < end;) {
         const char *after_indentation = pos;
-        if (*pos == open_interp) { // Interpolation
+        const char *interp_start = pos;
+        if (interp != NULL && strncmp(pos, interp, strlen(interp)) == 0) { // Interpolation
             FLUSH_PLAIN_SPAN();
-            const char *interp_start = pos;
             if (chunk.length > 0) {
                 ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text = chunk);
                 chunks = new (ast_list_t, .ast = literal, .next = chunks);
                 chunk = EMPTY_TEXT;
             }
-            ++pos;
-            ast_t *interp;
+            pos += strlen(interp);
             if (*pos == ' ' || *pos == '\t')
                 parser_err(ctx, pos, pos + 1, "Whitespace is not allowed before an interpolation here");
-            interp = expect(ctx, interp_start, &pos, parse_term_no_suffix, "I expected an interpolation term here");
-            chunks = new (ast_list_t, .ast = interp, .next = chunks);
+            ast_t *value =
+                expect(ctx, interp_start, &pos, parse_term_no_suffix, "I expected an interpolation term here");
+            chunks = new (ast_list_t, .ast = value, .next = chunks);
             chunk_start = pos;
         } else if (allow_escapes && *pos == '\\') {
             FLUSH_PLAIN_SPAN();
             const char *c = unescape(ctx, &pos);
             chunk = Texts(chunk, Text$from_str(c));
-        } else if (!leading_newline && *pos == open_quote && closing[(int)open_quote]) { // Nested pair begin
-            if (get_indent(ctx, pos) == starting_indent) {
-                ++depth;
-            }
-            plain_span_len += 1;
-            ++pos;
-        } else if (!leading_newline && *pos == close_quote) { // Nested pair end
-            if (get_indent(ctx, pos) == starting_indent) {
-                --depth;
-                if (depth == 0) break;
-            }
+        } else if (!leading_newline && strncmp(pos, quote, strlen(quote)) == 0) { // Nested pair end
+            if (get_indent(ctx, pos) == starting_indent) break;
             plain_span_len += 1;
             ++pos;
         } else if (newline_with_indentation(&after_indentation, string_indent)) { // Newline
@@ -82,7 +90,7 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, ch
         } else if (newline_with_indentation(&after_indentation, starting_indent)) { // Line continuation (..)
             FLUSH_PLAIN_SPAN();
             pos = after_indentation;
-            if (*pos == close_quote) {
+            if (strncmp(pos, quote, strlen(quote)) == 0) {
                 break;
             } else if (some_of(&pos, ".") >= 2) {
                 // Multi-line split
@@ -103,6 +111,8 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, ch
     FLUSH_PLAIN_SPAN();
 #undef FLUSH_PLAIN_SPAN
 
+    expect_closing(ctx, &pos, quote, "I was expecting a ", quote, " to finish this string");
+
     if (chunk.length > 0) {
         ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text = chunk);
         chunks = new (ast_list_t, .ast = literal, .next = chunks);
@@ -110,8 +120,6 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, ch
     }
 
     REVERSE_LIST(chunks);
-    char close_str[2] = {close_quote, 0};
-    expect_closing(ctx, &pos, close_str, "I was expecting a ", close_quote, " to finish this string");
     *out_pos = pos;
     return chunks;
 }
@@ -122,36 +130,14 @@ ast_t *parse_text(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     const char *lang = NULL;
 
-    char open_quote, close_quote, open_interp = '$';
-    if (match(&pos, "\"")) { // Double quote
-        open_quote = '"', close_quote = '"', open_interp = '$';
-    } else if (match(&pos, "`")) { // Backtick
-        open_quote = '`', close_quote = '`', open_interp = '$';
-    } else if (match(&pos, "'")) { // Single quote
-        open_quote = '\'', close_quote = '\'', open_interp = '$';
-    } else if (match(&pos, "$")) { // Customized strings
+    if (match(&pos, "$")) {
         lang = get_id(&pos);
-        // $"..." or $@"...."
-        static const char *interp_chars = "~!@#$%^&*+=\\?";
-        if (match(&pos, "$")) { // Disable interpolation with $$
-            open_interp = '\x03';
-        } else if (strchr(interp_chars, *pos)) {
-            open_interp = *pos;
-            ++pos;
-        }
-        static const char *quote_chars = "\"'`|/;([{<";
-        if (!strchr(quote_chars, *pos))
-            parser_err(ctx, pos, pos + 1,
-                       "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
-        open_quote = *pos;
-        ++pos;
-        close_quote = closing[(int)open_quote] ? closing[(int)open_quote] : open_quote;
-    } else {
-        return NULL;
+        if (lang == NULL) parser_err(ctx, start, pos, "I expected a language name after the `$`");
     }
 
-    bool allow_escapes = (open_quote != '`');
-    ast_list_t *chunks = _parse_text_helper(ctx, &pos, open_quote, close_quote, open_interp, allow_escapes);
+    if (!(*pos == '"' || *pos == '\'' || *pos == '`')) return NULL;
+
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos);
     bool colorize = match(&pos, "~") && match_word(&pos, "colorized");
     return NewAST(ctx->file, start, pos, TextJoin, .lang = lang, .children = chunks, .colorize = colorize);
 }
@@ -172,9 +158,7 @@ ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
         parser_err(ctx, pos, pos + 1,
                    "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
 
-    char quote = *(pos++);
-    char unquote = closing[(int)quote] ? closing[(int)quote] : quote;
-    ast_list_t *chunks = _parse_text_helper(ctx, &pos, quote, unquote, '@', false);
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos);
     return NewAST(ctx->file, start, pos, InlineCCode, .chunks = chunks, .type_ast = type);
 }
 
