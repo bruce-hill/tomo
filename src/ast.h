@@ -87,6 +87,7 @@ typedef enum {
     TableTypeAST,
     FunctionTypeAST,
     OptionalTypeAST,
+    EnumTypeAST,
 } type_ast_e;
 
 typedef struct tag_ast_s {
@@ -128,6 +129,10 @@ struct type_ast_s {
         struct {
             type_ast_t *type;
         } OptionalTypeAST;
+        struct {
+            Text_t name;
+            tag_ast_t *tags;
+        } EnumTypeAST;
     } __data;
 };
 

@@ -67,8 +67,22 @@ Text_t type_to_text(type_t *t) {
         return Texts(sigil, type_to_text(ptr->pointed));
     }
     case EnumType: {
-        DeclareMatch(tagged, t, EnumType);
-        return Text$from_str(tagged->name);
+        DeclareMatch(enum_, t, EnumType);
+        return Text$from_str(enum_->name);
+        // Text_t text = Text("enum(");
+        // for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
+        //     text = Texts(text, Text$from_str(tag->name));
+        //     if (tag->type && Match(tag->type, StructType)->fields) {
+        //         text = Texts(text, "(");
+        //         for (arg_t *field = Match(tag->type, StructType)->fields; field; field = field->next) {
+        //             text = Texts(text, Text$from_str(field->name), ":", type_to_text(field->type));
+        //             if (field->next) text = Texts(text, ", ");
+        //         }
+        //         text = Texts(text, ")");
+        //     }
+        //     if (tag->next) text = Texts(text, ", ");
+        // }
+        // return enum_->name ? Text$from_str(enum_->name) : Text("enum");
     }
     case OptionalType: {
         type_t *opt = Match(t, OptionalType)->type;

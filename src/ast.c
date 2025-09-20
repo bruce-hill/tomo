@@ -149,6 +149,7 @@ Text_t type_ast_to_sexp(type_ast_t *t) {
         T(TableTypeAST, "(TableType ", type_ast_to_sexp(data.key), " ", type_ast_to_sexp(data.value), ")");
         T(FunctionTypeAST, "(FunctionType ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret), ")");
         T(OptionalTypeAST, "(OptionalType ", type_ast_to_sexp(data.type), ")");
+        T(EnumTypeAST, "(EnumType ", data.name, " ", tags_to_sexp(data.tags), ")");
 #undef T
     default: return EMPTY_TEXT;
     }

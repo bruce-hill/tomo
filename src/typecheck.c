@@ -121,6 +121,60 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
         else if (t->tag == OptionalType) code_err(ast, "Nested optional types are not currently supported");
         return Type(OptionalType, .type = t);
     }
+    case EnumTypeAST: {
+        tag_ast_t *tag_asts = Match(ast, EnumTypeAST)->tags;
+        tag_t *tags = NULL;
+        int64_t tag_value = 1;
+        const char *enum_name = Text$as_c_string(Match(ast, EnumTypeAST)->name);
+        env_t *ns_env = namespace_env(env, enum_name);
+
+        type_t *enum_type = Type(EnumType, .name = enum_name, .env = ns_env, .tags = NULL);
+
+        Table$str_set(env->types, enum_name, enum_type);
+
+        bool has_any_tags_with_fields = false;
+        for (tag_ast_t *tag_ast = tag_asts; tag_ast; tag_ast = tag_ast->next) {
+            has_any_tags_with_fields = has_any_tags_with_fields || tag_ast->fields;
+        }
+
+        for (tag_ast_t *tag_ast = tag_asts; tag_ast; tag_ast = tag_ast->next) {
+            arg_t *fields = NULL;
+            for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
+                type_t *field_type =
+                    field_ast->type ? parse_type_ast(env, field_ast->type) : get_type(env, field_ast->value);
+                fields = new (arg_t, .name = field_ast->name, .type = field_type, .default_val = field_ast->value,
+                              .next = fields);
+            }
+            REVERSE_LIST(fields);
+            const char *struct_name = String(enum_name, "$$", tag_ast->name);
+            env_t *struct_env = namespace_env(env, struct_name);
+            type_t *tag_type = Type(StructType, .name = tag_ast->name, .fields = fields, .env = struct_env);
+            tags = new (tag_t, .name = tag_ast->name, .tag_value = tag_value, .type = tag_type, .next = tags);
+
+            if (Match(tag_type, StructType)->fields) { // Constructor:
+                type_t *constructor_t =
+                    Type(FunctionType, .args = Match(tag_type, StructType)->fields, .ret = enum_type);
+                Text_t tagged_name = namespace_name(env, env->namespace, Texts(enum_name, "$tagged$", tag_ast->name));
+                set_binding(ns_env, tag_ast->name, constructor_t, tagged_name);
+                binding_t binding = {.type = constructor_t, .code = tagged_name};
+                List$insert(&ns_env->namespace->constructors, &binding, I(1), sizeof(binding));
+            } else if (has_any_tags_with_fields) { // Empty singleton value:
+                Text_t code =
+                    Texts("((", namespace_name(env, env->namespace, Texts(enum_name, "$$type")), "){",
+                          namespace_name(env, env->namespace, Texts(enum_name, "$tag$", tag_ast->name)), "})");
+                set_binding(ns_env, tag_ast->name, enum_type, code);
+            } else {
+                Text_t code = namespace_name(env, env->namespace, Texts(enum_name, "$tag$", tag_ast->name));
+                set_binding(ns_env, tag_ast->name, enum_type, code);
+            }
+            Table$str_set(env->types, String(enum_name, "$", tag_ast->name), tag_type);
+
+            tag_value += 1;
+        }
+        REVERSE_LIST(tags);
+        enum_type->__data.EnumType.tags = tags;
+        return enum_type;
+    }
     case UnknownTypeAST: code_err(ast, "I don't know how to get this type");
     }
 #ifdef __GNUC__

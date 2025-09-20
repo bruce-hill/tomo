@@ -6,7 +6,9 @@
 #include <uniname.h>
 
 #include "../ast.h"
+#include "../stdlib/datatypes.h"
 #include "../stdlib/print.h"
+#include "../stdlib/text.h"
 #include "context.h"
 #include "errors.h"
 #include "expressions.h"
@@ -90,6 +92,52 @@ type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
     return ptr_type;
 }
 
+type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
+    // tagged union: enum(A, B(x:Int,y:Int)=5, ...)
+    const char *start = pos;
+    if (!match_word(&pos, "enum")) return NULL;
+    spaces(&pos);
+    if (!match(&pos, "(")) return NULL;
+
+    tag_ast_t *tags = NULL;
+    whitespace(ctx, &pos);
+    for (;;) {
+        spaces(&pos);
+        const char *tag_start = pos;
+        const char *tag_name = get_id(&pos);
+        if (!tag_name) break;
+
+        spaces(&pos);
+        arg_ast_t *fields;
+        bool secret = false;
+        if (match(&pos, "(")) {
+            whitespace(ctx, &pos);
+            fields = parse_args(ctx, &pos);
+            whitespace(ctx, &pos);
+            if (match(&pos, ";")) { // Extra flags
+                whitespace(ctx, &pos);
+                secret = match_word(&pos, "secret");
+                whitespace(ctx, &pos);
+            }
+            expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this tagged union member");
+        } else {
+            fields = NULL;
+        }
+
+        tags = new (tag_ast_t, .start = tag_start, .end = pos, .name = tag_name, .fields = fields, .secret = secret,
+                    .next = tags);
+
+        if (!match_separator(ctx, &pos)) break;
+    }
+
+    whitespace(ctx, &pos);
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this enum definition");
+
+    REVERSE_LIST(tags);
+    Text_t name = Texts("enum$", (int64_t)(start - ctx->file->text));
+    return NewTypeAST(ctx->file, start, pos, EnumTypeAST, .name = name, .tags = tags);
+}
+
 type_ast_t *parse_type_name(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     const char *id = get_id(&pos);
@@ -111,7 +159,8 @@ type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos) {
     type_ast_t *type = NULL;
     bool success = (false || (type = parse_pointer_type(ctx, pos)) || (type = parse_list_type(ctx, pos))
                     || (type = parse_table_type(ctx, pos)) || (type = parse_set_type(ctx, pos))
-                    || (type = parse_type_name(ctx, pos)) || (type = parse_func_type(ctx, pos)));
+                    || (type = parse_enum_type(ctx, pos)) || (type = parse_type_name(ctx, pos))
+                    || (type = parse_func_type(ctx, pos)));
     if (!success && match(&pos, "(")) {
         whitespace(ctx, &pos);
         type = optional(ctx, &pos, parse_type);

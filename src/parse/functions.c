@@ -47,15 +47,14 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
             }
 
             if (match(pos, ":")) {
-                type = expect(ctx, *pos - 1, pos, parse_type, "I expected a type here");
+                type = expect(ctx, *pos, pos, parse_type, "I expected a type here");
                 whitespace(ctx, pos);
-                if (match(pos, "="))
-                    default_val = expect(ctx, *pos - 1, pos, parse_term, "I expected a value after this '='");
+                if (match(pos, "=")) default_val = expect(ctx, *pos, pos, parse_term, "I expected a value here");
                 names =
                     new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names);
                 break;
             } else if (strncmp(*pos, "==", 2) != 0 && match(pos, "=")) {
-                default_val = expect(ctx, *pos - 1, pos, parse_term, "I expected a value after this '='");
+                default_val = expect(ctx, *pos, pos, parse_term, "I expected a value here");
                 names =
                     new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names);
                 break;
