@@ -253,7 +253,7 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
     } else if (streq(call->name, "unique")) {
         self = compile_to_pointer_depth(env, call->self, 0, false);
         (void)compile_arguments(env, ast, NULL, call->args);
-        return Texts("Table$from_entries(", self, ", Table$info(", compile_type_info(item_t), ", &Void$info)).items");
+        return Texts("Table$from_entries(", self, ", Table$info(", compile_type_info(item_t), ", &Void$info)).entries");
     } else if (streq(call->name, "pop")) {
         EXPECT_POINTER();
         arg_t *arg_spec = new (arg_t, .name = "index", .type = INT_TYPE, .default_val = FakeAST(Int, "-1"));

@@ -9,6 +9,7 @@
 - List indexing now gives an optional value.
 - Added support for inline anonymous enums
 - Syntax for text literals and inline C code has been simplified somewhat.
+- Deprecated sets (just use tables or lists instead)
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
 - Standardized text methods for Unicode encodings:
