@@ -30,16 +30,17 @@ func main()
         The multiline string won't include a leading or trailing newline.
     ")
 
-    # Docstring tests use ">>" and when the program runs, they will print
-    # their source code to the console on stderr.
+    # You can log values for debugging with ">>", which will print the line's
+    # source code and the value (with syntax highlighting) to the console on
+    # stderr.
     >> 1 + 2
 
-    # If there is a following line with "=", you can perform a check that
-    # the output matches what was expected.
-    >> 2 + 3
-    = 5
-    # If there is a mismatch, the program will halt and print a useful
-    # error message.
+    # For assertions, you can use `assert`:
+    assert 2 + 3 == 5
+
+    # Assert takes an optional message string, but either way, assertion
+    # failures will print a lot of contextual information.
+    assert 2 + 3 == 5, "Math is broken"
 
     # Booleans use "yes" and "no" instead of "true" and "false"
     my_bool := yes
@@ -57,16 +58,13 @@ func main()
 
     # Empty lists require specifying the type:
     empty_list : [Int]
-    >> empty_list.length
-    = 0
+    assert empty_list.length == 0
 
     # Lists are 1-indexed, so the first element is at index 1:
-    >> my_numbers[1]
-    = 10
+    assert my_numbers[1] == 10
 
     # Negative indices can be used to get items from the back of the list:
-    >> my_numbers[-1]
-    = 30
+    assert my_numbers[-1] == 30
 
     # If an invalid index outside the list's bounds is used (e.g.
     # my_numbers[999]), an error message will be printed and the program will
@@ -81,10 +79,8 @@ func main()
         pass # Pass means "do nothing"
 
     # Lists can be created with list comprehensions, which are loops:
-    >> [x*10 for x in my_numbers]
-    = [100, 200, 300]
-    >> [x*10 for x in my_numbers if x != 20]
-    = [100, 300]
+    assert [x*10 for x in my_numbers] == [100, 200, 300]
+    assert [x*10 for x in my_numbers if x != 20] == [100, 300]
 
     # Loop control flow uses "skip"/"continue" and "stop"/"break"
     for x in my_numbers
@@ -104,22 +100,18 @@ func main()
 
     # Tables are efficient hash maps
     table := {"one"=1, "two"=2}
-    >> table["two"]
-    = 2?
+    assert table["two"] == 2
 
     # The value returned is optional because none will be returned if the key
     # is not in the table:
-    >> table["xxx"]
-    = none
+    assert table["xxx"] == none
 
     # Optional values can be converted to regular values using `!` (which will
     # create a runtime error if the value is null):
-    >> table["two"]!
-    = 2
+    assert table["two"]! == 2
 
     # You can also use `or` to provide a fallback value to replace none:
-    >> table["xxx"] or 0
-    = 0
+    assert table["xxx"] or 0 == 0
 
     # Empty tables require specifying the key and value types:
     empty_table : {Text=Int}
@@ -133,22 +125,17 @@ func main()
 
     # Tables also have ".keys" and ".values" fields to explicitly access the
     # list of keys or values in the table.
-    >> table.keys
-    = ["one", "two"]
-    >> table.values
-    = [1, 2]
+    assert table.keys == ["one", "two"]
+    assert table.values == [1, 2]
 
     # Tables can have a fallback table that's used as a fallback when the key
     # isn't found in the table itself:
     table2 := {"three"=3; fallback=table}
-    >> table2["two"]!
-    = 2
-    >> table2["three"]!
-    = 3
+    assert table2["two"]! == 2
+    assert table2["three"]! == 3
 
     # Tables can also be created with comprehension loops:
-    >> {x=10*x for x in 5}
-    = {1=10, 2=20, 3=30, 4=40, 5=50}
+    assert {x=10*x for x in 5} == {1=10, 2=20, 3=30, 4=40, 5=50}
 
     # If no default is provided and a missing key is looked up, the program
     # will print an error message and halt.
@@ -156,8 +143,7 @@ func main()
     # Any types can be used in tables, for example, a table mapping lists to
     # strings:
     table3 := {[10, 20]="one", [30, 40, 50]="two"}
-    >> table3[[10, 20]]!
-    = "one"
+    assert table3[[10, 20]]! == "one"
 
     # So far, the datastructures that have been discussed are all *immutable*,
     # meaning you can't add, remove, or change their contents. If you want to
@@ -165,28 +151,23 @@ func main()
     # different values using the "@" operator (think: "(a)llocate").
     my_arr := @[10, 20, 30]
     my_arr[1] = 999
-    >> my_arr[]
-    = [999, 20, 30]
+    assert my_arr[] == [999, 20, 30]
 
     # To call a method, you must use ":" and the name of the method:
     my_arr.sort()
-    >> my_arr[]
-    = [20, 30, 999]
+    assert my_arr[] == [20, 30, 999]
 
     # To access the immutable value that resides inside the memory area, you
     # can use the "[]" operator:
-    >> my_arr[]
-    = [20, 30, 999]
+    assert my_arr[] == [20, 30, 999]
 
     # You can think of this like taking a photograph of what's at that memory
     # location. Later, a new value might end up there, but the photograph will
     # remain unchanged.
     snapshot := my_arr[]
     my_arr.insert(1000)
-    >> my_arr[]
-    = [20, 30, 999, 1000]
-    >> snapshot
-    = [20, 30, 999]
+    assert my_arr[] == [20, 30, 999, 1000]
+    assert snapshot == [20, 30, 999]
     # Internally, this is implemented using copy-on-write, so it's quite
     # efficient.
 
@@ -207,16 +188,13 @@ func show_both(first:Int, second=0 -> Text)
     return "first=$first second=$second"
 
 func demo_keyword_args()
-    >> show_both(1, 2)
-    = "first=1 second=2"
+    assert show_both(1, 2) == "first=1 second=2"
 
     # If unspecified, the default argument is used:
-    >> show_both(1)
-    = "first=1 second=0"
+    assert show_both(1) == "first=1 second=0"
 
     # Arguments can be specified by name, in any order:
-    >> show_both(second=20, 10)
-    = "first=10 second=20"
+    assert show_both(second=20, 10) == "first=10 second=20"
 
 # Here are some different type signatures:
 func takes_many_types(
@@ -252,32 +230,26 @@ struct Person(name:Text, age:Int)
 func demo_structs()
     # Creating a struct:
     alice := Person("Alice", 30)
-    >> alice
-    = Person(name="Alice", age=30)
+    assert alice == Person(name="Alice", age=30)
 
     # Accessing fields:
-    >> alice.age
-    = 30
+    assert alice.age == 30
 
     # Calling methods:
     alice.say_age()
 
     # You can call static methods by using the class name and ".":
-    >> Person.get_cool_name()
-    = "Blade"
+    assert Person.get_cool_name() == "Blade"
 
     # Comparisons, conversion to text, and hashing are all handled
     # automatically when you create a struct:
     bob := Person("Bob", 30)
-    >> alice == bob
-    = no
+    assert alice == bob == no
 
-    >> "$alice" == 'Person(name="Alice", age=30)'
-    = yes
+    assert "$alice" == 'Person(name="Alice", age=30)' == yes
 
     table := {alice="first", bob="second"}
-    >> table[alice]!
-    = "first"
+    assert table[alice]! == "first"
 
 
 # Now let's look at another feature: enums. Tomo enums are tagged unions, also
@@ -314,30 +286,24 @@ func demo_enums()
 
     # Similar to structs, enums automatically define comparisons, conversion
     # to text, and hashing:
-    >> my_shape == other_shape
-    = no
+    assert my_shape == other_shape == no
 
-    >> "$my_shape" == "Circle(1)"
-    = yes
+    assert "$my_shape" == "Circle(1)" == yes
 
-    >> {my_shape="nice"}
-    = {Shape.Circle(1)="nice"}
+    assert {my_shape="nice"} == {Shape.Circle(1)="nice"}
 
 func demo_lambdas()
     # Lambdas, or anonymous functions, can be used like this:
     add_one := func(x:Int) x + 1
-    >> add_one(5)
-    = 6
+    assert add_one(5) == 6
 
     # Lambdas can capture closure values, but only as a snapshot from when the
     # lambda was created:
     n := 10
     add_n := func(x:Int) x + n
-    >> add_n(5)
-    = 15
+    assert add_n(5) == 15
 
     # The lambda's closure won't change when this variable is reassigned:
     n = -999
-    >> add_n(5)
-    = 15
+    assert add_n(5) == 15
 
