@@ -159,23 +159,6 @@ func main()
     >> table3[[10, 20]]!
     = "one"
 
-    # Sets are similar to tables, but they represent an unordered collection of
-    # unique values:
-    set := |10, 20, 30|
-    >> set.has(20)
-    = yes
-    >> set.has(999)
-    = no
-
-    # You can do some operations on sets:
-    other_set := |30, 40, 50|
-    >> set.with(other_set)
-    = |10, 20, 30, 40, 50|
-    >> set.without(other_set)
-    = |10, 20|
-    >> set.overlap(other_set)
-    = |30|
-
     # So far, the datastructures that have been discussed are all *immutable*,
     # meaning you can't add, remove, or change their contents. If you want to
     # have mutable data, you need to allocate an area of memory which can hold
@@ -243,7 +226,6 @@ func takes_many_types(
     text_aka_string:Text,
     list_of_ints:[Int],
     table_of_text_to_bools:{Text=Bool},
-    set_of_ints:|Int|,
     pointer_to_mutable_list_of_ints:@[Int],
     optional_int:Int?,
     function_from_int_to_text:func(x:Int -> Text),
