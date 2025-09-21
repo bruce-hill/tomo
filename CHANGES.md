@@ -9,6 +9,8 @@
 - List indexing now gives an optional value.
 - Added support for inline anonymous enums
 - Syntax for text literals and inline C code has been simplified somewhat.
+- Syntax for tables has changed to use colons (`{k: v}`) instead of equals
+  (`{k=v}`).
 - Deprecated sets.
   - Instead of sets, use tables.
   - Tables now have `and`, `or`, `xor`, and `-` (minus) metamethods.
