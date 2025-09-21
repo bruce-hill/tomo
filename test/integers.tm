@@ -11,16 +11,6 @@ func main()
 
 	assert 1 << 10 == 1024
 
-	# say("Signed and unsigned bit shifting:")
-	# >> Int64(-2) << 1
-	# = Int64(-4)
-	# >> Int64(-2) <<< 1
-	# = Int64(-4)
-	# >> Int64(-2) >> 1
-	# = Int64(-1)
-	# >> Int64(-2) >>> 1
-	# = Int64(9223372036854775807)
-
 	assert (3 and 2) == 2
 
 	assert (3 or 4) == 7
@@ -71,8 +61,6 @@ func main()
 
 	assert (0).next_prime() == 2
 	assert (7).next_prime() == 11
-	#>> (11).prev_prime()
-	#= 7
 	assert (and: p.is_prime() for p in [
 		2, 3, 5, 7,
 		137372146048179869781170214707,
