@@ -7,30 +7,30 @@ support *all* types as both keys and values.
 
 ## Syntax
 
-Tables are written using `{}` curly braces with `=` equals signs associating key
+Tables are written using `{}` curly braces with `:` colons associating key
 expressions with value expressions and commas between entries:
 
 ```tomo
-table := {"A"=10, "B"=20}
+table := {"A": 10, "B": 20}
 ```
 
 Empty tables must specify the key and value types explicitly:
 
 ```tomo
-empty : {Text=Int} = {}
+empty : {Text:Int} = {}
 ```
 
 For type annotations, a table that maps keys with type `K` to values of type
-`V` is written as `{K=V}`.
+`V` is written as `{K:V}`.
 
 ### Comprehensions
 
 Similar to lists, tables can use comprehensions to dynamically construct tables:
 
 ```tomo
-t := {i=10*i for i in 10}
-t := {i=10*i for i in 10 if i mod 2 == 0}
-t := {-1=-10, i=10*i for i in 10}
+t := {i: 10*i for i in 10}
+t := {i: 10*i for i in 10 if i mod 2 == 0}
+t := {-1: -10, i: 10*i for i in 10}
 ```
 
 ## Accessing Values
@@ -39,7 +39,7 @@ Table values can be accessed with square bracket indexing. The result is an
 optional value:
 
 ```tomo
-table := {"A"=1, "B"=2}
+table := {"A": 1, "B": 2}
 >> table["A"]
 = 1?
 >> table["missing"]
@@ -64,8 +64,8 @@ Tables can specify a fallback table that is used when looking up a value if it
 is not found in the table itself:
 
 ```tomo
-t := {"A"=10}
-t2 := {"B"=20; fallback=t}
+t := {"A": 10}
+t2 := {"B": 20; fallback=t}
 >> t2["A"]
 = 10?
 ```
@@ -75,7 +75,7 @@ table value:
 
 ```tomo
 >> t2.fallback
-= {"A"=10}?
+= {"A": 10}?
 >> t.fallback
 = none
 ```
@@ -86,7 +86,7 @@ Tables can specify a default value which will be returned if a value is not
 present in the table or its fallback (if any).
 
 ```tomo
-counts := &{"foo"=12; default=0}
+counts := &{"foo": 12; default=0}
 >> counts["foo"]
 = 12
 >> counts["baz"]
@@ -105,11 +105,11 @@ You can assign a new key/value mapping or overwrite an existing one using
 `.set(key, value)` or an `=` assignment statement:
 
 ```tomo
-t := {"A"=1, "B"=2}
+t := {"A": 1, "B": 2}
 t["B"] = 222
 t["C"] = 333
 >> t
-= {"A"=1, "B"=222, "C"=333}
+= {"A": 1, "B": 222, "C": 333}
 ```
 
 ## Length
@@ -117,7 +117,7 @@ t["C"] = 333
 Table length can be accessed by the `.length` field:
 
 ```tomo
->> {"A"=10, "B"=20}.length
+>> {"A": 10, "B": 20}.length
 = 2
 ```
 
@@ -127,7 +127,7 @@ The keys and values of a table can be efficiently accessed as lists using a
 constant-time immutable slice of the internal data from the table:
 
 ```tomo
-t := {"A"=10, "B"=20}
+t := {"A": 10, "B": 20}
 >> t.keys
 = ["A", "B"]
 >> t.values

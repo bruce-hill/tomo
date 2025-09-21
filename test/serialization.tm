@@ -42,9 +42,9 @@ func main()
         assert roundtrip[] == obj[]
 
     do
-        >> obj := {"A"=10, "B"=20; fallback={"C"=30}}
+        >> obj := {"A":10, "B":20; fallback={"C":30}}
         >> bytes := obj.serialized()
-        >> roundtrip := deserialize(bytes -> {Text=Int})
+        >> roundtrip := deserialize(bytes -> {Text:Int})
         assert roundtrip == obj
         assert roundtrip.fallback == obj.fallback
 

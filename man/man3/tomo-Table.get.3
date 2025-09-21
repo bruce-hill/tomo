@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.get 3 2025-05-17 "Tomo man-pages"
+.TH Table.get 3 2025-09-06 "Tomo man-pages"
 .SH NAME
 Table.get \- get an item from a table
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Table.get\ :\ func(t:\ {K=V},\ key:\ K\ ->\ V?)
+.BI Table.get\ :\ func(t:\ {K:V},\ key:\ K\ ->\ V?)
 .fi
 .SH DESCRIPTION
 Retrieves the value associated with a key, or returns `none` if the key is not present.
@@ -22,7 +22,7 @@ allbox;
 lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
-t	{K=V}	The table. 	-
+t	{K:V}	The table. 	-
 key	K	The key whose associated value is to be retrieved. 	-
 .TE
 .SH RETURN
@@ -33,7 +33,7 @@ Default values for the table are ignored.
 
 .SH EXAMPLES
 .EX
->> t := {"A"=1, "B"=2}
+>> t := {"A": 1, "B": 2}
 >> t.get("A")
 = 1?
 

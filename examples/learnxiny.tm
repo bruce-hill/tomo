@@ -114,7 +114,7 @@ func main()
     assert table["xxx"] or 0 == 0
 
     # Empty tables require specifying the key and value types:
-    empty_table : {Text=Int}
+    empty_table : {Text:Int}
 
     # Tables can be iterated over either by key or key,value:
     for key in table
@@ -290,7 +290,7 @@ func demo_enums()
 
     assert "$my_shape" == "Circle(1)" == yes
 
-    assert {my_shape="nice"} == {Shape.Circle(1)="nice"}
+    assert {my_shape: "nice"} == {Shape.Circle(1): "nice"}
 
 func demo_lambdas()
     # Lambdas, or anonymous functions, can be used like this:

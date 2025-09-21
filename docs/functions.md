@@ -82,7 +82,7 @@ func _add(x, y:Int -> Int)
     return x + y
 
 struct add_args(x,y:Int)
-add_cache : @{add_args=Int} = @{}
+add_cache : @{add_args: Int} = @{}
 
 func add(x, y:Int -> Int)
     args := add_args(x, y)

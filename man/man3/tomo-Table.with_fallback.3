@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.with_fallback 3 2025-06-24 "Tomo man-pages"
+.TH Table.with_fallback 3 2025-09-06 "Tomo man-pages"
 .SH NAME
 Table.with_fallback \- return a table with a new fallback
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Table.with_fallback\ :\ func(t:\ {K=V},\ fallback:\ {K=V}?\ ->\ {K=V})
+.BI Table.with_fallback\ :\ func(t:\ {K:V},\ fallback:\ {K:V}?\ ->\ {K:V})
 .fi
 .SH DESCRIPTION
 Return a copy of a table with a different fallback table.
@@ -22,16 +22,16 @@ allbox;
 lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
-t	{K=V}	The table whose fallback will be replaced. 	-
-fallback	{K=V}?	The new fallback table value. 	-
+t	{K:V}	The table whose fallback will be replaced. 	-
+fallback	{K:V}?	The new fallback table value. 	-
 .TE
 .SH RETURN
 The original table with a different fallback.
 
 .SH EXAMPLES
 .EX
-t := {"A"=1; fallback={"B"=2}}
-t2 = t.with_fallback({"B"=3"})
+t := {"A": 1; fallback={"B": 2}}
+t2 = t.with_fallback({"B": 3"})
 >> t2["B"]
 = 3?
 t3 = t.with_fallback(none)

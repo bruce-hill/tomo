@@ -127,7 +127,7 @@ func main()
 
 	assert "Hello".replace("ello", "i") == "Hi"
 
-	assert "<tag>".translate({"<"="&lt;", ">"="&gt;"}) == "&lt;tag&gt;"
+	assert "<tag>".translate({"<": "&lt;", ">": "&gt;"}) == "&lt;tag&gt;"
 
 	assert "Abc".repeat(3) == "AbcAbcAbc"
 

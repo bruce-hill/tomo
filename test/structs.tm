@@ -58,8 +58,8 @@ func main()
 	>> my_pass := Password("Swordfish")
 	assert my_pass == Password("Swordfish")
 	assert "$my_pass" == "Password(...)"
-	>> users_by_password := {my_pass="User1", Password("xxx")="User2"}
-	assert "$users_by_password" == '{Password(...)="User1", Password(...)="User2"}'
+	>> users_by_password := {my_pass: "User1", Password("xxx"): "User2"}
+	assert "$users_by_password" == '{Password(...): "User1", Password(...): "User2"}'
 	assert users_by_password[my_pass]! == "User1"
 
 	>> CorecursiveA(@CorecursiveB())
