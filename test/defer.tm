@@ -6,10 +6,8 @@ func main()
             nums.insert(x)
         x = 999
 
-    >> nums[]
-    = [123]
-    >> x
-    = 999
+    assert nums[] == [123]
+    assert x == 999
 
     defer
         say("All done!")
@@ -58,12 +56,9 @@ func main()
     >> defer_func(no)
 
     >> counter := make_counter()
-    >> counter()
-    = 1
-    >> counter()
-    = 2
-    >> counter()
-    = 3
+    assert counter() == 1
+    assert counter() == 2
+    assert counter() == 3
 
 func defer_func(return_early=no)
     say("Entering defer_func")

@@ -20,20 +20,19 @@ static CONSTFUNC const char *comparison_operator(ast_e tag) {
 }
 
 Text_t compile_comparison(env_t *env, ast_t *ast) {
-
     switch (ast->tag) {
     case Equals:
     case NotEquals: {
         binary_operands_t binop = BINARY_OPERANDS(ast);
 
         type_t *lhs_t = get_type(env, binop.lhs);
-        type_t *rhs_t = get_type(env, binop.rhs);
+        type_t *rhs_t = get_type(with_enum_scope(env, lhs_t), binop.rhs);
         type_t *operand_t;
         if (binop.lhs->tag == Int && is_numeric_type(rhs_t)) {
             operand_t = rhs_t;
         } else if (binop.rhs->tag == Int && is_numeric_type(lhs_t)) {
             operand_t = lhs_t;
-        } else if (can_compile_to_type(env, binop.rhs, lhs_t)) {
+        } else if (can_compile_to_type(with_enum_scope(env, lhs_t), binop.rhs, lhs_t)) {
             operand_t = lhs_t;
         } else if (can_compile_to_type(env, binop.lhs, rhs_t)) {
             operand_t = rhs_t;

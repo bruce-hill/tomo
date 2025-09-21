@@ -354,7 +354,7 @@ void bind_statement(env_t *env, ast_t *statement) {
     switch (statement->tag) {
     case DebugLog: {
         for (ast_list_t *value = Match(statement, DebugLog)->values; value; value = value->next)
-            prebind_statement(env, value->ast);
+            bind_statement(env, value->ast);
         break;
     }
     case Assert: {

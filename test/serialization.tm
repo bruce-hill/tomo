@@ -38,8 +38,7 @@ func main()
         >> obj := @[10, 20]
         >> bytes := obj.serialized()
         >> roundtrip := deserialize(bytes -> @[Int])
-        >> roundtrip == obj
-        = no
+        assert roundtrip != obj
         assert roundtrip[] == obj[]
 
     do

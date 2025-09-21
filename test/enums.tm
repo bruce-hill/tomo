@@ -29,48 +29,33 @@ func enum_return_function(i:Int -> enum(Zero, One, Many))
 struct EnumFields(x:enum(A, B, C))
 
 func main()
-	>> Foo.Zero
-	= Foo.Zero
-	>> Foo.One(123)
-	= Foo.One(123)
-	>> Foo.Two(123, 456)
-	= Foo.Two(x=123, y=456)
+	assert Foo.Zero == Foo.Zero
+	assert Foo.One(123) == Foo.One(123)
+	assert Foo.Two(123, 456) == Foo.Two(x=123, y=456)
 
 	>> one := Foo.One(123)
-	>> one.One
-	= yes
-	>> one.Two
-	= no
+	assert one.One == yes
+	assert one.Two == no
 
 	assert Foo.One(10) == Foo.One(10)
 
-	>> Foo.One(10) == Foo.Zero
-	= no
+	assert Foo.One(10) == Foo.Zero == no
 
-	>> Foo.One(10) == Foo.One(-1)
-	= no
+	assert Foo.One(10) == Foo.One(-1) == no
 
 	assert Foo.One(10) < Foo.Two(1, 2)
 
 	>> x := Foo.One(123)
 	>> t := {x=yes}
-	>> t.has(x)
-	= yes
-	>> t.has(Foo.Zero)
-	= no
+	assert t.has(x) == yes
+	assert t.has(Foo.Zero) == no
 
-	>> choose_text(Foo.Zero)
-	= "Zero"
-	>> choose_text(Foo.One(123))
-	= "One: 123"
-	>> choose_text(Foo.Two(123, 456))
-	= "Two: x=123, y=456"
-	>> choose_text(Foo.Three(123, "hi", yes))
-	= 'Three: Three(x=123, y="hi", z=yes)'
-	>> choose_text(Foo.Four(1,2,3,4))
-	= "Four"
-	>> choose_text(Foo.Last("XX"))
-	= 'else: Last("XX")'
+	assert choose_text(Foo.Zero) == "Zero"
+	assert choose_text(Foo.One(123)) == "One: 123"
+	assert choose_text(Foo.Two(123, 456)) == "Two: x=123, y=456"
+	assert choose_text(Foo.Three(123, "hi", yes)) == 'Three: Three(x=123, y="hi", z=yes)'
+	assert choose_text(Foo.Four(1,2,3,4)) == "Four"
+	assert choose_text(Foo.Last("XX")) == 'else: Last("XX")'
 
 	i := 1
 	cases := [Foo.One(1), Foo.One(2), Foo.Zero]
@@ -79,7 +64,7 @@ func main()
 		i += 1
 	else stop
 
-	>> [
+	assert [
 		(
 			when x is One(y), Two(y,_)
 				"Small $y"
@@ -88,14 +73,13 @@ func main()
 			else
 				"Other"
 		) for x in [Foo.Zero, Foo.One(1), Foo.Two(2,2), Foo.Three(3,"",no)]
-	]
-	= ["Zero", "Small 1", "Small 2", "Other"]
+	] == ["Zero", "Small 1", "Small 2", "Other"]
 
-	>> expr := when cases[1]! is One(y)
+	expr := when cases[1]! is One(y)
 		y + 1
 	else
 		-1
-	= 2
+	assert expr == 2
 
 	>> enum_arg_function(Zero)
 	>> enum_arg_function(Two(2,3))
@@ -109,13 +93,9 @@ func main()
 		is Two
 			say("two")
 
-	>> enum_return_function(0)
-	= Zero
-	>> enum_return_function(1)
-	= One
-	>> enum_return_function(2)
-	= Many
+	assert enum_return_function(0) == Zero
+	assert enum_return_function(1) == One
+	assert enum_return_function(2) == Many
 
-	>> EnumFields(A)
-	= EnumFields(x=A)
+	assert EnumFields(A) == EnumFields(x=A)
 

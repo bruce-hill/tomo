@@ -22,34 +22,25 @@ struct Bold(text:Text)
 		return $HTML"<b>$(b.text)</b>"
 
 func main()
-	>> HTML.HEADER
-	= $HTML"<!DOCTYPE HTML>"
+	assert HTML.HEADER == $HTML"<!DOCTYPE HTML>"
 
-	>> HTML.HEADER[1]
-	= $HTML"<"
+	assert HTML.HEADER[1] == $HTML"<"
 
-	>> HTML.HEADER.text
-	= "<!DOCTYPE HTML>"
+	assert HTML.HEADER.text == "<!DOCTYPE HTML>"
 
 	>> user := "I <3 hax"
-	>> html := $HTML"Hello $user!"
-	= $HTML"Hello I &lt;3 hax!"
-	>> html ++ $HTML"<br>"
-	= $HTML"Hello I &lt;3 hax!<br>"
+	html := $HTML"Hello $user!"
+	assert html == $HTML"Hello I &lt;3 hax!"
+	assert html ++ $HTML"<br>" == $HTML"Hello I &lt;3 hax!<br>"
 
-	>> $HTML"$(1 + 2)"
-	= $HTML"3"
+	assert $HTML"$(1 + 2)" == $HTML"3"
 
-	>> $HTML"$(Int8(3))"
-	= $HTML"3"
+	assert $HTML"$(Int8(3))" == $HTML"3"
 
-	>> html.paragraph()
-	= $HTML"<p>Hello I &lt;3 hax!</p>"
+	assert html.paragraph() == $HTML"<p>Hello I &lt;3 hax!</p>"
 
-	>> Text(html)
-	= '\$HTML"Hello I &lt;3 hax!"'
+	assert Text(html) == '\$HTML"Hello I &lt;3 hax!"'
 
 	>> b := Bold("Some <text> with junk")
-	>> $HTML"Your text: $b"
-	= $HTML"Your text: <b>Some &lt;text&gt; with junk</b>"
+	assert $HTML"Your text: $b" == $HTML"Your text: <b>Some &lt;text&gt; with junk</b>"
 

@@ -573,10 +573,10 @@ env_t *fresh_scope(env_t *env) {
 }
 
 env_t *with_enum_scope(env_t *env, type_t *t) {
-    while (t->tag == OptionalType)
+    while (t && t->tag == OptionalType)
         t = Match(t, OptionalType)->type;
 
-    if (t->tag != EnumType) return env;
+    if (t == NULL || t->tag != EnumType) return env;
     env = fresh_scope(env);
     env_t *ns_env = Match(t, EnumType)->env;
     for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {

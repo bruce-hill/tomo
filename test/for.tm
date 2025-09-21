@@ -30,21 +30,14 @@ func table_key_str(t:{Text=Text} -> Text)
 	return str
 
 func main()
-	>> all_nums([10,20,30])
-	= "10,20,30,"
-	>> all_nums([])
-	= "EMPTY"
+	assert all_nums([10,20,30]) == "10,20,30,"
+	assert all_nums([]) == "EMPTY"
 
-	>> labeled_nums([10,20,30])
-	= "1:10,2:20,3:30,"
-	>> labeled_nums([])
-	= "EMPTY"
+	assert labeled_nums([10,20,30]) == "1:10,2:20,3:30,"
+	assert labeled_nums([]) == "EMPTY"
 
 	>> t := {"key1"="value1", "key2"="value2"}
-	>> table_str(t)
-	= "key1:value1,key2:value2,"
-	>> table_str({})
-	= "EMPTY"
+	assert table_str(t) == "key1:value1,key2:value2,"
+	assert table_str({}) == "EMPTY"
 
-	>> table_key_str(t)
-	= "key1,key2,"
+	assert table_key_str(t) == "key1,key2,"

@@ -47,44 +47,31 @@ struct Vec2(x,y:Int)
 func main()
     >> x := Vec2(10, 20)
     >> y := Vec2(100, 200)
-    >> x + y
-    = Vec2(x=110, y=220)
-    >> x - y
-    = Vec2(x=-90, y=-180)
-    >> x * y
-    = Vec2(x=1000, y=4000)
-    >> x.dot(y)
-    = 5000
-    >> x * -1
-    = Vec2(x=-10, y=-20)
-    >> -10 * x
-    = Vec2(x=-100, y=-200)
+    assert x + y == Vec2(x=110, y=220)
+    assert x - y == Vec2(x=-90, y=-180)
+    assert x * y == Vec2(x=1000, y=4000)
+    assert x.dot(y) == 5000
+    assert x * -1 == Vec2(x=-10, y=-20)
+    assert -10 * x == Vec2(x=-100, y=-200)
 
     >> x = Vec2(1, 2)
     >> x += Vec2(10, 20)
-    = Vec2(x=11, y=22)
+    assert x == Vec2(x=11, y=22)
     >> x *= Vec2(10, -1)
-    = Vec2(x=110, y=-22)
+    assert x == Vec2(x=110, y=-22)
 
     >> x *= -1
-    = Vec2(x=-110, y=22)
+    assert x == Vec2(x=-110, y=22)
 
     >> x = Vec2(1, 2)
-    >> -x
-    = Vec2(x=-1, y=-2)
+    assert -x == Vec2(x=-1, y=-2)
 
     x = Vec2(1, 2)
     y = Vec2(4, 3)
-    >> x and y
-    = Vec2(x=0, y=2)
-    >> x or y
-    = Vec2(x=5, y=3)
-    >> x xor y
-    = Vec2(x=5, y=1)
-    >> x / 2
-    = Vec2(x=0, y=1)
-    >> x mod 3
-    = Vec2(x=1, y=2)
-    >> x mod1 3
-    = Vec2(x=1, y=2)
+    assert (x and y) == Vec2(x=0, y=2)
+    assert (x or y) == Vec2(x=5, y=3)
+    assert (x xor y) == Vec2(x=5, y=1)
+    assert x / 2 == Vec2(x=0, y=1)
+    assert x mod 3 == Vec2(x=1, y=2)
+    assert x mod1 3 == Vec2(x=1, y=2)
 

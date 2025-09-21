@@ -111,7 +111,7 @@ ast_t *parse_debug_log(parse_ctx_t *ctx, const char *pos) {
         spaces(&pos);
     }
     REVERSE_LIST(values);
-    whitespace(ctx, &pos);
+    // whitespace(ctx, &pos);
     return NewAST(ctx->file, start, pos, DebugLog, .values = values);
 }
 

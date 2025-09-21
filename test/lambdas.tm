@@ -9,27 +9,22 @@ func mul_func(n:Int, fn:func(x:Int->Int) -> func(x:Int->Int))
 
 func main()
 	>> add_one := func(x:Int) x + 1
-	>> add_one(10)
-	= 11
+	assert add_one(10) == 11
 
 	>> shout := func(msg:Text) say("$(msg.upper())!")
 	>> shout("hello")
 
 	>> asdf := add_one
-	>> asdf(99)
-	= 100
+	assert asdf(99) == 100
 
 	>> add_100 := make_adder(100)
-	>> add_100(5)
-	= 105
+	assert add_100(5) == 105
 
 	>> shout2 := suffix_fn(func(t:Text) t.upper(), "!")
-	>> shout2("hello")
-	= "HELLO!"
+	assert shout2("hello") == "HELLO!"
 
 	>> abs100 := mul_func(100, Int.abs)
-	>> abs100(-5)
-	= 500
+	assert abs100(-5) == 500
 
 	# Test nested lambdas:
     outer := "Hello"
@@ -38,5 +33,4 @@ func main()
             return func()
                 defer say("$outer")
                 return outer
-    >> fn()()()
-	= "Hello"
+    assert fn()()() == "Hello"

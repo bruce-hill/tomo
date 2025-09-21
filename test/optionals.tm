@@ -62,38 +62,34 @@ func maybe_c_string(should_i:Bool->CString?)
         return none
 
 func main()
-    >> optional : Int? = 5
-    = 5
+    optional : Int? = 5
+    assert optional == 5
 
-    >> if no
-        x : Int? = none
-        x
-    else
-        5
-    = 5
+    assert (
+        if no
+            x : Int? = none
+            x
+        else
+            5
+    ) == 5
 
-    >> optional or -1
-    = 5
+    assert (optional or -1) == 5
 
-    >> optional or fail("Non-none is falsey")
-    = 5
+    assert (optional or fail("Non-none is falsey")) == 5
 
-    >> optional or exit("Non-none is falsey")
-    = 5
+    assert (optional or exit("Non-none is falsey")) == 5
 
     >> none_int : Int? = none
-    >> none_int or -1
-    = -1
+    assert none_int or -1 == -1
 
     do
         say("Ints:")
-        >> yep := maybe_int(yes)
-        = 123
-        >> nope := maybe_int(no)
-        = none
+        yep := maybe_int(yes)
+        assert yep == 123
+        nope := maybe_int(no)
+        assert nope == none
         >> if yep
-            >> yep
-            = 123
+            assert yep == 123
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")
@@ -101,13 +97,12 @@ func main()
 
     do
         say("Int64s:")
-        >> yep := maybe_int64(yes)
-        = Int64(123)
-        >> nope := maybe_int64(no)
-        = none
+        yep := maybe_int64(yes)
+        assert yep == Int64(123)
+        nope := maybe_int64(no)
+        assert nope == none
         >> if yep
-            >> yep
-            = Int64(123)
+            assert yep == Int64(123)
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")
@@ -115,13 +110,12 @@ func main()
 
     do
         say("Lists:")
-        >> yep := maybe_list(yes)
-        = [10, 20, 30]
-        >> nope := maybe_list(no)
-        = none
+        yep := maybe_list(yes)
+        assert yep == [10, 20, 30]
+        nope := maybe_list(no)
+        assert nope == none
         >> if yep
-            >> yep
-            = [10, 20, 30]
+            assert yep == [10, 20, 30]
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")
@@ -130,13 +124,12 @@ func main()
     do
         say("...")
         say("Bools:")
-        >> yep := maybe_bool(yes)
-        = no
-        >> nope := maybe_bool(no)
-        = none
+        yep := maybe_bool(yes)
+        assert yep == no
+        nope := maybe_bool(no)
+        assert nope == none
         >> if yep
-            >> yep
-            = no
+            assert yep == no
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")
@@ -145,13 +138,12 @@ func main()
     do
         say("...")
         say("Text:")
-        >> yep := maybe_text(yes)
-        = "Hello"
-        >> nope := maybe_text(no)
-        = none
+        yep := maybe_text(yes)
+        assert yep == "Hello"
+        nope := maybe_text(no)
+        assert nope == none
         >> if yep
-            >> yep
-            = "Hello"
+            assert yep == "Hello"
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")
@@ -160,13 +152,12 @@ func main()
     do
         say("...")
         say("Nums:")
-        >> yep := maybe_num(yes)
-        = 12.3
-        >> nope := maybe_num(no)
-        = none
+        yep := maybe_num(yes)
+        assert yep == 12.3
+        nope := maybe_num(no)
+        assert nope == none
         >> if yep
-            >> yep
-            = 12.3
+            assert yep == 12.3
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")
@@ -175,14 +166,8 @@ func main()
     do
         say("...")
         say("Lambdas:")
-        # >> yep := maybe_lambda(yes)
-        # = func() [optionals.tm:54] : func()?
-        >> nope := maybe_lambda(no)
-        = none
-        # >> if yep
-        #     >> yep
-        #     = func() [optionals.tm:54]
-        # else fail("Falsey: $yep")
+        nope := maybe_lambda(no)
+        assert nope == none
         >> if nope
             fail("Truthy: $nope")
         else say("Falsey: $nope")
@@ -190,13 +175,12 @@ func main()
     do
         say("...")
         say("Structs:")
-        >> yep := Struct.maybe(yes)
-        = Struct(x=123, y="hello")
-        >> nope := Struct.maybe(no)
-        = none
+        yep := Struct.maybe(yes)
+        assert yep == Struct(x=123, y="hello")
+        nope := Struct.maybe(no)
+        assert nope == none
         >> if yep
-            >> yep
-            = Struct(x=123, y="hello")
+            assert yep == Struct(x=123, y="hello")
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")
@@ -205,13 +189,12 @@ func main()
     do
         say("...")
         say("Enums:")
-        >> yep := Enum.maybe(yes)
-        = Enum.Y(123)
-        >> nope := Enum.maybe(no)
-        = none
+        yep := Enum.maybe(yes)
+        assert yep == Enum.Y(123)
+        nope := Enum.maybe(no)
+        assert nope == none
         >> if yep
-            >> yep
-            = Enum.Y(123)
+            assert yep == Enum.Y(123)
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")
@@ -220,48 +203,35 @@ func main()
     do
         say("...")
         say("C Strings:")
-        >> yep := maybe_c_string(yes)
-        = CString("hi")
-        >> nope := maybe_c_string(no)
-        = none
+        yep := maybe_c_string(yes)
+        assert yep == CString("hi")
+        nope := maybe_c_string(no)
+        assert nope == none
         >> if yep
-            >> yep
-            = CString("hi")
+            assert yep == CString("hi")
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")
         else say("Falsey: $nope")
 
     if yep := maybe_int(yes)
-        >> yep
-        = 123
+        assert yep == 123
     else fail("Unreachable")
 
-    >> maybe_int(yes)!
-    = 123
+    assert maybe_int(yes)! == 123
 
     # Test comparisons, hashing, equality:
     assert none != optional
     assert optional == 5
     >> nones : {Int?=Bool} = {none=yes, none=yes}
-    >> nones.keys
-    = [none]
-    >> [5, none, none, 6].sorted()
-    = [none, none, 5, 6]
+    assert nones.keys == [none]
+    assert [5, none, none, 6].sorted() == [none, none, 5, 6]
 
     do
-        >> value := if var := optional
-            var
-        else
-            0
-        = 5
+        assert (if var := optional then var else 0) == 5
 
     do
-        >> value := if var : Int? = none then
-            var
-        else
-            0
-        = 0
+        assert (if var : Int? = none then var else 0) == 0
 
     do
         >> opt : Int? = 5
@@ -277,15 +247,12 @@ func main()
         else
             >> opt
 
-    >> not optional
-    = no
+    assert not optional == no
 
     >> nah : Int? = none
-    >> not nah
-    = yes
+    assert not nah == yes
 
-    >> [none, Struct(5,"A"), Struct(6,"B"), Struct(7,"C")]
-    = [none, Struct(x=5, y="A"), Struct(x=6, y="B"), Struct(x=7, y="C")]
+    assert [none, Struct(5,"A"), Struct(6,"B"), Struct(7,"C")] == [none, Struct(x=5, y="A"), Struct(x=6, y="B"), Struct(x=7, y="C")]
 
     if optional or no
         say("Binary op 'or' works with optionals")

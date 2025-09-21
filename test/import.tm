@@ -9,12 +9,9 @@ func returns_imported_type(->ImportedType)
 
 func main()
 	>> empty : [vectors.Vec2]
-	>> returns_vec()
-	= Vec2(x=1, y=2)
+	assert returns_vec() == Vec2(x=1, y=2)
 
 	>> imported : [ImportedType]
-	>> returns_imported_type()
-	= ImportedType("Hello")
+	assert returns_imported_type() == ImportedType("Hello")
 
-	>> needs_initializing # imported from ./use_import.tm
-	= 999999999999999999
+	assert needs_initializing == 999999999999999999

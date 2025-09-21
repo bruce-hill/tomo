@@ -11,5 +11,4 @@ func pong(x:Int->[Text])
 		return ["pong: $x"]
 
 func main()
-	>> ping(3)
-	= ["ping: 3", "pong: 2", "ping: 1", "pong: 0"]
+	assert ping(3) == ["ping: 3", "pong: 2", "ping: 1", "pong: 0"]
