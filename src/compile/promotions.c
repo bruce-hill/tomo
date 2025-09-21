@@ -114,6 +114,11 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
 public
 Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
     assert(!is_incomplete_type(t));
+
+    if (t->tag == EnumType) {
+        env = with_enum_scope(env, t);
+    }
+
     if (ast->tag == Int && is_numeric_type(non_optional(t))) {
         return compile_int_to_type(env, ast, t);
     } else if (ast->tag == Num && t->tag == NumType) {
