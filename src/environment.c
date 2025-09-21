@@ -659,7 +659,7 @@ env_t *for_scope(env_t *env, ast_t *ast) {
         }
         return scope;
     }
-    default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_str(iter_t));
+    default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_text(iter_t));
     }
     return NULL;
 }

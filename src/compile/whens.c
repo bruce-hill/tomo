@@ -61,7 +61,7 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
         }
 
         if (clause->pattern->tag != FunctionCall || Match(clause->pattern, FunctionCall)->fn->tag != Var)
-            code_err(clause->pattern, "This is not a valid pattern for a ", type_to_str(subject_t), " enum type");
+            code_err(clause->pattern, "This is not a valid pattern for a ", type_to_text(subject_t), " enum type");
 
         const char *clause_tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
         code = Texts(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, Texts("tag$", clause_tag_name)),
@@ -93,9 +93,9 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
             arg_t *field = tag_struct->fields;
             for (arg_ast_t *arg = args; arg || field; arg = arg->next) {
                 if (!arg)
-                    code_err(ast, "The field ", type_to_str(subject_t), ".", clause_tag_name, ".", field->name,
+                    code_err(ast, "The field ", type_to_text(subject_t), ".", clause_tag_name, ".", field->name,
                              " wasn't accounted for");
-                if (!field) code_err(arg->value, "This is one more field than ", type_to_str(subject_t), " has");
+                if (!field) code_err(arg->value, "This is one more field than ", type_to_text(subject_t), " has");
                 if (arg->name) code_err(arg->value, "Named arguments are not currently supported");
 
                 const char *var_name = Match(arg->value, Var)->name;

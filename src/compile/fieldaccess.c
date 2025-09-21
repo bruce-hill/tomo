@@ -35,7 +35,7 @@ Text_t compile_field_access(env_t *env, ast_t *ast) {
         } else if (streq(f->field, "length")) {
             return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
         }
-        code_err(ast, "There is no '", f->field, "' field on ", type_to_str(value_t), " values");
+        code_err(ast, "There is no '", f->field, "' field on ", type_to_text(value_t), " values");
     }
     case StructType: {
         return compile_struct_field_access(env, ast);
@@ -83,6 +83,6 @@ Text_t compile_field_access(env_t *env, ast_t *ast) {
         env_t *module_env = Table$str_get(*env->imports, name);
         return compile(module_env, WrapAST(ast, Var, f->field));
     }
-    default: code_err(ast, "Field accesses are not supported on ", type_to_str(fielded_t), " values");
+    default: code_err(ast, "Field accesses are not supported on ", type_to_text(fielded_t), " values");
     }
 }

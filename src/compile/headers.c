@@ -79,7 +79,7 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
         if (t->tag == FunctionType) t = Type(ClosureType, t);
         assert(t->tag != ModuleType);
         if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-            code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
+            code_err(ast, "You can't declare a variable with a ", type_to_text(t), " value");
 
         return Texts(decl->value ? compile_statement_type_header(env, header_path, decl->value) : EMPTY_TEXT, "extern ",
                      compile_declaration(t, namespace_name(env, env->namespace, Text$from_str(decl_name))), ";\n");
@@ -151,6 +151,8 @@ static void add_type_headers(type_ast_t *type_ast, void *userdata) {
 
     if (type_ast->tag == EnumTypeAST) {
         compile_typedef_info_t *info = (compile_typedef_info_t *)userdata;
+        // Force the type to get defined:
+        (void)parse_type_ast(info->env, type_ast);
         DeclareMatch(enum_, type_ast, EnumTypeAST);
         bool has_any_tags_with_fields = false;
         for (tag_ast_t *tag = enum_->tags; tag; tag = tag->next) {

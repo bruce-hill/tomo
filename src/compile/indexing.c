@@ -33,7 +33,7 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
     type_t *index_t = get_type(env, indexing->index);
     if (container_t->tag == ListType) {
         if (index_t->tag != IntType && index_t->tag != BigIntType && index_t->tag != ByteType)
-            code_err(indexing->index, "Lists can only be indexed by integers, not ", type_to_str(index_t));
+            code_err(indexing->index, "Lists can only be indexed by integers, not ", type_to_text(index_t));
         type_t *item_type = Match(container_t, ListType)->item_type;
         Text_t list = compile_to_pointer_depth(env, indexing->indexed, 0, false);
         Text_t index_code =
@@ -82,6 +82,6 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
                          compile_to_type(env, indexing->index, Type(BigIntType)), ")");
         }
     } else {
-        code_err(ast, "Indexing is not supported for type: ", type_to_str(container_t));
+        code_err(ast, "Indexing is not supported for type: ", type_to_text(container_t));
     }
 }

@@ -17,7 +17,7 @@ Text_t compile_reduction(env_t *env, ast_t *ast) {
     type_t *iter_t = get_type(env, reduction->iter);
     type_t *item_t = get_iterated_type(iter_t);
     if (!item_t)
-        code_err(reduction->iter, "I couldn't figure out how to iterate over this type: ", type_to_str(iter_t));
+        code_err(reduction->iter, "I couldn't figure out how to iterate over this type: ", type_to_text(iter_t));
 
     static int64_t next_id = 1;
     ast_t *item = FakeAST(Var, String("$it", next_id++));

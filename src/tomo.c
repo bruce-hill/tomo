@@ -788,7 +788,7 @@ void transpile_code(env_t *base_env, Path_t path) {
         type_t *ret = Match(main_binding->type, FunctionType)->ret;
         if (ret->tag != VoidType && ret->tag != AbortType)
             compiler_err(ast->file, ast->start, ast->end, "The main() function in this file has a return type of ",
-                         type_to_str(ret), ", but it should not have any return value!");
+                         type_to_text(ret), ", but it should not have any return value!");
 
         Text$print(c_file, Texts("int parse_and_run$$", main_binding->code, "(int argc, char *argv[]) {\n",
                                  module_env->do_source_mapping ? Text("#line 1\n") : EMPTY_TEXT, "tomo_init();\n",

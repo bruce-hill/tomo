@@ -48,7 +48,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == FunctionType) t = Type(ClosureType, t);
             if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-                code_err(ast, "You can't declare a variable with a ", type_to_str(t), " value");
+                code_err(ast, "You can't declare a variable with a ", type_to_text(t), " value");
 
             Text_t val_code = compile_declared_value(env, ast);
             return Texts(compile_declaration(t, Texts("_$", name)), " = ", val_code, ";");
@@ -214,7 +214,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         // print("Is discardable: ", ast_to_sexp_str(ast), " ==> ",
         // is_discardable(env, ast));
         if (!is_discardable(env, ast))
-            code_err(ast, "The ", type_to_str(get_type(env, ast)), " result of this statement cannot be discarded");
+            code_err(ast, "The ", type_to_text(get_type(env, ast)), " result of this statement cannot be discarded");
         return Texts("(void)", compile(env, ast), ";");
     }
 }

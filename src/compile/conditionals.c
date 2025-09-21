@@ -26,7 +26,7 @@ Text_t compile_condition(env_t *env, ast_t *ast) {
         code_err(ast, "This pointer will always be non-none, so it should not be "
                       "used in a conditional.");
     } else {
-        code_err(ast, type_to_str(t), " values cannot be used for conditionals");
+        code_err(ast, type_to_text(t), " values cannot be used for conditionals");
     }
     return EMPTY_TEXT;
 }
@@ -102,7 +102,7 @@ Text_t compile_if_expression(env_t *env, ast_t *ast) {
                      "This `if var := ...:` declaration should be an "
                      "optional "
                      "type, not ",
-                     type_to_str(condition_type));
+                     type_to_text(condition_type));
 
         if (is_incomplete_type(condition_type)) code_err(condition, "This type is incomplete!");
 

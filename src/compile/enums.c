@@ -30,7 +30,7 @@ Text_t compile_enum_typeinfo(env_t *env, const char *name, tag_ast_t *tags) {
     Text_t info = namespace_name(env, env->namespace, Texts(name, "$$info"));
     Text_t typeinfo =
         Texts("public const TypeInfo_t ", info, " = {", (int64_t)type_size(t), "u, ", (int64_t)type_align(t),
-              "u, .metamethods=", metamethods, ", {.tag=EnumInfo, .EnumInfo={.name=\"", name,
+              "u, .metamethods=", metamethods, ", {.tag=EnumInfo, .EnumInfo={.name=\"", type_to_text(t),
               "\", "
               ".num_tags=",
               (int64_t)num_tags, ", .tags=(NamedType_t[]){");
@@ -78,6 +78,7 @@ Text_t compile_enum_header(env_t *env, const char *name, tag_ast_t *tags) {
     Text_t none_name = namespace_name(env, env->namespace, Texts(name, "$none"));
     Text_t enum_name = namespace_name(env, env->namespace, Texts(name, "$$enum"));
     Text_t enum_tags = Texts("{ ", none_name, "=0, ");
+    assert(Table$str_get(*env->types, name));
 
     bool has_any_tags_with_fields = false;
     for (tag_ast_t *tag = tags; tag; tag = tag->next) {
@@ -167,5 +168,5 @@ Text_t compile_enum_field_access(env_t *env, ast_t *ast) {
             }
         }
     }
-    code_err(ast, "The field '", f->field, "' is not a valid tag name of ", type_to_str(value_t));
+    code_err(ast, "The field '", f->field, "' is not a valid tag name of ", type_to_text(value_t));
 }

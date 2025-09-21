@@ -27,7 +27,7 @@ Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bo
     while (depth != target_depth) {
         if (depth < target_depth) {
             if (ast->tag == Var && target_depth == 1) val = Texts("(&", val, ")");
-            else code_err(ast, "This should be a pointer, not ", type_to_str(get_type(env, ast)));
+            else code_err(ast, "This should be a pointer, not ", type_to_text(get_type(env, ast)));
             t = Type(PointerType, .pointed = t, .is_stack = true);
             ++depth;
         } else {

@@ -79,7 +79,7 @@ Text_t compile_type(type_t *t) {
             DeclareMatch(s, nonnull, StructType);
             return namespace_name(s->env, s->env->namespace->parent, Texts("$Optional", s->name, "$$type"));
         }
-        default: compiler_err(NULL, NULL, NULL, "Optional types are not supported for: ", type_to_str(t));
+        default: compiler_err(NULL, NULL, NULL, "Optional types are not supported for: ", type_to_text(t));
         }
     }
     case TypeInfoType: return Text("TypeInfo_t");
@@ -147,7 +147,7 @@ Text_t compile_type_info(type_t *t) {
     case TypeInfoType: return Texts("Type$info(", quoted_text(type_to_text(Match(t, TypeInfoType)->type)), ")");
     case MemoryType: return Text("&Memory$info");
     case VoidType: return Text("&Void$info");
-    default: compiler_err(NULL, 0, 0, "I couldn't convert to a type info: ", type_to_str(t));
+    default: compiler_err(NULL, 0, 0, "I couldn't convert to a type info: ", type_to_text(t));
     }
     return EMPTY_TEXT;
 }

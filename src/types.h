@@ -139,7 +139,6 @@ struct type_s {
     _make_function_type(ret, sizeof((arg_t[]){__VA_ARGS__}) / sizeof(arg_t), (arg_t[]){__VA_ARGS__})
 
 Text_t type_to_text(type_t *t);
-const char *type_to_str(type_t *t);
 const char *get_type_name(type_t *t);
 PUREFUNC bool type_eq(type_t *a, type_t *b);
 PUREFUNC bool type_is_a(type_t *t, type_t *req);

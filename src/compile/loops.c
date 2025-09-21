@@ -355,7 +355,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
 
         return code;
     }
-    default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_str(iter_t));
+    default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_text(iter_t));
     }
 }
 

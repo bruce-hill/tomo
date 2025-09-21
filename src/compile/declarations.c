@@ -32,7 +32,7 @@ Text_t compile_declared_value(env_t *env, ast_t *declare_ast) {
     type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
 
     if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
-        code_err(declare_ast, "You can't declare a variable with a ", type_to_str(t), " value");
+        code_err(declare_ast, "You can't declare a variable with a ", type_to_text(t), " value");
 
     if (decl->value) {
         Text_t val_code = compile_maybe_incref(env, decl->value, t);
@@ -44,7 +44,7 @@ Text_t compile_declared_value(env_t *env, ast_t *declare_ast) {
     } else {
         Text_t val_code = compile_empty(t);
         if (val_code.length == 0)
-            code_err(declare_ast, "This type (", type_to_str(t),
+            code_err(declare_ast, "This type (", type_to_text(t),
                      ") cannot be uninitialized. You must provide a value.");
         return val_code;
     }

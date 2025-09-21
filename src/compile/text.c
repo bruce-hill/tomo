@@ -38,7 +38,7 @@ Text_t expr_as_text(Text_t expr, type_t *t, Text_t color) {
     case OptionalType: return Texts("Optional$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
     case StructType:
     case EnumType: return Texts("generic_as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for ", type_to_str(t));
+    default: compiler_err(NULL, NULL, NULL, "Stringifying is not supported for ", type_to_text(t));
     }
     return EMPTY_TEXT;
 }
@@ -136,8 +136,8 @@ Text_t compile_text_ast(env_t *env, ast_t *ast) {
                     if (chunk_t->tag == TextType) chunk_code = compile(env, chunk->ast);
                     else chunk_code = compile_text(env, chunk->ast, colorize);
                 } else {
-                    code_err(chunk->ast, "I don't know how to convert ", type_to_str(chunk_t), " to ",
-                             type_to_str(text_t));
+                    code_err(chunk->ast, "I don't know how to convert ", type_to_text(chunk_t), " to ",
+                             type_to_text(text_t));
                 }
             }
             code = Texts(code, chunk_code);

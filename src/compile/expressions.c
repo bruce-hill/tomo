@@ -98,7 +98,7 @@ Text_t compile(env_t *env, ast_t *ast) {
         else if (t->tag == TextType) return Texts("(", compile(env, value), ".length == 0)");
         else if (t->tag == OptionalType) return check_none(t, compile(env, value));
 
-        code_err(ast, "I don't know how to negate values of type ", type_to_str(t));
+        code_err(ast, "I don't know how to negate values of type ", type_to_text(t));
     }
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
@@ -112,7 +112,7 @@ Text_t compile(env_t *env, ast_t *ast) {
 
         if (t->tag == IntType || t->tag == NumType) return Texts("-(", compile(env, value), ")");
 
-        code_err(ast, "I don't know how to get the negative value of type ", type_to_str(t));
+        code_err(ast, "I don't know how to get the negative value of type ", type_to_text(t));
     }
     case HeapAllocate:
     case StackReference: return compile_typed_allocation(env, ast, get_type(env, ast));
@@ -218,7 +218,7 @@ Text_t compile(env_t *env, ast_t *ast) {
         ast_t *value = Match(ast, Deserialize)->value;
         type_t *value_type = get_type(env, value);
         if (!type_eq(value_type, Type(ListType, Type(ByteType))))
-            code_err(value, "This value should be a list of bytes, not a ", type_to_str(value_type));
+            code_err(value, "This value should be a list of bytes, not a ", type_to_text(value_type));
         type_t *t = parse_type_ast(env, Match(ast, Deserialize)->type);
         return Texts("({ ", compile_declaration(t, Text("deserialized")),
                      ";\n"

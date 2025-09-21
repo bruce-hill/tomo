@@ -68,21 +68,22 @@ Text_t type_to_text(type_t *t) {
     }
     case EnumType: {
         DeclareMatch(enum_, t, EnumType);
-        return Text$from_str(enum_->name);
-        // Text_t text = Text("enum(");
-        // for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
-        //     text = Texts(text, Text$from_str(tag->name));
-        //     if (tag->type && Match(tag->type, StructType)->fields) {
-        //         text = Texts(text, "(");
-        //         for (arg_t *field = Match(tag->type, StructType)->fields; field; field = field->next) {
-        //             text = Texts(text, Text$from_str(field->name), ":", type_to_text(field->type));
-        //             if (field->next) text = Texts(text, ", ");
-        //         }
-        //         text = Texts(text, ")");
-        //     }
-        //     if (tag->next) text = Texts(text, ", ");
-        // }
-        // return enum_->name ? Text$from_str(enum_->name) : Text("enum");
+        if (enum_->name != NULL && strncmp(enum_->name, "enum$", strlen("enum$")) != 0)
+            return Text$from_str(enum_->name);
+        Text_t text = Text("enum(");
+        for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
+            text = Texts(text, Text$from_str(tag->name));
+            if (tag->type && Match(tag->type, StructType)->fields) {
+                text = Texts(text, "(");
+                for (arg_t *field = Match(tag->type, StructType)->fields; field; field = field->next) {
+                    text = Texts(text, Text$from_str(field->name), ":", type_to_text(field->type));
+                    if (field->next) text = Texts(text, ", ");
+                }
+                text = Texts(text, ")");
+            }
+            if (tag->next) text = Texts(text, ", ");
+        }
+        return Texts(text, ")");
     }
     case OptionalType: {
         type_t *opt = Match(t, OptionalType)->type;
@@ -101,8 +102,6 @@ Text_t type_to_text(type_t *t) {
     }
     }
 }
-
-const char *type_to_str(type_t *t) { return Text$as_c_string(type_to_text(t)); }
 
 PUREFUNC const char *get_type_name(type_t *t) {
     switch (t->tag) {

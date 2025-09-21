@@ -55,7 +55,7 @@ Text_t compile_convert_declaration(env_t *env, ast_t *ast) {
         code_err(ast,
                  "Conversions are only supported for text, struct, and enum "
                  "types, not ",
-                 type_to_str(ret_t));
+                 type_to_text(ret_t));
     Text_t name_code = namespace_name(env, env->namespace, Texts(name, "$", get_line_number(ast->file, ast->start)));
     return Texts(ret_type_code, " ", name_code, arg_signature, ";\n");
 }
@@ -216,7 +216,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
         code_err(ast,
                  "I could not find a constructor matching these arguments "
                  "for ",
-                 type_to_str(t));
+                 type_to_text(t));
     } else if (fn_t->tag == ClosureType) {
         fn_t = Match(fn_t, ClosureType)->fn;
         arg_t *type_args = Match(fn_t, FunctionType)->args;
@@ -241,7 +241,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
                          "closure.userdata); })");
         }
     } else {
-        code_err(call->fn, "This is not a function, it's a ", type_to_str(fn_t));
+        code_err(call->fn, "This is not a function, it's a ", type_to_text(fn_t));
     }
 }
 
@@ -268,7 +268,7 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
                 binding_t *b;
             } *entry = closed_vars.entries.data + closed_vars.entries.stride * i;
             if (has_stack_memory(entry->b->type))
-                code_err(ast, "This function is holding onto a reference to ", type_to_str(entry->b->type),
+                code_err(ast, "This function is holding onto a reference to ", type_to_text(entry->b->type),
                          " stack memory in the variable `", entry->name,
                          "`, but the function may outlive the stack memory");
             if (entry->b->type->tag == ModuleType) continue;
@@ -510,7 +510,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             if (clause->pattern->tag == Var) clause_tag_name = Match(clause->pattern, Var)->name;
             else if (clause->pattern->tag == FunctionCall && Match(clause->pattern, FunctionCall)->fn->tag == Var)
                 clause_tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
-            else code_err(clause->pattern, "This is not a valid pattern for a ", type_to_str(subject_t), " enum");
+            else code_err(clause->pattern, "This is not a valid pattern for a ", type_to_text(subject_t), " enum");
 
             type_t *tag_type = NULL;
             for (tag_t *tag = enum_t->tags; tag; tag = tag->next) {
@@ -634,7 +634,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             code_err(ast,
                      "Conversions are only supported for text, struct, and enum "
                      "types, not ",
-                     type_to_str(ret_t));
+                     type_to_text(ret_t));
         body = convertdef->body;
         cache = convertdef->cache;
         is_inline = convertdef->is_inline;
@@ -693,7 +693,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             code_err(ast,
                      "This function looks like it can reach the end without "
                      "returning a ",
-                     type_to_str(ret_t),
+                     type_to_text(ret_t),
                      " value! \n "
                      "If this is not the case, please add a call to "
                      "`fail(\"Unreachable\")` at the end of the function to "

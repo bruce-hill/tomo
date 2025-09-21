@@ -43,7 +43,7 @@ Text_t compile_assertion(env_t *env, ast_t *ast) {
         } else if (can_compile_to_type(env, cmp.lhs, rhs_t)) {
             operand_t = rhs_t;
         } else {
-            code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+            code_err(ast, "I can't do comparisons between ", type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         }
 
         ast_t *lhs_var = FakeAST(InlineCCode, .chunks = new (ast_list_t, .ast = FakeAST(TextLiteral, Text("_lhs"))),

@@ -88,8 +88,8 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
         if (is_incomplete_type(rhs_t)) {
             type_t *complete = most_complete_type(rhs_t, Match(lhs_t, OptionalType)->type);
             if (complete == NULL)
-                code_err(binop.rhs, "I don't know how to convert a ", type_to_str(rhs_t), " to a ",
-                         type_to_str(Match(lhs_t, OptionalType)->type));
+                code_err(binop.rhs, "I don't know how to convert a ", type_to_text(rhs_t), " to a ",
+                         type_to_text(Match(lhs_t, OptionalType)->type));
             rhs_t = complete;
         }
 
@@ -103,8 +103,8 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
         } else if (rhs_t->tag == BoolType) {
             return Texts("((!", check_none(lhs_t, compile(env, binop.lhs)), ") || ", compile(env, binop.rhs), ")");
         } else {
-            code_err(ast, "I don't know how to do an 'or' operation between ", type_to_str(lhs_t), " and ",
-                     type_to_str(rhs_t));
+            code_err(ast, "I don't know how to do an 'or' operation between ", type_to_text(lhs_t), " and ",
+                     type_to_text(rhs_t));
         }
     }
 
@@ -114,7 +114,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
     switch (ast->tag) {
     case Power: {
         if (overall_t->tag != NumType)
-            code_err(ast, "Exponentiation is only supported for Num types, not ", type_to_str(overall_t));
+            code_err(ast, "Exponentiation is only supported for Num types, not ", type_to_text(overall_t));
         if (overall_t->tag == NumType && Match(overall_t, NumType)->bits == TYPE_NBITS32)
             return Texts("powf(", lhs, ", ", rhs, ")");
         else return Texts("pow(", lhs, ", ", rhs, ")");
@@ -124,7 +124,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("(", lhs, " * ", rhs, ")");
     }
     case Divide: {
@@ -132,7 +132,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("(", lhs, " / ", rhs, ")");
     }
     case Mod: {
@@ -140,7 +140,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("(", lhs, " % ", rhs, ")");
     }
     case Mod1: {
@@ -148,7 +148,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("((((", lhs, ")-1) % (", rhs, ")) + 1)");
     }
     case Plus: {
@@ -156,7 +156,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("(", lhs, " + ", rhs, ")");
     }
     case Minus: {
@@ -166,7 +166,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("(", lhs, " - ", rhs, ")");
     }
     case LeftShift: {
@@ -174,7 +174,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("(", lhs, " << ", rhs, ")");
     }
     case RightShift: {
@@ -182,7 +182,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("(", lhs, " >> ", rhs, ")");
     }
     case UnsignedLeftShift: {
@@ -190,7 +190,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("(", compile_type(overall_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " << ", rhs, ")");
     }
     case UnsignedRightShift: {
@@ -198,7 +198,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
-                     type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+                     type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         return Texts("(", compile_type(overall_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " >> ", rhs, ")");
     }
     case And: {
@@ -207,8 +207,8 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
         else if (overall_t->tag == SetType)
             return Texts("Table$overlap(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
-            code_err(ast, "The 'and' operator isn't supported between ", type_to_str(lhs_t), " and ",
-                     type_to_str(rhs_t), " values");
+            code_err(ast, "The 'and' operator isn't supported between ", type_to_text(lhs_t), " and ",
+                     type_to_text(rhs_t), " values");
     }
     case Compare: {
         return Texts("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(overall_t), ")");
@@ -221,7 +221,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
         } else if (overall_t->tag == SetType) {
             return Texts("Table$with(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         } else {
-            code_err(ast, "The 'or' operator isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t),
+            code_err(ast, "The 'or' operator isn't supported between ", type_to_text(lhs_t), " and ", type_to_text(rhs_t),
                      " values");
         }
     }
@@ -232,8 +232,8 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
         else if (overall_t->tag == SetType)
             return Texts("Table$xor(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
-            code_err(ast, "The 'xor' operator isn't supported between ", type_to_str(lhs_t), " and ",
-                     type_to_str(rhs_t), " values");
+            code_err(ast, "The 'xor' operator isn't supported between ", type_to_text(lhs_t), " and ",
+                     type_to_text(rhs_t), " values");
     }
     case Concat: {
         if (overall_t == PATH_TYPE) return Texts("Path$concat(", lhs, ", ", rhs, ")");
@@ -246,7 +246,7 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
                          compile_type(Match(overall_t, ListType)->item_type), "))");
         }
         default:
-            code_err(ast, "Concatenation isn't supported between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t),
+            code_err(ast, "Concatenation isn't supported between ", type_to_text(lhs_t), " and ", type_to_text(rhs_t),
                      " values");
         }
     }

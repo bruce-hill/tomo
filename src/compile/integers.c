@@ -18,7 +18,7 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
         Text_t code = compile(env, ast);
         type_t *actual_type = get_type(env, ast);
         if (!promote(env, ast, &code, actual_type, target))
-            code_err(ast, "I couldn't promote this ", type_to_str(actual_type), " to a ", type_to_str(target));
+            code_err(ast, "I couldn't promote this ", type_to_text(actual_type), " to a ", type_to_text(target));
         return code;
     }
 
@@ -72,7 +72,7 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
         }
         code_err(ast, "This integer cannot fit in a ", target_bits, "-bit value");
     } else {
-        code_err(ast, "I don't know how to compile this to a ", type_to_str(target));
+        code_err(ast, "I don't know how to compile this to a ", type_to_text(target));
     }
     return EMPTY_TEXT;
 }

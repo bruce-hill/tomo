@@ -32,7 +32,7 @@ Text_t promote_to_optional(type_t *t, Text_t code) {
         case TYPE_IBITS16: return Texts("((OptionalInt16_t){.value=", code, "})");
         case TYPE_IBITS32: return Texts("((OptionalInt32_t){.value=", code, "})");
         case TYPE_IBITS64: return Texts("((OptionalInt64_t){.value=", code, "})");
-        default: errx(1, "Unsupported in type: %s", type_to_str(t));
+        default: errx(1, "Unsupported in type: %s", type_to_text(t));
         }
         return code;
     } else if (t->tag == ByteType) {
@@ -83,7 +83,7 @@ Text_t compile_none(type_t *t) {
         env_t *enum_env = Match(t, EnumType)->env;
         return Texts("((", compile_type(t), "){", namespace_name(enum_env, enum_env->namespace, Text("none")), "})");
     }
-    default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: ", type_to_str(t));
+    default: compiler_err(NULL, NULL, NULL, "none isn't implemented for this type: ", type_to_text(t));
     }
     return EMPTY_TEXT;
 }
@@ -109,7 +109,7 @@ Text_t check_none(type_t *t, Text_t value) {
         if (enum_has_fields(t)) return Texts("((", value, ").$tag == 0)");
         else return Texts("((", value, ") == 0)");
     }
-    print_err("Optional check not implemented for: ", type_to_str(t));
+    print_err("Optional check not implemented for: ", type_to_text(t));
     return EMPTY_TEXT;
 }
 

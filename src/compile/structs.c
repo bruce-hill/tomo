@@ -111,7 +111,7 @@ Text_t compile_struct_field_access(env_t *env, ast_t *ast) {
             }
         }
     }
-    code_err(ast, "The field '", f->field, "' is not a valid field name of ", type_to_str(value_t));
+    code_err(ast, "The field '", f->field, "' is not a valid field name of ", type_to_text(value_t));
 }
 
 public
@@ -129,5 +129,5 @@ Text_t compile_struct_literal(env_t *env, ast_t *ast, type_t *t, arg_ast_t *args
                && is_valid_call(env, struct_->fields, args, (call_opts_t){.promotion = true, .underscores = true})) {
         code_err(ast, "This constructor uses private fields that are not exposed.");
     }
-    code_err(ast, "I could not find a constructor matching these arguments for the struct ", type_to_str(t));
+    code_err(ast, "I could not find a constructor matching these arguments for the struct ", type_to_text(t));
 }

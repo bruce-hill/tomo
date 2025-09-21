@@ -38,7 +38,7 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         } else if (can_compile_to_type(env, binop.lhs, rhs_t)) {
             operand_t = rhs_t;
         } else {
-            code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+            code_err(ast, "I can't do comparisons between ", type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         }
 
         Text_t lhs, rhs;
@@ -78,7 +78,7 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         } else if (can_compile_to_type(env, cmp.lhs, rhs_t)) {
             operand_t = rhs_t;
         } else {
-            code_err(ast, "I can't do comparisons between ", type_to_str(lhs_t), " and ", type_to_str(rhs_t));
+            code_err(ast, "I can't do comparisons between ", type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         }
 
         Text_t lhs = compile_to_type(env, cmp.lhs, operand_t);

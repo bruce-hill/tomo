@@ -111,7 +111,7 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
             code_err(ast,
                      "Conversions are only supported for text, struct, and enum "
                      "types, not ",
-                     type_to_str(type));
+                     type_to_text(type));
         Text_t name_code =
             namespace_name(env, env->namespace, Texts(name, "$", get_line_number(ast->file, ast->start)));
         return compile_function(env, name_code, ast, &env->code->staticdefs);
@@ -170,6 +170,8 @@ typedef struct {
 static void add_type_infos(type_ast_t *type_ast, void *userdata) {
     if (type_ast && type_ast->tag == EnumTypeAST) {
         compile_info_t *info = (compile_info_t *)userdata;
+        // Force the type to get defined:
+        (void)parse_type_ast(info->env, type_ast);
         *info->code = Texts(
             *info->code,
             compile_enum_typeinfo(info->env, String("enum$", (int64_t)(type_ast->start - type_ast->file->text)),

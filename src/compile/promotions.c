@@ -191,5 +191,5 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
         return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, constructor_args), ")");
     }
 
-    code_err(ast, "I expected a ", type_to_str(t), " here, but this is a ", type_to_str(actual));
+    code_err(ast, "I expected a ", type_to_text(t), " here, but this is a ", type_to_text(actual));
 }
