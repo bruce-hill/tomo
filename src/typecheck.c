@@ -146,7 +146,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
                               .next = fields);
             }
             REVERSE_LIST(fields);
-            const char *struct_name = String(enum_name, "$$", tag_ast->name);
+            const char *struct_name = String(enum_name, "$", tag_ast->name);
             env_t *struct_env = namespace_env(env, struct_name);
             type_t *tag_type = Type(StructType, .name = tag_ast->name, .fields = fields, .env = struct_env);
             tags = new (tag_t, .name = tag_ast->name, .tag_value = tag_value, .type = tag_type, .next = tags);

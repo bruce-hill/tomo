@@ -146,6 +146,41 @@ static void _define_types_and_funcs(compile_typedef_info_t *info, ast_t *ast) {
                           compile_statement_namespace_header(info->env, info->header_path, ast));
 }
 
+static void add_type_headers(type_ast_t *type_ast, void *userdata) {
+    if (!type_ast) return;
+
+    if (type_ast->tag == EnumTypeAST) {
+        compile_typedef_info_t *info = (compile_typedef_info_t *)userdata;
+        DeclareMatch(enum_, type_ast, EnumTypeAST);
+        bool has_any_tags_with_fields = false;
+        for (tag_ast_t *tag = enum_->tags; tag; tag = tag->next) {
+            has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
+        }
+
+        const char *name = String("enum$", (int64_t)(type_ast->start - type_ast->file->text));
+        if (has_any_tags_with_fields) {
+            Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$struct"));
+            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$type"));
+            *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
+
+            for (tag_ast_t *tag = enum_->tags; tag; tag = tag->next) {
+                if (!tag->fields) continue;
+                Text_t tag_struct =
+                    namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$struct"));
+                Text_t tag_type =
+                    namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$type"));
+                *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
+            }
+        } else {
+            Text_t enum_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$enum"));
+            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$type"));
+            *info->header = Texts(*info->header, "typedef enum ", enum_name, " ", type_name, ";\n");
+        }
+
+        *info->header = Texts(*info->header, compile_enum_header(info->env, name, enum_->tags));
+    }
+}
+
 public
 Text_t compile_file_header(env_t *env, Path_t header_path, ast_t *ast) {
     Text_t header =
@@ -155,6 +190,9 @@ Text_t compile_file_header(env_t *env, Path_t header_path, ast_t *ast) {
 
     compile_typedef_info_t info = {.env = env, .header = &header, .header_path = header_path};
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn = (void *)_make_typedefs, &info});
+
+    type_ast_visit(ast, add_type_headers, &info);
+
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn = (void *)_define_types_and_funcs, &info});
 
     header = Texts(header, "void ", namespace_name(env, env->namespace, Text("$initialize")), "(void);\n");
@@ -211,7 +249,8 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         return compile_struct_header(env, ast);
     }
     case EnumDef: {
-        return compile_enum_header(env, ast);
+        DeclareMatch(def, ast, EnumDef);
+        return compile_enum_header(env, def->name, def->tags);
     }
     case LangDef: {
         DeclareMatch(def, ast, LangDef);

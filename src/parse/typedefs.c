@@ -134,8 +134,8 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
             fields = NULL;
         }
 
-        tags = new (tag_ast_t, .start = tag_start, .end = pos, .name = tag_name, .fields = fields, .secret = secret,
-                    .next = tags);
+        tags = new (tag_ast_t, .file = ctx->file, .start = tag_start, .end = pos, .name = tag_name, .fields = fields,
+                    .secret = secret, .next = tags);
 
         if (!match_separator(ctx, &pos)) break;
     }

@@ -125,8 +125,8 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
     }
     case EnumDef: {
         DeclareMatch(def, ast, EnumDef);
-        Text_t code = compile_enum_typeinfo(env, ast);
-        code = Texts(code, compile_enum_constructors(env, ast));
+        Text_t code = compile_enum_typeinfo(env, def->name, def->tags);
+        code = Texts(code, compile_enum_constructors(env, def->name, def->tags));
         return Texts(code, compile_namespace(env, def->name, def->namespace));
     }
     case LangDef: {
@@ -162,9 +162,30 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
     }
 }
 
+typedef struct {
+    env_t *env;
+    Text_t *code;
+} compile_info_t;
+
+static void add_type_infos(type_ast_t *type_ast, void *userdata) {
+    if (type_ast && type_ast->tag == EnumTypeAST) {
+        compile_info_t *info = (compile_info_t *)userdata;
+        *info->code = Texts(
+            *info->code,
+            compile_enum_typeinfo(info->env, String("enum$", (int64_t)(type_ast->start - type_ast->file->text)),
+                                  Match(type_ast, EnumTypeAST)->tags),
+            compile_enum_constructors(info->env, String("enum$", (int64_t)(type_ast->start - type_ast->file->text)),
+                                      Match(type_ast, EnumTypeAST)->tags));
+    }
+}
+
 public
 Text_t compile_file(env_t *env, ast_t *ast) {
     Text_t top_level_code = compile_top_level_code(env, ast);
+
+    compile_info_t info = {.env = env, .code = &top_level_code};
+    type_ast_visit(ast, add_type_infos, &info);
+
     Text_t includes = EMPTY_TEXT;
     Text_t use_imports = EMPTY_TEXT;
 

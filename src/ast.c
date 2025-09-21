@@ -446,3 +446,321 @@ CONSTFUNC ast_e binop_tag(ast_e tag) {
     default: return Unknown;
     }
 }
+
+static void ast_visit_list(ast_list_t *ast_list, void (*visitor)(ast_t *, void *), void *userdata) {
+    for (ast_list_t *ast = ast_list; ast; ast = ast->next)
+        ast_visit(ast->ast, visitor, userdata);
+}
+
+static void ast_visit_args(arg_ast_t *args, void (*visitor)(ast_t *, void *), void *userdata) {
+    for (arg_ast_t *arg = args; arg; arg = arg->next)
+        ast_visit(arg->value, visitor, userdata);
+}
+
+void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
+    if (!ast) return;
+    visitor(ast, userdata);
+
+    switch (ast->tag) {
+    case Unknown:
+    case None:
+    case Bool:
+    case Var:
+    case Int:
+    case Num:
+    case Path:
+    case TextLiteral: return;
+    case TextJoin: ast_visit_list(Match(ast, TextJoin)->children, visitor, userdata); return;
+    case Declare: {
+        DeclareMatch(decl, ast, Declare);
+        ast_visit(decl->var, visitor, userdata);
+        ast_visit(decl->value, visitor, userdata);
+        return;
+    }
+    case Assign: {
+        DeclareMatch(assign, ast, Assign);
+        ast_visit_list(assign->targets, visitor, userdata);
+        ast_visit_list(assign->values, visitor, userdata);
+        return;
+    }
+    case BINOP_CASES: {
+        binary_operands_t op = BINARY_OPERANDS(ast);
+        ast_visit(op.lhs, visitor, userdata);
+        ast_visit(op.rhs, visitor, userdata);
+        return;
+    }
+    case Negative: {
+        ast_visit(Match(ast, Negative)->value, visitor, userdata);
+        return;
+    }
+    case Not: {
+        ast_visit(Match(ast, Not)->value, visitor, userdata);
+        return;
+    }
+    case HeapAllocate: {
+        ast_visit(Match(ast, HeapAllocate)->value, visitor, userdata);
+        return;
+    }
+    case StackReference: {
+        ast_visit(Match(ast, StackReference)->value, visitor, userdata);
+        return;
+    }
+    case Min: {
+        DeclareMatch(min, ast, Min);
+        ast_visit(min->lhs, visitor, userdata);
+        ast_visit(min->key, visitor, userdata);
+        ast_visit(min->rhs, visitor, userdata);
+        return;
+    }
+    case Max: {
+        DeclareMatch(max, ast, Max);
+        ast_visit(max->lhs, visitor, userdata);
+        ast_visit(max->key, visitor, userdata);
+        ast_visit(max->rhs, visitor, userdata);
+        return;
+    }
+    case List: {
+        ast_visit_list(Match(ast, List)->items, visitor, userdata);
+        return;
+    }
+    case Set: {
+        ast_visit_list(Match(ast, Set)->items, visitor, userdata);
+        return;
+    }
+    case Table: {
+        DeclareMatch(table, ast, Table);
+        ast_visit_list(table->entries, visitor, userdata);
+        ast_visit(table->default_value, visitor, userdata);
+        ast_visit(table->fallback, visitor, userdata);
+        return;
+    }
+    case TableEntry: {
+        DeclareMatch(entry, ast, TableEntry);
+        ast_visit(entry->key, visitor, userdata);
+        ast_visit(entry->value, visitor, userdata);
+        return;
+    }
+    case Comprehension: {
+        DeclareMatch(comp, ast, Comprehension);
+        ast_visit(comp->expr, visitor, userdata);
+        ast_visit_list(comp->vars, visitor, userdata);
+        ast_visit(comp->iter, visitor, userdata);
+        ast_visit(comp->filter, visitor, userdata);
+        return;
+    }
+    case FunctionDef: {
+        DeclareMatch(def, ast, FunctionDef);
+        ast_visit(def->name, visitor, userdata);
+        ast_visit_args(def->args, visitor, userdata);
+        ast_visit(def->body, visitor, userdata);
+        return;
+    }
+    case ConvertDef: {
+        DeclareMatch(def, ast, ConvertDef);
+        ast_visit_args(def->args, visitor, userdata);
+        ast_visit(def->body, visitor, userdata);
+        return;
+    }
+    case Lambda: {
+        DeclareMatch(lambda, ast, Lambda);
+        ast_visit_args(lambda->args, visitor, userdata);
+        ast_visit(lambda->body, visitor, userdata);
+        return;
+    }
+    case FunctionCall: {
+        DeclareMatch(call, ast, FunctionCall);
+        ast_visit(call->fn, visitor, userdata);
+        ast_visit_args(call->args, visitor, userdata);
+        return;
+    }
+    case MethodCall: {
+        DeclareMatch(call, ast, MethodCall);
+        ast_visit(call->self, visitor, userdata);
+        ast_visit_args(call->args, visitor, userdata);
+        return;
+    }
+    case Block: {
+        ast_visit_list(Match(ast, Block)->statements, visitor, userdata);
+        return;
+    }
+    case For: {
+        DeclareMatch(for_, ast, For);
+        ast_visit_list(for_->vars, visitor, userdata);
+        ast_visit(for_->iter, visitor, userdata);
+        ast_visit(for_->body, visitor, userdata);
+        ast_visit(for_->empty, visitor, userdata);
+        return;
+    }
+    case While: {
+        DeclareMatch(while_, ast, While);
+        ast_visit(while_->condition, visitor, userdata);
+        ast_visit(while_->body, visitor, userdata);
+        return;
+    }
+    case Repeat: {
+        ast_visit(Match(ast, Repeat)->body, visitor, userdata);
+        return;
+    }
+    case If: {
+        DeclareMatch(if_, ast, If);
+        ast_visit(if_->condition, visitor, userdata);
+        ast_visit(if_->body, visitor, userdata);
+        ast_visit(if_->else_body, visitor, userdata);
+        return;
+    }
+    case When: {
+        DeclareMatch(when, ast, When);
+        ast_visit(when->subject, visitor, userdata);
+        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+            ast_visit(clause->pattern, visitor, userdata);
+            ast_visit(clause->body, visitor, userdata);
+        }
+        ast_visit(when->else_body, visitor, userdata);
+        return;
+    }
+    case Reduction: {
+        DeclareMatch(reduction, ast, Reduction);
+        ast_visit(reduction->key, visitor, userdata);
+        ast_visit(reduction->iter, visitor, userdata);
+        return;
+    }
+    case Skip:
+    case Stop:
+    case Pass: return;
+    case Defer: {
+        ast_visit(Match(ast, Defer)->body, visitor, userdata);
+        return;
+    }
+    case Return: {
+        ast_visit(Match(ast, Return)->value, visitor, userdata);
+        return;
+    }
+    case Extern: return;
+    case StructDef: {
+        DeclareMatch(def, ast, StructDef);
+        ast_visit_args(def->fields, visitor, userdata);
+        ast_visit(def->namespace, visitor, userdata);
+        return;
+    }
+    case EnumDef: {
+        DeclareMatch(def, ast, EnumDef);
+        for (tag_ast_t *tag = def->tags; tag; tag = tag->next)
+            ast_visit_args(tag->fields, visitor, userdata);
+        ast_visit(def->namespace, visitor, userdata);
+        return;
+    }
+    case LangDef: {
+        ast_visit(Match(ast, LangDef)->namespace, visitor, userdata);
+        return;
+    }
+    case Index: {
+        DeclareMatch(index, ast, Index);
+        ast_visit(index->indexed, visitor, userdata);
+        ast_visit(index->index, visitor, userdata);
+        return;
+    }
+    case FieldAccess: {
+        ast_visit(Match(ast, FieldAccess)->fielded, visitor, userdata);
+        return;
+    }
+    case Optional: {
+        ast_visit(Match(ast, Optional)->value, visitor, userdata);
+        return;
+    }
+    case NonOptional: {
+        ast_visit(Match(ast, NonOptional)->value, visitor, userdata);
+        return;
+    }
+    case DocTest: {
+        DeclareMatch(test, ast, DocTest);
+        ast_visit(test->expr, visitor, userdata);
+        ast_visit(test->expected, visitor, userdata);
+        return;
+    }
+    case Assert: {
+        DeclareMatch(assert, ast, Assert);
+        ast_visit(assert->expr, visitor, userdata);
+        ast_visit(assert->message, visitor, userdata);
+        return;
+    }
+    case Use: {
+        ast_visit(Match(ast, Use)->var, visitor, userdata);
+        return;
+    }
+    case InlineCCode: {
+        ast_visit_list(Match(ast, InlineCCode)->chunks, visitor, userdata);
+        return;
+    }
+    case Deserialize: {
+        ast_visit(Match(ast, Deserialize)->value, visitor, userdata);
+        return;
+    }
+    case Extend: {
+        ast_visit(Match(ast, Extend)->body, visitor, userdata);
+        return;
+    }
+    default: errx(1, "Visiting is not supported for this AST: %s", Text$as_c_string(ast_to_sexp(ast)));
+#undef T
+    }
+}
+
+static void _type_ast_visit(ast_t *ast, void *userdata) {
+    void (*visit)(type_ast_t *, void *) = ((Closure_t *)userdata)->fn;
+    userdata = ((Closure_t *)userdata)->userdata;
+
+    switch (ast->tag) {
+    case Declare: {
+        visit(Match(ast, Declare)->type, userdata);
+        break;
+    }
+    case FunctionDef: {
+        for (arg_ast_t *arg = Match(ast, FunctionDef)->args; arg; arg = arg->next)
+            visit(arg->type, userdata);
+        visit(Match(ast, FunctionDef)->ret_type, userdata);
+        break;
+    }
+    case Lambda: {
+        for (arg_ast_t *arg = Match(ast, Lambda)->args; arg; arg = arg->next)
+            visit(arg->type, userdata);
+        visit(Match(ast, Lambda)->ret_type, userdata);
+        break;
+    }
+    case ConvertDef: {
+        for (arg_ast_t *arg = Match(ast, ConvertDef)->args; arg; arg = arg->next)
+            visit(arg->type, userdata);
+        visit(Match(ast, ConvertDef)->ret_type, userdata);
+        break;
+    }
+    case StructDef: {
+        for (arg_ast_t *field = Match(ast, StructDef)->fields; field; field = field->next)
+            visit(field->type, userdata);
+        break;
+    }
+    case EnumDef: {
+        for (tag_ast_t *tag = Match(ast, EnumDef)->tags; tag; tag = tag->next) {
+            for (arg_ast_t *field = tag->fields; field; field = field->next) {
+                visit(field->type, userdata);
+            }
+        }
+        break;
+    }
+    case InlineCCode: {
+        visit(Match(ast, InlineCCode)->type_ast, userdata);
+        break;
+    }
+    case Deserialize: {
+        visit(Match(ast, Deserialize)->type, userdata);
+        break;
+    }
+    case Extern: {
+        visit(Match(ast, Extern)->type, userdata);
+        break;
+    }
+    default: break;
+    }
+}
+
+void type_ast_visit(ast_t *ast, void (*visitor)(type_ast_t *, void *), void *userdata) {
+    Closure_t fn = {.fn = visitor, .userdata = userdata};
+    ast_visit(ast, _type_ast_visit, &fn);
+}

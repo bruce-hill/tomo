@@ -91,6 +91,7 @@ typedef enum {
 } type_ast_e;
 
 typedef struct tag_ast_s {
+    file_t *file;
     const char *start, *end;
     const char *name;
     arg_ast_t *fields;
@@ -503,3 +504,5 @@ void visit_topologically(ast_list_t *ast, Closure_t fn);
 CONSTFUNC bool is_update_assignment(ast_t *ast);
 CONSTFUNC ast_e binop_tag(ast_e tag);
 CONSTFUNC bool is_binary_operation(ast_t *ast);
+void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata);
+void type_ast_visit(ast_t *ast, void (*visitor)(type_ast_t *, void *), void *userdata);
