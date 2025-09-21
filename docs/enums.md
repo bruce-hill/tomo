@@ -86,3 +86,44 @@ enum VariousThings(AnInteger(i:Int), TwoWords(word1, word2:Text), Nothing)
 
 Functions defined in an enum's namespace can be invoked as methods with `:` if
 the first argument is the enum's type or a pointer to one (`vt.doop()`).
+
+## Anonymous Enums
+
+In some cases, you may want to use anonymous inline-defined enums. This lets
+you define a lightweight type without a name for cases where that's more
+convenient. For example, a function that has a simple variant for an argument:
+
+```tomo
+func pad_text(text:Text, width:Int, align:enum(Left,Right,Center) = Left -> Text)
+    ...
+...
+padded := pad_text(text, 10, Right)
+```
+
+This could be defined explicitly as `enum TextAlignment(Left,Right,Center)` with
+`pad_text` defining `align:TextAlignment`, but this adds a new symbol to the
+top-level scope and forces the user to think about which name is being used. In
+some applications, that overhead is not necessary or desirable.
+
+Anonymous enums can be used in any place where a type is specified:
+
+- Declarations: `my_variable : enum(A, B, C) = A`
+- Function arguments: `func foo(arg:enum(A, B, C))`
+- Function return values: `func foo(x:Int -> enum(Valid(result:Int), Invalid(reason:Text)))`
+- Struct members: `struct Foo(x:enum(A,B,C))`, `enum Baz(Thing(type:enum(A,B,C)))`
+
+In general, anonymous enums should be used sparingly in cases where there are
+only a small number of options and the enum code is short. If you expect users
+to refer to the enum type, it ought to be defined with a proper name. In the
+`pad_text` example, the anonymous enum would cause problems if you wanted to
+make a wrapper around it, because you would not be able to refer to the
+`pad_text` `align` argument's type:
+
+```tomo
+func pad_text_wrapper(text:Text, width:Int, align:???)
+    ...pad_text(text, width, align)...
+```
+
+**Note:** Each enum type is distinct, regardless of whether the enum shares the
+same values with another enum, so you can't define another enum with the same
+values and use that in places where a different anonymous enum is expected.
