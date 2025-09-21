@@ -166,7 +166,6 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .iter = comp->iter, .body = body);
         return compile_statement(env, loop);
     }
-    case Extern: return EMPTY_TEXT;
     case InlineCCode: {
         DeclareMatch(inline_code, ast, InlineCCode);
         Text_t code = EMPTY_TEXT;

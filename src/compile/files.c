@@ -150,7 +150,6 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
         extended->id_suffix = env->id_suffix;
         return compile_top_level_code(extended, extend->body);
     }
-    case Extern: return EMPTY_TEXT;
     case Block: {
         Text_t code = EMPTY_TEXT;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {

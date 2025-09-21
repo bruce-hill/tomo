@@ -27,8 +27,8 @@ ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos) {
         if ((stmt = optional(ctx, &pos, parse_struct_def)) || (stmt = optional(ctx, &pos, parse_func_def))
             || (stmt = optional(ctx, &pos, parse_enum_def)) || (stmt = optional(ctx, &pos, parse_lang_def))
             || (stmt = optional(ctx, &pos, parse_extend)) || (stmt = optional(ctx, &pos, parse_convert_def))
-            || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_extern))
-            || (stmt = optional(ctx, &pos, parse_inline_c)) || (stmt = optional(ctx, &pos, parse_declaration))) {
+            || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_inline_c))
+            || (stmt = optional(ctx, &pos, parse_declaration))) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
             whitespace(ctx, &pos); // TODO: check for newline
@@ -69,7 +69,7 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
         for (;;) {
             if (match_word(&pos, "secret")) {
                 secret = true;
-            } else if (match_word(&pos, "extern")) {
+            } else if (match_word(&pos, "external")) {
                 external = true;
             } else if (match_word(&pos, "opaque")) {
                 if (fields)

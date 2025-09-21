@@ -233,7 +233,6 @@ Text_t compile(env_t *env, ast_t *ast) {
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");
     case Defer: code_err(ast, "Compiling 'defer' as expression!");
-    case Extern: code_err(ast, "Externs are not supported as expressions");
     case TableEntry: code_err(ast, "Table entries should not be compiled directly");
     case Declare:
     case Assign:

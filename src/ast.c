@@ -262,7 +262,6 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Pass, "(Pass)");
         T(Defer, "(Defer ", ast_to_sexp(data.body), ")");
         T(Return, "(Return ", ast_to_sexp(data.value), ")");
-        T(Extern, "(Extern \"", data.name, "\" ", type_ast_to_sexp(data.type), ")");
         T(StructDef, "(StructDef \"", data.name, "\" ", arg_defs_to_sexp(data.fields), " ", ast_to_sexp(data.namespace),
           ")");
         T(EnumDef, "(EnumDef \"", data.name, "\" (tags ", tags_to_sexp(data.tags), ") ", ast_to_sexp(data.namespace),
@@ -629,7 +628,6 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
         ast_visit(Match(ast, Return)->value, visitor, userdata);
         return;
     }
-    case Extern: return;
     case StructDef: {
         DeclareMatch(def, ast, StructDef);
         ast_visit_args(def->fields, visitor, userdata);
@@ -744,10 +742,6 @@ static void _type_ast_visit(ast_t *ast, void *userdata) {
     }
     case Deserialize: {
         visit(Match(ast, Deserialize)->type, userdata);
-        break;
-    }
-    case Extern: {
-        visit(Match(ast, Extern)->type, userdata);
         break;
     }
     default: break;

@@ -51,24 +51,6 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
         block = def->namespace;
         break;
     }
-    case Extern: {
-        DeclareMatch(ext, ast, Extern);
-        type_t *t = parse_type_ast(env, ext->type);
-        Text_t decl;
-        if (t->tag == ClosureType) {
-            t = Match(t, ClosureType)->fn;
-            DeclareMatch(fn, t, FunctionType);
-            decl = Texts(compile_type(fn->ret), " ", ext->name, "(");
-            for (arg_t *arg = fn->args; arg; arg = arg->next) {
-                decl = Texts(decl, compile_type(arg->type));
-                if (arg->next) decl = Texts(decl, ", ");
-            }
-            decl = Texts(decl, ")");
-        } else {
-            decl = compile_declaration(t, Text$from_str(ext->name));
-        }
-        return Texts("extern ", decl, ";\n");
-    }
     case Declare: {
         DeclareMatch(decl, ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;

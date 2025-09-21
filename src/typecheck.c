@@ -611,13 +611,6 @@ void bind_statement(env_t *env, ast_t *statement) {
         }
         break;
     }
-    case Extern: {
-        DeclareMatch(ext, statement, Extern);
-        type_t *t = parse_type_ast(env, ext->type);
-        if (t->tag == ClosureType) t = Match(t, ClosureType)->fn;
-        set_binding(env, ext->name, t, Text$from_str(ext->name));
-        break;
-    }
     default: break;
     }
 }
@@ -1114,9 +1107,6 @@ type_t *get_type(env_t *env, ast_t *ast) {
             }
         }
         return get_type(block_env, last->ast);
-    }
-    case Extern: {
-        return parse_type_ast(env, Match(ast, Extern)->type);
     }
     case Declare:
     case Assign:

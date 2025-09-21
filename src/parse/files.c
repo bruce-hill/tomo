@@ -43,8 +43,8 @@ ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
         if ((stmt = optional(ctx, &pos, parse_struct_def)) || (stmt = optional(ctx, &pos, parse_func_def))
             || (stmt = optional(ctx, &pos, parse_enum_def)) || (stmt = optional(ctx, &pos, parse_lang_def))
             || (stmt = optional(ctx, &pos, parse_extend)) || (stmt = optional(ctx, &pos, parse_convert_def))
-            || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_extern))
-            || (stmt = optional(ctx, &pos, parse_inline_c)) || (stmt = optional(ctx, &pos, parse_top_declaration))) {
+            || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_inline_c))
+            || (stmt = optional(ctx, &pos, parse_top_declaration))) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
             whitespace(ctx, &pos); // TODO: check for newline
@@ -149,17 +149,6 @@ ast_t *parse_use(parse_ctx_t *ctx, const char *pos) {
         what = USE_MODULE;
     }
     return NewAST(ctx->file, start, pos, Use, .var = var, .path = name, .what = what);
-}
-
-ast_t *parse_extern(parse_ctx_t *ctx, const char *pos) {
-    const char *start = pos;
-    if (!match_word(&pos, "extern")) return NULL;
-    spaces(&pos);
-    const char *name = get_id(&pos);
-    spaces(&pos);
-    if (!match(&pos, ":")) parser_err(ctx, start, pos, "I couldn't get a type for this extern");
-    type_ast_t *type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this extern");
-    return NewAST(ctx->file, start, pos, Extern, .name = name, .type = type);
 }
 
 public

@@ -196,7 +196,7 @@ ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos) {
            || (term = parse_deserialize(ctx, pos)) || (term = parse_var(ctx, pos)) || (term = parse_list(ctx, pos))
            || (term = parse_reduction(ctx, pos)) || (term = parse_pass(ctx, pos)) || (term = parse_defer(ctx, pos))
            || (term = parse_skip(ctx, pos)) || (term = parse_stop(ctx, pos)) || (term = parse_return(ctx, pos))
-           || (term = parse_not(ctx, pos)) || (term = parse_extern(ctx, pos)) || (term = parse_inline_c(ctx, pos)));
+           || (term = parse_not(ctx, pos)) || (term = parse_inline_c(ctx, pos)));
     return term;
 }
 

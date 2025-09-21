@@ -264,7 +264,6 @@ typedef enum {
     Pass,
     Defer,
     Return,
-    Extern,
     StructDef,
     EnumDef,
     LangDef,
@@ -415,10 +414,6 @@ struct ast_s {
         struct {
             ast_t *value;
         } Return;
-        struct {
-            const char *name;
-            type_ast_t *type;
-        } Extern;
         struct {
             const char *name;
             arg_ast_t *fields;
