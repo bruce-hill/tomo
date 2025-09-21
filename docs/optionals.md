@@ -47,24 +47,23 @@ Similarly, if you wanted to declare a variable that could be a list of texts
 or none and initialize it as none, you would write:
 
 ```tomo
-x := ![Text]
+x : [Text]? = none
 ```
 
 If you want to declare a variable and initialize it with a non-none value, but
-keep open the possibility of assigning `none` later, you can use the postfix
-`?` operator to indicate that a value is optional:
+keep open the possibility of assigning `none` later, you can declare the type
+to be optional, but assign a non-none value:
 
 ```tomo
-x := 5?
+x : Int? = 5
 # Later on, assign none:
 x = none
 ```
 
 ## Type Inference
 
-For convenience, `none` can also be written without the explicit type
-annotation for any type in situations where the compiler knows what type of
-optional value is expected:
+For convenience, `none` is an optional value whose type is inferred from the
+context where it's used. Some examples are:
 
 - When assigning to a variable that has already been declared as optional.
 - When returning from a function with an explicit optional return type.
@@ -73,26 +72,13 @@ optional value is expected:
 Here are some examples:
 
 ```tomo
-x := 5?
+x : Int?
 x = none
 
 func doop(arg:Int? -> Text?)
     return none
 
 doop(none)
-```
-
-Non-none values can also be automatically promoted to optional values without
-the need for an explicit `?` operator in the cases listed above:
-
-```tomo
-x : Int? = none
-x = 5
-
-func doop(arg:Int? -> Text?)
-    return "okay"
-
-doop(123)
 ```
 
 ## None Checking
@@ -103,7 +89,7 @@ providing an early out statement like `return`/`skip`/`stop` or a function with
 an `Abort` type like `fail()` or `exit()`:
 
 ```tomo
-maybe_x := 5?
+maybe_x : Int? = 5
 >> maybe_x or -1
 = 5 : Int
 >> maybe_x or fail("No value!")
