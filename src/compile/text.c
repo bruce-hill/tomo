@@ -30,7 +30,6 @@ Text_t expr_as_text(Text_t expr, type_t *t, Text_t color) {
     }
     case TextType: return Texts("Text$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
     case ListType: return Texts("List$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
-    case SetType: return Texts("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
     case TableType: return Texts("Table$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");
     case FunctionType:
     case ClosureType: return Texts("Func$as_text(stack(", expr, "), ", color, ", ", compile_type_info(t), ")");

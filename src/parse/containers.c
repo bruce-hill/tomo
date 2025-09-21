@@ -96,33 +96,3 @@ ast_t *parse_table(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Table, .default_value = default_value, .entries = entries,
                   .fallback = fallback);
 }
-
-ast_t *parse_set(parse_ctx_t *ctx, const char *pos) {
-    const char *start = pos;
-    if (match(&pos, "||")) return NewAST(ctx->file, start, pos, Set);
-
-    if (!match(&pos, "|")) return NULL;
-    whitespace(ctx, &pos);
-
-    ast_list_t *items = NULL;
-    for (;;) {
-        ast_t *item = optional(ctx, &pos, parse_extended_expr);
-        if (!item) break;
-        whitespace(ctx, &pos);
-        ast_t *suffixed = parse_comprehension_suffix(ctx, item);
-        while (suffixed) {
-            item = suffixed;
-            pos = suffixed->end;
-            suffixed = parse_comprehension_suffix(ctx, item);
-        }
-        items = new (ast_list_t, .ast = item, .next = items);
-        if (!match_separator(ctx, &pos)) break;
-    }
-
-    REVERSE_LIST(items);
-
-    whitespace(ctx, &pos);
-    expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this set");
-
-    return NewAST(ctx->file, start, pos, Set, .items = items);
-}

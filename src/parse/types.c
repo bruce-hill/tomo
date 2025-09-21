@@ -43,18 +43,6 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
                       .default_value = default_value);
 }
 
-type_ast_t *parse_set_type(parse_ctx_t *ctx, const char *pos) {
-    const char *start = pos;
-    if (!match(&pos, "|")) return NULL;
-    whitespace(ctx, &pos);
-    type_ast_t *item_type = parse_type(ctx, pos);
-    if (!item_type) return NULL;
-    pos = item_type->end;
-    whitespace(ctx, &pos);
-    expect_closing(ctx, &pos, "|", "I wasn't able to parse the rest of this set type");
-    return NewTypeAST(ctx->file, start, pos, SetTypeAST, .item = item_type);
-}
-
 type_ast_t *parse_func_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;
@@ -158,9 +146,8 @@ type_ast_t *parse_non_optional_type(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     type_ast_t *type = NULL;
     bool success = (false || (type = parse_pointer_type(ctx, pos)) || (type = parse_list_type(ctx, pos))
-                    || (type = parse_table_type(ctx, pos)) || (type = parse_set_type(ctx, pos))
-                    || (type = parse_enum_type(ctx, pos)) || (type = parse_type_name(ctx, pos))
-                    || (type = parse_func_type(ctx, pos)));
+                    || (type = parse_table_type(ctx, pos)) || (type = parse_enum_type(ctx, pos))
+                    || (type = parse_type_name(ctx, pos)) || (type = parse_func_type(ctx, pos)));
     if (!success && match(&pos, "(")) {
         whitespace(ctx, &pos);
         type = optional(ctx, &pos, parse_type);

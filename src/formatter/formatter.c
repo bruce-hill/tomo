@@ -203,15 +203,14 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         if (comp->filter) code = Texts(code, " if ", fmt_inline(comp->filter, comments));
         return code;
     }
-    /*inline*/ case List:
-    /*inline*/ case Set: {
-        ast_list_t *items = ast->tag == List ? Match(ast, List)->items : Match(ast, Set)->items;
+    /*inline*/ case List: {
+        ast_list_t *items = Match(ast, List)->items;
         Text_t code = EMPTY_TEXT;
         for (ast_list_t *item = items; item; item = item->next) {
             code = Texts(code, fmt_inline(item->ast, comments));
             if (item->next) code = Texts(code, ", ");
         }
-        return ast->tag == List ? Texts("[", code, "]") : Texts("|", code, "|");
+        return Texts("[", code, "]");
     }
     /*inline*/ case Table: {
         DeclareMatch(table, ast, Table);
@@ -587,10 +586,9 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case Defer:
         return Texts("defer ", format_namespace(Match(ast, Defer)->body, comments, indent));
-    /*multiline*/ case List:
-    /*multiline*/ case Set: {
+    /*multiline*/ case List: {
         if (inlined_fits) return inlined;
-        ast_list_t *items = ast->tag == List ? Match(ast, List)->items : Match(ast, Set)->items;
+        ast_list_t *items = Match(ast, List)->items;
         Text_t code = ast->tag == List ? Text("[") : Text("|");
         const char *comment_pos = ast->start;
         for (ast_list_t *item = items; item; item = item->next) {
@@ -610,7 +608,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
             add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
         }
-        return ast->tag == List ? Texts(code, "\n", indent, "]") : Texts(code, "\n", indent, "|");
+        return Texts(code, "\n", indent, "]");
     }
     /*multiline*/ case Table: {
         if (inlined_fits) return inlined;

@@ -579,9 +579,9 @@ Table_t Table$from_entries(List_t entries, const TypeInfo_t *type) {
     return t;
 }
 
-// Overlap is "set intersection" in formal terms
+// And is "set intersection" in formal terms
 public
-Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo_t *type) {
+Table_t Table$and(Table_t a, Table_t b, const TypeInfo_t *type) {
     // Return a table such that t[k]==a[k] for all k such that a.has(k), b.has(k), and a[k]==b[k]
     Table_t result = {};
     const size_t offset = value_offset(type);
@@ -597,9 +597,9 @@ Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo_t *type) {
     return result;
 }
 
-// With is "set union" in formal terms
+// Or is "set union" in formal terms
 public
-Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type) {
+Table_t Table$or(Table_t a, Table_t b, const TypeInfo_t *type) {
     // return a table such that t[k]==b[k] for all k such that b.has(k), and t[k]==a[k] for all k such that a.has(k) and
     // not b.has(k)
     Table_t result = {};
@@ -640,9 +640,9 @@ Table_t Table$xor(Table_t a, Table_t b, const TypeInfo_t *type) {
     return result;
 }
 
-// Without is "set difference" in formal terms
+// Minus is "set difference" in formal terms
 public
-Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type) {
+Table_t Table$minus(Table_t a, Table_t b, const TypeInfo_t *type) {
     // Return a table such that t[k]==a[k] for all k such that not b.has(k) or b[k] != a[k]
     Table_t result = {};
     const size_t offset = value_offset(type);

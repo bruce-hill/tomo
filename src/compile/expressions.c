@@ -13,8 +13,7 @@ public
 Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t) {
     if (is_idempotent(ast) && can_be_mutated(env, ast)) {
         if (t->tag == ListType) return Texts("LIST_COPY(", compile_to_type(env, ast, t), ")");
-        else if (t->tag == TableType || t->tag == SetType)
-            return Texts("TABLE_COPY(", compile_to_type(env, ast, t), ")");
+        else if (t->tag == TableType) return Texts("TABLE_COPY(", compile_to_type(env, ast, t), ")");
     }
     return compile_to_type(env, ast, t);
 }
@@ -44,7 +43,6 @@ Text_t compile_empty(type_t *t) {
     case BoolType: return Text("((Bool_t)no)");
     case ListType: return Text("((List_t){})");
     case TableType:
-    case SetType: return Text("((Table_t){})");
     case TextType: return Text("Text(\"\")");
     case CStringType: return Text("\"\"");
     case PointerType: {
@@ -93,8 +91,7 @@ Text_t compile(env_t *env, ast_t *ast) {
         if (t->tag == BoolType) return Texts("!(", compile(env, value), ")");
         else if (t->tag == IntType || t->tag == ByteType) return Texts("~(", compile(env, value), ")");
         else if (t->tag == ListType) return Texts("((", compile(env, value), ").length == 0)");
-        else if (t->tag == SetType || t->tag == TableType)
-            return Texts("((", compile(env, value), ").entries.length == 0)");
+        else if (t->tag == TableType) return Texts("((", compile(env, value), ").entries.length == 0)");
         else if (t->tag == TextType) return Texts("(", compile(env, value), ".length == 0)");
         else if (t->tag == OptionalType) return check_none(t, compile(env, value));
 
@@ -196,13 +193,6 @@ Text_t compile(env_t *env, ast_t *ast) {
 
         type_t *table_type = get_type(env, ast);
         return compile_typed_table(env, ast, table_type);
-    }
-    case Set: {
-        DeclareMatch(set, ast, Set);
-        if (!set->items) return Text("((Table_t){})");
-
-        type_t *set_type = get_type(env, ast);
-        return compile_typed_set(env, ast, set_type);
     }
     case Comprehension: {
         ast_t *base = Match(ast, Comprehension)->expr;

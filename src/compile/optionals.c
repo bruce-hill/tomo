@@ -72,7 +72,6 @@ Text_t compile_none(type_t *t) {
     case ByteType: return Text("NONE_BYTE");
     case ListType: return Text("NONE_LIST");
     case TableType: return Text("NONE_TABLE");
-    case SetType: return Text("NONE_TABLE");
     case TextType: return Text("NONE_TEXT");
     case CStringType: return Text("NULL");
     case PointerType: return Texts("((", compile_type(t), ")NULL)");
@@ -101,7 +100,7 @@ Text_t check_none(type_t *t, Text_t value) {
     else if (t->tag == NumType)
         return Texts(Match(t, NumType)->bits == TYPE_NBITS64 ? "Num$isnan(" : "Num32$isnan(", value, ")");
     else if (t->tag == ListType) return Texts("((", value, ").length < 0)");
-    else if (t->tag == TableType || t->tag == SetType) return Texts("((", value, ").entries.length < 0)");
+    else if (t->tag == TableType) return Texts("((", value, ").entries.length < 0)");
     else if (t->tag == BoolType) return Texts("((", value, ") == NONE_BOOL)");
     else if (t->tag == TextType) return Texts("((", value, ").length < 0)");
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType) return Texts("(", value, ").is_none");

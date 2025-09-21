@@ -101,13 +101,6 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
         return true;
     }
 
-    // Set -> List promotion:
-    if (needed->tag == ListType && actual->tag == SetType
-        && type_eq(Match(needed, ListType)->item_type, Match(actual, SetType)->item_type)) {
-        *code = Texts("(", *code, ").entries");
-        return true;
-    }
-
     return false;
 }
 
@@ -141,8 +134,6 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
         return compile_typed_list(env, ast, t);
     } else if (t->tag == TableType && ast->tag == Table) {
         return compile_typed_table(env, ast, t);
-    } else if (t->tag == SetType && ast->tag == Set) {
-        return compile_typed_set(env, ast, t);
     }
 
     type_t *actual = get_type(env, ast);

@@ -188,33 +188,24 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         }
         return loop;
     }
-    case SetType:
     case TableType: {
         Text_t loop = Text("for (int64_t i = 0; i < iterating.length; ++i) {\n");
         if (for_->vars) {
-            if (iter_value_t->tag == SetType) {
-                if (for_->vars->next) code_err(for_->vars->next->ast, "This is too many variables for this loop");
-                Text_t item = compile(body_scope, for_->vars->ast);
-                type_t *item_type = Match(iter_value_t, SetType)->item_type;
-                loop = Texts(loop, compile_declaration(item_type, item), " = *(", compile_type(item_type), "*)(",
-                             "iterating.data + i*iterating.stride);\n");
-            } else {
-                Text_t key = compile(body_scope, for_->vars->ast);
-                type_t *key_t = Match(iter_value_t, TableType)->key_type;
-                loop = Texts(loop, compile_declaration(key_t, key), " = *(", compile_type(key_t), "*)(",
-                             "iterating.data + i*iterating.stride);\n");
+            Text_t key = compile(body_scope, for_->vars->ast);
+            type_t *key_t = Match(iter_value_t, TableType)->key_type;
+            loop = Texts(loop, compile_declaration(key_t, key), " = *(", compile_type(key_t), "*)(",
+                         "iterating.data + i*iterating.stride);\n");
 
-                if (for_->vars->next) {
-                    if (for_->vars->next->next)
-                        code_err(for_->vars->next->next->ast, "This is too many variables for this loop");
+            if (for_->vars->next) {
+                if (for_->vars->next->next)
+                    code_err(for_->vars->next->next->ast, "This is too many variables for this loop");
 
-                    type_t *value_t = Match(iter_value_t, TableType)->value_type;
-                    Text_t value = compile(body_scope, for_->vars->next->ast);
-                    Text_t value_offset = Texts("offsetof(struct { ", compile_declaration(key_t, Text("k")), "; ",
-                                                compile_declaration(value_t, Text("v")), "; }, v)");
-                    loop = Texts(loop, compile_declaration(value_t, value), " = *(", compile_type(value_t), "*)(",
-                                 "iterating.data + i*iterating.stride + ", value_offset, ");\n");
-                }
+                type_t *value_t = Match(iter_value_t, TableType)->value_type;
+                Text_t value = compile(body_scope, for_->vars->next->ast);
+                Text_t value_offset = Texts("offsetof(struct { ", compile_declaration(key_t, Text("k")), "; ",
+                                            compile_declaration(value_t, Text("v")), "; }, v)");
+                loop = Texts(loop, compile_declaration(value_t, value), " = *(", compile_type(value_t), "*)(",
+                             "iterating.data + i*iterating.stride + ", value_offset, ");\n");
             }
         }
 

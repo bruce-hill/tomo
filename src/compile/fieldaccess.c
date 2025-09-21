@@ -48,13 +48,6 @@ Text_t compile_field_access(env_t *env, ast_t *ast) {
             return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
         code_err(ast, "There is no ", f->field, " field on lists");
     }
-    case SetType: {
-        if (streq(f->field, "items"))
-            return Texts("LIST_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
-        else if (streq(f->field, "length"))
-            return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
-        code_err(ast, "There is no '", f->field, "' field on sets");
-    }
     case TableType: {
         if (streq(f->field, "length")) {
             return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");

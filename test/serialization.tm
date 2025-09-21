@@ -67,11 +67,6 @@ func main()
         assert deserialize(bytes -> Text?) == obj
 
     do
-        >> obj := |10, 20, 30|
-        >> bytes := obj.serialized()
-        assert deserialize(bytes -> |Int|) == obj
-
-    do
         >> obj : Num? = none
         >> bytes := obj.serialized()
         assert deserialize(bytes -> Num?) == obj

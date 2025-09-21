@@ -44,7 +44,7 @@ Text_t compile_to_pointer_depth(env_t *env, ast_t *ast, int64_t target_depth, bo
     }
 
     if (needs_incref && t->tag == ListType) val = Texts("LIST_COPY(", val, ")");
-    else if (needs_incref && (t->tag == TableType || t->tag == SetType)) val = Texts("TABLE_COPY(", val, ")");
+    else if (needs_incref && t->tag == TableType) val = Texts("TABLE_COPY(", val, ")");
 
     return val;
 }

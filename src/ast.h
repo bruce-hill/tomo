@@ -83,7 +83,6 @@ typedef enum {
     VarTypeAST,
     PointerTypeAST,
     ListTypeAST,
-    SetTypeAST,
     TableTypeAST,
     FunctionTypeAST,
     OptionalTypeAST,
@@ -120,9 +119,6 @@ struct type_ast_s {
             type_ast_t *key, *value;
             ast_t *default_value;
         } TableTypeAST;
-        struct {
-            type_ast_t *item;
-        } SetTypeAST;
         struct {
             arg_ast_t *args;
             type_ast_t *ret;
@@ -248,7 +244,6 @@ typedef enum {
     Min,
     Max,
     List,
-    Set,
     Table,
     TableEntry,
     Comprehension,
@@ -342,9 +337,6 @@ struct ast_s {
         struct {
             ast_list_t *items;
         } List;
-        struct {
-            ast_list_t *items;
-        } Set;
         struct {
             ast_t *default_value;
             ast_t *fallback;

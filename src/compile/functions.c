@@ -302,8 +302,7 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
             assert(b);
             Text_t binding_code = b->code;
             if (entry->b->type->tag == ListType) userdata = Texts(userdata, ", LIST_COPY(", binding_code, ")");
-            else if (entry->b->type->tag == TableType || entry->b->type->tag == SetType)
-                userdata = Texts(userdata, ", TABLE_COPY(", binding_code, ")");
+            else if (entry->b->type->tag == TableType) userdata = Texts(userdata, ", TABLE_COPY(", binding_code, ")");
             else userdata = Texts(userdata, ", ", binding_code);
         }
         userdata = Texts(userdata, ")");
@@ -388,11 +387,6 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             add_closed_vars(closed_vars, enclosing_scope, env, item->ast);
         break;
     }
-    case Set: {
-        for (ast_list_t *item = Match(ast, Set)->items; item; item = item->next)
-            add_closed_vars(closed_vars, enclosing_scope, env, item->ast);
-        break;
-    }
     case Table: {
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Table)->default_value);
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Table)->fallback);
@@ -413,7 +407,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             return add_closed_vars(closed_vars, enclosing_scope, env, loop);
         }
 
-        // List/Set/Table comprehension:
+        // List/Table comprehension:
         ast_t *body = comp->expr;
         if (comp->filter) body = WrapAST(comp->expr, If, .condition = comp->filter, .body = body);
         ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .iter = comp->iter, .body = body);
@@ -839,7 +833,6 @@ Text_t compile_method_call(env_t *env, ast_t *ast) {
 
     switch (self_value_t->tag) {
     case ListType: return compile_list_method_call(env, ast);
-    case SetType: return compile_set_method_call(env, ast);
     case TableType: return compile_table_method_call(env, ast);
     default: {
         DeclareMatch(methodcall, ast, MethodCall);

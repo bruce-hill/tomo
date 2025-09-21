@@ -243,9 +243,9 @@ func main()
     # Test comparisons, hashing, equality:
     assert none != 5?
     assert 5? == 5?
-    >> nones : |Int?| = |none, none|
-    >> also_nones : |Int?| = |none|
-    >> nones == also_nones
+    >> nones : {Int?=Bool} = {none=yes, none=yes}
+    >> nones.keys
+    = [none]
     >> [5?, none, none, 6?].sorted()
     = [none, none, 5, 6]
 

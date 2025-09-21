@@ -18,7 +18,7 @@ Text_t compile_condition(env_t *env, ast_t *ast) {
         return Texts("(", compile(env, ast), ").length");
     } else if (t->tag == ListType) {
         return Texts("(", compile(env, ast), ").length");
-    } else if (t->tag == TableType || t->tag == SetType) {
+    } else if (t->tag == TableType) {
         return Texts("(", compile(env, ast), ").entries.length");
     } else if (t->tag == OptionalType) {
         return Texts("!", check_none(t, compile(env, ast)));

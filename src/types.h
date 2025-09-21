@@ -50,7 +50,6 @@ struct type_s {
         CStringType,
         TextType,
         ListType,
-        SetType,
         TableType,
         FunctionType,
         ClosureType,
@@ -87,9 +86,6 @@ struct type_s {
         struct {
             type_t *item_type;
         } ListType;
-        struct {
-            type_t *item_type;
-        } SetType;
         struct {
             type_t *key_type, *value_type;
             struct env_s *env;

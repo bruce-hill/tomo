@@ -53,7 +53,7 @@ func main()
 	assert Foo.One(10) < Foo.Two(1, 2)
 
 	>> x := Foo.One(123)
-	>> t := |x|
+	>> t := {x=yes}
 	>> t.has(x)
 	= yes
 	>> t.has(Foo.Zero)

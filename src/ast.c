@@ -145,7 +145,6 @@ Text_t type_ast_to_sexp(type_ast_t *t) {
         T(PointerTypeAST, "(PointerType \"", data.is_stack ? "stack" : "heap", "\" ", type_ast_to_sexp(data.pointed),
           ")");
         T(ListTypeAST, "(ListType ", type_ast_to_sexp(data.item), ")");
-        T(SetTypeAST, "(SetType ", type_ast_to_sexp(data.item), ")");
         T(TableTypeAST, "(TableType ", type_ast_to_sexp(data.key), " ", type_ast_to_sexp(data.value), ")");
         T(FunctionTypeAST, "(FunctionType ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret), ")");
         T(OptionalTypeAST, "(OptionalType ", type_ast_to_sexp(data.type), ")");
@@ -233,7 +232,6 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Min, "(Min ", ast_to_sexp(data.lhs), " ", ast_to_sexp(data.rhs), optional_sexp("key", data.key), ")");
         T(Max, "(Max ", ast_to_sexp(data.lhs), " ", ast_to_sexp(data.rhs), optional_sexp("key", data.key), ")");
         T(List, "(List", ast_list_to_sexp(data.items), ")");
-        T(Set, "(Set", ast_list_to_sexp(data.items), ")");
         T(Table, "(Table", optional_sexp("default", data.default_value), optional_sexp("fallback", data.fallback),
           ast_list_to_sexp(data.entries), ")");
         T(TableEntry, "(TableEntry ", ast_to_sexp(data.key), " ", ast_to_sexp(data.value), ")");
@@ -521,10 +519,6 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
     }
     case List: {
         ast_visit_list(Match(ast, List)->items, visitor, userdata);
-        return;
-    }
-    case Set: {
-        ast_visit_list(Match(ast, Set)->items, visitor, userdata);
         return;
     }
     case Table: {

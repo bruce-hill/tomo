@@ -33,7 +33,6 @@ Text_t compile_type(type_t *t) {
         else return namespace_name(text->env, text->env->namespace, Text("$type"));
     }
     case ListType: return Text("List_t");
-    case SetType: return Text("Table_t");
     case TableType: return Text("Table_t");
     case FunctionType: {
         DeclareMatch(fn, t, FunctionType);
@@ -71,8 +70,7 @@ Text_t compile_type(type_t *t) {
         case BoolType:
         case ByteType:
         case ListType:
-        case TableType:
-        case SetType: return Texts("Optional", compile_type(nonnull));
+        case TableType: return Texts("Optional", compile_type(nonnull));
         case StructType: {
             if (nonnull == PATH_TYPE) return Text("OptionalPath_t");
             if (nonnull == PATH_TYPE_TYPE) return Text("OptionalPathType_t");
@@ -117,10 +115,6 @@ Text_t compile_type_info(type_t *t) {
     case ListType: {
         type_t *item_t = Match(t, ListType)->item_type;
         return Texts("List$info(", compile_type_info(item_t), ")");
-    }
-    case SetType: {
-        type_t *item_type = Match(t, SetType)->item_type;
-        return Texts("Set$info(", compile_type_info(item_type), ")");
     }
     case TableType: {
         DeclareMatch(table, t, TableType);

@@ -27,18 +27,6 @@
         table.fallback = fb;                                                                                           \
         table;                                                                                                         \
     })
-#define Set(item_t, item_info, N, ...)                                                                                 \
-    ({                                                                                                                 \
-        item_t ents[N] = {__VA_ARGS__};                                                                                \
-        Table_t set = Table$from_entries(                                                                              \
-            (List_t){                                                                                                  \
-                .data = memcpy(GC_MALLOC(sizeof(ents)), ents, sizeof(ents)),                                           \
-                .length = sizeof(ents) / sizeof(ents[0]),                                                              \
-                .stride = (void *)&ents[1] - (void *)&ents[0],                                                         \
-            },                                                                                                         \
-            Set$info(item_info));                                                                                      \
-        set;                                                                                                           \
-    })
 
 Table_t Table$from_entries(List_t entries, const TypeInfo_t *type);
 void *Table$get(Table_t t, const void *key, const TypeInfo_t *type);
@@ -103,13 +91,11 @@ void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type);
         Table$remove(t, &k, type);                                                                                     \
     })
 
-Table_t Table$overlap(Table_t a, Table_t b, const TypeInfo_t *type);
-Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type);
-Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type);
+Table_t Table$and(Table_t a, Table_t b, const TypeInfo_t *type);
+Table_t Table$or(Table_t a, Table_t b, const TypeInfo_t *type);
+Table_t Table$minus(Table_t a, Table_t b, const TypeInfo_t *type);
 Table_t Table$xor(Table_t a, Table_t b, const TypeInfo_t *type);
 Table_t Table$with_fallback(Table_t t, OptionalTable_t fallback);
-PUREFUNC bool Table$is_subset_of(Table_t a, Table_t b, bool strict, const TypeInfo_t *type);
-PUREFUNC bool Table$is_superset_of(Table_t a, Table_t b, bool strict, const TypeInfo_t *type);
 
 void Table$clear(Table_t *t);
 Table_t Table$sorted(Table_t t, const TypeInfo_t *type);

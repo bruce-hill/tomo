@@ -22,7 +22,7 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
         DeclareMatch(ptr, indexed_type, PointerType);
         if (ptr->pointed->tag == ListType) {
             return Texts("*({ List_t *list = ", compile(env, indexing->indexed), "; LIST_INCREF(*list); list; })");
-        } else if (ptr->pointed->tag == TableType || ptr->pointed->tag == SetType) {
+        } else if (ptr->pointed->tag == TableType) {
             return Texts("*({ Table_t *t = ", compile(env, indexing->indexed), "; TABLE_INCREF(*t); t; })");
         } else {
             return Texts("*(", compile(env, indexing->indexed), ")");

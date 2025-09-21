@@ -39,10 +39,6 @@ Text_t type_to_text(type_t *t) {
         DeclareMatch(table, t, TableType);
         return Texts("{", type_to_text(table->key_type), "=", type_to_text(table->value_type), "}");
     }
-    case SetType: {
-        DeclareMatch(set, t, SetType);
-        return Texts("{", type_to_text(set->item_type), "}");
-    }
     case ClosureType: {
         return type_to_text(Match(t, ClosureType)->fn);
     }
@@ -227,7 +223,6 @@ PUREFUNC bool has_heap_memory(type_t *t) {
     switch (t->tag) {
     case ListType: return true;
     case TableType: return true;
-    case SetType: return true;
     case PointerType: return true;
     case OptionalType: return has_heap_memory(Match(t, OptionalType)->type);
     case BigIntType: return true;
@@ -337,8 +332,6 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
     // Empty literals:
     if (actual->tag == ListType && needed->tag == ListType && Match(actual, ListType)->item_type == NULL)
         return true; // [] -> [T]
-    if (actual->tag == SetType && needed->tag == SetType && Match(actual, SetType)->item_type == NULL)
-        return true; // || -> |T|
     if (actual->tag == TableType && needed->tag == TableType && Match(actual, TableType)->key_type == NULL
         && Match(actual, TableType)->value_type == NULL)
         return true; // {} -> {K=V}
@@ -377,11 +370,6 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
                 || (actual_ret->tag == PointerType && needed_ret->tag == PointerType
                     && can_promote(actual_ret, needed_ret)));
     }
-
-    // Set -> List promotion
-    if (needed->tag == ListType && actual->tag == SetType
-        && type_eq(Match(needed, ListType)->item_type, Match(actual, SetType)->item_type))
-        return true;
 
     return false;
 }
@@ -472,7 +460,6 @@ PUREFUNC size_t type_size(type_t *t) {
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? sizeof(double) : sizeof(float);
     case TextType: return sizeof(Text_t);
     case ListType: return sizeof(List_t);
-    case SetType: return sizeof(Table_t);
     case TableType: return sizeof(Table_t);
     case FunctionType: return sizeof(void *);
     case ClosureType: return sizeof(struct { void *fn, *userdata; });
@@ -563,7 +550,6 @@ PUREFUNC size_t type_align(type_t *t) {
     }
     case NumType: return Match(t, NumType)->bits == TYPE_NBITS64 ? __alignof__(double) : __alignof__(float);
     case TextType: return __alignof__(Text_t);
-    case SetType: return __alignof__(Table_t);
     case ListType: return __alignof__(List_t);
     case TableType: return __alignof__(Table_t);
     case FunctionType: return __alignof__(void *);
@@ -637,11 +623,6 @@ type_t *get_field_type(type_t *t, const char *field_name) {
         }
         return NULL;
     }
-    case SetType: {
-        if (streq(field_name, "length")) return INT_TYPE;
-        else if (streq(field_name, "items")) return Type(ListType, .item_type = Match(t, SetType)->item_type);
-        return NULL;
-    }
     case TableType: {
         if (streq(field_name, "length")) return INT_TYPE;
         else if (streq(field_name, "keys")) return Type(ListType, Match(t, TableType)->key_type);
@@ -663,7 +644,6 @@ PUREFUNC type_t *get_iterated_type(type_t *t) {
     case BigIntType:
     case IntType: return iter_value_t; break;
     case ListType: return Match(iter_value_t, ListType)->item_type; break;
-    case SetType: return Match(iter_value_t, SetType)->item_type; break;
     case TableType: return NULL;
     case FunctionType:
     case ClosureType: {
@@ -684,7 +664,6 @@ CONSTFUNC bool is_incomplete_type(type_t *t) {
     case ReturnType: return is_incomplete_type(Match(t, ReturnType)->ret);
     case OptionalType: return is_incomplete_type(Match(t, OptionalType)->type);
     case ListType: return is_incomplete_type(Match(t, ListType)->item_type);
-    case SetType: return is_incomplete_type(Match(t, SetType)->item_type);
     case TableType: {
         DeclareMatch(table, t, TableType);
         return is_incomplete_type(table->key_type) || is_incomplete_type(table->value_type);
@@ -723,10 +702,6 @@ CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2) {
     case ListType: {
         type_t *item = most_complete_type(Match(t1, ListType)->item_type, Match(t2, ListType)->item_type);
         return item ? Type(ListType, item) : NULL;
-    }
-    case SetType: {
-        type_t *item = most_complete_type(Match(t1, SetType)->item_type, Match(t2, SetType)->item_type);
-        return item ? Type(SetType, item) : NULL;
     }
     case TableType: {
         DeclareMatch(table1, t1, TableType);

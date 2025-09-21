@@ -27,7 +27,7 @@ func test_metamethods()
 	assert x != Pair(10, 30)
 
 	assert x < Pair(11, 20)
-	>> set := |x|
+	>> set := {x=yes}
 	>> set.has(x)
 	= yes
 	>> set.has(y)
@@ -41,7 +41,7 @@ func test_mixed()
 	assert x == Mixed(10, "Hello")
 	assert x != Mixed(10, "Bye")
 	assert x < Mixed(11, "Hello")
-	>> set := |x|
+	>> set := {x=yes}
 	>> set.has(x)
 	= yes
 	>> set.has(y)

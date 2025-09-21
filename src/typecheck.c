@@ -65,18 +65,6 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
                      " bytes. Consider using a list of pointers instead.");
         return Type(ListType, .item_type = item_t);
     }
-    case SetTypeAST: {
-        type_ast_t *item_type = Match(ast, SetTypeAST)->item;
-        type_t *item_t = parse_type_ast(env, item_type);
-        if (!item_t) code_err(item_type, "I can't figure out what this type is.");
-        if (has_stack_memory(item_t))
-            code_err(item_type, "Sets can't have stack references because the list may outlive the stack frame.");
-        if (type_size(item_t) > LIST_MAX_STRIDE)
-            code_err(ast, "This set holds items that take up ", (uint64_t)type_size(item_t),
-                     " bytes, but the maximum supported size is ", (int64_t)LIST_MAX_STRIDE,
-                     " bytes. Consider using an set of pointers instead.");
-        return Type(SetType, .item_type = item_t);
-    }
     case TableTypeAST: {
         DeclareMatch(table_type, ast, TableTypeAST);
         type_ast_t *key_type_ast = table_type->key;
@@ -872,29 +860,6 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
         return Type(ListType, .item_type = item_type);
     }
-    case Set: {
-        DeclareMatch(set, ast, Set);
-        type_t *item_type = NULL;
-        for (ast_list_t *item = set->items; item; item = item->next) {
-            ast_t *item_ast = item->ast;
-            env_t *scope = env;
-            while (item_ast->tag == Comprehension) {
-                DeclareMatch(comp, item_ast, Comprehension);
-                scope = for_scope(scope, FakeAST(For, .iter = comp->iter, .vars = comp->vars));
-                item_ast = comp->expr;
-            }
-
-            type_t *this_item_type = get_type(scope, item_ast);
-            type_t *item_merged = type_or_type(item_type, this_item_type);
-            if (!item_merged) return Type(SetType, .item_type = NULL);
-            item_type = item_merged;
-        }
-
-        if (item_type && has_stack_memory(item_type))
-            code_err(ast, "Sets cannot hold stack references because the set may outlive the reference's stack frame.");
-
-        return Type(SetType, .item_type = item_type);
-    }
     case Table: {
         DeclareMatch(table, ast, Table);
         type_t *key_type = NULL, *value_type = NULL;
@@ -1076,22 +1041,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "sort")) return Type(VoidType);
             else if (streq(call->name, "sorted")) return self_value_t;
             else if (streq(call->name, "to")) return self_value_t;
-            else if (streq(call->name, "unique")) return Type(SetType, .item_type = item_type);
+            else if (streq(call->name, "unique")) return Type(ListType, .item_type = item_type);
             else code_err(ast, "There is no '", call->name, "' method for lists");
-        }
-        case SetType: {
-            if (streq(call->name, "add")) return Type(VoidType);
-            else if (streq(call->name, "add_all")) return Type(VoidType);
-            else if (streq(call->name, "clear")) return Type(VoidType);
-            else if (streq(call->name, "has")) return Type(BoolType);
-            else if (streq(call->name, "is_subset_of")) return Type(BoolType);
-            else if (streq(call->name, "is_superset_of")) return Type(BoolType);
-            else if (streq(call->name, "overlap")) return self_value_t;
-            else if (streq(call->name, "remove")) return Type(VoidType);
-            else if (streq(call->name, "remove_all")) return Type(VoidType);
-            else if (streq(call->name, "with")) return self_value_t;
-            else if (streq(call->name, "without")) return self_value_t;
-            else code_err(ast, "There is no '", call->name, "' method for sets");
         }
         case TableType: {
             DeclareMatch(table, self_value_t, TableType);
@@ -1229,7 +1180,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *rhs_t = get_type(env, binop.rhs);
 
         type_t *lhs_val = value_type(lhs_t), *rhs_val = value_type(rhs_t);
-        if (type_eq(lhs_val, rhs_val) && lhs_val->tag == SetType) return lhs_val;
+        if (type_eq(lhs_val, rhs_val) && lhs_val->tag == TableType) return lhs_val;
 
         if (binop.lhs->tag == Int && is_int_type(rhs_t)) return rhs_t;
         else if (binop.rhs->tag == Int && is_int_type(lhs_t)) return lhs_t;
@@ -1263,7 +1214,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
                    && rhs_t->tag != NumType) {
             if (can_compile_to_type(env, binop.rhs, lhs_t)) return lhs_t;
             else if (can_compile_to_type(env, binop.lhs, rhs_t)) return rhs_t;
-        } else if (lhs_t->tag == SetType && rhs_t->tag == SetType && type_eq(lhs_t, rhs_t)) {
+        } else if (lhs_t->tag == TableType && rhs_t->tag == TableType && type_eq(lhs_t, rhs_t)) {
             return lhs_t;
         }
         code_err(ast, "I couldn't figure out how to do `or` between ", type_to_text(lhs_t), " and ",
@@ -1275,7 +1226,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *rhs_t = get_type(env, binop.rhs);
 
         type_t *lhs_val = value_type(lhs_t), *rhs_val = value_type(rhs_t);
-        if (type_eq(lhs_val, rhs_val) && lhs_val->tag == SetType) return lhs_val;
+        if (type_eq(lhs_val, rhs_val) && lhs_val->tag == TableType) return lhs_val;
 
         if (binop.lhs->tag == Int && is_int_type(rhs_t)) return rhs_t;
         else if (binop.rhs->tag == Int && is_int_type(lhs_t)) return lhs_t;
@@ -1296,7 +1247,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             && lhs_t->tag != NumType && rhs_t->tag != NumType) {
             if (can_compile_to_type(env, binop.rhs, lhs_t)) return lhs_t;
             else if (can_compile_to_type(env, binop.lhs, rhs_t)) return rhs_t;
-        } else if (lhs_t->tag == SetType && rhs_t->tag == SetType && type_eq(lhs_t, rhs_t)) {
+        } else if (lhs_t->tag == TableType && rhs_t->tag == TableType && type_eq(lhs_t, rhs_t)) {
             return lhs_t;
         }
         code_err(ast, "I couldn't figure out how to do `and` between ", type_to_text(lhs_t), " and ",
@@ -1308,7 +1259,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *rhs_t = get_type(env, binop.rhs);
 
         type_t *lhs_val = value_type(lhs_t), *rhs_val = value_type(rhs_t);
-        if (type_eq(lhs_val, rhs_val) && lhs_val->tag == SetType) return lhs_val;
+        if (type_eq(lhs_val, rhs_val) && lhs_val->tag == TableType) return lhs_val;
 
         if (binop.lhs->tag == Int && is_int_type(rhs_t)) return rhs_t;
         else if (binop.rhs->tag == Int && is_int_type(lhs_t)) return lhs_t;
@@ -1329,7 +1280,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             && lhs_t->tag != NumType && rhs_t->tag != NumType) {
             if (can_compile_to_type(env, binop.rhs, lhs_t)) return lhs_t;
             else if (can_compile_to_type(env, binop.lhs, rhs_t)) return rhs_t;
-        } else if (lhs_t->tag == SetType && rhs_t->tag == SetType && type_eq(lhs_t, rhs_t)) {
+        } else if (lhs_t->tag == TableType && rhs_t->tag == TableType && type_eq(lhs_t, rhs_t)) {
             return lhs_t;
         }
         code_err(ast, "I couldn't figure out how to do `xor` between ", type_to_text(lhs_t), " and ",
@@ -1369,7 +1320,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
         if (ast->tag == Minus) {
             type_t *lhs_val = value_type(lhs_t), *rhs_val = value_type(rhs_t);
-            if (type_eq(lhs_val, rhs_val) && lhs_val->tag == SetType) return lhs_val;
+            if (type_eq(lhs_val, rhs_val) && lhs_val->tag == TableType) return lhs_val;
         }
 
         if (ast->tag == LeftShift || ast->tag == UnsignedLeftShift || ast->tag == RightShift
@@ -1457,7 +1408,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         binding_t *b = get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, overall_t);
         if (b) return overall_t;
 
-        if (overall_t->tag == ListType || overall_t->tag == SetType || overall_t->tag == TextType) return overall_t;
+        if (overall_t->tag == ListType || overall_t->tag == TableType || overall_t->tag == TextType) return overall_t;
 
         code_err(ast, "I don't know how to do concatenation between ", type_to_text(lhs_t), " and ",
                  type_to_text(rhs_t));
@@ -1844,12 +1795,6 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (needed->tag == ListType && ast->tag == List) {
         type_t *item_type = Match(needed, ListType)->item_type;
         for (ast_list_t *item = Match(ast, List)->items; item; item = item->next) {
-            if (!can_compile_to_type(env, item->ast, item_type)) return false;
-        }
-        return true;
-    } else if (needed->tag == SetType && ast->tag == Set) {
-        type_t *item_type = Match(needed, SetType)->item_type;
-        for (ast_list_t *item = Match(ast, Set)->items; item; item = item->next) {
             if (!can_compile_to_type(env, item->ast, item_type)) return false;
         }
         return true;

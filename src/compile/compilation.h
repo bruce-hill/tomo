@@ -26,7 +26,6 @@
 #include "pointers.h" // IWYU pragma: export
 #include "promotions.h" // IWYU pragma: export
 #include "reductions.h" // IWYU pragma: export
-#include "sets.h" // IWYU pragma: export
 #include "statements.h" // IWYU pragma: export
 #include "structs.h" // IWYU pragma: export
 #include "tables.h" // IWYU pragma: export
