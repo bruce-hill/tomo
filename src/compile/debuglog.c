@@ -97,6 +97,9 @@ Text_t compile_debug_log(env_t *env, ast_t *ast) {
             expr_t = lhs_t;
         } else if (expr_t->tag == VoidType || expr_t->tag == AbortType || expr_t->tag == ReturnType) {
             value_code = Texts("({", compile_statement(env, value->ast), " NULL;})");
+        } else if (expr_t->tag == FunctionType) {
+            expr_t = Type(ClosureType, expr_t);
+            value_code = Texts("(Closure_t){.fn=", compile(env, value->ast), "}");
         } else {
             value_code = compile(env, value->ast);
         }

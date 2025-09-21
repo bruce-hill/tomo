@@ -19,8 +19,7 @@ Text_t compile_field_access(env_t *env, ast_t *ast) {
         if (f->field[0] == '_') {
             if (!type_eq(env->current_type, info->type))
                 code_err(ast, "Fields that start with underscores are not "
-                              "accessible "
-                              "on types outside of the type definition.");
+                              "accessible on outside of the type definition.");
         }
         binding_t *b = get_binding(info->env, f->field);
         if (!b) code_err(ast, "I couldn't find the field '", f->field, "' on this type");
