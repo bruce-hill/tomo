@@ -905,16 +905,6 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case FieldAccess: {
         DeclareMatch(access, ast, FieldAccess);
         type_t *fielded_t = get_type(env, access->fielded);
-        if (access->field[0] == '_') {
-            if (!env->current_type
-                || !type_eq(env->current_type, fielded_t->tag == TypeInfoType ? Match(fielded_t, TypeInfoType)->type
-                                                                              : value_type(fielded_t)))
-                code_err(ast, "Fields beginning with underscores like '", access->field,
-                         "' can't be accessed outside the scope where the type (",
-                         type_to_text(fielded_t->tag == TypeInfoType ? Match(fielded_t, TypeInfoType)->type
-                                                                     : value_type(fielded_t)),
-                         ") is defined.");
-        }
         if (fielded_t->tag == ModuleType) {
             const char *name = Match(fielded_t, ModuleType)->name;
             env_t *module_env = Table$str_get(*env->imports, name);
@@ -1049,9 +1039,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             if (call->name[0] == '_') {
                 if (env->current_type == NULL || !type_eq(env->current_type, self_value_t))
                     code_err(ast, "You can't call private methods starting with underscore (like '", call->name,
-                             "') "
-                             "outside of the place where the type (",
-                             type_to_text(self_value_t), ") is defined.");
+                             "') outside of the place where the type (", type_to_text(self_value_t), ") is defined.");
             }
             type_t *field_type = get_field_type(self_value_t, call->name);
             if (field_type && field_type->tag == ClosureType) field_type = Match(field_type, ClosureType)->fn;
@@ -1625,10 +1613,8 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
     // Populate keyword args:
     for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {
         if (!call_arg->name) continue;
-        if (!options.underscores && call_arg->name[0] == '_') return false;
 
         for (arg_t *spec_arg = spec_args; spec_arg; spec_arg = spec_arg->next) {
-            if (!options.underscores && spec_arg->name[0] == '_') continue;
             if (!(streq(call_arg->name, spec_arg->name) || (spec_arg->alias && streq(call_arg->name, spec_arg->alias))))
                 continue;
             type_t *spec_type = get_arg_type(env, spec_arg);

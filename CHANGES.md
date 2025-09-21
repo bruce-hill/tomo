@@ -21,6 +21,9 @@
 - Deprecated `>> ... = ...` form of doctests. They are now called "debug logs"
   and you can specify multiple values: `>> a, b, c`
 - Deprecated `defer` statement
+- Struct fields that start with underscores can be accessed again and function
+  arguments that start with underscore can be passed (but only as keyword
+  arguments).
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
 - Standardized text methods for Unicode encodings:

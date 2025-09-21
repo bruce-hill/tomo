@@ -155,7 +155,8 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
         if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args, (call_opts_t){.promotion = true})) {
             if (is_valid_call(env, Match(fn_t, FunctionType)->args, call->args,
                               (call_opts_t){.promotion = true, .underscores = true})) {
-                code_err(ast, "You can't pass underscore arguments to this function (those are private)");
+                code_err(ast, "You can't pass underscore arguments to this function as positional arguments. You must "
+                              "use keyword arguments.");
             } else {
                 arg_t *args = NULL;
                 for (arg_ast_t *a = call->args; a; a = a->next)
