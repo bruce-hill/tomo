@@ -1,6 +1,6 @@
 # Version History
 
-## v0.4
+## v1.0
 - Tomo libraries are now installed to `$TOMO_PATH/lib/tomo_vX.Y/module_vZ.W`
   instead of `$TOMO_PATH/share/tomo_vX.Y/installed/module_vZ.W`
 - Core libraries are no longer shipped with the compiler, they have moved to
@@ -14,6 +14,8 @@
   - Tables now have `and`, `or`, `xor`, and `-` (minus) metamethods.
 - Deprecated `extern` keyword for declaring external symbols from C.
   - Use `C_code` instead.
+- Deprecated the postfix `?` to make values optional.
+  - Explicitly optional values can be declared as `my_var : T? = value`.
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
 - Standardized text methods for Unicode encodings:

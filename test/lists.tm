@@ -162,23 +162,23 @@ func main()
 		= [1, 2, 3, 4, 5]
 
 	>> ["a", "b", "c"].find("b")
-	= 2?
+	= 2
 	>> ["a", "b", "c"].find("XXX")
 	= none
 
 	>> [10, 20].where(func(i:&Int) i.is_prime())
 	= none
 	>> [4, 5, 6].where(func(i:&Int) i.is_prime())
-	= 2?
+	= 2
 
 	do
 		>> nums := &[10, 20, 30, 40, 50]
 		>> nums.pop()
-		= 50?
+		= 50
 		>> nums[]
 		= [10, 20, 30, 40]
 		>> nums.pop(2)
-		= 20?
+		= 20
 		>> nums[]
 		= [10, 30, 40]
 		>> nums.clear()

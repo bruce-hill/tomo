@@ -25,13 +25,6 @@ ast_t *parse_field_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     return NewAST(ctx->file, lhs->start, pos, FieldAccess, .fielded = lhs, .field = field);
 }
 
-ast_t *parse_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
-    if (!lhs) return NULL;
-    const char *pos = lhs->end;
-    if (match(&pos, "?")) return NewAST(ctx->file, lhs->start, pos, Optional, .value = lhs);
-    else return NULL;
-}
-
 ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs) {
     if (!lhs) return NULL;
     const char *pos = lhs->end;

@@ -20,7 +20,7 @@ func main()
     >> tmpfile.write("Hello world")
     >> tmpfile.append("!")
     >> tmpfile.read()
-    = "Hello world!"?
+    = "Hello world!"
     >> tmpfile.read_bytes()!
     = [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x21]
     assert tmpdir.files().has(tmpfile)

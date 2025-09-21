@@ -15,4 +15,4 @@ func main()
     >> when n is 1 Int64(1)
     is 2 Int64(2)
     is 21 + 2 Int64(23)
-    = Int64(23)?
+    = Int64(23)

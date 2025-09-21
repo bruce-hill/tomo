@@ -552,10 +552,6 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, FieldAccess)->fielded);
         break;
     }
-    case Optional: {
-        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Optional)->value);
-        break;
-    }
     case NonOptional: {
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, NonOptional)->value);
         break;

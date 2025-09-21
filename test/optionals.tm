@@ -57,28 +57,28 @@ func maybe_lambda(should_i:Bool-> func()?)
 
 func maybe_c_string(should_i:Bool->CString?)
     if should_i
-        return ("hi".as_c_string())?
+        return "hi".as_c_string()
     else
         return none
 
 func main()
-    >> 5?
-    = 5?
+    >> optional : Int? = 5
+    = 5
 
     >> if no
         x : Int? = none
         x
     else
         5
-    = 5?
-
-    >> 5? or -1
     = 5
 
-    >> 5? or fail("Non-none is falsey")
+    >> optional or -1
     = 5
 
-    >> 5? or exit("Non-none is falsey")
+    >> optional or fail("Non-none is falsey")
+    = 5
+
+    >> optional or exit("Non-none is falsey")
     = 5
 
     >> none_int : Int? = none
@@ -88,7 +88,7 @@ func main()
     do
         say("Ints:")
         >> yep := maybe_int(yes)
-        = 123?
+        = 123
         >> nope := maybe_int(no)
         = none
         >> if yep
@@ -102,7 +102,7 @@ func main()
     do
         say("Int64s:")
         >> yep := maybe_int64(yes)
-        = Int64(123)?
+        = Int64(123)
         >> nope := maybe_int64(no)
         = none
         >> if yep
@@ -116,7 +116,7 @@ func main()
     do
         say("Lists:")
         >> yep := maybe_list(yes)
-        = [10, 20, 30]?
+        = [10, 20, 30]
         >> nope := maybe_list(no)
         = none
         >> if yep
@@ -131,7 +131,7 @@ func main()
         say("...")
         say("Bools:")
         >> yep := maybe_bool(yes)
-        = no?
+        = no
         >> nope := maybe_bool(no)
         = none
         >> if yep
@@ -146,7 +146,7 @@ func main()
         say("...")
         say("Text:")
         >> yep := maybe_text(yes)
-        = "Hello"?
+        = "Hello"
         >> nope := maybe_text(no)
         = none
         >> if yep
@@ -161,7 +161,7 @@ func main()
         say("...")
         say("Nums:")
         >> yep := maybe_num(yes)
-        = 12.3?
+        = 12.3
         >> nope := maybe_num(no)
         = none
         >> if yep
@@ -191,7 +191,7 @@ func main()
         say("...")
         say("Structs:")
         >> yep := Struct.maybe(yes)
-        = Struct(x=123, y="hello")?
+        = Struct(x=123, y="hello")
         >> nope := Struct.maybe(no)
         = none
         >> if yep
@@ -206,7 +206,7 @@ func main()
         say("...")
         say("Enums:")
         >> yep := Enum.maybe(yes)
-        = Enum.Y(123)?
+        = Enum.Y(123)
         >> nope := Enum.maybe(no)
         = none
         >> if yep
@@ -221,7 +221,7 @@ func main()
         say("...")
         say("C Strings:")
         >> yep := maybe_c_string(yes)
-        = CString("hi")?
+        = CString("hi")
         >> nope := maybe_c_string(no)
         = none
         >> if yep
@@ -241,16 +241,16 @@ func main()
     = 123
 
     # Test comparisons, hashing, equality:
-    assert none != 5?
-    assert 5? == 5?
+    assert none != optional
+    assert optional == 5
     >> nones : {Int?=Bool} = {none=yes, none=yes}
     >> nones.keys
     = [none]
-    >> [5?, none, none, 6?].sorted()
+    >> [5, none, none, 6].sorted()
     = [none, none, 5, 6]
 
     do
-        >> value := if var := 5?
+        >> value := if var := optional
             var
         else
             0
@@ -264,7 +264,7 @@ func main()
         = 0
 
     do
-        >> opt := 5?
+        >> opt : Int? = 5
         >> if opt
             >> opt
         else
@@ -277,17 +277,17 @@ func main()
         else
             >> opt
 
-    >> not 5?
+    >> not optional
     = no
 
     >> nah : Int? = none
     >> not nah
     = yes
 
-    >> [Struct(5,"A")?, Struct(6,"B"), Struct(7,"C")]
-    = [Struct(x=5, y="A")?, Struct(x=6, y="B")?, Struct(x=7, y="C")?]
+    >> [none, Struct(5,"A"), Struct(6,"B"), Struct(7,"C")]
+    = [none, Struct(x=5, y="A"), Struct(x=6, y="B"), Struct(x=7, y="C")]
 
-    if 5? or no
+    if optional or no
         say("Binary op 'or' works with optionals")
     else
         fail("Failed to do binary op 'or' on optional")

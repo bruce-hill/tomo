@@ -269,10 +269,6 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         ast_t *val = Match(ast, StackReference)->value;
         return Texts("&", must(termify_inline(val, comments)));
     }
-    /*inline*/ case Optional: {
-        ast_t *val = Match(ast, Optional)->value;
-        return Texts(must(termify_inline(val, comments)), "?");
-    }
     /*inline*/ case NonOptional: {
         ast_t *val = Match(ast, NonOptional)->value;
         return Texts(must(termify_inline(val, comments)), "!");
@@ -697,11 +693,6 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, StackReference)->value;
         return Texts("&(", termify(val, comments, indent), ")");
-    }
-    /*multiline*/ case Optional: {
-        if (inlined_fits) return inlined;
-        ast_t *val = Match(ast, Optional)->value;
-        return Texts(termify(val, comments, indent), "?");
     }
     /*multiline*/ case NonOptional: {
         if (inlined_fits) return inlined;

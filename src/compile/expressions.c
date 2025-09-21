@@ -113,7 +113,6 @@ Text_t compile(env_t *env, ast_t *ast) {
     }
     case HeapAllocate:
     case StackReference: return compile_typed_allocation(env, ast, get_type(env, ast));
-    case Optional: return compile_optional(env, ast);
     case NonOptional: return compile_non_optional(env, ast);
     case Power:
     case Multiply:

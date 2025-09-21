@@ -54,10 +54,9 @@ ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos) {
     ast_t *key = NewAST(ctx->file, pos, pos, Var, .name = op_str);
     for (bool progress = true; progress;) {
         ast_t *new_term;
-        progress =
-            (false || (new_term = parse_index_suffix(ctx, key)) || (new_term = parse_method_call_suffix(ctx, key))
-             || (new_term = parse_field_suffix(ctx, key)) || (new_term = parse_fncall_suffix(ctx, key))
-             || (new_term = parse_optional_suffix(ctx, key)) || (new_term = parse_non_optional_suffix(ctx, key)));
+        progress = (false || (new_term = parse_index_suffix(ctx, key))
+                    || (new_term = parse_method_call_suffix(ctx, key)) || (new_term = parse_field_suffix(ctx, key))
+                    || (new_term = parse_fncall_suffix(ctx, key)) || (new_term = parse_non_optional_suffix(ctx, key)));
         if (progress) key = new_term;
     }
     if (key && key->tag == Var) key = NULL;
@@ -98,8 +97,7 @@ ast_t *parse_heap_alloc(parse_ctx_t *ctx, const char *pos) {
 
     ast_t *ast = NewAST(ctx->file, start, pos, HeapAllocate, .value = val);
     for (;;) {
-        ast_t *next = parse_optional_suffix(ctx, ast);
-        if (!next) next = parse_non_optional_suffix(ctx, ast);
+        ast_t *next = parse_non_optional_suffix(ctx, ast);
         if (!next) break;
         ast = next;
     }
@@ -123,8 +121,7 @@ ast_t *parse_stack_reference(parse_ctx_t *ctx, const char *pos) {
 
     ast_t *ast = NewAST(ctx->file, start, pos, StackReference, .value = val);
     for (;;) {
-        ast_t *next = parse_optional_suffix(ctx, ast);
-        if (!next) next = parse_non_optional_suffix(ctx, ast);
+        ast_t *next = parse_non_optional_suffix(ctx, ast);
         if (!next) break;
         ast = next;
     }
@@ -212,7 +209,7 @@ ast_t *parse_term(parse_ctx_t *ctx, const char *pos) {
         progress =
             (false || (new_term = parse_index_suffix(ctx, term)) || (new_term = parse_method_call_suffix(ctx, term))
              || (new_term = parse_field_suffix(ctx, term)) || (new_term = parse_fncall_suffix(ctx, term))
-             || (new_term = parse_optional_suffix(ctx, term)) || (new_term = parse_non_optional_suffix(ctx, term)));
+             || (new_term = parse_non_optional_suffix(ctx, term)));
         if (progress) term = new_term;
     }
     return term;

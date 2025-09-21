@@ -3,9 +3,9 @@ func main()
 	= {"one"=1, "two"=2}
 
 	>> t["one"]
-	= 1?
+	= 1
 	>> t["two"]
-	= 2?
+	= 2
 	>> t["???"]
 	= none
 	>> t["one"]!
@@ -33,16 +33,16 @@ func main()
 	= {"three"=3; fallback={"one"=1, "two"=2}}
 
 	>> t2["one"]
-	= 1?
+	= 1
 	>> t2["three"]
-	= 3?
+	= 3
 	>> t2["???"]
 	= none
 
 	>> t2.length
 	= 1
 	>> t2.fallback
-	= {"one"=1, "two"=2}?
+	= {"one"=1, "two"=2}
 
 	t2_str := ""
 	for k,v in t2

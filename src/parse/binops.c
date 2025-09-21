@@ -73,8 +73,7 @@ ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightness) {
                 progress =
                     (false || (new_term = parse_index_suffix(ctx, key))
                      || (new_term = parse_method_call_suffix(ctx, key)) || (new_term = parse_field_suffix(ctx, key))
-                     || (new_term = parse_fncall_suffix(ctx, key)) || (new_term = parse_optional_suffix(ctx, key))
-                     || (new_term = parse_non_optional_suffix(ctx, key)));
+                     || (new_term = parse_fncall_suffix(ctx, key)) || (new_term = parse_non_optional_suffix(ctx, key)));
                 if (progress) key = new_term;
             }
             if (key && key->tag == Var) key = NULL;

@@ -113,13 +113,6 @@ Text_t check_none(type_t *t, Text_t value) {
 }
 
 public
-Text_t compile_optional(env_t *env, ast_t *ast) {
-    ast_t *value = Match(ast, Optional)->value;
-    Text_t value_code = compile(env, value);
-    return promote_to_optional(get_type(env, value), value_code);
-}
-
-public
 Text_t compile_non_optional(env_t *env, ast_t *ast) {
     ast_t *value = Match(ast, NonOptional)->value;
     if (value->tag == Index && Match(value, Index)->index != NULL) return compile_indexing(env, value, true);

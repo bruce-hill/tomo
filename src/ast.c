@@ -269,7 +269,6 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(LangDef, "(LangDef \"", data.name, "\" ", ast_to_sexp(data.namespace), ")");
         T(Index, "(Index ", ast_to_sexp(data.indexed), " ", ast_to_sexp(data.index), ")");
         T(FieldAccess, "(FieldAccess ", ast_to_sexp(data.fielded), " \"", data.field, "\")");
-        T(Optional, "(Optional ", ast_to_sexp(data.value), ")");
         T(NonOptional, "(NonOptional ", ast_to_sexp(data.value), ")");
         T(DocTest, "(DocTest ", ast_to_sexp(data.expr), optional_sexp("expected", data.expected), ")");
         T(Assert, "(Assert ", ast_to_sexp(data.expr), " ", optional_sexp("message", data.message), ")");
@@ -653,10 +652,6 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
     }
     case FieldAccess: {
         ast_visit(Match(ast, FieldAccess)->fielded, visitor, userdata);
-        return;
-    }
-    case Optional: {
-        ast_visit(Match(ast, Optional)->value, visitor, userdata);
         return;
     }
     case NonOptional: {

@@ -62,7 +62,7 @@ func main()
         assert deserialize(bytes -> MyEnum) == obj
 
     do
-        >> obj := "Hello"?
+        >> obj : Text? = "Hello"
         >> bytes := obj.serialized()
         assert deserialize(bytes -> Text?) == obj
 

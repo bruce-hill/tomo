@@ -269,7 +269,6 @@ typedef enum {
     LangDef,
     Index,
     FieldAccess,
-    Optional,
     NonOptional,
     DocTest,
     Assert,
@@ -438,7 +437,7 @@ struct ast_s {
         } FieldAccess;
         struct {
             ast_t *value;
-        } Optional, NonOptional;
+        } NonOptional;
         struct {
             ast_t *expr, *expected;
             bool skip_source : 1;
