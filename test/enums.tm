@@ -15,6 +15,19 @@ func choose_text(f:Foo->Text)
 	else
 		return "else: $f"
 
+func enum_arg_function(thing:enum(Zero, One(x:Int), Two(x,y:Int)))
+	>> thing
+
+func enum_return_function(i:Int -> enum(Zero, One, Many))
+	if i == 0
+		return Zero
+	else if i == 1
+		return One
+	else
+		return Many
+
+struct EnumFields(x:enum(A, B, C))
+
 func main()
 	>> Foo.Zero
 	= Foo.Zero
@@ -77,9 +90,32 @@ func main()
 		) for x in [Foo.Zero, Foo.One(1), Foo.Two(2,2), Foo.Three(3,"",no)]
 	]
 	= ["Zero", "Small 1", "Small 2", "Other"]
-	
+
 	>> expr := when cases[1]! is One(y)
 		y + 1
 	else
 		-1
 	= 2
+
+	>> enum_arg_function(Zero)
+	>> enum_arg_function(Two(2,3))
+
+	do
+		e : enum(One, Two) = One
+		>> e
+		>> e = Two
+		>> when e is One
+			say("one")
+		is Two
+			say("two")
+
+	>> enum_return_function(0)
+	= Zero
+	>> enum_return_function(1)
+	= One
+	>> enum_return_function(2)
+	= Many
+
+	>> EnumFields(A)
+	= EnumFields(x=A)
+
