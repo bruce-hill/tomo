@@ -5,7 +5,6 @@
 #include "context.h"
 
 ast_t *parse_block(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_defer(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_do(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_for(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_if(parse_ctx_t *ctx, const char *pos);

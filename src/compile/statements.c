@@ -84,40 +84,11 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
     case Skip: return compile_skip(env, ast);
     case Stop: return compile_stop(env, ast);
     case Pass: return Text(";");
-    case Defer: {
-        ast_t *body = Match(ast, Defer)->body;
-        Table_t closed_vars = get_closed_vars(env, NULL, body);
-
-        static int defer_id = 0;
-        env_t *defer_env = fresh_scope(env);
-        Text_t code = EMPTY_TEXT;
-        for (int64_t i = 0; i < closed_vars.entries.length; i++) {
-            struct {
-                const char *name;
-                binding_t *b;
-            } *entry = closed_vars.entries.data + closed_vars.entries.stride * i;
-            if (entry->b->type->tag == ModuleType) continue;
-            if (Text$starts_with(entry->b->code, Text("userdata->"), NULL)) {
-                Table$str_set(defer_env->locals, entry->name, entry->b);
-            } else {
-                Text_t defer_name = Texts("defer$", ++defer_id, "$", entry->name);
-                defer_id += 1;
-                code = Texts(code, compile_declaration(entry->b->type, defer_name), " = ", entry->b->code, ";\n");
-                set_binding(defer_env, entry->name, entry->b->type, defer_name);
-            }
-        }
-        env->deferred = new (deferral_t, .defer_env = defer_env, .block = body, .next = env->deferred);
-        return code;
-    }
     case Return: {
         if (!env->fn) code_err(ast, "This return statement is not inside any function");
         ast_t *ret = Match(ast, Return)->value;
 
         Text_t code = EMPTY_TEXT;
-        for (deferral_t *deferred = env->deferred; deferred; deferred = deferred->next) {
-            code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
-        }
-
         type_t *ret_type = get_function_return_type(env, env->fn);
         if (ret) {
             if (ret_type->tag == VoidType || ret_type->tag == AbortType)
@@ -133,11 +104,6 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
                 }
             }
             Text_t value = compile_to_type(env, ret, ret_type);
-            if (env->deferred) {
-                code = Texts(compile_declaration(ret_type, Text("ret")), " = ", value, ";\n", code);
-                value = Text("ret");
-            }
-
             return Texts(code, "return ", value, ";");
         } else {
             if (ret_type->tag != VoidType)

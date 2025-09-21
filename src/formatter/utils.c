@@ -64,7 +64,6 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     case While:
     case For:
     case Block:
-    case Defer:
     case ConvertDef:
     case FunctionDef:
     case Lambda:
@@ -98,7 +97,6 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     case While:
     case For:
     case Block:
-    case Defer:
     case ConvertDef:
     case FunctionDef:
     case Lambda:

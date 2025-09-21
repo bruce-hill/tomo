@@ -14,17 +14,10 @@ typedef struct {
     Text_t variable_initializers;
 } compilation_unit_t;
 
-typedef struct deferral_s {
-    struct deferral_s *next;
-    struct env_s *defer_env;
-    ast_t *block;
-} deferral_t;
-
 typedef struct loop_ctx_s {
     struct loop_ctx_s *next;
     const char *loop_name;
     ast_list_t *loop_vars;
-    deferral_t *deferred;
     Text_t skip_label, stop_label;
 } loop_ctx_t;
 
@@ -45,7 +38,6 @@ typedef struct env_s {
     compilation_unit_t *code;
     ast_t *fn;
     loop_ctx_t *loop_ctx;
-    deferral_t *deferred;
     Closure_t *comprehension_action;
     bool do_source_mapping : 1;
     type_t *current_type;

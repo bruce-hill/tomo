@@ -260,7 +260,6 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Skip, "(Skip ", quoted_text(data.target), ")");
         T(Stop, "(Stop ", quoted_text(data.target), ")");
         T(Pass, "(Pass)");
-        T(Defer, "(Defer ", ast_to_sexp(data.body), ")");
         T(Return, "(Return ", ast_to_sexp(data.value), ")");
         T(StructDef, "(StructDef \"", data.name, "\" ", arg_defs_to_sexp(data.fields), " ", ast_to_sexp(data.namespace),
           ")");
@@ -619,10 +618,6 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
     case Skip:
     case Stop:
     case Pass: return;
-    case Defer: {
-        ast_visit(Match(ast, Defer)->body, visitor, userdata);
-        return;
-    }
     case Return: {
         ast_visit(Match(ast, Return)->value, visitor, userdata);
         return;

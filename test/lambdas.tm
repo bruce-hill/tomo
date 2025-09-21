@@ -31,6 +31,6 @@ func main()
     fn := func()
         return func()
             return func()
-                defer say("$outer")
+                say("$outer")
                 return outer
     assert fn()()() == "Hello"

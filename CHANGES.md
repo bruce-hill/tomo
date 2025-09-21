@@ -20,6 +20,7 @@
   - Explicitly optional values can be declared as `my_var : T? = value`.
 - Deprecated `>> ... = ...` form of doctests. They are now called "debug logs"
   and you can specify multiple values: `>> a, b, c`
+- Deprecated `defer` statement
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
 - Standardized text methods for Unicode encodings:
