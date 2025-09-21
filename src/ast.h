@@ -270,7 +270,7 @@ typedef enum {
     Index,
     FieldAccess,
     NonOptional,
-    DocTest,
+    DebugLog,
     Assert,
     Use,
     InlineCCode,
@@ -439,9 +439,8 @@ struct ast_s {
             ast_t *value;
         } NonOptional;
         struct {
-            ast_t *expr, *expected;
-            bool skip_source : 1;
-        } DocTest;
+            ast_list_t *values;
+        } DebugLog;
         struct {
             ast_t *expr, *message;
         } Assert;

@@ -69,14 +69,6 @@ void end_inspect(const void *expr, const TypeInfo_t *type);
         expr;                                                                                                          \
         end_inspect(NULL, typeinfo);                                                                                   \
     }
-__attribute__((nonnull)) void test_value(const char *filename, int64_t start, int64_t end, const void *expr,
-                                         const void *expected, const TypeInfo_t *type);
-#define test(type, expr, expected, typeinfo, start, end)                                                               \
-    {                                                                                                                  \
-        type _expr = expr;                                                                                             \
-        type _expected = expected;                                                                                     \
-        test_value(__SOURCE_FILE__, start, end, &_expr, &_expected, typeinfo);                                         \
-    }
 
 void say(Text_t text, bool newline);
 Text_t ask(Text_t prompt, bool bold, bool force_tty);

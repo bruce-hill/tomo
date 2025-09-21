@@ -87,6 +87,7 @@ void start_inspect(const char *filename, int64_t start, int64_t end) {
 
     if (file) {
         size_t first_line_len = strcspn(file->text + start, "\r\n");
+        if (first_line_len > (size_t)(end - start)) first_line_len = (size_t)(end - start);
         const char *slash = strrchr(filename, '/');
         const char *file_base = slash ? slash + 1 : filename;
 
@@ -130,43 +131,6 @@ void end_inspect(const void *expr, const TypeInfo_t *type) {
         fprint(stdout, USE_COLOR ? "\x1b[33;1m=\x1b[0m " : "= ", expr_text, USE_COLOR ? " \x1b[2m: \x1b[36m" : " : ",
                type_name, USE_COLOR ? "\033[m" : "");
     }
-}
-
-__attribute__((nonnull)) public
-void test_value(const char *filename, int64_t start, int64_t end, const void *expr, const void *expected,
-                const TypeInfo_t *type) {
-    if (generic_equal(expr, expected, type)) return;
-
-    print_stacktrace(stderr, 2);
-    fprint(stderr, "");
-    fflush(stderr);
-
-    start_inspect(filename, start, end);
-    end_inspect(expr, type);
-    fflush(stdout);
-
-    Text_t expr_text = generic_as_text(expr, USE_COLOR, type);
-    Text_t expected_text = generic_as_text(expected, USE_COLOR, type);
-    if (USE_COLOR) {
-        fprint(stderr,
-               "\n\x1b[31;7m ==================== TEST FAILED ==================== \x1b[0;1m\n\n"
-               "You expected: \x1b[m",
-               expected_text,
-               "\x1b[0m\n"
-               "\x1b[1m   But I got:\x1b[m ",
-               expr_text, "\n");
-    } else {
-        fprint(stderr,
-               "\n==================== TEST FAILED ====================\n\n"
-               "You expected: ",
-               expected_text,
-               "\n"
-               "   But I got: ",
-               expr_text, "\n");
-    }
-
-    fflush(stderr);
-    raise(SIGABRT);
 }
 
 public

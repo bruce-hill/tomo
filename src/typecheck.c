@@ -263,8 +263,9 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
 
 void prebind_statement(env_t *env, ast_t *statement) {
     switch (statement->tag) {
-    case DocTest: {
-        prebind_statement(env, Match(statement, DocTest)->expr);
+    case DebugLog: {
+        for (ast_list_t *value = Match(statement, DebugLog)->values; value; value = value->next)
+            prebind_statement(env, value->ast);
         break;
     }
     case Assert: {
@@ -351,8 +352,9 @@ void prebind_statement(env_t *env, ast_t *statement) {
 
 void bind_statement(env_t *env, ast_t *statement) {
     switch (statement->tag) {
-    case DocTest: {
-        bind_statement(env, Match(statement, DocTest)->expr);
+    case DebugLog: {
+        for (ast_list_t *value = Match(statement, DebugLog)->values; value; value = value->next)
+            prebind_statement(env, value->ast);
         break;
     }
     case Assert: {
@@ -1105,7 +1107,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case Declare:
     case Assign:
     case UPDATE_CASES:
-    case DocTest:
+    case DebugLog:
     case Assert: {
         return Type(VoidType);
     }

@@ -1,4 +1,4 @@
-// This file defines how to compile doctests
+// This file defines how to compile debug logs
 
 #pragma once
 
@@ -6,4 +6,4 @@
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 
-Text_t compile_doctest(env_t *env, ast_t *ast);
+Text_t compile_debug_log(env_t *env, ast_t *ast);

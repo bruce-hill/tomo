@@ -36,7 +36,7 @@ static Text_t compile_simple_update_assignment(env_t *env, ast_t *ast, const cha
 static Text_t _compile_statement(env_t *env, ast_t *ast) {
     switch (ast->tag) {
     case When: return compile_when_statement(env, ast);
-    case DocTest: return compile_doctest(env, ast);
+    case DebugLog: return compile_debug_log(env, ast);
     case Assert: return compile_assertion(env, ast);
     case Declare: {
         DeclareMatch(decl, ast, Declare);

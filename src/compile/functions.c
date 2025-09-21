@@ -556,8 +556,9 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, NonOptional)->value);
         break;
     }
-    case DocTest: {
-        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, DocTest)->expr);
+    case DebugLog: {
+        for (ast_list_t *value = Match(ast, DebugLog)->values; value; value = value->next)
+            add_closed_vars(closed_vars, enclosing_scope, env, value->ast);
         break;
     }
     case Assert: {

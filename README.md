@@ -78,7 +78,7 @@ are implemented in Tomo.
   [text](docs/text.md).  
 - Full-featured [libraries/modules](docs/libraries.md)
 - [Full UTF8 support](docs/text.md) for all text operations
-- Built-in doctests with syntax highlighting
+- Built-in debugging prints with syntax highlighting
 - [Automatic command line argument parsing with type safety](docs/command-line-parsing.md)
 - [Easy interoperability with C](docs/c-interoperability.md)
 - Built-in [data serialization and deserialization](docs/serialization.md).

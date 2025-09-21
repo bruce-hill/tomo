@@ -2,7 +2,6 @@
 
 #include <gc.h>
 #include <stdbool.h>
-#include <string.h>
 
 #include "../ast.h"
 #include "../stdlib/util.h"
@@ -96,20 +95,24 @@ ast_t *parse_update(parse_ctx_t *ctx, const char *pos) {
                 .__data.PlusUpdate.rhs = rhs);
 }
 
-ast_t *parse_doctest(parse_ctx_t *ctx, const char *pos) {
+ast_t *parse_debug_log(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, ">>")) return NULL;
     spaces(&pos);
-    ast_t *expr = expect(ctx, start, &pos, parse_statement, "I couldn't parse the expression for this doctest");
-    whitespace(ctx, &pos);
-    ast_t *expected = NULL;
-    if (match(&pos, "=")) {
+    ast_t *first_value =
+        expect(ctx, start, &pos, parse_statement, "I couldn't parse the expression for this debugging message");
+    ast_list_t *values = new (ast_list_t, .ast = first_value, .next = NULL);
+    spaces(&pos);
+    while (match(&pos, ",")) {
         spaces(&pos);
-        expected = expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the expected expression here");
-    } else {
-        pos = expr->end;
+        ast_t *value = optional(ctx, &pos, parse_statement);
+        if (!value) break;
+        values = new (ast_list_t, .ast = value, .next = values);
+        spaces(&pos);
     }
-    return NewAST(ctx->file, start, pos, DocTest, .expr = expr, .expected = expected);
+    REVERSE_LIST(values);
+    whitespace(ctx, &pos);
+    return NewAST(ctx->file, start, pos, DebugLog, .values = values);
 }
 
 ast_t *parse_assert(parse_ctx_t *ctx, const char *pos) {
@@ -130,7 +133,7 @@ ast_t *parse_assert(parse_ctx_t *ctx, const char *pos) {
 
 ast_t *parse_statement(parse_ctx_t *ctx, const char *pos) {
     ast_t *stmt = NULL;
-    if ((stmt = parse_declaration(ctx, pos)) || (stmt = parse_doctest(ctx, pos)) || (stmt = parse_assert(ctx, pos)))
+    if ((stmt = parse_declaration(ctx, pos)) || (stmt = parse_debug_log(ctx, pos)) || (stmt = parse_assert(ctx, pos)))
         return stmt;
 
     if (!(false || (stmt = parse_update(ctx, pos)) || (stmt = parse_assignment(ctx, pos))))

@@ -11,7 +11,7 @@ This directory contains the source files for actual cross-compilation
 - Comparisons (`a == b`, `a > b`, etc): [comparisons.c](comparisons.c)
 - Conditionals (`if` statements): [conditionals.c](conditionals.c)
 - Variable declarations: [declarations.c](declarations.c)
-- Doctests (`>> test`): [doctests.c](doctests.c)
+- Debug logs (`>> expr`): [debuglog.c](debuglog.c)
 - Enums (`enum`): [enums.c](enums.c)
 - General logic for compiling expressions: [expressions.c](expressions.c)
 - Field accesses (`foo.baz`) [fieldaccess.c](fieldaccess.c)

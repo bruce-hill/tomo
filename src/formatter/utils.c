@@ -44,16 +44,16 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     for (;;) {
         if (first->tag == Declare && Match(first, Declare)->value) {
             first = Match(first, Declare)->value;
-        } else if (first->tag == DocTest && Match(first, DocTest)->expr && Match(first, DocTest)->expected == NULL) {
-            first = Match(first, DocTest)->expr;
+        } else if (first->tag == DebugLog) {
+            return 1;
         } else break;
     }
 
     for (;;) {
         if (second->tag == Declare && Match(second, Declare)->value) {
             second = Match(second, Declare)->value;
-        } else if (second->tag == DocTest && Match(second, DocTest)->expr && Match(second, DocTest)->expected == NULL) {
-            second = Match(second, DocTest)->expr;
+        } else if (second->tag == DebugLog) {
+            return 1;
         } else break;
     }
 

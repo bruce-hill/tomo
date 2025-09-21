@@ -10,8 +10,8 @@
 #include "comparisons.h" // IWYU pragma: export
 #include "compilation.h" // IWYU pragma: export
 #include "conditionals.h" // IWYU pragma: export
+#include "debuglog.h" // IWYU pragma: export
 #include "declarations.h" // IWYU pragma: export
-#include "doctests.h" // IWYU pragma: export
 #include "enums.h" // IWYU pragma: export
 #include "expressions.h" // IWYU pragma: export
 #include "fieldaccess.h" // IWYU pragma: export

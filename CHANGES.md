@@ -16,6 +16,8 @@
   - Use `C_code` instead.
 - Deprecated the postfix `?` to make values optional.
   - Explicitly optional values can be declared as `my_var : T? = value`.
+- Deprecated `>> ... = ...` form of doctests. They are now called "debug logs"
+  and you can specify multiple values: `>> a, b, c`
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
 - Standardized text methods for Unicode encodings:

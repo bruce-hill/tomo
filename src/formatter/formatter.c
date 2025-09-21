@@ -119,7 +119,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case Extend:
     /*inline*/ case FunctionDef:
     /*inline*/ case ConvertDef:
-    /*inline*/ case DocTest:
+    /*inline*/ case DebugLog:
         return NONE_TEXT;
     /*inline*/ case Assert: {
         DeclareMatch(assert, ast, Assert);
@@ -775,13 +775,13 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         return Texts(termify(call->self, comments, indent), ".", Text$from_str(call->name), "(", args,
                      Text$has(args, Text("\n")) ? Texts("\n", indent) : EMPTY_TEXT, ")");
     }
-    /*multiline*/ case DocTest: {
-        DeclareMatch(test, ast, DocTest);
-        Text_t expr = fmt(test->expr, comments, indent);
-        Text_t code = Texts(">> ", expr);
-        if (test->expected) {
-            Text_t expected = fmt(test->expected, comments, indent);
-            code = Texts(code, "\n", indent, "= ", expected);
+    /*multiline*/ case DebugLog: {
+        DeclareMatch(debug, ast, DebugLog);
+        Text_t code = Texts(">> ");
+        for (ast_list_t *value = debug->values; value; value = value->next) {
+            Text_t expr = fmt(value->ast, comments, indent);
+            code = Texts(code, expr);
+            if (value->next) code = Texts(code, ", ");
         }
         return code;
     }

@@ -270,7 +270,7 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Index, "(Index ", ast_to_sexp(data.indexed), " ", ast_to_sexp(data.index), ")");
         T(FieldAccess, "(FieldAccess ", ast_to_sexp(data.fielded), " \"", data.field, "\")");
         T(NonOptional, "(NonOptional ", ast_to_sexp(data.value), ")");
-        T(DocTest, "(DocTest ", ast_to_sexp(data.expr), optional_sexp("expected", data.expected), ")");
+        T(DebugLog, "(DebugLog ", ast_list_to_sexp(data.values), ")");
         T(Assert, "(Assert ", ast_to_sexp(data.expr), " ", optional_sexp("message", data.message), ")");
         T(Use, "(Use ", optional_sexp("var", data.var), " ", quoted_text(data.path), ")");
         T(InlineCCode, "(InlineCCode ", ast_list_to_sexp(data.chunks), optional_type_sexp("type", data.type_ast), ")");
@@ -658,10 +658,9 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
         ast_visit(Match(ast, NonOptional)->value, visitor, userdata);
         return;
     }
-    case DocTest: {
-        DeclareMatch(test, ast, DocTest);
-        ast_visit(test->expr, visitor, userdata);
-        ast_visit(test->expected, visitor, userdata);
+    case DebugLog: {
+        DeclareMatch(show, ast, DebugLog);
+        ast_visit_list(show->values, visitor, userdata);
         return;
     }
     case Assert: {

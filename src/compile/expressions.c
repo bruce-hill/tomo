@@ -249,7 +249,7 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Stop:
     case Pass:
     case Return:
-    case DocTest:
+    case DebugLog:
     case Assert: code_err(ast, "This is not a valid expression");
     case Unknown:
     default: code_err(ast, "Unknown AST: ", ast_to_sexp_str(ast));
