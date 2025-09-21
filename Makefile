@@ -109,6 +109,7 @@ else
 	LIBTOMO_FLAGS += -Wl,-soname,libtomo_$(TOMO_VERSION).so
 endif
 EXE_FILE=tomo_$(TOMO_VERSION)
+MODULES_FILE=build/lib/tomo_$(TOMO_VERSION)/modules.ini
 
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c src/compile/*.c src/parse/*.c src/formatter/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
@@ -116,7 +117,7 @@ TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
-all: config.mk check-c-compiler check-libs build/include/tomo_$(TOMO_VERSION) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) build/bin/$(EXE_FILE)
+all: config.mk check-c-compiler check-libs build/include/tomo_$(TOMO_VERSION) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) build/bin/$(EXE_FILE)
 	@$(ECHO) "All done!"
 
 build/include/tomo_$(TOMO_VERSION):
@@ -142,6 +143,10 @@ build/lib/$(LIB_FILE): $(STDLIB_OBJS)
 	@mkdir -p build/lib
 	@$(ECHO) $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
+
+$(MODULES_FILE): modules/core.ini modules/examples.ini
+	@mkdir -p build/lib/tomo_$(TOMO_VERSION)
+	@cat $^ > $@
 
 build/lib/$(AR_FILE): $(STDLIB_OBJS)
 	@mkdir -p build/lib
@@ -217,7 +222,7 @@ check-utilities: check-c-compiler
 	@which debugedit 2>/dev/null >/dev/null \
 		|| printf '\033[33;1m%s\033[m\n' "I couldn't find 'debugedit' on your system! Try installing the package 'debugedit' with your package manager. (It's not required though)"
 
-install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) check-utilities
+install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) check-utilities
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		echo $$PATH; \
 		printf "\033[31;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
@@ -230,9 +235,10 @@ install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) 
 		$(SUDO) -u $(OWNER) $(MAKE) install-files; \
 		exit 0; \
 	fi; \
-	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo_$(TOMO_VERSION)" "$(PREFIX)/lib"; \
+	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo_$(TOMO_VERSION)" "$(PREFIX)/lib" "$(PREFIX)/lib/tomo_$(TOMO_VERSION)"; \
 	cp src/stdlib/*.h "$(PREFIX)/include/tomo_$(TOMO_VERSION)/"; \
 	cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"; \
+	cp $(MODULES_FILE) "$(PREFIX)/lib/tomo_$(TOMO_VERSION)"; \
 	rm -f "$(PREFIX)/bin/$(EXE_FILE)"; \
 	cp build/bin/$(EXE_FILE) "$(PREFIX)/bin/"; \
 	cp man/man1/* "$(PREFIX)/man/man1/"; \

@@ -101,6 +101,9 @@ module_info_t get_used_module_info(ast_t *use) {
     if (cached) return **cached;
     const char *name = Match(use, Use)->path;
     module_info_t *info = new (module_info_t, .name = name);
+    Path_t tomo_default_modules =
+        Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo_" TOMO_VERSION "/modules.ini"));
+    read_modules_ini(tomo_default_modules, info);
     read_modules_ini(Path$sibling(Path$from_str(use->file->filename), Text("modules.ini")), info);
     read_modules_ini(Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false), info);
     Table$set(&cache, &use, &info, cache_type);
