@@ -534,14 +534,12 @@ Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *type) {
     __typeof(type->TableInfo) table = type->TableInfo;
 
     if (!t) {
-        if (table.value != &Void$info)
-            return Text$concat(Text("{"), generic_as_text(NULL, false, table.key), Text("="),
-                               generic_as_text(NULL, false, table.value), Text("}"));
-        else return Text$concat(Text("|"), generic_as_text(NULL, false, table.key), Text("|"));
+        return Text$concat(Text("{"), generic_as_text(NULL, false, table.key), Text("="),
+                           generic_as_text(NULL, false, table.value), Text("}"));
     }
 
     int64_t val_off = (int64_t)value_offset(type);
-    Text_t text = table.value == &Void$info ? Text("|") : Text("{");
+    Text_t text = Text("{");
     for (int64_t i = 0, length = Table$length(*t); i < length; i++) {
         if (i > 0) text = Text$concat(text, Text(", "));
         void *entry = GET_ENTRY(*t, i);
@@ -554,7 +552,7 @@ Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *type) {
         text = Text$concat(text, Text("; fallback="), Table$as_text(t->fallback, colorize, type));
     }
 
-    text = Text$concat(text, table.value == &Void$info ? Text("|") : Text("}"));
+    text = Text$concat(text, Text("}"));
     return text;
 }
 

@@ -26,7 +26,6 @@ This directory contains the source files for actual cross-compilation
 - Pointers (`@` and `&`): [pointers.c](pointers.c)
 - Type promotions of values: [promotions.c](promotions.c)
 - Reductions (`(+: nums)`): [reductions.c](reductions.c)
-- Sets (`|1, 2, 3|`): [sets.c](sets.c)
 - General logic for compiling statements: [statements.c](statements.c)
 - Structs (`struct`): [structs.c](structs.c)
 - Tables (`{1=10, 2=20}`): [tables.c](tables.c)

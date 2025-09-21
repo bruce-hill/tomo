@@ -589,7 +589,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case List: {
         if (inlined_fits) return inlined;
         ast_list_t *items = Match(ast, List)->items;
-        Text_t code = ast->tag == List ? Text("[") : Text("|");
+        Text_t code = Text("[");
         const char *comment_pos = ast->start;
         for (ast_list_t *item = items; item; item = item->next) {
             for (OptionalText_t comment;
