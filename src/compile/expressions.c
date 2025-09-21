@@ -42,7 +42,7 @@ Text_t compile_empty(type_t *t) {
     case ByteType: return Text("((Byte_t)0)");
     case BoolType: return Text("((Bool_t)no)");
     case ListType: return Text("((List_t){})");
-    case TableType:
+    case TableType: return Text("((Table_t){})");
     case TextType: return Text("Text(\"\")");
     case CStringType: return Text("\"\"");
     case PointerType: {
