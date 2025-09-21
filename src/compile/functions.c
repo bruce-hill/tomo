@@ -188,7 +188,6 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
             return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
         }
 
-        type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
         if (t->tag == TextType) {
             if (!call->args) code_err(ast, "This constructor needs a value");
             if (!type_eq(t, TEXT_TYPE))
@@ -196,6 +195,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
                                    "these arguments");
             // Text constructor:
             if (!call->args || call->args->next) code_err(call->fn, "This constructor takes exactly 1 argument");
+            type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
             if (type_eq(actual, t)) return compile(env, call->args->value);
             return expr_as_text(compile(env, call->args->value), actual, Text("no"));
         } else if (t->tag == CStringType) {
@@ -208,6 +208,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
             else if (call->args->value->tag == TextJoin && Match(call->args->value, TextJoin)->children->next == NULL)
                 return compile_text_literal(
                     Match(Match(call->args->value, TextJoin)->children->ast, TextLiteral)->text);
+            type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
             return Texts("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, Text("no")), ")");
         } else if (t->tag == StructType) {
             return compile_struct_literal(env, ast, t, call->args);
