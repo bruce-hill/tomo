@@ -223,7 +223,7 @@ func main()
     # Test comparisons, hashing, equality:
     assert none != optional
     assert optional == 5
-    >> nones : {Int?=Bool} = {none=yes, none=yes}
+    >> nones : {Int?:Bool} = {none: yes, none: yes}
     assert nones.keys == [none]
     assert [5, none, none, 6].sorted() == [none, none, 5, 6]
 
