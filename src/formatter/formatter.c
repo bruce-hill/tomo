@@ -635,7 +635,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case TableEntry: {
         if (inlined_fits) return inlined;
         DeclareMatch(entry, ast, TableEntry);
-        return Texts(fmt(entry->key, comments, indent), "=", fmt(entry->value, comments, indent));
+        return Texts(fmt(entry->key, comments, indent), ": ", fmt(entry->value, comments, indent));
     }
     /*multiline*/ case Declare: {
         if (inlined_fits) return inlined;
