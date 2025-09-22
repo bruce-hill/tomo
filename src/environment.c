@@ -656,7 +656,7 @@ env_t *for_scope(env_t *env, ast_t *ast) {
 }
 
 env_t *get_namespace_by_type(env_t *env, type_t *t) {
-    t = value_type(t);
+    t = non_optional(value_type(t));
     switch (t->tag) {
     case ListType: return NULL;
     case TableType: return NULL;
