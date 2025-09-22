@@ -30,8 +30,7 @@ force_tty | `Bool` | Whether or not to force the use of /dev/tty.  | `yes`
 
 **Example:**
 ```tomo
->> ask("What's your name? ")
-= "Arthur Dent"
+assert ask("What's your name? ") == "Arthur Dent"
 
 ```
 ## exit
@@ -92,8 +91,8 @@ name | `Text` | The name of the environment variable to get.  | -
 
 **Example:**
 ```tomo
->> getenv("TERM")
-= "xterm-256color"?
+assert getenv("TERM") == "xterm-256color"
+assert getenv("not_a_variable") == none
 
 ```
 ## print

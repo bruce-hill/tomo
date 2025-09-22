@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.utf32 3 2025-09-09 "Tomo man-pages"
+.TH Text.utf32 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.utf32 \- get UTF32 codepoints
 .SH LIBRARY
@@ -29,6 +29,5 @@ A list of 32-bit integer Unicode code points (`[Int32]`).
 
 .SH EXAMPLES
 .EX
->> "Amélie".utf32()
-= [65, 109, 233, 108, 105, 101]
+assert "Amélie".utf32() == [65, 109, 233, 108, 105, 101]
 .EE

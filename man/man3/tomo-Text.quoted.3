@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.quoted 3 2025-04-30 "Tomo man-pages"
+.TH Text.quoted 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.quoted \- add quotation marks and escapes
 .SH LIBRARY
@@ -31,6 +31,5 @@ The text formatted as a quoted text.
 
 .SH EXAMPLES
 .EX
->> "one\[rs]ntwo".quoted()
-= "\[rs]"one\[rs]\[rs]ntwo\[rs]""
+assert "one\[rs]ntwo".quoted() == "\[rs]"one\[rs]\[rs]ntwo\[rs]""
 .EE

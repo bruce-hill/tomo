@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.slice 3 2025-04-30 "Tomo man-pages"
+.TH List.slice 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 List.slice \- get a slice of a list
 .SH LIBRARY
@@ -31,9 +31,6 @@ A new list spanning the given indices. Note: negative indices are counted from t
 
 .SH EXAMPLES
 .EX
->> [10, 20, 30, 40, 50].slice(2, 4)
-= [20, 30, 40]
-
->> [10, 20, 30, 40, 50].slice(-3, -2)
-= [30, 40]
+assert [10, 20, 30, 40, 50].slice(2, 4) == [20, 30, 40]
+assert [10, 20, 30, 40, 50].slice(-3, -2) == [30, 40]
 .EE

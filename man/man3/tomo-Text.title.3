@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.title 3 2025-04-30 "Tomo man-pages"
+.TH Text.title 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.title \- titlecase
 .SH LIBRARY
@@ -30,10 +30,8 @@ The text in title case.
 
 .SH EXAMPLES
 .EX
->> "amélie".title()
-= "Amélie"
+assert "amélie".title() == "Amélie"
 
 # In Turkish, uppercase "i" is "İ"
->> "i".title(language="tr_TR")
-= "İ"
+assert "i".title(language="tr_TR") == "İ"
 .EE

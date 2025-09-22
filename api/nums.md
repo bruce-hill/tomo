@@ -132,8 +132,7 @@ n | `Num` | The number whose absolute value is to be computed.  | -
 
 **Example:**
 ```tomo
->> (-3.5).abs()
-= 3.5
+assert (-3.5).abs() == 3.5
 
 ```
 ## Num.acos
@@ -153,8 +152,7 @@ x | `Num` | The number for which the arc cosine is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).acos() // -> (π/2)
-= 1.5708
+assert (0.0).acos() == 1.5708
 
 ```
 ## Num.acosh
@@ -174,8 +172,7 @@ x | `Num` | The number for which the inverse hyperbolic cosine is to be calculat
 
 **Example:**
 ```tomo
->> (1.0).acosh()
-= 0
+assert (1.0).acosh() == 0
 
 ```
 ## Num.asin
@@ -195,8 +192,7 @@ x | `Num` | The number for which the arc sine is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.5).asin()  // -> (π/6)
-= 0.5236
+assert (0.5).asin() == 0.5236
 
 ```
 ## Num.asinh
@@ -216,8 +212,7 @@ x | `Num` | The number for which the inverse hyperbolic sine is to be calculated
 
 **Example:**
 ```tomo
->> (0.0).asinh()
-= 0
+assert (0.0).asinh() == 0
 
 ```
 ## Num.atan
@@ -237,8 +232,7 @@ x | `Num` | The number for which the arc tangent is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).atan() // -> (π/4)
-= 0.7854
+assert (1.0).atan() == 0.7854
 
 ```
 ## Num.atan2
@@ -259,8 +253,7 @@ y | `Num` | The denominator.  | -
 
 **Example:**
 ```tomo
->> Num.atan2(1, 1) // -> (π/4)
-= 0.7854
+assert Num.atan2(1, 1) == 0.7854
 
 ```
 ## Num.atanh
@@ -280,8 +273,7 @@ x | `Num` | The number for which the inverse hyperbolic tangent is to be calcula
 
 **Example:**
 ```tomo
->> (0.5).atanh()
-= 0.5493
+assert (0.5).atanh() == 0.5493
 
 ```
 ## Num.cbrt
@@ -301,8 +293,7 @@ x | `Num` | The number for which the cube root is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (27.0).cbrt()
-= 3
+assert (27.0).cbrt() == 3
 
 ```
 ## Num.ceil
@@ -322,8 +313,7 @@ x | `Num` | The number to be rounded up.  | -
 
 **Example:**
 ```tomo
->> (3.2).ceil()
-= 4
+assert (3.2).ceil() == 4
 
 ```
 ## Num.clamped
@@ -345,8 +335,7 @@ high | `Num` | The highest value the result can take.  | -
 
 **Example:**
 ```tomo
->> (2.5).clamped(5.5, 10.5)
-= 5.5
+assert (2.5).clamped(5.5, 10.5) == 5.5
 
 ```
 ## Num.copysign
@@ -367,8 +356,7 @@ y | `Num` | The number whose sign will be copied.  | -
 
 **Example:**
 ```tomo
->> (3.0).copysign(-1)
-= -3
+assert (3.0).copysign(-1) == -3
 
 ```
 ## Num.cos
@@ -388,8 +376,7 @@ x | `Num` | The angle in radians.  | -
 
 **Example:**
 ```tomo
->> (0.0).cos()
-= 1
+assert (0.0).cos() == 1
 
 ```
 ## Num.cosh
@@ -409,8 +396,7 @@ x | `Num` | The number for which the hyperbolic cosine is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).cosh()
-= 1
+assert (0.0).cosh() == 1
 
 ```
 ## Num.erf
@@ -430,8 +416,7 @@ x | `Num` | The number for which the error function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).erf()
-= 0
+assert (0.0).erf() == 0
 
 ```
 ## Num.erfc
@@ -451,8 +436,7 @@ x | `Num` | The number for which the complementary error function is to be calcu
 
 **Example:**
 ```tomo
->> (0.0).erfc()
-= 1
+assert (0.0).erfc() == 1
 
 ```
 ## Num.exp
@@ -472,8 +456,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
->> (1.0).exp()
-= 2.7183
+assert (1.0).exp() == 2.7183
 
 ```
 ## Num.exp2
@@ -493,8 +476,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
->> (3.0).exp2()
-= 8
+assert (3.0).exp2() == 8
 
 ```
 ## Num.expm1
@@ -514,8 +496,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
->> (1.0).expm1()
-= 1.7183
+assert (1.0).expm1() == 1.7183
 
 ```
 ## Num.fdim
@@ -538,8 +519,7 @@ y | `Num` | The second number.  | -
 ```tomo
 fd
 
->> (5.0).fdim(3)
-= 2
+assert (5.0).fdim(3) == 2
 
 ```
 ## Num.floor
@@ -559,8 +539,7 @@ x | `Num` | The number to be rounded down.  | -
 
 **Example:**
 ```tomo
->> (3.7).floor()
-= 3
+assert (3.7).floor() == 3
 
 ```
 ## Num.hypot
@@ -581,8 +560,7 @@ y | `Num` | The second number.  | -
 
 **Example:**
 ```tomo
->> Num.hypot(3, 4)
-= 5
+assert Num.hypot(3, 4) == 5
 
 ```
 ## Num.is_between
@@ -604,12 +582,9 @@ high | `Num` | The upper bound to check (inclusive).  | -
 
 **Example:**
 ```tomo
->> (7.5).is_between(1, 10)
-= yes
->> (7.5).is_between(100, 200)
-= no
->> (7.5).is_between(1, 7.5)
-= yes
+assert (7.5).is_between(1, 10) == yes
+assert (7.5).is_between(100, 200) == no
+assert (7.5).is_between(1, 7.5) == yes
 
 ```
 ## Num.isfinite
@@ -629,10 +604,8 @@ n | `Num` | The number to be checked.  | -
 
 **Example:**
 ```tomo
->> (1.0).isfinite()
-= yes
->> Num.INF.isfinite()
-= no
+assert (1.0).isfinite() == yes
+assert Num.INF.isfinite() == no
 
 ```
 ## Num.isinf
@@ -652,10 +625,8 @@ n | `Num` | The number to be checked.  | -
 
 **Example:**
 ```tomo
->> Num.INF.isinf()
-= yes
->> (1.0).isinf()
-= no
+assert Num.INF.isinf() == yes
+assert (1.0).isinf() == no
 
 ```
 ## Num.j0
@@ -675,8 +646,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).j0()
-= 1
+assert (0.0).j0() == 1
 
 ```
 ## Num.j1
@@ -696,8 +666,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).j1()
-= 0
+assert (0.0).j1() == 0
 
 ```
 ## Num.log
@@ -717,8 +686,7 @@ x | `Num` | The number for which the natural logarithm is to be calculated.  | -
 
 **Example:**
 ```tomo
->> Num.E.log()
-= 1
+assert Num.E.log() == 1
 
 ```
 ## Num.log10
@@ -738,8 +706,7 @@ x | `Num` | The number for which the base-10 logarithm is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (100.0).log10()
-= 2
+assert (100.0).log10() == 2
 
 ```
 ## Num.log1p
@@ -759,8 +726,7 @@ x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).log1p()
-= 0.6931
+assert (1.0).log1p() == 0.6931
 
 ```
 ## Num.log2
@@ -780,8 +746,7 @@ x | `Num` | The number for which the base-2 logarithm is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (8.0).log2()
-= 3
+assert (8.0).log2() == 3
 
 ```
 ## Num.logb
@@ -801,8 +766,7 @@ x | `Num` | The number for which the binary exponent is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (8.0).logb()
-= 3
+assert (8.0).logb() == 3
 
 ```
 ## Num.mix
@@ -824,10 +788,8 @@ y | `Num` | The ending number.  | -
 
 **Example:**
 ```tomo
->> (0.5).mix(10, 20)
-= 15
->> (0.25).mix(10, 20)
-= 12.5
+assert (0.5).mix(10, 20) == 15
+assert (0.25).mix(10, 20) == 12.5
 
 ```
 ## Num.near
@@ -850,14 +812,9 @@ min_epsilon | `Num` | The absolute tolerance. Default is `1e-9`.  | `1e-9`
 
 **Example:**
 ```tomo
->> (1.0).near(1.000000001)
-= yes
-
->> (100.0).near(110, ratio=0.1)
-= yes
-
->> (5.0).near(5.1, min_epsilon=0.1)
-= yes
+assert (1.0).near(1.000000001) == yes
+assert (100.0).near(110, ratio=0.1) == yes
+assert (5.0).near(5.1, min_epsilon=0.1) == yes
 
 ```
 ## Num.nextafter
@@ -878,8 +835,7 @@ y | `Num` | The direction towards which to find the next representable value.  |
 
 **Example:**
 ```tomo
->> (1.0).nextafter(1.1)
-= 1.0000000000000002
+assert (1.0).nextafter(1.1) == 1.0000000000000002
 
 ```
 ## Num.parse
@@ -900,18 +856,12 @@ remainder | `&Text?` | If non-none, this argument will be set to the remainder o
 
 **Example:**
 ```tomo
->> Num.parse("3.14")
-= 3.14 : Num?
->> Num.parse("1e3")
-= 1000 : Num?
-
->> Num.parse("1.5junk")
-= none : Num?
+assert Num.parse("3.14") == 3.14
+assert Num.parse("1e3") == 1000
+assert Num.parse("1.5junk") == none
 remainder : Text
->> Num.parse("1.5junk", &remainder)
-= 1.5 : Num?
->> remainder
-= "junk"
+assert Num.parse("1.5junk", &remainder) == 1.5
+assert remainder == "junk"
 
 ```
 ## Num.percent
@@ -932,14 +882,10 @@ precision | `Num` | Round the percentage to this precision level.  | `0.01`
 
 **Example:**
 ```tomo
->> (0.5).percent()
-= "50%"
->> (1./3.).percent(2)
-= "33.33%"
->> (1./3.).percent(2, precision=0.0001)
-= "33.3333%"
->> (1./3.).percent(2, precision=10.)
-= "30%"
+assert (0.5).percent() == "50%"
+assert (1./3.).percent(2) == "33.33%"
+assert (1./3.).percent(2, precision=0.0001) == "33.3333%"
+assert (1./3.).percent(2, precision=10.) == "30%"
 
 ```
 ## Num.rint
@@ -959,10 +905,8 @@ x | `Num` | The number to be rounded.  | -
 
 **Example:**
 ```tomo
->> (3.5).rint()
-= 4
->> (2.5).rint()
-= 2
+assert (3.5).rint() == 4
+assert (2.5).rint() == 2
 
 ```
 ## Num.round
@@ -982,10 +926,8 @@ x | `Num` | The number to be rounded.  | -
 
 **Example:**
 ```tomo
->> (2.3).round()
-= 2
->> (2.7).round()
-= 3
+assert (2.3).round() == 2
+assert (2.7).round() == 3
 
 ```
 ## Num.significand
@@ -1005,8 +947,7 @@ x | `Num` | The number from which to extract the significand.  | -
 
 **Example:**
 ```tomo
->> (1234.567).significand()
-= 0.1234567
+assert (1234.567).significand() == 0.1234567
 
 ```
 ## Num.sin
@@ -1026,8 +967,7 @@ x | `Num` | The angle in radians.  | -
 
 **Example:**
 ```tomo
->> (0.0).sin()
-= 0
+assert (0.0).sin() == 0
 
 ```
 ## Num.sinh
@@ -1047,8 +987,7 @@ x | `Num` | The number for which the hyperbolic sine is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).sinh()
-= 0
+assert (0.0).sinh() == 0
 
 ```
 ## Num.sqrt
@@ -1068,8 +1007,7 @@ x | `Num` | The number for which the square root is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (16.0).sqrt()
-= 4
+assert (16.0).sqrt() == 4
 
 ```
 ## Num.tan
@@ -1089,8 +1027,7 @@ x | `Num` | The angle in radians.  | -
 
 **Example:**
 ```tomo
->> (0.0).tan()
-= 0
+assert (0.0).tan() == 0
 
 ```
 ## Num.tanh
@@ -1110,8 +1047,7 @@ x | `Num` | The number for which the hyperbolic tangent is to be calculated.  | 
 
 **Example:**
 ```tomo
->> (0.0).tanh()
-= 0
+assert (0.0).tanh() == 0
 
 ```
 ## Num.tgamma
@@ -1131,8 +1067,7 @@ x | `Num` | The number for which the gamma function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).tgamma()
-= 1
+assert (1.0).tgamma() == 1
 
 ```
 ## Num.trunc
@@ -1152,10 +1087,8 @@ x | `Num` | The number to be truncated.  | -
 
 **Example:**
 ```tomo
->> (3.7).trunc()
-= 3
->> (-3.7).trunc()
-= -3
+assert (3.7).trunc() == 3
+assert (-3.7).trunc() == -3
 
 ```
 ## Num.with_precision
@@ -1176,12 +1109,9 @@ precision | `Num` | The precision to which the number should be rounded.  | -
 
 **Example:**
 ```tomo
->> (0.1234567).with_precision(0.01)
-= 0.12
->> (123456.).with_precision(100)
-= 123500
->> (1234567.).with_precision(5)
-= 1234565
+assert (0.1234567).with_precision(0.01) == 0.12
+assert (123456.).with_precision(100) == 123500
+assert (1234567.).with_precision(5) == 1234565
 
 ```
 ## Num.y0
@@ -1201,8 +1131,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).y0()
-= -0.7652
+assert (1.0).y0() == -0.7652
 
 ```
 ## Num.y1
@@ -1222,7 +1151,6 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).y1()
-= 0.4401
+assert (1.0).y1() == 0.4401
 
 ```

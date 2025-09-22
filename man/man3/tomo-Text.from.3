@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from 3 2025-04-30 "Tomo man-pages"
+.TH Text.from 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.from \- slice from a starting index
 .SH LIBRARY
@@ -33,9 +33,6 @@ A negative index counts backwards from the end of the text, so `-1` refers to th
 
 .SH EXAMPLES
 .EX
->> "hello".from(2)
-= "ello"
-
->> "hello".from(-2)
-= "lo"
+assert "hello".from(2) == "ello"
+assert "hello".from(-2) == "lo"
 .EE

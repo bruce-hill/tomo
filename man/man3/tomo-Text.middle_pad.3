@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.middle_pad 3 2025-04-30 "Tomo man-pages"
+.TH Text.middle_pad 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.middle_pad \- pad text, centered
 .SH LIBRARY
@@ -32,8 +32,6 @@ Text with length at least `width`, with extra padding on the left and right as n
 
 .SH EXAMPLES
 .EX
->> "x".middle_pad(6)
-= "  x   "
->> "x".middle_pad(10, "ABC")
-= "ABCAxABCAB"
+assert "x".middle_pad(6) == "  x   "
+assert "x".middle_pad(10, "ABC") == "ABCAxABCAB"
 .EE

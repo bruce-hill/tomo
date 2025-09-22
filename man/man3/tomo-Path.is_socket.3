@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.is_socket 3 2025-05-17 "Tomo man-pages"
+.TH Path.is_socket 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.is_socket \- check if a path is a socket
 .SH LIBRARY
@@ -30,6 +30,5 @@ follow_symlinks		Whether to follow symbolic links. 	yes
 
 .SH EXAMPLES
 .EX
->> (./socket).is_socket()
-= yes
+assert (./socket).is_socket() == yes
 .EE

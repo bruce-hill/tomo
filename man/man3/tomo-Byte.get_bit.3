@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.get_bit 3 2025-06-26 "Tomo man-pages"
+.TH Byte.get_bit 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Byte.get_bit \- check whether a bit is set
 .SH LIBRARY
@@ -33,12 +33,8 @@ The bit index must be between 1-8 or a runtime error will be produced.
 
 .SH EXAMPLES
 .EX
->> Byte(6).get_bit(1)
-= no
->> Byte(6).get_bit(2)
-= yes
->> Byte(6).get_bit(3)
-= yes
->> Byte(6).get_bit(4)
-= no
+assert Byte(6).get_bit(1) == no
+assert Byte(6).get_bit(2) == yes
+assert Byte(6).get_bit(3) == yes
+assert Byte(6).get_bit(4) == no
 .EE

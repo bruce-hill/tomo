@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH ask 3 2025-05-17 "Tomo man-pages"
+.TH ask 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 ask \- get user input
 .SH LIBRARY
@@ -34,6 +34,5 @@ When a program is receiving input from a pipe or writing its output to a pipe, t
 
 .SH EXAMPLES
 .EX
->> ask("What's your name? ")
-= "Arthur Dent"
+assert ask("What's your name? ") == "Arthur Dent"
 .EE

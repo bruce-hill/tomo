@@ -31,8 +31,7 @@ ask:
       description: >
         Whether or not to force the use of /dev/tty.
   example: |
-    >> ask("What's your name? ")
-    = "Arthur Dent"
+    assert ask("What's your name? ") == "Arthur Dent"
 
 exit:
   short: exit the program
@@ -71,8 +70,8 @@ getenv:
       description: >
         The name of the environment variable to get.
   example: |
-    >> getenv("TERM")
-    = "xterm-256color"?
+    assert getenv("TERM") == "xterm-256color"
+    assert getenv("not_a_variable") == none
 
 print:
   short: print some text

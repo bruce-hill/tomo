@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.is_between 3 2025-04-30 "Tomo man-pages"
+.TH Int.is_between 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Int.is_between \- test if an int is in a range
 .SH LIBRARY
@@ -31,10 +31,7 @@ high	Int	The upper bound to check (inclusive). 	-
 
 .SH EXAMPLES
 .EX
->> (7).is_between(1, 10)
-= yes
->> (7).is_between(100, 200)
-= no
->> (7).is_between(1, 7)
-= yes
+assert (7).is_between(1, 10) == yes
+assert (7).is_between(100, 200) == no
+assert (7).is_between(1, 7) == yes
 .EE

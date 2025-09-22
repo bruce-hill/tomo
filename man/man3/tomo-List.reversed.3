@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.reversed 3 2025-04-30 "Tomo man-pages"
+.TH List.reversed 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 List.reversed \- get a reversed list
 .SH LIBRARY
@@ -29,6 +29,5 @@ A slice of the list with elements in reverse order.
 
 .SH EXAMPLES
 .EX
->> [10, 20, 30].reversed()
-= [30, 20, 10]
+assert [10, 20, 30].reversed() == [30, 20, 10]
 .EE

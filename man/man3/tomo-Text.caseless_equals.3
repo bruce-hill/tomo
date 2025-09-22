@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.caseless_equals 3 2025-04-30 "Tomo man-pages"
+.TH Text.caseless_equals 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.caseless_equals \- case-insensitive comparison
 .SH LIBRARY
@@ -31,10 +31,8 @@ language	Text	The ISO 639 language code for which casing rules to use. 	"C"
 
 .SH EXAMPLES
 .EX
->> "A".caseless_equals("a")
-= yes
+assert "A".caseless_equals("a") == yes
 
 # Turkish lowercase "I" is "ı" (dotless I), not "i"
->> "I".caseless_equals("i", language="tr_TR")
-= no
+assert "I".caseless_equals("i", language="tr_TR") == no
 .EE

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.current_dir 3 2025-05-17 "Tomo man-pages"
+.TH Path.current_dir 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.current_dir \- get current directory
 .SH LIBRARY
@@ -20,6 +20,5 @@ The absolute path of the current directory.
 
 .SH EXAMPLES
 .EX
->> Path.current_dir()
-= (/home/user/tomo)
+assert Path.current_dir() == (/home/user/tomo)
 .EE

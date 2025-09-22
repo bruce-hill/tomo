@@ -18,10 +18,8 @@ Path.accessed:
       description: >
         Whether to follow symbolic links.
   example: |
-    >> (./file.txt).accessed()
-    = 1704221100?
-    >> (./not-a-file).accessed()
-    = none
+    assert (./file.txt).accessed() == 1704221100
+    assert (./not-a-file).accessed() == none
 
 Path.append:
   short: append to a file
@@ -89,8 +87,7 @@ Path.base_name:
       description: >
         The path of the file or directory.
   example: |
-    >> (./path/to/file.txt).base_name()
-    = "file.txt"
+    assert (./path/to/file.txt).base_name() == "file.txt"
 
 Path.by_line:
   short: iterate by line
@@ -133,12 +130,9 @@ Path.can_execute:
       description: >
         The path of the file to check.
   example: |
-    >> (/bin/sh).can_execute()
-    = yes
-    >> (/usr/include/stdlib.h).can_execute()
-    = no
-    >> (/non/existant/file).can_execute()
-    = no
+    assert (/bin/sh).can_execute() == yes
+    assert (/usr/include/stdlib.h).can_execute() == no
+    assert (/non/existant/file).can_execute() == no
 
 Path.can_read:
   short: check read permissions
@@ -154,12 +148,9 @@ Path.can_read:
       description: >
         The path of the file to check.
   example: |
-    >> (/usr/include/stdlib.h).can_read()
-    = yes
-    >> (/etc/shadow).can_read()
-    = no
-    >> (/non/existant/file).can_read()
-    = no
+    assert (/usr/include/stdlib.h).can_read() == yes
+    assert (/etc/shadow).can_read() == no
+    assert (/non/existant/file).can_read() == no
 
 Path.can_write:
   short: check write permissions
@@ -175,12 +166,9 @@ Path.can_write:
       description: >
         The path of the file to check.
   example: |
-    >> (/tmp).can_write()
-    = yes
-    >> (/etc/passwd).can_write()
-    = no
-    >> (/non/existant/file).can_write()
-    = no
+    assert (/tmp).can_write() == yes
+    assert (/etc/passwd).can_write() == no
+    assert (/non/existant/file).can_write() == no
 
 Path.changed:
   short: get the last changed time
@@ -205,10 +193,8 @@ Path.changed:
       description: >
         Whether to follow symbolic links.
   example: |
-    >> (./file.txt).changed()
-    = 1704221100?
-    >> (./not-a-file).changed()
-    = none
+    assert (./file.txt).changed() == 1704221100
+    assert (./not-a-file).changed() == none
 
 Path.child:
   short: append a child to a path
@@ -228,8 +214,7 @@ Path.child:
       description: >
         The name of a child file or directory.
   example: |
-    >> (./directory).child("file.txt")
-    = (./directory/file.txt)
+    assert (./directory).child("file.txt") == (./directory/file.txt)
 
 Path.children:
   short: get children of a directory
@@ -249,8 +234,7 @@ Path.children:
       description: >
         Whether to include hidden files, which start with a `.`.
   example: |
-    >> (./directory).children(include_hidden=yes)
-    = [".git", "foo.txt"]
+    assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
 
 Path.create_directory:
   short: make a directory
@@ -284,8 +268,7 @@ Path.current_dir:
       The absolute path of the current directory.
   args:
   example: |
-    >> Path.current_dir()
-    = (/home/user/tomo)
+    assert Path.current_dir() == (/home/user/tomo)
 
 Path.exists:
   short: check if a path exists
@@ -301,8 +284,7 @@ Path.exists:
       description: >
         The path to check.
   example: |
-    >> (/).exists()
-    = yes
+    assert (/).exists() == yes
 
 Path.expand_home:
   short: 'expand ~ to $HOME'
@@ -320,10 +302,10 @@ Path.expand_home:
       description: >
         The path to expand.
   example: |
-    >> (~/foo).expand_home() # Assume current user is 'user'
-    = /home/user/foo
-    >> (/foo).expand_home() # No change
-    = /foo
+    # Assume current user is 'user'
+    assert (~/foo).expand_home() == (/home/user/foo)
+    # No change
+    assert (/foo).expand_home() == (/foo)
 
 Path.extension:
   short: get file extension
@@ -346,14 +328,10 @@ Path.extension:
         Whether to return everything after the first `.` in the base name, or
         only the last part of the extension.
   example: |
-    >> (./file.tar.gz).extension()
-    = "tar.gz"
-    >> (./file.tar.gz).extension(full=no)
-    = "gz"
-    >> (/foo).extension()
-    = ""
-    >> (./.git).extension()
-    = ""
+    assert (./file.tar.gz).extension() == "tar.gz"
+    assert (./file.tar.gz).extension(full=no) == "gz"
+    assert (/foo).extension() == ""
+    assert (./.git).extension() == ""
 
 Path.files:
   short: list files in a directory
@@ -374,8 +352,7 @@ Path.files:
       description: >
         Whether to include hidden files.
   example: |
-    >> (./directory).files(include_hidden=yes)
-    = [(./directory/file1.txt), (./directory/file2.txt)]
+    assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
 
 Path.from_components:
   short: build a path from components
@@ -391,12 +368,9 @@ Path.from_components:
       description: >
         A list of path components.
   example: |
-    >> Path.from_components(["/", "usr", "include"])
-    = /usr/include
-    >> Path.from_components(["foo.txt"])
-    = ./foo.txt
-    >> Path.from_components(["~", ".local"])
-    = ~/.local
+    assert Path.from_components(["/", "usr", "include"]) == (/usr/include)
+    assert Path.from_components(["foo.txt"]) == (./foo.txt)
+    assert Path.from_components(["~", ".local"]) == (~/.local)
 
 Path.glob:
   short: perform file globbing
@@ -424,21 +398,13 @@ Path.glob:
         like `*`, `?`, or `{...}`
   example: |
     # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
-    >> (./*).glob()
-    = [(./foo.txt), (./baz.txt), (./qux.jpg)]
-
-    >> (./*.txt).glob()
-    = [(./foo.txt), (./baz.txt)]
-
-    >> (./*.{txt,jpg}).glob()
-    = [(./foo.txt), (./baz.txt), (./qux.jpg)]
-
-    >> (./.*).glob()
-    = [(./.hidden)]
+    assert (./*).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+    assert (./*.txt).glob() == [(./foo.txt), (./baz.txt)]
+    assert (./*.{txt,jpg}).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+    assert (./.*).glob() == [(./.hidden)]
 
     # Globs with no matches return an empty list:
-    >> (./*.xxx).glob()
-    = []
+    assert (./*.xxx).glob() == []
 
 Path.group:
   short: get the owning group
@@ -459,10 +425,8 @@ Path.group:
       description: >
         Whether to follow symbolic links.
   example: |
-    >> (/bin).group()
-    = "root"
-    >> (/non/existent/file).group()
-    = none
+    assert (/bin).group() == "root"
+    assert (/non/existent/file).group() == none
 
 Path.has_extension:
   short: check if a path has a given extension
@@ -483,14 +447,10 @@ Path.has_extension:
         A file extension (leading `.` is optional). If empty, the check will
         test if the file does not have any file extension.
   example: |
-    >> (/foo.txt).has_extension("txt")
-    = yes
-    >> (/foo.txt).has_extension(".txt")
-    = yes
-    >> (/foo.tar.gz).has_extension("gz")
-    = yes
-    >> (/foo.tar.gz).has_extension("zip")
-    = no
+    assert (/foo.txt).has_extension("txt") == yes
+    assert (/foo.txt).has_extension(".txt") == yes
+    assert (/foo.tar.gz).has_extension("gz") == yes
+    assert (/foo.tar.gz).has_extension("zip") == no
 
 Path.is_directory:
   short: check if a path is a directory
@@ -510,11 +470,8 @@ Path.is_directory:
       description: >
         Whether to follow symbolic links.
   example: |
-    >> (./directory/).is_directory()
-    = yes
-
-    >> (./file.txt).is_directory()
-    = no
+    assert (./directory/).is_directory() == yes
+    assert (./file.txt).is_directory() == no
 
 Path.is_file:
   short: check if a path is a file
@@ -534,11 +491,8 @@ Path.is_file:
       description: >
         Whether to follow symbolic links.
   example: |
-    >> (./file.txt).is_file()
-    = yes
-
-    >> (./directory/).is_file()
-    = no
+    assert (./file.txt).is_file() == yes
+    assert (./directory/).is_file() == no
 
 Path.is_socket:
   short: check if a path is a socket
@@ -558,8 +512,7 @@ Path.is_socket:
       description: >
         Whether to follow symbolic links.
   example: |
-    >> (./socket).is_socket()
-    = yes
+    assert (./socket).is_socket() == yes
 
 Path.is_symlink:
   short: check if a path is a symbolic link
@@ -575,8 +528,7 @@ Path.is_symlink:
       description: >
         The path to check.
   example: |
-    >> (./link).is_symlink()
-    = yes
+    assert (./link).is_symlink() == yes
 
 Path.modified:
   short: get file modification time
@@ -598,10 +550,8 @@ Path.modified:
       description: >
         Whether to follow symbolic links.
   example: |
-    >> (./file.txt).modified()
-    = 1704221100?
-    >> (./not-a-file).modified()
-    = none
+    assert (./file.txt).modified() == 1704221100
+    assert (./not-a-file).modified() == none
 
 Path.owner:
   short: get file owner
@@ -622,10 +572,8 @@ Path.owner:
       description: >
         Whether to follow symbolic links.
   example: |
-    >> (/bin).owner()
-    = "root"
-    >> (/non/existent/file).owner()
-    = none
+    assert (/bin).owner() == "root"
+    assert (/non/existent/file).owner() == none
 
 Path.parent:
   short: get parent directory
@@ -641,8 +589,7 @@ Path.parent:
       description: >
         The path of the file or directory.
   example: |
-    >> (./path/to/file.txt).parent()
-    = (./path/to/)
+    assert (./path/to/file.txt).parent() == (./path/to/)
 
 Path.read:
   short: read file contents
@@ -661,11 +608,8 @@ Path.read:
       description: >
         The path of the file to read.
   example: |
-    >> (./hello.txt).read()
-    = "Hello"?
-
-    >> (./nosuchfile.xxx).read()
-    = none
+    assert (./hello.txt).read() == "Hello"
+    assert (./nosuchfile.xxx).read() == none
 
 Path.read_bytes:
   short: read file contents as bytes
@@ -688,11 +632,8 @@ Path.read_bytes:
       description: >
         A limit to how many bytes should be read.
   example: |
-    >> (./hello.txt).read()
-    = [72, 101, 108, 108, 111]?
-
-    >> (./nosuchfile.xxx).read()
-    = none
+    assert (./hello.txt).read() == [72, 101, 108, 108, 111]
+    assert (./nosuchfile.xxx).read() == none
 
 Path.relative_to:
   short: apply a relative path to another
@@ -712,8 +653,7 @@ Path.relative_to:
       description: >
         The base path for the relative path.
   example: |
-    >> (./path/to/file.txt).relative(relative_to=(./path))
-    = (./to/file.txt)
+    assert (./path/to/file.txt).relative(relative_to=(./path)) == (./to/file.txt)
 
 Path.remove:
   short: remove a file or directory
@@ -753,11 +693,8 @@ Path.resolved:
       description: >
         The base path for resolution.
   example: |
-    >> (~/foo).resolved()
-    = (/home/user/foo)
-
-    >> (./path/to/file.txt).resolved(relative_to=(/foo))
-    = (/foo/path/to/file.txt)
+    assert (~/foo).resolved() == (/home/user/foo)
+    assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.txt)
 
 Path.set_owner:
   short: set the owner
@@ -809,8 +746,7 @@ Path.sibling:
       description: >
         The name of a sibling file or directory.
   example: |
-    >> (/foo/baz).sibling("doop")
-    = (/foo/doop)
+    assert (/foo/baz).sibling("doop") == (/foo/doop)
 
 Path.subdirectories:
   short: get subdirectories
@@ -830,11 +766,8 @@ Path.subdirectories:
       description: >
         Whether to include hidden subdirectories.
   example: |
-    >> (./directory).subdirectories()
-    = [(./directory/subdir1), (./directory/subdir2)]
-
-    >> (./directory).subdirectories(include_hidden=yes)
-    = [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
+    assert (./directory).subdirectories() == [(./directory/subdir1), (./directory/subdir2)]
+    assert (./directory).subdirectories(include_hidden=yes) == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
 
 Path.unique_directory:
   short: create a directory with a unique name
@@ -850,10 +783,8 @@ Path.unique_directory:
       description: >
         The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.
   example: |
-    >> created := (/tmp/my-dir.XXXXXX).unique_directory()
-    = (/tmp/my-dir-AwoxbM/)
-    >> created.is_directory()
-    = yes
+    assert created := (/tmp/my-dir.XXXXXX).unique_directory() == (/tmp/my-dir-AwoxbM/)
+    assert created.is_directory() == yes
     created.remove()
 
 Path.write:
@@ -929,10 +860,9 @@ Path.write_unique:
       description: >
         The text to write to the file.
   example: |
-    >> created := (./file-XXXXXX.txt).write_unique("Hello, world!")
-    = (./file-27QHtq.txt)
-    >> created.read()
-    = "Hello, world!"
+    created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+    assert created == (./file-27QHtq.txt)
+    assert created.read() == "Hello, world!"
     created.remove()
 
 Path.write_unique_bytes:
@@ -956,9 +886,8 @@ Path.write_unique_bytes:
       description: >
         The bytes to write to the file.
   example: |
-    >> created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
-    = (./file-27QHtq.txt)
-    >> created.read()
-    = [1, 2, 3]
+    created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
+    assert created == (./file-27QHtq.txt)
+    assert created.read() == [1, 2, 3]
     created.remove()
 

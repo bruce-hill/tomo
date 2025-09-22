@@ -12,8 +12,7 @@ Num.abs:
       description: >
         The number whose absolute value is to be computed.
   example: |
-    >> (-3.5).abs()
-    = 3.5
+    assert (-3.5).abs() == 3.5
 
 Num.acos:
   short: arc cosine
@@ -29,8 +28,7 @@ Num.acos:
       description: >
         The number for which the arc cosine is to be calculated.
   example: |
-    >> (0.0).acos() // -> (π/2)
-    = 1.5708
+    assert (0.0).acos() == 1.5708
 
 Num.acosh:
   short: arc hyperbolic cosine
@@ -46,8 +44,7 @@ Num.acosh:
       description: >
         The number for which the inverse hyperbolic cosine is to be calculated.
   example: |
-    >> (1.0).acosh()
-    = 0
+    assert (1.0).acosh() == 0
 
 Num.asin:
   short: arc sine
@@ -63,8 +60,7 @@ Num.asin:
       description: >
         The number for which the arc sine is to be calculated.
   example: |
-    >> (0.5).asin()  // -> (π/6)
-    = 0.5236
+    assert (0.5).asin() == 0.5236
 
 Num.asinh:
   short: arc hyperbolic sine
@@ -80,8 +76,7 @@ Num.asinh:
       description: >
         The number for which the inverse hyperbolic sine is to be calculated.
   example: |
-    >> (0.0).asinh()
-    = 0
+    assert (0.0).asinh() == 0
 
 Num.atan:
   short: arc tangent
@@ -97,8 +92,7 @@ Num.atan:
       description: >
         The number for which the arc tangent is to be calculated.
   example: |
-    >> (1.0).atan() // -> (π/4)
-    = 0.7854
+    assert (1.0).atan() == 0.7854
 
 Num.atan2:
   short: arc tangent from 2 variables
@@ -118,8 +112,7 @@ Num.atan2:
       description: >
         The denominator.
   example: |
-    >> Num.atan2(1, 1) // -> (π/4)
-    = 0.7854
+    assert Num.atan2(1, 1) == 0.7854
 
 Num.atanh:
   short: arc hyperbolic tangent.
@@ -135,8 +128,7 @@ Num.atanh:
       description: >
         The number for which the inverse hyperbolic tangent is to be calculated.
   example: |
-    >> (0.5).atanh()
-    = 0.5493
+    assert (0.5).atanh() == 0.5493
 
 Num.cbrt:
   short: cube root
@@ -152,8 +144,7 @@ Num.cbrt:
       description: >
         The number for which the cube root is to be calculated.
   example: |
-    >> (27.0).cbrt()
-    = 3
+    assert (27.0).cbrt() == 3
 
 Num.ceil:
   short: ceiling function
@@ -169,8 +160,7 @@ Num.ceil:
       description: >
         The number to be rounded up.
   example: |
-    >> (3.2).ceil()
-    = 4
+    assert (3.2).ceil() == 4
 
 Num.clamped:
   short: clamp a number
@@ -195,8 +185,7 @@ Num.clamped:
       description: >
         The highest value the result can take.
   example: |
-    >> (2.5).clamped(5.5, 10.5)
-    = 5.5
+    assert (2.5).clamped(5.5, 10.5) == 5.5
 
 Num.copysign:
   short: copy a number's sign
@@ -216,8 +205,7 @@ Num.copysign:
       description: >
         The number whose sign will be copied.
   example: |
-    >> (3.0).copysign(-1)
-    = -3
+    assert (3.0).copysign(-1) == -3
 
 Num.cos:
   short: cosine
@@ -233,8 +221,7 @@ Num.cos:
       description: >
         The angle in radians.
   example: |
-    >> (0.0).cos()
-    = 1
+    assert (0.0).cos() == 1
 
 Num.cosh:
   short: hyperbolic cosine
@@ -250,8 +237,7 @@ Num.cosh:
       description: >
         The number for which the hyperbolic cosine is to be calculated.
   example: |
-    >> (0.0).cosh()
-    = 1
+    assert (0.0).cosh() == 1
 
 Num.erf:
   short: error function
@@ -267,8 +253,7 @@ Num.erf:
       description: >
         The number for which the error function is to be calculated.
   example: |
-    >> (0.0).erf()
-    = 0
+    assert (0.0).erf() == 0
 
 Num.erfc:
   short: complimentary error function
@@ -284,8 +269,7 @@ Num.erfc:
       description: >
         The number for which the complementary error function is to be calculated.
   example: |
-    >> (0.0).erfc()
-    = 1
+    assert (0.0).erfc() == 1
 
 Num.exp:
   short: base-e exponentiation
@@ -301,8 +285,7 @@ Num.exp:
       description: >
         The exponent.
   example: |
-    >> (1.0).exp()
-    = 2.7183
+    assert (1.0).exp() == 2.7183
 
 Num.exp2:
   short: base-2 exponentiation
@@ -318,8 +301,7 @@ Num.exp2:
       description: >
         The exponent.
   example: |
-    >> (3.0).exp2()
-    = 8
+    assert (3.0).exp2() == 8
 
 Num.expm1:
   short: base-e exponential minus 1
@@ -335,8 +317,7 @@ Num.expm1:
       description: >
         The exponent.
   example: |
-    >> (1.0).expm1()
-    = 1.7183
+    assert (1.0).expm1() == 1.7183
 
 Num.fdim:
   short: positive difference
@@ -358,8 +339,7 @@ Num.fdim:
   example: |
     fd
 
-    >> (5.0).fdim(3)
-    = 2
+    assert (5.0).fdim(3) == 2
 
 Num.floor:
   short: floor function
@@ -375,8 +355,7 @@ Num.floor:
       description: >
         The number to be rounded down.
   example: |
-    >> (3.7).floor()
-    = 3
+    assert (3.7).floor() == 3
 
 Num.hypot:
   short: Euclidean distance function
@@ -396,8 +375,7 @@ Num.hypot:
       description: >
         The second number.
   example: |
-    >> Num.hypot(3, 4)
-    = 5
+    assert Num.hypot(3, 4) == 5
 
 Num.isfinite:
   short: check for finite number
@@ -413,10 +391,8 @@ Num.isfinite:
       description: >
         The number to be checked.
   example: |
-    >> (1.0).isfinite()
-    = yes
-    >> Num.INF.isfinite()
-    = no
+    assert (1.0).isfinite() == yes
+    assert Num.INF.isfinite() == no
 
 Num.is_between:
   short: check if a number is in a range
@@ -440,12 +416,9 @@ Num.is_between:
       description: >
         The upper bound to check (inclusive).
   example: |
-    >> (7.5).is_between(1, 10)
-    = yes
-    >> (7.5).is_between(100, 200)
-    = no
-    >> (7.5).is_between(1, 7.5)
-    = yes
+    assert (7.5).is_between(1, 10) == yes
+    assert (7.5).is_between(100, 200) == no
+    assert (7.5).is_between(1, 7.5) == yes
 
 Num.isinf:
   short: check for infinite number
@@ -461,10 +434,8 @@ Num.isinf:
       description: >
         The number to be checked.
   example: |
-    >> Num.INF.isinf()
-    = yes
-    >> (1.0).isinf()
-    = no
+    assert Num.INF.isinf() == yes
+    assert (1.0).isinf() == no
 
 Num.j0:
   short: Bessel function
@@ -480,8 +451,7 @@ Num.j0:
       description: >
         The number for which the Bessel function is to be calculated.
   example: |
-    >> (0.0).j0()
-    = 1
+    assert (0.0).j0() == 1
 
 Num.j1:
   short: Bessel function
@@ -497,8 +467,7 @@ Num.j1:
       description: >
         The number for which the Bessel function is to be calculated.
   example: |
-    >> (0.0).j1()
-    = 0
+    assert (0.0).j1() == 0
 
 Num.log:
   short: natural logarithm
@@ -514,8 +483,7 @@ Num.log:
       description: >
         The number for which the natural logarithm is to be calculated.
   example: |
-    >> Num.E.log()
-    = 1
+    assert Num.E.log() == 1
 
 Num.log10:
   short: logarithm base-10
@@ -531,8 +499,7 @@ Num.log10:
       description: >
         The number for which the base-10 logarithm is to be calculated.
   example: |
-    >> (100.0).log10()
-    = 2
+    assert (100.0).log10() == 2
 
 Num.log1p:
   short: logarithm of 1 plus x
@@ -548,8 +515,7 @@ Num.log1p:
       description: >
         The number for which $\log(1 + x)$ is to be calculated.
   example: |
-    >> (1.0).log1p()
-    = 0.6931
+    assert (1.0).log1p() == 0.6931
 
 Num.log2:
   short: logarithm base-2
@@ -565,8 +531,7 @@ Num.log2:
       description: >
         The number for which the base-2 logarithm is to be calculated.
   example: |
-    >> (8.0).log2()
-    = 3
+    assert (8.0).log2() == 3
 
 Num.logb:
   short: exponent of a floating point value
@@ -582,8 +547,7 @@ Num.logb:
       description: >
         The number for which the binary exponent is to be calculated.
   example: |
-    >> (8.0).logb()
-    = 3
+    assert (8.0).logb() == 3
 
 Num.mix:
   short: mix two numbers by an amount
@@ -607,10 +571,8 @@ Num.mix:
       description: >
         The ending number.
   example: |
-    >> (0.5).mix(10, 20)
-    = 15
-    >> (0.25).mix(10, 20)
-    = 12.5
+    assert (0.5).mix(10, 20) == 15
+    assert (0.25).mix(10, 20) == 12.5
 
 Num.near:
   short: check if two numbers are near each other
@@ -642,14 +604,9 @@ Num.near:
       description: >
         The absolute tolerance. Default is `1e-9`.
   example: |
-    >> (1.0).near(1.000000001)
-    = yes
-
-    >> (100.0).near(110, ratio=0.1)
-    = yes
-
-    >> (5.0).near(5.1, min_epsilon=0.1)
-    = yes
+    assert (1.0).near(1.000000001) == yes
+    assert (100.0).near(110, ratio=0.1) == yes
+    assert (5.0).near(5.1, min_epsilon=0.1) == yes
 
 Num.nextafter:
   short: next floating point number
@@ -669,8 +626,7 @@ Num.nextafter:
       description: >
         The direction towards which to find the next representable value.
   example: |
-    >> (1.0).nextafter(1.1)
-    = 1.0000000000000002
+    assert (1.0).nextafter(1.1) == 1.0000000000000002
 
 Num.parse:
   short: convert text to number
@@ -693,18 +649,12 @@ Num.parse:
         If non-none, this argument will be set to the remainder of the text after the matching part.
         If none, parsing will only succeed if the entire text matches.
   example: |
-    >> Num.parse("3.14")
-    = 3.14 : Num?
-    >> Num.parse("1e3")
-    = 1000 : Num?
-
-    >> Num.parse("1.5junk")
-    = none : Num?
+    assert Num.parse("3.14") == 3.14
+    assert Num.parse("1e3") == 1000
+    assert Num.parse("1.5junk") == none
     remainder : Text
-    >> Num.parse("1.5junk", &remainder)
-    = 1.5 : Num?
-    >> remainder
-    = "junk"
+    assert Num.parse("1.5junk", &remainder) == 1.5
+    assert remainder == "junk"
 
 Num.percent:
   short: format as a percentage
@@ -725,14 +675,10 @@ Num.percent:
       description: >
         Round the percentage to this precision level.
   example: |
-    >> (0.5).percent()
-    = "50%"
-    >> (1./3.).percent(2)
-    = "33.33%"
-    >> (1./3.).percent(2, precision=0.0001)
-    = "33.3333%"
-    >> (1./3.).percent(2, precision=10.)
-    = "30%"
+    assert (0.5).percent() == "50%"
+    assert (1./3.).percent(2) == "33.33%"
+    assert (1./3.).percent(2, precision=0.0001) == "33.3333%"
+    assert (1./3.).percent(2, precision=10.) == "30%"
 
 Num.with_precision:
   short: round to a given precision
@@ -752,12 +698,9 @@ Num.with_precision:
       description: >
         The precision to which the number should be rounded.
   example: |
-    >> (0.1234567).with_precision(0.01)
-    = 0.12
-    >> (123456.).with_precision(100)
-    = 123500
-    >> (1234567.).with_precision(5)
-    = 1234565
+    assert (0.1234567).with_precision(0.01) == 0.12
+    assert (123456.).with_precision(100) == 123500
+    assert (1234567.).with_precision(5) == 1234565
 
 Num.rint:
   short: round to nearest integer
@@ -773,10 +716,8 @@ Num.rint:
       description: >
         The number to be rounded.
   example: |
-    >> (3.5).rint()
-    = 4
-    >> (2.5).rint()
-    = 2
+    assert (3.5).rint() == 4
+    assert (2.5).rint() == 2
 
 Num.round:
   short: round to nearest integer
@@ -792,10 +733,8 @@ Num.round:
       description: >
         The number to be rounded.
   example: |
-    >> (2.3).round()
-    = 2
-    >> (2.7).round()
-    = 3
+    assert (2.3).round() == 2
+    assert (2.7).round() == 3
 
 Num.significand:
   short: get mantissa
@@ -811,8 +750,7 @@ Num.significand:
       description: >
         The number from which to extract the significand.
   example: |
-    >> (1234.567).significand()
-    = 0.1234567
+    assert (1234.567).significand() == 0.1234567
 
 Num.sin:
   short: sine
@@ -828,8 +766,7 @@ Num.sin:
       description: >
         The angle in radians.
   example: |
-    >> (0.0).sin()
-    = 0
+    assert (0.0).sin() == 0
 
 Num.sinh:
   short: hyperbolic sine
@@ -845,8 +782,7 @@ Num.sinh:
       description: >
         The number for which the hyperbolic sine is to be calculated.
   example: |
-    >> (0.0).sinh()
-    = 0
+    assert (0.0).sinh() == 0
 
 Num.sqrt:
   short: square root
@@ -862,8 +798,7 @@ Num.sqrt:
       description: >
         The number for which the square root is to be calculated.
   example: |
-    >> (16.0).sqrt()
-    = 4
+    assert (16.0).sqrt() == 4
 
 Num.tan:
   short: tangent
@@ -879,8 +814,7 @@ Num.tan:
       description: >
         The angle in radians.
   example: |
-    >> (0.0).tan()
-    = 0
+    assert (0.0).tan() == 0
 
 Num.tanh:
   short: hyperbolic tangent
@@ -896,8 +830,7 @@ Num.tanh:
       description: >
         The number for which the hyperbolic tangent is to be calculated.
   example: |
-    >> (0.0).tanh()
-    = 0
+    assert (0.0).tanh() == 0
 
 Num.tgamma:
   short: "true gamma function"
@@ -913,8 +846,7 @@ Num.tgamma:
       description: >
         The number for which the gamma function is to be calculated.
   example: |
-    >> (1.0).tgamma()
-    = 1
+    assert (1.0).tgamma() == 1
 
 Num.trunc:
   short: truncate a number
@@ -930,10 +862,8 @@ Num.trunc:
       description: >
         The number to be truncated.
   example: |
-    >> (3.7).trunc()
-    = 3
-    >> (-3.7).trunc()
-    = -3
+    assert (3.7).trunc() == 3
+    assert (-3.7).trunc() == -3
 
 Num.y0:
   short: Bessel function
@@ -949,8 +879,7 @@ Num.y0:
       description: >
         The number for which the Bessel function is to be calculated.
   example: |
-    >> (1.0).y0()
-    = -0.7652
+    assert (1.0).y0() == -0.7652
 
 Num.y1:
   short: Bessel function
@@ -966,8 +895,7 @@ Num.y1:
       description: >
         The number for which the Bessel function is to be calculated.
   example: |
-    >> (1.0).y1()
-    = 0.4401
+    assert (1.0).y1() == 0.4401
 
 
 Num.1_PI:

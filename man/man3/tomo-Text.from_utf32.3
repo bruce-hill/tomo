@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from_utf32 3 2025-09-09 "Tomo man-pages"
+.TH Text.from_utf32 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.from_utf32 \- convert UTF32 codepoints to text
 .SH LIBRARY
@@ -32,6 +32,5 @@ The text will be normalized, so the resulting text's codepoints may not exactly 
 
 .SH EXAMPLES
 .EX
->> Text.from_utf32([197, 107, 101])
-= "Åke"
+assert Text.from_utf32([197, 107, 101]) == "Åke"
 .EE

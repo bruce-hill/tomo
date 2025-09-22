@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.as_c_string 3 2025-04-30 "Tomo man-pages"
+.TH Text.as_c_string 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.as_c_string \- convert to C-style string
 .SH LIBRARY
@@ -29,6 +29,5 @@ A C-style string (`CString`) representing the text.
 
 .SH EXAMPLES
 .EX
->> "Hello".as_c_string()
-= CString("Hello")
+assert "Hello".as_c_string() == CString("Hello")
 .EE

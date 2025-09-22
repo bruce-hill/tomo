@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.significand 3 2025-04-30 "Tomo man-pages"
+.TH Num.significand 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Num.significand \- get mantissa
 .SH LIBRARY
@@ -29,6 +29,5 @@ The significand of `x`.
 
 .SH EXAMPLES
 .EX
->> (1234.567).significand()
-= 0.1234567
+assert (1234.567).significand() == 0.1234567
 .EE

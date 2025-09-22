@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.near 3 2025-04-30 "Tomo man-pages"
+.TH Num.near 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Num.near \- check if two numbers are near each other
 .SH LIBRARY
@@ -32,12 +32,7 @@ min_epsilon	Num	The absolute tolerance. Default is `1e-9`. 	1e-9
 
 .SH EXAMPLES
 .EX
->> (1.0).near(1.000000001)
-= yes
-
->> (100.0).near(110, ratio=0.1)
-= yes
-
->> (5.0).near(5.1, min_epsilon=0.1)
-= yes
+assert (1.0).near(1.000000001) == yes
+assert (100.0).near(110, ratio=0.1) == yes
+assert (5.0).near(5.1, min_epsilon=0.1) == yes
 .EE

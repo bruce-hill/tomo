@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.to 3 2025-04-30 "Tomo man-pages"
+.TH Int.to 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Int.to \- iterate a range of integers
 .SH LIBRARY
@@ -31,13 +31,14 @@ An iterator function that returns each integer in the given range (inclusive).
 
 .SH EXAMPLES
 .EX
->> (2).to(5)
-= func(->Int?)
->> [x for x in (2).to(5)]
-= [2, 3, 4, 5]
->> [x for x in (5).to(2)]
-= [5, 4, 3, 2]
+iter := (2).to(5)
+assert iter() == 2
+assert iter() == 3
+assert iter() == 4
+assert iter() == 5
+assert iter() == none
 
->> [x for x in (2).to(5, step=2)]
-= [2, 4]
+assert [x for x in (2).to(5)] == [2, 3, 4, 5]
+assert [x for x in (5).to(2)] == [5, 4, 3, 2]
+assert [x for x in (2).to(5, step=2)] == [2, 4]
 .EE

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.by 3 2025-04-30 "Tomo man-pages"
+.TH List.by 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 List.by \- slice by a step value
 .SH LIBRARY
@@ -30,6 +30,5 @@ A new list with every `step`-th element from the original list.
 
 .SH EXAMPLES
 .EX
->> [1, 2, 3, 4, 5, 6].by(2)
-= [1, 3, 5]
+assert [1, 2, 3, 4, 5, 6].by(2) == [1, 3, 5]
 .EE

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.exists 3 2025-05-17 "Tomo man-pages"
+.TH Path.exists 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.exists \- check if a path exists
 .SH LIBRARY
@@ -29,6 +29,5 @@ path	Path	The path to check. 	-
 
 .SH EXAMPLES
 .EX
->> (/).exists()
-= yes
+assert (/).exists() == yes
 .EE

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.insert 3 2025-04-30 "Tomo man-pages"
+.TH List.insert 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 List.insert \- add an item to a list
 .SH LIBRARY
@@ -34,12 +34,10 @@ Since indices are 1-indexed and negative indices mean "starting from the back", 
 
 .SH EXAMPLES
 .EX
->> list := [10, 20]
->> list.insert(30)
->> list
-= [10, 20, 30]
+list := [10, 20]
+list.insert(30)
+assert list == [10, 20, 30]
 
->> list.insert(999, at=2)
->> list
-= [10, 999, 20, 30]
+list.insert(999, at=2)
+assert list == [10, 999, 20, 30]
 .EE

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.glob 3 2025-05-17 "Tomo man-pages"
+.TH Path.glob 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.glob \- perform file globbing
 .SH LIBRARY
@@ -36,19 +36,11 @@ A list of file paths that match the glob.
 .SH EXAMPLES
 .EX
 # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
->> (./*).glob()
-= [(./foo.txt), (./baz.txt), (./qux.jpg)]
-
->> (./*.txt).glob()
-= [(./foo.txt), (./baz.txt)]
-
->> (./*.{txt,jpg}).glob()
-= [(./foo.txt), (./baz.txt), (./qux.jpg)]
-
->> (./.*).glob()
-= [(./.hidden)]
+assert (./*).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+assert (./*.txt).glob() == [(./foo.txt), (./baz.txt)]
+assert (./*.{txt,jpg}).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+assert (./.*).glob() == [(./.hidden)]
 
 # Globs with no matches return an empty list:
->> (./*.xxx).glob()
-= []
+assert (./*.xxx).glob() == []
 .EE

@@ -21,19 +21,13 @@ remainder | `&Text?` | If non-none, this argument will be set to the remainder o
 
 **Example:**
 ```tomo
->> Bool.parse("yes")
-= yes : Bool?
->> Bool.parse("no")
-= no : Bool?
->> Bool.parse("???")
-= none : Bool?
+assert Bool.parse("yes") == yes
+assert Bool.parse("no") == no
+assert Bool.parse("???") == none
 
->> Bool.parse("yesJUNK")
-= none : Bool?
+assert Bool.parse("yesJUNK") == none
 remainder : Text
->> Bool.parse("yesJUNK", &remainder)
-= yes : Bool?
->> remainder
-= "JUNK"
+assert Bool.parse("yesJUNK", &remainder) == yes
+assert remainder == "JUNK"
 
 ```

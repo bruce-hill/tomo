@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.ends_with 3 2025-08-16 "Tomo man-pages"
+.TH Text.ends_with 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.ends_with \- check suffix
 .SH LIBRARY
@@ -31,11 +31,8 @@ remainder	&Text?	If non-none, this value will be set to the rest of the text up 
 
 .SH EXAMPLES
 .EX
->> "hello world".ends_with("world")
-= yes
+assert "hello world".ends_with("world") == yes
 remainder : Text
->> "hello world".ends_with("world", &remainder)
-= yes
->> remainder
-= "hello "
+assert "hello world".ends_with("world", &remainder) == yes
+assert remainder == "hello "
 .EE

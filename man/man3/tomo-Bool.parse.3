@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Bool.parse 3 2025-08-16 "Tomo man-pages"
+.TH Bool.parse 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Bool.parse \- parse into boolean
 .SH LIBRARY
@@ -30,18 +30,12 @@ remainder	&Text?	If non-none, this argument will be set to the remainder of the 
 
 .SH EXAMPLES
 .EX
->> Bool.parse("yes")
-= yes : Bool?
->> Bool.parse("no")
-= no : Bool?
->> Bool.parse("???")
-= none : Bool?
+assert Bool.parse("yes") == yes
+assert Bool.parse("no") == no
+assert Bool.parse("???") == none
 
->> Bool.parse("yesJUNK")
-= none : Bool?
+assert Bool.parse("yesJUNK") == none
 remainder : Text
->> Bool.parse("yesJUNK", &remainder)
-= yes : Bool?
->> remainder
-= "JUNK"
+assert Bool.parse("yesJUNK", &remainder) == yes
+assert remainder == "JUNK"
 .EE

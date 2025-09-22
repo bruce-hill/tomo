@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.find 3 2025-04-30 "Tomo man-pages"
+.TH List.find 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 List.find \- find an element's index
 .SH LIBRARY
@@ -30,9 +30,6 @@ The index of the first occurrence or `none` if not found.
 
 .SH EXAMPLES
 .EX
->> [10, 20, 30, 40, 50].find(20)
-= 2 : Int?
-
->> [10, 20, 30, 40, 50].find(9999)
-= none : Int?
+assert [10, 20, 30, 40, 50].find(20) == 2
+assert [10, 20, 30, 40, 50].find(9999) == none
 .EE

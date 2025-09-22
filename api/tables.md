@@ -20,7 +20,9 @@ t | `&{K:V}` | The reference to the table.  | -
 
 **Example:**
 ```tomo
->> t.clear()
+t := &{"A":1}
+t.clear()
+assert t == {}
 
 ```
 ## Table.difference
@@ -66,18 +68,11 @@ key | `K` | The key whose associated value is to be retrieved.  | -
 
 **Example:**
 ```tomo
->> t := {"A": 1, "B": 2}
->> t.get("A")
-= 1?
-
->> t.get("????")
-= none
-
->> t.get("A")!
-= 1
-
->> t.get("????") or 0
-= 0
+t := {"A": 1, "B": 2}
+assert t.get("A") == 1
+assert t.get("????") == none
+assert t.get("A")! == 1
+assert t.get("????") or 0 == 0
 
 ```
 ## Table.get_or_set
@@ -102,16 +97,13 @@ default | `V` | The default value to insert and return if the key is not present
 
 **Example:**
 ```tomo
->> t := &{"A": @[1, 2, 3]; default=@[]}
->> t.get_or_set("A").insert(4)
->> t.get_or_set("B").insert(99)
->> t
-= &{"A": @[1, 2, 3, 4], "B": @[99]}
+t := &{"A": @[1, 2, 3]; default=@[]}
+t.get_or_set("A").insert(4)
+t.get_or_set("B").insert(99)
+assert t == &{"A": @[1, 2, 3, 4], "B": @[99]}
 
->> t.get_or_set("C", @[0, 0, 0])
-= @[0, 0, 0]
->> t
-= &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
+assert t.get_or_set("C", @[0, 0, 0]) == @[0, 0, 0]
+assert t == &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
 
 ```
 ## Table.has
@@ -132,10 +124,8 @@ key | `K` | The key to check for presence.  | -
 
 **Example:**
 ```tomo
->> {"A": 1, "B": 2}.has("A")
-= yes
->> {"A": 1, "B": 2}.has("xxx")
-= no
+assert {"A": 1, "B": 2}.has("A") == yes
+assert {"A": 1, "B": 2}.has("xxx") == no
 
 ```
 ## Table.intersection
@@ -181,8 +171,7 @@ key | `K` | The key of the key-value pair to remove.  | -
 ```tomo
 t := {"A": 1, "B": 2}
 t.remove("A")
->> t
-= {"B": 2}
+assert t == {"B": 2}
 
 ```
 ## Table.set
@@ -206,8 +195,7 @@ value | `V` | The value to associate with the key.  | -
 ```tomo
 t := {"A": 1, "B": 2}
 t.set("C", 3)
->> t
-= {"A": 1, "B": 2, "C": 3}
+assert t == {"A": 1, "B": 2, "C": 3}
 
 ```
 ## Table.with
@@ -252,11 +240,9 @@ fallback | `{K:V}?` | The new fallback table value.  | -
 ```tomo
 t := {"A": 1; fallback={"B": 2}}
 t2 = t.with_fallback({"B": 3"})
->> t2["B"]
-= 3?
+assert t2["B"] == 3
 t3 = t.with_fallback(none)
->> t2["B"]
-= none
+assert t2["B"] == none
 
 ```
 ## Table.without

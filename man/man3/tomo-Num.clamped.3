@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.clamped 3 2025-04-30 "Tomo man-pages"
+.TH Num.clamped 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Num.clamped \- clamp a number
 .SH LIBRARY
@@ -31,6 +31,5 @@ The first argument clamped between the other two arguments.
 
 .SH EXAMPLES
 .EX
->> (2.5).clamped(5.5, 10.5)
-= 5.5
+assert (2.5).clamped(5.5, 10.5) == 5.5
 .EE

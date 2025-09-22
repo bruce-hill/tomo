@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.upper 3 2025-04-30 "Tomo man-pages"
+.TH Text.upper 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.upper \- uppercase
 .SH LIBRARY
@@ -30,10 +30,8 @@ The uppercase version of the text.
 
 .SH EXAMPLES
 .EX
->> "amélie".upper()
-= "AMÉLIE"
+assert "amélie".upper() == "AMÉLIE"
 
 # In Turkish, uppercase "i" is "İ"
->> "i".upper(language="tr_TR")
-= "İ"
+assert "i".upper(language="tr_TR") == "İ"
 .EE

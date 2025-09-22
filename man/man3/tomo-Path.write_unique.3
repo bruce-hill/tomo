@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.write_unique 3 2025-05-17 "Tomo man-pages"
+.TH Path.write_unique 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.write_unique \- write to a uniquely named file
 .SH LIBRARY
@@ -30,9 +30,8 @@ The path of the newly created unique file.
 
 .SH EXAMPLES
 .EX
->> created := (./file-XXXXXX.txt).write_unique("Hello, world!")
-= (./file-27QHtq.txt)
->> created.read()
-= "Hello, world!"
+created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+assert created == (./file-27QHtq.txt)
+assert created.read() == "Hello, world!"
 created.remove()
 .EE

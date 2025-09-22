@@ -12,8 +12,7 @@ Int.abs:
       description: >
         The integer whose absolute value is to be calculated.
   example: |
-    >> (-10).abs()
-    = 10
+    assert (-10).abs() == 10
 
 Int.choose:
   short: binomial coefficient
@@ -36,8 +35,7 @@ Int.choose:
       description: >
         The number of things to be chosen.
   example: |
-    >> (4).choose(2)
-    = 6
+    assert (4).choose(2) == 6
 
 Int.clamped:
   short: clamp an integer
@@ -62,8 +60,7 @@ Int.clamped:
       description: >
         The highest value the result can take.
   example: |
-    >> (2).clamped(5, 10)
-    = 5
+    assert (2).clamped(5, 10) == 5
 
 Int.factorial:
   short: factorial
@@ -79,8 +76,7 @@ Int.factorial:
       description: >
         The integer to compute the factorial of.
   example: |
-    >> (10).factorial()
-    = 3628800
+    assert (10).factorial() == 3628800
 
 Int.get_bit:
   short: check whether a bit is set
@@ -107,14 +103,10 @@ Int.get_bit:
       description: >
         The index of the bit to check (1-indexed).
   example: |
-    >> (6).get_bit(1)
-    = no
-    >> (6).get_bit(2)
-    = yes
-    >> (6).get_bit(3)
-    = yes
-    >> (6).get_bit(4)
-    = no
+    assert (6).get_bit(1) == no
+    assert (6).get_bit(2) == yes
+    assert (6).get_bit(3) == yes
+    assert (6).get_bit(4) == no
 
 Int.hex:
   short: convert to hexidecimal
@@ -145,8 +137,7 @@ Int.hex:
       description: >
         Whether to include a "0x" prefix.
   example: |
-    >> (255).hex(digits=4, uppercase=yes, prefix=yes)
-    = "0x00FF"
+    assert (255).hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
 
 Int.is_between:
   short: test if an int is in a range
@@ -170,12 +161,9 @@ Int.is_between:
       description: >
         The upper bound to check (inclusive).
   example: |
-    >> (7).is_between(1, 10)
-    = yes
-    >> (7).is_between(100, 200)
-    = no
-    >> (7).is_between(1, 7)
-    = yes
+    assert (7).is_between(1, 10) == yes
+    assert (7).is_between(100, 200) == no
+    assert (7).is_between(1, 7) == yes
 
 Int.is_prime:
   short: check if an integer is prime
@@ -201,10 +189,8 @@ Int.is_prime:
       description: >
         The number of repetitions for primality tests.
   example: |
-    >> (7).is_prime()
-    = yes
-    >> (6).is_prime()
-    = no
+    assert (7).is_prime() == yes
+    assert (6).is_prime() == no
 
 Int.next_prime:
   short: get the next prime
@@ -225,8 +211,7 @@ Int.next_prime:
       description: >
         The integer after which to find the next prime.
   example: |
-    >> (11).next_prime()
-    = 13
+    assert (11).next_prime() == 13
 
 Int.octal:
   short: convert to octal
@@ -252,8 +237,7 @@ Int.octal:
       description: >
         Whether to include a "0o" prefix.
   example: |
-    >> (64).octal(digits=4, prefix=yes)
-    = "0o0100"
+    assert (64).octal(digits=4, prefix=yes) == "0o0100"
 
 Int.onward:
   short: iterate from a number onward
@@ -279,8 +263,7 @@ Int.onward:
     for i in (5).onward()
     nums.insert(i)
     stop if i == 10
-    >> nums[]
-    = [5, 6, 7, 8, 9, 10]
+    assert nums[] == [5, 6, 7, 8, 9, 10]
 
 Int.parse:
   short: convert text to integer
@@ -304,26 +287,18 @@ Int.parse:
         If non-none, this argument will be set to the remainder of the text after the matching part.
         If none, parsing will only succeed if the entire text matches.
   example: |
-    >> Int.parse("123")
-    = 123 : Int?
-    >> Int.parse("0xFF")
-    = 255 : Int?
-
-    >> Int.parse("123xyz")
-    = none
+    assert Int.parse("123") == 123
+    assert Int.parse("0xFF") == 255
+    assert Int.parse("123xyz") == none
     remainder : Text
-    >> Int.parse("123xyz", &remainder)
-    = 123 : Int?
-    >> remainder
-    = "xyz"
+    assert Int.parse("123xyz", &remainder) == 123
+    assert remainder == "xyz"
 
     # Can't parse:
-    >> Int.parse("asdf")
-    = none : Int?
+    assert Int.parse("asdf") == none
 
     # Outside valid range:
-    >> Int8.parse("9999999")
-    = none : Int8?
+    assert Int8.parse("9999999") == none
 
 Int.prev_prime:
   short: get the previous prime
@@ -346,8 +321,7 @@ Int.prev_prime:
       description: >
         The integer before which to find the previous prime.
   example: |
-    >> (11).prev_prime()
-    = 7
+    assert (11).prev_prime() == 7
 
 Int.sqrt:
   short: square root
@@ -363,10 +337,8 @@ Int.sqrt:
       description: >
         The integer whose square root is to be calculated.
   example: |
-    >> (16).sqrt()
-    = 4
-    >> (17).sqrt()
-    = 4
+    assert (16).sqrt() == 4
+    assert (17).sqrt() == 4
 
 Int.to:
   short: iterate a range of integers
@@ -391,13 +363,14 @@ Int.to:
       description: >
         An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.
   example: |
-    >> (2).to(5)
-    = func(->Int?)
-    >> [x for x in (2).to(5)]
-    = [2, 3, 4, 5]
-    >> [x for x in (5).to(2)]
-    = [5, 4, 3, 2]
+    iter := (2).to(5)
+    assert iter() == 2
+    assert iter() == 3
+    assert iter() == 4
+    assert iter() == 5
+    assert iter() == none
 
-    >> [x for x in (2).to(5, step=2)]
-    = [2, 4]
+    assert [x for x in (2).to(5)] == [2, 3, 4, 5]
+    assert [x for x in (5).to(2)] == [5, 4, 3, 2]
+    assert [x for x in (2).to(5, step=2)] == [2, 4]
 

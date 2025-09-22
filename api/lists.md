@@ -21,14 +21,9 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
->> [1, 3, 5, 7, 9].binary_search(5)
-= 3
-
->> [1, 3, 5, 7, 9].binary_search(-999)
-= 1
-
->> [1, 3, 5, 7, 9].binary_search(999)
-= 6
+assert [1, 3, 5, 7, 9].binary_search(5) == 3
+assert [1, 3, 5, 7, 9].binary_search(-999) == 1
+assert [1, 3, 5, 7, 9].binary_search(999) == 6
 
 ```
 ## List.by
@@ -49,8 +44,7 @@ step | `Int` | The step value for selecting elements.  | -
 
 **Example:**
 ```tomo
->> [1, 2, 3, 4, 5, 6].by(2)
-= [1, 3, 5]
+assert [1, 2, 3, 4, 5, 6].by(2) == [1, 3, 5]
 
 ```
 ## List.clear
@@ -70,7 +64,7 @@ list | `@[T]` | The mutable reference to the list to be cleared.  | -
 
 **Example:**
 ```tomo
->> my_list.clear()
+my_list.clear()
 
 ```
 ## List.counts
@@ -90,8 +84,7 @@ list | `[T]` | The list to count elements in.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 30, 30].counts()
-= {10=1, 20=1, 30=3}
+assert [10, 20, 30, 30, 30].counts() == {10=1, 20=1, 30=3}
 
 ```
 ## List.find
@@ -112,11 +105,8 @@ target | `T` | The item to search for.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40, 50].find(20)
-= 2 : Int?
-
->> [10, 20, 30, 40, 50].find(9999)
-= none : Int?
+assert [10, 20, 30, 40, 50].find(20) == 2
+assert [10, 20, 30, 40, 50].find(9999) == none
 
 ```
 ## List.from
@@ -137,8 +127,7 @@ first | `Int` | The index to start from.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40, 50].from(3)
-= [30, 40, 50]
+assert [10, 20, 30, 40, 50].from(3) == [30, 40, 50]
 
 ```
 ## List.has
@@ -159,8 +148,7 @@ target | `T` | The element to check for.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30].has(20)
-= yes
+assert [10, 20, 30].has(20) == yes
 
 ```
 ## List.heap_pop
@@ -181,10 +169,9 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
->> my_heap := [30, 10, 20]
->> my_heap.heapify()
->> my_heap.heap_pop()
-= 10
+my_heap := [30, 10, 20]
+my_heap.heapify()
+assert my_heap.heap_pop() == 10
 
 ```
 ## List.heap_push
@@ -206,7 +193,7 @@ by | `` | The comparison function used to determine order. If not specified, the
 
 **Example:**
 ```tomo
->> my_heap.heap_push(10)
+my_heap.heap_push(10)
 
 ```
 ## List.heapify
@@ -227,8 +214,8 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
->> my_heap := [30, 10, 20]
->> my_heap.heapify()
+my_heap := [30, 10, 20]
+my_heap.heapify()
 
 ```
 ## List.insert
@@ -252,14 +239,12 @@ at | `Int` | The index at which to insert the item.  | `0`
 
 **Example:**
 ```tomo
->> list := [10, 20]
->> list.insert(30)
->> list
-= [10, 20, 30]
+list := [10, 20]
+list.insert(30)
+assert list == [10, 20, 30]
 
->> list.insert(999, at=2)
->> list
-= [10, 999, 20, 30]
+list.insert(999, at=2)
+assert list == [10, 999, 20, 30]
 
 ```
 ## List.insert_all
@@ -285,12 +270,10 @@ at | `Int` | The index at which to insert the item.  | `0`
 ```tomo
 list := [10, 20]
 list.insert_all([30, 40])
->> list
-= [10, 20, 30, 40]
+assert list == [10, 20, 30, 40]
 
 list.insert_all([99, 100], at=2)
->> list
-= [10, 99, 100, 20, 30, 40]
+assert list == [10, 99, 100, 20, 30, 40]
 
 ```
 ## List.pop
@@ -313,17 +296,13 @@ index | `Int` | The index from which to remove the item.  | `-1`
 
 **Example:**
 ```tomo
->> list := [10, 20, 30, 40]
+list := &[10, 20, 30, 40]
 
->> list.pop()
-= 40
->> list
-= &[10, 20, 30]
+assert list.pop() == 40
+assert list[] == [10, 20, 30]
 
->> list.pop(index=2)
-= 20
->> list
-= &[10, 30]
+assert list.pop(index=2) == 20
+assert list[] == [10, 30]
 
 ```
 ## List.random
@@ -344,8 +323,7 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
->> [10, 20, 30].random()
-= 20
+assert [10, 20, 30].random() == 20
 
 ```
 ## List.remove_at
@@ -371,12 +349,10 @@ count | `Int` | The number of elements to remove.  | `1`
 ```tomo
 list := [10, 20, 30, 40, 50]
 list.remove_at(2)
->> list
-= [10, 30, 40, 50]
+assert list == [10, 30, 40, 50]
 
 list.remove_at(2, count=2)
->> list
-= [10, 50]
+assert list == [10, 50]
 
 ```
 ## List.remove_item
@@ -402,12 +378,10 @@ max_count | `Int` | The maximum number of occurrences to remove.  | `-1`
 ```tomo
 list := [10, 20, 10, 20, 30]
 list.remove_item(10)
->> list
-= [20, 20, 30]
+assert list == [20, 20, 30]
 
 list.remove_item(20, max_count=1)
->> list
-= [20, 30]
+assert list == [20, 30]
 
 ```
 ## List.reversed
@@ -427,8 +401,7 @@ list | `[T]` | The list to be reversed.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30].reversed()
-= [30, 20, 10]
+assert [10, 20, 30].reversed() == [30, 20, 10]
 
 ```
 ## List.sample
@@ -453,8 +426,7 @@ random | `func(->Num)?` | If provided, this function will be used to get random 
 
 **Example:**
 ```tomo
->> [10, 20, 30].sample(2, weights=[90%, 5%, 5%])
-= [10, 10]
+assert [10, 20, 30].sample(2, weights=[90%, 5%, 5%]) == [10, 10]
 
 ```
 ## List.shuffle
@@ -475,7 +447,7 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
->> list.shuffle()
+list.shuffle()
 
 ```
 ## List.shuffled
@@ -496,8 +468,7 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40].shuffled()
-= [40, 10, 30, 20]
+assert [10, 20, 30, 40].shuffled() == [40, 10, 30, 20]
 
 ```
 ## List.slice
@@ -519,11 +490,8 @@ to | `Int` | The last index to include.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40, 50].slice(2, 4)
-= [20, 30, 40]
-
->> [10, 20, 30, 40, 50].slice(-3, -2)
-= [30, 40]
+assert [10, 20, 30, 40, 50].slice(2, 4) == [20, 30, 40]
+assert [10, 20, 30, 40, 50].slice(-3, -2) == [30, 40]
 
 ```
 ## List.sort
@@ -546,12 +514,10 @@ by | `` | The comparison function used to determine order. If not specified, the
 ```tomo
 list := [40, 10, -30, 20]
 list.sort()
->> list
-= [-30, 10, 20, 40]
+assert list == [-30, 10, 20, 40]
 
 list.sort(func(a,b:&Int): a.abs() <> b.abs())
->> list
-= [10, 20, -30, 40]
+assert list == [10, 20, -30, 40]
 
 ```
 ## List.sorted
@@ -572,11 +538,10 @@ by | `` | The comparison function used to determine order. If not specified, the
 
 **Example:**
 ```tomo
->> [40, 10, -30, 20].sorted()
-= [-30, 10, 20, 40]
-
->> [40, 10, -30, 20].sorted(func(a,b:&Int): a.abs() <> b.abs())
-= [10, 20, -30, 40]
+assert [40, 10, -30, 20].sorted() == [-30, 10, 20, 40]
+assert [40, 10, -30, 20].sorted(
+   func(a,b:&Int): a.abs() <> b.abs()
+) == [10, 20, -30, 40]
 
 ```
 ## List.to
@@ -597,32 +562,28 @@ last | `Int` | The index up to which elements should be included.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40, 50].to(3)
-= [10, 20, 30]
-
->> [10, 20, 30, 40, 50].to(-2)
-= [10, 20, 30, 40]
+assert [10, 20, 30, 40, 50].to(3) == [10, 20, 30]
+assert [10, 20, 30, 40, 50].to(-2) == [10, 20, 30, 40]
 
 ```
 ## List.unique
 
 ```tomo
-List.unique : func(list: [T] -> |T|)
+List.unique : func(list: [T] -> [T])
 ```
 
-Returns a Set that contains the unique elements of the list.
+Returns a list of the unique elements of the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `[T]` | The list to process.  | -
 
-**Return:** A set containing only unique elements from the list.
+**Return:** A list of the unique elements from the list.
 
 
 **Example:**
 ```tomo
->> [10, 20, 10, 10, 30].unique()
-= {10, 20, 30}
+assert [10, 20, 10, 10, 30].unique() == [10, 20, 30]
 
 ```
 ## List.where
@@ -643,9 +604,7 @@ predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item'
 
 **Example:**
 ```tomo
->> [4, 5, 6].where(func(i:&Int): i.is_prime())
-= 5 : Int?
->> [4, 6, 8].find(func(i:&Int): i.is_prime())
-= none : Int?
+assert [4, 5, 6].where(func(i:&Int): i.is_prime()) == 5
+assert [4, 6, 8].find(func(i:&Int): i.is_prime()) == none
 
 ```

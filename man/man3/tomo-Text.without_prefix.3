@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.without_prefix 3 2025-04-30 "Tomo man-pages"
+.TH Text.without_prefix 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.without_prefix \- remove prefix
 .SH LIBRARY
@@ -30,8 +30,6 @@ A text without the given prefix (if present) or the unmodified text if the prefi
 
 .SH EXAMPLES
 .EX
->> "foo:baz".without_prefix("foo:")
-= "baz"
->> "qux".without_prefix("foo:")
-= "qux"
+assert "foo:baz".without_prefix("foo:") == "baz"
+assert "qux".without_prefix("foo:") == "qux"
 .EE

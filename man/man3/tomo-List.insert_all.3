@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.insert_all 3 2025-04-30 "Tomo man-pages"
+.TH List.insert_all 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 List.insert_all \- add multiple items to a list
 .SH LIBRARY
@@ -36,10 +36,8 @@ Since indices are 1-indexed and negative indices mean "starting from the back", 
 .EX
 list := [10, 20]
 list.insert_all([30, 40])
->> list
-= [10, 20, 30, 40]
+assert list == [10, 20, 30, 40]
 
 list.insert_all([99, 100], at=2)
->> list
-= [10, 99, 100, 20, 30, 40]
+assert list == [10, 99, 100, 20, 30, 40]
 .EE

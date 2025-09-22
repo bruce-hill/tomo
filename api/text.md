@@ -20,8 +20,7 @@ text | `Text` | The text to be converted to a C-style string.  | -
 
 **Example:**
 ```tomo
->> "Hello".as_c_string()
-= CString("Hello")
+assert "Hello".as_c_string() == CString("Hello")
 
 ```
 ## Text.at
@@ -44,8 +43,7 @@ index | `Int` | The index of the graphical cluster (1-indexed).  | -
 
 **Example:**
 ```tomo
->> "Amélie".at(3)
-= "é"
+assert "Amélie".at(3) == "é"
 
 ```
 ## Text.by_line
@@ -149,12 +147,10 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
->> "A".caseless_equals("a")
-= yes
+assert "A".caseless_equals("a") == yes
 
 # Turkish lowercase "I" is "ı" (dotless I), not "i"
->> "I".caseless_equals("i", language="tr_TR")
-= no
+assert "I".caseless_equals("i", language="tr_TR") == no
 
 ```
 ## Text.codepoint_names
@@ -174,8 +170,14 @@ text | `Text` | The text from which to extract codepoint names.  | -
 
 **Example:**
 ```tomo
->> "Amélie".codepoint_names()
-= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
+assert "Amélie".codepoint_names() == [
+    "LATIN CAPITAL LETTER A",
+    "LATIN SMALL LETTER M",
+    "LATIN SMALL LETTER E WITH ACUTE",
+    "LATIN SMALL LETTER L",
+    "LATIN SMALL LETTER I",
+    "LATIN SMALL LETTER E",
+]
 
 ```
 ## Text.ends_with
@@ -197,13 +199,10 @@ remainder | `&Text?` | If non-none, this value will be set to the rest of the te
 
 **Example:**
 ```tomo
->> "hello world".ends_with("world")
-= yes
+assert "hello world".ends_with("world") == yes
 remainder : Text
->> "hello world".ends_with("world", &remainder)
-= yes
->> remainder
-= "hello "
+assert "hello world".ends_with("world", &remainder) == yes
+assert remainder == "hello "
 
 ```
 ## Text.from
@@ -226,11 +225,8 @@ first | `Int` | The index to begin the slice.  | -
 
 **Example:**
 ```tomo
->> "hello".from(2)
-= "ello"
-
->> "hello".from(-2)
-= "lo"
+assert "hello".from(2) == "ello"
+assert "hello".from(-2) == "lo"
 
 ```
 ## Text.from_c_string
@@ -250,8 +246,7 @@ str | `CString` | The C-style string to be converted.  | -
 
 **Example:**
 ```tomo
->> Text.from_c_string(CString("Hello"))
-= "Hello"
+assert Text.from_c_string(CString("Hello")) == "Hello"
 
 ```
 ## Text.from_codepoint_names
@@ -273,12 +268,12 @@ codepoint_names | `[Text]` | The names of each codepoint in the desired text (ca
 
 **Example:**
 ```tomo
->> Text.from_codepoint_names([
-"LATIN CAPITAL LETTER A WITH RING ABOVE",
-"LATIN SMALL LETTER K",
-"LATIN SMALL LETTER E",
+text := Text.from_codepoint_names([
+    "LATIN CAPITAL LETTER A WITH RING ABOVE",
+    "LATIN SMALL LETTER K",
+    "LATIN SMALL LETTER E",
 ]
-= "Åke"
+assert text == "Åke"
 
 ```
 ## Text.from_utf16
@@ -300,10 +295,8 @@ bytes | `[Int16]` | The UTF-16 integers of the desired text.  | -
 
 **Example:**
 ```tomo
->> Text.from_utf16([197, 107, 101])
-= "Åke"
->> Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028])
-= "こんにちは世界".utf16()
+assert Text.from_utf16([197, 107, 101]) == "Åke"
+assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界".utf16()
 
 ```
 ## Text.from_utf32
@@ -325,8 +318,7 @@ codepoints | `[Int32]` | The UTF32 codepoints in the desired text.  | -
 
 **Example:**
 ```tomo
->> Text.from_utf32([197, 107, 101])
-= "Åke"
+assert Text.from_utf32([197, 107, 101]) == "Åke"
 
 ```
 ## Text.from_utf8
@@ -348,8 +340,7 @@ bytes | `[Byte]` | The UTF-8 bytes of the desired text.  | -
 
 **Example:**
 ```tomo
->> Text.from_utf8([195, 133, 107, 101])
-= "Åke"
+assert Text.from_utf8([195, 133, 107, 101]) == "Åke"
 
 ```
 ## Text.has
@@ -370,10 +361,8 @@ target | `Text` | The text to search for.  | -
 
 **Example:**
 ```tomo
->> "hello world".has("wo")
-= yes
->> "hello world".has("xxx")
-= no
+assert "hello world".has("wo") == yes
+assert "hello world".has("xxx") == no
 
 ```
 ## Text.join
@@ -394,8 +383,7 @@ pieces | `[Text]` | The list of text pieces to be joined.  | -
 
 **Example:**
 ```tomo
->> ", ".join(["one", "two", "three"])
-= "one, two, three"
+assert ", ".join(["one", "two", "three"]) == "one, two, three"
 
 ```
 ## Text.left_pad
@@ -418,10 +406,8 @@ language | `Text` | The ISO 639 language code for which character width to use. 
 
 **Example:**
 ```tomo
->> "x".left_pad(5)
-= "    x"
->> "x".left_pad(5, "ABC")
-= "ABCAx"
+assert "x".left_pad(5) == "    x"
+assert "x".left_pad(5, "ABC") == "ABCAx"
 
 ```
 ## Text.lines
@@ -441,16 +427,11 @@ text | `Text` | The text to be split into lines.  | -
 
 **Example:**
 ```tomo
->> "one\ntwo\nthree".lines()
-= ["one", "two", "three"]
->> "one\ntwo\nthree\n".lines()
-= ["one", "two", "three"]
->> "one\ntwo\nthree\n\n".lines()
-= ["one", "two", "three", ""]
->> "one\r\ntwo\r\nthree\r\n".lines()
-= ["one", "two", "three"]
->> "".lines()
-= []
+assert "one\ntwo\nthree".lines() == ["one", "two", "three"]
+assert "one\ntwo\nthree\n".lines() == ["one", "two", "three"]
+assert "one\ntwo\nthree\n\n".lines() == ["one", "two", "three", ""]
+assert "one\r\ntwo\r\nthree\r\n".lines() == ["one", "two", "three"]
+assert "".lines() == []
 
 ```
 ## Text.lower
@@ -471,11 +452,8 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
->> "AMÉLIE".lower()
-= "amélie"
-
->> "I".lower(language="tr_TR")
->> "ı"
+assert "AMÉLIE".lower() == "amélie"
+assert "I".lower(language="tr_TR") == "ı"
 
 ```
 ## Text.middle_pad
@@ -498,10 +476,8 @@ language | `Text` | The ISO 639 language code for which character width to use. 
 
 **Example:**
 ```tomo
->> "x".middle_pad(6)
-= "  x   "
->> "x".middle_pad(10, "ABC")
-= "ABCAxABCAB"
+assert "x".middle_pad(6) == "  x   "
+assert "x".middle_pad(10, "ABC") == "ABCAxABCAB"
 
 ```
 ## Text.quoted
@@ -523,8 +499,7 @@ quotation_mark | `Text` | The quotation mark to use.  | ``"``
 
 **Example:**
 ```tomo
->> "one\ntwo".quoted()
-= "\"one\\ntwo\""
+assert "one\ntwo".quoted() == "\"one\\ntwo\""
 
 ```
 ## Text.repeat
@@ -545,8 +520,7 @@ count | `Int` | The number of times to repeat it. (Negative numbers are equivale
 
 **Example:**
 ```tomo
->> "Abc".repeat(3)
-= "AbcAbcAbc"
+assert "Abc".repeat(3) == "AbcAbcAbc"
 
 ```
 ## Text.replace
@@ -568,8 +542,7 @@ replacement | `Text` | The text to replace the target with.  | -
 
 **Example:**
 ```tomo
->> "Hello world".replace("world", "there")
-= "Hello there"
+assert "Hello world".replace("world", "there") == "Hello there"
 
 ```
 ## Text.reversed
@@ -589,8 +562,7 @@ text | `Text` | The text to reverse.  | -
 
 **Example:**
 ```tomo
->> "Abc".reversed()
-= "cbA"
+assert "Abc".reversed() == "cbA"
 
 ```
 ## Text.right_pad
@@ -613,10 +585,8 @@ language | `Text` | The ISO 639 language code for which character width to use. 
 
 **Example:**
 ```tomo
->> "x".right_pad(5)
-= "x    "
->> "x".right_pad(5, "ABC")
-= "xABCA"
+assert "x".right_pad(5) == "x    "
+assert "x".right_pad(5, "ABC") == "xABCA"
 
 ```
 ## Text.slice
@@ -640,14 +610,9 @@ to | `Int` | The index of the last grapheme cluster to include (1-indexed).  | `
 
 **Example:**
 ```tomo
->> "hello".slice(2, 3)
-= "el"
-
->> "hello".slice(to=-2)
-= "hell"
-
->> "hello".slice(from=2)
-= "ello"
+assert "hello".slice(2, 3) == "el"
+assert "hello".slice(to=-2) == "hell"
+assert "hello".slice(from=2) == "ello"
 
 ```
 ## Text.split
@@ -671,11 +636,8 @@ delimiter | `Text` | The delimiter used to split the text.  | `""`
 
 **Example:**
 ```tomo
->> "one,two,,three".split(",")
-= ["one", "two", "", "three"]
-
->> "abc".split()
-= ["a", "b", "c"]
+assert "one,two,,three".split(",") == ["one", "two", "", "three"]
+assert "abc".split() == ["a", "b", "c"]
 
 ```
 ## Text.split_any
@@ -699,8 +661,7 @@ delimiters | `Text` | A text containing delimiters to use for splitting the text
 
 **Example:**
 ```tomo
->> "one, two,,three".split_any(", ")
-= ["one", "two", "three"]
+assert "one, two,,three".split_any(", ") == ["one", "two", "three"]
 
 ```
 ## Text.starts_with
@@ -722,13 +683,10 @@ remainder | `&Text?` | If non-none, this value will be set to the rest of the te
 
 **Example:**
 ```tomo
->> "hello world".starts_with("hello")
-= yes
+assert "hello world".starts_with("hello") == yes
 remainder : Text
->> "hello world".starts_with("hello", &remainder)
-= yes
->> remainder
-= " world"
+assert "hello world".starts_with("hello", &remainder) == yes
+assert remainder == " world"
 
 ```
 ## Text.title
@@ -749,12 +707,10 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
->> "amélie".title()
-= "Amélie"
+assert "amélie".title() == "Amélie"
 
 # In Turkish, uppercase "i" is "İ"
->> "i".title(language="tr_TR")
-= "İ"
+assert "i".title(language="tr_TR") == "İ"
 
 ```
 ## Text.to
@@ -777,11 +733,8 @@ last | `Int` | The index of the last grapheme cluster to include (1-indexed).  |
 
 **Example:**
 ```tomo
->> "goodbye".to(3)
-= "goo"
-
->> "goodbye".to(-2)
-= "goodby"
+assert "goodbye".to(3) == "goo"
+assert "goodbye".to(-2) == "goodby"
 
 ```
 ## Text.translate
@@ -802,14 +755,14 @@ translations | `{Text:Text}` | A table mapping from target text to its replaceme
 
 **Example:**
 ```tomo
->> "A <tag> & an amperand".translate({
+text := "A <tag> & an amperand".translate({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     '"": "&quot",
     "'": "&#39;",
 })
-= "A &lt;tag&gt; &amp; an ampersand"
+assert text == "A &lt;tag&gt; &amp; an ampersand"
 
 ```
 ## Text.trim
@@ -832,14 +785,9 @@ right | `Bool` | Whether or not to trim from the back of the text.  | `yes`
 
 **Example:**
 ```tomo
->> "   x y z    \n".trim()
-= "x y z"
-
->> "one,".trim(",")
-= "one"
-
->> "   xyz   ".trim(right=no)
-= "xyz   "
+assert "   x y z    \n".trim() == "x y z"
+assert "one,".trim(",") == "one"
+assert "   xyz   ".trim(right=no) == "xyz   "
 
 ```
 ## Text.upper
@@ -860,12 +808,10 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
->> "amélie".upper()
-= "AMÉLIE"
+assert "amélie".upper() == "AMÉLIE"
 
 # In Turkish, uppercase "i" is "İ"
->> "i".upper(language="tr_TR")
-= "İ"
+assert "i".upper(language="tr_TR") == "İ"
 
 ```
 ## Text.utf16
@@ -885,10 +831,8 @@ text | `Text` | The text from which to extract Unicode code points.  | -
 
 **Example:**
 ```tomo
->> "Åke".utf16()
-= [197, 107, 101]
->> "こんにちは世界".utf16()
-= [12371, 12435, 12395, 12385, 12399, 19990, 30028]
+assert "Åke".utf16() == [197, 107, 101]
+assert "こんにちは世界".utf16() == [12371, 12435, 12395, 12385, 12399, 19990, 30028]
 
 ```
 ## Text.utf32
@@ -908,8 +852,7 @@ text | `Text` | The text from which to extract Unicode code points.  | -
 
 **Example:**
 ```tomo
->> "Amélie".utf32()
-= [65, 109, 233, 108, 105, 101]
+assert "Amélie".utf32() == [65, 109, 233, 108, 105, 101]
 
 ```
 ## Text.utf8
@@ -929,8 +872,7 @@ text | `Text` | The text to be converted to UTF8 bytes.  | -
 
 **Example:**
 ```tomo
->> "Amélie".utf8()
-= [65, 109, 195, 169, 108, 105, 101]
+assert "Amélie".utf8() == [65, 109, 195, 169, 108, 105, 101]
 
 ```
 ## Text.width
@@ -952,10 +894,8 @@ text | `Text` | The text whose length you want.  | -
 
 **Example:**
 ```tomo
->> "Amélie".width()
-= 6
->> "🤠".width()
-= 2
+assert "Amélie".width() == 6
+assert "🤠".width() == 2
 
 ```
 ## Text.without_prefix
@@ -976,10 +916,8 @@ prefix | `Text` | The prefix to remove.  | -
 
 **Example:**
 ```tomo
->> "foo:baz".without_prefix("foo:")
-= "baz"
->> "qux".without_prefix("foo:")
-= "qux"
+assert "foo:baz".without_prefix("foo:") == "baz"
+assert "qux".without_prefix("foo:") == "qux"
 
 ```
 ## Text.without_suffix
@@ -1000,9 +938,7 @@ suffix | `Text` | The suffix to remove.  | -
 
 **Example:**
 ```tomo
->> "baz.foo".without_suffix(".foo")
-= "baz"
->> "qux".without_suffix(".foo")
-= "qux"
+assert "baz.foo".without_suffix(".foo") == "baz"
+assert "qux".without_suffix(".foo") == "qux"
 
 ```

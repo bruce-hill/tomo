@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.sibling 3 2025-05-17 "Tomo man-pages"
+.TH Path.sibling 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.sibling \- get another path in the same directory
 .SH LIBRARY
@@ -30,6 +30,5 @@ A new path representing the sibling.
 
 .SH EXAMPLES
 .EX
->> (/foo/baz).sibling("doop")
-= (/foo/doop)
+assert (/foo/baz).sibling("doop") == (/foo/doop)
 .EE

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.trim 3 2025-04-30 "Tomo man-pages"
+.TH Text.trim 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.trim \- trim characters
 .SH LIBRARY
@@ -32,12 +32,7 @@ The text without the trim characters at either end.
 
 .SH EXAMPLES
 .EX
->> "   x y z    \[rs]n".trim()
-= "x y z"
-
->> "one,".trim(",")
-= "one"
-
->> "   xyz   ".trim(right=no)
-= "xyz   "
+assert "   x y z    \[rs]n".trim() == "x y z"
+assert "one,".trim(",") == "one"
+assert "   xyz   ".trim(right=no) == "xyz   "
 .EE

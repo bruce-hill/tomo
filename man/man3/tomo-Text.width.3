@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.width 3 2025-04-30 "Tomo man-pages"
+.TH Text.width 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.width \- get display width
 .SH LIBRARY
@@ -32,8 +32,6 @@ This will not always be exactly accurate when your terminal's font rendering can
 
 .SH EXAMPLES
 .EX
->> "Amélie".width()
-= 6
->> "🤠".width()
-= 2
+assert "Amélie".width() == 6
+assert "🤠".width() == 2
 .EE

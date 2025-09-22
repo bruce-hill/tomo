@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.has_extension 3 2025-06-24 "Tomo man-pages"
+.TH Path.has_extension 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.has_extension \- check if a path has a given extension
 .SH LIBRARY
@@ -30,12 +30,8 @@ Whether or not the path has the given extension.
 
 .SH EXAMPLES
 .EX
->> (/foo.txt).has_extension("txt")
-= yes
->> (/foo.txt).has_extension(".txt")
-= yes
->> (/foo.tar.gz).has_extension("gz")
-= yes
->> (/foo.tar.gz).has_extension("zip")
-= no
+assert (/foo.txt).has_extension("txt") == yes
+assert (/foo.txt).has_extension(".txt") == yes
+assert (/foo.tar.gz).has_extension("gz") == yes
+assert (/foo.tar.gz).has_extension("zip") == no
 .EE

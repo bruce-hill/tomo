@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.rint 3 2025-04-30 "Tomo man-pages"
+.TH Num.rint 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Num.rint \- round to nearest integer
 .SH LIBRARY
@@ -29,8 +29,6 @@ The nearest integer value of `x`.
 
 .SH EXAMPLES
 .EX
->> (3.5).rint()
-= 4
->> (2.5).rint()
-= 2
+assert (3.5).rint() == 4
+assert (2.5).rint() == 2
 .EE

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.resolved 3 2025-05-17 "Tomo man-pages"
+.TH Path.resolved 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.resolved \- resolve a path
 .SH LIBRARY
@@ -30,9 +30,6 @@ The resolved absolute path.
 
 .SH EXAMPLES
 .EX
->> (~/foo).resolved()
-= (/home/user/foo)
-
->> (./path/to/file.txt).resolved(relative_to=(/foo))
-= (/foo/path/to/file.txt)
+assert (~/foo).resolved() == (/home/user/foo)
+assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.txt)
 .EE

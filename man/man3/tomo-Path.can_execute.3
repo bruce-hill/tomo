@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.can_execute 3 2025-05-17 "Tomo man-pages"
+.TH Path.can_execute 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.can_execute \- check execute permissions
 .SH LIBRARY
@@ -29,10 +29,7 @@ path	Path	The path of the file to check. 	-
 
 .SH EXAMPLES
 .EX
->> (/bin/sh).can_execute()
-= yes
->> (/usr/include/stdlib.h).can_execute()
-= no
->> (/non/existant/file).can_execute()
-= no
+assert (/bin/sh).can_execute() == yes
+assert (/usr/include/stdlib.h).can_execute() == no
+assert (/non/existant/file).can_execute() == no
 .EE

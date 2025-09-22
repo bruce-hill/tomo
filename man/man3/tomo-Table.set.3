@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.set 3 2025-05-17 "Tomo man-pages"
+.TH Table.set 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Table.set \- set a table entry
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Table.set\ :\ func(t:\ {K=V},\ key:\ K,\ value:\ V\ ->\ Void)
+.BI Table.set\ :\ func(t:\ {K:V},\ key:\ K,\ value:\ V\ ->\ Void)
 .fi
 .SH DESCRIPTION
 Sets or updates the value associated with a specified key.
@@ -22,7 +22,7 @@ allbox;
 lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
-t	{K=V}	The reference to the table. 	-
+t	{K:V}	The reference to the table. 	-
 key	K	The key to set or update. 	-
 value	V	The value to associate with the key. 	-
 .TE
@@ -31,8 +31,7 @@ Nothing.
 
 .SH EXAMPLES
 .EX
-t := {"A"=1, "B"=2}
+t := {"A": 1, "B": 2}
 t.set("C", 3)
->> t
-= {"A"=1, "B"=2, "C"=3}
+assert t == {"A": 1, "B": 2, "C": 3}
 .EE

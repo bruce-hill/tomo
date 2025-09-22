@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.parse 3 2025-08-16 "Tomo man-pages"
+.TH Int.parse 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Int.parse \- convert text to integer
 .SH LIBRARY
@@ -30,24 +30,16 @@ The integer represented by the text. If the given text contains a value outside 
 
 .SH EXAMPLES
 .EX
->> Int.parse("123")
-= 123 : Int?
->> Int.parse("0xFF")
-= 255 : Int?
-
->> Int.parse("123xyz")
-= none
+assert Int.parse("123") == 123
+assert Int.parse("0xFF") == 255
+assert Int.parse("123xyz") == none
 remainder : Text
->> Int.parse("123xyz", &remainder)
-= 123 : Int?
->> remainder
-= "xyz"
+assert Int.parse("123xyz", &remainder) == 123
+assert remainder == "xyz"
 
 # Can't parse:
->> Int.parse("asdf")
-= none : Int?
+assert Int.parse("asdf") == none
 
 # Outside valid range:
->> Int8.parse("9999999")
-= none : Int8?
+assert Int8.parse("9999999") == none
 .EE

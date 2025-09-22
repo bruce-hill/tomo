@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.can_read 3 2025-05-17 "Tomo man-pages"
+.TH Path.can_read 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.can_read \- check read permissions
 .SH LIBRARY
@@ -29,10 +29,7 @@ path	Path	The path of the file to check. 	-
 
 .SH EXAMPLES
 .EX
->> (/usr/include/stdlib.h).can_read()
-= yes
->> (/etc/shadow).can_read()
-= no
->> (/non/existant/file).can_read()
-= no
+assert (/usr/include/stdlib.h).can_read() == yes
+assert (/etc/shadow).can_read() == no
+assert (/non/existant/file).can_read() == no
 .EE

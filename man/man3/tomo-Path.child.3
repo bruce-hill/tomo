@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.child 3 2025-05-17 "Tomo man-pages"
+.TH Path.child 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Path.child \- append a child to a path
 .SH LIBRARY
@@ -30,6 +30,5 @@ A new path representing the child.
 
 .SH EXAMPLES
 .EX
->> (./directory).child("file.txt")
-= (./directory/file.txt)
+assert (./directory).child("file.txt") == (./directory/file.txt)
 .EE

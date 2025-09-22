@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.parse 3 2025-08-16 "Tomo man-pages"
+.TH Num.parse 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Num.parse \- convert text to number
 .SH LIBRARY
@@ -30,16 +30,10 @@ The number represented by the text or `none` if the entire text can't be parsed 
 
 .SH EXAMPLES
 .EX
->> Num.parse("3.14")
-= 3.14 : Num?
->> Num.parse("1e3")
-= 1000 : Num?
-
->> Num.parse("1.5junk")
-= none : Num?
+assert Num.parse("3.14") == 3.14
+assert Num.parse("1e3") == 1000
+assert Num.parse("1.5junk") == none
 remainder : Text
->> Num.parse("1.5junk", &remainder)
-= 1.5 : Num?
->> remainder
-= "junk"
+assert Num.parse("1.5junk", &remainder) == 1.5
+assert remainder == "junk"
 .EE

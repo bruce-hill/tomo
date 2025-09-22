@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.at 3 2025-04-30 "Tomo man-pages"
+.TH Text.at 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.at \- get a letter
 .SH LIBRARY
@@ -33,6 +33,5 @@ Negative indices are counted from the back of the text, so `-1` means the last c
 
 .SH EXAMPLES
 .EX
->> "Amélie".at(3)
-= "é"
+assert "Amélie".at(3) == "é"
 .EE

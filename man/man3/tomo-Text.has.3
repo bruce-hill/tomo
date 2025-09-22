@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.has 3 2025-04-30 "Tomo man-pages"
+.TH Text.has 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.has \- check for substring
 .SH LIBRARY
@@ -30,8 +30,6 @@ target	Text	The text to search for. 	-
 
 .SH EXAMPLES
 .EX
->> "hello world".has("wo")
-= yes
->> "hello world".has("xxx")
-= no
+assert "hello world".has("wo") == yes
+assert "hello world".has("xxx") == no
 .EE

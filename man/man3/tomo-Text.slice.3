@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.slice 3 2025-04-30 "Tomo man-pages"
+.TH Text.slice 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.slice \- get a slice of a text
 .SH LIBRARY
@@ -34,12 +34,7 @@ A negative index counts backwards from the end of the text, so `-1` refers to th
 
 .SH EXAMPLES
 .EX
->> "hello".slice(2, 3)
-= "el"
-
->> "hello".slice(to=-2)
-= "hell"
-
->> "hello".slice(from=2)
-= "ello"
+assert "hello".slice(2, 3) == "el"
+assert "hello".slice(to=-2) == "hell"
+assert "hello".slice(from=2) == "ello"
 .EE

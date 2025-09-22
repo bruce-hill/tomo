@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.fdim 3 2025-04-30 "Tomo man-pages"
+.TH Num.fdim 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Num.fdim \- positive difference
 .SH LIBRARY
@@ -32,6 +32,5 @@ The positive difference $\max(0, x - y)$.
 .EX
 fd
 
->> (5.0).fdim(3)
-= 2
+assert (5.0).fdim(3) == 2
 .EE

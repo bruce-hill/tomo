@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.utf16 3 2025-09-09 "Tomo man-pages"
+.TH Text.utf16 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.utf16 \- get UTF16 codepoints
 .SH LIBRARY
@@ -29,8 +29,6 @@ A list of 16-bit integer Unicode code points (`[Int16]`).
 
 .SH EXAMPLES
 .EX
->> "Åke".utf16()
-= [197, 107, 101]
->> "こんにちは世界".utf16()
-= [12371, 12435, 12395, 12385, 12399, 19990, 30028]
+assert "Åke".utf16() == [197, 107, 101]
+assert "こんにちは世界".utf16() == [12371, 12435, 12395, 12385, 12399, 19990, 30028]
 .EE

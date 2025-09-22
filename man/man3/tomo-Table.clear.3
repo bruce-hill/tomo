@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.clear 3 2025-05-17 "Tomo man-pages"
+.TH Table.clear 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Table.clear \- clear a table
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Table.clear\ :\ func(t:\ &{K=V}\ ->\ Void)
+.BI Table.clear\ :\ func(t:\ &{K:V}\ ->\ Void)
 .fi
 .SH DESCRIPTION
 Removes all key-value pairs from the table.
@@ -22,12 +22,14 @@ allbox;
 lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
-t	&{K=V}	The reference to the table. 	-
+t	&{K:V}	The reference to the table. 	-
 .TE
 .SH RETURN
 Nothing.
 
 .SH EXAMPLES
 .EX
->> t.clear()
+t := &{"A":1}
+t.clear()
+assert t == {}
 .EE

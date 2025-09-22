@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.parse 3 2025-08-16 "Tomo man-pages"
+.TH Byte.parse 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Byte.parse \- convert text to a byte
 .SH LIBRARY
@@ -30,16 +30,11 @@ The byte parsed from the text, if successful, otherwise `none`.
 
 .SH EXAMPLES
 .EX
->> Byte.parse("5")
-= Byte(5) : Byte?
->> Byte.parse("asdf")
-= none : Byte?
+assert Byte.parse("5") == Byte(5)
+assert Byte.parse("asdf") == none
+assert Byte.parse("123xyz") == none
 
->> Byte.parse("123xyz")
-= none : Byte?
 remainder : Text
->> Byte.parse("123xyz", &remainder)
-= Byte(123) : Byte?
->> remainder
-= "xyz"
+assert Byte.parse("123xyz", &remainder) == Byte(123)
+assert remainder == "xyz"
 .EE

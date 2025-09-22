@@ -23,14 +23,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed, range 1-8).  | -
 
 **Example:**
 ```tomo
->> Byte(6).get_bit(1)
-= no
->> Byte(6).get_bit(2)
-= yes
->> Byte(6).get_bit(3)
-= yes
->> Byte(6).get_bit(4)
-= no
+assert Byte(6).get_bit(1) == no
+assert Byte(6).get_bit(2) == yes
+assert Byte(6).get_bit(3) == yes
+assert Byte(6).get_bit(4) == no
 
 ```
 ## Byte.hex
@@ -52,8 +48,7 @@ prefix | `Bool` | Whether or not to prepend a `0x` prefix.  | `no`
 
 **Example:**
 ```tomo
->> Byte(18).hex()
-= "0x12"
+assert Byte(18).hex() == "0x12"
 
 ```
 ## Byte.is_between
@@ -75,12 +70,9 @@ high | `Byte` | The upper bound to check (inclusive).  | -
 
 **Example:**
 ```tomo
->> Byte(7).is_between(1, 10)
-= yes
->> Byte(7).is_between(100, 200)
-= no
->> Byte(7).is_between(1, 7)
-= yes
+assert Byte(7).is_between(1, 10) == yes
+assert Byte(7).is_between(100, 200) == no
+assert Byte(7).is_between(1, 7) == yes
 
 ```
 ## Byte.parse
@@ -101,18 +93,13 @@ remainder | `&Text?` | If non-none, this argument will be set to the remainder o
 
 **Example:**
 ```tomo
->> Byte.parse("5")
-= Byte(5) : Byte?
->> Byte.parse("asdf")
-= none : Byte?
+assert Byte.parse("5") == Byte(5)
+assert Byte.parse("asdf") == none
+assert Byte.parse("123xyz") == none
 
->> Byte.parse("123xyz")
-= none : Byte?
 remainder : Text
->> Byte.parse("123xyz", &remainder)
-= Byte(123) : Byte?
->> remainder
-= "xyz"
+assert Byte.parse("123xyz", &remainder) == Byte(123)
+assert remainder == "xyz"
 
 ```
 ## Byte.to
@@ -134,14 +121,14 @@ step | `Byte?` | An optional step size to use. If unspecified or `none`, the ste
 
 **Example:**
 ```tomo
->> Byte(2).to(5)
-= func(->Byte?)
->> [x for x in Byte(2).to(5)]
-= [Byte(2), Byte(3), Byte(4), Byte(5)]
->> [x for x in Byte(5).to(2)]
-= [Byte(5), Byte(4), Byte(3), Byte(2)]
+iter := Byte(2).to(4)
+assert iter() == 2
+assert iter() == 3
+assert iter() == 4
+assert iter() == none
 
->> [x for x in Byte(2).to(5, step=2)]
-= [Byte(2), Byte(4)]
+assert [x for x in Byte(2).to(5)] == [Byte(2), Byte(3), Byte(4), Byte(5)]
+assert [x for x in Byte(5).to(2)] == [Byte(5), Byte(4), Byte(3), Byte(2)]
+assert [x for x in Byte(2).to(5, step=2)] == [Byte(2), Byte(4)]
 
 ```

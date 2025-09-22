@@ -30,8 +30,7 @@ force_tty | `Bool` | Whether or not to force the use of /dev/tty.  | `yes`
 
 **Example:**
 ```tomo
->> ask("What's your name? ")
-= "Arthur Dent"
+assert ask("What's your name? ") == "Arthur Dent"
 
 ```
 ## exit
@@ -92,8 +91,8 @@ name | `Text` | The name of the environment variable to get.  | -
 
 **Example:**
 ```tomo
->> getenv("TERM")
-= "xterm-256color"?
+assert getenv("TERM") == "xterm-256color"
+assert getenv("not_a_variable") == none
 
 ```
 ## print
@@ -201,20 +200,14 @@ remainder | `&Text?` | If non-none, this argument will be set to the remainder o
 
 **Example:**
 ```tomo
->> Bool.parse("yes")
-= yes : Bool?
->> Bool.parse("no")
-= no : Bool?
->> Bool.parse("???")
-= none : Bool?
+assert Bool.parse("yes") == yes
+assert Bool.parse("no") == no
+assert Bool.parse("???") == none
 
->> Bool.parse("yesJUNK")
-= none : Bool?
+assert Bool.parse("yesJUNK") == none
 remainder : Text
->> Bool.parse("yesJUNK", &remainder)
-= yes : Bool?
->> remainder
-= "JUNK"
+assert Bool.parse("yesJUNK", &remainder) == yes
+assert remainder == "JUNK"
 
 ```
 
@@ -239,14 +232,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed, range 1-8).  | -
 
 **Example:**
 ```tomo
->> Byte(6).get_bit(1)
-= no
->> Byte(6).get_bit(2)
-= yes
->> Byte(6).get_bit(3)
-= yes
->> Byte(6).get_bit(4)
-= no
+assert Byte(6).get_bit(1) == no
+assert Byte(6).get_bit(2) == yes
+assert Byte(6).get_bit(3) == yes
+assert Byte(6).get_bit(4) == no
 
 ```
 ## Byte.hex
@@ -268,8 +257,7 @@ prefix | `Bool` | Whether or not to prepend a `0x` prefix.  | `no`
 
 **Example:**
 ```tomo
->> Byte(18).hex()
-= "0x12"
+assert Byte(18).hex() == "0x12"
 
 ```
 ## Byte.is_between
@@ -291,12 +279,9 @@ high | `Byte` | The upper bound to check (inclusive).  | -
 
 **Example:**
 ```tomo
->> Byte(7).is_between(1, 10)
-= yes
->> Byte(7).is_between(100, 200)
-= no
->> Byte(7).is_between(1, 7)
-= yes
+assert Byte(7).is_between(1, 10) == yes
+assert Byte(7).is_between(100, 200) == no
+assert Byte(7).is_between(1, 7) == yes
 
 ```
 ## Byte.parse
@@ -317,18 +302,13 @@ remainder | `&Text?` | If non-none, this argument will be set to the remainder o
 
 **Example:**
 ```tomo
->> Byte.parse("5")
-= Byte(5) : Byte?
->> Byte.parse("asdf")
-= none : Byte?
+assert Byte.parse("5") == Byte(5)
+assert Byte.parse("asdf") == none
+assert Byte.parse("123xyz") == none
 
->> Byte.parse("123xyz")
-= none : Byte?
 remainder : Text
->> Byte.parse("123xyz", &remainder)
-= Byte(123) : Byte?
->> remainder
-= "xyz"
+assert Byte.parse("123xyz", &remainder) == Byte(123)
+assert remainder == "xyz"
 
 ```
 ## Byte.to
@@ -350,15 +330,15 @@ step | `Byte?` | An optional step size to use. If unspecified or `none`, the ste
 
 **Example:**
 ```tomo
->> Byte(2).to(5)
-= func(->Byte?)
->> [x for x in Byte(2).to(5)]
-= [Byte(2), Byte(3), Byte(4), Byte(5)]
->> [x for x in Byte(5).to(2)]
-= [Byte(5), Byte(4), Byte(3), Byte(2)]
+iter := Byte(2).to(4)
+assert iter() == 2
+assert iter() == 3
+assert iter() == 4
+assert iter() == none
 
->> [x for x in Byte(2).to(5, step=2)]
-= [Byte(2), Byte(4)]
+assert [x for x in Byte(2).to(5)] == [Byte(2), Byte(3), Byte(4), Byte(5)]
+assert [x for x in Byte(5).to(2)] == [Byte(5), Byte(4), Byte(3), Byte(2)]
+assert [x for x in Byte(2).to(5, step=2)] == [Byte(2), Byte(4)]
 
 ```
 
@@ -380,8 +360,7 @@ x | `Int` | The integer whose absolute value is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (-10).abs()
-= 10
+assert (-10).abs() == 10
 
 ```
 ## Int.choose
@@ -402,8 +381,7 @@ k | `Int` | The number of things to be chosen.  | -
 
 **Example:**
 ```tomo
->> (4).choose(2)
-= 6
+assert (4).choose(2) == 6
 
 ```
 ## Int.clamped
@@ -425,8 +403,7 @@ high | `Int` | The highest value the result can take.  | -
 
 **Example:**
 ```tomo
->> (2).clamped(5, 10)
-= 5
+assert (2).clamped(5, 10) == 5
 
 ```
 ## Int.factorial
@@ -446,8 +423,7 @@ n | `Int` | The integer to compute the factorial of.  | -
 
 **Example:**
 ```tomo
->> (10).factorial()
-= 3628800
+assert (10).factorial() == 3628800
 
 ```
 ## Int.get_bit
@@ -470,14 +446,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed).  | -
 
 **Example:**
 ```tomo
->> (6).get_bit(1)
-= no
->> (6).get_bit(2)
-= yes
->> (6).get_bit(3)
-= yes
->> (6).get_bit(4)
-= no
+assert (6).get_bit(1) == no
+assert (6).get_bit(2) == yes
+assert (6).get_bit(3) == yes
+assert (6).get_bit(4) == no
 
 ```
 ## Int.hex
@@ -500,8 +472,7 @@ prefix | `Bool` | Whether to include a "0x" prefix.  | `yes`
 
 **Example:**
 ```tomo
->> (255).hex(digits=4, uppercase=yes, prefix=yes)
-= "0x00FF"
+assert (255).hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
 
 ```
 ## Int.is_between
@@ -523,12 +494,9 @@ high | `Int` | The upper bound to check (inclusive).  | -
 
 **Example:**
 ```tomo
->> (7).is_between(1, 10)
-= yes
->> (7).is_between(100, 200)
-= no
->> (7).is_between(1, 7)
-= yes
+assert (7).is_between(1, 10) == yes
+assert (7).is_between(100, 200) == no
+assert (7).is_between(1, 7) == yes
 
 ```
 ## Int.is_prime
@@ -551,10 +519,8 @@ reps | `Int` | The number of repetitions for primality tests.  | `50`
 
 **Example:**
 ```tomo
->> (7).is_prime()
-= yes
->> (6).is_prime()
-= no
+assert (7).is_prime() == yes
+assert (6).is_prime() == no
 
 ```
 ## Int.next_prime
@@ -576,8 +542,7 @@ x | `Int` | The integer after which to find the next prime.  | -
 
 **Example:**
 ```tomo
->> (11).next_prime()
-= 13
+assert (11).next_prime() == 13
 
 ```
 ## Int.octal
@@ -599,8 +564,7 @@ prefix | `Bool` | Whether to include a "0o" prefix.  | `yes`
 
 **Example:**
 ```tomo
->> (64).octal(digits=4, prefix=yes)
-= "0o0100"
+assert (64).octal(digits=4, prefix=yes) == "0o0100"
 
 ```
 ## Int.onward
@@ -625,8 +589,7 @@ nums : &[Int] = &[]
 for i in (5).onward()
 nums.insert(i)
 stop if i == 10
->> nums[]
-= [5, 6, 7, 8, 9, 10]
+assert nums[] == [5, 6, 7, 8, 9, 10]
 
 ```
 ## Int.parse
@@ -647,26 +610,18 @@ remainder | `&Text?` | If non-none, this argument will be set to the remainder o
 
 **Example:**
 ```tomo
->> Int.parse("123")
-= 123 : Int?
->> Int.parse("0xFF")
-= 255 : Int?
-
->> Int.parse("123xyz")
-= none
+assert Int.parse("123") == 123
+assert Int.parse("0xFF") == 255
+assert Int.parse("123xyz") == none
 remainder : Text
->> Int.parse("123xyz", &remainder)
-= 123 : Int?
->> remainder
-= "xyz"
+assert Int.parse("123xyz", &remainder) == 123
+assert remainder == "xyz"
 
 # Can't parse:
->> Int.parse("asdf")
-= none : Int?
+assert Int.parse("asdf") == none
 
 # Outside valid range:
->> Int8.parse("9999999")
-= none : Int8?
+assert Int8.parse("9999999") == none
 
 ```
 ## Int.prev_prime
@@ -688,8 +643,7 @@ x | `Int` | The integer before which to find the previous prime.  | -
 
 **Example:**
 ```tomo
->> (11).prev_prime()
-= 7
+assert (11).prev_prime() == 7
 
 ```
 ## Int.sqrt
@@ -709,10 +663,8 @@ x | `Int` | The integer whose square root is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (16).sqrt()
-= 4
->> (17).sqrt()
-= 4
+assert (16).sqrt() == 4
+assert (17).sqrt() == 4
 
 ```
 ## Int.to
@@ -734,15 +686,16 @@ step | `Int?` | An optional step size to use. If unspecified or `none`, the step
 
 **Example:**
 ```tomo
->> (2).to(5)
-= func(->Int?)
->> [x for x in (2).to(5)]
-= [2, 3, 4, 5]
->> [x for x in (5).to(2)]
-= [5, 4, 3, 2]
+iter := (2).to(5)
+assert iter() == 2
+assert iter() == 3
+assert iter() == 4
+assert iter() == 5
+assert iter() == none
 
->> [x for x in (2).to(5, step=2)]
-= [2, 4]
+assert [x for x in (2).to(5)] == [2, 3, 4, 5]
+assert [x for x in (5).to(2)] == [5, 4, 3, 2]
+assert [x for x in (2).to(5, step=2)] == [2, 4]
 
 ```
 
@@ -765,14 +718,9 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
->> [1, 3, 5, 7, 9].binary_search(5)
-= 3
-
->> [1, 3, 5, 7, 9].binary_search(-999)
-= 1
-
->> [1, 3, 5, 7, 9].binary_search(999)
-= 6
+assert [1, 3, 5, 7, 9].binary_search(5) == 3
+assert [1, 3, 5, 7, 9].binary_search(-999) == 1
+assert [1, 3, 5, 7, 9].binary_search(999) == 6
 
 ```
 ## List.by
@@ -793,8 +741,7 @@ step | `Int` | The step value for selecting elements.  | -
 
 **Example:**
 ```tomo
->> [1, 2, 3, 4, 5, 6].by(2)
-= [1, 3, 5]
+assert [1, 2, 3, 4, 5, 6].by(2) == [1, 3, 5]
 
 ```
 ## List.clear
@@ -814,7 +761,7 @@ list | `@[T]` | The mutable reference to the list to be cleared.  | -
 
 **Example:**
 ```tomo
->> my_list.clear()
+my_list.clear()
 
 ```
 ## List.counts
@@ -834,8 +781,7 @@ list | `[T]` | The list to count elements in.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 30, 30].counts()
-= {10=1, 20=1, 30=3}
+assert [10, 20, 30, 30, 30].counts() == {10=1, 20=1, 30=3}
 
 ```
 ## List.find
@@ -856,11 +802,8 @@ target | `T` | The item to search for.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40, 50].find(20)
-= 2 : Int?
-
->> [10, 20, 30, 40, 50].find(9999)
-= none : Int?
+assert [10, 20, 30, 40, 50].find(20) == 2
+assert [10, 20, 30, 40, 50].find(9999) == none
 
 ```
 ## List.from
@@ -881,8 +824,7 @@ first | `Int` | The index to start from.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40, 50].from(3)
-= [30, 40, 50]
+assert [10, 20, 30, 40, 50].from(3) == [30, 40, 50]
 
 ```
 ## List.has
@@ -903,8 +845,7 @@ target | `T` | The element to check for.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30].has(20)
-= yes
+assert [10, 20, 30].has(20) == yes
 
 ```
 ## List.heap_pop
@@ -925,10 +866,9 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
->> my_heap := [30, 10, 20]
->> my_heap.heapify()
->> my_heap.heap_pop()
-= 10
+my_heap := [30, 10, 20]
+my_heap.heapify()
+assert my_heap.heap_pop() == 10
 
 ```
 ## List.heap_push
@@ -950,7 +890,7 @@ by | `` | The comparison function used to determine order. If not specified, the
 
 **Example:**
 ```tomo
->> my_heap.heap_push(10)
+my_heap.heap_push(10)
 
 ```
 ## List.heapify
@@ -971,8 +911,8 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
->> my_heap := [30, 10, 20]
->> my_heap.heapify()
+my_heap := [30, 10, 20]
+my_heap.heapify()
 
 ```
 ## List.insert
@@ -996,14 +936,12 @@ at | `Int` | The index at which to insert the item.  | `0`
 
 **Example:**
 ```tomo
->> list := [10, 20]
->> list.insert(30)
->> list
-= [10, 20, 30]
+list := [10, 20]
+list.insert(30)
+assert list == [10, 20, 30]
 
->> list.insert(999, at=2)
->> list
-= [10, 999, 20, 30]
+list.insert(999, at=2)
+assert list == [10, 999, 20, 30]
 
 ```
 ## List.insert_all
@@ -1029,12 +967,10 @@ at | `Int` | The index at which to insert the item.  | `0`
 ```tomo
 list := [10, 20]
 list.insert_all([30, 40])
->> list
-= [10, 20, 30, 40]
+assert list == [10, 20, 30, 40]
 
 list.insert_all([99, 100], at=2)
->> list
-= [10, 99, 100, 20, 30, 40]
+assert list == [10, 99, 100, 20, 30, 40]
 
 ```
 ## List.pop
@@ -1057,17 +993,13 @@ index | `Int` | The index from which to remove the item.  | `-1`
 
 **Example:**
 ```tomo
->> list := [10, 20, 30, 40]
+list := &[10, 20, 30, 40]
 
->> list.pop()
-= 40
->> list
-= &[10, 20, 30]
+assert list.pop() == 40
+assert list[] == [10, 20, 30]
 
->> list.pop(index=2)
-= 20
->> list
-= &[10, 30]
+assert list.pop(index=2) == 20
+assert list[] == [10, 30]
 
 ```
 ## List.random
@@ -1088,8 +1020,7 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
->> [10, 20, 30].random()
-= 20
+assert [10, 20, 30].random() == 20
 
 ```
 ## List.remove_at
@@ -1115,12 +1046,10 @@ count | `Int` | The number of elements to remove.  | `1`
 ```tomo
 list := [10, 20, 30, 40, 50]
 list.remove_at(2)
->> list
-= [10, 30, 40, 50]
+assert list == [10, 30, 40, 50]
 
 list.remove_at(2, count=2)
->> list
-= [10, 50]
+assert list == [10, 50]
 
 ```
 ## List.remove_item
@@ -1146,12 +1075,10 @@ max_count | `Int` | The maximum number of occurrences to remove.  | `-1`
 ```tomo
 list := [10, 20, 10, 20, 30]
 list.remove_item(10)
->> list
-= [20, 20, 30]
+assert list == [20, 20, 30]
 
 list.remove_item(20, max_count=1)
->> list
-= [20, 30]
+assert list == [20, 30]
 
 ```
 ## List.reversed
@@ -1171,8 +1098,7 @@ list | `[T]` | The list to be reversed.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30].reversed()
-= [30, 20, 10]
+assert [10, 20, 30].reversed() == [30, 20, 10]
 
 ```
 ## List.sample
@@ -1197,8 +1123,7 @@ random | `func(->Num)?` | If provided, this function will be used to get random 
 
 **Example:**
 ```tomo
->> [10, 20, 30].sample(2, weights=[90%, 5%, 5%])
-= [10, 10]
+assert [10, 20, 30].sample(2, weights=[90%, 5%, 5%]) == [10, 10]
 
 ```
 ## List.shuffle
@@ -1219,7 +1144,7 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
->> list.shuffle()
+list.shuffle()
 
 ```
 ## List.shuffled
@@ -1240,8 +1165,7 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40].shuffled()
-= [40, 10, 30, 20]
+assert [10, 20, 30, 40].shuffled() == [40, 10, 30, 20]
 
 ```
 ## List.slice
@@ -1263,11 +1187,8 @@ to | `Int` | The last index to include.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40, 50].slice(2, 4)
-= [20, 30, 40]
-
->> [10, 20, 30, 40, 50].slice(-3, -2)
-= [30, 40]
+assert [10, 20, 30, 40, 50].slice(2, 4) == [20, 30, 40]
+assert [10, 20, 30, 40, 50].slice(-3, -2) == [30, 40]
 
 ```
 ## List.sort
@@ -1290,12 +1211,10 @@ by | `` | The comparison function used to determine order. If not specified, the
 ```tomo
 list := [40, 10, -30, 20]
 list.sort()
->> list
-= [-30, 10, 20, 40]
+assert list == [-30, 10, 20, 40]
 
 list.sort(func(a,b:&Int): a.abs() <> b.abs())
->> list
-= [10, 20, -30, 40]
+assert list == [10, 20, -30, 40]
 
 ```
 ## List.sorted
@@ -1316,11 +1235,10 @@ by | `` | The comparison function used to determine order. If not specified, the
 
 **Example:**
 ```tomo
->> [40, 10, -30, 20].sorted()
-= [-30, 10, 20, 40]
-
->> [40, 10, -30, 20].sorted(func(a,b:&Int): a.abs() <> b.abs())
-= [10, 20, -30, 40]
+assert [40, 10, -30, 20].sorted() == [-30, 10, 20, 40]
+assert [40, 10, -30, 20].sorted(
+   func(a,b:&Int): a.abs() <> b.abs()
+) == [10, 20, -30, 40]
 
 ```
 ## List.to
@@ -1341,32 +1259,28 @@ last | `Int` | The index up to which elements should be included.  | -
 
 **Example:**
 ```tomo
->> [10, 20, 30, 40, 50].to(3)
-= [10, 20, 30]
-
->> [10, 20, 30, 40, 50].to(-2)
-= [10, 20, 30, 40]
+assert [10, 20, 30, 40, 50].to(3) == [10, 20, 30]
+assert [10, 20, 30, 40, 50].to(-2) == [10, 20, 30, 40]
 
 ```
 ## List.unique
 
 ```tomo
-List.unique : func(list: [T] -> |T|)
+List.unique : func(list: [T] -> [T])
 ```
 
-Returns a Set that contains the unique elements of the list.
+Returns a list of the unique elements of the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `[T]` | The list to process.  | -
 
-**Return:** A set containing only unique elements from the list.
+**Return:** A list of the unique elements from the list.
 
 
 **Example:**
 ```tomo
->> [10, 20, 10, 10, 30].unique()
-= {10, 20, 30}
+assert [10, 20, 10, 10, 30].unique() == [10, 20, 30]
 
 ```
 ## List.where
@@ -1387,10 +1301,8 @@ predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item'
 
 **Example:**
 ```tomo
->> [4, 5, 6].where(func(i:&Int): i.is_prime())
-= 5 : Int?
->> [4, 6, 8].find(func(i:&Int): i.is_prime())
-= none : Int?
+assert [4, 5, 6].where(func(i:&Int): i.is_prime()) == 5
+assert [4, 6, 8].find(func(i:&Int): i.is_prime()) == none
 
 ```
 
@@ -1524,8 +1436,7 @@ n | `Num` | The number whose absolute value is to be computed.  | -
 
 **Example:**
 ```tomo
->> (-3.5).abs()
-= 3.5
+assert (-3.5).abs() == 3.5
 
 ```
 ## Num.acos
@@ -1545,8 +1456,7 @@ x | `Num` | The number for which the arc cosine is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).acos() // -> (π/2)
-= 1.5708
+assert (0.0).acos() == 1.5708
 
 ```
 ## Num.acosh
@@ -1566,8 +1476,7 @@ x | `Num` | The number for which the inverse hyperbolic cosine is to be calculat
 
 **Example:**
 ```tomo
->> (1.0).acosh()
-= 0
+assert (1.0).acosh() == 0
 
 ```
 ## Num.asin
@@ -1587,8 +1496,7 @@ x | `Num` | The number for which the arc sine is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.5).asin()  // -> (π/6)
-= 0.5236
+assert (0.5).asin() == 0.5236
 
 ```
 ## Num.asinh
@@ -1608,8 +1516,7 @@ x | `Num` | The number for which the inverse hyperbolic sine is to be calculated
 
 **Example:**
 ```tomo
->> (0.0).asinh()
-= 0
+assert (0.0).asinh() == 0
 
 ```
 ## Num.atan
@@ -1629,8 +1536,7 @@ x | `Num` | The number for which the arc tangent is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).atan() // -> (π/4)
-= 0.7854
+assert (1.0).atan() == 0.7854
 
 ```
 ## Num.atan2
@@ -1651,8 +1557,7 @@ y | `Num` | The denominator.  | -
 
 **Example:**
 ```tomo
->> Num.atan2(1, 1) // -> (π/4)
-= 0.7854
+assert Num.atan2(1, 1) == 0.7854
 
 ```
 ## Num.atanh
@@ -1672,8 +1577,7 @@ x | `Num` | The number for which the inverse hyperbolic tangent is to be calcula
 
 **Example:**
 ```tomo
->> (0.5).atanh()
-= 0.5493
+assert (0.5).atanh() == 0.5493
 
 ```
 ## Num.cbrt
@@ -1693,8 +1597,7 @@ x | `Num` | The number for which the cube root is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (27.0).cbrt()
-= 3
+assert (27.0).cbrt() == 3
 
 ```
 ## Num.ceil
@@ -1714,8 +1617,7 @@ x | `Num` | The number to be rounded up.  | -
 
 **Example:**
 ```tomo
->> (3.2).ceil()
-= 4
+assert (3.2).ceil() == 4
 
 ```
 ## Num.clamped
@@ -1737,8 +1639,7 @@ high | `Num` | The highest value the result can take.  | -
 
 **Example:**
 ```tomo
->> (2.5).clamped(5.5, 10.5)
-= 5.5
+assert (2.5).clamped(5.5, 10.5) == 5.5
 
 ```
 ## Num.copysign
@@ -1759,8 +1660,7 @@ y | `Num` | The number whose sign will be copied.  | -
 
 **Example:**
 ```tomo
->> (3.0).copysign(-1)
-= -3
+assert (3.0).copysign(-1) == -3
 
 ```
 ## Num.cos
@@ -1780,8 +1680,7 @@ x | `Num` | The angle in radians.  | -
 
 **Example:**
 ```tomo
->> (0.0).cos()
-= 1
+assert (0.0).cos() == 1
 
 ```
 ## Num.cosh
@@ -1801,8 +1700,7 @@ x | `Num` | The number for which the hyperbolic cosine is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).cosh()
-= 1
+assert (0.0).cosh() == 1
 
 ```
 ## Num.erf
@@ -1822,8 +1720,7 @@ x | `Num` | The number for which the error function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).erf()
-= 0
+assert (0.0).erf() == 0
 
 ```
 ## Num.erfc
@@ -1843,8 +1740,7 @@ x | `Num` | The number for which the complementary error function is to be calcu
 
 **Example:**
 ```tomo
->> (0.0).erfc()
-= 1
+assert (0.0).erfc() == 1
 
 ```
 ## Num.exp
@@ -1864,8 +1760,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
->> (1.0).exp()
-= 2.7183
+assert (1.0).exp() == 2.7183
 
 ```
 ## Num.exp2
@@ -1885,8 +1780,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
->> (3.0).exp2()
-= 8
+assert (3.0).exp2() == 8
 
 ```
 ## Num.expm1
@@ -1906,8 +1800,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
->> (1.0).expm1()
-= 1.7183
+assert (1.0).expm1() == 1.7183
 
 ```
 ## Num.fdim
@@ -1930,8 +1823,7 @@ y | `Num` | The second number.  | -
 ```tomo
 fd
 
->> (5.0).fdim(3)
-= 2
+assert (5.0).fdim(3) == 2
 
 ```
 ## Num.floor
@@ -1951,8 +1843,7 @@ x | `Num` | The number to be rounded down.  | -
 
 **Example:**
 ```tomo
->> (3.7).floor()
-= 3
+assert (3.7).floor() == 3
 
 ```
 ## Num.hypot
@@ -1973,8 +1864,7 @@ y | `Num` | The second number.  | -
 
 **Example:**
 ```tomo
->> Num.hypot(3, 4)
-= 5
+assert Num.hypot(3, 4) == 5
 
 ```
 ## Num.is_between
@@ -1996,12 +1886,9 @@ high | `Num` | The upper bound to check (inclusive).  | -
 
 **Example:**
 ```tomo
->> (7.5).is_between(1, 10)
-= yes
->> (7.5).is_between(100, 200)
-= no
->> (7.5).is_between(1, 7.5)
-= yes
+assert (7.5).is_between(1, 10) == yes
+assert (7.5).is_between(100, 200) == no
+assert (7.5).is_between(1, 7.5) == yes
 
 ```
 ## Num.isfinite
@@ -2021,10 +1908,8 @@ n | `Num` | The number to be checked.  | -
 
 **Example:**
 ```tomo
->> (1.0).isfinite()
-= yes
->> Num.INF.isfinite()
-= no
+assert (1.0).isfinite() == yes
+assert Num.INF.isfinite() == no
 
 ```
 ## Num.isinf
@@ -2044,10 +1929,8 @@ n | `Num` | The number to be checked.  | -
 
 **Example:**
 ```tomo
->> Num.INF.isinf()
-= yes
->> (1.0).isinf()
-= no
+assert Num.INF.isinf() == yes
+assert (1.0).isinf() == no
 
 ```
 ## Num.j0
@@ -2067,8 +1950,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).j0()
-= 1
+assert (0.0).j0() == 1
 
 ```
 ## Num.j1
@@ -2088,8 +1970,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).j1()
-= 0
+assert (0.0).j1() == 0
 
 ```
 ## Num.log
@@ -2109,8 +1990,7 @@ x | `Num` | The number for which the natural logarithm is to be calculated.  | -
 
 **Example:**
 ```tomo
->> Num.E.log()
-= 1
+assert Num.E.log() == 1
 
 ```
 ## Num.log10
@@ -2130,8 +2010,7 @@ x | `Num` | The number for which the base-10 logarithm is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (100.0).log10()
-= 2
+assert (100.0).log10() == 2
 
 ```
 ## Num.log1p
@@ -2151,8 +2030,7 @@ x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).log1p()
-= 0.6931
+assert (1.0).log1p() == 0.6931
 
 ```
 ## Num.log2
@@ -2172,8 +2050,7 @@ x | `Num` | The number for which the base-2 logarithm is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (8.0).log2()
-= 3
+assert (8.0).log2() == 3
 
 ```
 ## Num.logb
@@ -2193,8 +2070,7 @@ x | `Num` | The number for which the binary exponent is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (8.0).logb()
-= 3
+assert (8.0).logb() == 3
 
 ```
 ## Num.mix
@@ -2216,10 +2092,8 @@ y | `Num` | The ending number.  | -
 
 **Example:**
 ```tomo
->> (0.5).mix(10, 20)
-= 15
->> (0.25).mix(10, 20)
-= 12.5
+assert (0.5).mix(10, 20) == 15
+assert (0.25).mix(10, 20) == 12.5
 
 ```
 ## Num.near
@@ -2242,14 +2116,9 @@ min_epsilon | `Num` | The absolute tolerance. Default is `1e-9`.  | `1e-9`
 
 **Example:**
 ```tomo
->> (1.0).near(1.000000001)
-= yes
-
->> (100.0).near(110, ratio=0.1)
-= yes
-
->> (5.0).near(5.1, min_epsilon=0.1)
-= yes
+assert (1.0).near(1.000000001) == yes
+assert (100.0).near(110, ratio=0.1) == yes
+assert (5.0).near(5.1, min_epsilon=0.1) == yes
 
 ```
 ## Num.nextafter
@@ -2270,8 +2139,7 @@ y | `Num` | The direction towards which to find the next representable value.  |
 
 **Example:**
 ```tomo
->> (1.0).nextafter(1.1)
-= 1.0000000000000002
+assert (1.0).nextafter(1.1) == 1.0000000000000002
 
 ```
 ## Num.parse
@@ -2292,18 +2160,12 @@ remainder | `&Text?` | If non-none, this argument will be set to the remainder o
 
 **Example:**
 ```tomo
->> Num.parse("3.14")
-= 3.14 : Num?
->> Num.parse("1e3")
-= 1000 : Num?
-
->> Num.parse("1.5junk")
-= none : Num?
+assert Num.parse("3.14") == 3.14
+assert Num.parse("1e3") == 1000
+assert Num.parse("1.5junk") == none
 remainder : Text
->> Num.parse("1.5junk", &remainder)
-= 1.5 : Num?
->> remainder
-= "junk"
+assert Num.parse("1.5junk", &remainder) == 1.5
+assert remainder == "junk"
 
 ```
 ## Num.percent
@@ -2324,14 +2186,10 @@ precision | `Num` | Round the percentage to this precision level.  | `0.01`
 
 **Example:**
 ```tomo
->> (0.5).percent()
-= "50%"
->> (1./3.).percent(2)
-= "33.33%"
->> (1./3.).percent(2, precision=0.0001)
-= "33.3333%"
->> (1./3.).percent(2, precision=10.)
-= "30%"
+assert (0.5).percent() == "50%"
+assert (1./3.).percent(2) == "33.33%"
+assert (1./3.).percent(2, precision=0.0001) == "33.3333%"
+assert (1./3.).percent(2, precision=10.) == "30%"
 
 ```
 ## Num.rint
@@ -2351,10 +2209,8 @@ x | `Num` | The number to be rounded.  | -
 
 **Example:**
 ```tomo
->> (3.5).rint()
-= 4
->> (2.5).rint()
-= 2
+assert (3.5).rint() == 4
+assert (2.5).rint() == 2
 
 ```
 ## Num.round
@@ -2374,10 +2230,8 @@ x | `Num` | The number to be rounded.  | -
 
 **Example:**
 ```tomo
->> (2.3).round()
-= 2
->> (2.7).round()
-= 3
+assert (2.3).round() == 2
+assert (2.7).round() == 3
 
 ```
 ## Num.significand
@@ -2397,8 +2251,7 @@ x | `Num` | The number from which to extract the significand.  | -
 
 **Example:**
 ```tomo
->> (1234.567).significand()
-= 0.1234567
+assert (1234.567).significand() == 0.1234567
 
 ```
 ## Num.sin
@@ -2418,8 +2271,7 @@ x | `Num` | The angle in radians.  | -
 
 **Example:**
 ```tomo
->> (0.0).sin()
-= 0
+assert (0.0).sin() == 0
 
 ```
 ## Num.sinh
@@ -2439,8 +2291,7 @@ x | `Num` | The number for which the hyperbolic sine is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (0.0).sinh()
-= 0
+assert (0.0).sinh() == 0
 
 ```
 ## Num.sqrt
@@ -2460,8 +2311,7 @@ x | `Num` | The number for which the square root is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (16.0).sqrt()
-= 4
+assert (16.0).sqrt() == 4
 
 ```
 ## Num.tan
@@ -2481,8 +2331,7 @@ x | `Num` | The angle in radians.  | -
 
 **Example:**
 ```tomo
->> (0.0).tan()
-= 0
+assert (0.0).tan() == 0
 
 ```
 ## Num.tanh
@@ -2502,8 +2351,7 @@ x | `Num` | The number for which the hyperbolic tangent is to be calculated.  | 
 
 **Example:**
 ```tomo
->> (0.0).tanh()
-= 0
+assert (0.0).tanh() == 0
 
 ```
 ## Num.tgamma
@@ -2523,8 +2371,7 @@ x | `Num` | The number for which the gamma function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).tgamma()
-= 1
+assert (1.0).tgamma() == 1
 
 ```
 ## Num.trunc
@@ -2544,10 +2391,8 @@ x | `Num` | The number to be truncated.  | -
 
 **Example:**
 ```tomo
->> (3.7).trunc()
-= 3
->> (-3.7).trunc()
-= -3
+assert (3.7).trunc() == 3
+assert (-3.7).trunc() == -3
 
 ```
 ## Num.with_precision
@@ -2568,12 +2413,9 @@ precision | `Num` | The precision to which the number should be rounded.  | -
 
 **Example:**
 ```tomo
->> (0.1234567).with_precision(0.01)
-= 0.12
->> (123456.).with_precision(100)
-= 123500
->> (1234567.).with_precision(5)
-= 1234565
+assert (0.1234567).with_precision(0.01) == 0.12
+assert (123456.).with_precision(100) == 123500
+assert (1234567.).with_precision(5) == 1234565
 
 ```
 ## Num.y0
@@ -2593,8 +2435,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).y0()
-= -0.7652
+assert (1.0).y0() == -0.7652
 
 ```
 ## Num.y1
@@ -2614,8 +2455,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
->> (1.0).y1()
-= 0.4401
+assert (1.0).y1() == 0.4401
 
 ```
 
@@ -2638,10 +2478,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./file.txt).accessed()
-= 1704221100?
->> (./not-a-file).accessed()
-= none
+assert (./file.txt).accessed() == 1704221100
+assert (./not-a-file).accessed() == none
 
 ```
 ## Path.append
@@ -2705,8 +2543,7 @@ path | `Path` | The path of the file or directory.  | -
 
 **Example:**
 ```tomo
->> (./path/to/file.txt).base_name()
-= "file.txt"
+assert (./path/to/file.txt).base_name() == "file.txt"
 
 ```
 ## Path.by_line
@@ -2755,12 +2592,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
->> (/bin/sh).can_execute()
-= yes
->> (/usr/include/stdlib.h).can_execute()
-= no
->> (/non/existant/file).can_execute()
-= no
+assert (/bin/sh).can_execute() == yes
+assert (/usr/include/stdlib.h).can_execute() == no
+assert (/non/existant/file).can_execute() == no
 
 ```
 ## Path.can_read
@@ -2780,12 +2614,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
->> (/usr/include/stdlib.h).can_read()
-= yes
->> (/etc/shadow).can_read()
-= no
->> (/non/existant/file).can_read()
-= no
+assert (/usr/include/stdlib.h).can_read() == yes
+assert (/etc/shadow).can_read() == no
+assert (/non/existant/file).can_read() == no
 
 ```
 ## Path.can_write
@@ -2805,12 +2636,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
->> (/tmp).can_write()
-= yes
->> (/etc/passwd).can_write()
-= no
->> (/non/existant/file).can_write()
-= no
+assert (/tmp).can_write() == yes
+assert (/etc/passwd).can_write() == no
+assert (/non/existant/file).can_write() == no
 
 ```
 ## Path.changed
@@ -2833,10 +2661,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./file.txt).changed()
-= 1704221100?
->> (./not-a-file).changed()
-= none
+assert (./file.txt).changed() == 1704221100
+assert (./not-a-file).changed() == none
 
 ```
 ## Path.child
@@ -2857,8 +2683,7 @@ child | `Text` | The name of a child file or directory.  | -
 
 **Example:**
 ```tomo
->> (./directory).child("file.txt")
-= (./directory/file.txt)
+assert (./directory).child("file.txt") == (./directory/file.txt)
 
 ```
 ## Path.children
@@ -2879,8 +2704,7 @@ include_hidden | `` | Whether to include hidden files, which start with a `.`.  
 
 **Example:**
 ```tomo
->> (./directory).children(include_hidden=yes)
-= [".git", "foo.txt"]
+assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
 
 ```
 ## Path.create_directory
@@ -2918,8 +2742,7 @@ Creates a new directory at the specified path with the given permissions. If any
 
 **Example:**
 ```tomo
->> Path.current_dir()
-= (/home/user/tomo)
+assert Path.current_dir() == (/home/user/tomo)
 
 ```
 ## Path.exists
@@ -2939,8 +2762,7 @@ path | `Path` | The path to check.  | -
 
 **Example:**
 ```tomo
->> (/).exists()
-= yes
+assert (/).exists() == yes
 
 ```
 ## Path.expand_home
@@ -2960,10 +2782,10 @@ path | `Path` | The path to expand.  | -
 
 **Example:**
 ```tomo
->> (~/foo).expand_home() # Assume current user is 'user'
-= /home/user/foo
->> (/foo).expand_home() # No change
-= /foo
+# Assume current user is 'user'
+assert (~/foo).expand_home() == (/home/user/foo)
+# No change
+assert (/foo).expand_home() == (/foo)
 
 ```
 ## Path.extension
@@ -2984,14 +2806,10 @@ full | `Bool` | Whether to return everything after the first `.` in the base nam
 
 **Example:**
 ```tomo
->> (./file.tar.gz).extension()
-= "tar.gz"
->> (./file.tar.gz).extension(full=no)
-= "gz"
->> (/foo).extension()
-= ""
->> (./.git).extension()
-= ""
+assert (./file.tar.gz).extension() == "tar.gz"
+assert (./file.tar.gz).extension(full=no) == "gz"
+assert (/foo).extension() == ""
+assert (./.git).extension() == ""
 
 ```
 ## Path.files
@@ -3012,8 +2830,7 @@ include_hidden | `Bool` | Whether to include hidden files.  | `no`
 
 **Example:**
 ```tomo
->> (./directory).files(include_hidden=yes)
-= [(./directory/file1.txt), (./directory/file2.txt)]
+assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
 
 ```
 ## Path.from_components
@@ -3033,12 +2850,9 @@ components | `[Text]` | A list of path components.  | -
 
 **Example:**
 ```tomo
->> Path.from_components(["/", "usr", "include"])
-= /usr/include
->> Path.from_components(["foo.txt"])
-= ./foo.txt
->> Path.from_components(["~", ".local"])
-= ~/.local
+assert Path.from_components(["/", "usr", "include"]) == (/usr/include)
+assert Path.from_components(["foo.txt"]) == (./foo.txt)
+assert Path.from_components(["~", ".local"]) == (~/.local)
 
 ```
 ## Path.glob
@@ -3065,21 +2879,13 @@ path | `Path` | The path of the directory which may contain special globbing cha
 **Example:**
 ```tomo
 # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
->> (./*).glob()
-= [(./foo.txt), (./baz.txt), (./qux.jpg)]
-
->> (./*.txt).glob()
-= [(./foo.txt), (./baz.txt)]
-
->> (./*.{txt,jpg}).glob()
-= [(./foo.txt), (./baz.txt), (./qux.jpg)]
-
->> (./.*).glob()
-= [(./.hidden)]
+assert (./*).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+assert (./*.txt).glob() == [(./foo.txt), (./baz.txt)]
+assert (./*.{txt,jpg}).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+assert (./.*).glob() == [(./.hidden)]
 
 # Globs with no matches return an empty list:
->> (./*.xxx).glob()
-= []
+assert (./*.xxx).glob() == []
 
 ```
 ## Path.group
@@ -3100,10 +2906,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (/bin).group()
-= "root"
->> (/non/existent/file).group()
-= none
+assert (/bin).group() == "root"
+assert (/non/existent/file).group() == none
 
 ```
 ## Path.has_extension
@@ -3124,14 +2928,10 @@ extension | `Text` | A file extension (leading `.` is optional). If empty, the c
 
 **Example:**
 ```tomo
->> (/foo.txt).has_extension("txt")
-= yes
->> (/foo.txt).has_extension(".txt")
-= yes
->> (/foo.tar.gz).has_extension("gz")
-= yes
->> (/foo.tar.gz).has_extension("zip")
-= no
+assert (/foo.txt).has_extension("txt") == yes
+assert (/foo.txt).has_extension(".txt") == yes
+assert (/foo.tar.gz).has_extension("gz") == yes
+assert (/foo.tar.gz).has_extension("zip") == no
 
 ```
 ## Path.is_directory
@@ -3152,11 +2952,8 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./directory/).is_directory()
-= yes
-
->> (./file.txt).is_directory()
-= no
+assert (./directory/).is_directory() == yes
+assert (./file.txt).is_directory() == no
 
 ```
 ## Path.is_file
@@ -3177,11 +2974,8 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./file.txt).is_file()
-= yes
-
->> (./directory/).is_file()
-= no
+assert (./file.txt).is_file() == yes
+assert (./directory/).is_file() == no
 
 ```
 ## Path.is_socket
@@ -3202,8 +2996,7 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./socket).is_socket()
-= yes
+assert (./socket).is_socket() == yes
 
 ```
 ## Path.is_symlink
@@ -3223,8 +3016,7 @@ path | `Path` | The path to check.  | -
 
 **Example:**
 ```tomo
->> (./link).is_symlink()
-= yes
+assert (./link).is_symlink() == yes
 
 ```
 ## Path.modified
@@ -3245,10 +3037,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./file.txt).modified()
-= 1704221100?
->> (./not-a-file).modified()
-= none
+assert (./file.txt).modified() == 1704221100
+assert (./not-a-file).modified() == none
 
 ```
 ## Path.owner
@@ -3269,10 +3059,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (/bin).owner()
-= "root"
->> (/non/existent/file).owner()
-= none
+assert (/bin).owner() == "root"
+assert (/non/existent/file).owner() == none
 
 ```
 ## Path.parent
@@ -3292,8 +3080,7 @@ path | `Path` | The path of the file or directory.  | -
 
 **Example:**
 ```tomo
->> (./path/to/file.txt).parent()
-= (./path/to/)
+assert (./path/to/file.txt).parent() == (./path/to/)
 
 ```
 ## Path.read
@@ -3313,11 +3100,8 @@ path | `Path` | The path of the file to read.  | -
 
 **Example:**
 ```tomo
->> (./hello.txt).read()
-= "Hello"?
-
->> (./nosuchfile.xxx).read()
-= none
+assert (./hello.txt).read() == "Hello"
+assert (./nosuchfile.xxx).read() == none
 
 ```
 ## Path.read_bytes
@@ -3338,11 +3122,8 @@ limit | `Int?` | A limit to how many bytes should be read.  | `none`
 
 **Example:**
 ```tomo
->> (./hello.txt).read()
-= [72, 101, 108, 108, 111]?
-
->> (./nosuchfile.xxx).read()
-= none
+assert (./hello.txt).read() == [72, 101, 108, 108, 111]
+assert (./nosuchfile.xxx).read() == none
 
 ```
 ## Path.relative_to
@@ -3363,8 +3144,7 @@ relative_to | `` | The base path for the relative path.  | `(./)`
 
 **Example:**
 ```tomo
->> (./path/to/file.txt).relative(relative_to=(./path))
-= (./to/file.txt)
+assert (./path/to/file.txt).relative(relative_to=(./path)) == (./to/file.txt)
 
 ```
 ## Path.remove
@@ -3406,11 +3186,8 @@ relative_to | `` | The base path for resolution.  | `(./)`
 
 **Example:**
 ```tomo
->> (~/foo).resolved()
-= (/home/user/foo)
-
->> (./path/to/file.txt).resolved(relative_to=(/foo))
-= (/foo/path/to/file.txt)
+assert (~/foo).resolved() == (/home/user/foo)
+assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.txt)
 
 ```
 ## Path.set_owner
@@ -3454,8 +3231,7 @@ name | `Text` | The name of a sibling file or directory.  | -
 
 **Example:**
 ```tomo
->> (/foo/baz).sibling("doop")
-= (/foo/doop)
+assert (/foo/baz).sibling("doop") == (/foo/doop)
 
 ```
 ## Path.subdirectories
@@ -3476,11 +3252,8 @@ include_hidden | `` | Whether to include hidden subdirectories.  | `no`
 
 **Example:**
 ```tomo
->> (./directory).subdirectories()
-= [(./directory/subdir1), (./directory/subdir2)]
-
->> (./directory).subdirectories(include_hidden=yes)
-= [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
+assert (./directory).subdirectories() == [(./directory/subdir1), (./directory/subdir2)]
+assert (./directory).subdirectories(include_hidden=yes) == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
 
 ```
 ## Path.unique_directory
@@ -3500,10 +3273,8 @@ path | `Path` | The base path for generating the unique directory. The last six 
 
 **Example:**
 ```tomo
->> created := (/tmp/my-dir.XXXXXX).unique_directory()
-= (/tmp/my-dir-AwoxbM/)
->> created.is_directory()
-= yes
+assert created := (/tmp/my-dir.XXXXXX).unique_directory() == (/tmp/my-dir-AwoxbM/)
+assert created.is_directory() == yes
 created.remove()
 
 ```
@@ -3569,10 +3340,9 @@ text | `Text` | The text to write to the file.  | -
 
 **Example:**
 ```tomo
->> created := (./file-XXXXXX.txt).write_unique("Hello, world!")
-= (./file-27QHtq.txt)
->> created.read()
-= "Hello, world!"
+created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+assert created == (./file-27QHtq.txt)
+assert created.read() == "Hello, world!"
 created.remove()
 
 ```
@@ -3594,10 +3364,9 @@ bytes | `[Byte]` | The bytes to write to the file.  | -
 
 **Example:**
 ```tomo
->> created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
-= (./file-27QHtq.txt)
->> created.read()
-= [1, 2, 3]
+created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
+assert created == (./file-27QHtq.txt)
+assert created.read() == [1, 2, 3]
 created.remove()
 
 ```
@@ -3620,7 +3389,9 @@ t | `&{K:V}` | The reference to the table.  | -
 
 **Example:**
 ```tomo
->> t.clear()
+t := &{"A":1}
+t.clear()
+assert t == {}
 
 ```
 ## Table.difference
@@ -3666,18 +3437,11 @@ key | `K` | The key whose associated value is to be retrieved.  | -
 
 **Example:**
 ```tomo
->> t := {"A": 1, "B": 2}
->> t.get("A")
-= 1?
-
->> t.get("????")
-= none
-
->> t.get("A")!
-= 1
-
->> t.get("????") or 0
-= 0
+t := {"A": 1, "B": 2}
+assert t.get("A") == 1
+assert t.get("????") == none
+assert t.get("A")! == 1
+assert t.get("????") or 0 == 0
 
 ```
 ## Table.get_or_set
@@ -3702,16 +3466,13 @@ default | `V` | The default value to insert and return if the key is not present
 
 **Example:**
 ```tomo
->> t := &{"A": @[1, 2, 3]; default=@[]}
->> t.get_or_set("A").insert(4)
->> t.get_or_set("B").insert(99)
->> t
-= &{"A": @[1, 2, 3, 4], "B": @[99]}
+t := &{"A": @[1, 2, 3]; default=@[]}
+t.get_or_set("A").insert(4)
+t.get_or_set("B").insert(99)
+assert t == &{"A": @[1, 2, 3, 4], "B": @[99]}
 
->> t.get_or_set("C", @[0, 0, 0])
-= @[0, 0, 0]
->> t
-= &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
+assert t.get_or_set("C", @[0, 0, 0]) == @[0, 0, 0]
+assert t == &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
 
 ```
 ## Table.has
@@ -3732,10 +3493,8 @@ key | `K` | The key to check for presence.  | -
 
 **Example:**
 ```tomo
->> {"A": 1, "B": 2}.has("A")
-= yes
->> {"A": 1, "B": 2}.has("xxx")
-= no
+assert {"A": 1, "B": 2}.has("A") == yes
+assert {"A": 1, "B": 2}.has("xxx") == no
 
 ```
 ## Table.intersection
@@ -3781,8 +3540,7 @@ key | `K` | The key of the key-value pair to remove.  | -
 ```tomo
 t := {"A": 1, "B": 2}
 t.remove("A")
->> t
-= {"B": 2}
+assert t == {"B": 2}
 
 ```
 ## Table.set
@@ -3806,8 +3564,7 @@ value | `V` | The value to associate with the key.  | -
 ```tomo
 t := {"A": 1, "B": 2}
 t.set("C", 3)
->> t
-= {"A": 1, "B": 2, "C": 3}
+assert t == {"A": 1, "B": 2, "C": 3}
 
 ```
 ## Table.with
@@ -3852,11 +3609,9 @@ fallback | `{K:V}?` | The new fallback table value.  | -
 ```tomo
 t := {"A": 1; fallback={"B": 2}}
 t2 = t.with_fallback({"B": 3"})
->> t2["B"]
-= 3?
+assert t2["B"] == 3
 t3 = t.with_fallback(none)
->> t2["B"]
-= none
+assert t2["B"] == none
 
 ```
 ## Table.without
@@ -3902,8 +3657,7 @@ text | `Text` | The text to be converted to a C-style string.  | -
 
 **Example:**
 ```tomo
->> "Hello".as_c_string()
-= CString("Hello")
+assert "Hello".as_c_string() == CString("Hello")
 
 ```
 ## Text.at
@@ -3926,8 +3680,7 @@ index | `Int` | The index of the graphical cluster (1-indexed).  | -
 
 **Example:**
 ```tomo
->> "Amélie".at(3)
-= "é"
+assert "Amélie".at(3) == "é"
 
 ```
 ## Text.by_line
@@ -4031,12 +3784,10 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
->> "A".caseless_equals("a")
-= yes
+assert "A".caseless_equals("a") == yes
 
 # Turkish lowercase "I" is "ı" (dotless I), not "i"
->> "I".caseless_equals("i", language="tr_TR")
-= no
+assert "I".caseless_equals("i", language="tr_TR") == no
 
 ```
 ## Text.codepoint_names
@@ -4056,8 +3807,14 @@ text | `Text` | The text from which to extract codepoint names.  | -
 
 **Example:**
 ```tomo
->> "Amélie".codepoint_names()
-= ["LATIN CAPITAL LETTER A", "LATIN SMALL LETTER M", "LATIN SMALL LETTER E WITH ACUTE", "LATIN SMALL LETTER L", "LATIN SMALL LETTER I", "LATIN SMALL LETTER E"]
+assert "Amélie".codepoint_names() == [
+    "LATIN CAPITAL LETTER A",
+    "LATIN SMALL LETTER M",
+    "LATIN SMALL LETTER E WITH ACUTE",
+    "LATIN SMALL LETTER L",
+    "LATIN SMALL LETTER I",
+    "LATIN SMALL LETTER E",
+]
 
 ```
 ## Text.ends_with
@@ -4079,13 +3836,10 @@ remainder | `&Text?` | If non-none, this value will be set to the rest of the te
 
 **Example:**
 ```tomo
->> "hello world".ends_with("world")
-= yes
+assert "hello world".ends_with("world") == yes
 remainder : Text
->> "hello world".ends_with("world", &remainder)
-= yes
->> remainder
-= "hello "
+assert "hello world".ends_with("world", &remainder) == yes
+assert remainder == "hello "
 
 ```
 ## Text.from
@@ -4108,11 +3862,8 @@ first | `Int` | The index to begin the slice.  | -
 
 **Example:**
 ```tomo
->> "hello".from(2)
-= "ello"
-
->> "hello".from(-2)
-= "lo"
+assert "hello".from(2) == "ello"
+assert "hello".from(-2) == "lo"
 
 ```
 ## Text.from_c_string
@@ -4132,8 +3883,7 @@ str | `CString` | The C-style string to be converted.  | -
 
 **Example:**
 ```tomo
->> Text.from_c_string(CString("Hello"))
-= "Hello"
+assert Text.from_c_string(CString("Hello")) == "Hello"
 
 ```
 ## Text.from_codepoint_names
@@ -4155,12 +3905,12 @@ codepoint_names | `[Text]` | The names of each codepoint in the desired text (ca
 
 **Example:**
 ```tomo
->> Text.from_codepoint_names([
-"LATIN CAPITAL LETTER A WITH RING ABOVE",
-"LATIN SMALL LETTER K",
-"LATIN SMALL LETTER E",
+text := Text.from_codepoint_names([
+    "LATIN CAPITAL LETTER A WITH RING ABOVE",
+    "LATIN SMALL LETTER K",
+    "LATIN SMALL LETTER E",
 ]
-= "Åke"
+assert text == "Åke"
 
 ```
 ## Text.from_utf16
@@ -4182,10 +3932,8 @@ bytes | `[Int16]` | The UTF-16 integers of the desired text.  | -
 
 **Example:**
 ```tomo
->> Text.from_utf16([197, 107, 101])
-= "Åke"
->> Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028])
-= "こんにちは世界".utf16()
+assert Text.from_utf16([197, 107, 101]) == "Åke"
+assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界".utf16()
 
 ```
 ## Text.from_utf32
@@ -4207,8 +3955,7 @@ codepoints | `[Int32]` | The UTF32 codepoints in the desired text.  | -
 
 **Example:**
 ```tomo
->> Text.from_utf32([197, 107, 101])
-= "Åke"
+assert Text.from_utf32([197, 107, 101]) == "Åke"
 
 ```
 ## Text.from_utf8
@@ -4230,8 +3977,7 @@ bytes | `[Byte]` | The UTF-8 bytes of the desired text.  | -
 
 **Example:**
 ```tomo
->> Text.from_utf8([195, 133, 107, 101])
-= "Åke"
+assert Text.from_utf8([195, 133, 107, 101]) == "Åke"
 
 ```
 ## Text.has
@@ -4252,10 +3998,8 @@ target | `Text` | The text to search for.  | -
 
 **Example:**
 ```tomo
->> "hello world".has("wo")
-= yes
->> "hello world".has("xxx")
-= no
+assert "hello world".has("wo") == yes
+assert "hello world".has("xxx") == no
 
 ```
 ## Text.join
@@ -4276,8 +4020,7 @@ pieces | `[Text]` | The list of text pieces to be joined.  | -
 
 **Example:**
 ```tomo
->> ", ".join(["one", "two", "three"])
-= "one, two, three"
+assert ", ".join(["one", "two", "three"]) == "one, two, three"
 
 ```
 ## Text.left_pad
@@ -4300,10 +4043,8 @@ language | `Text` | The ISO 639 language code for which character width to use. 
 
 **Example:**
 ```tomo
->> "x".left_pad(5)
-= "    x"
->> "x".left_pad(5, "ABC")
-= "ABCAx"
+assert "x".left_pad(5) == "    x"
+assert "x".left_pad(5, "ABC") == "ABCAx"
 
 ```
 ## Text.lines
@@ -4323,16 +4064,11 @@ text | `Text` | The text to be split into lines.  | -
 
 **Example:**
 ```tomo
->> "one\ntwo\nthree".lines()
-= ["one", "two", "three"]
->> "one\ntwo\nthree\n".lines()
-= ["one", "two", "three"]
->> "one\ntwo\nthree\n\n".lines()
-= ["one", "two", "three", ""]
->> "one\r\ntwo\r\nthree\r\n".lines()
-= ["one", "two", "three"]
->> "".lines()
-= []
+assert "one\ntwo\nthree".lines() == ["one", "two", "three"]
+assert "one\ntwo\nthree\n".lines() == ["one", "two", "three"]
+assert "one\ntwo\nthree\n\n".lines() == ["one", "two", "three", ""]
+assert "one\r\ntwo\r\nthree\r\n".lines() == ["one", "two", "three"]
+assert "".lines() == []
 
 ```
 ## Text.lower
@@ -4353,11 +4089,8 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
->> "AMÉLIE".lower()
-= "amélie"
-
->> "I".lower(language="tr_TR")
->> "ı"
+assert "AMÉLIE".lower() == "amélie"
+assert "I".lower(language="tr_TR") == "ı"
 
 ```
 ## Text.middle_pad
@@ -4380,10 +4113,8 @@ language | `Text` | The ISO 639 language code for which character width to use. 
 
 **Example:**
 ```tomo
->> "x".middle_pad(6)
-= "  x   "
->> "x".middle_pad(10, "ABC")
-= "ABCAxABCAB"
+assert "x".middle_pad(6) == "  x   "
+assert "x".middle_pad(10, "ABC") == "ABCAxABCAB"
 
 ```
 ## Text.quoted
@@ -4405,8 +4136,7 @@ quotation_mark | `Text` | The quotation mark to use.  | ``"``
 
 **Example:**
 ```tomo
->> "one\ntwo".quoted()
-= "\"one\\ntwo\""
+assert "one\ntwo".quoted() == "\"one\\ntwo\""
 
 ```
 ## Text.repeat
@@ -4427,8 +4157,7 @@ count | `Int` | The number of times to repeat it. (Negative numbers are equivale
 
 **Example:**
 ```tomo
->> "Abc".repeat(3)
-= "AbcAbcAbc"
+assert "Abc".repeat(3) == "AbcAbcAbc"
 
 ```
 ## Text.replace
@@ -4450,8 +4179,7 @@ replacement | `Text` | The text to replace the target with.  | -
 
 **Example:**
 ```tomo
->> "Hello world".replace("world", "there")
-= "Hello there"
+assert "Hello world".replace("world", "there") == "Hello there"
 
 ```
 ## Text.reversed
@@ -4471,8 +4199,7 @@ text | `Text` | The text to reverse.  | -
 
 **Example:**
 ```tomo
->> "Abc".reversed()
-= "cbA"
+assert "Abc".reversed() == "cbA"
 
 ```
 ## Text.right_pad
@@ -4495,10 +4222,8 @@ language | `Text` | The ISO 639 language code for which character width to use. 
 
 **Example:**
 ```tomo
->> "x".right_pad(5)
-= "x    "
->> "x".right_pad(5, "ABC")
-= "xABCA"
+assert "x".right_pad(5) == "x    "
+assert "x".right_pad(5, "ABC") == "xABCA"
 
 ```
 ## Text.slice
@@ -4522,14 +4247,9 @@ to | `Int` | The index of the last grapheme cluster to include (1-indexed).  | `
 
 **Example:**
 ```tomo
->> "hello".slice(2, 3)
-= "el"
-
->> "hello".slice(to=-2)
-= "hell"
-
->> "hello".slice(from=2)
-= "ello"
+assert "hello".slice(2, 3) == "el"
+assert "hello".slice(to=-2) == "hell"
+assert "hello".slice(from=2) == "ello"
 
 ```
 ## Text.split
@@ -4553,11 +4273,8 @@ delimiter | `Text` | The delimiter used to split the text.  | `""`
 
 **Example:**
 ```tomo
->> "one,two,,three".split(",")
-= ["one", "two", "", "three"]
-
->> "abc".split()
-= ["a", "b", "c"]
+assert "one,two,,three".split(",") == ["one", "two", "", "three"]
+assert "abc".split() == ["a", "b", "c"]
 
 ```
 ## Text.split_any
@@ -4581,8 +4298,7 @@ delimiters | `Text` | A text containing delimiters to use for splitting the text
 
 **Example:**
 ```tomo
->> "one, two,,three".split_any(", ")
-= ["one", "two", "three"]
+assert "one, two,,three".split_any(", ") == ["one", "two", "three"]
 
 ```
 ## Text.starts_with
@@ -4604,13 +4320,10 @@ remainder | `&Text?` | If non-none, this value will be set to the rest of the te
 
 **Example:**
 ```tomo
->> "hello world".starts_with("hello")
-= yes
+assert "hello world".starts_with("hello") == yes
 remainder : Text
->> "hello world".starts_with("hello", &remainder)
-= yes
->> remainder
-= " world"
+assert "hello world".starts_with("hello", &remainder) == yes
+assert remainder == " world"
 
 ```
 ## Text.title
@@ -4631,12 +4344,10 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
->> "amélie".title()
-= "Amélie"
+assert "amélie".title() == "Amélie"
 
 # In Turkish, uppercase "i" is "İ"
->> "i".title(language="tr_TR")
-= "İ"
+assert "i".title(language="tr_TR") == "İ"
 
 ```
 ## Text.to
@@ -4659,11 +4370,8 @@ last | `Int` | The index of the last grapheme cluster to include (1-indexed).  |
 
 **Example:**
 ```tomo
->> "goodbye".to(3)
-= "goo"
-
->> "goodbye".to(-2)
-= "goodby"
+assert "goodbye".to(3) == "goo"
+assert "goodbye".to(-2) == "goodby"
 
 ```
 ## Text.translate
@@ -4684,14 +4392,14 @@ translations | `{Text:Text}` | A table mapping from target text to its replaceme
 
 **Example:**
 ```tomo
->> "A <tag> & an amperand".translate({
+text := "A <tag> & an amperand".translate({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     '"": "&quot",
     "'": "&#39;",
 })
-= "A &lt;tag&gt; &amp; an ampersand"
+assert text == "A &lt;tag&gt; &amp; an ampersand"
 
 ```
 ## Text.trim
@@ -4714,14 +4422,9 @@ right | `Bool` | Whether or not to trim from the back of the text.  | `yes`
 
 **Example:**
 ```tomo
->> "   x y z    \n".trim()
-= "x y z"
-
->> "one,".trim(",")
-= "one"
-
->> "   xyz   ".trim(right=no)
-= "xyz   "
+assert "   x y z    \n".trim() == "x y z"
+assert "one,".trim(",") == "one"
+assert "   xyz   ".trim(right=no) == "xyz   "
 
 ```
 ## Text.upper
@@ -4742,12 +4445,10 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
->> "amélie".upper()
-= "AMÉLIE"
+assert "amélie".upper() == "AMÉLIE"
 
 # In Turkish, uppercase "i" is "İ"
->> "i".upper(language="tr_TR")
-= "İ"
+assert "i".upper(language="tr_TR") == "İ"
 
 ```
 ## Text.utf16
@@ -4767,10 +4468,8 @@ text | `Text` | The text from which to extract Unicode code points.  | -
 
 **Example:**
 ```tomo
->> "Åke".utf16()
-= [197, 107, 101]
->> "こんにちは世界".utf16()
-= [12371, 12435, 12395, 12385, 12399, 19990, 30028]
+assert "Åke".utf16() == [197, 107, 101]
+assert "こんにちは世界".utf16() == [12371, 12435, 12395, 12385, 12399, 19990, 30028]
 
 ```
 ## Text.utf32
@@ -4790,8 +4489,7 @@ text | `Text` | The text from which to extract Unicode code points.  | -
 
 **Example:**
 ```tomo
->> "Amélie".utf32()
-= [65, 109, 233, 108, 105, 101]
+assert "Amélie".utf32() == [65, 109, 233, 108, 105, 101]
 
 ```
 ## Text.utf8
@@ -4811,8 +4509,7 @@ text | `Text` | The text to be converted to UTF8 bytes.  | -
 
 **Example:**
 ```tomo
->> "Amélie".utf8()
-= [65, 109, 195, 169, 108, 105, 101]
+assert "Amélie".utf8() == [65, 109, 195, 169, 108, 105, 101]
 
 ```
 ## Text.width
@@ -4834,10 +4531,8 @@ text | `Text` | The text whose length you want.  | -
 
 **Example:**
 ```tomo
->> "Amélie".width()
-= 6
->> "🤠".width()
-= 2
+assert "Amélie".width() == 6
+assert "🤠".width() == 2
 
 ```
 ## Text.without_prefix
@@ -4858,10 +4553,8 @@ prefix | `Text` | The prefix to remove.  | -
 
 **Example:**
 ```tomo
->> "foo:baz".without_prefix("foo:")
-= "baz"
->> "qux".without_prefix("foo:")
-= "qux"
+assert "foo:baz".without_prefix("foo:") == "baz"
+assert "qux".without_prefix("foo:") == "qux"
 
 ```
 ## Text.without_suffix
@@ -4882,9 +4575,7 @@ suffix | `Text` | The suffix to remove.  | -
 
 **Example:**
 ```tomo
->> "baz.foo".without_suffix(".foo")
-= "baz"
->> "qux".without_suffix(".foo")
-= "qux"
+assert "baz.foo".without_suffix(".foo") == "baz"
+assert "qux".without_suffix(".foo") == "qux"
 
 ```

@@ -21,10 +21,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./file.txt).accessed()
-= 1704221100?
->> (./not-a-file).accessed()
-= none
+assert (./file.txt).accessed() == 1704221100
+assert (./not-a-file).accessed() == none
 
 ```
 ## Path.append
@@ -88,8 +86,7 @@ path | `Path` | The path of the file or directory.  | -
 
 **Example:**
 ```tomo
->> (./path/to/file.txt).base_name()
-= "file.txt"
+assert (./path/to/file.txt).base_name() == "file.txt"
 
 ```
 ## Path.by_line
@@ -138,12 +135,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
->> (/bin/sh).can_execute()
-= yes
->> (/usr/include/stdlib.h).can_execute()
-= no
->> (/non/existant/file).can_execute()
-= no
+assert (/bin/sh).can_execute() == yes
+assert (/usr/include/stdlib.h).can_execute() == no
+assert (/non/existant/file).can_execute() == no
 
 ```
 ## Path.can_read
@@ -163,12 +157,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
->> (/usr/include/stdlib.h).can_read()
-= yes
->> (/etc/shadow).can_read()
-= no
->> (/non/existant/file).can_read()
-= no
+assert (/usr/include/stdlib.h).can_read() == yes
+assert (/etc/shadow).can_read() == no
+assert (/non/existant/file).can_read() == no
 
 ```
 ## Path.can_write
@@ -188,12 +179,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
->> (/tmp).can_write()
-= yes
->> (/etc/passwd).can_write()
-= no
->> (/non/existant/file).can_write()
-= no
+assert (/tmp).can_write() == yes
+assert (/etc/passwd).can_write() == no
+assert (/non/existant/file).can_write() == no
 
 ```
 ## Path.changed
@@ -216,10 +204,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./file.txt).changed()
-= 1704221100?
->> (./not-a-file).changed()
-= none
+assert (./file.txt).changed() == 1704221100
+assert (./not-a-file).changed() == none
 
 ```
 ## Path.child
@@ -240,8 +226,7 @@ child | `Text` | The name of a child file or directory.  | -
 
 **Example:**
 ```tomo
->> (./directory).child("file.txt")
-= (./directory/file.txt)
+assert (./directory).child("file.txt") == (./directory/file.txt)
 
 ```
 ## Path.children
@@ -262,8 +247,7 @@ include_hidden | `` | Whether to include hidden files, which start with a `.`.  
 
 **Example:**
 ```tomo
->> (./directory).children(include_hidden=yes)
-= [".git", "foo.txt"]
+assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
 
 ```
 ## Path.create_directory
@@ -301,8 +285,7 @@ Creates a new directory at the specified path with the given permissions. If any
 
 **Example:**
 ```tomo
->> Path.current_dir()
-= (/home/user/tomo)
+assert Path.current_dir() == (/home/user/tomo)
 
 ```
 ## Path.exists
@@ -322,8 +305,7 @@ path | `Path` | The path to check.  | -
 
 **Example:**
 ```tomo
->> (/).exists()
-= yes
+assert (/).exists() == yes
 
 ```
 ## Path.expand_home
@@ -343,10 +325,10 @@ path | `Path` | The path to expand.  | -
 
 **Example:**
 ```tomo
->> (~/foo).expand_home() # Assume current user is 'user'
-= /home/user/foo
->> (/foo).expand_home() # No change
-= /foo
+# Assume current user is 'user'
+assert (~/foo).expand_home() == (/home/user/foo)
+# No change
+assert (/foo).expand_home() == (/foo)
 
 ```
 ## Path.extension
@@ -367,14 +349,10 @@ full | `Bool` | Whether to return everything after the first `.` in the base nam
 
 **Example:**
 ```tomo
->> (./file.tar.gz).extension()
-= "tar.gz"
->> (./file.tar.gz).extension(full=no)
-= "gz"
->> (/foo).extension()
-= ""
->> (./.git).extension()
-= ""
+assert (./file.tar.gz).extension() == "tar.gz"
+assert (./file.tar.gz).extension(full=no) == "gz"
+assert (/foo).extension() == ""
+assert (./.git).extension() == ""
 
 ```
 ## Path.files
@@ -395,8 +373,7 @@ include_hidden | `Bool` | Whether to include hidden files.  | `no`
 
 **Example:**
 ```tomo
->> (./directory).files(include_hidden=yes)
-= [(./directory/file1.txt), (./directory/file2.txt)]
+assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
 
 ```
 ## Path.from_components
@@ -416,12 +393,9 @@ components | `[Text]` | A list of path components.  | -
 
 **Example:**
 ```tomo
->> Path.from_components(["/", "usr", "include"])
-= /usr/include
->> Path.from_components(["foo.txt"])
-= ./foo.txt
->> Path.from_components(["~", ".local"])
-= ~/.local
+assert Path.from_components(["/", "usr", "include"]) == (/usr/include)
+assert Path.from_components(["foo.txt"]) == (./foo.txt)
+assert Path.from_components(["~", ".local"]) == (~/.local)
 
 ```
 ## Path.glob
@@ -448,21 +422,13 @@ path | `Path` | The path of the directory which may contain special globbing cha
 **Example:**
 ```tomo
 # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
->> (./*).glob()
-= [(./foo.txt), (./baz.txt), (./qux.jpg)]
-
->> (./*.txt).glob()
-= [(./foo.txt), (./baz.txt)]
-
->> (./*.{txt,jpg}).glob()
-= [(./foo.txt), (./baz.txt), (./qux.jpg)]
-
->> (./.*).glob()
-= [(./.hidden)]
+assert (./*).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+assert (./*.txt).glob() == [(./foo.txt), (./baz.txt)]
+assert (./*.{txt,jpg}).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+assert (./.*).glob() == [(./.hidden)]
 
 # Globs with no matches return an empty list:
->> (./*.xxx).glob()
-= []
+assert (./*.xxx).glob() == []
 
 ```
 ## Path.group
@@ -483,10 +449,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (/bin).group()
-= "root"
->> (/non/existent/file).group()
-= none
+assert (/bin).group() == "root"
+assert (/non/existent/file).group() == none
 
 ```
 ## Path.has_extension
@@ -507,14 +471,10 @@ extension | `Text` | A file extension (leading `.` is optional). If empty, the c
 
 **Example:**
 ```tomo
->> (/foo.txt).has_extension("txt")
-= yes
->> (/foo.txt).has_extension(".txt")
-= yes
->> (/foo.tar.gz).has_extension("gz")
-= yes
->> (/foo.tar.gz).has_extension("zip")
-= no
+assert (/foo.txt).has_extension("txt") == yes
+assert (/foo.txt).has_extension(".txt") == yes
+assert (/foo.tar.gz).has_extension("gz") == yes
+assert (/foo.tar.gz).has_extension("zip") == no
 
 ```
 ## Path.is_directory
@@ -535,11 +495,8 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./directory/).is_directory()
-= yes
-
->> (./file.txt).is_directory()
-= no
+assert (./directory/).is_directory() == yes
+assert (./file.txt).is_directory() == no
 
 ```
 ## Path.is_file
@@ -560,11 +517,8 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./file.txt).is_file()
-= yes
-
->> (./directory/).is_file()
-= no
+assert (./file.txt).is_file() == yes
+assert (./directory/).is_file() == no
 
 ```
 ## Path.is_socket
@@ -585,8 +539,7 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./socket).is_socket()
-= yes
+assert (./socket).is_socket() == yes
 
 ```
 ## Path.is_symlink
@@ -606,8 +559,7 @@ path | `Path` | The path to check.  | -
 
 **Example:**
 ```tomo
->> (./link).is_symlink()
-= yes
+assert (./link).is_symlink() == yes
 
 ```
 ## Path.modified
@@ -628,10 +580,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (./file.txt).modified()
-= 1704221100?
->> (./not-a-file).modified()
-= none
+assert (./file.txt).modified() == 1704221100
+assert (./not-a-file).modified() == none
 
 ```
 ## Path.owner
@@ -652,10 +602,8 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
->> (/bin).owner()
-= "root"
->> (/non/existent/file).owner()
-= none
+assert (/bin).owner() == "root"
+assert (/non/existent/file).owner() == none
 
 ```
 ## Path.parent
@@ -675,8 +623,7 @@ path | `Path` | The path of the file or directory.  | -
 
 **Example:**
 ```tomo
->> (./path/to/file.txt).parent()
-= (./path/to/)
+assert (./path/to/file.txt).parent() == (./path/to/)
 
 ```
 ## Path.read
@@ -696,11 +643,8 @@ path | `Path` | The path of the file to read.  | -
 
 **Example:**
 ```tomo
->> (./hello.txt).read()
-= "Hello"?
-
->> (./nosuchfile.xxx).read()
-= none
+assert (./hello.txt).read() == "Hello"
+assert (./nosuchfile.xxx).read() == none
 
 ```
 ## Path.read_bytes
@@ -721,11 +665,8 @@ limit | `Int?` | A limit to how many bytes should be read.  | `none`
 
 **Example:**
 ```tomo
->> (./hello.txt).read()
-= [72, 101, 108, 108, 111]?
-
->> (./nosuchfile.xxx).read()
-= none
+assert (./hello.txt).read() == [72, 101, 108, 108, 111]
+assert (./nosuchfile.xxx).read() == none
 
 ```
 ## Path.relative_to
@@ -746,8 +687,7 @@ relative_to | `` | The base path for the relative path.  | `(./)`
 
 **Example:**
 ```tomo
->> (./path/to/file.txt).relative(relative_to=(./path))
-= (./to/file.txt)
+assert (./path/to/file.txt).relative(relative_to=(./path)) == (./to/file.txt)
 
 ```
 ## Path.remove
@@ -789,11 +729,8 @@ relative_to | `` | The base path for resolution.  | `(./)`
 
 **Example:**
 ```tomo
->> (~/foo).resolved()
-= (/home/user/foo)
-
->> (./path/to/file.txt).resolved(relative_to=(/foo))
-= (/foo/path/to/file.txt)
+assert (~/foo).resolved() == (/home/user/foo)
+assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.txt)
 
 ```
 ## Path.set_owner
@@ -837,8 +774,7 @@ name | `Text` | The name of a sibling file or directory.  | -
 
 **Example:**
 ```tomo
->> (/foo/baz).sibling("doop")
-= (/foo/doop)
+assert (/foo/baz).sibling("doop") == (/foo/doop)
 
 ```
 ## Path.subdirectories
@@ -859,11 +795,8 @@ include_hidden | `` | Whether to include hidden subdirectories.  | `no`
 
 **Example:**
 ```tomo
->> (./directory).subdirectories()
-= [(./directory/subdir1), (./directory/subdir2)]
-
->> (./directory).subdirectories(include_hidden=yes)
-= [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
+assert (./directory).subdirectories() == [(./directory/subdir1), (./directory/subdir2)]
+assert (./directory).subdirectories(include_hidden=yes) == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
 
 ```
 ## Path.unique_directory
@@ -883,10 +816,8 @@ path | `Path` | The base path for generating the unique directory. The last six 
 
 **Example:**
 ```tomo
->> created := (/tmp/my-dir.XXXXXX).unique_directory()
-= (/tmp/my-dir-AwoxbM/)
->> created.is_directory()
-= yes
+assert created := (/tmp/my-dir.XXXXXX).unique_directory() == (/tmp/my-dir-AwoxbM/)
+assert created.is_directory() == yes
 created.remove()
 
 ```
@@ -952,10 +883,9 @@ text | `Text` | The text to write to the file.  | -
 
 **Example:**
 ```tomo
->> created := (./file-XXXXXX.txt).write_unique("Hello, world!")
-= (./file-27QHtq.txt)
->> created.read()
-= "Hello, world!"
+created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+assert created == (./file-27QHtq.txt)
+assert created.read() == "Hello, world!"
 created.remove()
 
 ```
@@ -977,10 +907,9 @@ bytes | `[Byte]` | The bytes to write to the file.  | -
 
 **Example:**
 ```tomo
->> created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
-= (./file-27QHtq.txt)
->> created.read()
-= [1, 2, 3]
+created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
+assert created == (./file-27QHtq.txt)
+assert created.read() == [1, 2, 3]
 created.remove()
 
 ```

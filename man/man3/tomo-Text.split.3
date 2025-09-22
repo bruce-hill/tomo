@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.split 3 2025-04-30 "Tomo man-pages"
+.TH Text.split 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 Text.split \- split a text by a delimiter
 .SH LIBRARY
@@ -34,9 +34,6 @@ If an empty text is given as the delimiter, then each split will be the graphica
 
 .SH EXAMPLES
 .EX
->> "one,two,,three".split(",")
-= ["one", "two", "", "three"]
-
->> "abc".split()
-= ["a", "b", "c"]
+assert "one,two,,three".split(",") == ["one", "two", "", "three"]
+assert "abc".split() == ["a", "b", "c"]
 .EE

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.counts 3 2025-04-30 "Tomo man-pages"
+.TH List.counts 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 List.counts \- count occurrences
 .SH LIBRARY
@@ -29,6 +29,5 @@ A table mapping each element to its count.
 
 .SH EXAMPLES
 .EX
->> [10, 20, 30, 30, 30].counts()
-= {10=1, 20=1, 30=3}
+assert [10, 20, 30, 30, 30].counts() == {10=1, 20=1, 30=3}
 .EE

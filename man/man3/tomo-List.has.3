@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.has 3 2025-04-30 "Tomo man-pages"
+.TH List.has 3 2025-09-21 "Tomo man-pages"
 .SH NAME
 List.has \- check for member
 .SH LIBRARY
@@ -30,6 +30,5 @@ target	T	The element to check for. 	-
 
 .SH EXAMPLES
 .EX
->> [10, 20, 30].has(20)
-= yes
+assert [10, 20, 30].has(20) == yes
 .EE
