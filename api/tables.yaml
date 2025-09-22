@@ -14,6 +14,30 @@ Table.clear:
   example: |
     >> t.clear()
 
+Table.difference:
+  short: return a table using keys not present in both tables
+  description: >
+    Return a table whose key/value pairs correspond to keys only present in one
+    table, but not the other.
+  return:
+    type: '{K:V}'
+    description: >
+      A table containing the common key/value pairs whose keys only appear in
+      one table.
+  args:
+    t:
+      type: '{K:V}'
+      description: >
+        The base table.
+    other:
+      type: '{K:V}'
+      description: >
+        The other table.
+  example: |
+    t1 := {"A": 1; "B": 2, "C": 3}
+    t2 := {"B": 2, "C":30, "D": 40}
+    assert t1.difference(t2) == {"A": 1, "D": 40}
+
 Table.get:
   short: get an item from a table
   description: >
@@ -110,6 +134,29 @@ Table.has:
     >> {"A": 1, "B": 2}.has("xxx")
     = no
 
+Table.intersection:
+  short: return a table with common key/value pairs from two tables
+  description: >
+    Return a table with only the matching key/value pairs that are common to
+    both tables.
+  return:
+    type: '{K:V}'
+    description: >
+      A table containing the common key/value pairs shared between two tables.
+  args:
+    t:
+      type: '{K:V}'
+      description: >
+        The base table.
+    other:
+      type: '{K:V}'
+      description: >
+        The other table.
+  example: |
+    t1 := {"A": 1; "B": 2, "C": 3}
+    t2 := {"B": 2, "C":30, "D": 40}
+    assert t1.intersection(t2) == {"B": 2}
+
 Table.remove:
   short: remove a table entry
   description: >
@@ -159,6 +206,52 @@ Table.set:
     t.set("C", 3)
     >> t
     = {"A": 1, "B": 2, "C": 3}
+
+Table.with:
+  short: return a table with values added from another table
+  description: >
+    Return a copy of a table with values added from another table
+  return:
+    type: '{K:V}'
+    description: >
+      The original table, but with values from the other table added.
+  args:
+    t:
+      type: '{K:V}'
+      description: >
+        The base table.
+    other:
+      type: '{K:V}'
+      description: >
+        The other table from which new key/value pairs will be added.
+  example: |
+    t := {"A": 1; "B": 2}
+    assert t.with({"B": 20, "C": 30}) == {"A": 1, "B": 20, "C": 30}
+
+Table.without:
+  short: return a table without key/value pairs in another table
+  description: >
+    Return a copy of a table, but without any of the exact key/value pairs
+    found in the other table.
+  note: >
+    Only exact key/value pairs will be discarded. Keys with a non-matching
+    value will be kept.
+  return:
+    type: '{K:V}'
+    description: >
+      The original table, but without the key/value pairs from the other table.
+  args:
+    t:
+      type: '{K:V}'
+      description: >
+        The base table.
+    other:
+      type: '{K:V}'
+      description: >
+        The other table whose key/value pairs will be omitted.
+  example: |
+    t := {"A": 1; "B": 2, "C": 3}
+    assert t.without({"B": 2, "C": 30, "D": 40}) == {"A": 1, "C": 3}
 
 Table.with_fallback:
   short: return a table with a new fallback

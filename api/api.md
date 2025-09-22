@@ -3623,6 +3623,29 @@ t | `&{K:V}` | The reference to the table.  | -
 >> t.clear()
 
 ```
+## Table.difference
+
+```tomo
+Table.difference : func(t: {K:V}, other: {K:V} -> {K:V})
+```
+
+Return a table whose key/value pairs correspond to keys only present in one table, but not the other.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+t | `{K:V}` | The base table.  | -
+other | `{K:V}` | The other table.  | -
+
+**Return:** A table containing the common key/value pairs whose keys only appear in one table.
+
+
+**Example:**
+```tomo
+t1 := {"A": 1; "B": 2, "C": 3}
+t2 := {"B": 2, "C":30, "D": 40}
+assert t1.difference(t2) == {"A": 1, "D": 40}
+
+```
 ## Table.get
 
 ```tomo
@@ -3715,6 +3738,29 @@ key | `K` | The key to check for presence.  | -
 = no
 
 ```
+## Table.intersection
+
+```tomo
+Table.intersection : func(t: {K:V}, other: {K:V} -> {K:V})
+```
+
+Return a table with only the matching key/value pairs that are common to both tables.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+t | `{K:V}` | The base table.  | -
+other | `{K:V}` | The other table.  | -
+
+**Return:** A table containing the common key/value pairs shared between two tables.
+
+
+**Example:**
+```tomo
+t1 := {"A": 1; "B": 2, "C": 3}
+t2 := {"B": 2, "C":30, "D": 40}
+assert t1.intersection(t2) == {"B": 2}
+
+```
 ## Table.remove
 
 ```tomo
@@ -3764,6 +3810,28 @@ t.set("C", 3)
 = {"A": 1, "B": 2, "C": 3}
 
 ```
+## Table.with
+
+```tomo
+Table.with : func(t: {K:V}, other: {K:V} -> {K:V})
+```
+
+Return a copy of a table with values added from another table
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+t | `{K:V}` | The base table.  | -
+other | `{K:V}` | The other table from which new key/value pairs will be added.  | -
+
+**Return:** The original table, but with values from the other table added.
+
+
+**Example:**
+```tomo
+t := {"A": 1; "B": 2}
+assert t.with({"B": 20, "C": 30}) == {"A": 1, "B": 20, "C": 30}
+
+```
 ## Table.with_fallback
 
 ```tomo
@@ -3789,6 +3857,30 @@ t2 = t.with_fallback({"B": 3"})
 t3 = t.with_fallback(none)
 >> t2["B"]
 = none
+
+```
+## Table.without
+
+```tomo
+Table.without : func(t: {K:V}, other: {K:V} -> {K:V})
+```
+
+Return a copy of a table, but without any of the exact key/value pairs found in the other table.
+
+Only exact key/value pairs will be discarded. Keys with a non-matching value will be kept.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+t | `{K:V}` | The base table.  | -
+other | `{K:V}` | The other table whose key/value pairs will be omitted.  | -
+
+**Return:** The original table, but without the key/value pairs from the other table.
+
+
+**Example:**
+```tomo
+t := {"A": 1; "B": 2, "C": 3}
+assert t.without({"B": 2, "C": 30, "D": 40}) == {"A": 1, "C": 3}
 
 ```
 

@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Table.intersection 3 2025-09-21 "Tomo man-pages"
+.SH NAME
+Table.intersection \- return a table with common key/value pairs from two tables
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Table.intersection\ :\ func(t:\ {K:V},\ other:\ {K:V}\ ->\ {K:V})
+.fi
+.SH DESCRIPTION
+Return a table with only the matching key/value pairs that are common to both tables.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+t	{K:V}	The base table. 	-
+other	{K:V}	The other table. 	-
+.TE
+.SH RETURN
+A table containing the common key/value pairs shared between two tables.
+
+.SH EXAMPLES
+.EX
+t1 := {"A": 1; "B": 2, "C": 3}
+t2 := {"B": 2, "C":30, "D": 40}
+assert t1.intersection(t2) == {"B": 2}
+.EE

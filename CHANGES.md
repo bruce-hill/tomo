@@ -24,6 +24,8 @@
 - Struct fields that start with underscores can be accessed again and function
   arguments that start with underscore can be passed (but only as keyword
   arguments).
+- Added `table.with(other)`, `table.without(other)`,
+  `table.intersection(other)`, and `table.difference(other)`.
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
 - Standardized text methods for Unicode encodings:
