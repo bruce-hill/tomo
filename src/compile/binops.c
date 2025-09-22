@@ -160,8 +160,6 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
         return Texts("(", lhs, " + ", rhs, ")");
     }
     case Minus: {
-        if (overall_t->tag == TableType)
-            return Texts("Table$minus(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
@@ -204,8 +202,6 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
     case And: {
         if (overall_t->tag == BoolType) return Texts("(", lhs, " && ", rhs, ")");
         else if (overall_t->tag == IntType || overall_t->tag == ByteType) return Texts("(", lhs, " & ", rhs, ")");
-        else if (overall_t->tag == TableType)
-            return Texts("Table$and(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
             code_err(ast, "The 'and' operator isn't supported between ", type_to_text(lhs_t), " and ",
                      type_to_text(rhs_t), " values");
@@ -218,8 +214,6 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
             return Texts("(", lhs, " || ", rhs, ")");
         } else if (overall_t->tag == IntType || overall_t->tag == ByteType) {
             return Texts("(", lhs, " | ", rhs, ")");
-        } else if (overall_t->tag == TableType) {
-            return Texts("Table$or(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         } else {
             code_err(ast, "The 'or' operator isn't supported between ", type_to_text(lhs_t), " and ",
                      type_to_text(rhs_t), " values");
@@ -229,8 +223,6 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
         // TODO: support optional values in `xor` expressions
         if (overall_t->tag == BoolType || overall_t->tag == IntType || overall_t->tag == ByteType)
             return Texts("(", lhs, " ^ ", rhs, ")");
-        else if (overall_t->tag == TableType)
-            return Texts("Table$xor(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         else
             code_err(ast, "The 'xor' operator isn't supported between ", type_to_text(lhs_t), " and ",
                      type_to_text(rhs_t), " values");
@@ -244,6 +236,9 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
         case ListType: {
             return Texts("List$concat(", lhs, ", ", rhs, ", sizeof(",
                          compile_type(Match(overall_t, ListType)->item_type), "))");
+        }
+        case TableType: {
+            return Texts("Table$with(", lhs, ", ", rhs, ", ", compile_type_info(overall_t), ")");
         }
         default:
             code_err(ast, "Concatenation isn't supported between ", type_to_text(lhs_t), " and ", type_to_text(rhs_t),

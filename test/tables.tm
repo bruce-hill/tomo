@@ -77,3 +77,13 @@ func main()
 		assert counter.has("y") == no
 
 		>> counter["y"] += 1
+
+	do
+		# Set operations
+		a := {"A":1, "B":2, "C":3}
+		b := {"B":2, "C":30, "D":40}
+		assert a.with(b) == {"A":1, "B":2, "C":30, "D":40}
+		assert a.with(b) == a ++ b
+		assert a.intersection(b) == {"B":2}
+		assert a.difference(b) == {"A":1, "D":40}
+		assert a.without(b) == {"A":1, "C":3}

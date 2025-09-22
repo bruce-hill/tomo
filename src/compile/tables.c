@@ -139,5 +139,25 @@ Text_t compile_table_method_call(env_t *env, ast_t *ast) {
         self = compile_to_pointer_depth(env, call->self, 0, false);
         arg_t *arg_spec = new (arg_t, .name = "fallback", .type = Type(OptionalType, self_value_t));
         return Texts("Table$with_fallback(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+    } else if (streq(call->name, "intersection")) {
+        self = compile_to_pointer_depth(env, call->self, 0, false);
+        arg_t *arg_spec = new (arg_t, .name = "other", .type = self_value_t);
+        return Texts("Table$intersection(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "with")) {
+        self = compile_to_pointer_depth(env, call->self, 0, false);
+        arg_t *arg_spec = new (arg_t, .name = "other", .type = self_value_t);
+        return Texts("Table$with(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "without")) {
+        self = compile_to_pointer_depth(env, call->self, 0, false);
+        arg_t *arg_spec = new (arg_t, .name = "other", .type = self_value_t);
+        return Texts("Table$without(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "difference")) {
+        self = compile_to_pointer_depth(env, call->self, 0, false);
+        arg_t *arg_spec = new (arg_t, .name = "other", .type = self_value_t);
+        return Texts("Table$difference(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     compile_type_info(self_value_t), ")");
     } else code_err(ast, "There is no '", call->name, "' method for tables");
 }

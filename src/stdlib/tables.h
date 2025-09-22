@@ -91,10 +91,10 @@ void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type);
         Table$remove(t, &k, type);                                                                                     \
     })
 
-Table_t Table$and(Table_t a, Table_t b, const TypeInfo_t *type);
-Table_t Table$or(Table_t a, Table_t b, const TypeInfo_t *type);
-Table_t Table$minus(Table_t a, Table_t b, const TypeInfo_t *type);
-Table_t Table$xor(Table_t a, Table_t b, const TypeInfo_t *type);
+Table_t Table$intersection(Table_t a, Table_t b, const TypeInfo_t *type);
+Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type);
+Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type);
+Table_t Table$difference(Table_t a, Table_t b, const TypeInfo_t *type);
 Table_t Table$with_fallback(Table_t t, OptionalTable_t fallback);
 
 void Table$clear(Table_t *t);
