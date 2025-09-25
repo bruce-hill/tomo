@@ -128,6 +128,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         Text_t message = fmt_inline(assert->message, comments);
         return Texts("assert ", expr, ", ", message);
     }
+    /*inline*/ case Defer:
+        return Texts("defer ", fmt_inline(Match(ast, Defer)->body, comments));
     /*inline*/ case Lambda: {
         DeclareMatch(lambda, ast, Lambda);
         Text_t code = Texts("func(", format_inline_args(lambda->args, comments));
@@ -573,6 +575,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         DeclareMatch(extend, ast, Extend);
         return Texts("lang ", Text$from_str(extend->name), format_namespace(extend->body, comments, indent));
     }
+    /*multiline*/ case Defer:
+        return Texts("defer ", format_namespace(Match(ast, Defer)->body, comments, indent));
     /*multiline*/ case List: {
         if (inlined_fits) return inlined;
         ast_list_t *items = Match(ast, List)->items;

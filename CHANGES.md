@@ -20,7 +20,6 @@
   - Explicitly optional values can be declared as `my_var : T? = value`.
 - Deprecated `>> ... = ...` form of doctests. They are now called "debug logs"
   and you can specify multiple values: `>> a, b, c`
-- Deprecated `defer` statement
 - Struct fields that start with underscores can be accessed again and function
   arguments that start with underscore can be passed (but only as keyword
   arguments).

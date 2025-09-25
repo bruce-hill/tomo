@@ -79,6 +79,13 @@ ast_t *parse_pass(parse_ctx_t *ctx, const char *pos) {
     return match_word(&pos, "pass") ? NewAST(ctx->file, start, pos, Pass) : NULL;
 }
 
+ast_t *parse_defer(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    if (!match_word(&pos, "defer")) return NULL;
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a block to be deferred here");
+    return NewAST(ctx->file, start, pos, Defer, .body = body);
+}
+
 ast_t *parse_skip(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "continue") && !match_word(&pos, "skip")) return NULL;

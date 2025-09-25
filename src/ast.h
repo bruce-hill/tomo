@@ -262,6 +262,7 @@ typedef enum {
     Skip,
     Stop,
     Pass,
+    Defer,
     Return,
     StructDef,
     EnumDef,
@@ -406,6 +407,9 @@ struct ast_s {
         } Skip, Stop;
         struct {
         } Pass;
+        struct {
+            ast_t *body;
+        } Defer;
         struct {
             ast_t *value;
         } Return;

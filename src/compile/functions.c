@@ -252,6 +252,7 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
     Text_t name = namespace_name(env, env->namespace, Texts("lambda$", lambda->id));
 
     env_t *body_scope = fresh_scope(env);
+    body_scope->deferred = NULL;
     for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
         set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
@@ -317,6 +318,9 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
         else body = Texts(body, compile_statement(body_scope, FakeAST(Return, stmt->ast)), "\n");
         bind_statement(body_scope, stmt->ast);
     }
+    if ((ret_t->tag == VoidType || ret_t->tag == AbortType) && body_scope->deferred)
+        body = Texts(body, compile_statement(body_scope, FakeAST(Return)), "\n");
+
     env->code->lambdas = Texts(env->code->lambdas, code, " {\n", body, "\n}\n");
     return Texts("((Closure_t){", name, ", ", userdata, "})");
 }
@@ -531,6 +535,10 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, scope, reduction->key ? reduction->key : item);
         break;
     }
+    case Defer: {
+        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Defer)->body);
+        break;
+    }
     case Return: {
         ast_t *ret = Match(ast, Return)->value;
         if (ret) add_closed_vars(closed_vars, enclosing_scope, env, ret);
@@ -656,6 +664,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         body_scope->namespace = body_scope->namespace->parent;
     }
 
+    body_scope->deferred = NULL;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
         set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));

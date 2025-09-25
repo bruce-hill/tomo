@@ -1123,7 +1123,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case Skip: {
         return Type(AbortType);
     }
-    case Pass: return Type(VoidType);
+    case Pass:
+    case Defer: return Type(VoidType);
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
         type_t *t = get_type(env, value);

@@ -42,6 +42,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
     loop_ctx_t loop_ctx = (loop_ctx_t){
         .loop_name = "for",
         .loop_vars = for_->vars,
+        .deferred = body_scope->deferred,
         .next = body_scope->loop_ctx,
     };
     body_scope->loop_ctx = &loop_ctx;
@@ -355,6 +356,7 @@ Text_t compile_repeat(env_t *env, ast_t *ast) {
     env_t *scope = fresh_scope(env);
     loop_ctx_t loop_ctx = (loop_ctx_t){
         .loop_name = "repeat",
+        .deferred = scope->deferred,
         .next = env->loop_ctx,
     };
     scope->loop_ctx = &loop_ctx;
@@ -371,6 +373,7 @@ Text_t compile_while(env_t *env, ast_t *ast) {
     env_t *scope = fresh_scope(env);
     loop_ctx_t loop_ctx = (loop_ctx_t){
         .loop_name = "while",
+        .deferred = scope->deferred,
         .next = env->loop_ctx,
     };
     scope->loop_ctx = &loop_ctx;
@@ -396,7 +399,11 @@ Text_t compile_skip(env_t *env, ast_t *ast) {
                 ctx->skip_label = Texts("skip_", skip_label_count);
                 ++skip_label_count;
             }
-            return Texts("goto ", ctx->skip_label, ";");
+            Text_t code = EMPTY_TEXT;
+            for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred; deferred = deferred->next)
+                code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
+            if (code.length > 0) return Texts("{\n", code, "goto ", ctx->skip_label, ";\n}\n");
+            else return Texts("goto ", ctx->skip_label, ";");
         }
     }
     if (env->loop_ctx) code_err(ast, "This is not inside any loop");
@@ -418,7 +425,11 @@ Text_t compile_stop(env_t *env, ast_t *ast) {
                 ctx->stop_label = Texts("stop_", stop_label_count);
                 ++stop_label_count;
             }
-            return Texts("goto ", ctx->stop_label, ";");
+            Text_t code = EMPTY_TEXT;
+            for (deferral_t *deferred = env->deferred; deferred && deferred != ctx->deferred; deferred = deferred->next)
+                code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
+            if (code.length > 0) return Texts("{\n", code, "goto ", ctx->stop_label, ";\n}\n");
+            else return Texts("goto ", ctx->stop_label, ";");
         }
     }
     if (env->loop_ctx) code_err(ast, "This is not inside any loop");
