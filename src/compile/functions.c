@@ -712,7 +712,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         assert(args);
         OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NULL);
         Text_t pop_code = EMPTY_TEXT;
-        if (cache->tag == Int && !cache_size.is_none && cache_size.value > 0) {
+        if (cache->tag == Int && cache_size.has_value && cache_size.value > 0) {
             // FIXME: this currently just deletes the first entry, but this
             // should be more like a least-recently-used cache eviction policy
             // or least-frequently-used

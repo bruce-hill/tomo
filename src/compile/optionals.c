@@ -28,18 +28,17 @@ Text_t promote_to_optional(type_t *t, Text_t code) {
         return code;
     } else if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
-        case TYPE_IBITS8: return Texts("((OptionalInt8_t){.value=", code, "})");
-        case TYPE_IBITS16: return Texts("((OptionalInt16_t){.value=", code, "})");
-        case TYPE_IBITS32: return Texts("((OptionalInt32_t){.value=", code, "})");
-        case TYPE_IBITS64: return Texts("((OptionalInt64_t){.value=", code, "})");
-        default: errx(1, "Unsupported in type: %s", type_to_text(t));
+        case TYPE_IBITS8: return Texts("((OptionalInt8_t){.has_value=true, .value=", code, "})");
+        case TYPE_IBITS16: return Texts("((OptionalInt16_t){.has_value=true, .value=", code, "})");
+        case TYPE_IBITS32: return Texts("((OptionalInt32_t){.has_value=true, .value=", code, "})");
+        case TYPE_IBITS64: return Texts("((OptionalInt64_t){.has_value=true, .value=", code, "})");
+        default: errx(1, "Unsupported in type: %s", Text$as_c_string(type_to_text(t)));
         }
         return code;
     } else if (t->tag == ByteType) {
-        return Texts("((OptionalByte_t){.value=", code, "})");
+        return Texts("((OptionalByte_t){.has_value=true, .value=", code, "})");
     } else if (t->tag == StructType) {
-        return Texts("({ ", compile_type(Type(OptionalType, .type = t)), " nonnull = {.value=", code,
-                     "}; nonnull.is_none = false; nonnull; })");
+        return Texts("((", compile_type(Type(OptionalType, .type = t)), "){.has_value=true, .value=", code, "})");
     } else {
         return code;
     }
@@ -77,7 +76,7 @@ Text_t compile_none(type_t *t) {
     case PointerType: return Texts("((", compile_type(t), ")NULL)");
     case ClosureType: return Text("NONE_CLOSURE");
     case NumType: return Text("nan(\"none\")");
-    case StructType: return Texts("((", compile_type(Type(OptionalType, .type = t)), "){.is_none=true})");
+    case StructType: return Texts("((", compile_type(Type(OptionalType, .type = t)), "){.has_value=false})");
     case EnumType: {
         env_t *enum_env = Match(t, EnumType)->env;
         return Texts("((", compile_type(t), "){", namespace_name(enum_env, enum_env->namespace, Text("none")), "})");
@@ -103,7 +102,7 @@ Text_t check_none(type_t *t, Text_t value) {
     else if (t->tag == TableType) return Texts("((", value, ").entries.data == NULL)");
     else if (t->tag == BoolType) return Texts("((", value, ") == NONE_BOOL)");
     else if (t->tag == TextType) return Texts("((", value, ").tag == TEXT_NONE)");
-    else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType) return Texts("(", value, ").is_none");
+    else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType) return Texts("!(", value, ").has_value");
     else if (t->tag == EnumType) {
         if (enum_has_fields(t)) return Texts("((", value, ").$tag == 0)");
         else return Texts("((", value, ") == 0)");

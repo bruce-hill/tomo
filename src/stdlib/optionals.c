@@ -13,8 +13,8 @@ public
 PUREFUNC bool is_none(const void *obj, const TypeInfo_t *non_optional_type) {
     if (non_optional_type->metamethods.is_none) return non_optional_type->metamethods.is_none(obj, non_optional_type);
 
-    const void *dest = (obj + non_optional_type->size);
-    return *(bool *)dest;
+    const bool *has_value = (const bool *)(obj + non_optional_type->size);
+    return !(*has_value);
 }
 
 PUREFUNC public uint64_t Optional$hash(const void *obj, const TypeInfo_t *type) {

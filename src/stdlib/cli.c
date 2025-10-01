@@ -45,24 +45,24 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest) {
         return parsed.small != 0;
     } else if (info == &Int64$info) {
         OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalInt64_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalInt64_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Int32$info) {
         OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalInt32_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalInt32_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Int16$info) {
         OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalInt16_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalInt16_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Int8$info) {
         OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalInt8_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalInt8_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Byte$info) {
         OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalByte_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalByte_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Bool$info) {
         OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
         if (parsed != NONE_BOOL) *(OptionalBool_t *)dest = parsed;

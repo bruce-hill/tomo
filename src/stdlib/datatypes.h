@@ -117,7 +117,7 @@ typedef struct {
 
 typedef struct {
     Byte_t value;
-    bool is_none : 1;
+    bool has_value : 1;
 } OptionalByte_t;
 
-#define NONE_BYTE ((OptionalByte_t){.is_none = true})
+#define NONE_BYTE ((OptionalByte_t){.has_value = false})
