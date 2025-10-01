@@ -99,3 +99,8 @@ func main()
 
     say("Globbing:")
     >> (./*.tm).glob()
+
+    assert (./foo).type == Relative
+    assert (/foo).type == Absolute
+    assert (~/foo).type == Home
+    assert (/foo/baz).components == ["foo", "baz"]
