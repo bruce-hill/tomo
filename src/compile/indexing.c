@@ -43,8 +43,20 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
                                               : Texts("(Int64_t)(", compile(env, indexing->index), ")"));
         if (checked) {
             int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
-            return Texts("List_get_checked(", list, ", ", index_code, ", ", compile_type(item_type), ", ", start, ", ",
-                         end, ")");
+            Text_t code = Texts("List_get_checked(", list, ", ", index_code, ", ", compile_type(item_type), ", ", start,
+                                ", ", end, ")");
+            if (item_type->tag == OptionalType) {
+                int64_t line = get_line_number(ast->file, ast->start);
+                return Texts("({ ", compile_declaration(item_type, Text("opt")), " = ", code, "; ", "if unlikely (",
+                             check_none(item_type, Text("opt")), ")\n", "#line ", line, "\n", "fail_source(",
+                             quoted_str(ast->file->filename), ", ", start, ", ", end, ", ",
+                             "\"This was expected to be a value, but it's `none`\\n\");\n",
+                             optional_into_nonnone(item_type, Text("opt")), "; })");
+            }
+            return code;
+        } else if (item_type->tag == OptionalType) {
+            return Texts("List_get(", list, ", ", index_code, ", ", compile_type(item_type), ", value, value,",
+                         compile_none(item_type), ")");
         } else {
             return Texts("List_get(", list, ", ", index_code, ", ", compile_type(item_type), ", value, ",
                          promote_to_optional(item_type, Text("value")), ", ", compile_none(item_type), ")");
