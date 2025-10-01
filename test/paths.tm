@@ -104,3 +104,4 @@ func main()
     assert (/foo).type == Absolute
     assert (~/foo).type == Home
     assert (/foo/baz).components == ["foo", "baz"]
+    assert Path(type=Relative, ["foo", "baz"]) == (./foo/baz)
