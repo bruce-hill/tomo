@@ -99,10 +99,10 @@ Text_t check_none(type_t *t, Text_t value) {
     else if (t->tag == ClosureType) return Texts("((", value, ").fn == NULL)");
     else if (t->tag == NumType)
         return Texts(Match(t, NumType)->bits == TYPE_NBITS64 ? "Num$isnan(" : "Num32$isnan(", value, ")");
-    else if (t->tag == ListType) return Texts("!(", value, ").has_value");
-    else if (t->tag == TableType) return Texts("!(", value, ").entries.has_value");
+    else if (t->tag == ListType) return Texts("((", value, ").data == NULL)");
+    else if (t->tag == TableType) return Texts("((", value, ").entries.data == NULL)");
     else if (t->tag == BoolType) return Texts("((", value, ") == NONE_BOOL)");
-    else if (t->tag == TextType) return Texts("!(", value, ").has_value");
+    else if (t->tag == TextType) return Texts("((", value, ").tag == TEXT_NONE)");
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType) return Texts("(", value, ").is_none");
     else if (t->tag == EnumType) {
         if (enum_has_fields(t)) return Texts("((", value, ").$tag == 0)");

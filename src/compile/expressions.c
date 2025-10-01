@@ -41,9 +41,9 @@ Text_t compile_empty(type_t *t) {
     }
     case ByteType: return Text("((Byte_t)0)");
     case BoolType: return Text("((Bool_t)no)");
-    case ListType: return Text("((List_t){.has_value=1})");
-    case TableType: return Text("((Table_t){.entries.has_value=1})");
-    case TextType: return Text("Text(\"\")");
+    case ListType: return Text("EMPTY_LIST");
+    case TableType: return Text("EMPTY_TABLE");
+    case TextType: return Text("EMPTY_TEXT");
     case CStringType: return Text("\"\"");
     case PointerType: {
         DeclareMatch(ptr, t, PointerType);
@@ -177,7 +177,7 @@ Text_t compile(env_t *env, ast_t *ast) {
     }
     case List: {
         DeclareMatch(list, ast, List);
-        if (!list->items) return Text("(List_t){.has_value=1, .length=0}");
+        if (!list->items) return Text("EMPTY_LIST");
 
         type_t *list_type = get_type(env, ast);
         return compile_typed_list(env, ast, list_type);
@@ -185,8 +185,8 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Table: {
         DeclareMatch(table, ast, Table);
         if (!table->entries) {
-            Text_t code = Text("((Table_t){");
-            if (table->fallback) code = Texts(code, ".fallback=heap(", compile(env, table->fallback), ")");
+            Text_t code = Text("((Table_t){.entries=EMPTY_LIST");
+            if (table->fallback) code = Texts(code, ", .fallback=heap(", compile(env, table->fallback), ")");
             return Texts(code, "})");
         }
 

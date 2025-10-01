@@ -59,7 +59,7 @@ OptionalText_t Text$cluster(Text_t text, Int_t index_int);
         const Text_t text = text_expr;                                                                                 \
         Int_t index = index_expr;                                                                                      \
         OptionalText_t cluster = Text$cluster(text, index);                                                            \
-        if (unlikely(!cluster.has_value))                                                                              \
+        if (unlikely(cluster.tag == TEXT_NONE))                                                                        \
             fail_source(__SOURCE_FILE__, start, end, "Invalid text index: ", index, " (text has length ",              \
                         (int64_t)text.length, ")\n");                                                                  \
         cluster;                                                                                                       \
