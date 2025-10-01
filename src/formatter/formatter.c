@@ -89,7 +89,7 @@ static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments
             List_t lines = Text$lines(literal);
             if (lines.length == 0) continue;
             current_line = Texts(current_line, Text$escaped(*(Text_t *)lines.data, false, opts.interp));
-            for (int64_t i = 1; i < lines.length; i += 1) {
+            for (int64_t i = 1; i < (int64_t)lines.length; i += 1) {
                 add_line(&code, current_line, Texts(indent, single_indent));
                 current_line = Text$escaped(*(Text_t *)(lines.data + i * lines.stride), false, opts.interp);
             }
@@ -402,7 +402,7 @@ PUREFUNC static int64_t trailing_line_len(Text_t text) {
 
 Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     OptionalText_t inlined = format_inline_code(ast, comments);
-    bool inlined_fits = (inlined.length >= 0 && indent.length + inlined.length <= MAX_WIDTH);
+    bool inlined_fits = (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH);
 
     switch (ast->tag) {
     /*multiline*/ case Unknown:
@@ -758,7 +758,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Int:
     /*multiline*/ case Num:
     /*multiline*/ case Var: {
-        assert(inlined.length >= 0);
+        assert(inlined.tag != TEXT_NONE);
         return inlined;
     }
     /*multiline*/ case FunctionCall: {

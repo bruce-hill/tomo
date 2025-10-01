@@ -18,6 +18,9 @@
 // Use inline version of siphash code:
 #include "siphash-internals.h"
 
+public
+char _EMPTY_LIST_SENTINEL = '\0';
+
 PUREFUNC static INLINE int64_t get_padded_item_size(const TypeInfo_t *info) {
     int64_t size = info->ListInfo.item->size;
     if (info->ListInfo.item->align > 1 && size % info->ListInfo.item->align) errx(1, "Item size is not padded!");
@@ -35,7 +38,7 @@ void List$compact(List_t *list, int64_t padded_item_size) {
         if ((int64_t)list->stride == padded_item_size) {
             memcpy(copy, list->data, (size_t)list->length * (size_t)padded_item_size);
         } else {
-            for (int64_t i = 0; i < list->length; i++)
+            for (int64_t i = 0; i < (int64_t)list->length; i++)
                 memcpy(copy + i * padded_item_size, list->data + list->stride * i, (size_t)padded_item_size);
         }
     }
@@ -50,7 +53,7 @@ void List$compact(List_t *list, int64_t padded_item_size) {
 public
 void List$insert(List_t *list, const void *item, Int_t int_index, int64_t padded_item_size) {
     int64_t index = Int64$from_int(int_index, false);
-    if (index <= 0) index = list->length + index + 1;
+    if (index <= 0) index = (int64_t)list->length + index + 1;
 
     if (index < 1) index = 1;
     else if (index > (int64_t)list->length + 1)
@@ -74,9 +77,9 @@ void List$insert(List_t *list, const void *item, Int_t int_index, int64_t padded
         list->data_refcount = 0;
         list->stride = padded_item_size;
     } else {
-        if (index != list->length + 1) {
-            assert(list->length >= index);
-            size_t size = (size_t)((list->length - index + 1) * padded_item_size);
+        if (index != (int64_t)list->length + 1) {
+            assert((int64_t)list->length >= index);
+            size_t size = (size_t)(((int64_t)list->length - index + 1) * padded_item_size);
             assert(size < SIZE_MAX);
             memmove(list->data + index * padded_item_size, list->data + (index - 1) * padded_item_size, size);
         }
@@ -98,7 +101,7 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
         return;
     }
 
-    if (index < 1) index = list->length + index + 1;
+    if (index < 1) index = (int64_t)list->length + index + 1;
 
     if (index < 1) index = 1;
     else if (index > (int64_t)list->length + 1)
@@ -110,15 +113,15 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
         // If we can fit this within the list's preallocated free space, do that:
         list->free -= to_insert.length;
         list->length += to_insert.length;
-        if (index != list->length + 1)
+        if (index != (int64_t)list->length + 1)
             memmove((void *)list->data + index * padded_item_size, list->data + (index - 1) * padded_item_size,
-                    (size_t)((list->length - index + to_insert.length - 1) * padded_item_size));
-        for (int64_t i = 0; i < to_insert.length; i++)
+                    (size_t)(((int64_t)list->length - index + (int64_t)to_insert.length - 1) * padded_item_size));
+        for (int64_t i = 0; i < (int64_t)to_insert.length; i++)
             memcpy((void *)list->data + (index - 1 + i) * padded_item_size, to_insert.data + i * to_insert.stride,
                    (size_t)padded_item_size);
     } else {
         // Otherwise, allocate a new chunk of memory for the list and populate it:
-        int64_t new_len = list->length + to_insert.length;
+        int64_t new_len = (int64_t)list->length + (int64_t)to_insert.length;
         list->free = MIN(LIST_MAX_FREE_ENTRIES, MAX(8, new_len / 4));
         void *data = list->atomic ? GC_MALLOC_ATOMIC((size_t)((new_len + list->free) * padded_item_size))
                                   : GC_MALLOC((size_t)((new_len + list->free) * padded_item_size));
@@ -139,8 +142,8 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
 
         // Copy `to_insert`
         if (to_insert.stride == padded_item_size) {
-            memcpy(p, to_insert.data, (size_t)(to_insert.length * padded_item_size));
-            p += to_insert.length * padded_item_size;
+            memcpy(p, to_insert.data, (size_t)((int64_t)to_insert.length * padded_item_size));
+            p += (int64_t)to_insert.length * padded_item_size;
         } else {
             for (int64_t i = 0; i < index - 1; i++) {
                 memcpy(p, to_insert.data + to_insert.stride * i, (size_t)padded_item_size);
@@ -149,19 +152,19 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
         }
 
         // Copy last chunk of `list` if needed:
-        if (index < list->length + 1) {
+        if (index < (int64_t)list->length + 1) {
             if (list->stride == padded_item_size) {
                 memcpy(p, list->data + padded_item_size * (index - 1),
-                       (size_t)((list->length - index + 1) * padded_item_size));
-                p += (list->length - index + 1) * padded_item_size;
+                       (size_t)(((int64_t)list->length - index + 1) * padded_item_size));
+                p += ((int64_t)list->length - index + 1) * padded_item_size;
             } else {
-                for (int64_t i = index - 1; i < list->length - 1; i++) {
+                for (int64_t i = index - 1; i < (int64_t)list->length - 1; i++) {
                     memcpy(p, list->data + list->stride * i, (size_t)padded_item_size);
                     p += padded_item_size;
                 }
             }
         }
-        list->length = new_len;
+        list->length = (uint64_t)new_len;
         list->stride = padded_item_size;
         list->data = data;
         list->data_refcount = 0;
@@ -171,20 +174,20 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
 public
 void List$remove_at(List_t *list, Int_t int_index, Int_t int_count, int64_t padded_item_size) {
     int64_t index = Int64$from_int(int_index, false);
-    if (index < 1) index = list->length + index + 1;
+    if (index < 1) index = (int64_t)list->length + index + 1;
 
     int64_t count = Int64$from_int(int_count, false);
     if (index < 1 || index > (int64_t)list->length || count < 1) return;
 
-    if (count > list->length - index + 1) count = (list->length - index) + 1;
+    if (count > (int64_t)list->length - index + 1) count = ((int64_t)list->length - index) + 1;
 
     if (index == 1) {
         list->data += list->stride * count;
-    } else if (index + count > list->length) {
+    } else if (index + count > (int64_t)list->length) {
         list->free += count;
     } else if (list->data_refcount != 0 || (int64_t)list->stride != padded_item_size) {
-        void *copy = list->atomic ? GC_MALLOC_ATOMIC((size_t)((list->length - 1) * padded_item_size))
-                                  : GC_MALLOC((size_t)((list->length - 1) * padded_item_size));
+        void *copy = list->atomic ? GC_MALLOC_ATOMIC((size_t)(((int64_t)list->length - 1) * padded_item_size))
+                                  : GC_MALLOC((size_t)(((int64_t)list->length - 1) * padded_item_size));
         for (int64_t src = 1, dest = 1; src <= (int64_t)list->length; src++) {
             if (src < index || src >= index + count) {
                 memcpy(copy + (dest - 1) * padded_item_size, list->data + list->stride * (src - 1),
@@ -198,10 +201,10 @@ void List$remove_at(List_t *list, Int_t int_index, Int_t int_count, int64_t padd
     } else {
         memmove((void *)list->data + (index - 1) * padded_item_size,
                 list->data + (index - 1 + count) * padded_item_size,
-                (size_t)((list->length - index + count - 1) * padded_item_size));
+                (size_t)(((int64_t)list->length - index + count - 1) * padded_item_size));
         list->free += count;
     }
-    list->length -= count;
+    list->length -= (uint64_t)count;
     if (list->length == 0) list->data = NULL;
 }
 
@@ -211,7 +214,7 @@ void List$remove_item(List_t *list, void *item, Int_t max_removals, const TypeIn
     const Int_t ZERO = (Int_t){.small = (0 << 2) | 1};
     const Int_t ONE = (Int_t){.small = (1 << 2) | 1};
     const TypeInfo_t *item_type = type->ListInfo.item;
-    for (int64_t i = 0; i < list->length;) {
+    for (int64_t i = 0; i < (int64_t)list->length;) {
         if (max_removals.small == ZERO.small) // zero
             break;
 
@@ -227,7 +230,7 @@ void List$remove_item(List_t *list, void *item, Int_t max_removals, const TypeIn
 public
 OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type) {
     const TypeInfo_t *item_type = type->ListInfo.item;
-    for (int64_t i = 0; i < list.length; i++) {
+    for (int64_t i = 0; i < (int64_t)list.length; i++) {
         if (generic_equal(item, list.data + i * list.stride, item_type)) return I(i + 1);
     }
     return NONE_INT;
@@ -236,7 +239,7 @@ OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type) {
 public
 OptionalInt_t List$first(List_t list, Closure_t predicate) {
     bool (*is_good)(void *, void *) = (void *)predicate.fn;
-    for (int64_t i = 0; i < list.length; i++) {
+    for (int64_t i = 0; i < (int64_t)list.length; i++) {
         if (is_good(list.data + i * list.stride, predicate.userdata)) return I(i + 1);
     }
     return NONE_INT;
@@ -300,9 +303,9 @@ void List$shuffle(List_t *list, OptionalClosure_t random_int64, int64_t padded_i
     typedef int64_t (*rng_fn_t)(int64_t, int64_t, void *);
     rng_fn_t rng_fn = random_int64.fn ? (rng_fn_t)random_int64.fn : _default_random_int64;
     char tmp[padded_item_size];
-    for (int64_t i = list->length - 1; i > 1; i--) {
+    for (int64_t i = (int64_t)list->length - 1; i > 1; i--) {
         int64_t j = rng_fn(0, i, random_int64.userdata);
-        if unlikely (j < 0 || j > list->length - 1)
+        if unlikely (j < 0 || j > (int64_t)list->length - 1)
             fail("The provided random number function returned an invalid value: ", j, " (not between 0 and ", i, ")");
         memcpy(tmp, list->data + i * padded_item_size, (size_t)padded_item_size);
         memcpy((void *)list->data + i * padded_item_size, list->data + j * padded_item_size, (size_t)padded_item_size);
@@ -323,8 +326,8 @@ void *List$random(List_t list, OptionalClosure_t random_int64) {
 
     typedef int64_t (*rng_fn_t)(int64_t, int64_t, void *);
     rng_fn_t rng_fn = random_int64.fn ? (rng_fn_t)random_int64.fn : _default_random_int64;
-    int64_t index = rng_fn(0, list.length - 1, random_int64.userdata);
-    if unlikely (index < 0 || index > list.length - 1)
+    int64_t index = rng_fn(0, (int64_t)list.length - 1, random_int64.userdata);
+    if unlikely (index < 0 || index > (int64_t)list.length - 1)
         fail("The provided random number function returned an invalid value: ", index, " (not between 0 and ",
              (int64_t)list.length, ")");
     return list.data + list.stride * index;
@@ -332,9 +335,9 @@ void *List$random(List_t list, OptionalClosure_t random_int64) {
 
 public
 Table_t List$counts(List_t list, const TypeInfo_t *type) {
-    Table_t counts = {};
+    Table_t counts = EMPTY_TABLE;
     const TypeInfo_t count_type = *Table$info(type->ListInfo.item, &Int$info);
-    for (int64_t i = 0; i < list.length; i++) {
+    for (int64_t i = 0; i < (int64_t)list.length; i++) {
         void *key = list.data + i * list.stride;
         int64_t *count = Table$get(counts, key, &count_type);
         int64_t val = count ? *count + 1 : 1;
@@ -362,7 +365,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
     int64_t n = Int64$from_int(int_n, false);
     if (n < 0) fail("Cannot select a negative number of values");
 
-    if (n == 0) return (List_t){};
+    if (n == 0) return EMPTY_LIST;
 
     if (list.length == 0) fail("There are no elements in this list!");
 
@@ -370,7 +373,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
         fail("List has ", (int64_t)list.length, " elements, but there are ", (int64_t)weights.length, " weights given");
 
     double total = 0.0;
-    for (int64_t i = 0; i < weights.length && i < list.length; i++) {
+    for (int64_t i = 0; i < (int64_t)weights.length && i < (int64_t)list.length; i++) {
         double weight = *(double *)(weights.data + weights.stride * i);
         if (isinf(weight)) fail("Infinite weight!");
         else if (isnan(weight)) fail("NaN weight!");
@@ -389,19 +392,19 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
         double odds;
     } aliases[list.length];
 
-    for (int64_t i = 0; i < list.length; i++) {
-        double weight = i >= weights.length ? 0.0 : *(double *)(weights.data + weights.stride * i);
+    for (int64_t i = 0; i < (int64_t)list.length; i++) {
+        double weight = i >= (int64_t)weights.length ? 0.0 : *(double *)(weights.data + weights.stride * i);
         aliases[i].odds = weight * inverse_average;
         aliases[i].alias = -1;
     }
 
     int64_t small = 0;
-    for (int64_t big = 0; big < list.length; big++) {
+    for (int64_t big = 0; big < (int64_t)list.length; big++) {
         while (aliases[big].odds >= 1.0) {
-            while (small < list.length && (aliases[small].odds >= 1.0 || aliases[small].alias != -1))
+            while (small < (int64_t)list.length && (aliases[small].odds >= 1.0 || aliases[small].alias != -1))
                 ++small;
 
-            if (small >= list.length) {
+            if (small >= (int64_t)list.length) {
                 aliases[big].odds = 1.0;
                 aliases[big].alias = big;
                 break;
@@ -413,7 +416,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
         if (big < small) small = big;
     }
 
-    for (int64_t i = small; i < list.length; i++)
+    for (int64_t i = small; i < (int64_t)list.length; i++)
         if (aliases[i].alias == -1) aliases[i].alias = i;
 
     typedef double (*rng_fn_t)(void *);
@@ -421,7 +424,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
 
     List_t selected = {.data = list.atomic ? GC_MALLOC_ATOMIC((size_t)(n * padded_item_size))
                                            : GC_MALLOC((size_t)(n * padded_item_size)),
-                       .length = n,
+                       .length = (uint64_t)n,
                        .stride = padded_item_size,
                        .atomic = list.atomic};
     for (int64_t i = 0; i < n; i++) {
@@ -430,7 +433,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
             fail("The random number function returned a value not between 0.0 (inclusive) and 1.0 (exclusive): ", r);
         r *= (double)list.length;
         int64_t index = (int64_t)r;
-        assert(index >= 0 && index < list.length);
+        assert(index >= 0 && index < (int64_t)list.length);
         if ((r - (double)index) > aliases[index].odds) index = aliases[index].alias;
         memcpy(selected.data + i * selected.stride, list.data + index * list.stride, (size_t)padded_item_size);
     }
@@ -449,29 +452,29 @@ List_t List$by(List_t list, Int_t int_stride, int64_t padded_item_size) {
     // In the unlikely event that the stride value would be too large to fit in
     // a 15-bit integer, fall back to creating a copy of the list:
     if (unlikely(list.stride * stride < LIST_MIN_STRIDE || list.stride * stride > LIST_MAX_STRIDE)) {
-        void *copy = NULL;
-        int64_t len = (stride < 0 ? list.length / -stride : list.length / stride) + ((list.length % stride) != 0);
-        if (len > 0) {
-            copy = list.atomic ? GC_MALLOC_ATOMIC((size_t)(len * padded_item_size))
-                               : GC_MALLOC((size_t)(len * padded_item_size));
-            void *start = (stride < 0 ? list.data + (list.stride * (list.length - 1)) : list.data);
-            for (int64_t i = 0; i < len; i++)
-                memcpy(copy + i * padded_item_size, start + list.stride * stride * i, (size_t)padded_item_size);
-        }
+        int64_t len = (stride < 0 ? (int64_t)list.length / -stride : (int64_t)list.length / stride)
+                      + (((int64_t)list.length % stride) != 0);
+        if (len <= 0) return list.atomic ? EMPTY_ATOMIC_LIST : EMPTY_LIST;
+        void *copy = list.atomic ? GC_MALLOC_ATOMIC((size_t)(len * padded_item_size))
+                                 : GC_MALLOC((size_t)(len * padded_item_size));
+        void *start = (stride < 0 ? list.data + (list.stride * ((int64_t)list.length - 1)) : list.data);
+        for (int64_t i = 0; i < len; i++)
+            memcpy(copy + i * padded_item_size, start + list.stride * stride * i, (size_t)padded_item_size);
         return (List_t){
             .data = copy,
-            .length = len,
+            .length = (uint64_t)len,
             .stride = padded_item_size,
             .atomic = list.atomic,
         };
     }
 
-    if (stride == 0) return (List_t){.atomic = list.atomic};
+    if (stride == 0) return list.atomic ? EMPTY_ATOMIC_LIST : EMPTY_LIST;
 
     return (List_t){
         .atomic = list.atomic,
-        .data = (stride < 0 ? list.data + (list.stride * (list.length - 1)) : list.data),
-        .length = (stride < 0 ? list.length / -stride : list.length / stride) + ((list.length % stride) != 0),
+        .data = (stride < 0 ? list.data + (list.stride * ((int64_t)list.length - 1)) : list.data),
+        .length = (uint64_t)((stride < 0 ? (int64_t)list.length / -stride : (int64_t)list.length / stride)
+                             + (((int64_t)list.length % stride) != 0)),
         .stride = list.stride * stride,
         .data_refcount = list.data_refcount,
     };
@@ -482,19 +485,19 @@ List_t List$slice(List_t list, Int_t int_first, Int_t int_last)
 
 {
     int64_t first = Int64$from_int(int_first, false);
-    if (first < 0) first = list.length + first + 1;
+    if (first < 0) first = (int64_t)list.length + first + 1;
 
     int64_t last = Int64$from_int(int_last, false);
-    if (last < 0) last = list.length + last + 1;
+    if (last < 0) last = (int64_t)list.length + last + 1;
 
-    if (last > list.length) last = list.length;
+    if (last > (int64_t)list.length) last = (int64_t)list.length;
 
-    if (first < 1 || first > list.length || last == 0) return (List_t){.atomic = list.atomic};
+    if (first < 1 || first > (int64_t)list.length || last == 0) return EMPTY_ATOMIC_LIST;
 
     return (List_t){
         .atomic = list.atomic,
         .data = list.data + list.stride * (first - 1),
-        .length = last - first + 1,
+        .length = (uint64_t)(last - first + 1),
         .stride = list.stride,
         .data_refcount = list.data_refcount,
     };
@@ -511,26 +514,26 @@ List_t List$reversed(List_t list, int64_t padded_item_size) {
 
     List_t reversed = list;
     reversed.stride = -list.stride;
-    reversed.data = list.data + (list.length - 1) * list.stride;
+    reversed.data = list.data + ((int64_t)list.length - 1) * list.stride;
     return reversed;
 }
 
 public
 List_t List$concat(List_t x, List_t y, int64_t padded_item_size) {
-    void *data = x.atomic ? GC_MALLOC_ATOMIC((size_t)(padded_item_size * (x.length + y.length)))
-                          : GC_MALLOC((size_t)(padded_item_size * (x.length + y.length)));
+    void *data = x.atomic ? GC_MALLOC_ATOMIC((size_t)(padded_item_size * (int64_t)(x.length + y.length)))
+                          : GC_MALLOC((size_t)(padded_item_size * (int64_t)(x.length + y.length)));
     if (x.stride == padded_item_size) {
-        memcpy(data, x.data, (size_t)(padded_item_size * x.length));
+        memcpy(data, x.data, (size_t)(padded_item_size * (int64_t)x.length));
     } else {
-        for (int64_t i = 0; i < x.length; i++)
+        for (int64_t i = 0; i < (int64_t)x.length; i++)
             memcpy(data + i * padded_item_size, x.data + i * padded_item_size, (size_t)padded_item_size);
     }
 
-    void *dest = data + padded_item_size * x.length;
+    void *dest = data + padded_item_size * (int64_t)x.length;
     if (y.stride == padded_item_size) {
-        memcpy(dest, y.data, (size_t)(padded_item_size * y.length));
+        memcpy(dest, y.data, (size_t)(padded_item_size * (int64_t)y.length));
     } else {
-        for (int64_t i = 0; i < y.length; i++)
+        for (int64_t i = 0; i < (int64_t)y.length; i++)
             memcpy(dest + i * padded_item_size, y.data + i * y.stride, (size_t)padded_item_size);
     }
 
@@ -545,14 +548,14 @@ List_t List$concat(List_t x, List_t y, int64_t padded_item_size) {
 public
 bool List$has(List_t list, void *item, const TypeInfo_t *type) {
     const TypeInfo_t *item_type = type->ListInfo.item;
-    for (int64_t i = 0; i < list.length; i++) {
+    for (int64_t i = 0; i < (int64_t)list.length; i++) {
         if (generic_equal(list.data + i * list.stride, item, item_type)) return true;
     }
     return false;
 }
 
 public
-void List$clear(List_t *list) { *list = (List_t){.data = 0, .length = 0}; }
+void List$clear(List_t *list) { *list = list->atomic ? EMPTY_ATOMIC_LIST : EMPTY_LIST; }
 
 public
 int32_t List$compare(const void *vx, const void *vy, const TypeInfo_t *type) {
@@ -568,7 +571,8 @@ int32_t List$compare(const void *vx, const void *vy, const TypeInfo_t *type) {
 
         if ((int64_t)x->stride == item_padded_size && (int64_t)y->stride == item_padded_size
             && item->size == item_padded_size) {
-            int32_t cmp = (int32_t)memcmp(x->data, y->data, (size_t)(MIN(x->length, y->length) * item_padded_size));
+            int32_t cmp = (int32_t)memcmp(x->data, y->data,
+                                          (size_t)(MIN((int64_t)x->length, (int64_t)y->length) * item_padded_size));
             if (cmp != 0) return cmp;
         } else {
             for (int32_t i = 0, len = MIN(x->length, y->length); i < len; i++) {
@@ -597,7 +601,7 @@ Text_t List$as_text(const void *obj, bool colorize, const TypeInfo_t *type) {
 
     const TypeInfo_t *item_type = type->ListInfo.item;
     Text_t text = Text("[");
-    for (int64_t i = 0; i < list->length; i++) {
+    for (int64_t i = 0; i < (int64_t)list->length; i++) {
         if (i > 0) text = Text$concat(text, Text(", "));
         Text_t item_text = generic_as_text(list->data + i * list->stride, colorize, item_type);
         text = Text$concat(text, item_text);
@@ -613,10 +617,10 @@ uint64_t List$hash(const void *obj, const TypeInfo_t *type) {
     siphash sh;
     siphashinit(&sh, sizeof(uint64_t[list->length]));
     if (item->tag == PointerInfo || (!item->metamethods.hash && item->size == sizeof(void *))) { // Raw data hash
-        for (int64_t i = 0; i < list->length; i++)
+        for (int64_t i = 0; i < (int64_t)list->length; i++)
             siphashadd64bits(&sh, (uint64_t)(list->data + i * list->stride));
     } else {
-        for (int64_t i = 0; i < list->length; i++) {
+        for (int64_t i = 0; i < (int64_t)list->length; i++) {
             uint64_t item_hash = generic_hash(list->data + i * list->stride, item);
             siphashadd64bits(&sh, item_hash);
         }
@@ -625,7 +629,7 @@ uint64_t List$hash(const void *obj, const TypeInfo_t *type) {
 }
 
 static void siftdown(List_t *heap, int64_t startpos, int64_t pos, Closure_t comparison, int64_t padded_item_size) {
-    assert(pos > 0 && pos < heap->length);
+    assert(pos > 0 && pos < (int64_t)heap->length);
     char newitem[padded_item_size];
     memcpy(newitem, heap->data + heap->stride * pos, (size_t)(padded_item_size));
     while (pos > startpos) {
@@ -641,7 +645,7 @@ static void siftdown(List_t *heap, int64_t startpos, int64_t pos, Closure_t comp
 }
 
 static void siftup(List_t *heap, int64_t pos, Closure_t comparison, int64_t padded_item_size) {
-    int64_t endpos = heap->length;
+    int64_t endpos = (int64_t)heap->length;
     int64_t startpos = pos;
     assert(pos < endpos);
 
@@ -673,7 +677,7 @@ void List$heap_push(List_t *heap, const void *item, Closure_t comparison, int64_
 
     if (heap->length > 1) {
         if (heap->data_refcount != 0) List$compact(heap, padded_item_size);
-        siftdown(heap, 0, heap->length - 1, comparison, padded_item_size);
+        siftdown(heap, 0, (int64_t)heap->length - 1, comparison, padded_item_size);
     }
 }
 
@@ -682,13 +686,13 @@ void List$heap_pop(List_t *heap, Closure_t comparison, int64_t padded_item_size)
     if (heap->length == 0) fail("Attempt to pop from an empty list");
 
     if (heap->length == 1) {
-        *heap = (List_t){};
+        *heap = EMPTY_LIST;
     } else if (heap->length == 2) {
         heap->data += heap->stride;
         --heap->length;
     } else {
         if (heap->data_refcount != 0) List$compact(heap, padded_item_size);
-        memcpy(heap->data, heap->data + heap->stride * (heap->length - 1), (size_t)(padded_item_size));
+        memcpy(heap->data, heap->data + heap->stride * ((int64_t)heap->length - 1), (size_t)(padded_item_size));
         --heap->length;
         siftup(heap, 0, comparison, padded_item_size);
     }
@@ -701,7 +705,7 @@ void List$heapify(List_t *heap, Closure_t comparison, int64_t padded_item_size) 
     // It's necessary to bump the refcount because the user's comparison
     // function could do stuff that modifies the heap's data.
     LIST_INCREF(*heap);
-    int64_t i, n = heap->length;
+    int64_t i, n = (int64_t)heap->length;
     for (i = (n >> 1) - 1; i >= 0; i--)
         siftup(heap, i, comparison, padded_item_size);
     LIST_DECREF(*heap);
@@ -710,7 +714,7 @@ void List$heapify(List_t *heap, Closure_t comparison, int64_t padded_item_size) 
 public
 Int_t List$binary_search(List_t list, void *target, Closure_t comparison) {
     typedef int32_t (*cmp_fn_t)(void *, void *, void *);
-    int64_t lo = 0, hi = list.length - 1;
+    int64_t lo = 0, hi = (int64_t)list.length - 1;
     while (lo <= hi) {
         int64_t mid = (lo + hi) / 2;
         int32_t cmp = ((cmp_fn_t)comparison.fn)(list.data + list.stride * mid, target, comparison.userdata);
@@ -724,13 +728,13 @@ Int_t List$binary_search(List_t list, void *target, Closure_t comparison) {
 public
 PUREFUNC bool List$is_none(const void *obj, const TypeInfo_t *info) {
     (void)info;
-    return ((List_t *)obj)->length < 0;
+    return ((List_t *)obj)->data == NULL;
 }
 
 public
 void List$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type) {
     List_t list = *(List_t *)obj;
-    int64_t len = list.length;
+    int64_t len = (int64_t)list.length;
     Int64$serialize(&len, out, pointers, &Int64$info);
     serialize_fn_t item_serialize = type->ListInfo.item->metamethods.serialize;
     if (item_serialize) {
@@ -752,7 +756,7 @@ void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *t
     if (type->ListInfo.item->align > 0 && padded_size % type->ListInfo.item->align > 0)
         padded_size += type->ListInfo.item->align - (padded_size % type->ListInfo.item->align);
     List_t list = {
-        .length = len,
+        .length = (uint64_t)len,
         .data = GC_MALLOC((size_t)(len * padded_size)),
         .stride = padded_size,
     };

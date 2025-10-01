@@ -17,7 +17,6 @@
 #include "statements.h"
 #include "text.h"
 #include "typedefs.h"
-#include "types.h"
 #include "utils.h"
 
 // The cache of {filename -> parsed AST} will hold at most this many entries:
@@ -67,7 +66,7 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
     // hold more than PARSE_CACHE_SIZE entries (see below), but each entry's
     // AST holds onto a reference to the file it came from, so they could
     // potentially be somewhat large.
-    static Table_t cached = {};
+    static Table_t cached = EMPTY_TABLE;
     ast_t *ast = Table$str_get(cached, path);
     if (ast) return ast;
 
@@ -106,6 +105,7 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
             const char *path;
             ast_t *ast;
         } *to_remove = Table$entry(cached, 1);
+        assert(to_remove);
         Table$str_remove(&cached, to_remove->path);
     }
 

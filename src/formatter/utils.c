@@ -35,7 +35,7 @@ OptionalText_t next_comment(Table_t comments, const char **pos, const char *end)
 
 bool range_has_comment(const char *start, const char *end, Table_t comments) {
     OptionalText_t comment = next_comment(comments, &start, end);
-    return (comment.length >= 0);
+    return (comment.tag != TEXT_NONE);
 }
 
 CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {

@@ -20,7 +20,7 @@ OptionalText_t format_inline_tag(tag_ast_t *tag, Table_t comments) {
 
 Text_t format_tag(tag_ast_t *tag, Table_t comments, Text_t indent) {
     OptionalText_t inline_tag = format_inline_tag(tag, comments);
-    if (inline_tag.length >= 0) return inline_tag;
+    if (inline_tag.tag != TEXT_NONE) return inline_tag;
     Text_t code = Text$from_str(tag->name);
     if (tag->fields || tag->secret) {
         code = Texts(code, "(", format_args(tag->fields, comments, Texts(indent, single_indent)));
@@ -42,7 +42,7 @@ OptionalText_t format_inline_tags(tag_ast_t *tags, Table_t comments) {
 
 Text_t format_tags(tag_ast_t *tags, Table_t comments, Text_t indent) {
     OptionalText_t inline_tags = format_inline_tags(tags, comments);
-    if (inline_tags.length >= 0) return inline_tags;
+    if (inline_tags.tag != TEXT_NONE) return inline_tags;
     Text_t code = EMPTY_TEXT;
     for (; tags; tags = tags->next) {
         add_line(&code, Texts(format_tag(tags, comments, indent), ","), indent);

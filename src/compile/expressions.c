@@ -41,8 +41,8 @@ Text_t compile_empty(type_t *t) {
     }
     case ByteType: return Text("((Byte_t)0)");
     case BoolType: return Text("((Bool_t)no)");
-    case ListType: return Text("((List_t){})");
-    case TableType: return Text("((Table_t){})");
+    case ListType: return Text("((List_t){.has_value=1})");
+    case TableType: return Text("((Table_t){.entries.has_value=1})");
     case TextType: return Text("Text(\"\")");
     case CStringType: return Text("\"\"");
     case PointerType: {
@@ -177,7 +177,7 @@ Text_t compile(env_t *env, ast_t *ast) {
     }
     case List: {
         DeclareMatch(list, ast, List);
-        if (!list->items) return Text("(List_t){.length=0}");
+        if (!list->items) return Text("(List_t){.has_value=1, .length=0}");
 
         type_t *list_type = get_type(env, ast);
         return compile_typed_list(env, ast, list_type);

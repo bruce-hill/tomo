@@ -60,8 +60,8 @@ table_comprehension: {
     ast_t *comprehension_var =
         LiteralCode(Texts("&", comprehension_name), .type = Type(PointerType, .pointed = table_type, .is_stack = true));
 
-    Text_t code = Texts("({ Table_t ", comprehension_name, " = {");
-    if (table->fallback) code = Texts(code, ".fallback=heap(", compile(env, table->fallback), "), ");
+    Text_t code = Texts("({ Table_t ", comprehension_name, " = {.entries.has_value=1");
+    if (table->fallback) code = Texts(code, ", .fallback=heap(", compile(env, table->fallback), "), ");
 
     code = Texts(code, "};");
 

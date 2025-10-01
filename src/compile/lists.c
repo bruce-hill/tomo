@@ -20,7 +20,7 @@ static ast_t *add_to_list_comprehension(ast_t *item, ast_t *subject) {
 public
 Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type) {
     DeclareMatch(list, ast, List);
-    if (!list->items) return Text("(List_t){.length=0}");
+    if (!list->items) return Text("(List_t){.has_value=1, .length=0}");
 
     type_t *item_type = Match(list_type, ListType)->item_type;
 
@@ -48,7 +48,7 @@ list_comprehension: {
         LiteralCode(Texts("&", comprehension_name), .type = Type(PointerType, .pointed = list_type, .is_stack = true));
     Closure_t comp_action = {.fn = add_to_list_comprehension, .userdata = comprehension_var};
     scope->comprehension_action = &comp_action;
-    Text_t code = Texts("({ List_t ", comprehension_name, " = {};");
+    Text_t code = Texts("({ List_t ", comprehension_name, " = {.has_value=1};");
     // set_binding(scope, comprehension_name, list_type, comprehension_name);
     for (ast_list_t *item = list->items; item; item = item->next) {
         if (item->ast->tag == Comprehension) code = Texts(code, "\n", compile_statement(scope, item->ast));

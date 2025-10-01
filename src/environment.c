@@ -405,7 +405,7 @@ env_t *global_env(bool source_mapping) {
         binding_t *type_binding = Table$str_get(*env->globals, global_types[i].name);
         assert(type_binding);
         env_t *ns_env = Match(type_binding->type, TypeInfoType)->env;
-        for (int64_t j = 0; j < global_types[i].namespace.length; j++) {
+        for (int64_t j = 0; j < (int64_t)global_types[i].namespace.length; j++) {
             ns_entry_t *entry = global_types[i].namespace.data + j * global_types[i].namespace.stride;
             type_t *type = parse_type_string(ns_env, entry->type_str);
             if (!type) compiler_err(NULL, NULL, NULL, "Couldn't parse type string: ", entry->type_str);
@@ -715,14 +715,14 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, bool
     List_t constructors = type_env->namespace->constructors;
     // Prioritize exact matches:
     call_opts_t options = {.promotion = false, .underscores = allow_underscores};
-    for (int64_t i = constructors.length - 1; i >= 0; i--) {
+    for (int64_t i = (int64_t)constructors.length - 1; i >= 0; i--) {
         binding_t *constructor = constructors.data + i * constructors.stride;
         DeclareMatch(fn, constructor->type, FunctionType);
         if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, options)) return constructor;
     }
     // Fall back to promotion:
     options.promotion = true;
-    for (int64_t i = constructors.length - 1; i >= 0; i--) {
+    for (int64_t i = (int64_t)constructors.length - 1; i >= 0; i--) {
         binding_t *constructor = constructors.data + i * constructors.stride;
         DeclareMatch(fn, constructor->type, FunctionType);
         if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, options)) return constructor;

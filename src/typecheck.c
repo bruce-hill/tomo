@@ -246,7 +246,7 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
             env_t *module_file_env = fresh_scope(module_env);
             module_file_env->namespace = NULL;
             env_t *subenv = load_module_env(module_file_env, ast);
-            for (int64_t j = 0; j < subenv->locals->entries.length; j++) {
+            for (int64_t j = 0; j < (int64_t)subenv->locals->entries.length; j++) {
                 struct {
                     const char *name;
                     binding_t *binding;
@@ -332,7 +332,7 @@ void prebind_statement(env_t *env, ast_t *statement) {
         for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
             prebind_statement(extended, stmt->ast);
         List_t new_bindings = extended->locals->entries;
-        for (int64_t i = 0; i < new_bindings.length; i++) {
+        for (int64_t i = 0; i < (int64_t)new_bindings.length; i++) {
             struct {
                 const char *name;
                 binding_t *binding;
@@ -562,7 +562,7 @@ void bind_statement(env_t *env, ast_t *statement) {
         for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
             bind_statement(extended, stmt->ast);
         List_t new_bindings = extended->locals->entries;
-        for (int64_t i = 0; i < new_bindings.length; i++) {
+        for (int64_t i = 0; i < (int64_t)new_bindings.length; i++) {
             struct {
                 const char *name;
                 binding_t *binding;
@@ -581,7 +581,7 @@ void bind_statement(env_t *env, ast_t *statement) {
         if (!module_env) break;
         for (Table_t *bindings = module_env->locals; bindings != module_env->globals; bindings = bindings->fallback) {
             List_t entries = bindings->entries;
-            for (int64_t i = 0; i < entries.length; i++) {
+            for (int64_t i = 0; i < (int64_t)entries.length; i++) {
                 struct {
                     const char *name;
                     binding_t *binding;
@@ -594,7 +594,7 @@ void bind_statement(env_t *env, ast_t *statement) {
                              "', which would clobber another variable");
             }
         }
-        for (int64_t i = 0; i < module_env->types->entries.length; i++) {
+        for (int64_t i = 0; i < (int64_t)module_env->types->entries.length; i++) {
             struct {
                 const char *name;
                 type_t *type;
@@ -1599,7 +1599,7 @@ type_t *get_arg_type(env_t *env, arg_t *arg) {
 }
 
 bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts_t options) {
-    Table_t used_args = {};
+    Table_t used_args = EMPTY_TABLE;
 
     // Populate keyword args:
     for (arg_ast_t *call_arg = call_args; call_arg; call_arg = call_arg->next) {

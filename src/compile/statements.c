@@ -91,7 +91,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         static int defer_id = 0;
         env_t *defer_env = fresh_scope(env);
         Text_t code = EMPTY_TEXT;
-        for (int64_t i = 0; i < closed_vars.entries.length; i++) {
+        for (int64_t i = 0; i < (int64_t)closed_vars.entries.length; i++) {
             struct {
                 const char *name;
                 binding_t *b;

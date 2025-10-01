@@ -6,6 +6,7 @@
 #include "lists.h"
 #include "metamethods.h"
 #include "siphash.h"
+#include "tables.h"
 #include "types.h"
 #include "util.h"
 
@@ -50,12 +51,12 @@ List_t generic_serialize(const void *x, const TypeInfo_t *type) {
     char *buf = NULL;
     size_t size = 0;
     FILE *stream = open_memstream(&buf, &size);
-    Table_t pointers = {};
+    Table_t pointers = EMPTY_TABLE;
     _serialize(x, stream, &pointers, type);
     fclose(stream);
     List_t bytes = {
         .data = GC_MALLOC_ATOMIC(size),
-        .length = (int64_t)size,
+        .length = (uint64_t)size,
         .stride = 1,
         .atomic = 1,
     };
@@ -79,7 +80,7 @@ void generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type) {
     if (bytes.stride != 1) List$compact(&bytes, 1);
 
     FILE *input = fmemopen(bytes.data, (size_t)bytes.length, "r");
-    List_t pointers = {};
+    List_t pointers = EMPTY_LIST;
     _deserialize(input, outval, &pointers, type);
     fclose(input);
 }

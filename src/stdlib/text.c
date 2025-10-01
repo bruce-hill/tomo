@@ -127,7 +127,7 @@ typedef struct {
 } synthetic_grapheme_t;
 
 // Synthetic grapheme clusters (clusters of more than one codepoint):
-static Table_t grapheme_ids_by_codepoints = {}; // ucs4_t* length-prefixed codepoints -> int32_t ID
+static Table_t grapheme_ids_by_codepoints = EMPTY_TABLE; // ucs4_t* length-prefixed codepoints -> int32_t ID
 
 // This will hold a dynamically growing list of synthetic graphemes:
 static synthetic_grapheme_t *synthetic_graphemes = NULL;
@@ -521,8 +521,7 @@ static Text_t concat2(Text_t a, Text_t b) {
     }
 
     OptionalText_t glue =
-        Text$from_utf32((List_t){.data = normalized, .length = (int64_t)norm_length, .stride = sizeof(ucs4_t)});
-    assert(glue.length >= 0);
+        Text$from_utf32((List_t){.data = normalized, .length = (uint64_t)norm_length, .stride = sizeof(ucs4_t)});
 
     if (normalized != norm_buf) free(normalized);
 
@@ -743,14 +742,14 @@ static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters) {
         void *blob = GC_MALLOC_ATOMIC(blob_size);
         int32_t *map = blob;
         uint8_t *bytes = blob + sizeof(int32_t[unique_clusters.entries.length]);
-        for (int64_t i = 0; i < unique_clusters.entries.length; i++) {
+        for (int64_t i = 0; i < (int64_t)unique_clusters.entries.length; i++) {
             struct {
                 int32_t g;
                 uint8_t b;
             } *entry = unique_clusters.entries.data + i * unique_clusters.entries.stride;
             map[entry->b] = entry->g;
         }
-        for (int64_t i = 0; i < graphemes.length; i++) {
+        for (int64_t i = 0; i < (int64_t)graphemes.length; i++) {
             int32_t g = *(int32_t *)(graphemes.data + i * graphemes.stride);
             uint8_t *byte = Table$get(unique_clusters, &g, Table$info(&Int32$info, &Byte$info));
             assert(byte);
@@ -785,8 +784,8 @@ OptionalText_t Text$from_strn(const char *str, size_t len) {
     }
     if (u8_check((uint8_t *)str, len) != NULL) return NONE_TEXT;
 
-    List_t graphemes = {};
-    Table_t unique_clusters = {};
+    List_t graphemes = EMPTY_LIST;
+    Table_t unique_clusters = EMPTY_TABLE;
     const uint8_t *pos = (const uint8_t *)str;
     const uint8_t *end = (const uint8_t *)&str[len];
     // Iterate over grapheme clusters
@@ -1138,7 +1137,7 @@ Text_t Text$translate(Text_t text, Table_t translations) {
     int64_t span_start = 0;
     List_t replacement_list = translations.entries;
     for (int64_t i = 0; i < text.length;) {
-        for (int64_t r = 0; r < replacement_list.length; r++) {
+        for (int64_t r = 0; r < (int64_t)replacement_list.length; r++) {
             struct {
                 Text_t target, replacement;
             } *entry = replacement_list.data + r * replacement_list.stride;
@@ -1194,7 +1193,7 @@ List_t Text$split(Text_t text, Text_t delimiters) {
     if (delimiters.length == 0) return Text$clusters(text);
 
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), delim_state = NEW_TEXT_ITER_STATE(delimiters);
-    List_t splits = {};
+    List_t splits = EMPTY_LIST;
     for (int64_t i = 0; i < text.length;) {
         int64_t span_len = 0;
         while (i + span_len < text.length && !_matches(&text_state, &delim_state, i + span_len)) {
@@ -1216,7 +1215,7 @@ List_t Text$split_any(Text_t text, Text_t delimiters) {
     if (delimiters.length == 0) return List(text);
 
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), delim_state = NEW_TEXT_ITER_STATE(delimiters);
-    List_t splits = {};
+    List_t splits = EMPTY_LIST;
     for (int64_t i = 0; i < text.length;) {
         int64_t span_len = 0;
         while (i + span_len < text.length
@@ -1370,8 +1369,7 @@ Text_t Text$upper(Text_t text, Text_t language) {
     uint32_t buf[out_len];
     ucs4_t *upper = u32_toupper(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
     OptionalText_t ret =
-        Text$from_utf32((List_t){.data = upper, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
-    assert(ret.length >= 0);
+        Text$from_utf32((List_t){.data = upper, .length = (uint64_t)out_len, .stride = sizeof(int32_t)});
     if (upper != buf) free(upper);
     return ret;
 }
@@ -1386,8 +1384,7 @@ Text_t Text$lower(Text_t text, Text_t language) {
     uint32_t buf[out_len];
     ucs4_t *lower = u32_tolower(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
     OptionalText_t ret =
-        Text$from_utf32((List_t){.data = lower, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
-    assert(ret.length >= 0);
+        Text$from_utf32((List_t){.data = lower, .length = (uint64_t)out_len, .stride = sizeof(int32_t)});
     if (lower != buf) free(lower);
     return ret;
 }
@@ -1402,8 +1399,7 @@ Text_t Text$title(Text_t text, Text_t language) {
     uint32_t buf[out_len];
     ucs4_t *title = u32_totitle(codepoints.data, (size_t)codepoints.length, uc_language, UNINORM_NFC, buf, &out_len);
     OptionalText_t ret =
-        Text$from_utf32((List_t){.data = title, .length = (int64_t)out_len, .stride = sizeof(int32_t)});
-    assert(ret.length >= 0);
+        Text$from_utf32((List_t){.data = title, .length = (uint64_t)out_len, .stride = sizeof(int32_t)});
     if (title != buf) free(title);
     return ret;
 }
@@ -1543,7 +1539,7 @@ Text_t Text$join(Text_t glue, List_t pieces) {
     if (pieces.length == 0) return EMPTY_TEXT;
 
     Text_t result = *(Text_t *)pieces.data;
-    for (int64_t i = 1; i < pieces.length; i++) {
+    for (int64_t i = 1; i < (int64_t)pieces.length; i++) {
         result = Text$concat(result, glue, *(Text_t *)(pieces.data + i * pieces.stride));
     }
     return result;
@@ -1551,8 +1547,8 @@ Text_t Text$join(Text_t glue, List_t pieces) {
 
 public
 List_t Text$clusters(Text_t text) {
-    List_t clusters = {};
-    for (int64_t i = 1; i <= text.length; i++) {
+    List_t clusters = EMPTY_LIST;
+    for (int64_t i = 1; i <= (int64_t)text.length; i++) {
         Text_t cluster = Text$slice(text, I(i), I(i));
         List$insert(&clusters, &cluster, I_small(0), sizeof(Text_t));
     }
@@ -1561,27 +1557,27 @@ List_t Text$clusters(Text_t text) {
 
 public
 List_t Text$utf8(Text_t text) {
-    if (text.length == 0) return (List_t){.atomic = 1};
-    int64_t capacity = text.length;
+    if (text.length == 0) return EMPTY_ATOMIC_LIST;
+    int64_t capacity = (int64_t)text.length;
     Byte_t *buf = GC_MALLOC_ATOMIC(sizeof(Byte_t[capacity]));
     int64_t i = 0;
     u8_buf_append(text, &buf, &capacity, &i);
     return (List_t){
-        .data = buf, .length = i, .stride = 1, .atomic = 1, .free = MIN(LIST_MAX_FREE_ENTRIES, capacity - i)};
+        .data = buf, .length = (uint64_t)i, .stride = 1, .atomic = 1, .free = MIN(LIST_MAX_FREE_ENTRIES, capacity - i)};
 }
 
 public
 List_t Text$utf16(Text_t text) {
-    if (text.length == 0) return (List_t){.atomic = 1};
+    if (text.length == 0) return EMPTY_ATOMIC_LIST;
     List_t utf32 = Text$utf32(text);
     List_t utf16 = {.free = MIN(LIST_MAX_FREE_ENTRIES, (uint64_t)utf32.length), .atomic = 1};
     utf16.data = GC_MALLOC_ATOMIC(sizeof(int32_t[utf16.free]));
-    for (int64_t i = 0; i < utf32.length; i++) {
+    for (int64_t i = 0; i < (int64_t)utf32.length; i++) {
         uint16_t u16_buf[4];
         size_t u16_len = sizeof(u16_buf) / sizeof(u16_buf[0]);
         uint16_t *chunk_u16 = u32_to_u16(utf32.data + utf32.stride * i, 1, u16_buf, &u16_len);
         if (chunk_u16 == NULL) fail("Invalid codepoints encountered!");
-        List$insert_all(&utf16, (List_t){.data = chunk_u16, .stride = sizeof(uint16_t), .length = (int64_t)u16_len},
+        List$insert_all(&utf16, (List_t){.data = chunk_u16, .stride = sizeof(uint16_t), .length = (uint64_t)u16_len},
                         I(0), sizeof(uint16_t));
         if (chunk_u16 != u16_buf) free(chunk_u16);
     }
@@ -1590,10 +1586,10 @@ List_t Text$utf16(Text_t text) {
 
 public
 List_t Text$utf32(Text_t text) {
-    if (text.length == 0) return (List_t){.atomic = 1};
-    List_t codepoints = {.atomic = 1};
+    if (text.length == 0) return EMPTY_ATOMIC_LIST;
+    List_t codepoints = EMPTY_ATOMIC_LIST;
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
-    for (int64_t i = 0; i < text.length; i++) {
+    for (int64_t i = 0; i < (int64_t)text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state, i);
         if (grapheme < 0) {
             for (int64_t c = 0; c < NUM_GRAPHEME_CODEPOINTS(grapheme); c++) {
@@ -1618,7 +1614,7 @@ static INLINE const char *codepoint_name(ucs4_t c) {
 
 public
 List_t Text$codepoint_names(Text_t text) {
-    List_t names = {};
+    List_t names = EMPTY_LIST;
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     for (int64_t i = 0; i < text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state, i);
@@ -1653,7 +1649,7 @@ OptionalText_t Text$from_utf16(List_t units) {
     uint8_t buf[length];
     uint8_t *u8 = u16_to_u8(units.data, (size_t)units.length, buf, &length);
     Text_t ret =
-        Text$from_utf8((List_t){.data = u8, .length = (int64_t)length, .stride = sizeof(uint8_t), .atomic = 1});
+        Text$from_utf8((List_t){.data = u8, .length = (uint64_t)length, .stride = sizeof(uint8_t), .atomic = 1});
     if (u8 != buf) free(u8);
     return ret;
 }
@@ -1663,8 +1659,8 @@ OptionalText_t Text$from_utf32(List_t codepoints) {
     if (codepoints.length == 0) return EMPTY_TEXT;
     if (codepoints.stride != sizeof(uint32_t)) List$compact(&codepoints, sizeof(uint32_t));
 
-    List_t graphemes = {};
-    Table_t unique_clusters = {};
+    List_t graphemes = EMPTY_ATOMIC_LIST;
+    Table_t unique_clusters = EMPTY_TABLE;
     const uint32_t *pos = (const uint32_t *)codepoints.data;
     const uint32_t *end = (const uint32_t *)&pos[codepoints.length];
     // Iterate over grapheme clusters
@@ -1684,12 +1680,12 @@ OptionalText_t Text$from_utf32(List_t codepoints) {
 
         if (unique_clusters.entries.length == 256) {
             List_t remaining_codepoints = {
-                .length = (int64_t)(end - next),
+                .length = (uint64_t)(end - next),
                 .data = (void *)next,
                 .stride = sizeof(int32_t),
             };
             OptionalText_t remainder = Text$from_utf32(remaining_codepoints);
-            if (remainder.length < 0) return NONE_TEXT;
+            if (remainder.tag == TEXT_NONE) return NONE_TEXT;
             return concat2_assuming_safe(Text$from_components(graphemes, unique_clusters), remainder);
         }
     }
@@ -1698,8 +1694,8 @@ OptionalText_t Text$from_utf32(List_t codepoints) {
 
 public
 OptionalText_t Text$from_codepoint_names(List_t codepoint_names) {
-    List_t codepoints = {};
-    for (int64_t i = 0; i < codepoint_names.length; i++) {
+    List_t codepoints = EMPTY_LIST;
+    for (int64_t i = 0; i < (int64_t)codepoint_names.length; i++) {
         Text_t *name = ((Text_t *)(codepoint_names.data + i * codepoint_names.stride));
         const char *name_str = Text$as_c_string(*name);
         ucs4_t codepoint = unicode_name_character(name_str);
@@ -1711,9 +1707,9 @@ OptionalText_t Text$from_codepoint_names(List_t codepoint_names) {
 
 public
 List_t Text$lines(Text_t text) {
-    List_t lines = {};
+    List_t lines = EMPTY_LIST;
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
-    for (int64_t i = 0, line_start = 0; i < text.length; i++) {
+    for (int64_t i = 0, line_start = 0; i < (int64_t)text.length; i++) {
         int32_t grapheme = Text$get_grapheme_fast(&state, i);
         if (grapheme == '\r' && Text$get_grapheme_fast(&state, i + 1) == '\n') { // CRLF
             Text_t line = Text$slice(text, I(line_start + 1), I(i));
@@ -1768,7 +1764,7 @@ Closure_t Text$by_line(Text_t text) {
 
 PUREFUNC public bool Text$is_none(const void *t, const TypeInfo_t *info) {
     (void)info;
-    return ((Text_t *)t)->length < 0;
+    return ((Text_t *)t)->tag == TEXT_NONE;
 }
 
 public

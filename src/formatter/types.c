@@ -22,7 +22,7 @@ Text_t format_type(type_ast_t *type) {
         Text_t code = Texts("{", format_type(table->key), ":", format_type(table->value));
         if (table->default_value) {
             OptionalText_t val = format_inline_code(table->default_value, (Table_t){});
-            assert(val.length >= 0);
+            assert(val.tag != TEXT_NONE);
             code = Texts(code, "=", val);
         }
         return Texts(code, "}");
