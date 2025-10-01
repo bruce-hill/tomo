@@ -74,7 +74,7 @@ static CONSTFUNC bool is_keyword(const char *word, size_t len) {
     int64_t lo = 0, hi = sizeof(c_keywords) / sizeof(c_keywords[0]) - 1;
     while (lo <= hi) {
         int64_t mid = (lo + hi) / 2;
-        int32_t cmp = strncmp(word, c_keywords[mid], len);
+        int32_t cmp = strncmp(word, c_keywords[mid], len + 1);
         if (cmp == 0) return true;
         else if (cmp > 0) lo = mid + 1;
         else if (cmp < 0) hi = mid - 1;
