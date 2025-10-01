@@ -112,6 +112,6 @@ Text_t get_id_suffix(const char *filename) {
     }
     Path_t id_file = Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(".id")));
     OptionalText_t id = Path$read(id_file);
-    if (id.tag != TEXT_NONE) err(1, "Could not read ID file: %s", Path$as_c_string(id_file));
+    if (id.tag == TEXT_NONE) err(1, "Could not read ID file: %s", Path$as_c_string(id_file));
     return Texts("$", id);
 }
