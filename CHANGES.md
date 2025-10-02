@@ -33,6 +33,10 @@
   - `Text.from_utf32()`/`Text.utf32()`
 - Fixed bugs:
   - `Int.parse()` had a memory bug.
+  - Breaking out of a `for line in file.by_line()!` loop would leak file handle
+    resources, which could lead to exhausting the number of open file handles.
+    When that happens, the standard library now forces a GC collection to clean
+    up resources, which can result in file handles being freed up.
 
 ## v0.3
 

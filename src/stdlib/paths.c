@@ -280,7 +280,15 @@ static void _write(Path_t path, List_t bytes, int mode, int permissions) {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     int fd = open(path_str, mode, permissions);
-    if (fd == -1) fail("Could not write to file: ", path_str, "\n", strerror(errno));
+    if (fd == -1) {
+        if (errno == EMFILE || errno == ENFILE) {
+            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that will
+            // be closed by GC finalizers.
+            GC_gcollect();
+            fd = open(path_str, mode, permissions);
+            if (fd == -1) fail("Could not write to file: ", path_str, "\n", strerror(errno));
+        }
+    }
 
     if (bytes.stride != 1) List$compact(&bytes, 1);
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
@@ -313,8 +321,17 @@ void Path$append_bytes(Path_t path, List_t bytes, int permissions) {
 public
 OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count) {
     path = Path$expand_home(path);
-    int fd = open(Path$as_c_string(path), O_RDONLY);
-    if (fd == -1) return NONE_LIST;
+    const char *path_str = Path$as_c_string(path);
+    int fd = open(path_str, O_RDONLY);
+    if (fd == -1) {
+        if (errno == EMFILE || errno == ENFILE) {
+            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that will
+            // be closed by GC finalizers.
+            GC_gcollect();
+            fd = open(path_str, O_RDONLY);
+            if (fd == -1) return NONE_LIST;
+        }
+    }
 
     struct stat sb;
     if (fstat(fd, &sb) != 0) return NONE_LIST;
@@ -660,8 +677,17 @@ public
 OptionalClosure_t Path$by_line(Path_t path) {
     path = Path$expand_home(path);
 
-    FILE *f = fopen(Path$as_c_string(path), "r");
-    if (f == NULL) return NONE_CLOSURE;
+    const char *path_str = Path$as_c_string(path);
+    FILE *f = fopen(path_str, "r");
+    if (f == NULL) {
+        if (errno == EMFILE || errno == ENFILE) {
+            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that will
+            // be closed by GC finalizers.
+            GC_gcollect();
+            f = fopen(path_str, "r");
+            if (f == NULL) return NONE_CLOSURE;
+        }
+    }
 
     FILE **wrapper = GC_MALLOC(sizeof(FILE *));
     *wrapper = f;
