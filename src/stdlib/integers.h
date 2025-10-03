@@ -19,7 +19,7 @@
 #define DEFINE_INT_TYPE(c_type, type_name)                                                                             \
     typedef struct {                                                                                                   \
         c_type value;                                                                                                  \
-        bool is_none : 1;                                                                                              \
+        bool has_value : 1;                                                                                            \
     } Optional##type_name##_t;                                                                                         \
     Text_t type_name##$as_text(const void *i, bool colorize, const TypeInfo_t *type);                                  \
     Text_t type_name##$value_as_text(c_type i);                                                                        \
@@ -69,10 +69,10 @@ DEFINE_INT_TYPE(int16_t, Int16)
 DEFINE_INT_TYPE(int8_t, Int8)
 #undef DEFINE_INT_TYPE
 
-#define NONE_INT64 ((OptionalInt64_t){.is_none = true})
-#define NONE_INT32 ((OptionalInt32_t){.is_none = true})
-#define NONE_INT16 ((OptionalInt16_t){.is_none = true})
-#define NONE_INT8 ((OptionalInt8_t){.is_none = true})
+#define NONE_INT64 ((OptionalInt64_t){.has_value = false})
+#define NONE_INT32 ((OptionalInt32_t){.has_value = false})
+#define NONE_INT16 ((OptionalInt16_t){.has_value = false})
+#define NONE_INT8 ((OptionalInt8_t){.has_value = false})
 
 #define Int64$abs(...) I64(labs(__VA_ARGS__))
 #define Int32$abs(...) I32(abs(__VA_ARGS__))

@@ -9,6 +9,10 @@
 #include "types.h"
 #include "util.h"
 
+extern char _EMPTY_LIST_SENTINEL;
+#define EMPTY_LIST ((List_t){.data = &_EMPTY_LIST_SENTINEL})
+#define EMPTY_ATOMIC_LIST ((List_t){.data = &_EMPTY_LIST_SENTINEL, .atomic = 1})
+
 // Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
 #define List_get_checked(list_expr, index_expr, item_type, start, end)                                                 \
     ({                                                                                                                 \

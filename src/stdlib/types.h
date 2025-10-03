@@ -109,7 +109,7 @@ Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo_t *type)
             t value;                                                                                                   \
             struct {                                                                                                   \
                 char _padding[unpadded_size];                                                                          \
-                Bool_t is_none;                                                                                        \
+                Bool_t has_value;                                                                                      \
             };                                                                                                         \
         };                                                                                                             \
     } name

@@ -45,24 +45,24 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest) {
         return parsed.small != 0;
     } else if (info == &Int64$info) {
         OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalInt64_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalInt64_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Int32$info) {
         OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalInt32_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalInt32_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Int16$info) {
         OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalInt16_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalInt16_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Int8$info) {
         OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalInt8_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalInt8_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Byte$info) {
         OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NULL);
-        if (!parsed.is_none) *(OptionalByte_t *)dest = parsed;
-        return !parsed.is_none;
+        if (parsed.has_value) *(OptionalByte_t *)dest = parsed;
+        return parsed.has_value;
     } else if (info == &Bool$info) {
         OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
         if (parsed != NONE_BOOL) *(OptionalBool_t *)dest = parsed;
@@ -124,9 +124,10 @@ static List_t parse_list(const TypeInfo_t *item_info, int n, char *args[]) {
     if ((padded_size % item_info->align) > 0)
         padded_size = padded_size + item_info->align - (padded_size % item_info->align);
 
+    uint64_t u = (uint64_t)n;
     List_t items = {
         .stride = padded_size,
-        .length = n,
+        .length = u,
         .data = GC_MALLOC((size_t)(padded_size * n)),
     };
     for (int i = 0; i < n; i++) {
@@ -145,9 +146,10 @@ static Table_t parse_table(const TypeInfo_t *table, int n, char *args[]) {
     padded_size += value->size;
     if ((padded_size % key->align) > 0) padded_size = padded_size + key->align - (padded_size % key->align);
 
+    uint64_t u = (uint64_t)n;
     List_t entries = {
         .stride = padded_size,
-        .length = n,
+        .length = u,
         .data = GC_MALLOC((size_t)(padded_size * n)),
     };
     for (int i = 0; i < n; i++) {
@@ -378,7 +380,7 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
 
     for (int s = 0; s < spec_len; s++) {
         if (!populated_args[s] && spec[s].required) {
-            if (spec[s].type->tag == ListInfo) *(OptionalList_t *)spec[s].dest = (List_t){};
+            if (spec[s].type->tag == ListInfo) *(OptionalList_t *)spec[s].dest = EMPTY_LIST;
             else if (spec[s].type->tag == TableInfo) *(OptionalTable_t *)spec[s].dest = (Table_t){};
             else print_err("The required argument '", spec[s].name, "' was not provided\n", usage);
         }

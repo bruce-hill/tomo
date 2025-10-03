@@ -41,7 +41,7 @@ typedef struct {
     // structs can be passed in two 64-bit registers. C will handle doing the
     // bit arithmetic to extract the necessary values, which is cheaper than
     // spilling onto the stack and needing to retrieve data from the stack.
-    int64_t length : LIST_LENGTH_BITS;
+    uint64_t length : LIST_LENGTH_BITS;
     uint64_t free : LIST_FREE_BITS;
     bool atomic : LIST_ATOMIC_BITS;
     uint8_t data_refcount : LIST_REFCOUNT_BITS;
@@ -73,11 +73,11 @@ typedef struct {
     void *fn, *userdata;
 } Closure_t;
 
-enum text_type { TEXT_ASCII, TEXT_GRAPHEMES, TEXT_CONCAT, TEXT_BLOB };
+enum text_type { TEXT_NONE, TEXT_ASCII, TEXT_GRAPHEMES, TEXT_CONCAT, TEXT_BLOB };
 
 typedef struct Text_s {
-    int64_t length : 54; // Number of grapheme clusters
-    uint8_t tag : 2;
+    uint64_t length : 53; // Number of grapheme clusters
+    uint8_t tag : 3;
     uint8_t depth : 8;
     union {
         struct {
@@ -117,7 +117,7 @@ typedef struct {
 
 typedef struct {
     Byte_t value;
-    bool is_none : 1;
+    bool has_value : 1;
 } OptionalByte_t;
 
-#define NONE_BYTE ((OptionalByte_t){.is_none = true})
+#define NONE_BYTE ((OptionalByte_t){.has_value = false})

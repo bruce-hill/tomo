@@ -60,19 +60,19 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
             type_t *t = get_arg_type(main_env, arg);
             if (arg->default_val || arg->type->tag == OptionalType) {
                 OptionalText_t flag = flagify(arg->name, true);
-                assert(flag.length >= 0);
+                assert(flag.tag != TEXT_NONE);
                 OptionalText_t alias_flag = flagify(arg->alias, true);
-                Text_t flags = alias_flag.length >= 0 ? Texts(flag, "|", alias_flag) : flag;
+                Text_t flags = alias_flag.tag != TEXT_NONE ? Texts(flag, "|", alias_flag) : flag;
                 if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
                     usage = Texts(usage, "[", flags, "]");
                 else if (t->tag == ListType) usage = Texts(usage, "[", flags, " ", get_flag_options(t, "|"), "]");
                 else usage = Texts(usage, "[", flags, "=", get_flag_options(t, "|"), "]");
             } else {
                 OptionalText_t flag = flagify(arg->name, false);
-                assert(flag.length >= 0);
+                assert(flag.tag != TEXT_NONE);
                 OptionalText_t alias_flag = flagify(arg->alias, true);
                 if (t->tag == BoolType)
-                    usage = Texts(usage, "<--", flag, alias_flag.length >= 0 ? Texts("|", alias_flag) : EMPTY_TEXT,
+                    usage = Texts(usage, "<--", flag, alias_flag.tag != TEXT_NONE ? Texts("|", alias_flag) : EMPTY_TEXT,
                                   "|--no-", flag, ">");
                 else if (t->tag == EnumType) usage = Texts(usage, get_flag_options(t, "|"));
                 else if (t->tag == ListType) usage = Texts(usage, "[", flag, "...]");

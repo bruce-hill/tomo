@@ -51,7 +51,7 @@ bool install_from_modules_ini(Path_t ini_file, bool ask_confirmation) {
     if (by_line.fn == NULL) return false;
     OptionalText_t (*next_line)(void *) = by_line.fn;
     module_info_t info = {};
-    for (Text_t line; (line = next_line(by_line.userdata)).length >= 0;) {
+    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
         char *line_str = Text$as_c_string(line);
         const char *next_section = NULL;
         if (!strparse(line_str, "[", &next_section, "]")) {
@@ -78,13 +78,13 @@ static void read_modules_ini(Path_t ini_file, module_info_t *info) {
     if (by_line.fn == NULL) return;
     OptionalText_t (*next_line)(void *) = by_line.fn;
 find_section:;
-    for (Text_t line; (line = next_line(by_line.userdata)).length >= 0;) {
+    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
         char *line_str = Text$as_c_string(line);
         if (line_str[0] == '[' && strncmp(line_str + 1, info->name, strlen(info->name)) == 0
             && line_str[1 + strlen(info->name)] == ']')
             break;
     }
-    for (Text_t line; (line = next_line(by_line.userdata)).length >= 0;) {
+    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
         char *line_str = Text$as_c_string(line);
         if (line_str[0] == '[') goto find_section;
         if (!strparse(line_str, "version=", &info->version) || !strparse(line_str, "url=", &info->url)
@@ -95,7 +95,7 @@ find_section:;
 }
 
 module_info_t get_used_module_info(ast_t *use) {
-    static Table_t cache = {};
+    static Table_t cache = EMPTY_TABLE;
     TypeInfo_t *cache_type = Table$info(Pointer$info("@", &Memory$info), Pointer$info("@", &Memory$info));
     module_info_t **cached = Table$get(cache, &use, cache_type);
     if (cached) return **cached;

@@ -13,7 +13,7 @@
 #define must(expr)                                                                                                     \
     ({                                                                                                                 \
         OptionalText_t _expr = expr;                                                                                   \
-        if (_expr.length < 0) return NONE_TEXT;                                                                        \
+        if (_expr.tag == TEXT_NONE) return NONE_TEXT;                                                                  \
         (Text_t) _expr;                                                                                                \
     })
 

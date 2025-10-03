@@ -62,7 +62,7 @@ Text_t compile_convert_declaration(env_t *env, ast_t *ast) {
 
 public
 Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_t *call_args) {
-    Table_t used_args = {};
+    Table_t used_args = EMPTY_TABLE;
     Text_t code = EMPTY_TEXT;
     env_t *default_scope = new (env_t);
     *default_scope = *env;
@@ -263,7 +263,7 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
     Table_t closed_vars = get_closed_vars(env, lambda->args, ast);
     if (Table$length(closed_vars) > 0) { // Create a typedef for the lambda's closure userdata
         Text_t def = Text("typedef struct {");
-        for (int64_t i = 0; i < closed_vars.entries.length; i++) {
+        for (int64_t i = 0; i < (int64_t)closed_vars.entries.length; i++) {
             struct {
                 const char *name;
                 binding_t *b;
@@ -293,7 +293,7 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
         userdata = Text("NULL");
     } else {
         userdata = Texts("new(", name, "$userdata_t");
-        for (int64_t i = 0; i < closed_vars.entries.length; i++) {
+        for (int64_t i = 0; i < (int64_t)closed_vars.entries.length; i++) {
             struct {
                 const char *name;
                 binding_t *b;
@@ -596,7 +596,7 @@ Table_t get_closed_vars(env_t *env, arg_ast_t *args, ast_t *block) {
         set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
     }
 
-    Table_t closed_vars = {};
+    Table_t closed_vars = EMPTY_TABLE;
     add_closed_vars(&closed_vars, env, body_scope, block);
     return closed_vars;
 }
@@ -633,7 +633,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
     }
 
     Text_t arg_signature = Text("(");
-    Table_t used_names = {};
+    Table_t used_names = EMPTY_TABLE;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
         arg_signature = Texts(arg_signature, compile_declaration(arg_type, Texts("_$", arg->name)));
@@ -712,7 +712,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         assert(args);
         OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NULL);
         Text_t pop_code = EMPTY_TEXT;
-        if (cache->tag == Int && !cache_size.is_none && cache_size.value > 0) {
+        if (cache->tag == Int && cache_size.has_value && cache_size.value > 0) {
             // FIXME: this currently just deletes the first entry, but this
             // should be more like a least-recently-used cache eviction policy
             // or least-frequently-used
@@ -727,7 +727,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             Text_t wrapper =
                 Texts(is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code, arg_signature,
                       "{\n"
-                      "static Table_t cache = {};\n",
+                      "static Table_t cache = EMPTY_TABLE;\n",
                       "const TypeInfo_t *table_type = Table$info(", compile_type_info(arg_type), ", ",
                       compile_type_info(ret_t), ");\n",
                       compile_declaration(Type(PointerType, .pointed = ret_t), Text("cached")),
@@ -750,7 +750,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             type_t *t = Type(StructType, .name = String("func$", get_line_number(ast->file, ast->start), "$args"),
                              .fields = fields, .env = env);
 
-            int64_t num_fields = used_names.entries.length;
+            int64_t num_fields = (int64_t)used_names.entries.length;
             const char *metamethods = is_packed_data(t) ? "PackedData$metamethods" : "Struct$metamethods";
             Text_t args_typeinfo = Texts("((TypeInfo_t[1]){{.size=sizeof(args), "
                                          ".align=__alignof__(args), .metamethods=",
@@ -775,7 +775,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             Text_t wrapper = Texts(
                 is_private ? EMPTY_TEXT : Text("public "), ret_type_code, " ", name_code, arg_signature,
                 "{\n"
-                "static Table_t cache = {};\n",
+                "static Table_t cache = EMPTY_TABLE;\n",
                 args_type, " args = {", all_args,
                 "};\n"
                 "const TypeInfo_t *table_type = Table$info(",

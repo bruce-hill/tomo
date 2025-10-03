@@ -61,7 +61,7 @@ static struct stat compiler_stat;
 
 static const char *paths_str(List_t paths) {
     Text_t result = EMPTY_TEXT;
-    for (int64_t i = 0; i < paths.length; i++) {
+    for (int64_t i = 0; i < (int64_t)paths.length; i++) {
         if (i > 0) result = Texts(result, Text(" "));
         result = Texts(result, Path$as_text((Path_t *)(paths.data + i * paths.stride), false, &Path$info));
     }
@@ -283,14 +283,14 @@ int main(int argc, char *argv[]) {
         as_owner = Texts(Text(SUDO " -u "), owner, Text(" "));
     }
 
-    for (int64_t i = 0; i < uninstall.length; i++) {
+    for (int64_t i = 0; i < (int64_t)uninstall.length; i++) {
         Text_t *u = (Text_t *)(uninstall.data + i * uninstall.stride);
         xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo_" TOMO_VERSION "/", *u);
         print("Uninstalled ", *u);
     }
 
     Path_t cwd = Path$current_dir();
-    for (int64_t i = 0; i < libraries.length; i++) {
+    for (int64_t i = 0; i < (int64_t)libraries.length; i++) {
         Path_t *lib = (Path_t *)(libraries.data + i * libraries.stride);
         *lib = Path$resolved(*lib, cwd);
         // Fork a child process to build the library to prevent cross-contamination
@@ -323,7 +323,7 @@ int main(int argc, char *argv[]) {
 
     // Convert `foo` to `foo/foo.tm` and resolve all paths to absolute paths:
     Path_t cur_dir = Path$current_dir();
-    for (int64_t i = 0; i < files.length; i++) {
+    for (int64_t i = 0; i < (int64_t)files.length; i++) {
         Path_t *path = (Path_t *)(files.data + i * files.stride);
         if (Path$is_directory(*path, true)) *path = Path$child(*path, Texts(Path$base_name(*path), Text(".tm")));
 
@@ -335,7 +335,7 @@ int main(int argc, char *argv[]) {
 
     if (!compile_exe && !stop_at_transpile && !stop_at_obj_compilation) quiet = !verbose;
 
-    for (int64_t i = 0; i < files.length; i++) {
+    for (int64_t i = 0; i < (int64_t)files.length; i++) {
         Path_t path = *(Path_t *)(files.data + i * files.stride);
         if (show_parse_tree) {
             ast_t *ast = parse_file(Path$as_c_string(path), NULL);
@@ -360,7 +360,7 @@ int main(int argc, char *argv[]) {
         pid_t child = fork();
         if (child == 0) {
             env_t *env = global_env(source_mapping);
-            List_t object_files = {}, extra_ldlibs = {};
+            List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
             compile_files(env, files, &object_files, &extra_ldlibs);
             compile_executable(env, path, exe_path, object_files, extra_ldlibs);
 
@@ -368,7 +368,7 @@ int main(int argc, char *argv[]) {
 
             char *prog_args[1 + args.length + 1];
             prog_args[0] = (char *)Path$as_c_string(exe_path);
-            for (int64_t j = 0; j < args.length; j++)
+            for (int64_t j = 0; j < (int64_t)args.length; j++)
                 prog_args[j + 1] = Text$as_c_string(*(Text_t *)(args.data + j * args.stride));
             prog_args[1 + args.length] = NULL;
             execv(prog_args[0], prog_args);
@@ -379,7 +379,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (compile_exe && should_install) {
-        for (int64_t i = 0; i < files.length; i++) {
+        for (int64_t i = 0; i < (int64_t)files.length; i++) {
             Path_t path = *(Path_t *)(files.data + i * files.stride);
             Path_t exe = Path$with_extension(path, Text(""), true);
             xsystem(as_owner, "cp -v '", exe, "' '", TOMO_PATH, "'/bin/");
@@ -417,7 +417,7 @@ void build_library(Path_t lib_dir) {
 
     List_t tm_files = Path$glob(Path$child(lib_dir, Text("[!._0-9]*.tm")));
     env_t *env = fresh_scope(global_env(source_mapping));
-    List_t object_files = {}, extra_ldlibs = {};
+    List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs);
 
@@ -472,9 +472,10 @@ void install_library(Path_t lib_dir) {
 }
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs) {
-    Table_t to_link = {};
-    Table_t dependency_files = {};
-    for (int64_t i = 0; i < to_compile.length; i++) {
+    Table_t to_link = EMPTY_TABLE;
+    Table_t dependency_files = EMPTY_TABLE;
+    for (int64_t i = 0; i < (int64_t)to_compile.length; i++) {
+
         Path_t filename = *(Path_t *)(to_compile.data + i * to_compile.stride);
         Text_t extension = Path$extension(filename, true);
         if (!Text$equal_values(extension, Text("tm")))
@@ -484,7 +485,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
     }
 
     // Make sure all files and dependencies have a .id file:
-    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+    for (int64_t i = 0; i < (int64_t)dependency_files.entries.length; i++) {
         struct {
             Path_t filename;
             staleness_t staleness;
@@ -513,7 +514,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
 
     // (Re)compile header files, eagerly for explicitly passed in files, lazily
     // for downstream dependencies:
-    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+    for (int64_t i = 0; i < (int64_t)dependency_files.entries.length; i++) {
         struct {
             Path_t filename;
             staleness_t staleness;
@@ -537,7 +538,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
 
     // (Re)transpile and compile object files, eagerly for files explicitly
     // specified and lazily for downstream dependencies:
-    for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+    for (int64_t i = 0; i < (int64_t)dependency_files.entries.length; i++) {
         struct {
             Path_t filename;
             staleness_t staleness;
@@ -564,7 +565,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         wait_for_child_success(child_processes->pid);
 
     if (object_files) {
-        for (int64_t i = 0; i < dependency_files.entries.length; i++) {
+        for (int64_t i = 0; i < (int64_t)dependency_files.entries.length; i++) {
             struct {
                 Path_t filename;
                 staleness_t staleness;
@@ -575,7 +576,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         }
     }
     if (extra_ldlibs) {
-        for (int64_t i = 0; i < to_link.entries.length; i++) {
+        for (int64_t i = 0; i < (int64_t)to_link.entries.length; i++) {
             Text_t lib = *(Text_t *)(to_link.entries.data + i * to_link.entries.stride);
             List$insert(extra_ldlibs, &lib, I(0), sizeof(Text_t));
         }
@@ -584,7 +585,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
 
 bool is_config_outdated(Path_t path) {
     OptionalText_t config = Path$read(build_file(path, ".config"));
-    if (config.length < 0) return true;
+    if (config.tag == TEXT_NONE) return true;
     return !Text$equal_values(config, config_summary);
 }
 
@@ -636,9 +637,9 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
 
             List_t children =
                 Path$glob(Path$from_str(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", full_name, "/[!._0-9]*.tm")));
-            for (int64_t i = 0; i < children.length; i++) {
+            for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t *child = (Path_t *)(children.data + i * children.stride);
-                Table_t discarded = {.fallback = to_compile};
+                Table_t discarded = {.entries = EMPTY_LIST, .fallback = to_compile};
                 build_file_dependency_graph(*child, &discarded, to_link);
             }
             break;
@@ -676,7 +677,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
 }
 
 time_t latest_included_modification_time(Path_t path) {
-    static Table_t c_modification_times = {};
+    static Table_t c_modification_times = EMPTY_TABLE;
     const TypeInfo_t time_info = {.size = sizeof(time_t), .align = __alignof__(time_t), .tag = OpaqueInfo};
     time_t *cached_latest = Table$get(c_modification_times, &path, Table$info(&Path$info, &time_info));
     if (cached_latest) return *cached_latest;
@@ -691,7 +692,7 @@ time_t latest_included_modification_time(Path_t path) {
     OptionalText_t (*next_line)(void *) = by_line.fn;
     Path_t parent = Path$parent(path);
     bool allow_dot_include = Path$has_extension(path, Text("s")) || Path$has_extension(path, Text("S"));
-    for (Text_t line; (line = next_line(by_line.userdata)).length >= 0;) {
+    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
         line = Text$trim(line, Text(" \t"), true, false);
         if (!Text$starts_with(line, Text("#include"), NULL)
             && !(allow_dot_include && Text$starts_with(line, Text(".include"), NULL)))
@@ -742,7 +743,7 @@ bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing) {
 }
 
 bool is_stale_for_any(Path_t path, List_t relative_to, bool ignore_missing) {
-    for (int64_t i = 0; i < relative_to.length; i++) {
+    for (int64_t i = 0; i < (int64_t)relative_to.length; i++) {
         Path_t r = *(Path_t *)(relative_to.data + i * relative_to.stride);
         if (is_stale(path, r, ignore_missing)) return true;
     }

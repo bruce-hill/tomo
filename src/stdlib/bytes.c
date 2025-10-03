@@ -36,7 +36,7 @@ public
 OptionalByte_t Byte$parse(Text_t text, Text_t *remainder) {
     OptionalInt_t full_int = Int$parse(text, remainder);
     if (full_int.small != 0L && Int$compare_value(full_int, I(0)) >= 0 && Int$compare_value(full_int, I(255)) <= 0) {
-        return (OptionalByte_t){.value = Byte$from_int(full_int, true)};
+        return (OptionalByte_t){.has_value = true, .value = Byte$from_int(full_int, true)};
     } else {
         return NONE_BYTE;
     }
@@ -86,12 +86,12 @@ typedef struct {
 
 static OptionalByte_t _next_Byte(ByteRange_t *info) {
     OptionalByte_t i = info->current;
-    if (!i.is_none) {
+    if (i.has_value) {
         Byte_t next;
         bool overflow = __builtin_add_overflow(i.value, info->step, &next);
-        if (overflow || (!info->last.is_none && (info->step >= 0 ? next > info->last.value : next < info->last.value)))
-            info->current = (OptionalByte_t){.is_none = true};
-        else info->current = (OptionalByte_t){.value = next};
+        if (overflow || (info->last.has_value && (info->step >= 0 ? next > info->last.value : next < info->last.value)))
+            info->current = (OptionalByte_t){.has_value = false};
+        else info->current = (OptionalByte_t){.has_value = true, .value = next};
     }
     return i;
 }
@@ -99,9 +99,9 @@ static OptionalByte_t _next_Byte(ByteRange_t *info) {
 public
 CONSTFUNC Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t step) {
     ByteRange_t *range = GC_MALLOC(sizeof(ByteRange_t));
-    range->current = (OptionalByte_t){.value = first};
-    range->last = (OptionalByte_t){.value = last};
-    range->step = step.is_none ? (last >= first ? 1 : -1) : step.value;
+    range->current = (OptionalByte_t){.has_value = true, .value = first};
+    range->last = (OptionalByte_t){.has_value = true, .value = last};
+    range->step = step.has_value ? step.value : (last >= first ? 1 : -1);
     return (Closure_t){.fn = _next_Byte, .userdata = range};
 }
 

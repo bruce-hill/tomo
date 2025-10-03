@@ -36,7 +36,7 @@ static const Path_t HOME_PATH = {.type.$tag = PATH_HOME}, ROOT_PATH = {.type.$ta
                     CURDIR_PATH = {.type.$tag = PATH_RELATIVE};
 
 static void clean_components(List_t *components) {
-    for (int64_t i = 0; i < components->length;) {
+    for (int64_t i = 0; i < (int64_t)components->length;) {
         Text_t *component = (Text_t *)(components->data + i * components->stride);
         if (component->length == 0 || Text$equal_values(*component, Text("."))) {
             List$remove_at(components, I(i + 1), I(1), sizeof(Text_t));
@@ -83,10 +83,11 @@ Path_t Path$from_str(const char *str) {
                 // ignore /./
             } else if (component_len == 2 && strncmp(str, "..", 2) == 0 && result.components.length > 1
                        && !Text$equal_values(
-                           Text(".."), *(Text_t *)(result.components.data
-                                                   + result.components.stride * (result.components.length - 1)))) {
+                           Text(".."),
+                           *(Text_t *)(result.components.data
+                                       + result.components.stride * ((int64_t)result.components.length - 1)))) {
                 // Pop off /foo/baz/.. -> /foo
-                List$remove_at(&result.components, I(result.components.length), I(1), sizeof(Text_t));
+                List$remove_at(&result.components, I((int64_t)result.components.length), I(1), sizeof(Text_t));
             } else {
                 Text_t component = Text$from_strn(str, component_len);
                 List$insert_value(&result.components, component, I(0), sizeof(Text_t));
@@ -149,16 +150,16 @@ Path_t Path$relative_to(Path_t path, Path_t relative_to) {
 
     Path_t result = {.type.$tag = PATH_RELATIVE};
     int64_t shared = 0;
-    for (; shared < path.components.length && shared < relative_to.components.length; shared++) {
+    for (; shared < (int64_t)path.components.length && shared < (int64_t)relative_to.components.length; shared++) {
         Text_t *p = (Text_t *)(path.components.data + shared * path.components.stride);
         Text_t *r = (Text_t *)(relative_to.components.data + shared * relative_to.components.stride);
         if (!Text$equal_values(*p, *r)) break;
     }
 
-    for (int64_t i = shared; i < relative_to.components.length; i++)
+    for (int64_t i = shared; i < (int64_t)relative_to.components.length; i++)
         List$insert_value(&result.components, Text(".."), I(1), sizeof(Text_t));
 
-    for (int64_t i = shared; i < path.components.length; i++) {
+    for (int64_t i = shared; i < (int64_t)path.components.length; i++) {
         Text_t *p = (Text_t *)(path.components.data + i * path.components.stride);
         List$insert(&result.components, p, I(0), sizeof(Text_t));
     }
@@ -348,7 +349,7 @@ OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count) {
         if (count.small && (int64_t)sb.st_size < target_count)
             fail("Could not read ", target_count, " bytes from ", path, " (only got ", (uint64_t)sb.st_size, ")");
         int64_t len = count.small ? target_count : (int64_t)sb.st_size;
-        return (List_t){.data = content, .atomic = 1, .stride = 1, .length = len};
+        return (List_t){.data = content, .atomic = 1, .stride = 1, .length = (uint64_t)len};
     } else {
         size_t capacity = 256, len = 0;
         char *content = GC_MALLOC_ATOMIC(capacity);
@@ -376,14 +377,14 @@ OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count) {
         close(fd);
         if (count.small != 0 && (int64_t)len < target_count)
             fail("Could not read ", target_count, " bytes from ", path, " (only got ", (uint64_t)len, ")");
-        return (List_t){.data = content, .atomic = 1, .stride = 1, .length = (int64_t)len};
+        return (List_t){.data = content, .atomic = 1, .stride = 1, .length = (uint64_t)len};
     }
 }
 
 public
 OptionalText_t Path$read(Path_t path) {
     List_t bytes = Path$read_bytes(path, NONE_INT);
-    if (bytes.length < 0) return NONE_TEXT;
+    if (bytes.data == NULL) return NONE_TEXT;
     return Text$from_utf8(bytes);
 }
 
@@ -408,14 +409,14 @@ OptionalText_t Path$group(Path_t path, bool follow_symlinks) {
 public
 void Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t group, bool follow_symlinks) {
     uid_t owner_id = (uid_t)-1;
-    if (owner.length >= 0) {
+    if (owner.tag == TEXT_NONE) {
         struct passwd *pwd = getpwnam(Text$as_c_string(owner));
         if (pwd == NULL) fail("Not a valid user: ", owner);
         owner_id = pwd->pw_uid;
     }
 
     gid_t group_id = (gid_t)-1;
-    if (group.length >= 0) {
+    if (group.tag == TEXT_NONE) {
         struct group *grp = getgrnam(Text$as_c_string(group));
         if (grp == NULL) fail("Not a valid group: ", group);
         group_id = grp->gr_gid;
@@ -476,7 +477,7 @@ void Path$create_directory(Path_t path, int permissions) {
 static List_t _filtered_children(Path_t path, bool include_hidden, mode_t filter) {
     path = Path$expand_home(path);
     struct dirent *dir;
-    List_t children = {};
+    List_t children = EMPTY_LIST;
     const char *path_str = Path$as_c_string(path);
     size_t path_len = strlen(path_str);
     DIR *d = opendir(path_str);
@@ -562,7 +563,7 @@ Path_t Path$parent(Path_t path) {
         return path;
     } else if (path.components.length > 0
                && !Text$equal_values(
-                   *(Text_t *)(path.components.data + path.components.stride * (path.components.length - 1)),
+                   *(Text_t *)(path.components.data + path.components.stride * ((int64_t)path.components.length - 1)),
                    Text(".."))) {
         return (Path_t){.type.$tag = path.type.$tag, .components = List$slice(path.components, I(1), I(-2))};
     } else {
@@ -576,7 +577,7 @@ Path_t Path$parent(Path_t path) {
 public
 PUREFUNC Text_t Path$base_name(Path_t path) {
     if (path.components.length >= 1)
-        return *(Text_t *)(path.components.data + path.components.stride * (path.components.length - 1));
+        return *(Text_t *)(path.components.data + path.components.stride * ((int64_t)path.components.length - 1));
     else if (path.type.$tag == PATH_HOME) return Text("~");
     else if (path.type.$tag == PATH_RELATIVE) return Text(".");
     else return EMPTY_TEXT;
@@ -594,7 +595,7 @@ public
 bool Path$has_extension(Path_t path, Text_t extension) {
     if (path.components.length < 2) return extension.length == 0;
 
-    Text_t last = *(Text_t *)(path.components.data + path.components.stride * (path.components.length - 1));
+    Text_t last = *(Text_t *)(path.components.data + path.components.stride * ((int64_t)path.components.length - 1));
 
     if (extension.length == 0)
         return !Text$has(Text$from(last, I(2)), Text(".")) || Text$equal_values(last, Text(".."));
@@ -632,7 +633,7 @@ Path_t Path$with_extension(Path_t path, Text_t extension, bool replace) {
         .components = path.components,
     };
     LIST_INCREF(result.components);
-    Text_t last = *(Text_t *)(path.components.data + path.components.stride * (path.components.length - 1));
+    Text_t last = *(Text_t *)(path.components.data + path.components.stride * ((int64_t)path.components.length - 1));
     List$remove_at(&result.components, I(-1), I(1), sizeof(Text_t));
     if (replace) {
         const char *base = Text$as_c_string(last);
@@ -701,7 +702,7 @@ List_t Path$glob(Path_t path) {
     int status = glob(Path$as_c_string(path), GLOB_BRACE | GLOB_TILDE, NULL, &glob_result);
     if (status != 0 && status != GLOB_NOMATCH) fail("Failed to perform globbing");
 
-    List_t glob_files = {};
+    List_t glob_files = EMPTY_LIST;
     for (size_t i = 0; i < glob_result.gl_pathc; i++) {
         size_t len = strlen(glob_result.gl_pathv[i]);
         if ((len >= 2 && glob_result.gl_pathv[i][len - 1] == '.' && glob_result.gl_pathv[i][len - 2] == '/')
@@ -727,7 +728,7 @@ PUREFUNC uint64_t Path$hash(const void *obj, const TypeInfo_t *type) {
     Path_t *path = (Path_t *)obj;
     siphash sh;
     siphashinit(&sh, (uint64_t)path->type.$tag);
-    for (int64_t i = 0; i < path->components.length; i++) {
+    for (int64_t i = 0; i < (int64_t)path->components.length; i++) {
         uint64_t item_hash = Text$hash(path->components.data + i * path->components.stride, &Text$info);
         siphashadd64bits(&sh, item_hash);
     }
@@ -774,10 +775,10 @@ int Path$print(FILE *f, Path_t path) {
         if (!Text$equal_values(*(Text_t *)path.components.data, Text(".."))) n += fputs("./", f);
     }
 
-    for (int64_t i = 0; i < path.components.length; i++) {
+    for (int64_t i = 0; i < (int64_t)path.components.length; i++) {
         Text_t *comp = (Text_t *)(path.components.data + i * path.components.stride);
         n += Text$print(f, *comp);
-        if (i + 1 < path.components.length) n += fputc('/', f);
+        if (i + 1 < (int64_t)path.components.length) n += fputc('/', f);
     }
     return n;
 }

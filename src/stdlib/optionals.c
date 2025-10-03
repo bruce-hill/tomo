@@ -13,8 +13,8 @@ public
 PUREFUNC bool is_none(const void *obj, const TypeInfo_t *non_optional_type) {
     if (non_optional_type->metamethods.is_none) return non_optional_type->metamethods.is_none(obj, non_optional_type);
 
-    const void *dest = (obj + non_optional_type->size);
-    return *(bool *)dest;
+    const bool *has_value = (const bool *)(obj + non_optional_type->size);
+    return !(*has_value);
 }
 
 PUREFUNC public uint64_t Optional$hash(const void *obj, const TypeInfo_t *type) {
@@ -64,8 +64,8 @@ void Optional$deserialize(FILE *in, void *outval, List_t *pointers, const TypeIn
         _deserialize(in, outval, pointers, nonnull);
     } else {
         if (nonnull->tag == TextInfo) *(Text_t *)outval = NONE_TEXT;
-        else if (nonnull->tag == ListInfo) *(List_t *)outval = (List_t){.length = -1};
-        else if (nonnull->tag == TableInfo) *(Table_t *)outval = (Table_t){.entries = {.length = -1}};
+        else if (nonnull->tag == ListInfo) *(List_t *)outval = NONE_LIST;
+        else if (nonnull->tag == TableInfo) *(Table_t *)outval = NONE_TABLE;
         else if (nonnull == &Num$info) *(double *)outval = (double)NAN;
         else if (nonnull == &Num32$info) *(float *)outval = (float)NAN;
         else if (nonnull->tag == StructInfo || (nonnull->tag == OpaqueInfo && type->size > nonnull->size))

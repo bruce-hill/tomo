@@ -30,7 +30,7 @@ Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
     }
 
     static const void *root = NULL;
-    static Table_t pending = {};
+    static Table_t pending = EMPTY_TABLE;
     bool top_level = (root == NULL);
 
     // Check for recursive references, so if `x.foo = x`, then it prints as
@@ -47,7 +47,7 @@ Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
             Text_t text = Texts(Text$from_str(ptr_info.sigil), Int64$value_as_text(*id));
             return colorize ? Texts(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
         }
-        int64_t next_id = pending.entries.length + 2;
+        int64_t next_id = (int64_t)pending.entries.length + 2;
         Table$set(&pending, x, &next_id, &rec_table);
     }
 
@@ -97,7 +97,7 @@ void Pointer$serialize(const void *obj, FILE *out, Table_t *pointers, const Type
     if (id_ptr) {
         id = *id_ptr;
     } else {
-        id = pointers->entries.length + 1;
+        id = (int64_t)pointers->entries.length + 1;
         Table$set(pointers, &ptr, &id, &ptr_to_int_table);
     }
 
@@ -112,7 +112,7 @@ void Pointer$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInf
     Int64$deserialize(in, &id, pointers, &Int64$info);
     assert(id != 0);
 
-    if (id > pointers->length) {
+    if (id > (int64_t)pointers->length) {
         void *obj = GC_MALLOC((size_t)type->PointerInfo.pointed->size);
         List$insert(pointers, &obj, I(0), sizeof(void *));
         _deserialize(in, obj, pointers, type->PointerInfo.pointed);

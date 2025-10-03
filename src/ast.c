@@ -358,7 +358,7 @@ void visit_topologically(ast_list_t *asts, Closure_t fn) {
     //   - visiting typedefs' dependencies first
     // - then function/variable declarations
 
-    Table_t definitions = {};
+    Table_t definitions = EMPTY_TABLE;
     for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == StructDef) {
             DeclareMatch(def, stmt->ast, StructDef);
@@ -373,7 +373,7 @@ void visit_topologically(ast_list_t *asts, Closure_t fn) {
     }
 
     void (*visit)(void *, ast_t *) = (void *)fn.fn;
-    Table_t visited = {};
+    Table_t visited = EMPTY_TABLE;
     // First: 'use' statements in order:
     for (ast_list_t *stmt = asts; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == Use) visit(fn.userdata, stmt->ast);

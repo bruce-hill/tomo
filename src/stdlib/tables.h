@@ -11,6 +11,8 @@
 #include "types.h"
 #include "util.h"
 
+#define EMPTY_TABLE ((Table_t){.entries.data = &_EMPTY_LIST_SENTINEL})
+
 #define Table(key_t, val_t, key_info, value_info, fb, N, ...)                                                          \
     ({                                                                                                                 \
         struct {                                                                                                       \
