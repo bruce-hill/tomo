@@ -34,52 +34,66 @@ static bool is_numeric_type(const TypeInfo_t *info) {
 static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest) {
     if (!arg) return false;
 
-    if (info->tag == OptionalInfo && streq(arg, "none")) return true;
-
-    while (info->tag == OptionalInfo)
-        info = info->OptionalInfo.type;
-
-    if (info == &Int$info) {
+    if (info->tag == OptionalInfo) {
+        const TypeInfo_t *nonnull = info->OptionalInfo.type;
+        if (streq(arg, "none")) {
+            if (nonnull == &Num$info) *(double *)dest = (double)NAN;
+            else if (nonnull == &Num32$info) *(float *)dest = (float)NAN;
+            else memset(dest, 0, (size_t)info->size);
+            return true;
+        } else {
+            bool success = parse_single_arg(nonnull, arg, dest);
+            if (success) {
+                if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
+                else if (nonnull == &Int32$info) ((OptionalInt32_t *)dest)->has_value = true;
+                else if (nonnull == &Int16$info) ((OptionalInt16_t *)dest)->has_value = true;
+                else if (nonnull == &Int8$info) ((OptionalInt8_t *)dest)->has_value = true;
+                else if (nonnull == &Byte$info) ((OptionalByte_t *)dest)->has_value = true;
+                else if (nonnull->tag == StructInfo && nonnull != &Path$info) *(bool *)(dest + nonnull->size) = true;
+            }
+            return success;
+        }
+    } else if (info == &Int$info) {
         OptionalInt_t parsed = Int$from_str(arg);
-        if (parsed.small != 0) *(OptionalInt_t *)dest = parsed;
+        if (parsed.small != 0) *(Int_t *)dest = parsed;
         return parsed.small != 0;
     } else if (info == &Int64$info) {
         OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(OptionalInt64_t *)dest = parsed;
+        if (parsed.has_value) *(Int64_t *)dest = parsed.value;
         return parsed.has_value;
     } else if (info == &Int32$info) {
         OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(OptionalInt32_t *)dest = parsed;
+        if (parsed.has_value) *(Int32_t *)dest = parsed.value;
         return parsed.has_value;
     } else if (info == &Int16$info) {
         OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(OptionalInt16_t *)dest = parsed;
+        if (parsed.has_value) *(Int16_t *)dest = parsed.value;
         return parsed.has_value;
     } else if (info == &Int8$info) {
         OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(OptionalInt8_t *)dest = parsed;
+        if (parsed.has_value) *(Int8_t *)dest = parsed.value;
         return parsed.has_value;
     } else if (info == &Byte$info) {
         OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(OptionalByte_t *)dest = parsed;
+        if (parsed.has_value) *(Byte_t *)dest = parsed.value;
         return parsed.has_value;
     } else if (info == &Bool$info) {
         OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
-        if (parsed != NONE_BOOL) *(OptionalBool_t *)dest = parsed;
+        if (parsed != NONE_BOOL) *(Bool_t *)dest = parsed;
         return parsed != NONE_BOOL;
     } else if (info == &Num$info) {
         OptionalNum_t parsed = Num$parse(Text$from_str(arg), NULL);
-        if (!isnan(parsed)) *(OptionalNum_t *)dest = parsed;
+        if (!isnan(parsed)) *(Num_t *)dest = parsed;
         return !isnan(parsed);
     } else if (info == &Num32$info) {
         OptionalNum32_t parsed = Num32$parse(Text$from_str(arg), NULL);
-        if (!isnan(parsed)) *(OptionalNum32_t *)dest = parsed;
+        if (!isnan(parsed)) *(Num32_t *)dest = parsed;
         return !isnan(parsed);
     } else if (info == &Path$info) {
-        *(OptionalPath_t *)dest = Path$from_str(arg);
+        *(Path_t *)dest = Path$from_str(arg);
         return true;
     } else if (info->tag == TextInfo) {
-        *(OptionalText_t *)dest = Text$from_str(arg);
+        *(Text_t *)dest = Text$from_str(arg);
         return true;
     } else if (info->tag == EnumInfo) {
         for (int t = 0; t < info->EnumInfo.num_tags; t++) {

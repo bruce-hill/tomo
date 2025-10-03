@@ -58,7 +58,7 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
         for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
             usage = Texts(usage, " ");
             type_t *t = get_arg_type(main_env, arg);
-            if (arg->default_val || arg->type->tag == OptionalType) {
+            if (arg->default_val) {
                 OptionalText_t flag = flagify(arg->name, true);
                 assert(flag.tag != TEXT_NONE);
                 OptionalText_t alias_flag = flagify(arg->alias, true);
@@ -86,15 +86,14 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
     }
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        type_t *opt_type = arg->type->tag == OptionalType ? arg->type : Type(OptionalType, .type = arg->type);
-        code = Texts(code, compile_declaration(opt_type, Texts("_$", Text$from_str(arg->name))));
+        code = Texts(code, compile_declaration(arg->type, Texts("_$", Text$from_str(arg->name))));
         if (arg->default_val) {
             Text_t default_val =
                 arg->type ? compile_to_type(env, arg->default_val, arg->type) : compile(env, arg->default_val);
             if (arg->type->tag != OptionalType) default_val = promote_to_optional(arg->type, default_val);
             code = Texts(code, " = ", default_val);
         } else {
-            code = Texts(code, " = ", compile_none(arg->type));
+            code = Texts(code, " = ", compile_empty(arg->type));
         }
         code = Texts(code, ";\n");
     }
@@ -103,22 +102,19 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
     code = Texts(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code, ", ", version_code);
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         code = Texts(code, ",\n{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", ",
-                     (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",
-                     compile_type_info(arg->type), ", &", Texts("_$", Text$from_str(arg->name)), "}");
+                     arg->default_val ? "false" : "true", ", ", compile_type_info(arg->type), ", &",
+                     Texts("_$", Text$from_str(arg->name)), "}");
         if (arg->alias) {
             code = Texts(code, ",\n{", quoted_text(Text$replace(Text$from_str(arg->alias), Text("_"), Text("-"))), ", ",
-                         (arg->default_val || arg->type->tag == OptionalType) ? "false" : "true", ", ",
-                         compile_type_info(arg->type), ", &", Texts("_$", Text$from_str(arg->name)), "}");
+                         arg->default_val ? "false" : "true", ", ", compile_type_info(arg->type), ", &",
+                         Texts("_$", Text$from_str(arg->name)), "}");
         }
     }
     code = Texts(code, ");\n");
 
     code = Texts(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        Text_t arg_code = Texts("_$", arg->name);
-        if (arg->type->tag != OptionalType) arg_code = optional_into_nonnone(arg->type, arg_code);
-
-        code = Texts(code, arg_code);
+        code = Texts(code, Texts("_$", arg->name));
         if (arg->next) code = Texts(code, ", ");
     }
     code = Texts(code, ");\n");
