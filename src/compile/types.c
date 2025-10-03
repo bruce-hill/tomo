@@ -63,7 +63,7 @@ Text_t compile_type(type_t *t) {
         case ClosureType:
         case PointerType:
         case EnumType: return compile_type(nonnull);
-        case TextType: return Match(nonnull, TextType)->lang ? compile_type(nonnull) : Text("OptionalText_t");
+        case TextType:
         case IntType:
         case BigIntType:
         case NumType:
