@@ -690,52 +690,100 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
     }
 }
 
-static void _type_ast_visit(ast_t *ast, void *userdata) {
-    void (*visit)(type_ast_t *, void *) = ((Closure_t *)userdata)->fn;
-    userdata = ((Closure_t *)userdata)->userdata;
+static void _recursive_type_ast_visit(type_ast_t *ast, void *userdata) {
+    if (ast == NULL) return;
 
+    void (*visit)(type_ast_t *, void *) = ((Closure_t *)userdata)->fn;
+    void *visitor_userdata = ((Closure_t *)userdata)->userdata;
+    switch (ast->tag) {
+    case UnknownTypeAST:
+    case VarTypeAST: visit(ast, visitor_userdata); break;
+    case PointerTypeAST: {
+        _recursive_type_ast_visit(Match(ast, PointerTypeAST)->pointed, userdata);
+        visit(ast, visitor_userdata);
+        break;
+    }
+    case ListTypeAST: {
+        _recursive_type_ast_visit(Match(ast, ListTypeAST)->item, userdata);
+        visit(ast, visitor_userdata);
+        break;
+    }
+    case TableTypeAST: {
+        DeclareMatch(table, ast, TableTypeAST);
+        _recursive_type_ast_visit(table->key, userdata);
+        _recursive_type_ast_visit(table->value, userdata);
+        visit(ast, visitor_userdata);
+        break;
+    }
+    case FunctionTypeAST: {
+        DeclareMatch(fn, ast, FunctionTypeAST);
+        for (arg_ast_t *arg = fn->args; arg; arg = arg->next)
+            _recursive_type_ast_visit(arg->type, userdata);
+        _recursive_type_ast_visit(fn->ret, userdata);
+        visit(ast, visitor_userdata);
+        break;
+    }
+    case OptionalTypeAST: {
+        _recursive_type_ast_visit(Match(ast, OptionalTypeAST)->type, userdata);
+        visit(ast, visitor_userdata);
+        break;
+    }
+    case EnumTypeAST: {
+        for (tag_ast_t *tag = Match(ast, EnumTypeAST)->tags; tag; tag = tag->next) {
+            for (arg_ast_t *field = tag->fields; field; field = field->next) {
+                _recursive_type_ast_visit(field->type, userdata);
+            }
+        }
+        visit(ast, visitor_userdata);
+        break;
+    }
+    default: errx(1, "Invalid type AST");
+    }
+}
+
+static void _type_ast_visit(ast_t *ast, void *userdata) {
     switch (ast->tag) {
     case Declare: {
-        visit(Match(ast, Declare)->type, userdata);
+        _recursive_type_ast_visit(Match(ast, Declare)->type, userdata);
         break;
     }
     case FunctionDef: {
         for (arg_ast_t *arg = Match(ast, FunctionDef)->args; arg; arg = arg->next)
-            visit(arg->type, userdata);
-        visit(Match(ast, FunctionDef)->ret_type, userdata);
+            _recursive_type_ast_visit(arg->type, userdata);
+        _recursive_type_ast_visit(Match(ast, FunctionDef)->ret_type, userdata);
         break;
     }
     case Lambda: {
         for (arg_ast_t *arg = Match(ast, Lambda)->args; arg; arg = arg->next)
-            visit(arg->type, userdata);
-        visit(Match(ast, Lambda)->ret_type, userdata);
+            _recursive_type_ast_visit(arg->type, userdata);
+        _recursive_type_ast_visit(Match(ast, Lambda)->ret_type, userdata);
         break;
     }
     case ConvertDef: {
         for (arg_ast_t *arg = Match(ast, ConvertDef)->args; arg; arg = arg->next)
-            visit(arg->type, userdata);
-        visit(Match(ast, ConvertDef)->ret_type, userdata);
+            _recursive_type_ast_visit(arg->type, userdata);
+        _recursive_type_ast_visit(Match(ast, ConvertDef)->ret_type, userdata);
         break;
     }
     case StructDef: {
         for (arg_ast_t *field = Match(ast, StructDef)->fields; field; field = field->next)
-            visit(field->type, userdata);
+            _recursive_type_ast_visit(field->type, userdata);
         break;
     }
     case EnumDef: {
         for (tag_ast_t *tag = Match(ast, EnumDef)->tags; tag; tag = tag->next) {
             for (arg_ast_t *field = tag->fields; field; field = field->next) {
-                visit(field->type, userdata);
+                _recursive_type_ast_visit(field->type, userdata);
             }
         }
         break;
     }
     case InlineCCode: {
-        visit(Match(ast, InlineCCode)->type_ast, userdata);
+        _recursive_type_ast_visit(Match(ast, InlineCCode)->type_ast, userdata);
         break;
     }
     case Deserialize: {
-        visit(Match(ast, Deserialize)->type, userdata);
+        _recursive_type_ast_visit(Match(ast, Deserialize)->type, userdata);
         break;
     }
     default: break;
