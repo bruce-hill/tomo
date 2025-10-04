@@ -658,6 +658,7 @@ static Text_t _next_line(FILE **f) {
 
     char *line = NULL;
     size_t size = 0;
+next_line:;
     ssize_t len = getline(&line, &size, *f);
     if (len <= 0) {
         _line_reader_cleanup(f);
@@ -667,7 +668,10 @@ static Text_t _next_line(FILE **f) {
     while (len > 0 && (line[len - 1] == '\r' || line[len - 1] == '\n'))
         --len;
 
-    if (u8_check((uint8_t *)line, (size_t)len) != NULL) fail("Invalid UTF8!");
+    if (u8_check((uint8_t *)line, (size_t)len) != NULL) {
+        // If there's invalid UTF8, skip this line and move to the next
+        goto next_line;
+    }
 
     Text_t line_text = Text$from_strn(line, (size_t)len);
     free(line);
