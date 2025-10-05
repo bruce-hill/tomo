@@ -205,19 +205,6 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Lambda: return compile_lambda(env, ast);
     case MethodCall: return compile_method_call(env, ast);
     case FunctionCall: return compile_function_call(env, ast);
-    case Deserialize: {
-        ast_t *value = Match(ast, Deserialize)->value;
-        type_t *value_type = get_type(env, value);
-        if (!type_eq(value_type, Type(ListType, Type(ByteType))))
-            code_err(value, "This value should be a list of bytes, not a ", type_to_text(value_type));
-        type_t *t = parse_type_ast(env, Match(ast, Deserialize)->type);
-        return Texts("({ ", compile_declaration(t, Text("deserialized")),
-                     ";\n"
-                     "generic_deserialize(",
-                     compile(env, value), ", &deserialized, ", compile_type_info(t),
-                     ");\n"
-                     "deserialized; })");
-    }
     case ExplicitlyTyped: {
         return compile_to_type(env, Match(ast, ExplicitlyTyped)->ast, get_type(env, ast));
     }

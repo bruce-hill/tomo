@@ -366,11 +366,6 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
         return Texts(lhs, space, Text$from_str(binop_info[ast->tag].operator), space, rhs);
     }
-    /*inline*/ case Deserialize: {
-        DeclareMatch(deserialize, ast, Deserialize);
-        return Texts("deserialize(", fmt_inline(deserialize->value, comments), " -> ", format_type(deserialize->type),
-                     ")");
-    }
     /*inline*/ case Use: {
         DeclareMatch(use, ast, Use);
         // struct {
@@ -805,12 +800,6 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
 
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
         return Texts(lhs, space, Text$from_str(binop_info[ast->tag].operator), space, rhs);
-    }
-    /*multiline*/ case Deserialize: {
-        if (inlined_fits) return inlined;
-        DeclareMatch(deserialize, ast, Deserialize);
-        return Texts("deserialize(", fmt(deserialize->value, comments, indent), " -> ", format_type(deserialize->type),
-                     ")");
     }
     /*multiline*/ case Use: {
         assert(inlined.length > 0);

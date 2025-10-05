@@ -10,31 +10,42 @@ original value.
 
 ## Serializing
 
-To serialize data, simply call the method `.serialized()` on any value and it
-will return a list of bytes that encode the value's data:
+To serialize data, declare a variable with type `[Byte]` and assign any
+arbitrary type to that value.
 
 ```tomo
 value := Int64(5)
->> serialized := value.serialized()
-= [0x0A] : [Byte]
+serialized : [Byte] = value
+assert serialized == [0x0A]
 ```
 
 Serialization produces a fairly compact representation of data as a flat list
 of bytes. In this case, a 64-bit integer can be represented in a single byte
 because it's a small number.
 
-## Deserializing 
-
-To deserialize data, you must provide its type explicitly using the syntax
-`deserialize(bytes -> Type)`:
+The same process works with more complicated data:
 
 ```tomo
-i := 123
-bytes := i.serialized()
+struct Foo(x:Int, y:Text)
 
-roundtripped := deserialize(bytes -> Int)
->> roundtripped
-= 123 :Int
+foo := Foo(123, "Hello")
+serialized : [Byte] = foo
+assert serialized == [0x00, 0xf6, 0x01, 0x0a, 0x48, 0x65, 0x6c, 0x6c, 0x6f]
+```
+
+## Deserializing 
+
+To deserialize data, you can assign a list of bytes to a variable with your
+target type:
+
+```tomo
+value_bytes : [Byte] = [Byte(0x0A)]
+value : Int64 = value_bytes
+assert value == 5
+
+foo_bytes : [Byte] = [0x00, 0xf6, 0x01, 0x0a, 0x48, 0x65, 0x6c, 0x6c, 0x6f]
+foo : Foo = foo_bytes
+assert foo == Foo(123, "Hello")
 ```
 
 ## Pointers
@@ -57,11 +68,12 @@ struct Cycle(name:Text, next:@Cycle?=none)
 c := @Cycle("A")
 c.next = @Cycle("B", next=c)
 >> c
-= @Cycle(name="A", next=@Cycle(name="B", next=@~1))
->> serialized := c.serialized()
-= [0x02, 0x02, 0x41, 0x01, 0x04, 0x02, 0x42, 0x01, 0x02] : [Byte]
->> roundtrip := DESERIALIZE(serialized):@Cycle
-= @Cycle(name="A", next=@Cycle(name="B", next=@~1)) : @Cycle
+# @Cycle(name="A", next=@Cycle(name="B", next=@~1))
+>> bytes : [Byte] = c
+# [0x02, 0x02, 0x41, 0x01, 0x04, 0x02, 0x42, 0x01, 0x02] : [Byte]
+>> roundtrip : @Cycle = bytes
+# @Cycle(name="A", next=@Cycle(name="B", next=@~1)) : @Cycle
+assert roundtrip.next.next == roundtrip
 ```
 
 The deserialized version of the data correctly preserves the cycle
@@ -70,6 +82,8 @@ only 9 bytes for the whole thing!
 
 ## Unserializable Types
 
-Unfortunately, not all types can be easily serialized. In particular, types and
-functions cannot be serialized because their data contents cannot be easily
-converted to portable byte lists. All other datatypes _can_ be serialized.
+Unfortunately, not all types can be easily serialized. In particular, functions
+(and closures) cannot be serialized because their data contents cannot be
+easily converted to portable byte lists. Type objects themselves (e.g. the
+variable `Text`) also cannot be serialized. All other datatypes _can_ be
+serialized.

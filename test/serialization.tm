@@ -65,7 +65,7 @@ func main()
         >> obj := MyEnum.Two(123, "OKAY")
         >> bytes : [Byte] = obj
         >> roundtrip : MyEnum = bytes
-        assert deserialize(bytes -> MyEnum) == obj
+        assert roundtrip == obj
 
     do
         >> obj : Text? = "Hello"

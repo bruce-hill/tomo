@@ -929,10 +929,6 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case MethodCall: {
         DeclareMatch(call, ast, MethodCall);
-
-        if (streq(call->name, "serialized")) // Data serialization
-            return Type(ListType, Type(ByteType));
-
         type_t *self_value_t = get_type(env, call->self);
         if (!self_value_t) code_err(call->self, "Couldn't get the type of this value");
         self_value_t = value_type(self_value_t);
@@ -1509,7 +1505,6 @@ type_t *get_type(env_t *env, ast_t *ast) {
         return type_ast ? parse_type_ast(env, type_ast) : Type(VoidType);
     }
     case Unknown: code_err(ast, "I can't figure out the type of: ", ast_to_sexp_str(ast));
-    case Deserialize: return parse_type_ast(env, Match(ast, Deserialize)->type);
     case ExplicitlyTyped: return Match(ast, ExplicitlyTyped)->type;
     }
 #ifdef __GNUC__

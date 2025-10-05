@@ -19,4 +19,3 @@ ast_t *parse_stack_reference(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_term(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_var(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_deserialize(parse_ctx_t *ctx, const char *pos);

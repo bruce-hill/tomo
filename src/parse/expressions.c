@@ -157,24 +157,6 @@ ast_t *parse_none(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, None);
 }
 
-ast_t *parse_deserialize(parse_ctx_t *ctx, const char *pos) {
-    const char *start = pos;
-    if (!match_word(&pos, "deserialize")) return NULL;
-
-    spaces(&pos);
-    expect_str(ctx, start, &pos, "(", "I expected arguments for this `deserialize` call");
-    whitespace(ctx, &pos);
-    ast_t *value = expect(ctx, start, &pos, parse_extended_expr, "I expected an expression here");
-    whitespace(ctx, &pos);
-    expect_str(ctx, start, &pos, "->",
-               "I expected a `-> Type` for this `deserialize` call so I know what it deserializes to");
-    whitespace(ctx, &pos);
-    type_ast_t *type = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this deserialization");
-    whitespace(ctx, &pos);
-    expect_closing(ctx, &pos, ")", "I expected a closing ')' for this `deserialize` call");
-    return NewAST(ctx->file, start, pos, Deserialize, .value = value, .type = type);
-}
-
 ast_t *parse_var(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     const char *name = get_id(&pos);
@@ -190,10 +172,10 @@ ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos) {
            || (term = parse_heap_alloc(ctx, pos)) || (term = parse_stack_reference(ctx, pos))
            || (term = parse_bool(ctx, pos)) || (term = parse_text(ctx, pos)) || (term = parse_path(ctx, pos))
            || (term = parse_lambda(ctx, pos)) || (term = parse_parens(ctx, pos)) || (term = parse_table(ctx, pos))
-           || (term = parse_deserialize(ctx, pos)) || (term = parse_var(ctx, pos)) || (term = parse_list(ctx, pos))
-           || (term = parse_reduction(ctx, pos)) || (term = parse_pass(ctx, pos)) || (term = parse_defer(ctx, pos))
-           || (term = parse_skip(ctx, pos)) || (term = parse_stop(ctx, pos)) || (term = parse_return(ctx, pos))
-           || (term = parse_not(ctx, pos)) || (term = parse_inline_c(ctx, pos)));
+           || (term = parse_var(ctx, pos)) || (term = parse_list(ctx, pos)) || (term = parse_reduction(ctx, pos))
+           || (term = parse_pass(ctx, pos)) || (term = parse_defer(ctx, pos)) || (term = parse_skip(ctx, pos))
+           || (term = parse_stop(ctx, pos)) || (term = parse_return(ctx, pos)) || (term = parse_not(ctx, pos))
+           || (term = parse_inline_c(ctx, pos)));
     return term;
 }
 

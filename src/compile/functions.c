@@ -567,10 +567,6 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Assert)->message);
         break;
     }
-    case Deserialize: {
-        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Deserialize)->value);
-        break;
-    }
     case ExplicitlyTyped: {
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, ExplicitlyTyped)->ast);
         break;
@@ -805,13 +801,6 @@ public
 Text_t compile_method_call(env_t *env, ast_t *ast) {
     DeclareMatch(call, ast, MethodCall);
     type_t *self_t = get_type(env, call->self);
-
-    if (streq(call->name, "serialized")) {
-        if (call->args) code_err(ast, ".serialized() doesn't take any arguments");
-        return Texts("generic_serialize((", compile_declaration(self_t, Text("[1]")), "){", compile(env, call->self),
-                     "}, ", compile_type_info(self_t), ")");
-    }
-
     type_t *self_value_t = value_type(self_t);
     if (self_value_t->tag == TypeInfoType || self_value_t->tag == ModuleType) {
         return compile(env, WrapAST(ast, FunctionCall,

@@ -22,6 +22,8 @@
   - `>> ... = ...` form of doctests. They are now called "debug logs" and you
     can specify multiple values: `>> a, b, c`
   - `extend` blocks
+  - `deserialize` operation and `.serialized()` method call
+    - Instead, convert to and from `[Byte]`
 - Struct fields that start with underscores can be accessed again and function
   arguments that start with underscore can be passed (but only as keyword
   arguments).

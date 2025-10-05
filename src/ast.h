@@ -274,7 +274,6 @@ typedef enum {
     Assert,
     Use,
     InlineCCode,
-    Deserialize,
     ExplicitlyTyped,
 } ast_e;
 #define NUM_AST_TAGS (ExplicitlyTyped + 1)
@@ -453,10 +452,6 @@ struct ast_s {
             struct type_s *type;
             type_ast_t *type_ast;
         } InlineCCode;
-        struct {
-            ast_t *value;
-            type_ast_t *type;
-        } Deserialize;
         struct {
             ast_t *ast;
             struct type_s *type;
