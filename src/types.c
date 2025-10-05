@@ -274,6 +274,9 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
     // No promotion necessary:
     if (type_eq(actual, needed)) return true;
 
+    // Serialization/deserialization
+    if (type_eq(actual, Type(ListType, Type(ByteType))) || type_eq(needed, Type(ListType, Type(ByteType)))) return true;
+
     if (actual->tag == NumType && needed->tag == IntType) return false;
 
     if (actual->tag == IntType && (needed->tag == NumType || needed->tag == BigIntType)) return true;

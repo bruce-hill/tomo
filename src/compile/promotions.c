@@ -25,6 +25,21 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
     type_t *more_complete = most_complete_type(actual, needed);
     if (more_complete) return true;
 
+    // Serialization/deserialization:
+    if (type_eq(needed, Type(ListType, Type(ByteType)))) {
+        *code = Texts("generic_serialize((", compile_declaration(actual, Text("[1]")), "){", *code, "}, ",
+                      compile_type_info(actual), ")");
+        return true;
+    } else if (type_eq(actual, Type(ListType, Type(ByteType)))) {
+        *code = Texts("({ ", compile_declaration(needed, Text("deserialized")),
+                      ";\n"
+                      "generic_deserialize(",
+                      *code, ", &deserialized, ", compile_type_info(needed),
+                      ");\n"
+                      "deserialized; })");
+        return true;
+    }
+
     // Optional promotion:
     if (needed->tag == OptionalType && type_eq(actual, Match(needed, OptionalType)->type)) {
         *code = promote_to_optional(actual, *code);
