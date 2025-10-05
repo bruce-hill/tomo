@@ -11,15 +11,17 @@
 - Syntax for text literals and inline C code has been simplified somewhat.
 - Syntax for tables has changed to use colons (`{k: v}`) instead of equals
   (`{k=v}`).
-- Deprecated sets.
-  - Instead of sets, use tables.
-  - Tables now have `and`, `or`, `xor`, and `-` (minus) metamethods.
-- Deprecated `extern` keyword for declaring external symbols from C.
-  - Use `C_code` instead.
-- Deprecated the postfix `?` to make values optional.
-  - Explicitly optional values can be declared as `my_var : T? = value`.
-- Deprecated `>> ... = ...` form of doctests. They are now called "debug logs"
-  and you can specify multiple values: `>> a, b, c`
+- Deprecated:
+  - Sets
+    - Instead of sets, use tables.
+    - Tables now have `and`, `or`, `xor`, and `-` (minus) metamethods.
+  - `extern` keyword for declaring external symbols from C.
+    - Use `C_code` instead.
+  - Postfix `?` to make values optional.
+    - Explicitly optional values can be declared as `my_var : T? = value`.
+  - `>> ... = ...` form of doctests. They are now called "debug logs" and you
+    can specify multiple values: `>> a, b, c`
+  - `extend` blocks
 - Struct fields that start with underscores can be accessed again and function
   arguments that start with underscore can be passed (but only as keyword
   arguments).

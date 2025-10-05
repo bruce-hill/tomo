@@ -48,8 +48,6 @@ void initialize_vars_and_statics(env_t *env, ast_t *ast) {
             initialize_namespace(env, Match(stmt->ast, EnumDef)->name, Match(stmt->ast, EnumDef)->namespace);
         } else if (stmt->ast->tag == LangDef) {
             initialize_namespace(env, Match(stmt->ast, LangDef)->name, Match(stmt->ast, LangDef)->namespace);
-        } else if (stmt->ast->tag == Extend) {
-            initialize_namespace(env, Match(stmt->ast, Extend)->name, Match(stmt->ast, Extend)->body);
         } else if (stmt->ast->tag == Use) {
             continue;
         } else {
@@ -136,19 +134,6 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
                   (int64_t)sizeof(Text_t), ", ", (int64_t)__alignof__(Text_t),
                   ", .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={", quoted_str(def->name), "}};\n");
         return Texts(code, compile_namespace(env, def->name, def->namespace));
-    }
-    case Extend: {
-        DeclareMatch(extend, ast, Extend);
-        binding_t *b = get_binding(env, extend->name);
-        if (!b || b->type->tag != TypeInfoType)
-            code_err(ast, "'", extend->name, "' is not the name of any type I recognize.");
-        env_t *ns_env = Match(b->type, TypeInfoType)->env;
-        env_t *extended = new (env_t);
-        *extended = *ns_env;
-        extended->locals = new (Table_t, .fallback = env->locals);
-        extended->namespace_bindings = new (Table_t, .fallback = env->namespace_bindings);
-        extended->id_suffix = env->id_suffix;
-        return compile_top_level_code(extended, extend->body);
     }
     case Block: {
         Text_t code = EMPTY_TEXT;

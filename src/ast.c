@@ -275,7 +275,6 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Use, "(Use ", optional_sexp("var", data.var), " ", quoted_text(data.path), ")");
         T(InlineCCode, "(InlineCCode ", ast_list_to_sexp(data.chunks), optional_type_sexp("type", data.type_ast), ")");
         T(Deserialize, "(Deserialize ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value), ")");
-        T(Extend, "(Extend \"", data.name, "\" ", ast_to_sexp(data.body), ")");
     default: errx(1, "S-expressions are not implemented for this AST");
 #undef T
     }
@@ -679,10 +678,6 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
     }
     case Deserialize: {
         ast_visit(Match(ast, Deserialize)->value, visitor, userdata);
-        return;
-    }
-    case Extend: {
-        ast_visit(Match(ast, Extend)->body, visitor, userdata);
         return;
     }
     default: errx(1, "Visiting is not supported for this AST: %s", Text$as_c_string(ast_to_sexp(ast)));

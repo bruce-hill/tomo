@@ -25,20 +25,6 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
         block = def->namespace;
         break;
     }
-    case Extend: {
-        DeclareMatch(extend, ast, Extend);
-        ns_env = namespace_env(env, extend->name);
-
-        env_t *extended = new (env_t);
-        *extended = *ns_env;
-        extended->locals = new (Table_t, .fallback = env->locals);
-        extended->namespace_bindings = new (Table_t, .fallback = env->namespace_bindings);
-        extended->id_suffix = env->id_suffix;
-        ns_env = extended;
-
-        block = extend->body;
-        break;
-    }
     case StructDef: {
         DeclareMatch(def, ast, StructDef);
         ns_env = namespace_env(env, def->name);
@@ -250,9 +236,6 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
             ")Texts(__VA_ARGS__))\n"
             "extern const TypeInfo_t ",
             namespace_name(env, env->namespace, Texts(def->name, Text("$$info"))), ";\n");
-    }
-    case Extend: {
-        return EMPTY_TEXT;
     }
     default: return EMPTY_TEXT;
     }

@@ -321,31 +321,6 @@ void prebind_statement(env_t *env, ast_t *statement) {
             prebind_statement(ns_env, stmt->ast);
         break;
     }
-    case Extend: {
-        DeclareMatch(extend, statement, Extend);
-        env_t *ns_env = namespace_env(env, extend->name);
-        env_t *extended = new (env_t);
-        *extended = *ns_env;
-        extended->locals = new (Table_t, .fallback = env->locals);
-        extended->namespace_bindings = new (Table_t, .fallback = env->namespace_bindings);
-        extended->id_suffix = env->id_suffix;
-        for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
-            prebind_statement(extended, stmt->ast);
-        List_t new_bindings = extended->locals->entries;
-        for (int64_t i = 0; i < (int64_t)new_bindings.length; i++) {
-            struct {
-                const char *name;
-                binding_t *binding;
-            } *entry = new_bindings.data + i * new_bindings.stride;
-            binding_t *clobbered = Table$str_get(*ns_env->locals, entry->name);
-            if (clobbered && !type_eq(clobbered->type, entry->binding->type))
-                code_err(statement, "This `extend` block overwrites the binding for ", quoted(entry->name),
-                         " in the original namespace (with type ", type_to_text(clobbered->type),
-                         ") with a new binding with type ", type_to_text(entry->binding->type));
-            Table$str_set(ns_env->locals, entry->name, entry->binding);
-        }
-        break;
-    }
     default: break;
     }
 }
@@ -549,31 +524,6 @@ void bind_statement(env_t *env, ast_t *statement) {
         for (ast_list_t *stmt = def->namespace ? Match(def->namespace, Block)->statements : NULL; stmt;
              stmt = stmt->next)
             bind_statement(ns_env, stmt->ast);
-        break;
-    }
-    case Extend: {
-        DeclareMatch(extend, statement, Extend);
-        env_t *ns_env = namespace_env(env, extend->name);
-        env_t *extended = new (env_t);
-        *extended = *ns_env;
-        extended->locals = new (Table_t, .fallback = env->locals);
-        extended->namespace_bindings = new (Table_t, .fallback = env->namespace_bindings);
-        extended->id_suffix = env->id_suffix;
-        for (ast_list_t *stmt = extend->body ? Match(extend->body, Block)->statements : NULL; stmt; stmt = stmt->next)
-            bind_statement(extended, stmt->ast);
-        List_t new_bindings = extended->locals->entries;
-        for (int64_t i = 0; i < (int64_t)new_bindings.length; i++) {
-            struct {
-                const char *name;
-                binding_t *binding;
-            } *entry = new_bindings.data + i * new_bindings.stride;
-            binding_t *clobbered = Table$str_get(*ns_env->locals, entry->name);
-            if (clobbered && !type_eq(clobbered->type, entry->binding->type))
-                code_err(statement, "This `extend` block overwrites the binding for ", quoted(entry->name),
-                         " in the original namespace (with type ", type_to_text(clobbered->type),
-                         ") with a new binding with type ", type_to_text(entry->binding->type));
-            Table$str_set(ns_env->locals, entry->name, entry->binding);
-        }
         break;
     }
     case Use: {
@@ -1074,8 +1024,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         case ConvertDef:
         case StructDef:
         case EnumDef:
-        case LangDef:
-        case Extend: return Type(VoidType);
+        case LangDef: return Type(VoidType);
         default: break;
         }
 
@@ -1421,10 +1370,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case ConvertDef:
     case StructDef:
     case EnumDef:
-    case LangDef:
-    case Extend: {
-        return Type(VoidType);
-    }
+    case LangDef: return Type(VoidType);
 
     case If: {
         DeclareMatch(if_, ast, If);
@@ -1580,8 +1526,7 @@ PUREFUNC bool is_discardable(env_t *env, ast_t *ast) {
     case StructDef:
     case EnumDef:
     case LangDef:
-    case Use:
-    case Extend: return true;
+    case Use: return true;
     default: break;
     }
     type_t *t = get_type(env, ast);

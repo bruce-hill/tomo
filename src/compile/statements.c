@@ -76,7 +76,6 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
     case StructDef:
     case EnumDef:
     case LangDef:
-    case Extend:
     case FunctionDef:
     case ConvertDef: {
         return EMPTY_TEXT;

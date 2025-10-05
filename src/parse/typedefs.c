@@ -26,9 +26,8 @@ ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos) {
         ast_t *stmt;
         if ((stmt = optional(ctx, &pos, parse_struct_def)) || (stmt = optional(ctx, &pos, parse_func_def))
             || (stmt = optional(ctx, &pos, parse_enum_def)) || (stmt = optional(ctx, &pos, parse_lang_def))
-            || (stmt = optional(ctx, &pos, parse_extend)) || (stmt = optional(ctx, &pos, parse_convert_def))
-            || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_inline_c))
-            || (stmt = optional(ctx, &pos, parse_declaration))) {
+            || (stmt = optional(ctx, &pos, parse_convert_def)) || (stmt = optional(ctx, &pos, parse_use))
+            || (stmt = optional(ctx, &pos, parse_inline_c)) || (stmt = optional(ctx, &pos, parse_declaration))) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
             whitespace(ctx, &pos); // TODO: check for newline
@@ -181,26 +180,4 @@ ast_t *parse_lang_def(parse_ctx_t *ctx, const char *pos) {
     if (!namespace) namespace = NewAST(ctx->file, pos, pos, Block, .statements = NULL);
 
     return NewAST(ctx->file, start, pos, LangDef, .name = name, .namespace = namespace);
-}
-
-ast_t *parse_extend(parse_ctx_t *ctx, const char *pos) {
-    const char *start = pos;
-    // extend Name: body...
-    if (!match_word(&pos, "extend")) return NULL;
-    int64_t starting_indent = get_indent(ctx, pos);
-    spaces(&pos);
-    const char *name = get_id(&pos);
-    if (!name) parser_err(ctx, start, pos, "I expected a name for this lang");
-
-    ast_t *body = NULL;
-    const char *ns_pos = pos;
-    whitespace(ctx, &ns_pos);
-    int64_t ns_indent = get_indent(ctx, ns_pos);
-    if (ns_indent > starting_indent) {
-        pos = ns_pos;
-        body = optional(ctx, &pos, parse_namespace);
-    }
-    if (!body) body = NewAST(ctx->file, pos, pos, Block, .statements = NULL);
-
-    return NewAST(ctx->file, start, pos, Extend, .name = name, .body = body);
 }

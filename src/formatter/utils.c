@@ -70,8 +70,7 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     case Lambda:
     case StructDef:
     case EnumDef:
-    case LangDef:
-    case Extend: return 1;
+    case LangDef: return 1;
     case Use: {
         if (second->tag != Use) return 1;
         break;
@@ -104,8 +103,7 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     case Lambda:
     case StructDef:
     case EnumDef:
-    case LangDef:
-    case Extend: return 1;
+    case LangDef: return 1;
     default: break;
     }
     return 0;

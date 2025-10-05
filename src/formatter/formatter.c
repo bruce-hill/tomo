@@ -116,7 +116,6 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case StructDef:
     /*inline*/ case EnumDef:
     /*inline*/ case LangDef:
-    /*inline*/ case Extend:
     /*inline*/ case FunctionDef:
     /*inline*/ case ConvertDef:
     /*inline*/ case DebugLog:
@@ -570,10 +569,6 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case LangDef: {
         DeclareMatch(def, ast, LangDef);
         return Texts("lang ", Text$from_str(def->name), format_namespace(def->namespace, comments, indent));
-    }
-    /*multiline*/ case Extend: {
-        DeclareMatch(extend, ast, Extend);
-        return Texts("lang ", Text$from_str(extend->name), format_namespace(extend->body, comments, indent));
     }
     /*multiline*/ case Defer:
         return Texts("defer ", format_namespace(Match(ast, Defer)->body, comments, indent));

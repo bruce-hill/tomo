@@ -41,9 +41,8 @@ ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
         ast_t *stmt;
         if ((stmt = optional(ctx, &pos, parse_struct_def)) || (stmt = optional(ctx, &pos, parse_func_def))
             || (stmt = optional(ctx, &pos, parse_enum_def)) || (stmt = optional(ctx, &pos, parse_lang_def))
-            || (stmt = optional(ctx, &pos, parse_extend)) || (stmt = optional(ctx, &pos, parse_convert_def))
-            || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_inline_c))
-            || (stmt = optional(ctx, &pos, parse_top_declaration))) {
+            || (stmt = optional(ctx, &pos, parse_convert_def)) || (stmt = optional(ctx, &pos, parse_use))
+            || (stmt = optional(ctx, &pos, parse_inline_c)) || (stmt = optional(ctx, &pos, parse_top_declaration))) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
             whitespace(ctx, &pos); // TODO: check for newline

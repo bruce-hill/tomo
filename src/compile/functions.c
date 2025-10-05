@@ -580,10 +580,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
     case ConvertDef:
     case StructDef:
     case EnumDef:
-    case LangDef:
-    case Extend: {
-        errx(1, "Definitions should not be reachable in a closure.");
-    }
+    case LangDef: errx(1, "Definitions should not be reachable in a closure.");
     default: break;
     }
 }
