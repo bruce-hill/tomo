@@ -117,7 +117,15 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             code = Texts(code, compile_statement(deferred->defer_env, deferred->block));
         }
 
-        type_t *ret_type = get_function_return_type(env, env->fn);
+        type_t *ret_type;
+        if (env->fn->tag == Lambda) {
+            if (Match(env->fn, Lambda)->ret_type != NULL)
+                ret_type = parse_type_ast(env, Match(env->fn, Lambda)->ret_type);
+            else ret_type = ret ? get_type(env, ret) : Type(VoidType);
+        } else {
+            ret_type = get_function_return_type(env, env->fn);
+        }
+
         if (ret) {
             if (ret_type->tag == VoidType || ret_type->tag == AbortType)
                 code_err(ast, "This function is not supposed to return any values, "

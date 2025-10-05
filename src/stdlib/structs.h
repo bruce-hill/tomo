@@ -13,7 +13,6 @@ PUREFUNC int32_t Struct$compare(const void *x, const void *y, const TypeInfo_t *
 PUREFUNC bool Struct$equal(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool PackedData$equal(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC Text_t Struct$as_text(const void *obj, bool colorize, const TypeInfo_t *type);
-PUREFUNC bool Struct$is_none(const void *obj, const TypeInfo_t *type);
 void Struct$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
 void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type);
 
@@ -23,7 +22,6 @@ void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo
         .compare = Struct$compare,                                                                                     \
         .equal = Struct$equal,                                                                                         \
         .as_text = Struct$as_text,                                                                                     \
-        .is_none = Struct$is_none,                                                                                     \
         .serialize = Struct$serialize,                                                                                 \
         .deserialize = Struct$deserialize,                                                                             \
     }
@@ -34,7 +32,6 @@ void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo
         .compare = Struct$compare,                                                                                     \
         .equal = PackedData$equal,                                                                                     \
         .as_text = Struct$as_text,                                                                                     \
-        .is_none = Struct$is_none,                                                                                     \
         .serialize = Struct$serialize,                                                                                 \
         .deserialize = Struct$deserialize,                                                                             \
     }

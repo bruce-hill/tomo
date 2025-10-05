@@ -135,8 +135,8 @@ Text_t compile_type_info(type_t *t) {
     }
     case OptionalType: {
         type_t *non_optional = Match(t, OptionalType)->type;
-        return Texts("Optional$info(sizeof(", compile_type(non_optional), "), __alignof__(", compile_type(non_optional),
-                     "), ", compile_type_info(non_optional), ")");
+        return Texts("Optional$info(", (int64_t)type_size(t), ", ", (int64_t)type_align(t), ", ",
+                     compile_type_info(non_optional), ")");
     }
     case TypeInfoType: return Texts("Type$info(", quoted_text(type_to_text(Match(t, TypeInfoType)->type)), ")");
     case MemoryType: return Text("&Memory$info");

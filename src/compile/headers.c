@@ -106,6 +106,8 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast) {
         DeclareMatch(def, ast, LangDef);
         *info->header = Texts(*info->header, "typedef Text_t ",
                               namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type")), ";\n");
+        *info->header = Texts(*info->header, "typedef Text_t ", "Optional",
+                              namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type")), ";\n");
     }
 }
 

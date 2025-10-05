@@ -70,12 +70,14 @@ Text_t compile_struct_header(env_t *env, ast_t *ast) {
     Text_t struct_code = def->external ? EMPTY_TEXT : Texts(type_code, " {\n", fields, "};\n");
     type_t *t = Table$str_get(*env->types, def->name);
 
-    Text_t unpadded_size = def->opaque ? Texts("sizeof(", type_code, ")") : Texts((int64_t)unpadded_struct_size(t));
     Text_t typeinfo_code = Texts("extern const TypeInfo_t ", typeinfo_name, ";\n");
     Text_t optional_code = EMPTY_TEXT;
     if (!def->opaque) {
-        optional_code = Texts("DEFINE_OPTIONAL_TYPE(", compile_type(t), ", ", unpadded_size, ", ",
-                              namespace_name(env, env->namespace, Texts("$Optional", def->name, "$$type")), ");\n");
+        optional_code = Texts("typedef struct {\n", compile_type(t),
+                              " value;\n"
+                              "Bool_t has_value;\n"
+                              "} ",
+                              namespace_name(env, env->namespace, Texts("$Optional", def->name, "$$type")), ";\n");
     }
     return Texts(struct_code, optional_code, typeinfo_code);
 }

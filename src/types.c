@@ -476,11 +476,9 @@ PUREFUNC size_t type_size(type_t *t) {
             default: errx(1, "Invalid integer bit size");
             }
         case StructType: {
-            size_t size = unpadded_struct_size(nonnull);
-            size += sizeof(bool); // is_null flag
-            size_t align = type_align(nonnull);
-            if (align > 0 && (size % align) > 0) size = (size + align) - (size % align);
-            return size;
+            arg_t *fields = new (arg_t, .name = "value", .type = nonnull,
+                                 .next = new (arg_t, .name = "has_value", .type = Type(BoolType)));
+            return type_size(Type(StructType, .fields = fields));
         }
         default: return type_size(nonnull);
         }

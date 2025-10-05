@@ -160,9 +160,8 @@ PUREFUNC public Text_t Struct$as_text(const void *obj, bool colorize, const Type
     return Text$concat(text, Text(")"));
 }
 
-PUREFUNC public bool Struct$is_none(const void *obj, const TypeInfo_t *type) { return *(bool *)(obj + type->size); }
-
 public
+
 void Struct$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type) {
     ptrdiff_t byte_offset = 0;
     ptrdiff_t bit_offset = 0;

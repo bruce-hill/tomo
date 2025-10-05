@@ -690,9 +690,10 @@ OptionalClosure_t Path$by_line(Path_t path) {
             // be closed by GC finalizers.
             GC_gcollect();
             f = fopen(path_str, "r");
-            if (f == NULL) return NONE_CLOSURE;
         }
     }
+
+    if (f == NULL) return NONE_CLOSURE;
 
     FILE **wrapper = GC_MALLOC(sizeof(FILE *));
     *wrapper = f;

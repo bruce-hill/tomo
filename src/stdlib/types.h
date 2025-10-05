@@ -102,14 +102,3 @@ Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo_t *type)
         .tag = TypeInfoInfo,                                                                                           \
         .TypeInfoInfo.type_str = typestr,                                                                              \
         .metamethods = {.serialize = cannot_serialize, .deserialize = cannot_deserialize, .as_text = Type$as_text}})
-
-#define DEFINE_OPTIONAL_TYPE(t, unpadded_size, name)                                                                   \
-    typedef struct {                                                                                                   \
-        union {                                                                                                        \
-            t value;                                                                                                   \
-            struct {                                                                                                   \
-                char _padding[unpadded_size];                                                                          \
-                Bool_t has_value;                                                                                      \
-            };                                                                                                         \
-        };                                                                                                             \
-    } name

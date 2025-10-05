@@ -19,5 +19,5 @@ Text_t Func$as_text(const void *fn, bool colorize, const TypeInfo_t *type) {
 public
 PUREFUNC bool Func$is_none(const void *obj, const TypeInfo_t *info) {
     (void)info;
-    return *(void **)obj == NULL;
+    return ((Closure_t *)obj)->fn == NULL;
 }

@@ -1067,7 +1067,10 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case Return: {
         ast_t *val = Match(ast, Return)->value;
-        if (env->fn) env = with_enum_scope(env, get_function_return_type(env, env->fn));
+        if (env->fn && (env->fn->tag != Lambda || Match(env->fn, Lambda)->ret_type != NULL)) {
+            type_t *ret_type = get_function_return_type(env, env->fn);
+            env = with_enum_scope(env, ret_type);
+        }
         return Type(ReturnType, .ret = (val ? get_type(env, val) : Type(VoidType)));
     }
     case Stop:

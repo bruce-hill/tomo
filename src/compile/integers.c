@@ -22,11 +22,13 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
         return code;
     }
 
-    if (target->tag == BigIntType) return compile(env, ast);
+    if (non_optional(target)->tag == BigIntType) return compile(env, ast);
 
-    if (target->tag == OptionalType && Match(target, OptionalType)->type)
+    if (target->tag == OptionalType && Match(target, OptionalType)->type) {
         return Texts("((", compile_type(target),
-                     "){.value=", compile_int_to_type(env, ast, Match(target, OptionalType)->type), "})");
+                     "){.value=", compile_int_to_type(env, ast, Match(target, OptionalType)->type),
+                     ", .has_value=true})");
+    }
 
     const char *literal = Match(ast, Int)->str;
     OptionalInt_t int_val = Int$from_str(literal);
