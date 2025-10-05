@@ -12,7 +12,7 @@
 public
 Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t) {
     if (is_idempotent(ast) && can_be_mutated(env, ast)) {
-        type_t *actual = get_type(env, ast);
+        type_t *actual = get_type(with_enum_scope(env, t), ast);
         if (t->tag == ListType && type_eq(t, actual)) return Texts("LIST_COPY(", compile_to_type(env, ast, t), ")");
         else if (t->tag == TableType && type_eq(t, actual))
             return Texts("TABLE_COPY(", compile_to_type(env, ast, t), ")");
