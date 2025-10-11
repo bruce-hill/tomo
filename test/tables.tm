@@ -87,3 +87,13 @@ func main()
 		assert a.intersection(b) == {"B":2}
 		assert a.difference(b) == {"A":1, "D":40}
 		assert a.without(b) == {"A":1, "C":3}
+
+	do
+		# Set operations with sets
+		a := {"A", "B", "C"}
+		b := {"B", "C", "D"}
+		assert a.with(b) == {"A", "B", "C", "D"}
+		assert a.with(b) == a ++ b
+		assert a.intersection(b) == {"B", "C"}
+		assert a.difference(b) == {"A", "D"}
+		assert a.without(b) == {"A"}

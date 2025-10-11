@@ -73,8 +73,9 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
         if (has_stack_memory(key_type))
             code_err(key_type_ast, "Tables can't have stack references because the list may outlive the stack frame.");
 
-        type_t *val_type = parse_type_ast(env, table_type->value);
-        if (!val_type) code_err(table_type->value, "I can't figure out what type this is.");
+        type_t *val_type = table_type->value ? parse_type_ast(env, table_type->value) : EMPTY_TYPE;
+        if (!val_type) code_err(ast, "I can't figure out what the value type for this entry is.");
+
         if (has_stack_memory(val_type))
             code_err(table_type->value,
                      "Tables can't have stack references because the list may outlive the stack frame.");
@@ -814,7 +815,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
             DeclareMatch(e, entry_ast, TableEntry);
             type_t *key_t = get_type(scope, e->key);
-            type_t *value_t = get_type(scope, e->value);
+            type_t *value_t = e->value ? get_type(scope, e->value) : EMPTY_TYPE;
 
             type_t *key_merged = key_type ? type_or_type(key_type, key_t) : key_t;
             if (!key_merged) ambiguous_key_type = true;
@@ -846,8 +847,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
             return get_type(scope, comp->expr);
         } else if (comp->expr->tag == TableEntry) {
             DeclareMatch(e, comp->expr, TableEntry);
-            return Type(TableType, .key_type = get_type(scope, e->key), .value_type = get_type(scope, e->value),
-                        .env = env);
+            return Type(TableType, .key_type = get_type(scope, e->key),
+                        .value_type = e->value ? get_type(scope, e->value) : EMPTY_TYPE, .env = env);
         } else {
             return Type(ListType, .item_type = get_type(scope, comp->expr));
         }
@@ -1711,7 +1712,8 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
         for (ast_list_t *entry = Match(ast, Table)->entries; entry; entry = entry->next) {
             if (entry->ast->tag != TableEntry) continue; // TODO: fix this
             DeclareMatch(e, entry->ast, TableEntry);
-            if (!can_compile_to_type(env, e->key, key_type) || !can_compile_to_type(env, e->value, value_type))
+            if (!can_compile_to_type(env, e->key, key_type)
+                || !(e->value ? can_compile_to_type(env, e->value, value_type) : type_eq(value_type, EMPTY_TYPE)))
                 return false;
         }
         return true;

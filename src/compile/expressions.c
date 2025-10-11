@@ -27,7 +27,7 @@ Text_t compile_empty(type_t *t) {
     if (t->tag == OptionalType) return compile_none(t);
 
     if (t == PATH_TYPE) return Text("NONE_PATH");
-    else if (t == PATH_TYPE_TYPE) return Text("((OptionalPathType_t){})");
+    else if (t == PATH_TYPE_TYPE) return Text("PATHTYPE_ABSOLUTE");
 
     switch (t->tag) {
     case BigIntType: return Text("I(0)");

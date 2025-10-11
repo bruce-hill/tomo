@@ -2,7 +2,6 @@
 
 #include <stdarg.h>
 #include <stdbool.h>
-#include <string.h>
 
 #include "../ast.h"
 #include "../stdlib/util.h"
@@ -50,8 +49,9 @@ ast_t *parse_table(parse_ctx_t *ctx, const char *pos) {
         ast_t *key = optional(ctx, &pos, parse_extended_expr);
         if (!key) break;
         whitespace(ctx, &pos);
-        if (!match(&pos, ":")) return NULL;
-        ast_t *value = expect(ctx, pos - 1, &pos, parse_expr, "I couldn't parse the value for this table entry");
+        ast_t *value = NULL;
+        if (match(&pos, ":"))
+            value = expect(ctx, pos - 1, &pos, parse_expr, "I couldn't parse the value for this table entry");
         ast_t *entry = NewAST(ctx->file, entry_start, pos, TableEntry, .key = key, .value = value);
         ast_t *suffixed = parse_comprehension_suffix(ctx, entry);
         while (suffixed) {

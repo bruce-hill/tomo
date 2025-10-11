@@ -27,8 +27,6 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     type_ast_t *value_type = NULL;
     if (match(&pos, ":")) {
         value_type = expect(ctx, start, &pos, parse_type, "I couldn't parse the rest of this table type");
-    } else {
-        return NULL;
     }
     spaces(&pos);
     ast_t *default_value = NULL;

@@ -53,7 +53,7 @@ Text_t compile_none(type_t *t) {
     if (t == NULL) compiler_err(NULL, NULL, NULL, "I can't compile a `none` value with no type");
 
     if (t == PATH_TYPE) return Text("NONE_PATH");
-    else if (t == PATH_TYPE_TYPE) return Text("((OptionalPathType_t){.type = PATHTYPE_NONE})");
+    else if (t == PATH_TYPE_TYPE) return Text("PATHTYPE_NONE");
 
     switch (t->tag) {
     case BigIntType: return Text("NONE_INT");

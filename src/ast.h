@@ -116,7 +116,7 @@ struct type_ast_s {
             type_ast_t *item;
         } ListTypeAST;
         struct {
-            type_ast_t *key, *value;
+            type_ast_t *key, *value /* value may be NULL */;
             ast_t *default_value;
         } TableTypeAST;
         struct {
@@ -339,7 +339,7 @@ struct ast_s {
             ast_list_t *entries;
         } Table;
         struct {
-            ast_t *key, *value;
+            ast_t *key, *value /* value may be NULL */;
         } TableEntry;
         struct {
             ast_list_t *vars;

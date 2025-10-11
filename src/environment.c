@@ -18,6 +18,8 @@ public
 type_t *PATH_TYPE = NULL;
 public
 type_t *PATH_TYPE_TYPE = NULL;
+public
+type_t *EMPTY_TYPE = NULL;
 
 static type_t *declare_type(env_t *env, const char *def_str) {
     ast_t *ast = parse_file_str(def_str);
@@ -68,7 +70,7 @@ env_t *global_env(bool source_mapping) {
     PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
     PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
 
-    type_t *empty_type = declare_type(env, "struct Empty()");
+    EMPTY_TYPE = declare_type(env, "struct Empty()");
 
     typedef struct {
         const char *name, *code, *type_str;
@@ -88,7 +90,7 @@ env_t *global_env(bool source_mapping) {
         MAKE_TYPE("Void", Type(VoidType), Text("void"), Text("Void$info")),
         MAKE_TYPE("Abort", Type(AbortType), Text("void"), Text("Abort$info")),
         MAKE_TYPE("Memory", Type(MemoryType), Text("void"), Text("Memory$info")),
-        MAKE_TYPE("Empty", empty_type, Text("Empty$$type"), Text("Empty$$info")),
+        MAKE_TYPE("Empty", EMPTY_TYPE, Text("Empty$$type"), Text("Empty$$info")),
         MAKE_TYPE( //
             "Bool", Type(BoolType), Text("Bool_t"), Text("Bool$info"),
             {"parse", "Bool$parse", "func(text:Text, remainder:&Text? = none -> Bool?)"}),

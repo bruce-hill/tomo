@@ -37,7 +37,9 @@ Text_t type_to_text(type_t *t) {
     }
     case TableType: {
         DeclareMatch(table, t, TableType);
-        return Texts("{", type_to_text(table->key_type), "=", type_to_text(table->value_type), "}");
+        return (table->value_type && table->value_type != EMPTY_TYPE)
+                   ? Texts("{", type_to_text(table->key_type), ":", type_to_text(table->value_type), "}")
+                   : Texts("{", type_to_text(table->key_type), "}");
     }
     case ClosureType: {
         return type_to_text(Match(t, ClosureType)->fn);

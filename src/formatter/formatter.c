@@ -223,7 +223,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case TableEntry: {
         DeclareMatch(entry, ast, TableEntry);
-        return Texts(fmt_inline(entry->key, comments), "=", fmt_inline(entry->value, comments));
+        if (entry->value) return Texts(fmt_inline(entry->key, comments), ": ", fmt_inline(entry->value, comments));
+        else return Texts(fmt_inline(entry->key, comments));
     }
     /*inline*/ case Declare: {
         DeclareMatch(decl, ast, Declare);
@@ -629,7 +630,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case TableEntry: {
         if (inlined_fits) return inlined;
         DeclareMatch(entry, ast, TableEntry);
-        return Texts(fmt(entry->key, comments, indent), ": ", fmt(entry->value, comments, indent));
+        if (entry->value) return Texts(fmt(entry->key, comments, indent), ": ", fmt(entry->value, comments, indent));
+        else return Texts(fmt(entry->key, comments, indent));
     }
     /*multiline*/ case Declare: {
         if (inlined_fits) return inlined;
