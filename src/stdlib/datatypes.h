@@ -73,6 +73,11 @@ typedef struct Empty$$struct {
 } Empty$$type;
 
 typedef struct {
+    bool has_value;
+    Empty$$type value;
+} $OptionalEmpty$$type;
+
+typedef struct {
     void *fn, *userdata;
 } Closure_t;
 
