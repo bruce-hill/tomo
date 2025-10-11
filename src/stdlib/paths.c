@@ -32,8 +32,8 @@
 // Use inline version of the siphash code for performance:
 #include "siphash-internals.h"
 
-static const Path_t HOME_PATH = {.type = PATH_HOME}, ROOT_PATH = {.type = PATH_ABSOLUTE},
-                    CURDIR_PATH = {.type = PATH_RELATIVE};
+static const Path_t HOME_PATH = {.type = PATHTYPE_HOME}, ROOT_PATH = {.type = PATHTYPE_ABSOLUTE},
+                    CURDIR_PATH = {.type = PATHTYPE_RELATIVE};
 
 static void clean_components(List_t *components) {
     for (int64_t i = 0; i < (int64_t)components->length;) {
@@ -64,16 +64,16 @@ Path_t Path$from_str(const char *str) {
 
     Path_t result = {.components = {}};
     if (str[0] == '/') {
-        result.type = PATH_ABSOLUTE;
+        result.type = PATHTYPE_ABSOLUTE;
         str += 1;
     } else if (str[0] == '~' && str[1] == '/') {
-        result.type = PATH_HOME;
+        result.type = PATHTYPE_HOME;
         str += 2;
     } else if (str[0] == '.' && str[1] == '/') {
-        result.type = PATH_RELATIVE;
+        result.type = PATHTYPE_RELATIVE;
         str += 2;
     } else {
-        result.type = PATH_RELATIVE;
+        result.type = PATHTYPE_RELATIVE;
     }
 
     while (str && *str) {
@@ -104,12 +104,12 @@ Path_t Path$from_text(Text_t text) { return Path$from_str(Text$as_c_string(text)
 
 public
 Path_t Path$expand_home(Path_t path) {
-    if (path.type == PATH_HOME) {
+    if (path.type == PATHTYPE_HOME) {
         Path_t pwd = Path$from_str(getenv("HOME"));
         List_t components = List$concat(pwd.components, path.components, sizeof(Text_t));
         assert(components.length == path.components.length + pwd.components.length);
         clean_components(&components);
-        path = (Path_t){.type = PATH_ABSOLUTE, .components = components};
+        path = (Path_t){.type = PATHTYPE_ABSOLUTE, .components = components};
     }
     return path;
 }
@@ -120,7 +120,7 @@ Path_t Path$_concat(int n, Path_t items[n]) {
     Path_t result = items[0];
     LIST_INCREF(result.components);
     for (int i = 1; i < n; i++) {
-        if (items[i].type != PATH_RELATIVE)
+        if (items[i].type != PATHTYPE_RELATIVE)
             fail("Cannot concatenate an absolute or home-based path onto another path: (", items[i], ")");
         List$insert_all(&result.components, items[i].components, I(0), sizeof(Text_t));
     }
@@ -130,7 +130,7 @@ Path_t Path$_concat(int n, Path_t items[n]) {
 
 public
 Path_t Path$resolved(Path_t path, Path_t relative_to) {
-    if (path.type == PATH_RELATIVE && !(relative_to.type == PATH_RELATIVE && relative_to.components.length == 0)) {
+    if (path.type == PATHTYPE_RELATIVE && !(relative_to.type == PATHTYPE_RELATIVE && relative_to.components.length == 0)) {
         Path_t result = {.type = relative_to.type};
         result.components = relative_to.components;
         LIST_INCREF(result.components);
@@ -147,7 +147,7 @@ Path_t Path$relative_to(Path_t path, Path_t relative_to) {
         fail("Cannot create a path relative to a different path with a mismatching type: (", path, ") relative to (",
              relative_to, ")");
 
-    Path_t result = {.type = PATH_RELATIVE};
+    Path_t result = {.type = PATHTYPE_RELATIVE};
     int64_t shared = 0;
     for (; shared < (int64_t)path.components.length && shared < (int64_t)relative_to.components.length; shared++) {
         Text_t *p = (Text_t *)(path.components.data + shared * path.components.stride);
@@ -558,7 +558,7 @@ Path_t Path$write_unique(Path_t path, Text_t text) { return Path$write_unique_by
 
 public
 Path_t Path$parent(Path_t path) {
-    if (path.type == PATH_ABSOLUTE && path.components.length == 0) {
+    if (path.type == PATHTYPE_ABSOLUTE && path.components.length == 0) {
         return path;
     } else if (path.components.length > 0
                && !Text$equal_values(
@@ -577,8 +577,8 @@ public
 PUREFUNC Text_t Path$base_name(Path_t path) {
     if (path.components.length >= 1)
         return *(Text_t *)(path.components.data + path.components.stride * ((int64_t)path.components.length - 1));
-    else if (path.type == PATH_HOME) return Text("~");
-    else if (path.type == PATH_RELATIVE) return Text(".");
+    else if (path.type == PATHTYPE_HOME) return Text("~");
+    else if (path.type == PATHTYPE_RELATIVE) return Text(".");
     else return EMPTY_TEXT;
 }
 
@@ -765,17 +765,17 @@ PUREFUNC bool Path$equal_values(Path_t a, Path_t b) {
 public
 int Path$print(FILE *f, Path_t path) {
     if (path.components.length == 0) {
-        if (path.type == PATH_ABSOLUTE) return fputs("/", f);
-        else if (path.type == PATH_RELATIVE) return fputs(".", f);
-        else if (path.type == PATH_HOME) return fputs("~", f);
+        if (path.type == PATHTYPE_ABSOLUTE) return fputs("/", f);
+        else if (path.type == PATHTYPE_RELATIVE) return fputs(".", f);
+        else if (path.type == PATHTYPE_HOME) return fputs("~", f);
     }
 
     int n = 0;
-    if (path.type == PATH_ABSOLUTE) {
+    if (path.type == PATHTYPE_ABSOLUTE) {
         n += fputc('/', f);
-    } else if (path.type == PATH_HOME) {
+    } else if (path.type == PATHTYPE_HOME) {
         n += fputs("~/", f);
-    } else if (path.type == PATH_RELATIVE) {
+    } else if (path.type == PATHTYPE_RELATIVE) {
         if (!Text$equal_values(*(Text_t *)path.components.data, Text(".."))) n += fputs("./", f);
     }
 
@@ -796,9 +796,9 @@ Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type) {
     if (!obj) return Text("Path");
     Path_t *path = (Path_t *)obj;
     Text_t text = Text$join(Text("/"), path->components);
-    if (path->type == PATH_HOME) text = Text$concat(path->components.length > 0 ? Text("~/") : Text("~"), text);
-    else if (path->type == PATH_ABSOLUTE) text = Text$concat(Text("/"), text);
-    else if (path->type == PATH_RELATIVE
+    if (path->type == PATHTYPE_HOME) text = Text$concat(path->components.length > 0 ? Text("~/") : Text("~"), text);
+    else if (path->type == PATHTYPE_ABSOLUTE) text = Text$concat(Text("/"), text);
+    else if (path->type == PATHTYPE_RELATIVE
              && (path->components.length == 0 || !Text$equal_values(*(Text_t *)(path->components.data), Text(".."))))
         text = Text$concat(path->components.length > 0 ? Text("./") : Text("."), text);
 
@@ -810,7 +810,7 @@ Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type) {
 public
 CONSTFUNC bool Path$is_none(const void *obj, const TypeInfo_t *type) {
     (void)type;
-    return ((Path_t *)obj)->type == PATH_NONE;
+    return ((Path_t *)obj)->type == PATHTYPE_NONE;
 }
 
 public

@@ -290,9 +290,9 @@ env_t *global_env(bool source_mapping) {
 #undef C
         MAKE_TYPE( //
             "PathType", PATH_TYPE_TYPE, Text("PathType_t"), Text("PathType$info"), //
-            {"Relative", "PATH_RELATIVE", "PathType"}, //
-            {"Absolute", "PATH_ABSOLUTE", "PathType"}, //
-            {"Home", "PATH_HOME", "PathType"}),
+            {"Relative", "PATHTYPE_RELATIVE", "PathType"}, //
+            {"Absolute", "PATHTYPE_ABSOLUTE", "PathType"}, //
+            {"Home", "PATHTYPE_HOME", "PathType"}),
         MAKE_TYPE( //
             "Path", PATH_TYPE, Text("Path_t"), Text("Path$info"), //
             {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //

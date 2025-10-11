@@ -101,7 +101,7 @@ typedef struct Text_s {
     };
 } Text_t;
 
-typedef enum PathEnum { PATH_NONE, PATH_RELATIVE, PATH_ABSOLUTE, PATH_HOME } PathType_t;
+typedef enum PathEnum { PATHTYPE_NONE, PATHTYPE_RELATIVE, PATHTYPE_ABSOLUTE, PATHTYPE_HOME } PathType_t;
 #define OptionalPathType_t PathType_t
 
 typedef struct {
