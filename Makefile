@@ -255,7 +255,7 @@ uninstall:
 		exit 0; \
 	fi; \
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"[0-9]* "$(PREFIX)/bin/tomo_v"* "$(PREFIX)/include/tomo_v"* \
-		"$(PREFIX)/lib/libtomo_v*" "$(PREFIX)/lib/tomo_$(TOMO_VERSION)"; \
+		"$(PREFIX)/lib/libtomo_v*" "$(PREFIX)/lib/tomo_$(TOMO_VERSION)" "$(PREFIX)/share/licenses/tomo_$(TOMO_VERSION)"; \
 	sh link_versions.sh
 
 endif
