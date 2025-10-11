@@ -13,6 +13,9 @@ func main()
     >> tmpdir := (/tmp/tomo-test-path-XXXXXX).unique_directory()
     assert (/tmp).subdirectories().has(tmpdir)
 
+    >> optional_path : Path? = (./foo)
+    assert optional_path == (./foo)
+
     >> tmpfile := (tmpdir++(./one.txt))
     >> tmpfile.write("Hello world")
     >> tmpfile.append("!")
