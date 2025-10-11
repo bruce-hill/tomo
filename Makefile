@@ -235,10 +235,12 @@ install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) 
 		$(SUDO) -u $(OWNER) $(MAKE) install-files; \
 		exit 0; \
 	fi; \
-	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" "$(PREFIX)/include/tomo_$(TOMO_VERSION)" "$(PREFIX)/lib" "$(PREFIX)/lib/tomo_$(TOMO_VERSION)"; \
+	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" \
+		"$(PREFIX)/include/tomo_$(TOMO_VERSION)" "$(PREFIX)/lib" "$(PREFIX)/lib/tomo_$(TOMO_VERSION)" "$(PREFIX)/share/licenses/tomo_$(TOMO_VERSION)"; \
 	cp src/stdlib/*.h "$(PREFIX)/include/tomo_$(TOMO_VERSION)/"; \
 	cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"; \
 	cp $(MODULES_FILE) "$(PREFIX)/lib/tomo_$(TOMO_VERSION)"; \
+	cp LICENSE.md "$(PREFIX)/share/licenses/tomo_$(TOMO_VERSION)"; \
 	rm -f "$(PREFIX)/bin/$(EXE_FILE)"; \
 	cp build/bin/$(EXE_FILE) "$(PREFIX)/bin/"; \
 	cp man/man1/* "$(PREFIX)/man/man1/"; \
