@@ -2,17 +2,17 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.unique 3 2025-09-21 "Tomo man-pages"
+.TH List.unique 3 2025-10-11 "Tomo man-pages"
 .SH NAME
 List.unique \- get the unique items in a list
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI List.unique\ :\ func(list:\ [T]\ ->\ [T])
+.BI List.unique\ :\ func(list:\ [T]\ ->\ {T})
 .fi
 .SH DESCRIPTION
-Returns a list of the unique elements of the list.
+Returns a set of the unique elements of the list.
 
 
 .SH ARGUMENTS
@@ -25,9 +25,9 @@ Name	Type	Description	Default
 list	[T]	The list to process. 	-
 .TE
 .SH RETURN
-A list of the unique elements from the list.
+A set of the unique elements from the list.
 
 .SH EXAMPLES
 .EX
-assert [10, 20, 10, 10, 30].unique() == [10, 20, 30]
+assert [10, 20, 10, 10, 30].unique() == {10, 20, 30}
 .EE

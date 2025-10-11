@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from_codepoint_names 3 2025-04-30 "Tomo man-pages"
+.TH Text.from_codepoint_names 3 2025-10-11 "Tomo man-pages"
 .SH NAME
 Text.from_codepoint_names \- convert list of unicode codepoint names to text
 .SH LIBRARY
@@ -32,10 +32,10 @@ The text will be normalized, so the resulting text's codepoints may not exactly 
 
 .SH EXAMPLES
 .EX
->> Text.from_codepoint_names([
-"LATIN CAPITAL LETTER A WITH RING ABOVE",
-"LATIN SMALL LETTER K",
-"LATIN SMALL LETTER E",
+text := Text.from_codepoint_names([
+    "LATIN CAPITAL LETTER A WITH RING ABOVE",
+    "LATIN SMALL LETTER K",
+    "LATIN SMALL LETTER E",
 ]
-= "Åke"
+assert text == "Åke"
 .EE

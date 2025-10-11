@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.expand_home 3 2025-05-17 "Tomo man-pages"
+.TH Path.expand_home 3 2025-10-11 "Tomo man-pages"
 .SH NAME
 Path.expand_home \- expand ~ to $HOME
 .SH LIBRARY
@@ -29,8 +29,8 @@ If the path does not start with a `~`, then return it unmodified. Otherwise, rep
 
 .SH EXAMPLES
 .EX
->> (~/foo).expand_home() # Assume current user is 'user'
-= /home/user/foo
->> (/foo).expand_home() # No change
-= /foo
+# Assume current user is 'user'
+assert (~/foo).expand_home() == (/home/user/foo)
+# No change
+assert (/foo).expand_home() == (/foo)
 .EE

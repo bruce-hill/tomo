@@ -607,18 +607,18 @@ List.to:
 List.unique:
   short: get the unique items in a list
   description: >
-    Returns a list of the unique elements of the list.
+    Returns a set of the unique elements of the list.
   return:
-    type: '[T]'
+    type: '{T}'
     description: >
-      A list of the unique elements from the list.
+      A set of the unique elements from the list.
   args:
     list:
       type: '[T]'
       description: >
         The list to process.
   example: |
-    assert [10, 20, 10, 10, 30].unique() == [10, 20, 30]
+    assert [10, 20, 10, 10, 30].unique() == {10, 20, 30}
 
 List.where:
   short: find an index where a predicate matches

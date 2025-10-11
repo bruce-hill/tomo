@@ -390,8 +390,10 @@ PUREFUNC public bool Table$equal(const void *vx, const void *vy, const TypeInfo_
         void *x_key = x->entries.data + i * x->entries.stride;
         void *y_value = Table$get_raw(*y, x_key, type);
         if (!y_value) return false;
-        void *x_value = x_key + offset;
-        if (!generic_equal(y_value, x_value, value_type)) return false;
+        if (value_type->size > 0) {
+            void *x_value = x_key + offset;
+            if (!generic_equal(y_value, x_value, value_type)) return false;
+        }
     }
     return true;
 }
@@ -439,7 +441,7 @@ PUREFUNC public int32_t Table$compare(const void *vx, const void *vy, const Type
 
         void *y_value = key + value_offset(type);
         void *x_value = Table$get_raw(*x, key, type);
-        if (!x_value || !generic_equal(x_value, y_value, table.value)) {
+        if (!x_value || (table.value->size > 0 && !generic_equal(x_value, y_value, table.value))) {
             if (mismatched_key == NULL || generic_compare(key, mismatched_key, table.key) < 0) mismatched_key = key;
         }
     }
@@ -589,7 +591,7 @@ Table_t Table$intersection(Table_t a, Table_t b, const TypeInfo_t *type) {
             void *key = GET_ENTRY(*t, i);
             void *a_value = key + offset;
             void *b_value = Table$get(b, key, type);
-            if (b_value && generic_equal(a_value, b_value, type->TableInfo.value))
+            if (b_value && (type->TableInfo.value->size == 0 || generic_equal(a_value, b_value, type->TableInfo.value)))
                 Table$set(&result, key, a_value, type);
         }
     }
@@ -650,7 +652,8 @@ Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type) {
             void *key = GET_ENTRY(*t, i);
             void *a_value = key + offset;
             void *b_value = Table$get(b, key, type);
-            if (!b_value || !generic_equal(a_value, b_value, type->TableInfo.value))
+            if (!b_value
+                || (type->TableInfo.value->size > 0 && !generic_equal(a_value, b_value, type->TableInfo.value)))
                 Table$set(&result, key, a_value, type);
         }
     }

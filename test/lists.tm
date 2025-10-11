@@ -144,4 +144,4 @@ func main()
 		assert nums[] == []
 		assert nums.pop() == none
 	
-	assert [1,2,1,2,3].unique() == [1,2,3]
+	assert [1,2,1,2,3].unique() == {1,2,3}

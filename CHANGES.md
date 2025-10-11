@@ -12,8 +12,11 @@
 - Syntax for tables has changed to use colons (`{k: v}`) instead of equals
   (`{k=v}`).
 - Deprecated:
-  - Sets
-    - Instead of sets, use tables.
+  - Sets are no longer a separate type with separate methods.
+    - Instead of sets, use tables with a value type of `{KeyType:Empty}`.
+    - As a shorthand, you can use `{a,b,c}` instead of `{a:Empty(),
+      b:Empty(), c:Empty()}` and the type annotation `{K}` as shorthand for
+      `{K:Empty}`.
     - Tables now have `and`, `or`, `xor`, and `-` (minus) metamethods.
   - `extern` keyword for declaring external symbols from C.
     - Use `C_code` instead.
@@ -31,6 +34,8 @@
   `table.intersection(other)`, and `table.difference(other)`.
 - Added `Empty` for a built-in empty struct type and `EMPTY` for an instance of
   the empty struct.
+- Changed `list.unique()` to return a table with `Empty()` values for each
+  unique list item.
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
 - Standardized text methods for Unicode encodings:

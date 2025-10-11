@@ -569,21 +569,21 @@ assert [10, 20, 30, 40, 50].to(-2) == [10, 20, 30, 40]
 ## List.unique
 
 ```tomo
-List.unique : func(list: [T] -> [T])
+List.unique : func(list: [T] -> {T})
 ```
 
-Returns a list of the unique elements of the list.
+Returns a set of the unique elements of the list.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `[T]` | The list to process.  | -
 
-**Return:** A list of the unique elements from the list.
+**Return:** A set of the unique elements from the list.
 
 
 **Example:**
 ```tomo
-assert [10, 20, 10, 10, 30].unique() == [10, 20, 30]
+assert [10, 20, 10, 10, 30].unique() == {10, 20, 30}
 
 ```
 ## List.where

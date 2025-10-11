@@ -969,7 +969,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "sort")) return Type(VoidType);
             else if (streq(call->name, "sorted")) return self_value_t;
             else if (streq(call->name, "to")) return self_value_t;
-            else if (streq(call->name, "unique")) return Type(ListType, .item_type = item_type);
+            else if (streq(call->name, "unique"))
+                return Type(TableType, .key_type = item_type, .value_type = EMPTY_TYPE);
             else code_err(ast, "There is no '", call->name, "' method for lists");
         }
         case TableType: {

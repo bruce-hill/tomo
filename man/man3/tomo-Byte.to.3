@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.to 3 2025-04-30 "Tomo man-pages"
+.TH Byte.to 3 2025-10-11 "Tomo man-pages"
 .SH NAME
 Byte.to \- iterate over a range of bytes
 .SH LIBRARY
@@ -31,13 +31,13 @@ An iterator function that returns each byte in the given range (inclusive).
 
 .SH EXAMPLES
 .EX
->> Byte(2).to(5)
-= func(->Byte?)
->> [x for x in Byte(2).to(5)]
-= [Byte(2), Byte(3), Byte(4), Byte(5)]
->> [x for x in Byte(5).to(2)]
-= [Byte(5), Byte(4), Byte(3), Byte(2)]
+iter := Byte(2).to(4)
+assert iter() == 2
+assert iter() == 3
+assert iter() == 4
+assert iter() == none
 
->> [x for x in Byte(2).to(5, step=2)]
-= [Byte(2), Byte(4)]
+assert [x for x in Byte(2).to(5)] == [Byte(2), Byte(3), Byte(4), Byte(5)]
+assert [x for x in Byte(5).to(2)] == [Byte(5), Byte(4), Byte(3), Byte(2)]
+assert [x for x in Byte(2).to(5, step=2)] == [Byte(2), Byte(4)]
 .EE
