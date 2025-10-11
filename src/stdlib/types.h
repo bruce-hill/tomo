@@ -91,7 +91,6 @@ struct TypeInfo_s {
 
 extern const TypeInfo_t Void$info;
 extern const TypeInfo_t Abort$info;
-#define Void_t void
 
 Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo_t *type);
 

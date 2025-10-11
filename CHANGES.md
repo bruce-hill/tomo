@@ -29,6 +29,8 @@
   arguments).
 - Added `table.with(other)`, `table.without(other)`,
   `table.intersection(other)`, and `table.difference(other)`.
+- Added `Empty` for a built-in empty struct type and `EMPTY` for an instance of
+  the empty struct.
 - Added a `--format` flag to the `tomo` binary that autoformats your code
   (currently unstable, do not rely on it just yet).
 - Standardized text methods for Unicode encodings:

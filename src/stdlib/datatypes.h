@@ -69,6 +69,9 @@ typedef struct table_s {
     struct table_s *fallback;
 } Table_t;
 
+typedef struct Empty$$struct {
+} Empty$$type;
+
 typedef struct {
     void *fn, *userdata;
 } Closure_t;

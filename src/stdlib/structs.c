@@ -6,6 +6,7 @@
 #include "bools.h"
 #include "metamethods.h"
 #include "siphash.h"
+#include "structs.h"
 #include "text.h"
 #include "util.h"
 
@@ -214,3 +215,14 @@ void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo
         }
     }
 }
+
+public
+const TypeInfo_t Empty$$info = {.size = 0,
+                                .align = 0,
+                                .tag = StructInfo,
+                                .metamethods = Struct$metamethods,
+                                .StructInfo.name = "Empty",
+                                .StructInfo.num_fields = 0};
+
+public
+const Empty$$type EMPTY = {};

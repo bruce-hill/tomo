@@ -68,6 +68,8 @@ env_t *global_env(bool source_mapping) {
     PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
     PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
 
+    type_t *empty_type = declare_type(env, "struct Empty()");
+
     typedef struct {
         const char *name, *code, *type_str;
     } ns_entry_t;
@@ -83,9 +85,10 @@ env_t *global_env(bool source_mapping) {
         Text_t typeinfo;
         List_t namespace;
     } global_types[] = {
-        MAKE_TYPE("Void", Type(VoidType), Text("Void_t"), Text("Void$info")),
+        MAKE_TYPE("Void", Type(VoidType), Text("void"), Text("Void$info")),
         MAKE_TYPE("Abort", Type(AbortType), Text("void"), Text("Abort$info")),
-        MAKE_TYPE("Memory", Type(MemoryType), Text("Memory_t"), Text("Memory$info")),
+        MAKE_TYPE("Memory", Type(MemoryType), Text("void"), Text("Memory$info")),
+        MAKE_TYPE("Empty", empty_type, Text("Empty$$type"), Text("Empty$$info")),
         MAKE_TYPE( //
             "Bool", Type(BoolType), Text("Bool_t"), Text("Bool$info"),
             {"parse", "Bool$parse", "func(text:Text, remainder:&Text? = none -> Bool?)"}),
@@ -531,6 +534,7 @@ env_t *global_env(bool source_mapping) {
         {"exit", "tomo_exit", "func(message:Text?=none, code=Int32(1) -> Abort)"},
         {"fail", "fail_text", "func(message:Text -> Abort)"},
         {"sleep", "sleep_num", "func(seconds:Num)"},
+        {"EMPTY", "EMPTY", "Empty"},
     };
 
     for (size_t i = 0; i < sizeof(global_vars) / sizeof(global_vars[0]); i++) {
