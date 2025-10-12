@@ -153,6 +153,7 @@ OptionalText_t ask(Text_t prompt, bool bold, bool force_tty) {
     OptionalText_t ret = NONE_TEXT;
     FILE *out = stdout;
     FILE *in = stdin;
+    bool opened_out = false, opened_in = false;
 
     char *line = NULL;
     size_t bufsize = 0;
@@ -162,6 +163,7 @@ OptionalText_t ask(Text_t prompt, bool bold, bool force_tty) {
     if (force_tty && !isatty(STDOUT_FILENO)) {
         out = fopen("/dev/tty", "w");
         if (!out) goto cleanup;
+        opened_out = true;
     }
 
     if (bold) fputs("\x1b[1m", out);
@@ -175,6 +177,7 @@ OptionalText_t ask(Text_t prompt, bool bold, bool force_tty) {
             fputs("\n", out); // finish the line, since the user can't
             goto cleanup;
         }
+        opened_in = true;
     }
 
     length = getline(&line, &bufsize, in);
@@ -194,8 +197,8 @@ OptionalText_t ask(Text_t prompt, bool bold, bool force_tty) {
     ret = Text$from_strn(gc_input, (size_t)(length));
 
 cleanup:
-    if (out && out != stdout) fclose(out);
-    if (in && in != stdin) fclose(in);
+    if (opened_out) fclose(out);
+    if (opened_in) fclose(in);
     if (line != NULL) free(line);
     return ret;
 }
