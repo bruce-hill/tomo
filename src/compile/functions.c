@@ -784,9 +784,6 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         }
     }
 
-    Text_t qualified_name = Text$from_str(function_name);
-    if (env->namespace && env->namespace->parent && env->namespace->name)
-        qualified_name = Texts(env->namespace->name, ".", qualified_name);
     return definition;
 }
 

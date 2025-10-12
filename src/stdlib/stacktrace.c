@@ -34,7 +34,7 @@ static void fprint_context(FILE *out, const char *filename, int lineno, int cont
         num_width += 1;
 
     while ((nread = getline(&line, &size, f)) != -1) {
-        if (line[strlen(line) - 1] == '\n') line[strlen(line) - 1] = '\0';
+        if (line[nread - 1] == '\n') line[nread - 1] = '\0';
 
         if (cur_line >= lineno - context_before) {
             int w = 1;

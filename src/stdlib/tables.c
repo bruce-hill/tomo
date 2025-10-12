@@ -732,20 +732,20 @@ void Table$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeIn
     if (t->fallback) Table$serialize(t->fallback, out, pointers, type);
 }
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstack-protector"
-#endif
 public
 void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type) {
     int64_t len;
     Int64$deserialize(in, &len, pointers, &Int$info);
 
     Table_t t = EMPTY_TABLE;
+    char keybuf[256], valbuf[256];
+    char *key =
+        (size_t)type->TableInfo.key->size <= sizeof(keybuf) ? keybuf : GC_MALLOC((size_t)type->TableInfo.key->size);
+    char *value =
+        (size_t)type->TableInfo.value->size <= sizeof(valbuf) ? valbuf : GC_MALLOC((size_t)type->TableInfo.value->size);
+
     for (int64_t i = 0; i < len; i++) {
-        char key[type->TableInfo.key->size];
         _deserialize(in, key, pointers, type->TableInfo.key);
-        char value[type->TableInfo.value->size];
         if (type->TableInfo.value->size > 0) _deserialize(in, value, pointers, type->TableInfo.value);
         Table$set(&t, key, value, type);
     }
@@ -757,6 +757,3 @@ void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_
 
     *(Table_t *)outval = t;
 }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif

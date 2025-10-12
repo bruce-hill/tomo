@@ -76,10 +76,10 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
         type_t *val_type = table_type->value ? parse_type_ast(env, table_type->value) : EMPTY_TYPE;
         if (!val_type) code_err(ast, "I can't figure out what the value type for this entry is.");
 
-        if (has_stack_memory(val_type))
+        if (table_type->value && has_stack_memory(val_type))
             code_err(table_type->value,
                      "Tables can't have stack references because the list may outlive the stack frame.");
-        else if (val_type->tag == OptionalType)
+        else if (table_type->value && val_type->tag == OptionalType)
             code_err(ast, "Tables with optional-typed values are not currently supported");
 
         return Type(TableType, .key_type = key_type, .value_type = val_type, .env = env,
@@ -88,7 +88,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
     case FunctionTypeAST: {
         DeclareMatch(fn, ast, FunctionTypeAST);
         type_t *ret_t = fn->ret ? parse_type_ast(env, fn->ret) : Type(VoidType);
-        if (has_stack_memory(ret_t))
+        if (fn->ret && has_stack_memory(ret_t))
             code_err(fn->ret, "Functions are not allowed to return stack references, because the reference may no "
                               "longer exist on the stack.");
         arg_t *type_args = NULL;

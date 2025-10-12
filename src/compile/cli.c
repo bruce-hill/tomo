@@ -88,9 +88,13 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         code = Texts(code, compile_declaration(arg->type, Texts("_$", Text$from_str(arg->name))));
         if (arg->default_val) {
-            Text_t default_val =
-                arg->type ? compile_to_type(env, arg->default_val, arg->type) : compile(env, arg->default_val);
-            if (arg->type->tag != OptionalType) default_val = promote_to_optional(arg->type, default_val);
+            Text_t default_val;
+            if (arg->type) {
+                default_val = compile_to_type(env, arg->default_val, arg->type);
+                if (arg->type->tag != OptionalType) default_val = promote_to_optional(arg->type, default_val);
+            } else {
+                default_val = compile(env, arg->default_val);
+            }
             code = Texts(code, " = ", default_val);
         } else {
             code = Texts(code, " = ", compile_empty(arg->type));

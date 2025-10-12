@@ -199,7 +199,6 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
         if (argv[i][0] == '-' && argv[i][1] == '-') {
             if (argv[i][2] == '\0') { // "--" signals the rest of the arguments are literal
                 used_args[i] = true;
-                i += 1;
                 break;
             }
 

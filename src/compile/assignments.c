@@ -161,6 +161,7 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
         container_t = value_type(container_t);
         type_t *index_t = get_type(env, index->index);
         if (container_t->tag == ListType) {
+            if (!index->index) code_err(ast, "This list needs an index");
             Text_t target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *item_type = Match(container_t, ListType)->item_type;
             Text_t index_code =
@@ -171,6 +172,7 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
             return Texts("List_lvalue(", compile_type(item_type), ", ", target_code, ", ", index_code, ", ",
                          (int64_t)(ast->start - ast->file->text), ", ", (int64_t)(ast->end - ast->file->text), ")");
         } else if (container_t->tag == TableType) {
+            if (!index->index) code_err(ast, "This table needs an index");
             DeclareMatch(table_type, container_t, TableType);
             if (table_type->default_value) {
                 type_t *value_type = get_type(env, table_type->default_value);

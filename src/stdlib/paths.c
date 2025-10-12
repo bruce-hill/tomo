@@ -330,9 +330,10 @@ OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count) {
             // be closed by GC finalizers.
             GC_gcollect();
             fd = open(path_str, O_RDONLY);
-            if (fd == -1) return NONE_LIST;
         }
     }
+
+    if (fd == -1) return NONE_LIST;
 
     struct stat sb;
     if (fstat(fd, &sb) != 0) return NONE_LIST;

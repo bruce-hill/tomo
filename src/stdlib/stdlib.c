@@ -61,7 +61,8 @@ void tomo_init(void) {
     GC_INIT();
     const char *color_env = getenv("COLOR");
     USE_COLOR = color_env ? strcmp(color_env, "1") == 0 : isatty(STDOUT_FILENO);
-    if (getenv("NO_COLOR") && getenv("NO_COLOR")[0] != '\0') USE_COLOR = false;
+    const char *no_color_env = getenv("NO_COLOR");
+    if (no_color_env && no_color_env[0] != '\0') USE_COLOR = false;
 
     setlocale(LC_ALL, "");
     assert(getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0) == sizeof(TOMO_HASH_KEY));
