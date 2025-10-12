@@ -25,7 +25,9 @@ Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type) {
     }
 
     type_t *key_t = Match(table_type, TableType)->key_type;
+    if (key_t == NULL) code_err(ast, "I couldn't figure out the key type for this table");
     type_t *value_t = Match(table_type, TableType)->value_type;
+    if (value_t == NULL) code_err(ast, "I couldn't figure out the value type for this table");
 
     if (value_t->tag == OptionalType)
         code_err(ast, "Tables whose values are optional (", type_to_text(value_t), ") are not currently supported.");

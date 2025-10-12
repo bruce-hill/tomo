@@ -23,6 +23,7 @@ Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type) {
     if (!list->items) return Text("EMPTY_LIST");
 
     type_t *item_type = Match(list_type, ListType)->item_type;
+    if (item_type == NULL) code_err(ast, "I couldn't figure out what item type goes into this list");
 
     int64_t n = 0;
     for (ast_list_t *item = list->items; item; item = item->next) {
