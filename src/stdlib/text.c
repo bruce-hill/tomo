@@ -224,17 +224,18 @@ int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_len) {
     // synthetic graphemes store all of their information in a densely packed
     // area with good cache locality:
     static void *arena = NULL, *arena_end = NULL;
-    // Eat up any space needed to make arena 32-bit aligned:
-    if ((size_t)arena % __alignof__(ucs4_t) != 0) arena += __alignof__(ucs4_t) - ((size_t)arena % __alignof__(ucs4_t));
+    if (arena != NULL && (size_t)arena % __alignof__(ucs4_t) != 0)
+        arena += __alignof__(ucs4_t) - ((size_t)arena % __alignof__(ucs4_t));
 
     // If we have filled up this arena, allocate a new one:
     size_t needed_memory = sizeof(ucs4_t[1 + utf32_len]) + sizeof(uint8_t[u8_len + 1]);
-    if (arena + needed_memory > arena_end) {
+    if (arena == NULL || arena + needed_memory > arena_end) {
         // Do reasonably big chunks at a time, so most synthetic codepoints are
         // nearby each other in memory and cache locality is good. This is a
         // rough guess at a good size:
         size_t chunk_size = MAX(needed_memory, 512);
         arena = GC_MALLOC_ATOMIC(chunk_size);
+        assert(arena != NULL);
         arena_end = arena + chunk_size;
     }
 
@@ -497,9 +498,8 @@ static Text_t concat2(Text_t a, Text_t b) {
 
     if (first_b < 0) {
         memcpy(dest, GRAPHEME_CODEPOINTS(first_b), sizeof(ucs4_t[NUM_GRAPHEME_CODEPOINTS(first_b)]));
-        dest += NUM_GRAPHEME_CODEPOINTS(first_b);
     } else {
-        *(dest++) = (ucs4_t)first_b;
+        *dest = (ucs4_t)first_b;
     }
 
     // Do a normalization run for these two codepoints and see if it looks different.
@@ -582,7 +582,6 @@ static Text_t Text$repeat_to_width(Text_t to_repeat, int64_t target_width, Text_
             int64_t w = (int64_t)u8_strwidth((const uint8_t *)Text$as_c_string(c), lang_str);
             if (repeated_width + w > target_width) {
                 repeated = concat2(repeated, Text$repeat(Text(" "), I(target_width - repeated_width)));
-                repeated_width = target_width;
                 break;
             }
             repeated = concat2(repeated, c);

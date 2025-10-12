@@ -156,7 +156,6 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
             if (list->stride == padded_item_size) {
                 memcpy(p, list->data + padded_item_size * (index - 1),
                        (size_t)(((int64_t)list->length - index + 1) * padded_item_size));
-                p += ((int64_t)list->length - index + 1) * padded_item_size;
             } else {
                 for (int64_t i = index - 1; i < (int64_t)list->length - 1; i++) {
                     memcpy(p, list->data + list->stride * i, (size_t)padded_item_size);

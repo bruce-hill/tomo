@@ -110,9 +110,11 @@ static file_t *_load_file(const char *filename, FILE *file) {
         // Convert to relative path (if applicable)
         char buf[PATH_MAX];
         char *cwd = getcwd(buf, sizeof(buf));
-        size_t cwd_len = strlen(cwd);
-        if (strncmp(cwd, filename, cwd_len) == 0 && filename[cwd_len] == '/')
-            ret->relative_filename = &filename[cwd_len + 1];
+        if (cwd != NULL) {
+            size_t cwd_len = strlen(cwd);
+            if (strncmp(cwd, filename, cwd_len) == 0 && filename[cwd_len] == '/')
+                ret->relative_filename = &filename[cwd_len + 1];
+        }
     }
     return ret;
 }

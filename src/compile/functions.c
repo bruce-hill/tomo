@@ -787,13 +787,6 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
     Text_t qualified_name = Text$from_str(function_name);
     if (env->namespace && env->namespace->parent && env->namespace->name)
         qualified_name = Texts(env->namespace->name, ".", qualified_name);
-    Text_t text = Texts("func ", qualified_name, "(");
-    for (arg_ast_t *arg = args; arg; arg = arg->next) {
-        text = Texts(text, type_to_text(get_arg_ast_type(env, arg)));
-        if (arg->next) text = Texts(text, ", ");
-    }
-    if (ret_t && ret_t->tag != VoidType) text = Texts(text, "->", type_to_text(ret_t));
-    text = Texts(text, ")");
     return definition;
 }
 

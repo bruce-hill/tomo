@@ -36,10 +36,7 @@ Text_t compile_declared_value(env_t *env, ast_t *declare_ast) {
 
     if (decl->value) {
         Text_t val_code = compile_maybe_incref(env, decl->value, t);
-        if (t->tag == FunctionType) {
-            assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
-            t = Type(ClosureType, t);
-        }
+        if (t->tag == FunctionType) assert(promote(env, decl->value, &val_code, t, Type(ClosureType, t)));
         return val_code;
     } else {
         Text_t val_code = compile_empty(t);

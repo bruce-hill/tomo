@@ -428,7 +428,6 @@ PUREFUNC size_t unpadded_struct_size(type_t *t) {
     }
     if (bit_offset > 0) {
         size += 1;
-        bit_offset = 0;
     }
     return size;
 }

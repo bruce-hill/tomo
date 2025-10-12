@@ -28,7 +28,8 @@ PUREFUNC public int32_t CString$compare(const void *x, const void *y, const Type
 
     if (!*(const char **)x != !*(const char **)y) return (!*(const char **)y) - (!*(const char **)x);
 
-    return strcmp(*(const char **)x, *(const char **)y);
+    const char *x_str = *(const char **)x, *y_str = *(const char **)y;
+    return (x_str == NULL) || (y_str == NULL) ? (x_str != NULL) - (y_str != NULL) : strcmp(x_str, y_str);
 }
 
 PUREFUNC public bool CString$equal(const void *x, const void *y, const TypeInfo_t *type) {

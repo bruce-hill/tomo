@@ -59,7 +59,8 @@ static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
 public
 void tomo_init(void) {
     GC_INIT();
-    USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
+    const char *color_env = getenv("COLOR");
+    USE_COLOR = color_env ? strcmp(color_env, "1") == 0 : isatty(STDOUT_FILENO);
     if (getenv("NO_COLOR") && getenv("NO_COLOR")[0] != '\0') USE_COLOR = false;
 
     setlocale(LC_ALL, "");
@@ -194,6 +195,7 @@ OptionalText_t ask(Text_t prompt, bool bold, bool force_tty) {
 cleanup:
     if (out && out != stdout) fclose(out);
     if (in && in != stdin) fclose(in);
+    if (line != NULL) free(line);
     return ret;
 }
 

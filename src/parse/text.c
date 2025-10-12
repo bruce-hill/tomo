@@ -116,7 +116,6 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos) {
     if (chunk.length > 0) {
         ast_t *literal = NewAST(ctx->file, chunk_start, pos, TextLiteral, .text = chunk);
         chunks = new (ast_list_t, .ast = literal, .next = chunks);
-        chunk = EMPTY_TEXT;
     }
 
     REVERSE_LIST(chunks);

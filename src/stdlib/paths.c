@@ -130,7 +130,8 @@ Path_t Path$_concat(int n, Path_t items[n]) {
 
 public
 Path_t Path$resolved(Path_t path, Path_t relative_to) {
-    if (path.type == PATHTYPE_RELATIVE && !(relative_to.type == PATHTYPE_RELATIVE && relative_to.components.length == 0)) {
+    if (path.type == PATHTYPE_RELATIVE
+        && !(relative_to.type == PATHTYPE_RELATIVE && relative_to.components.length == 0)) {
         Path_t result = {.type = relative_to.type};
         result.components = relative_to.components;
         LIST_INCREF(result.components);

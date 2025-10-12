@@ -136,8 +136,10 @@ int main(int argc, char *argv[]) {
     ldlibs = Texts(ldlibs, Text(" -lexecinfo"));
 #endif
 
-    USE_COLOR = getenv("COLOR") ? strcmp(getenv("COLOR"), "1") == 0 : isatty(STDOUT_FILENO);
-    if (getenv("NO_COLOR") && getenv("NO_COLOR")[0] != '\0') USE_COLOR = false;
+    const char *color_env = getenv("COLOR");
+    USE_COLOR = color_env ? strcmp(color_env, "1") == 0 : isatty(STDOUT_FILENO);
+    const char *no_color_env = getenv("NO_COLOR");
+    if (no_color_env && no_color_env[0] != '\0') USE_COLOR = false;
 
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
     arc4random_buf(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY));

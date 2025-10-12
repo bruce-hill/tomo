@@ -117,7 +117,6 @@ static Fp multiply(Fp *a, Fp *b) {
 
 static void round_digit(char *digits, int ndigits, uint64_t delta, uint64_t rem, uint64_t kappa, uint64_t frac) {
     while (rem < frac && delta - rem >= kappa && (rem + kappa < frac || frac - rem > rem + kappa - frac)) {
-
         digits[ndigits - 1]--;
         rem += kappa;
     }
@@ -153,7 +152,6 @@ static int generate_digits(Fp *fp, Fp *upper, Fp *lower, char *digits, int *K) {
         if (tmp <= delta) {
             *K += kappa;
             round_digit(digits, idx, delta, tmp, div << -one.exp, wfrac);
-
             return idx;
         }
     }
@@ -175,7 +173,6 @@ static int generate_digits(Fp *fp, Fp *upper, Fp *lower, char *digits, int *K) {
         if (part2 < delta) {
             *K += kappa;
             round_digit(digits, idx, delta, part2, one.frac, wfrac * *unit);
-
             return idx;
         }
 
