@@ -116,6 +116,7 @@ static file_t *_load_file(const char *filename, FILE *file) {
                 ret->relative_filename = &filename[cwd_len + 1];
         }
     }
+    if (line_buf != NULL) free(line_buf);
     return ret;
 }
 

@@ -662,6 +662,7 @@ static Text_t _next_line(FILE **f) {
 next_line:;
     ssize_t len = getline(&line, &size, *f);
     if (len <= 0) {
+        if (line != NULL) free(line);
         _line_reader_cleanup(f);
         return NONE_TEXT;
     }
