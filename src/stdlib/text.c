@@ -730,6 +730,7 @@ PUREFUNC OptionalText_t Text$cluster(Text_t text, Int_t index) {
 }
 
 static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters) {
+    if (graphemes.length == 0) return EMPTY_TEXT;
     size_t blob_size = (sizeof(int32_t[unique_clusters.entries.length]) + sizeof(uint8_t[graphemes.length]));
     // If blob optimization will save at least 200 bytes:
     if (unique_clusters.entries.length <= 256 && blob_size + 200 < sizeof(int32_t[graphemes.length])) {
@@ -1569,6 +1570,7 @@ public
 List_t Text$utf16(Text_t text) {
     if (text.length == 0) return EMPTY_ATOMIC_LIST;
     List_t utf32 = Text$utf32(text);
+    if (utf32.length == 0) return EMPTY_ATOMIC_LIST;
     List_t utf16 = {.free = MIN(LIST_MAX_FREE_ENTRIES, (uint64_t)utf32.length), .atomic = 1};
     utf16.data = GC_MALLOC_ATOMIC(sizeof(int32_t[utf16.free]));
     for (int64_t i = 0; i < (int64_t)utf32.length; i++) {
