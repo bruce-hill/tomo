@@ -115,14 +115,14 @@ static Fp multiply(Fp *a, Fp *b) {
     return fp;
 }
 
-static void round_digit(char *digits, int ndigits, uint64_t delta, uint64_t rem, uint64_t kappa, uint64_t frac) {
+static void round_digit(char digits[18], int ndigits, uint64_t delta, uint64_t rem, uint64_t kappa, uint64_t frac) {
     while (rem < frac && delta - rem >= kappa && (rem + kappa < frac || frac - rem > rem + kappa - frac)) {
         digits[ndigits - 1]--;
         rem += kappa;
     }
 }
 
-static int generate_digits(Fp *fp, Fp *upper, Fp *lower, char *digits, int *K) {
+static int generate_digits(Fp *fp, Fp *upper, Fp *lower, char digits[18], int *K) {
     uint64_t wfrac = upper->frac - fp->frac;
     uint64_t delta = upper->frac - lower->frac;
 
@@ -151,7 +151,7 @@ static int generate_digits(Fp *fp, Fp *upper, Fp *lower, char *digits, int *K) {
         uint64_t tmp = (part1 << -one.exp) + part2;
         if (tmp <= delta) {
             *K += kappa;
-            round_digit(digits, idx, delta, tmp, div << -one.exp, wfrac);
+            if (idx > 0) round_digit(digits, idx, delta, tmp, div << -one.exp, wfrac);
             return idx;
         }
     }
@@ -180,7 +180,7 @@ static int generate_digits(Fp *fp, Fp *upper, Fp *lower, char *digits, int *K) {
     }
 }
 
-static int grisu2(double d, char *digits, int *K) {
+static int grisu2(double d, char digits[18], int *K) {
     Fp w = build_fp(d);
 
     Fp lower, upper;
@@ -203,7 +203,7 @@ static int grisu2(double d, char *digits, int *K) {
     return generate_digits(&w, &upper, &lower, digits, K);
 }
 
-static int emit_digits(char *digits, int ndigits, char *dest, int K, bool neg) {
+static int emit_digits(char digits[18], int ndigits, char *dest, int K, bool neg) {
     int exp = absv(K + ndigits - 1);
 
     int max_trailing_zeros = 7;
@@ -248,7 +248,7 @@ static int emit_digits(char *digits, int ndigits, char *dest, int K, bool neg) {
     ndigits = minv(ndigits, 18 - neg);
 
     int idx = 0;
-    dest[idx++] = digits[0];
+    dest[idx++] = ndigits >= 1 ? digits[0] : '0';
 
     if (ndigits > 1) {
         dest[idx++] = '.';
