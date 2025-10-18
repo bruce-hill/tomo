@@ -290,7 +290,8 @@ int main(int argc, char *argv[]) {
     // Uninstall libraries:
     for (int64_t i = 0; i < (int64_t)uninstall_libraries.length; i++) {
         Text_t *u = (Text_t *)(uninstall_libraries.data + i * uninstall_libraries.stride);
-        xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo_" TOMO_VERSION "/", *u);
+        xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo_" TOMO_VERSION "/", *u, " '", TOMO_PATH, "'/bin/", *u,
+                " '", TOMO_PATH, "'/man/man1/", *u, ".1");
         print("Uninstalled ", *u);
     }
 
@@ -373,7 +374,12 @@ int main(int argc, char *argv[]) {
                 List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
                 compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
                 compile_executable(env, path, exe_path, object_files, extra_ldlibs);
-                if (should_install) xsystem(as_owner, "cp -v '", exe_path, "' '", TOMO_PATH, "'/bin/");
+                if (should_install) {
+                    xsystem(as_owner, "mkdir -p '", TOMO_PATH, "/bin' '", TOMO_PATH, "/man/man1'");
+                    xsystem(as_owner, "cp -v '", exe_path, "' '", TOMO_PATH, "/bin/'");
+                    Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");
+                    xsystem(as_owner, "cp -v '", manpage_file, "' '", TOMO_PATH, "/man/man1/'");
+                }
                 _exit(0);
             }
 
@@ -867,6 +873,16 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     binding_t *main_binding = get_binding(env, "main");
     if (!main_binding || main_binding->type->tag != FunctionType)
         print_err("No main() function has been defined for ", path, ", so it can't be run!");
+
+    Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");
+    if (clean_build || !Path$is_file(manpage_file, true) || is_stale(manpage_file, path, true)) {
+        Text_t manpage = compile_manpage(Path$base_name(exe_path), NONE_TEXT, NONE_TEXT,
+                                         Match(main_binding->type, FunctionType)->args);
+        if (!quiet) print("Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
+        Path$write(manpage_file, manpage, 0644);
+    } else {
+        if (verbose) whisper("Unchanged: ", manpage_file);
+    }
 
     if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
         && !is_stale_for_any(exe_path, object_files, false)

@@ -42,6 +42,8 @@
   - `Text.from_utf8()`/`Text.utf8()`
   - `Text.from_utf16()`/`Text.utf16()`
   - `Text.from_utf32()`/`Text.utf32()`
+- Added automatic manpage generation.
+- Major improvements to robustness of CLI argument parsing.
 - Fixed bugs:
   - `Int.parse()` had a memory bug.
   - Breaking out of a `for line in file.by_line()!` loop would leak file handle
