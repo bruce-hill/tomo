@@ -218,28 +218,28 @@ int main(int argc, char *argv[]) {
                          "  --run|-r: run a program from ",
                          TOMO_PATH, "/share/tomo_" TOMO_VERSION "/installed\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
-    tomo_parse_args(argc, argv, usage, help, TOMO_VERSION, //
-                    {"run", 'r', false, List$info(&Path$info), &run_files}, //
-                    {"args", '\0', false, List$info(&Text$info), &args}, //
-                    {"format", 'F', false, List$info(&Path$info), &format_files}, //
-                    {"format-inplace", '\0', false, List$info(&Path$info), &format_files_inplace}, //
-                    {"transpile", 't', false, List$info(&Path$info), &transpile_files}, //
-                    {"compile-obj", 'c', false, List$info(&Path$info), &compile_objects}, //
-                    {"compile-exe", 'e', false, List$info(&Path$info), &compile_executables}, //
-                    {"library", 'L', false, List$info(&Path$info), &libraries}, //
-                    {"uninstall", 'u', false, List$info(&Text$info), &uninstall_libraries}, //
-                    {"verbose", 'v', false, &Bool$info, &verbose}, //
-                    {"version", 'V', false, &Bool$info, &show_version}, //
-                    {"install", 'I', false, &Bool$info, &should_install}, //
-                    {"prefix", '\0', false, &Bool$info, &show_prefix}, //
-                    {"quiet", 'q', false, &Bool$info, &quiet}, //
-                    {"show-codegen", 'C', false, &Text$info, &show_codegen}, //
-                    {"optimization", 'O', false, &Text$info, &optimization}, //
-                    {"force-rebuild", 'f', false, &Bool$info, &clean_build}, //
-                    {"source-mapping", 'm', false, &Bool$info, &source_mapping},
-                    {"changelog", '\0', false, &Bool$info, &show_changelog}, //
-    );
+    cli_arg_t tomo_args[] = {
+        {"run", &run_files, List$info(&Path$info), .short_flag = 'r'}, //
+        {"args", &args, List$info(&Text$info)}, //
+        {"format", &format_files, List$info(&Path$info), .short_flag = 'F'}, //
+        {"format-inplace", &format_files_inplace, List$info(&Path$info)}, //
+        {"transpile", &transpile_files, List$info(&Path$info), .short_flag = 't'}, //
+        {"compile-obj", &compile_objects, List$info(&Path$info), .short_flag = 'c'}, //
+        {"compile-exe", &compile_executables, List$info(&Path$info), .short_flag = 'e'}, //
+        {"library", &libraries, List$info(&Path$info), .short_flag = 'L'}, //
+        {"uninstall", &uninstall_libraries, List$info(&Text$info), .short_flag = 'u'}, //
+        {"verbose", &verbose, &Bool$info, .short_flag = 'v'}, //
+        {"install", &should_install, &Bool$info, .short_flag = 'I'}, //
+        {"prefix", &show_prefix, &Bool$info}, //
+        {"quiet", &quiet, &Bool$info, .short_flag = 'q'}, //
+        {"show-codegen", &show_codegen, &Text$info, .short_flag = 'C'}, //
+        {"optimization", &optimization, &Text$info, .short_flag = 'O'}, //
+        {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f'}, //
+        {"source-mapping", &source_mapping, &Bool$info, .short_flag = 'm'},
+        {"changelog", &show_changelog, &Bool$info}, //
+    };
 
+    tomo_parse_args(argc, argv, usage, help, TOMO_VERSION, sizeof(tomo_args) / sizeof(tomo_args[0]), tomo_args);
     if (show_prefix) {
         print(TOMO_PATH);
         return 0;

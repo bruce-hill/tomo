@@ -86,7 +86,29 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
     }
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        code = Texts(code, compile_declaration(arg->type, Texts("_$", Text$from_str(arg->name))));
+        code = Texts(code, compile_declaration(arg->type, Texts("_$", Text$from_str(arg->name))), " = ",
+                     compile_empty(arg->type), ";\n");
+    }
+
+    Text_t version_code = quoted_str(version);
+    code = Texts(code, "cli_arg_t cli_args[] = {\n");
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        code = Texts(code, "{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", &",
+                     Texts("_$", Text$from_str(arg->name)), ", ", compile_type_info(arg->type),
+                     arg->default_val ? Text("") : Text(", .required=true"),
+                     arg->alias ? Texts(", .short_flag=", quoted_text(Text$from_str(arg->name)),
+                                        "[0]") // TODO: escape char properly
+                                : Text(""),
+
+                     "},\n");
+    }
+    code = Texts(code, "};\n");
+    code = Texts(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code, ", ", version_code,
+                 ", sizeof(cli_args)/sizeof(cli_args[0]), cli_args);\n");
+
+    // Lazily initialize default values to prevent side effects
+    int64_t i = 0;
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         if (arg->default_val) {
             Text_t default_val;
             if (arg->type) {
@@ -95,23 +117,11 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
             } else {
                 default_val = compile(env, arg->default_val);
             }
-            code = Texts(code, " = ", default_val);
-        } else {
-            code = Texts(code, " = ", compile_empty(arg->type));
+            code = Texts(code, "if (!cli_args[", i, "].populated) ", Texts("_$", Text$from_str(arg->name)), " = ",
+                         default_val, ";\n");
         }
-        code = Texts(code, ";\n");
+        i += 1;
     }
-
-    Text_t version_code = quoted_str(version);
-    code = Texts(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code, ", ", version_code);
-    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-        code = Texts(code, ",\n{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", ",
-                     arg->alias ? Texts(quoted_text(Text$from_str(arg->name)), "[0]") // TODO: escape char properly
-                                : Text("'\\0'"),
-                     ", ", arg->default_val ? "false" : "true", ", ", compile_type_info(arg->type), ", &",
-                     Texts("_$", Text$from_str(arg->name)), "}");
-    }
-    code = Texts(code, ");\n");
 
     code = Texts(code, fn_name, "(");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {

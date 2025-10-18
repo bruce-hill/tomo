@@ -195,15 +195,14 @@ static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag
 }
 
 public
-void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const char *version, int spec_len,
-                      cli_arg_t spec[spec_len]) {
-    bool *parsed = GC_MALLOC_ATOMIC(sizeof(bool[spec_len]));
+void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const char *version, int spec_len,
+                     cli_arg_t spec[spec_len]) {
     List_t args = EMPTY_LIST;
     for (int i = 1; i < argc; i++) {
         List$insert(&args, &argv[i], I(0), sizeof(const char *));
     }
     for (int i = 0; i < spec_len; i++) {
-        parsed[i] = pop_cli_flag(&args, spec[i].short_flag, spec[i].name, spec[i].dest, spec[i].type);
+        spec[i].populated = pop_cli_flag(&args, spec[i].short_flag, spec[i].name, spec[i].dest, spec[i].type);
     }
 
     bool show_help = false;
@@ -230,18 +229,19 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
     }
 
     for (int i = 0; i < spec_len && before_double_dash.length > 0; i++) {
-        if (!parsed[i]) {
-            parsed[i] = pop_cli_positional(&before_double_dash, spec[i].name, spec[i].dest, spec[i].type, false);
+        if (!spec[i].populated) {
+            spec[i].populated =
+                pop_cli_positional(&before_double_dash, spec[i].name, spec[i].dest, spec[i].type, false);
         }
     }
     for (int i = 0; i < spec_len && after_double_dash.length > 0; i++) {
-        if (!parsed[i]) {
-            parsed[i] = pop_cli_positional(&after_double_dash, spec[i].name, spec[i].dest, spec[i].type, true);
+        if (!spec[i].populated) {
+            spec[i].populated = pop_cli_positional(&after_double_dash, spec[i].name, spec[i].dest, spec[i].type, true);
         }
     }
 
     for (int i = 0; i < spec_len; i++) {
-        if (!parsed[i] && spec[i].required) print_err("Missing required flag: --", spec[i].name, "\n", usage);
+        if (!spec[i].populated && spec[i].required) print_err("Missing required flag: --", spec[i].name, "\n", usage);
     }
 
     List_t remaining_args = List$concat(before_double_dash, after_double_dash, sizeof(const char *));
