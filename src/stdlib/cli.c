@@ -47,7 +47,7 @@ static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag
             } else if (starts_with(arg + 2, flag) && arg[2 + strlen(flag)] == '=') {
                 // Case: --flag=yes|no|true|false|on|off|0|1
                 OptionalBool_t b = Bool$parse(Text$from_str(arg + 2 + strlen(flag) + 1), NULL);
-                if (b == NONE_BOOL) print_err("Invalid boolean value for flag --", flag, ": ", arg);
+                if (b == NONE_BOOL) print_err("Invalid boolean value for flag ", flag, ": ", arg);
                 *dest = b;
                 List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
                 return true;
@@ -140,7 +140,7 @@ void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const ch
     }
 
     for (int i = 0; i < spec_len; i++) {
-        if (!spec[i].populated && spec[i].required) print_err("Missing required flag: --", spec[i].name, "\n", usage);
+        if (!spec[i].populated && spec[i].required) print_err("Missing required flag: ", spec[i].name, "\n", usage);
     }
 
     List_t remaining_args = List$concat(before_double_dash, after_double_dash, sizeof(const char *));
@@ -190,7 +190,7 @@ static int64_t parse_arg_list(List_t args, const char *flag, void *dest, const T
         return n;
     }
 
-    if (args.length == 0) print_err("No value provided for flag --", flag);
+    if (args.length == 0) print_err("No value provided for flag: ", flag);
 
     const char *arg = *(const char **)args.data;
     int64_t n = 1;
@@ -214,39 +214,39 @@ static int64_t parse_arg_list(List_t args, const char *flag, void *dest, const T
         *(const char **)dest = arg;
     } else if (type == &Int$info) {
         OptionalInt_t parsed = Int$from_str(arg);
-        if (parsed.small == 0) print_err("Could not parse argument for --", flag, ": ", arg);
+        if (parsed.small == 0) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int_t *)dest = parsed;
     } else if (type == &Int64$info) {
         OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
-        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int64_t *)dest = parsed.value;
     } else if (type == &Int32$info) {
         OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
-        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int32_t *)dest = parsed.value;
     } else if (type == &Int16$info) {
         OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
-        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int16_t *)dest = parsed.value;
     } else if (type == &Int8$info) {
         OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
-        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int8_t *)dest = parsed.value;
     } else if (type == &Byte$info) {
         OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NULL);
-        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Byte_t *)dest = parsed.value;
     } else if (type == &Bool$info) {
         OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
-        if (parsed == NONE_BOOL) print_err("Could not parse argument for --", flag, ": ", arg);
+        if (parsed == NONE_BOOL) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Bool_t *)dest = parsed;
     } else if (type == &Num$info) {
         OptionalNum_t parsed = Num$parse(Text$from_str(arg), NULL);
-        if (isnan(parsed)) print_err("Could not parse argument for --", flag, ": ", arg);
+        if (isnan(parsed)) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Num_t *)dest = parsed;
     } else if (type == &Num32$info) {
         OptionalNum32_t parsed = Num32$parse(Text$from_str(arg), NULL);
-        if (isnan(parsed)) print_err("Could not parse argument for --", flag, ": ", arg);
+        if (isnan(parsed)) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Num32_t *)dest = parsed;
     } else if (type->tag == PointerInfo) {
         // For pointers, we can just allocate memory for the value and then parse the value
@@ -259,8 +259,11 @@ static int64_t parse_arg_list(List_t args, const char *flag, void *dest, const T
     } else if (type->tag == TextInfo) {
         *(Text_t *)dest = Text$from_str(arg);
     } else if (type->tag == EnumInfo) {
+        List_t tag_names = EMPTY_LIST;
         for (int t = 0; t < type->EnumInfo.num_tags; t++) {
             NamedType_t named = type->EnumInfo.tags[t];
+            Text_t name_text = Text$from_str(named.name);
+            List$insert(&tag_names, &name_text, I(0), sizeof(name_text));
             size_t len = strlen(named.name);
             if (strncmp(arg, named.name, len) == 0 && (arg[len] == '\0' || arg[len] == ':')) {
                 *(int32_t *)dest = (t + 1);
@@ -278,7 +281,8 @@ static int64_t parse_arg_list(List_t args, const char *flag, void *dest, const T
                 return n;
             }
         }
-        print_err("Invalid value for ", type->EnumInfo.name, ": ", arg);
+        print_err("Invalid enum name for ", type->EnumInfo.name, ": ", arg,
+                  "\nValid names are: ", Text$join(Text(", "), tag_names));
     } else {
         Text_t t = generic_as_text(NULL, false, type);
         print_err("Unsupported type for argument parsing: ", t);
@@ -299,10 +303,10 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                 break;
             } else if (streq(arg + 2, flag)) {
                 // Case: --flag values...
-                if (i + 1 >= (int64_t)args->length) print_err("No value provided for flag: --", flag);
+                if (i + 1 >= (int64_t)args->length) print_err("No value provided for flag: ", flag);
                 List_t values = List$slice(*args, I(i + 2), I(-1));
                 int64_t n = parse_arg_list(values, flag, dest, type, false);
-                if (n == 0) print_err("No value provided for flag: --", flag);
+                if (n == 0) print_err("No value provided for flag: ", flag);
                 List$remove_at(args, I(i + 1), I(n + 1), sizeof(const char *));
                 return true;
             } else if (starts_with(arg + 2, flag) && arg[2 + strlen(flag)] == '=') {
@@ -320,7 +324,7 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                     values = List(arg_value);
                 }
                 if (parse_arg_list(values, flag, dest, type, false) == 0)
-                    print_err("No value provided for flag: --", flag);
+                    print_err("No value provided for flag: ", flag);
                 List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
                 return true;
             }
@@ -408,11 +412,11 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
 
 bool pop_cli_positional(List_t *args, const char *flag, void *dest, const TypeInfo_t *type, bool allow_dashes) {
     if (args->length == 0) {
-        print_err("No value provided for flag: --", flag);
+        print_err("No value provided for flag: ", flag);
         return false;
     }
     int64_t n = parse_arg_list(*args, flag, dest, type, allow_dashes);
-    if (n == 0) print_err("No value provided for flag: --", flag);
+    if (n == 0) print_err("No value provided for flag: ", flag);
     List$remove_at(args, I(1), I(n), sizeof(const char *));
     return true;
 }
