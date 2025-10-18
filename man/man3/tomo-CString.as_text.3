@@ -1,0 +1,33 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH CString.as_text 3 2025-10-18 "Tomo man-pages"
+.SH NAME
+CString.as_text \- convert a C string to Text
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI CString.as_text\ :\ func(str:\ CString\ ->\ Text)
+.fi
+.SH DESCRIPTION
+Convert a C string to Text.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+str	CString	The C string. 	-
+.TE
+.SH RETURN
+The C string as a Text.
+
+.SH EXAMPLES
+.EX
+assert CString("Hello").as_text() == "Hello"
+.EE

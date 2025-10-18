@@ -1,0 +1,35 @@
+CString.as_text:
+  short: convert a C string to Text
+  description: >
+    Convert a C string to Text.
+  return:
+    type: 'Text'
+    description: >
+      The C string as a Text.
+  args:
+    str:
+      type: 'CString'
+      description: >
+        The C string.
+  example: |
+    assert CString("Hello").as_text() == "Hello"
+
+CString.join:
+  short: join a list of C strings
+  description: >
+    Join a list of C strings together with a separator.
+  return:
+    type: 'CString'
+    description: >
+      A C string of the joined together bits.
+  args:
+    glue:
+      type: 'CString'
+      description: >
+        The C joiner used to between elements.
+    pieces:
+      type: '[CString]'
+      description: >
+        A list of C strings to join.
+  example: |
+    assert CString(",").join([CString("a"), CString("b")]) == CString("a,b")

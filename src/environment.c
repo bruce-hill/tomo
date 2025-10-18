@@ -285,7 +285,8 @@ env_t *global_env(bool source_mapping) {
             F2(hypot), F2(nextafter)),
         MAKE_TYPE( //
             "CString", Type(CStringType), Text("char*"), Text("CString$info"), //
-            {"as_text", "Text$from_str", "func(str:CString -> Text)"}),
+            {"as_text", "Text$from_str", "func(str:CString -> Text)"},
+            {"join", "CString$join", "func(glue:CString, pieces:[CString] -> CString)"}),
 #undef F2
 #undef F_opt
 #undef F

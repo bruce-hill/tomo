@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH CString.join 3 2025-10-18 "Tomo man-pages"
+.SH NAME
+CString.join \- join a list of C strings
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI CString.join\ :\ func(glue:\ CString,\ pieces:\ [CString]\ ->\ CString)
+.fi
+.SH DESCRIPTION
+Join a list of C strings together with a separator.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+glue	CString	The C joiner used to between elements. 	-
+pieces	[CString]	A list of C strings to join. 	-
+.TE
+.SH RETURN
+A C string of the joined together bits.
+
+.SH EXAMPLES
+.EX
+assert CString(",").join([CString("a"), CString("b")]) == CString("a,b")
+.EE

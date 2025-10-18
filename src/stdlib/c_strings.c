@@ -66,6 +66,17 @@ static void CString$deserialize(FILE *in, void *out, List_t *pointers, const Typ
 }
 
 public
+const char *CString$join(const char *glue, List_t strings) {
+    Text_t ret = EMPTY_TEXT;
+    Text_t glue_text = Text$from_str(glue);
+    for (int64_t i = 0; i < (int64_t)strings.length; i++) {
+        if (i > 0) ret = Texts(ret, glue_text);
+        ret = Texts(ret, Text$from_str(*(const char **)(strings.data + i * strings.stride)));
+    }
+    return Text$as_c_string(ret);
+}
+
+public
 const TypeInfo_t CString$info = {
     .size = sizeof(const char *),
     .align = __alignof__(const char *),
