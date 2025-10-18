@@ -376,6 +376,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // When running files, if `--verbose` is not set, then don't print "compiled to ..." messages
+    if (!verbose) quiet = true;
+
     run_files = normalize_tm_paths(run_files);
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
         Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
