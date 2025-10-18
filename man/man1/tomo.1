@@ -15,12 +15,11 @@ Transpile tomo files to C files:
 Compile files to static object files:
 \f[B]tomo\f[R] \f[B]\-c\f[R] \f[I]file1.tm\f[R] \f[I]file2.tm\f[R]\&...
 .TP
-Compile file to an executable:
-\f[B]tomo\f[R] \f[B]\-e\f[R] \f[I]file1.tm\f[R]
+Compile files to a executables:
+\f[B]tomo\f[R] \f[B]\-e\f[R] \f[I]file1.tm\f[R] \f[I]file2.tm\f[R]\&...
 .TP
-Build a shared library:
-\f[B]tomo\f[R] \f[B]\-s=\f[R]\f[I]mylib.1.2.3\f[R] \f[I]file1.tm\f[R]
-\f[I]file2.tm\f[R]\&...
+Build a library:
+\f[B]tomo\f[R] \f[B]\-L\f[R] \f[I]file1.tm\f[R] \f[I]file2.tm\f[R]\&...
 .SH DESCRIPTION
 Tomo is a programming language that is statically typed, compiled,
 small, and garbage\-collected, with concise syntax and built\-in support
@@ -32,20 +31,24 @@ compiler of your choice.
 \f[B]\-\-changelog\f[R]
 Print the compiler change log and exit.
 .TP
-\f[B]\-\-compile\-exe\f[R], \f[B]\-e\f[R]
-Compile the input file to an executable.
+\f[B]\-\-transpile\f[R], \f[B]\-t\f[R] \f[I]file1.tm\f[R] \f[I]file2.tm\f[R]\&...
+Transpile the given files to C.
 .TP
-\f[B]\-\-compile\-obj\f[R], \f[B]\-c\f[R]
-Compile the input files to static objects, rather than running them.
+\f[B]\-\-compile\-exe\f[R], \f[B]\-e\f[R] \f[I]file1.tm\f[R] \f[I]file2.tm\f[R]\&...
+Compile the given files to executables.
+.TP
+\f[B]\-\-compile\-obj\f[R], \f[B]\-c\f[R] \f[I]file1.tm\f[R] \f[I]file2.tm\f[R]\&...
+Compile the given files to static objects.
 .TP
 \f[B]\-\-help\f[R], \f[B]\-h\f[R]
 Print the usage and exit.
 .TP
-\f[B]\-\-install\f[R], \f[B]\-I\f[R]
-Install the compiled executable or library.
+\f[B]\-\-library\f[R], \f[B]\-L\f[R] \f[I]folder1\f[R] \f[I]folder2\f[R]\&...
+Compile the input folders to shared libraries.
 .TP
-\f[B]\-\-library\f[R], \f[B]\-L\f[R]
-Compile the input files to a shared library file and header.
+\f[B]\-\-install\f[R], \f[B]\-I\f[R]
+When using \f[B]\-e\f[R] or \f[B]\-L\f[R], install the resulting
+executables or libraries.
 .TP
 \f[B]\-\-show\-codegen\f[R] \f[I]\f[R], \f[B]\-C\f[R] \f[I]\f[R]
 Set a program (e.g.\ \f[B]cat\f[R] or \f[B]bat\f[R]) to display the
@@ -54,11 +57,11 @@ generated code
 \f[B]\-\-force\-rebuild\f[R], \f[B]\-f\f[R]
 Force rebuilding/recompiling.
 .TP
-\f[B]\-\-format\f[R]
-Autoformat a file and print it to standard output.
+\f[B]\-\-format\f[R] \f[I]file1.tm\f[R] \f[I]file2.tm\f[R]\&...
+Autoformat the given files and print them to standard output.
 .TP
-\f[B]\-\-format\-inplace\f[R]
-Autoformat a file in\-place.
+\f[B]\-\-format\f[R] \f[I]file1.tm\f[R] \f[I]file2.tm\f[R]\&...
+Autoformat the given files in\-place and overwrite the original files.
 .TP
 \f[B]\-\-optimization\f[R] \f[B]level\f[R], \f[B]\-O\f[R] \f[B]level\f[R]
 Set the optimization level.
@@ -76,11 +79,8 @@ Run an installed tomo program from
 \f[B]\-\-source\-mapping=\f[R], \f[B]\-m=\f[R] \f[B]<yes|no>\f[R]
 Toggle whether source mapping should be enabled or disabled.
 .TP
-\f[B]\-\-transpile\f[R], \f[B]\-t\f[R]
-Transpile the input files to C code without compiling them.
-.TP
-\f[B]\-\-uninstall\f[R], \f[B]\-u\f[R]
-Uninstall a compiled executable or library.
+\f[B]\-\-uninstall\f[R], \f[B]\-u\f[R] \f[I]lib1\f[R] \f[I]lib2\f[R]\&...
+Uninstall the given libraries.
 .TP
 \f[B]\-\-verbose\f[R], \f[B]\-v\f[R]
 Print extra verbose output.

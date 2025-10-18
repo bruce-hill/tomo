@@ -17,11 +17,11 @@ Transpile tomo files to C files:
 Compile files to static object files:
 : `tomo` `-c` *file1.tm* *file2.tm*...
 
-Compile file to an executable:
-: `tomo` `-e` *file1.tm*
+Compile files to a executables:
+: `tomo` `-e` *file1.tm* *file2.tm*...
 
-Build a shared library:
-: `tomo` `-s=`*mylib.1.2.3* *file1.tm* *file2.tm*...
+Build a library:
+: `tomo` `-L` *file1.tm* *file2.tm*...
 
 # DESCRIPTION
 
@@ -35,20 +35,23 @@ C code, which is then compiled using a C compiler of your choice.
 `--changelog`
 : Print the compiler change log and exit.
 
-`--compile-exe`, `-e`
-: Compile the input file to an executable.
+`--transpile`, `-t` *file1.tm* *file2.tm*...
+: Transpile the given files to C.
 
-`--compile-obj`, `-c`
-: Compile the input files to static objects, rather than running them.
+`--compile-exe`, `-e` *file1.tm* *file2.tm*...
+: Compile the given files to executables.
+
+`--compile-obj`, `-c` *file1.tm* *file2.tm*...
+: Compile the given files to static objects.
 
 `--help`, `-h`
 : Print the usage and exit.
 
-`--install`, `-I`
-: Install the compiled executable or library.
+`--library`, `-L` *folder1* *folder2*...
+: Compile the input folders to shared libraries.
 
-`--library`, `-L`
-: Compile the input files to a shared library file and header.
+`--install`, `-I`
+: When using `-e` or `-L`, install the resulting executables or libraries.
 
 `--show-codegen` *<program>*, `-C` *<program>*
 : Set a program (e.g. `cat` or `bat`) to display the generated code
@@ -56,11 +59,11 @@ C code, which is then compiled using a C compiler of your choice.
 `--force-rebuild`, `-f`
 : Force rebuilding/recompiling.
 
-`--format`
-: Autoformat a file and print it to standard output.
+`--format` *file1.tm* *file2.tm*...
+: Autoformat the given files and print them to standard output.
 
-`--format-inplace`
-: Autoformat a file in-place.
+`--format` *file1.tm* *file2.tm*...
+: Autoformat the given files in-place and overwrite the original files.
 
 `--optimization` **level**, `-O` **level**
 : Set the optimization level.
@@ -77,11 +80,8 @@ C code, which is then compiled using a C compiler of your choice.
 `--source-mapping=`, `-m=` **<yes|no>**
 : Toggle whether source mapping should be enabled or disabled.
 
-`--transpile`, `-t`
-: Transpile the input files to C code without compiling them.
-
-`--uninstall`, `-u`
-: Uninstall a compiled executable or library.
+`--uninstall`, `-u` *lib1* *lib2*...
+: Uninstall the given libraries.
 
 `--verbose`, `-v`
 : Print extra verbose output.
