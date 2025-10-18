@@ -248,6 +248,12 @@ static int64_t parse_arg_list(List_t args, const char *flag, void *dest, const T
         OptionalNum32_t parsed = Num32$parse(Text$from_str(arg), NULL);
         if (isnan(parsed)) print_err("Could not parse argument for --", flag, ": ", arg);
         *(Num32_t *)dest = parsed;
+    } else if (type->tag == PointerInfo) {
+        // For pointers, we can just allocate memory for the value and then parse the value
+        void *value = GC_MALLOC((size_t)type->PointerInfo.pointed->size);
+        n = parse_arg_list(args, flag, value, type->PointerInfo.pointed, allow_dashes);
+        *(void **)dest = value;
+        return n;
     } else if (type == &Path$info) {
         *(Path_t *)dest = Path$from_str(arg);
     } else if (type->tag == TextInfo) {
