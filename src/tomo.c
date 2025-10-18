@@ -74,11 +74,12 @@ static const char *paths_str(List_t paths) {
 #define SHARED_SUFFIX ".so"
 #endif
 
-static OptionalList_t files = NONE_LIST, args = NONE_LIST, uninstall = NONE_LIST, libraries = NONE_LIST;
-static OptionalBool_t verbose = false, quiet = false, show_version = false, show_parse_tree = false,
-                      do_format_code = false, format_inplace = false, show_prefix = false, stop_at_transpile = false,
-                      stop_at_obj_compilation = false, compile_exe = false, should_install = false, clean_build = false,
-                      source_mapping = true, show_changelog = false;
+static OptionalBool_t verbose = false, quiet = false, show_version = false, show_prefix = false, clean_build = false,
+                      source_mapping = true, show_changelog = false, should_install = false;
+
+static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
+              transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
+              run_files = EMPTY_LIST, uninstall_libraries = EMPTY_LIST, libraries = EMPTY_LIST, args = EMPTY_LIST;
 
 static OptionalText_t show_codegen = NONE_TEXT,
                       cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
@@ -98,6 +99,8 @@ static Text_t config_summary,
     // of that directory.
     as_owner = Text("");
 
+typedef enum { COMPILE_C_FILES, COMPILE_OBJ, COMPILE_EXE } compile_mode_t;
+
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
 static void compile_object_file(Path_t path);
@@ -106,7 +109,7 @@ static Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, 
 static void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link);
 static void build_library(Path_t lib_dir);
 static void install_library(Path_t lib_dir);
-static void compile_files(env_t *env, List_t files, List_t *object_files, List_t *ldlibs);
+static void compile_files(env_t *env, List_t files, List_t *object_files, List_t *ldlibs, compile_mode_t mode);
 static bool is_stale(Path_t path, Path_t relative_to, bool ignore_missing);
 static bool is_stale_for_any(Path_t path, List_t relative_to, bool ignore_missing);
 static Path_t build_file(Path_t path, const char *extension);
@@ -117,10 +120,21 @@ typedef struct {
     bool h : 1, c : 1, o : 1;
 } staleness_t;
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstack-protector"
-#endif
+static List_t normalize_tm_paths(List_t paths) {
+    List_t result = EMPTY_LIST;
+    for (int64_t i = 0; i < (int64_t)paths.length; i++) {
+        Path_t path = *(Path_t *)(paths.data + i * paths.stride);
+        // Convert `foo` to `foo/foo.tm` and resolve path to absolute path:
+        Path_t cur_dir = Path$current_dir();
+        if (Path$is_directory(path, true)) path = Path$child(path, Texts(Path$base_name(path), Text(".tm")));
+
+        path = Path$resolved(path, cur_dir);
+        if (!Path$exists(path)) fail("path not found: ", path);
+        List$insert(&result, &path, I(0), sizeof(path));
+    }
+    return result;
+}
+
 int main(int argc, char *argv[]) {
 #ifdef __linux__
     // Get the file modification time of the compiler, so we
@@ -178,9 +192,9 @@ int main(int argc, char *argv[]) {
 
     Text_t usage = Texts("\x1b[33;4;1mUsage:\x1b[m\n"
                          "\x1b[1mRun a program:\x1b[m         tomo file.tm [-- args...]\n"
-                         "\x1b[1mTranspile files:\x1b[m       tomo -t file.tm...\n"
-                         "\x1b[1mCompile object files:\x1b[m  tomo -c file.tm...\n"
-                         "\x1b[1mCompile executables:\x1b[m   tomo -e file.tm...\n"
+                         "\x1b[1mTranspile files:\x1b[m       tomo -t file.tm\n"
+                         "\x1b[1mCompile object file:\x1b[m  tomo -c file.tm\n"
+                         "\x1b[1mCompile executable:\x1b[m   tomo -e file.tm\n"
                          "\x1b[1mBuild libraries:\x1b[m       tomo -L lib...\n"
                          "\x1b[1mUninstall libraries:\x1b[m   tomo -u lib...\n"
                          "\x1b[1mOther flags:\x1b[m\n"
@@ -205,26 +219,26 @@ int main(int argc, char *argv[]) {
                          TOMO_PATH, "/share/tomo_" TOMO_VERSION "/installed\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(argc, argv, usage, help, TOMO_VERSION, //
-                    {"files", '\0', true, List$info(&Path$info), &files}, //
-                    {"args", '\0', false, List$info(&Text$info), &args}, //
+                    {"run", 'r', false, List$info(&Path$info), &run_files}, //
+                    {"format", 'F', false, List$info(&Path$info), &format_files}, //
+                    {"format-inplace", '\0', false, List$info(&Path$info), &format_files_inplace}, //
+                    {"transpile", 't', false, List$info(&Path$info), &transpile_files}, //
+                    {"compile-obj", 'c', false, List$info(&Path$info), &compile_objects}, //
+                    {"compile-exe", 'e', false, List$info(&Path$info), &compile_executables}, //
+                    {"library", 'L', false, List$info(&Path$info), &libraries}, //
+                    {"uninstall", 'u', false, List$info(&Text$info), &uninstall_libraries}, //
                     {"verbose", 'v', false, &Bool$info, &verbose}, //
                     {"version", 'V', false, &Bool$info, &show_version}, //
-                    {"parse", 'p', false, &Bool$info, &show_parse_tree}, //
-                    {"format", '\0', false, &Bool$info, &do_format_code}, //
-                    {"format-inplace", '\0', false, &Bool$info, &format_inplace}, //
+                    {"install", 'I', false, &Bool$info, &should_install}, //
                     {"prefix", '\0', false, &Bool$info, &show_prefix}, //
                     {"quiet", 'q', false, &Bool$info, &quiet}, //
-                    {"transpile", 't', false, &Bool$info, &stop_at_transpile}, //
-                    {"compile-obj", 'c', false, &Bool$info, &stop_at_obj_compilation}, //
-                    {"compile-exe", 'e', false, &Bool$info, &compile_exe}, //
-                    {"uninstall", 'u', false, List$info(&Text$info), &uninstall}, //
-                    {"library", 'L', false, List$info(&Path$info), &libraries}, //
                     {"show-codegen", 'C', false, &Text$info, &show_codegen}, //
-                    {"install", 'I', false, &Bool$info, &should_install}, //
                     {"optimization", 'O', false, &Text$info, &optimization}, //
                     {"force-rebuild", 'f', false, &Bool$info, &clean_build}, //
                     {"source-mapping", 'm', false, &Bool$info, &source_mapping},
-                    {"changelog", '\0', false, &Bool$info, &show_changelog}, );
+                    {"changelog", '\0', false, &Bool$info, &show_changelog}, //
+                    {"args", '\0', false, List$info(&Text$info), &args}, //
+    );
 
     if (show_prefix) {
         print(TOMO_PATH);
@@ -272,12 +286,14 @@ int main(int argc, char *argv[]) {
         as_owner = Texts(Text(SUDO " -u "), owner, Text(" "));
     }
 
-    for (int64_t i = 0; i < (int64_t)uninstall.length; i++) {
-        Text_t *u = (Text_t *)(uninstall.data + i * uninstall.stride);
+    // Uninstall libraries:
+    for (int64_t i = 0; i < (int64_t)uninstall_libraries.length; i++) {
+        Text_t *u = (Text_t *)(uninstall_libraries.data + i * uninstall_libraries.stride);
         xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo_" TOMO_VERSION "/", *u);
         print("Uninstalled ", *u);
     }
 
+    // Build (and install) libraries
     Path_t cwd = Path$current_dir();
     for (int64_t i = 0; i < (int64_t)libraries.length; i++) {
         Path_t *lib = (Path_t *)(libraries.data + i * libraries.stride);
@@ -301,59 +317,76 @@ int main(int argc, char *argv[]) {
         wait_for_child_success(child);
     }
 
-    if (files.length <= 0 && uninstall.length <= 0 && libraries.length <= 0) {
-        fprint(stderr, "No files provided!\n\n", usage);
-        return 1;
+    parse_files = normalize_tm_paths(parse_files);
+    for (int64_t i = 0; i < (int64_t)parse_files.length; i++) {
+        Path_t path = *(Path_t *)(parse_files.data + i * parse_files.stride);
+        ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+        print(ast_to_sexp_str(ast));
     }
 
-    if (files.length <= 0 && (uninstall.length > 0 || libraries.length > 0)) {
-        return 0;
+    format_files = normalize_tm_paths(format_files);
+    for (int64_t i = 0; i < (int64_t)format_files.length; i++) {
+        Path_t path = *(Path_t *)(format_files.data + i * format_files.stride);
+        Text_t formatted = format_file(Path$as_c_string(path));
+        print(formatted);
     }
 
-    // Convert `foo` to `foo/foo.tm` and resolve all paths to absolute paths:
-    Path_t cur_dir = Path$current_dir();
-    for (int64_t i = 0; i < (int64_t)files.length; i++) {
-        Path_t *path = (Path_t *)(files.data + i * files.stride);
-        if (Path$is_directory(*path, true)) *path = Path$child(*path, Texts(Path$base_name(*path), Text(".tm")));
-
-        *path = Path$resolved(*path, cur_dir);
-        if (!Path$exists(*path)) fail("File not found: ", *path);
+    format_files_inplace = normalize_tm_paths(format_files_inplace);
+    for (int64_t i = 0; i < (int64_t)format_files.length; i++) {
+        Path_t path = *(Path_t *)(format_files_inplace.data + i * format_files_inplace.stride);
+        Text_t formatted = format_file(Path$as_c_string(path));
+        print("Formatted ", path);
+        Path$write(path, formatted, 0644);
     }
 
-    if (files.length < 1) print_err("No file specified!");
+    transpile_files = normalize_tm_paths(transpile_files);
+    if (transpile_files.length > 0) {
+        env_t *env = global_env(source_mapping);
+        List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
+        compile_files(env, transpile_files, &object_files, &extra_ldlibs, COMPILE_C_FILES);
+    }
 
-    if (!compile_exe && !stop_at_transpile && !stop_at_obj_compilation) quiet = !verbose;
+    compile_objects = normalize_tm_paths(compile_objects);
+    if (compile_objects.length > 0) {
+        env_t *env = global_env(source_mapping);
+        List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
+        compile_files(env, transpile_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
+    }
 
-    for (int64_t i = 0; i < (int64_t)files.length; i++) {
-        Path_t path = *(Path_t *)(files.data + i * files.stride);
-        if (show_parse_tree) {
-            ast_t *ast = parse_file(Path$as_c_string(path), NULL);
-            print(ast_to_sexp_str(ast));
-            continue;
-        }
+    compile_executables = normalize_tm_paths(compile_executables);
+    if (compile_executables.length > 0) {
+        for (int64_t i = 0; i < (int64_t)compile_executables.length; i++) {
+            Path_t path = *(Path_t *)(compile_executables.data + i * compile_executables.stride);
 
-        if (do_format_code || format_inplace) {
-            Text_t formatted = format_file(Path$as_c_string(path));
-            if (format_inplace) {
-                print("Formatted ", path);
-                Path$write(path, formatted, 0644);
-            } else {
-                print(formatted);
+            Path_t exe_path = Path$with_extension(path, Text(""), true);
+            pid_t child = fork();
+            if (child == 0) {
+                env_t *env = global_env(source_mapping);
+                List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
+                compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
+                compile_executable(env, path, exe_path, object_files, extra_ldlibs);
+                _exit(0);
             }
-            continue;
+
+            wait_for_child_success(child);
+
+            if (should_install) {
+                xsystem(as_owner, "cp -v '", exe_path, "' '", TOMO_PATH, "'/bin/");
+            }
         }
+    }
 
-        Path_t exe_path = compile_exe ? Path$with_extension(path, Text(""), true)
-                                      : build_file(Path$with_extension(path, Text(""), true), "");
+    run_files = normalize_tm_paths(run_files);
+    for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
+        Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
 
+        Path_t exe_path = build_file(Path$with_extension(path, Text(""), true), "");
         pid_t child = fork();
         if (child == 0) {
             env_t *env = global_env(source_mapping);
             List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
-            compile_files(env, files, &object_files, &extra_ldlibs);
+            compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
             compile_executable(env, path, exe_path, object_files, extra_ldlibs);
-
-            if (compile_exe) _exit(0);
 
             char *prog_args[1 + args.length + 1];
             prog_args[0] = (char *)Path$as_c_string(exe_path);
@@ -367,18 +400,8 @@ int main(int argc, char *argv[]) {
         wait_for_child_success(child);
     }
 
-    if (compile_exe && should_install) {
-        for (int64_t i = 0; i < (int64_t)files.length; i++) {
-            Path_t path = *(Path_t *)(files.data + i * files.stride);
-            Path_t exe = Path$with_extension(path, Text(""), true);
-            xsystem(as_owner, "cp -v '", exe, "' '", TOMO_PATH, "'/bin/");
-        }
-    }
     return 0;
 }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 void wait_for_child_success(pid_t child) {
     int status;
@@ -408,7 +431,7 @@ void build_library(Path_t lib_dir) {
     env_t *env = fresh_scope(global_env(source_mapping));
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
 
-    compile_files(env, tm_files, &object_files, &extra_ldlibs);
+    compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
 
     Text_t lib_name = get_library_name(lib_dir);
     Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), lib_name, Text(SHARED_SUFFIX)));
@@ -460,7 +483,7 @@ void install_library(Path_t lib_dir) {
     print("Installed \033[1m", lib_dir, "\033[m to ", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", lib_name);
 }
 
-void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs) {
+void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs, compile_mode_t mode) {
     Table_t to_link = EMPTY_TABLE;
     Table_t dependency_files = EMPTY_TABLE;
     for (int64_t i = 0; i < (int64_t)to_compile.length; i++) {
@@ -544,7 +567,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (pid == 0) {
             if (clean_build || entry->staleness.c) transpile_code(env, entry->filename);
             else if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".c"));
-            if (!stop_at_transpile) compile_object_file(entry->filename);
+            if (mode != COMPILE_C_FILES) compile_object_file(entry->filename);
             _exit(EXIT_SUCCESS);
         }
         child_processes = new (struct child_s, .next = child_processes, .pid = pid);

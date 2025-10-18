@@ -13,6 +13,7 @@
 #include "../config.h"
 #include "bools.h"
 #include "bytes.h"
+#include "c_strings.h"
 #include "cli.h"
 #include "integers.h"
 #include "metamethods.h"
@@ -232,11 +233,7 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
         exit(0);
     }
     if (args.length > 0) {
-        List_t arg_texts = EMPTY_LIST;
-        for (int64_t i = 0; i < (int64_t)args.length; i++)
-            List$insert_value(&arg_texts, Text$from_str(*(const char **)(args.data + i * args.stride)), I(0),
-                              sizeof(Text_t));
-        print_err("Unknown flag values: ", Text$join(Text(" "), args));
+        print_err("Unknown flag values: ", generic_as_text(&args, true, List$info(&CString$info)));
     }
 }
 
