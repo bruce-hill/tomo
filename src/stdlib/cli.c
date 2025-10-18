@@ -197,6 +197,13 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
     if (args.length == 0) print_err("No value provided for flag: ", flag);
 
     const char *arg = *(const char **)args.data;
+
+    if ((type->tag == TextInfo || type == &CString$info) && arg[0] == '\\' && arg[1] == '-') {
+        arg = arg + 1;
+    } else if (arg[0] == '-' && !allow_dashes) {
+        print_err("Not a valid argument for flag ", flag, ": ", arg);
+    }
+
     if (type->tag == OptionalInfo) {
         const TypeInfo_t *nonnull = type->OptionalInfo.type;
         if (streq(arg, "none")) {
