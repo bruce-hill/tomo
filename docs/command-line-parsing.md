@@ -21,10 +21,10 @@ Compiled executable: greet
 
 $ ./greet
 greet: Required argument 'name' was not provided!
-Signature: greet [--help] <name> [--be-excited|-E|--no-be-exited]
+Usage: greet [--help] <name> [--be-excited|-E|--no-be-exited]
 
 $ ./greet --help
-Signature: greet [--help] <name> [--be-excited|-E|--no-be-excited]
+Usage: greet [--help] <name> [--be-excited|-E|--no-be-excited]
 
 $ ./greet "Zaphod"
 Hi Zaphod. 
@@ -40,7 +40,7 @@ Hi Zaphod.
 
 $ ./greet --not-a-real-argument "Bob"
 greet: Unrecognized argument: --not-a-real-argument
-Signature: greet [--help] <name> [--be-excited|-E|--no-be-excited]
+Usage: greet [--help] <name> [--be-excited|-E|--no-be-excited]
 ```
 
 Underscores in argument names are converted to dashes when parsing command line
@@ -91,26 +91,49 @@ or `1.23`) or scientific notation (`1e99`).
 For fixed-size integers (`Int64`, `Int32`, `Int16`, `Int8`), arguments that
 exceed the representable range for those values are considered usage errors.
 
-### Enums
+### Structs
 
-For enums that do not have member values (e.g. `enum Foo(Baz, Qux)`, not `enum
-Foo(Baz(x:Int), Qux)`, Tomo supports automatic command line argument parsing.
-Parsing is case-insensitive:
+For structs, values can be passed using positional arguments for each struct
+field.
 
 ```
 # foo.tm
-enum Foo(One, Two, Three)
+struct Pair(x,y:Int)
+
+func main(pair:Pair)
+    >> pair
+
+
+$ tomo foo.tm -- --pair 1 2
+Pair(x=1, y=2)
+```
+
+Tomo does not currently support omitting fields with default values or passing
+individual struct fields by named flag.
+
+### Enums
+
+For enums, values can be passed using the enum's tag name and each of its
+fields positionally (the same as for structs). Parsing is case-sensitive:
+
+```
+# foo.tm
+enum Foo(Nothing, AnInteger(i:Int), TwoThings(i:Int, text:Text))
 func main(foo:Foo)
     >> foo
 
-# Signature:
-$ tomo foo.tm one
->> Foo.One
+$ tomo foo.tm -- Nothing
+Nothing
 
-$ tomo foo.tm xxx
-foo: Invalid value provided for --foo; valid values are: One Two
-Signature: foo [--help] <foo>
+$ tomo foo.tm -- AnInteger 123
+AnInteger(123)
+
+$ tomo foo.tm -- TwoThings 123 hello
+TwoThings(i=123, text="hello")
 ```
+
+Like structs, enums do not currently support passing fields as flags or
+omitting fields with default values.
 
 ### Lists of Text
 

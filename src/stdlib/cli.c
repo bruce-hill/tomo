@@ -150,8 +150,6 @@ void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const ch
 }
 
 static int64_t parse_arg_list(List_t args, const char *flag, void *dest, const TypeInfo_t *type, bool allow_dashes) {
-    // print("Parsing type ", generic_as_text(NULL, true, type), ": ",
-    //       generic_as_text(&args, true, List$info(&CString$info)));
     if (type->tag == ListInfo) {
         void *item = GC_MALLOC((size_t)type->ListInfo.item->size);
         int64_t n = 0;
