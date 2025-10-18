@@ -232,6 +232,7 @@ int main(int argc, char *argv[]) {
         {"install", &should_install, &Bool$info, .short_flag = 'I'}, //
         {"prefix", &show_prefix, &Bool$info}, //
         {"quiet", &quiet, &Bool$info, .short_flag = 'q'}, //
+        {"version", &show_version, &Bool$info, .short_flag = 'V'}, //
         {"show-codegen", &show_codegen, &Text$info, .short_flag = 'C'}, //
         {"optimization", &optimization, &Text$info, .short_flag = 'O'}, //
         {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f'}, //
@@ -339,22 +340,29 @@ int main(int argc, char *argv[]) {
         Path$write(path, formatted, 0644);
     }
 
-    transpile_files = normalize_tm_paths(transpile_files);
     if (transpile_files.length > 0) {
+        transpile_files = normalize_tm_paths(transpile_files);
         env_t *env = global_env(source_mapping);
         List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
         compile_files(env, transpile_files, &object_files, &extra_ldlibs, COMPILE_C_FILES);
     }
 
-    compile_objects = normalize_tm_paths(compile_objects);
     if (compile_objects.length > 0) {
+        compile_objects = normalize_tm_paths(compile_objects);
         env_t *env = global_env(source_mapping);
         List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
         compile_files(env, transpile_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
     }
 
-    compile_executables = normalize_tm_paths(compile_executables);
+    struct child_s {
+        struct child_s *next;
+        pid_t pid;
+    } *child_processes = NULL;
+
     if (compile_executables.length > 0) {
+        compile_executables = normalize_tm_paths(compile_executables);
+
+        // Compile and install in parallel:
         for (int64_t i = 0; i < (int64_t)compile_executables.length; i++) {
             Path_t path = *(Path_t *)(compile_executables.data + i * compile_executables.stride);
 
@@ -365,24 +373,25 @@ int main(int argc, char *argv[]) {
                 List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
                 compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
                 compile_executable(env, path, exe_path, object_files, extra_ldlibs);
+                if (should_install) xsystem(as_owner, "cp -v '", exe_path, "' '", TOMO_PATH, "'/bin/");
                 _exit(0);
             }
 
-            wait_for_child_success(child);
-
-            if (should_install) {
-                xsystem(as_owner, "cp -v '", exe_path, "' '", TOMO_PATH, "'/bin/");
-            }
+            child_processes = new (struct child_s, .next = child_processes, .pid = child);
         }
+
+        for (; child_processes; child_processes = child_processes->next)
+            wait_for_child_success(child_processes->pid);
     }
 
     // When running files, if `--verbose` is not set, then don't print "compiled to ..." messages
     if (!verbose) quiet = true;
 
     run_files = normalize_tm_paths(run_files);
+
+    // Compile runnable files in parallel, then execute in serial:
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
         Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
-
         Path_t exe_path = build_file(Path$with_extension(path, Text(""), true), "");
         pid_t child = fork();
         if (child == 0) {
@@ -390,7 +399,22 @@ int main(int argc, char *argv[]) {
             List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
             compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
             compile_executable(env, path, exe_path, object_files, extra_ldlibs);
+            _exit(0);
+        }
 
+        child_processes = new (struct child_s, .next = child_processes, .pid = child);
+    }
+
+    for (; child_processes; child_processes = child_processes->next)
+        wait_for_child_success(child_processes->pid);
+
+    // After parallel compilation, do serial execution:
+    for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
+        Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
+        Path_t exe_path = build_file(Path$with_extension(path, Text(""), true), "");
+        // Don't fork for the last program
+        pid_t child = i == (int64_t)run_files.length - 1 ? 0 : fork();
+        if (child == 0) {
             char *prog_args[1 + args.length + 1];
             prog_args[0] = (char *)Path$as_c_string(exe_path);
             for (int64_t j = 0; j < (int64_t)args.length; j++)
@@ -399,7 +423,6 @@ int main(int argc, char *argv[]) {
             execv(prog_args[0], prog_args);
             print_err("Could not execute program: ", prog_args[0]);
         }
-
         wait_for_child_success(child);
     }
 
