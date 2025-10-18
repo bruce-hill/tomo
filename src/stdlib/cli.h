@@ -9,6 +9,7 @@
 
 typedef struct {
     const char *name;
+    char short_flag;
     bool required;
     const TypeInfo_t *type;
     void *dest;
@@ -19,3 +20,6 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
 #define tomo_parse_args(argc, argv, usage, help, version, ...)                                                         \
     _tomo_parse_args(argc, argv, usage, help, version, sizeof((cli_arg_t[]){__VA_ARGS__}) / sizeof(cli_arg_t),         \
                      (cli_arg_t[]){__VA_ARGS__})
+
+bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, const TypeInfo_t *type);
+bool pop_cli_positional(List_t *args, const char *flag, void *dest, const TypeInfo_t *type);

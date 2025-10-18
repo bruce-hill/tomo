@@ -1,6 +1,5 @@
 // Comman-line argument parsing
 
-#include <ctype.h>
 #include <execinfo.h>
 #include <fcntl.h>
 #include <gc.h>
@@ -26,12 +25,7 @@
 #include "text.h"
 #include "util.h"
 
-static bool is_numeric_type(const TypeInfo_t *info) {
-    return (info == &Num$info || info == &Num32$info || info == &Int$info || info == &Int64$info || info == &Int32$info
-            || info == &Int16$info || info == &Int8$info || info == &Byte$info);
-}
-
-static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest) {
+static bool parse_single_arg(const TypeInfo_t *info, const char *arg, void *dest) {
     if (!arg) return false;
 
     if (info->tag == OptionalInfo) {
@@ -133,272 +127,286 @@ static bool parse_single_arg(const TypeInfo_t *info, char *arg, void *dest) {
     return false;
 }
 
-static List_t parse_list(const TypeInfo_t *item_info, int n, char *args[]) {
-    int64_t padded_size = item_info->size;
-    if ((padded_size % item_info->align) > 0)
-        padded_size = padded_size + item_info->align - (padded_size % item_info->align);
-
-    uint64_t u = (uint64_t)n;
-    List_t items = {
-        .stride = padded_size,
-        .length = u,
-        .data = GC_MALLOC((size_t)(padded_size * n)),
-    };
-    for (int i = 0; i < n; i++) {
-        bool success = parse_single_arg(item_info, args[i], items.data + items.stride * i);
-        if (!success) print_err("Couldn't parse argument: ", args[i]);
+static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag, bool *dest) {
+    const char *no_flag = String("no-", flag);
+    for (int64_t i = 0; i < (int64_t)args->length; i++) {
+        const char *arg = *(const char **)(args->data + i * args->stride);
+        if (arg[0] == '-' && arg[1] == '-') {
+            if (arg[2] == '\0') {
+                // Case: -- (end of flags and beginning of positional args)
+                break;
+            } else if (streq(arg + 2, flag)) {
+                // Case: --flag
+                *dest = true;
+                List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
+                return true;
+            } else if (streq(arg + 2, no_flag)) {
+                // Case: --no-flag
+                *dest = false;
+                List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
+                return true;
+            } else if (starts_with(arg + 2, flag) && arg[2 + strlen(flag)] == '=') {
+                // Case: --flag=yes|no|true|false|on|off|0|1
+                OptionalBool_t b = Bool$parse(Text$from_str(arg + 2 + strlen(flag) + 1), NULL);
+                if (b == NONE_BOOL) print_err("Invalid boolean value for flag --", flag, ": ", arg);
+                *dest = b;
+                List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
+                return true;
+            }
+        } else if (short_flag && arg[0] == '-' && arg[1] != '-' && strchr(arg + 1, short_flag)) {
+            char *loc = strchr(arg + 1, short_flag);
+            if (loc[1] == '=') {
+                // Case: -f=yes|no|true|false|on|off|1|0
+                OptionalBool_t b = Bool$parse(Text$from_str(loc + 2), NULL);
+                if (b == NONE_BOOL) {
+                    char short_str[2] = {short_flag, '\0'};
+                    print_err("Invalid boolean value for flag -", short_str, ": ", arg);
+                }
+                *dest = b;
+                if (loc > arg + 1) {
+                    // Case: -abcdef=... -> -abcde
+                    char *remainder = String(string_slice(arg, (size_t)(loc - arg)));
+                    if unlikely (args->data_refcount > 0) List$compact(args, sizeof(const char *));
+                    *(const char **)(args->data + i * args->stride) = remainder;
+                } else {
+                    // Case: -f=... -> pop flag entirely
+                    List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
+                }
+                return true;
+            } else {
+                // Case: -...f...
+                *dest = true;
+                if (strlen(arg) == 2) {
+                    // Case: -f -> pop flag entirely
+                    List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
+                } else {
+                    // Case: -abcdefgh... -> -abcdegh...
+                    char *remainder =
+                        String(string_slice(arg, (size_t)(loc - arg)), string_slice(loc + 1, strlen(loc + 1)));
+                    if unlikely (args->data_refcount > 0) List$compact(args, sizeof(const char *));
+                    *(const char **)(args->data + i * args->stride) = remainder;
+                }
+                return true;
+            }
+        }
     }
-    return items;
+    return false;
 }
 
-// Arguments take the form key=value, with a guarantee that there is an '='
-static Table_t parse_table(const TypeInfo_t *table, int n, char *args[]) {
-    const TypeInfo_t *key = table->TableInfo.key, *value = table->TableInfo.value;
-    int64_t padded_size = key->size;
-    if ((padded_size % value->align) > 0) padded_size = padded_size + value->align - (padded_size % value->align);
-    int64_t value_offset = padded_size;
-    padded_size += value->size;
-    if ((padded_size % key->align) > 0) padded_size = padded_size + key->align - (padded_size % key->align);
-
-    uint64_t u = (uint64_t)n;
-    List_t entries = {
-        .stride = padded_size,
-        .length = u,
-        .data = GC_MALLOC((size_t)(padded_size * n)),
-    };
-    for (int i = 0; i < n; i++) {
-        char *key_arg = args[i];
-        char *equals = strchr(key_arg, '=');
-        assert(equals);
-        char *value_arg = equals + 1;
-        *equals = '\0';
-
-        bool success = parse_single_arg(key, key_arg, entries.data + entries.stride * i);
-        if (!success) print_err("Couldn't parse table key: ", key_arg);
-
-        success = parse_single_arg(value, value_arg, entries.data + entries.stride * i + value_offset);
-        if (!success) print_err("Couldn't parse table value: ", value_arg);
-
-        *equals = '=';
-    }
-    return Table$from_entries(entries, table);
-}
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstack-protector"
-#endif
 public
 void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const char *version, int spec_len,
                       cli_arg_t spec[spec_len]) {
-    bool populated_args[spec_len];
-    bool used_args[argc];
-    memset(populated_args, 0, sizeof(populated_args));
-    memset(used_args, 0, sizeof(used_args));
-    for (int i = 1; i < argc;) {
-        if (argv[i][0] == '-' && argv[i][1] == '-') {
-            if (argv[i][2] == '\0') { // "--" signals the rest of the arguments are literal
-                used_args[i] = true;
-                break;
-            }
-
-            for (int s = 0; s < spec_len; s++) {
-                const TypeInfo_t *non_opt_type = spec[s].type;
-                while (non_opt_type->tag == OptionalInfo)
-                    non_opt_type = non_opt_type->OptionalInfo.type;
-
-                if (non_opt_type == &Bool$info && strncmp(argv[i], "--no-", strlen("--no-")) == 0
-                    && strcmp(argv[i] + strlen("--no-"), spec[s].name) == 0) {
-                    *(OptionalBool_t *)spec[s].dest = false;
-                    populated_args[s] = true;
-                    used_args[i] = true;
-                    goto next_arg;
-                }
-
-                if (strncmp(spec[s].name, argv[i] + 2, strlen(spec[s].name)) != 0) continue;
-
-                char after_name = argv[i][2 + strlen(spec[s].name)];
-                if (after_name == '\0') { // --foo val
-                    used_args[i] = true;
-                    if (non_opt_type->tag == ListInfo) {
-                        int num_args = 0;
-                        while (i + 1 + num_args < argc) {
-                            if (argv[i + 1 + num_args][0] == '-') break;
-                            used_args[i + 1 + num_args] = true;
-                            num_args += 1;
-                        }
-                        populated_args[s] = true;
-                        *(OptionalList_t *)spec[s].dest =
-                            parse_list(non_opt_type->ListInfo.item, num_args, &argv[i + 1]);
-                    } else if (non_opt_type->tag == TableInfo) {
-                        int num_args = 0;
-                        while (i + 1 + num_args < argc) {
-                            if (argv[i + 1 + num_args][0] == '-' || !strchr(argv[i + 1 + num_args], '=')) break;
-                            used_args[i + 1 + num_args] = true;
-                            num_args += 1;
-                        }
-                        populated_args[s] = true;
-                        *(OptionalTable_t *)spec[s].dest = parse_table(non_opt_type, num_args, &argv[i + 1]);
-                    } else if (non_opt_type == &Bool$info) { // --flag
-                        populated_args[s] = true;
-                        *(OptionalBool_t *)spec[s].dest = true;
-                    } else {
-                        if (i + 1 >= argc) print_err("Missing argument: ", argv[i], "\n", usage);
-                        used_args[i + 1] = true;
-                        populated_args[s] = parse_single_arg(spec[s].type, argv[i + 1], spec[s].dest);
-                        if (!populated_args[s])
-                            print_err("Couldn't parse argument: ", argv[i], " ", argv[i + 1], "\n", usage);
-                    }
-                    goto next_arg;
-                } else if (after_name == '=') { // --foo=val
-                    used_args[i] = true;
-                    populated_args[s] =
-                        parse_single_arg(spec[s].type, 2 + argv[i] + strlen(spec[s].name) + 1, spec[s].dest);
-                    if (!populated_args[s]) print_err("Couldn't parse argument: ", argv[i], "\n", usage);
-                    goto next_arg;
-                } else {
-                    continue;
-                }
-            }
-
-            if (streq(argv[i], "--help")) {
-                print(help);
-                exit(0);
-            }
-            if (streq(argv[i], "--version")) {
-                print(version);
-                exit(0);
-            }
-            print_err("Unrecognized argument: ", argv[i], "\n", usage);
-        } else if (argv[i][0] == '-' && argv[i][1] && argv[i][1] != '-' && !isdigit(argv[i][1])) { // Single flag args
-            used_args[i] = true;
-            for (char *f = argv[i] + 1; *f; f++) {
-                char flag[] = {'-', *f, 0};
-                for (int s = 0; s < spec_len; s++) {
-                    if (spec[s].name[0] != *f || strlen(spec[s].name) > 1) continue;
-
-                    const TypeInfo_t *non_opt_type = spec[s].type;
-                    while (non_opt_type->tag == OptionalInfo)
-                        non_opt_type = non_opt_type->OptionalInfo.type;
-
-                    if (f[1] == '=') {
-                        populated_args[s] = parse_single_arg(spec[s].type, f + 2, spec[s].dest);
-                        if (!populated_args[s]) print_err("Couldn't parse argument: ", argv[i], "\n", usage);
-                        f += strlen(f) - 1;
-                    } else if (non_opt_type->tag == ListInfo) {
-                        if (f[1]) print_err("No value provided for ", flag, "\n", usage);
-                        int num_args = 0;
-                        while (i + 1 + num_args < argc) {
-                            if (argv[i + 1 + num_args][0] == '-') break;
-                            used_args[i + 1 + num_args] = true;
-                            num_args += 1;
-                        }
-                        populated_args[s] = true;
-                        *(OptionalList_t *)spec[s].dest =
-                            parse_list(non_opt_type->ListInfo.item, num_args, &argv[i + 1]);
-                    } else if (non_opt_type->tag == TableInfo) {
-                        int num_args = 0;
-                        while (i + 1 + num_args < argc) {
-                            if (argv[i + 1 + num_args][0] == '-' || !strchr(argv[i + 1 + num_args], '=')) break;
-                            used_args[i + 1 + num_args] = true;
-                            num_args += 1;
-                        }
-                        populated_args[s] = true;
-                        *(OptionalTable_t *)spec[s].dest = parse_table(non_opt_type, num_args, &argv[i + 1]);
-                    } else if (non_opt_type == &Bool$info) { // -f
-                        populated_args[s] = true;
-                        *(OptionalBool_t *)spec[s].dest = true;
-                    } else if (is_numeric_type(non_opt_type) && (f[1] == '-' || f[1] == '.' || isdigit(f[1]))) { // -O3
-                        size_t len = strspn(f + 1, "-0123456789._");
-                        populated_args[s] =
-                            parse_single_arg(spec[s].type, String(string_slice(f + 1, len)), spec[s].dest);
-                        if (!populated_args[s]) print_err("Couldn't parse argument: ", argv[i], "\n", usage);
-                        f += len;
-                    } else {
-                        if (f[1] || i + 1 >= argc) print_err("No value provided for ", flag, "\n", usage);
-                        used_args[i + 1] = true;
-                        populated_args[s] = parse_single_arg(spec[s].type, argv[i + 1], spec[s].dest);
-                        if (!populated_args[s])
-                            print_err("Couldn't parse argument: ", argv[i], " ", argv[i + 1], "\n", usage);
-                    }
-                    goto next_flag;
-                }
-
-                if (*f == 'h') {
-                    print(help);
-                    exit(0);
-                }
-                print_err("Unrecognized flag: ", flag, "\n", usage);
-            next_flag:;
-            }
-        } else {
-            // Handle positional args later
-            i += 1;
-            continue;
-        }
-
-    next_arg:
-        while (used_args[i] && i < argc)
-            i += 1;
+    bool *parsed = GC_MALLOC_ATOMIC(sizeof(bool[spec_len]));
+    List_t args = EMPTY_LIST;
+    for (int i = 1; i < argc; i++) {
+        List$insert(&args, &argv[i], I(0), sizeof(const char *));
     }
-
-    // Get remaining positional arguments
-    bool ignore_dashes = false;
-    for (int i = 1, s = 0; i < argc; i++) {
-        if (!ignore_dashes && streq(argv[i], "--")) {
-            ignore_dashes = true;
-            continue;
-        }
-        if (used_args[i]) continue;
-
-        while (populated_args[s]) {
-        next_non_bool_flag:
-            ++s;
-            if (s >= spec_len) print_err("Extra argument: ", argv[i], "\n", usage);
-        }
-
-        const TypeInfo_t *non_opt_type = spec[s].type;
-        while (non_opt_type->tag == OptionalInfo)
-            non_opt_type = non_opt_type->OptionalInfo.type;
-
-        // You can't specify boolean flags positionally
-        if (non_opt_type == &Bool$info) goto next_non_bool_flag;
-
-        if (non_opt_type->tag == ListInfo) {
-            int num_args = 0;
-            while (i + num_args < argc) {
-                if (!ignore_dashes && (argv[i + num_args][0] == '-' && !isdigit(argv[i + num_args][1]))) break;
-                used_args[i + num_args] = true;
-                num_args += 1;
-            }
-            populated_args[s] = true;
-            *(OptionalList_t *)spec[s].dest = parse_list(non_opt_type->ListInfo.item, num_args, &argv[i]);
-        } else if (non_opt_type->tag == TableInfo) {
-            int num_args = 0;
-            while (i + num_args < argc) {
-                if ((argv[i + num_args][0] == '-' && !isdigit(argv[i + num_args][1]))
-                    || !strchr(argv[i + num_args], '='))
-                    break;
-                used_args[i + num_args] = true;
-                num_args += 1;
-            }
-            populated_args[s] = true;
-            *(OptionalTable_t *)spec[s].dest = parse_table(non_opt_type, num_args, &argv[i]);
-        } else {
-            populated_args[s] = parse_single_arg(spec[s].type, argv[i], spec[s].dest);
-        }
-
-        if (!populated_args[s]) print_err("Invalid value for ", spec[s].name, ": ", argv[i], "\n", usage);
+    for (int i = 0; i < spec_len; i++) {
+        parsed[i] = pop_cli_flag(&args, spec[i].short_flag, spec[i].name, spec[i].dest, spec[i].type);
     }
-
-    for (int s = 0; s < spec_len; s++) {
-        if (!populated_args[s] && spec[s].required) {
-            if (spec[s].type->tag == ListInfo) *(OptionalList_t *)spec[s].dest = EMPTY_LIST;
-            else if (spec[s].type->tag == TableInfo) *(OptionalTable_t *)spec[s].dest = (Table_t){};
-            else print_err("The required argument '", spec[s].name, "' was not provided\n", usage);
+    for (int64_t i = 0; i < (int64_t)args.length; i++) {
+        const char *arg = *(const char **)(args.data + i * args.stride);
+        if (streq(arg, "--")) {
+            List$remove_at(&args, I(i + 1), I(1), sizeof(const char *));
+            break;
+        } else if (arg[0] == '-') {
+            print_err("Unrecognized argument: ", arg);
         }
+    }
+    for (int i = 0; i < spec_len && args.length > 0; i++) {
+        if (!parsed[i] && spec[i].required) {
+            parsed[i] = pop_cli_positional(&args, spec[i].name, spec[i].dest, spec[i].type);
+        }
+    }
+    for (int i = 0; i < spec_len; i++) {
+        if (!parsed[i] && spec[i].required) print_err("Missing required flag: --", spec[i].name, "\n", usage);
+    }
+    bool show_help = false;
+    if (pop_boolean_cli_flag(&args, 'h', "help", &show_help) && show_help) {
+        print(help);
+        exit(0);
+    }
+    bool show_version = false;
+    if (pop_boolean_cli_flag(&args, 'v', "version", &show_version) && show_version) {
+        print(version);
+        exit(0);
+    }
+    if (args.length > 0) {
+        List_t arg_texts = EMPTY_LIST;
+        for (int64_t i = 0; i < (int64_t)args.length; i++)
+            List$insert_value(&arg_texts, Text$from_str(*(const char **)(args.data + i * args.stride)), I(0),
+                              sizeof(Text_t));
+        print_err("Unknown flag values: ", Text$join(Text(" "), args));
     }
 }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+
+static int64_t parse_arg_list(List_t args, const char *flag, void *dest, const TypeInfo_t *type, bool allow_dashes) {
+    if (type->tag == ListInfo) {
+        void *item = GC_MALLOC((size_t)type->ListInfo.item->size);
+        int64_t n = 0;
+        for (; n < (int64_t)args.length; n++) {
+            const char *arg = *(const char **)(args.data + n * args.stride);
+            if (arg[0] == '-' && !allow_dashes) break;
+            if (!parse_single_arg(type->ListInfo.item, arg, item))
+                print_err("Couldn't parse argument for flag --", flag, ": ", arg);
+            List$insert(dest, item, I(0), type->ListInfo.item->size);
+        }
+        return n;
+    } else if (type->tag == TableInfo) {
+        // Arguments take the form key=value, with a guarantee that there is an '='
+        void *key = GC_MALLOC((size_t)type->TableInfo.key->size);
+        void *value = GC_MALLOC((size_t)type->TableInfo.value->size);
+        int64_t n = 0;
+        for (; n < (int64_t)args.length; n++) {
+            const char *arg = *(const char **)(args.data + n * args.stride);
+            if (arg[0] == '-' && !allow_dashes) break;
+            const char *colon = strchr(arg, ':');
+            if (!colon) break;
+            const char *key_arg = String(string_slice(arg, (size_t)(colon - arg)));
+            if (!parse_single_arg(type->TableInfo.key, key_arg, key))
+                print_err("Couldn't parse table key for flag --", flag, ": ", key_arg);
+
+            const char *value_arg = colon + 1;
+            if (!parse_single_arg(type->TableInfo.value, value_arg, value))
+                print_err("Couldn't parse table value for flag --", flag, ": ", value_arg);
+            Table$set(dest, key, value, type);
+        }
+        return n;
+    } else {
+        if (args.length == 0) print_err("No value provided for flag --", flag);
+        const char *arg = *(const char **)args.data;
+        if (!parse_single_arg(type, arg, dest)) print_err("Couldn't parse value for flag --", flag, ": ", arg);
+        return 1;
+    }
+}
+
+bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, const TypeInfo_t *type) {
+    if (type == &Bool$info) {
+        return pop_boolean_cli_flag(args, short_flag, flag, dest);
+    }
+
+    for (int64_t i = 0; i < (int64_t)args->length; i++) {
+        const char *arg = *(const char **)(args->data + i * args->stride);
+        if (arg[0] == '-' && arg[1] == '-') {
+            if (arg[2] == '\0') {
+                // Case: -- (end of flags and beginning of positional args)
+                break;
+            } else if (streq(arg + 2, flag)) {
+                // Case: --flag values...
+                if (i + 1 >= (int64_t)args->length) print_err("No value provided for flag: --", flag);
+                List_t values = List$slice(*args, I(i + 2), I(-1));
+                int64_t n = parse_arg_list(values, flag, dest, type, false);
+                if (n == 0) print_err("No value provided for flag: --", flag);
+                List$remove_at(args, I(i + 1), I(n + 1), sizeof(const char *));
+                return true;
+            } else if (starts_with(arg + 2, flag) && arg[2 + strlen(flag)] == '=') {
+                // Case: --flag=...
+                const char *arg_value = arg + 2 + strlen(flag) + 1;
+                List_t values;
+                if (type->tag == ListInfo || type->tag == TableInfo) {
+                    // For lists and tables, --flag=a,b,c or --flag=a:1,b:2,c:3
+                    List_t texts = Text$split(Text$from_str(arg_value), Text(","));
+                    values = EMPTY_LIST;
+                    for (int64_t j = 0; j < (int64_t)texts.length; j++)
+                        List$insert_value(&texts, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
+                                          sizeof(const char *));
+                } else {
+                    values = List(arg_value);
+                }
+                if (parse_arg_list(values, flag, dest, type, false) == 0)
+                    print_err("No value provided for flag: --", flag);
+                List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
+                return true;
+            }
+        } else if (short_flag && arg[0] == '-' && arg[1] != '-' && strchr(arg + 1, short_flag)) {
+            char *loc = strchr(arg + 1, short_flag);
+            char short_str[2] = {short_flag, '\0'};
+            if (loc[1] == '=') {
+                // Case: -f=...
+                const char *arg_value = loc + 2;
+                List_t values;
+                if (type->tag == ListInfo || type->tag == TableInfo) {
+                    // For lists and tables, -f=a,b,c or -f=a:1,b:2,c:3
+                    List_t texts = Text$split(Text$from_str(arg_value), Text(","));
+                    values = EMPTY_LIST;
+                    for (int64_t j = 0; j < (int64_t)texts.length; j++)
+                        List$insert_value(&texts, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
+                                          sizeof(const char *));
+                } else {
+                    // Case: -f=value
+                    values = List(arg_value);
+                }
+                if (parse_arg_list(values, flag, dest, type, false) == 0)
+                    print_err("No value provided for flag: -", short_str);
+
+                if (loc > arg + 1) {
+                    // Case: -abcdef=... -> -abcde
+                    char *remainder = String(string_slice(arg, (size_t)(loc - arg)));
+                    if unlikely (args->data_refcount > 0) List$compact(args, sizeof(const char *));
+                    *(const char **)(args->data + i * args->stride) = remainder;
+                } else {
+                    // Case: -f=... -> pop flag entirely
+                    List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
+                }
+                return true;
+            } else if (loc[1] == '\0') {
+                // Case: -...f value...
+                if (i + 1 >= (int64_t)args->length) print_err("No value provided for flag: -", short_str);
+                List_t values = List$slice(*args, I(i + 2), I(-1));
+                int64_t n = parse_arg_list(values, flag, dest, type, false);
+                if (n == 0) print_err("No value provided for flag: -", short_str);
+                if (loc == arg + 1) {
+                    // Case: -f values...
+                    List$remove_at(args, I(i + 1), I(n + 1), sizeof(const char *));
+                } else {
+                    // Case: -abcdef values... -> -abcde
+                    char *remainder = String(string_slice(arg, (size_t)(loc - arg)));
+                    if unlikely (args->data_refcount > 0) List$compact(args, sizeof(const char *));
+                    *(const char **)(args->data + i * args->stride) = remainder;
+                    List$remove_at(args, I(i + 2), I(n), sizeof(const char *));
+                }
+                return true;
+            } else {
+                // Case: -...fVALUE (e.g. -O3)
+                const char *arg_value = loc + 1;
+                List_t values;
+                if (type->tag == ListInfo || type->tag == TableInfo) {
+                    // For lists and tables, -fa,b,c or -fa:1,b:2,c:3
+                    List_t texts = Text$split(Text$from_str(arg_value), Text(","));
+                    values = EMPTY_LIST;
+                    for (int64_t j = 0; j < (int64_t)texts.length; j++)
+                        List$insert_value(&texts, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
+                                          sizeof(const char *));
+                } else {
+                    // Case: -fVALUE
+                    values = List(arg_value);
+                }
+                if (parse_arg_list(values, flag, dest, type, false) == 0)
+                    print_err("No value provided for flag: -", short_str);
+                if (loc > arg + 1) {
+                    // Case: -abcdefVALUE -> -abcde;
+                    // NOTE: adding a semicolon means that `-ab1 2` won't parse as b=1, then a=2
+                    char *remainder = String(string_slice(arg, (size_t)(loc - arg)), ";");
+                    if unlikely (args->data_refcount > 0) List$compact(args, sizeof(const char *));
+                    *(const char **)(args->data + i * args->stride) = remainder;
+                } else {
+                    // Case: -fVALUE -> pop flag entirely
+                    List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool pop_cli_positional(List_t *args, const char *flag, void *dest, const TypeInfo_t *type) {
+    if (args->length == 0) {
+        print_err("No value provided for flag: --", flag);
+        return false;
+    }
+    int64_t n = parse_arg_list(*args, flag, dest, type, true);
+    if (n == 0) print_err("No value provided for flag: --", flag);
+    List$remove_at(args, I(1), I(n), sizeof(const char *));
+    return true;
+}

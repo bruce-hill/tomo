@@ -106,13 +106,10 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
     code = Texts(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code, ", ", version_code);
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         code = Texts(code, ",\n{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", ",
-                     arg->default_val ? "false" : "true", ", ", compile_type_info(arg->type), ", &",
+                     arg->alias ? Texts(quoted_text(Text$from_str(arg->name)), "[0]") // TODO: escape char properly
+                                : Text("'\\0'"),
+                     ", ", arg->default_val ? "false" : "true", ", ", compile_type_info(arg->type), ", &",
                      Texts("_$", Text$from_str(arg->name)), "}");
-        if (arg->alias) {
-            code = Texts(code, ",\n{", quoted_text(Text$replace(Text$from_str(arg->alias), Text("_"), Text("-"))), ", ",
-                         arg->default_val ? "false" : "true", ", ", compile_type_info(arg->type), ", &",
-                         Texts("_$", Text$from_str(arg->name)), "}");
-        }
     }
     code = Texts(code, ");\n");
 
