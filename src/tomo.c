@@ -25,9 +25,11 @@
 #include "parse/files.h"
 #include "stdlib/bools.h"
 #include "stdlib/bytes.h"
+#include "stdlib/c_strings.h"
 #include "stdlib/cli.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/lists.h"
+#include "stdlib/metamethods.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
@@ -220,7 +222,7 @@ int main(int argc, char *argv[]) {
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     cli_arg_t tomo_args[] = {
         {"run", &run_files, List$info(&Path$info), .short_flag = 'r'}, //
-        {"args", &args, List$info(&Text$info)}, //
+        {"args", &args, List$info(&CString$info)}, //
         {"format", &format_files, List$info(&Path$info), .short_flag = 'F'}, //
         {"format-inplace", &format_files_inplace, List$info(&Path$info)}, //
         {"transpile", &transpile_files, List$info(&Path$info), .short_flag = 't'}, //
@@ -421,12 +423,12 @@ int main(int argc, char *argv[]) {
         // Don't fork for the last program
         pid_t child = i == (int64_t)run_files.length - 1 ? 0 : fork();
         if (child == 0) {
-            char *prog_args[1 + args.length + 1];
+            const char *prog_args[1 + args.length + 1];
             prog_args[0] = (char *)Path$as_c_string(exe_path);
             for (int64_t j = 0; j < (int64_t)args.length; j++)
-                prog_args[j + 1] = Text$as_c_string(*(Text_t *)(args.data + j * args.stride));
+                prog_args[j + 1] = *(const char **)(args.data + j * args.stride);
             prog_args[1 + args.length] = NULL;
-            execv(prog_args[0], prog_args);
+            execv(prog_args[0], (char **)prog_args);
             print_err("Could not execute program: ", prog_args[0]);
         }
         wait_for_child_success(child);

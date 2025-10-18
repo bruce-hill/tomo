@@ -26,108 +26,6 @@
 #include "text.h"
 #include "util.h"
 
-static bool parse_single_arg(const TypeInfo_t *info, const char *arg, void *dest) {
-    if (!arg) return false;
-
-    if (info->tag == OptionalInfo) {
-        const TypeInfo_t *nonnull = info->OptionalInfo.type;
-        if (streq(arg, "none")) {
-            if (nonnull == &Num$info) *(double *)dest = (double)NAN;
-            else if (nonnull == &Num32$info) *(float *)dest = (float)NAN;
-            else memset(dest, 0, (size_t)info->size);
-            return true;
-        } else {
-            bool success = parse_single_arg(nonnull, arg, dest);
-            if (success) {
-                if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
-                else if (nonnull == &Int32$info) ((OptionalInt32_t *)dest)->has_value = true;
-                else if (nonnull == &Int16$info) ((OptionalInt16_t *)dest)->has_value = true;
-                else if (nonnull == &Int8$info) ((OptionalInt8_t *)dest)->has_value = true;
-                else if (nonnull == &Byte$info) ((OptionalByte_t *)dest)->has_value = true;
-                else if (nonnull->tag == StructInfo && nonnull != &Path$info) *(bool *)(dest + nonnull->size) = true;
-            }
-            return success;
-        }
-    } else if (info == &Int$info) {
-        OptionalInt_t parsed = Int$from_str(arg);
-        if (parsed.small != 0) *(Int_t *)dest = parsed;
-        return parsed.small != 0;
-    } else if (info == &Int64$info) {
-        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(Int64_t *)dest = parsed.value;
-        return parsed.has_value;
-    } else if (info == &Int32$info) {
-        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(Int32_t *)dest = parsed.value;
-        return parsed.has_value;
-    } else if (info == &Int16$info) {
-        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(Int16_t *)dest = parsed.value;
-        return parsed.has_value;
-    } else if (info == &Int8$info) {
-        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(Int8_t *)dest = parsed.value;
-        return parsed.has_value;
-    } else if (info == &Byte$info) {
-        OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NULL);
-        if (parsed.has_value) *(Byte_t *)dest = parsed.value;
-        return parsed.has_value;
-    } else if (info == &Bool$info) {
-        OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
-        if (parsed != NONE_BOOL) *(Bool_t *)dest = parsed;
-        return parsed != NONE_BOOL;
-    } else if (info == &Num$info) {
-        OptionalNum_t parsed = Num$parse(Text$from_str(arg), NULL);
-        if (!isnan(parsed)) *(Num_t *)dest = parsed;
-        return !isnan(parsed);
-    } else if (info == &Num32$info) {
-        OptionalNum32_t parsed = Num32$parse(Text$from_str(arg), NULL);
-        if (!isnan(parsed)) *(Num32_t *)dest = parsed;
-        return !isnan(parsed);
-    } else if (info == &Path$info) {
-        *(Path_t *)dest = Path$from_str(arg);
-        return true;
-    } else if (info->tag == TextInfo) {
-        *(Text_t *)dest = Text$from_str(arg);
-        return true;
-    } else if (info->tag == EnumInfo) {
-        for (int t = 0; t < info->EnumInfo.num_tags; t++) {
-            NamedType_t named = info->EnumInfo.tags[t];
-            size_t len = strlen(named.name);
-            if (strncmp(arg, named.name, len) == 0 && (arg[len] == '\0' || arg[len] == ':')) {
-                *(int32_t *)dest = (t + 1);
-
-                // Simple tag (no associated data):
-                if (!named.type || (named.type->tag == StructInfo && named.type->StructInfo.num_fields == 0))
-                    return true;
-
-                // Single-argument tag:
-                if (arg[len] != ':') print_err("Invalid value for ", t, ".", named.name, ": ", arg);
-                size_t offset = sizeof(int32_t);
-                if (named.type->align > 0 && offset % (size_t)named.type->align > 0)
-                    offset += (size_t)named.type->align - (offset % (size_t)named.type->align);
-                if (!parse_single_arg(named.type, arg + len + 1, dest + offset)) return false;
-                return true;
-            }
-        }
-        print_err("Invalid value for ", info->EnumInfo.name, ": ", arg);
-    } else if (info->tag == StructInfo) {
-        if (info->StructInfo.num_fields == 0) return true;
-        else if (info->StructInfo.num_fields == 1) return parse_single_arg(info->StructInfo.fields[0].type, arg, dest);
-
-        Text_t t = generic_as_text(NULL, false, info);
-        print_err("Unsupported multi-argument struct type for argument parsing: ", t);
-    } else if (info->tag == ListInfo) {
-        print_err("List arguments must be specified as `--flag ...` not `--flag=...`");
-    } else if (info->tag == TableInfo) {
-        print_err("Table arguments must be specified as `--flag ...` not `--flag=...`");
-    } else {
-        Text_t t = generic_as_text(NULL, false, info);
-        print_err("Unsupported type for argument parsing: ", t);
-    }
-    return false;
-}
-
 static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag, bool *dest) {
     const char *no_flag = String("no-", flag);
     for (int64_t i = 0; i < (int64_t)args->length; i++) {
@@ -201,6 +99,7 @@ void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const ch
     for (int i = 1; i < argc; i++) {
         List$insert(&args, &argv[i], I(0), sizeof(const char *));
     }
+
     for (int i = 0; i < spec_len; i++) {
         spec[i].populated = pop_cli_flag(&args, spec[i].short_flag, spec[i].name, spec[i].dest, spec[i].type);
     }
@@ -251,14 +150,15 @@ void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const ch
 }
 
 static int64_t parse_arg_list(List_t args, const char *flag, void *dest, const TypeInfo_t *type, bool allow_dashes) {
+    // print("Parsing type ", generic_as_text(NULL, true, type), ": ",
+    //       generic_as_text(&args, true, List$info(&CString$info)));
     if (type->tag == ListInfo) {
         void *item = GC_MALLOC((size_t)type->ListInfo.item->size);
         int64_t n = 0;
-        for (; n < (int64_t)args.length; n++) {
+        while (n < (int64_t)args.length) {
             const char *arg = *(const char **)(args.data + n * args.stride);
             if (arg[0] == '-' && !allow_dashes) break;
-            if (!parse_single_arg(type->ListInfo.item, arg, item))
-                print_err("Couldn't parse argument for flag --", flag, ": ", arg);
+            n += parse_arg_list(List$slice(args, I(n + 1), I(-1)), flag, item, type->ListInfo.item, allow_dashes);
             List$insert(dest, item, I(0), type->ListInfo.item->size);
         }
         return n;
@@ -267,27 +167,119 @@ static int64_t parse_arg_list(List_t args, const char *flag, void *dest, const T
         void *key = GC_MALLOC((size_t)type->TableInfo.key->size);
         void *value = GC_MALLOC((size_t)type->TableInfo.value->size);
         int64_t n = 0;
-        for (; n < (int64_t)args.length; n++) {
+        while (n < (int64_t)args.length) {
             const char *arg = *(const char **)(args.data + n * args.stride);
             if (arg[0] == '-' && !allow_dashes) break;
             const char *colon = strchr(arg, ':');
             if (!colon) break;
             const char *key_arg = String(string_slice(arg, (size_t)(colon - arg)));
-            if (!parse_single_arg(type->TableInfo.key, key_arg, key))
-                print_err("Couldn't parse table key for flag --", flag, ": ", key_arg);
-
+            n += parse_arg_list(List(key_arg), flag, key, type->TableInfo.key, allow_dashes);
             const char *value_arg = colon + 1;
-            if (!parse_single_arg(type->TableInfo.value, value_arg, value))
-                print_err("Couldn't parse table value for flag --", flag, ": ", value_arg);
+            n += parse_arg_list(List(value_arg), flag, value, type->TableInfo.value, allow_dashes);
             Table$set(dest, key, value, type);
         }
         return n;
-    } else {
-        if (args.length == 0) print_err("No value provided for flag --", flag);
-        const char *arg = *(const char **)args.data;
-        if (!parse_single_arg(type, arg, dest)) print_err("Couldn't parse value for flag --", flag, ": ", arg);
-        return 1;
+    } else if (type->tag == StructInfo) {
+        int64_t n = 0;
+        for (int i = 0; i < type->StructInfo.num_fields; i++) {
+            const TypeInfo_t *field_type = type->StructInfo.fields[i].type;
+            if (field_type->align > 0 && (size_t)dest % (size_t)field_type->align > 0)
+                dest += (size_t)field_type->align - ((size_t)dest % (size_t)field_type->align);
+            n += parse_arg_list(List$slice(args, I(n + 1), I(-1)), String(flag, ".", type->StructInfo.fields[i].name),
+                                dest, field_type, allow_dashes);
+            dest += field_type->size;
+        }
+        return n;
     }
+
+    if (args.length == 0) print_err("No value provided for flag --", flag);
+
+    const char *arg = *(const char **)args.data;
+    int64_t n = 1;
+    if (type->tag == OptionalInfo) {
+        const TypeInfo_t *nonnull = type->OptionalInfo.type;
+        if (streq(arg, "none")) {
+            if (nonnull == &Num$info) *(double *)dest = (double)NAN;
+            else if (nonnull == &Num32$info) *(float *)dest = (float)NAN;
+            else memset(dest, 0, (size_t)type->size);
+        } else {
+            n = parse_arg_list(args, flag, dest, nonnull, allow_dashes);
+            if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
+            else if (nonnull == &Int32$info) ((OptionalInt32_t *)dest)->has_value = true;
+            else if (nonnull == &Int16$info) ((OptionalInt16_t *)dest)->has_value = true;
+            else if (nonnull == &Int8$info) ((OptionalInt8_t *)dest)->has_value = true;
+            else if (nonnull == &Byte$info) ((OptionalByte_t *)dest)->has_value = true;
+            else if (nonnull->tag == StructInfo && nonnull != &Path$info) *(bool *)(dest + nonnull->size) = true;
+            else print_err("Unsupported type: ", generic_as_text(NULL, true, nonnull));
+        }
+    } else if (type == &CString$info) {
+        *(const char **)dest = arg;
+    } else if (type == &Int$info) {
+        OptionalInt_t parsed = Int$from_str(arg);
+        if (parsed.small == 0) print_err("Could not parse argument for --", flag, ": ", arg);
+        *(Int_t *)dest = parsed;
+    } else if (type == &Int64$info) {
+        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
+        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        *(Int64_t *)dest = parsed.value;
+    } else if (type == &Int32$info) {
+        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
+        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        *(Int32_t *)dest = parsed.value;
+    } else if (type == &Int16$info) {
+        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
+        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        *(Int16_t *)dest = parsed.value;
+    } else if (type == &Int8$info) {
+        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
+        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        *(Int8_t *)dest = parsed.value;
+    } else if (type == &Byte$info) {
+        OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NULL);
+        if (!parsed.has_value) print_err("Could not parse argument for --", flag, ": ", arg);
+        *(Byte_t *)dest = parsed.value;
+    } else if (type == &Bool$info) {
+        OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
+        if (parsed == NONE_BOOL) print_err("Could not parse argument for --", flag, ": ", arg);
+        *(Bool_t *)dest = parsed;
+    } else if (type == &Num$info) {
+        OptionalNum_t parsed = Num$parse(Text$from_str(arg), NULL);
+        if (isnan(parsed)) print_err("Could not parse argument for --", flag, ": ", arg);
+        *(Num_t *)dest = parsed;
+    } else if (type == &Num32$info) {
+        OptionalNum32_t parsed = Num32$parse(Text$from_str(arg), NULL);
+        if (isnan(parsed)) print_err("Could not parse argument for --", flag, ": ", arg);
+        *(Num32_t *)dest = parsed;
+    } else if (type == &Path$info) {
+        *(Path_t *)dest = Path$from_str(arg);
+    } else if (type->tag == TextInfo) {
+        *(Text_t *)dest = Text$from_str(arg);
+    } else if (type->tag == EnumInfo) {
+        for (int t = 0; t < type->EnumInfo.num_tags; t++) {
+            NamedType_t named = type->EnumInfo.tags[t];
+            size_t len = strlen(named.name);
+            if (strncmp(arg, named.name, len) == 0 && (arg[len] == '\0' || arg[len] == ':')) {
+                *(int32_t *)dest = (t + 1);
+
+                // Simple tag (no associated data):
+                if (!named.type || (named.type->tag == StructInfo && named.type->StructInfo.num_fields == 0)) return n;
+
+                dest += sizeof(int32_t);
+
+                if (named.type->align > 0 && (size_t)dest % (size_t)named.type->align > 0)
+                    dest += (size_t)named.type->align - ((size_t)dest % (size_t)named.type->align);
+
+                n += parse_arg_list(List$slice(args, I(n + 1), I(-1)), String(flag, ".", named.name), dest, named.type,
+                                    allow_dashes);
+                return n;
+            }
+        }
+        print_err("Invalid value for ", type->EnumInfo.name, ": ", arg);
+    } else {
+        Text_t t = generic_as_text(NULL, false, type);
+        print_err("Unsupported type for argument parsing: ", t);
+    }
+    return n;
 }
 
 bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, const TypeInfo_t *type) {
