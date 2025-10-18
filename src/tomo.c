@@ -220,6 +220,7 @@ int main(int argc, char *argv[]) {
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     tomo_parse_args(argc, argv, usage, help, TOMO_VERSION, //
                     {"run", 'r', false, List$info(&Path$info), &run_files}, //
+                    {"args", '\0', false, List$info(&Text$info), &args}, //
                     {"format", 'F', false, List$info(&Path$info), &format_files}, //
                     {"format-inplace", '\0', false, List$info(&Path$info), &format_files_inplace}, //
                     {"transpile", 't', false, List$info(&Path$info), &transpile_files}, //
@@ -237,7 +238,6 @@ int main(int argc, char *argv[]) {
                     {"force-rebuild", 'f', false, &Bool$info, &clean_build}, //
                     {"source-mapping", 'm', false, &Bool$info, &source_mapping},
                     {"changelog", '\0', false, &Bool$info, &show_changelog}, //
-                    {"args", '\0', false, List$info(&Text$info), &args}, //
     );
 
     if (show_prefix) {

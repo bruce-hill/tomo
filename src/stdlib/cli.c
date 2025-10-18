@@ -205,23 +205,7 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
     for (int i = 0; i < spec_len; i++) {
         parsed[i] = pop_cli_flag(&args, spec[i].short_flag, spec[i].name, spec[i].dest, spec[i].type);
     }
-    for (int64_t i = 0; i < (int64_t)args.length; i++) {
-        const char *arg = *(const char **)(args.data + i * args.stride);
-        if (streq(arg, "--")) {
-            List$remove_at(&args, I(i + 1), I(1), sizeof(const char *));
-            break;
-        } else if (arg[0] == '-') {
-            print_err("Unrecognized argument: ", arg);
-        }
-    }
-    for (int i = 0; i < spec_len && args.length > 0; i++) {
-        if (!parsed[i] && spec[i].required) {
-            parsed[i] = pop_cli_positional(&args, spec[i].name, spec[i].dest, spec[i].type);
-        }
-    }
-    for (int i = 0; i < spec_len; i++) {
-        if (!parsed[i] && spec[i].required) print_err("Missing required flag: --", spec[i].name, "\n", usage);
-    }
+
     bool show_help = false;
     if (pop_boolean_cli_flag(&args, 'h', "help", &show_help) && show_help) {
         print(help);
@@ -232,8 +216,37 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
         print(version);
         exit(0);
     }
-    if (args.length > 0) {
-        print_err("Unknown flag values: ", generic_as_text(&args, true, List$info(&CString$info)));
+
+    List_t before_double_dash = args, after_double_dash = EMPTY_LIST;
+    for (int i = 0; i < (int64_t)args.length; i++) {
+        const char *arg = *(const char **)(args.data + i * args.stride);
+        if (streq(arg, "--")) {
+            before_double_dash = List$slice(args, I(1), I(i));
+            after_double_dash = List$slice(args, I(i + 2), I(-1));
+            break;
+        } else if (arg[0] == '-') {
+            print_err("Unrecognized argument: ", arg);
+        }
+    }
+
+    for (int i = 0; i < spec_len && before_double_dash.length > 0; i++) {
+        if (!parsed[i]) {
+            parsed[i] = pop_cli_positional(&before_double_dash, spec[i].name, spec[i].dest, spec[i].type, false);
+        }
+    }
+    for (int i = 0; i < spec_len && after_double_dash.length > 0; i++) {
+        if (!parsed[i]) {
+            parsed[i] = pop_cli_positional(&after_double_dash, spec[i].name, spec[i].dest, spec[i].type, true);
+        }
+    }
+
+    for (int i = 0; i < spec_len; i++) {
+        if (!parsed[i] && spec[i].required) print_err("Missing required flag: --", spec[i].name, "\n", usage);
+    }
+
+    List_t remaining_args = List$concat(before_double_dash, after_double_dash, sizeof(const char *));
+    if (remaining_args.length > 0) {
+        print_err("Unknown flag values: ", generic_as_text(&remaining_args, true, List$info(&CString$info)));
     }
 }
 
@@ -397,12 +410,12 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
     return false;
 }
 
-bool pop_cli_positional(List_t *args, const char *flag, void *dest, const TypeInfo_t *type) {
+bool pop_cli_positional(List_t *args, const char *flag, void *dest, const TypeInfo_t *type, bool allow_dashes) {
     if (args->length == 0) {
         print_err("No value provided for flag: --", flag);
         return false;
     }
-    int64_t n = parse_arg_list(*args, flag, dest, type, true);
+    int64_t n = parse_arg_list(*args, flag, dest, type, allow_dashes);
     if (n == 0) print_err("No value provided for flag: --", flag);
     List$remove_at(args, I(1), I(n), sizeof(const char *));
     return true;

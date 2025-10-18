@@ -22,4 +22,4 @@ void _tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const c
                      (cli_arg_t[]){__VA_ARGS__})
 
 bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, const TypeInfo_t *type);
-bool pop_cli_positional(List_t *args, const char *flag, void *dest, const TypeInfo_t *type);
+bool pop_cli_positional(List_t *args, const char *flag, void *dest, const TypeInfo_t *type, bool allow_dashes);
