@@ -13,6 +13,8 @@
 static Text_t get_flag_options(type_t *t, Text_t separator) {
     if (t->tag == BoolType) {
         return Text("yes|no");
+    } else if (t == PATH_TYPE) {
+        return Text("path");
     } else if (t->tag == EnumType) {
         Text_t options = EMPTY_TEXT;
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
@@ -33,10 +35,16 @@ static Text_t get_flag_options(type_t *t, Text_t separator) {
         return Text("N");
     } else if (t->tag == TextType || t->tag == CStringType) {
         return Text("text");
-    } else if (t->tag == ListType || (t->tag == TableType && Match(t, TableType)->value_type == EMPTY_TYPE)) {
-        return Text("value1 value2...");
+    } else if (t->tag == ListType) {
+        Text_t item_option = get_flag_options(Match(t, ListType)->item_type, separator);
+        return Texts(item_option, "1 ", item_option, "2...");
+    } else if (t->tag == TableType && Match(t, TableType)->value_type == EMPTY_TYPE) {
+        Text_t item_option = get_flag_options(Match(t, TableType)->key_type, separator);
+        return Texts(item_option, "1 ", item_option, "2...");
     } else if (t->tag == TableType) {
-        return Text("key1:value1 key2:value2...");
+        Text_t key_option = get_flag_options(Match(t, TableType)->key_type, separator);
+        Text_t value_option = get_flag_options(Match(t, TableType)->value_type, separator);
+        return Texts(key_option, "1:", value_option, "1 ", key_option, "2:", value_option, "2...");
     } else {
         return Text("value");
     }
@@ -70,26 +78,24 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
             }
         }
 
-        Text_t usage = explicit_help_flag ? EMPTY_TEXT : Text(" [--help]");
+        Text_t usage = explicit_help_flag ? EMPTY_TEXT : Text(" [\x1b[1m--help\x1b[m]");
         for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
             usage = Texts(usage, " ");
             type_t *t = get_arg_type(main_env, arg);
             OptionalText_t flag = flagify(arg->name, arg->default_val != NULL);
             assert(flag.tag != TEXT_NONE);
             OptionalText_t alias_flag = flagify(arg->alias, arg->default_val != NULL);
-            Text_t flags = alias_flag.tag != TEXT_NONE ? Texts(flag, ",", alias_flag) : flag;
+            Text_t flags = Texts("\x1b[1m", flag, "\x1b[m");
+            if (alias_flag.tag != TEXT_NONE) flags = Texts(flags, ",\x1b[1m", alias_flag, "\x1b[m");
             if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                flags = Texts(flags, "|--no-", Text$without_prefix(flag, Text("--")));
-            if (arg->default_val) {
+                flags = Texts(flags, "|\x1b[1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
+            if (arg->default_val || value_type(t)->tag == BoolType) {
                 if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
                     usage = Texts(usage, "[", flags, "]");
                 else if (t->tag == ListType) usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
-                else usage = Texts(usage, "[", flags, "=", get_flag_options(t, Text("|")), "]");
+                else usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
             } else {
-                if (t->tag == BoolType) usage = Texts(usage, "<", flags, ">");
-                else if (t->tag == EnumType) usage = Texts(usage, get_flag_options(t, Text("|")));
-                else if (t->tag == ListType) usage = Texts(usage, "[", flag, "...]");
-                else usage = Texts(usage, "<", flag, ">");
+                usage = Texts(usage, "\x1b[1m", get_flag_options(t, Text("|")), "\x1b[m");
             }
         }
         code = Texts(code,
@@ -98,7 +104,8 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
                      usage.length == 0 ? EMPTY_TEXT : Texts(", Text(", quoted_text(usage), ")"), ");\n");
     }
     if (!help_binding) {
-        Text_t help_text = EMPTY_TEXT;
+        Text_t help_text = fn_info->args ? Text("\n") : Text("\n\n\x1b[2;3m  No arguments...\x1b[m");
+
         for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
             help_text = Texts(help_text, "\n");
             type_t *t = get_arg_type(main_env, arg);
@@ -122,7 +129,7 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
                 help_text = Texts(help_text, " \x1b[2m(default:", default_text, ")\x1b[m");
             }
         }
-        code = Texts(code, "Text_t help = Texts(usage, ", quoted_text(help_text), ");\n");
+        code = Texts(code, "Text_t help = Texts(usage, ", quoted_text(Texts(help_text, "\n")), ");\n");
         help_code = Text("help");
     }
 
