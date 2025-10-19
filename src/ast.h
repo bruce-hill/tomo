@@ -3,9 +3,9 @@
 #pragma once
 
 #include <err.h>
+#include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 
 #include "stdlib/datatypes.h"
 #include "stdlib/files.h"
