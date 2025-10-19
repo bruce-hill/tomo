@@ -9,6 +9,9 @@
 #include <uniname.h>
 
 #include "../ast.h"
+#include "../formatter/utils.h"
+#include "../stdlib/datatypes.h"
+#include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "context.h"
 #include "controlflow.h"
@@ -19,6 +22,7 @@
 #include "utils.h"
 
 arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
+    const char *comment_start = *pos;
     arg_ast_t *args = NULL;
     for (;;) {
         const char *batch_start = *pos;
@@ -28,6 +32,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
         typedef struct name_list_s {
             const char *start, *end;
             const char *name, *alias;
+            Text_t comment;
             struct name_list_s *next;
         } name_list_t;
 
@@ -46,21 +51,28 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
                 if (!alias) parser_err(ctx, *pos, *pos, "I expected an argument alias after `|`");
             }
 
+            Text_t comments = EMPTY_TEXT;
+            for (OptionalText_t com;
+                 (com = next_comment(ctx->comments, &comment_start, name_start)).tag != TEXT_NONE;) {
+                if (comments.length > 0) comments = Texts(comments, " ");
+                comments = Texts(comments, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
+            }
+
             if (match(pos, ":")) {
                 type = expect(ctx, *pos, pos, parse_type, "I expected a type here");
                 whitespace(ctx, pos);
                 if (match(pos, "=")) default_val = expect(ctx, *pos, pos, parse_term, "I expected a value here");
-                names =
-                    new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names);
+                names = new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names,
+                             .comment = comments);
                 break;
             } else if (strncmp(*pos, "==", 2) != 0 && match(pos, "=")) {
                 default_val = expect(ctx, *pos, pos, parse_term, "I expected a value here");
-                names =
-                    new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names);
+                names = new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names,
+                             .comment = comments);
                 break;
             } else if (name) {
-                names =
-                    new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names);
+                names = new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names,
+                             .comment = comments);
                 spaces(pos);
                 if (!match(pos, ",")) break;
             } else {
@@ -76,7 +88,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
         REVERSE_LIST(names);
         for (; names; names = names->next)
             args = new (arg_ast_t, .start = names->start, .end = names->end, .name = names->name, .alias = names->alias,
-                        .type = type, .value = default_val, .next = args);
+                        .comment = names->comment, .type = type, .value = default_val, .next = args);
 
         if (!match_separator(ctx, pos)) break;
     }

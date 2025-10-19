@@ -12,6 +12,7 @@ typedef struct arg_s {
     const char *name, *alias;
     type_t *type;
     ast_t *default_val;
+    Text_t comment;
     struct arg_s *next;
 } arg_t;
 

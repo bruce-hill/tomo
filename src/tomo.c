@@ -29,7 +29,6 @@
 #include "stdlib/cli.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/lists.h"
-#include "stdlib/metamethods.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"

@@ -20,10 +20,23 @@ static Text_t get_flag_options(type_t *t, const char *separator) {
             if (tag->next) options = Texts(options, separator);
         }
         return options;
-    } else if (t->tag == IntType || t->tag == NumType || t->tag == BigIntType) {
+    } else if (t->tag == StructType) {
+        Text_t options = EMPTY_TEXT;
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            options = Texts(options, get_flag_options(field->type, separator));
+            if (field->next) options = Texts(options, separator);
+        }
+        return options;
+    } else if (is_numeric_type(t)) {
         return Text("N");
+    } else if (t->tag == TextType || t->tag == CStringType) {
+        return Text("text");
+    } else if (t->tag == ListType || (t->tag == TableType && Match(t, TableType)->value_type == EMPTY_TYPE)) {
+        return Text("value1 value2...");
+    } else if (t->tag == TableType) {
+        return Text("key1:value1 key2:value2...");
     } else {
-        return Text("...");
+        return Text("value");
     }
 }
 
@@ -81,9 +94,31 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
             }
         }
         code = Texts(code,
-                     "Text_t usage = Texts(Text(\"Usage: \"), "
+                     "Text_t usage = Texts(Text(\"\\x1b[1mUsage:\\x1b[m \"), "
                      "Text$from_str(argv[0])",
                      usage.length == 0 ? EMPTY_TEXT : Texts(", Text(", quoted_text(usage), ")"), ");\n");
+    }
+    if (!help_binding) {
+        Text_t help_text = EMPTY_TEXT;
+        for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+            help_text = Texts(help_text, "\n");
+            type_t *t = get_arg_type(main_env, arg);
+            OptionalText_t flag = flagify(arg->name, true);
+            assert(flag.tag != TEXT_NONE);
+            OptionalText_t alias_flag = flagify(arg->alias, true);
+            Text_t flags = alias_flag.tag != TEXT_NONE ? Texts(flag, "|", alias_flag) : flag;
+            if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+                help_text = Texts(help_text, "  \x1b[1m", flags, "|--no-", flag, "\x1b[m");
+            else help_text = Texts(help_text, "  \x1b[1m", flags, " \x1b[34m", get_flag_options(t, "|"), "\x1b[m");
+            if (arg->default_val) {
+                Text_t default_text =
+                    Text$from_strn(arg->default_val->start, (size_t)(arg->default_val->end - arg->default_val->start));
+                help_text = Texts(help_text, " \x1b[2mdefault:", default_text, "\x1b[m");
+            }
+            if (arg->comment.length > 0) help_text = Texts(help_text, " \x1b[3m", arg->comment, "\x1b[m");
+        }
+        code = Texts(code, "Text_t help = Texts(usage, ", quoted_text(help_text), ");\n");
+        help_code = Text("help");
     }
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
@@ -161,6 +196,10 @@ Text_t compile_manpage(Text_t program, OptionalText_t synopsis, OptionalText_t d
             man = Texts(man, " \\f[I]key1:value1\\f[R] \\f[I]key2:value2...\\f[R]");
         } else {
             man = Texts(man, " \\f[I]value\\f[R]");
+        }
+
+        if (arg->comment.length > 0) {
+            man = Texts(man, "\n", arg->comment);
         }
     }
 

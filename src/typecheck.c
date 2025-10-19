@@ -93,7 +93,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
                               "longer exist on the stack.");
         arg_t *type_args = NULL;
         for (arg_ast_t *arg = fn->args; arg; arg = arg->next) {
-            type_args = new (arg_t, .name = arg->name, .alias = arg->alias, .next = type_args);
+            type_args = new (arg_t, .name = arg->name, .alias = arg->alias, .comment = arg->comment, .next = type_args);
             if (arg->type) type_args->type = parse_type_ast(env, arg->type);
             else if (arg->value) type_args->type = get_type(env, arg->value);
 
@@ -135,7 +135,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
                 type_t *field_type =
                     field_ast->type ? parse_type_ast(env, field_ast->type) : get_type(env, field_ast->value);
                 fields = new (arg_t, .name = field_ast->name, .type = field_type, .default_val = field_ast->value,
-                              .next = fields);
+                              .alias = field_ast->alias, .comment = field_ast->comment, .next = fields);
             }
             REVERSE_LIST(fields);
             const char *struct_name = String(enum_name, "$", tag_ast->name);
@@ -420,7 +420,7 @@ void bind_statement(env_t *env, ast_t *statement) {
                                      type_to_text(field_t), " pointer for this field.");
                 }
                 fields = new (arg_t, .name = field_ast->name, .alias = field_ast->alias, .type = field_t,
-                              .default_val = field_ast->value, .next = fields);
+                              .comment = field_ast->comment, .default_val = field_ast->value, .next = fields);
             }
             REVERSE_LIST(fields);
             type->__data.StructType.fields = fields; // populate placeholder
@@ -476,7 +476,7 @@ void bind_statement(env_t *env, ast_t *statement) {
                                      type_to_text(field_t), " pointer for this field.");
                 }
                 fields = new (arg_t, .name = field_ast->name, .alias = field_ast->alias, .type = field_t,
-                              .default_val = field_ast->value, .next = fields);
+                              .comment = field_ast->comment, .default_val = field_ast->value, .next = fields);
             }
             REVERSE_LIST(fields);
             env_t *member_ns = namespace_env(env, String(def->name, "$", tag_ast->name));
@@ -590,7 +590,8 @@ type_t *get_function_type(env_t *env, ast_t *ast) {
     env_t *scope = fresh_scope(env);
     for (arg_ast_t *arg = arg_asts; arg; arg = arg->next) {
         type_t *t = arg->type ? parse_type_ast(env, arg->type) : get_type(env, arg->value);
-        args = new (arg_t, .name = arg->name, .alias = arg->alias, .type = t, .default_val = arg->value, .next = args);
+        args = new (arg_t, .name = arg->name, .alias = arg->alias, .comment = arg->comment, .type = t,
+                    .default_val = arg->value, .next = args);
         set_binding(scope, arg->name, t, EMPTY_TEXT);
     }
     REVERSE_LIST(args);
@@ -917,7 +918,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             arg_t *arg_types = NULL;
             for (arg_ast_t *arg = call->args; arg; arg = arg->next)
                 arg_types = new (arg_t, .type = get_type(env, arg->value), .name = arg->name, .alias = arg->alias,
-                                 .next = arg_types);
+                                 .comment = arg->comment, .next = arg_types);
             REVERSE_LIST(arg_types);
             code_err(call->fn, "I couldn't find a type constructor for ",
                      type_to_text(Type(FunctionType, .args = arg_types, .ret = t)));

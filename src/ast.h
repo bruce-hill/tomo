@@ -68,6 +68,7 @@ typedef struct arg_ast_s {
     file_t *file;
     const char *start, *end;
     const char *name, *alias;
+    Text_t comment;
     type_ast_t *type;
     ast_t *value;
     struct arg_ast_s *next;
