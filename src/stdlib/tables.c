@@ -229,7 +229,7 @@ void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeIn
     // Otherwise add a new entry:
 
     // Resize buckets if necessary
-    if (t->entries.length >= (int64_t)t->bucket_info->count) {
+    if (t->entries.length >= t->bucket_info->count) {
         // Current resize policy: +50% at a time:
         uint32_t newsize = MAX(8, (uint32_t)(3 * t->bucket_info->count) / 2);
         if (unlikely(newsize > TABLE_MAX_BUCKETS)) newsize = TABLE_MAX_BUCKETS;

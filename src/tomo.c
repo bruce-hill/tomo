@@ -547,7 +547,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             Text_t filename_id = Text("");
             Text_t base = Path$base_name(entry->filename);
             TextIter_t state = NEW_TEXT_ITER_STATE(base);
-            for (int64_t j = 0; j < base.length; j++) {
+            for (int64_t j = 0; j < (int64_t)base.length; j++) {
                 uint32_t c = Text$get_main_grapheme_fast(&state, j);
                 if (c == '.') break;
                 if (isalpha(c) || isdigit(c) || c == '_')

@@ -79,7 +79,7 @@ Text_t compile_text_literal(Text_t literal) {
 
 PUREFUNC static bool string_literal_is_all_ascii(Text_t literal) {
     TextIter_t state = NEW_TEXT_ITER_STATE(literal);
-    for (int64_t i = 0; i < literal.length; i++) {
+    for (int64_t i = 0; i < (int64_t)literal.length; i++) {
         int32_t g = Text$get_grapheme_fast(&state, i);
         if (g < 0 || g > 127 || !isascii(g)) return false;
     }

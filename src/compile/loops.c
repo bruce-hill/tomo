@@ -189,7 +189,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         return loop;
     }
     case TableType: {
-        Text_t loop = Text("for (int64_t i = 0; i < iterating.length; ++i) {\n");
+        Text_t loop = Text("for (int64_t i = 0; i < (int64_t)iterating.length; ++i) {\n");
         if (for_->vars) {
             Text_t key = compile(body_scope, for_->vars->ast);
             type_t *key_t = Match(iter_value_t, TableType)->key_type;
