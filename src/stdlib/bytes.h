@@ -20,6 +20,7 @@ Byte_t Byte$from_int32(int32_t i, bool truncate);
 Byte_t Byte$from_int16(int16_t i, bool truncate);
 OptionalByte_t Byte$parse(Text_t text, Text_t *remainder);
 Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t step);
+
 MACROLIKE Byte_t Byte$from_int8(int8_t i) { return (Byte_t)i; }
 MACROLIKE Byte_t Byte$from_bool(bool b) { return (Byte_t)b; }
 CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high);
