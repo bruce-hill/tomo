@@ -10,13 +10,15 @@
 #include "../types.h"
 #include "compilation.h"
 
-static Text_t get_flag_options(type_t *t, const char *separator) {
+static Text_t get_flag_options(type_t *t, Text_t separator) {
     if (t->tag == BoolType) {
         return Text("yes|no");
     } else if (t->tag == EnumType) {
         Text_t options = EMPTY_TEXT;
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            options = Texts(options, tag->name);
+            if (Match(tag->type, StructType)->fields)
+                options = Texts(options, tag->name, " ", get_flag_options(tag->type, separator));
+            else options = Texts(options, tag->name);
             if (tag->next) options = Texts(options, separator);
         }
         return options;
@@ -24,7 +26,7 @@ static Text_t get_flag_options(type_t *t, const char *separator) {
         Text_t options = EMPTY_TEXT;
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             options = Texts(options, get_flag_options(field->type, separator));
-            if (field->next) options = Texts(options, separator);
+            if (field->next) options = Texts(options, " ");
         }
         return options;
     } else if (is_numeric_type(t)) {
@@ -72,23 +74,20 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
         for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
             usage = Texts(usage, " ");
             type_t *t = get_arg_type(main_env, arg);
+            OptionalText_t flag = flagify(arg->name, arg->default_val != NULL);
+            assert(flag.tag != TEXT_NONE);
+            OptionalText_t alias_flag = flagify(arg->alias, arg->default_val != NULL);
+            Text_t flags = alias_flag.tag != TEXT_NONE ? Texts(flag, ",", alias_flag) : flag;
+            if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+                flags = Texts(flags, "|--no-", Text$without_prefix(flag, Text("--")));
             if (arg->default_val) {
-                OptionalText_t flag = flagify(arg->name, true);
-                assert(flag.tag != TEXT_NONE);
-                OptionalText_t alias_flag = flagify(arg->alias, true);
-                Text_t flags = alias_flag.tag != TEXT_NONE ? Texts(flag, "|", alias_flag) : flag;
                 if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
                     usage = Texts(usage, "[", flags, "]");
-                else if (t->tag == ListType) usage = Texts(usage, "[", flags, " ", get_flag_options(t, "|"), "]");
-                else usage = Texts(usage, "[", flags, "=", get_flag_options(t, "|"), "]");
+                else if (t->tag == ListType) usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
+                else usage = Texts(usage, "[", flags, "=", get_flag_options(t, Text("|")), "]");
             } else {
-                OptionalText_t flag = flagify(arg->name, false);
-                assert(flag.tag != TEXT_NONE);
-                OptionalText_t alias_flag = flagify(arg->alias, true);
-                if (t->tag == BoolType)
-                    usage = Texts(usage, "<--", flag, alias_flag.tag != TEXT_NONE ? Texts("|", alias_flag) : EMPTY_TEXT,
-                                  "|--no-", flag, ">");
-                else if (t->tag == EnumType) usage = Texts(usage, get_flag_options(t, "|"));
+                if (t->tag == BoolType) usage = Texts(usage, "<", flags, ">");
+                else if (t->tag == EnumType) usage = Texts(usage, get_flag_options(t, Text("|")));
                 else if (t->tag == ListType) usage = Texts(usage, "[", flag, "...]");
                 else usage = Texts(usage, "<", flag, ">");
             }
@@ -106,16 +105,22 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
             OptionalText_t flag = flagify(arg->name, true);
             assert(flag.tag != TEXT_NONE);
             OptionalText_t alias_flag = flagify(arg->alias, true);
-            Text_t flags = alias_flag.tag != TEXT_NONE ? Texts(flag, "|", alias_flag) : flag;
+            Text_t flags = Texts("\x1b[33;1m", flag, "\x1b[m");
+            if (alias_flag.tag != TEXT_NONE) flags = Texts(flags, ",\x1b[33;1m", alias_flag, "\x1b[m");
             if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                help_text = Texts(help_text, "  \x1b[1m", flags, "|--no-", flag, "\x1b[m");
-            else help_text = Texts(help_text, "  \x1b[1m", flags, " \x1b[34m", get_flag_options(t, "|"), "\x1b[m");
+                flags = Texts(flags, "|\x1b[33;1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
+            if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+                help_text = Texts(help_text, "  ", flags);
+            else
+                help_text = Texts(help_text, "  ", flags, " \x1b[1;34m",
+                                  get_flag_options(t, Text("\x1b[m | \x1b[1;34m")), "\x1b[m");
+
+            if (arg->comment.length > 0) help_text = Texts(help_text, " \x1b[3m", arg->comment, "\x1b[m");
             if (arg->default_val) {
                 Text_t default_text =
                     Text$from_strn(arg->default_val->start, (size_t)(arg->default_val->end - arg->default_val->start));
-                help_text = Texts(help_text, " \x1b[2mdefault:", default_text, "\x1b[m");
+                help_text = Texts(help_text, " \x1b[2m(default:", default_text, ")\x1b[m");
             }
-            if (arg->comment.length > 0) help_text = Texts(help_text, " \x1b[3m", arg->comment, "\x1b[m");
         }
         code = Texts(code, "Text_t help = Texts(usage, ", quoted_text(help_text), ");\n");
         help_code = Text("help");
@@ -184,18 +189,17 @@ Text_t compile_manpage(Text_t program, OptionalText_t synopsis, OptionalText_t d
 
     man = Texts(man, ".SH OPTIONS\n");
     for (arg_t *arg = args; arg; arg = arg->next) {
-        man = Texts(man, "\n.TP\n\\f[B]\\-\\-", Text$from_str(arg->name), "\\f[R]");
-        if (arg->alias) man = Texts(man, ", \\f[B]\\-", Text$from_str(arg->alias), "\\f[R]");
-        if (arg->type->tag == BoolType) {
-            man = Texts(man, "\n.TP\n\\f[B]\\-\\-no\\-", Text$from_str(arg->name));
-        } else if (is_numeric_type(arg->type)) {
-            man = Texts(man, " \\f[I]N\\f[R]");
-        } else if (arg->type->tag == ListType) {
-            man = Texts(man, " \\f[I]value1\\f[R] \\f[I]value2...\\f[R]");
-        } else if (arg->type->tag == TableType) {
-            man = Texts(man, " \\f[I]key1:value1\\f[R] \\f[I]key2:value2...\\f[R]");
-        } else {
-            man = Texts(man, " \\f[I]value\\f[R]");
+        OptionalText_t flag = flagify(arg->name, true);
+        assert(flag.tag != TEXT_NONE);
+        Text_t flags = Texts("\\f[B]", flag, "\\f[R]");
+        if (arg->alias) flags = Texts(flags, ", \\f[B]", flagify(arg->alias, true), "\\f[R]");
+        if (non_optional(arg->type)->tag == BoolType)
+            flags = Texts(flags, " | \\f[B]--no-", Text$without_prefix(flag, Text("--")), "\\f[R]");
+
+        man = Texts(man, "\n.TP\n", flags);
+        if (non_optional(arg->type)->tag != BoolType) {
+            Text_t options = Texts("\\f[I]", get_flag_options(arg->type, Text("\\f[R] | \\f[I]")), "\\f[R]");
+            man = Texts(man, " ", options);
         }
 
         if (arg->comment.length > 0) {
