@@ -37,7 +37,6 @@ CCONFIG=-std=c2x -fPIC \
 		-fno-signed-zeros -fno-trapping-math \
 		-fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
-LTO=
 LDFLAGS=
 INCLUDE_DIRS=
 CWARN=-Wall -Wextra -Wno-format -Wno-format-security -Wshadow \
@@ -68,7 +67,6 @@ endif
 OWNER=$(shell ls -ld '$(PREFIX)' | awk '{print $$3}')
 
 ifeq ($(shell $(CC) -v 2>&1 | grep -c "gcc version"), 1)
-	LTO += -flto=auto -fno-fat-lto-objects -Wl,-flto
 	CWARN += -Werror -Wsign-conversion -Walloc-zero -Wduplicated-branches -Wduplicated-cond -Wjump-misses-init \
 			 -Wlogical-op -Wpacked-not-aligned -Wshadow=compatible-local -Wshadow=global -Wshadow=local \
 			 -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure \
