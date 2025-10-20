@@ -1,7 +1,6 @@
 // Logic for parsing various suffixes that can go after an expression
 
 #include <stdbool.h>
-#include <string.h>
 
 #include "../ast.h"
 #include "../stdlib/print.h"

@@ -11,12 +11,10 @@
 #include "controlflow.h"
 #include "errors.h"
 #include "expressions.h"
-#include "files.h"
 #include "functions.h"
 #include "numbers.h"
 #include "suffixes.h"
 #include "text.h"
-#include "types.h"
 #include "utils.h"
 
 ast_t *parse_parens(parse_ctx_t *ctx, const char *pos) {

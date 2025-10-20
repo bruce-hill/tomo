@@ -1,5 +1,5 @@
+// Parsing logic for binary operators
 #include <stdbool.h>
-#include <string.h>
 
 #include "../ast.h"
 #include "../stdlib/util.h"

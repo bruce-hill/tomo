@@ -1,3 +1,5 @@
+// Parsing logic for parsing type annotations
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
