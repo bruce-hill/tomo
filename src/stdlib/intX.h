@@ -1,5 +1,5 @@
 // Integer type infos and methods
-// This file expects `c_type` and `type_name` to be defined before including:
+// This file expects `INTX_H__INT_BITS` to be defined before including:
 //
 //     #define INTX_H__INT_BITS 64
 //     #include "intX.h"
