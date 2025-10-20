@@ -20,23 +20,18 @@
 #define INTX_C_H__INT_BITS 32
 #endif
 
-#define PASTE3_(a, b, c) a##b##c
-#define PASTE3(a, b, c) PASTE3_(a, b, c)
-#define INT_T PASTE3(int, INTX_C_H__INT_BITS, _t)
-
+#define CAT_(a, b) a##b
+#define CAT(a, b) CAT_(a, b)
 #define STRINGIFY_(s) #s
 #define STRINGIFY(s) STRINGIFY_(s)
+
+#define INT_T CAT(CAT(int, INTX_C_H__INT_BITS), _t)
+#define UINT_T CAT(CAT(uint, INTX_C_H__INT_BITS), _t)
+#define OPT_T CAT(CAT(OptionalInt, INTX_C_H__INT_BITS), _t)
+
 #define NAME_STR "Int" STRINGIFY(INTX_C_H__INT_BITS)
 
-#define UNSIGNED_(t) u##t
-#define UNSIGNED(t) UNSIGNED_(t)
-#define UINT_T UNSIGNED(INT_T)
-
-#define OPT_T PASTE3(OptionalInt, INTX_C_H__INT_BITS, _t)
-
-#define PASTE4_(a, b, c, d) a##b##c##d
-#define PASTE4(a, b, c, d) PASTE4_(a, b, c, d)
-#define NAMESPACED(method_name) PASTE4(Int, INTX_C_H__INT_BITS, $, method_name)
+#define NAMESPACED(method_name) CAT(CAT(Int, INTX_C_H__INT_BITS), CAT($, method_name))
 
 static Text_t _int64_to_text(int64_t n) {
     if (n == INT64_MIN) return Text("-9223372036854775808");
@@ -260,16 +255,13 @@ const TypeInfo_t NAMESPACED(info) = {
         },
 };
 
-#undef PASTE3_
-#undef PASTE3
-#undef INT_T
+#undef CAT_
+#undef CAT
 #undef STRINGIFY_
 #undef STRINGIFY
-#undef NAME_STR
-#undef UNSIGNED_
-#undef UNSIGNED
+#undef INT_T
 #undef UINT_T
 #undef OPT_T
-#undef PASTE4_
-#undef PASTE4
+#undef NAME_STR
 #undef NAMESPACED
+#undef INTX_C_H__INT_BITS
