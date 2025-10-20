@@ -160,6 +160,9 @@ config.mk: configure.sh
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+# Integer implementations depend on the shared header:
+src/stdlib/int64.o src/stdlib/int32.o src/stdlib/int16.o src/stdlib/int8.o: src/stdlib/intX.c.h
+
 # Specifically src/tomo.c needs to recompile if CHANGES.md changes:
 src/tomo.o: src/tomo.c src/ast.h src/environment.h src/types.h config.mk src/changes.md.h
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
