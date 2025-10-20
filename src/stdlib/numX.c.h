@@ -11,9 +11,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "fpconv.h"
-#include "nums.h"
-#include "string.h"
 #include "text.h"
 #include "types.h"
 
@@ -38,8 +35,11 @@
 #endif
 
 #if NUMX_C_H__BITS == 64
+#include "fpconv.h"
+#include "string.h"
+
 public
-PUREFUNC Text_t NAMESPACED(value_as_text)(double x) {
+PUREFUNC Text_t NAMESPACED(value_as_text)(NUM_T x) {
     char *str = GC_MALLOC_ATOMIC(24);
     int len = fpconv_dtoa(x, str);
     return Text$from_strn(str, (size_t)len);
@@ -47,23 +47,11 @@ PUREFUNC Text_t NAMESPACED(value_as_text)(double x) {
 public
 PUREFUNC Text_t NAMESPACED(as_text)(const void *x, bool colorize, const TypeInfo_t *info) {
     (void)info;
-    if (!x) return Text("Num");
+    if (!x) return Text(TYPE_STR);
     static const Text_t color_prefix = Text("\x1b[35m"), color_suffix = Text("\x1b[m");
-    Text_t text = NAMESPACED(value_as_text)(*(double *)x);
+    Text_t text = NAMESPACED(value_as_text)(*(NUM_T *)x);
     return colorize ? Texts(color_prefix, text, color_suffix) : text;
 }
-#elif NUMX_C_H__BITS == 32
-public
-PUREFUNC Text_t NAMESPACED(value_as_text)(float x) { return Num$value_as_text((double)x); }
-PUREFUNC Text_t NAMESPACED(as_text)(const void *x, bool colorize, const TypeInfo_t *info) {
-    (void)info;
-    if (!x) return Text("Num32");
-    static const Text_t color_prefix = Text("\x1b[35m"), color_suffix = Text("\x1b[m");
-    Text_t text = Num$value_as_text(*(double *)x);
-    return colorize ? Texts(color_prefix, text, color_suffix) : text;
-}
-#endif
-
 public
 PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
@@ -76,6 +64,29 @@ PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInf
 
     return (rx > ry) - (rx < ry);
 }
+#elif NUMX_C_H__BITS == 32
+public
+PUREFUNC Text_t NAMESPACED(value_as_text)(NUM_T x) { return Num$value_as_text((NUM_T)x); }
+PUREFUNC Text_t NAMESPACED(as_text)(const void *x, bool colorize, const TypeInfo_t *info) {
+    (void)info;
+    if (!x) return Text(TYPE_STR);
+    static const Text_t color_prefix = Text("\x1b[35m"), color_suffix = Text("\x1b[m");
+    Text_t text = Num$value_as_text(*(NUM_T *)x);
+    return colorize ? Texts(color_prefix, text, color_suffix) : text;
+}
+public
+PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInfo_t *info) {
+    (void)info;
+    int32_t rx = *(int32_t *)x, ry = *(int32_t *)y;
+
+    if (rx == ry) return 0;
+
+    if (rx < 0) rx ^= INT32_MAX;
+    if (ry < 0) ry ^= INT32_MAX;
+
+    return (rx > ry) - (rx < ry);
+}
+#endif
 
 public
 PUREFUNC bool NAMESPACED(equal)(const void *x, const void *y, const TypeInfo_t *info) {
@@ -125,7 +136,7 @@ CONSTFUNC NUM_T NAMESPACED(mod)(NUM_T num, NUM_T modulus) {
     // Euclidean division, see:
     // https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
     NUM_T r = remainder(num, modulus);
-    r -= (r < 0) * (2 * (modulus < 0) - 1) * modulus;
+    r -= (r < SUFFIXED(0.)) * (SUFFIXED(2.) * (modulus < SUFFIXED(0.)) - SUFFIXED(1.)) * modulus;
     return r;
 }
 
@@ -150,21 +161,25 @@ public
 OPT_T NAMESPACED(parse)(Text_t text, Text_t *remainder) {
     const char *str = Text$as_c_string(text);
     char *end = NULL;
-    NUM_T d = strtod(str, &end);
+#if NUMX_C_H__BITS == 64
+    NUM_T n = strtod(str, &end);
+#elif NUMX_C_H__BITS == 32
+    NUM_T n = strtof(str, &end);
+#endif
     if (end > str) {
         if (remainder) *remainder = Text$from_str(end);
-        else if (*end != '\0') return nan("none");
-        return d;
+        else if (*end != '\0') return SUFFIXED(nan)("none");
+        return n;
     } else {
         if (remainder) *remainder = text;
-        return nan("none");
+        return SUFFIXED(nan)("none");
     }
 }
 
 public
 CONSTFUNC bool NAMESPACED(is_none)(const void *n, const TypeInfo_t *info) {
     (void)info;
-    return SUFFIXED(isnan)(*(Num_t *)n);
+    return SUFFIXED(isnan)(*(NUM_T *)n);
 }
 
 public
