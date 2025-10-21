@@ -182,3 +182,44 @@ func main(output|o:Path? = none, verbose|v:Bool = no)
 ```bash
 $ tomo -e program.tm && ./program -vo outfile.txt`
 ```
+
+## Help and Manpages
+
+When your program is generated, it will also come with a `--help` flag (unless
+you have one defined) with automatically generated usage information. If you
+add comments in front of your main function arguments, they will appear in the
+`--help` output. Additionally, when your program is compiled, Tomo will also
+build a Manpage for your program in `.build/yourprogram.1`, which will get
+installed if you install your program.
+
+```tomo
+func main(
+    # Whether or not to frob your gropnoggles
+    frob: Bool = no
+)
+    pass
+```
+
+```bash
+$ tomo -e myprogram.tm
+$ ./myprogram --help
+# Usage: ./myprogram [--help] [--frob|--no-frob]
+#
+#  --frob|--no-frob Whether or not to frob your gropnoggles (default:no)
+#
+```
+
+```bash
+$ man .build/myprogram.1
+```
+
+```
+MYPROGRAM(1)
+
+NAME
+       myprogram - a Tomo program
+
+OPTIONS
+       --frob | --no-frob
+              Whether or not to frob your gropnoggles
+```
