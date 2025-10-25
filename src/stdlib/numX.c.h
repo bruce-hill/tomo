@@ -66,12 +66,12 @@ PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInf
 }
 #elif NUMX_C_H__BITS == 32
 public
-PUREFUNC Text_t NAMESPACED(value_as_text)(NUM_T x) { return Num$value_as_text((NUM_T)x); }
+PUREFUNC Text_t NAMESPACED(value_as_text)(NUM_T x) { return Num$value_as_text((double)x); }
 PUREFUNC Text_t NAMESPACED(as_text)(const void *x, bool colorize, const TypeInfo_t *info) {
     (void)info;
     if (!x) return Text(TYPE_STR);
     static const Text_t color_prefix = Text("\x1b[35m"), color_suffix = Text("\x1b[m");
-    Text_t text = Num$value_as_text(*(NUM_T *)x);
+    Text_t text = Num$value_as_text((double)*(NUM_T *)x);
     return colorize ? Texts(color_prefix, text, color_suffix) : text;
 }
 public
@@ -103,10 +103,10 @@ CONSTFUNC bool NAMESPACED(near)(NUM_T a, NUM_T b, NUM_T ratio, NUM_T absolute) {
 
     NUM_T diff = SUFFIXED(fabs)(a - b);
     if (diff < absolute) return true;
-    else if (SUFFIXED(isnan)(diff)) return false;
+    else if (isnan(diff)) return false;
 
     NUM_T epsilon = SUFFIXED(fabs)(a * ratio) + SUFFIXED(fabs)(b * ratio);
-    if (SUFFIXED(isinf)(epsilon)) epsilon = DBL_MAX;
+    if (isinf(epsilon)) epsilon = DBL_MAX;
     return (diff < epsilon);
 }
 
@@ -135,7 +135,7 @@ public
 CONSTFUNC NUM_T NAMESPACED(mod)(NUM_T num, NUM_T modulus) {
     // Euclidean division, see:
     // https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
-    NUM_T r = remainder(num, modulus);
+    NUM_T r = (NUM_T)remainder((double)num, (double)modulus);
     r -= (r < SUFFIXED(0.)) * (SUFFIXED(2.) * (modulus < SUFFIXED(0.)) - SUFFIXED(1.)) * modulus;
     return r;
 }
@@ -179,7 +179,7 @@ OPT_T NAMESPACED(parse)(Text_t text, Text_t *remainder) {
 public
 CONSTFUNC bool NAMESPACED(is_none)(const void *n, const TypeInfo_t *info) {
     (void)info;
-    return SUFFIXED(isnan)(*(NUM_T *)n);
+    return isnan(*(NUM_T *)n);
 }
 
 public
