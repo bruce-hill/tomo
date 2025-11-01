@@ -183,9 +183,9 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
                              compile_type_info(container_t), ")");
             }
             return Texts("*(", compile_type(Type(PointerType, table_type->value_type)), ")Table$reserve(",
-                         compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
-                         compile_to_type(env, index->index, Type(PointerType, table_type->key_type, .is_stack = true)),
-                         ", NULL,", compile_type_info(container_t), ")");
+                         compile_to_pointer_depth(env, index->indexed, 1, false), ", ", "stack(",
+                         compile_to_type(env, index->index, table_type->key_type), ")", ", NULL,",
+                         compile_type_info(container_t), ")");
         } else {
             code_err(ast, "I don't know how to assign to this target");
         }

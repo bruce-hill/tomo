@@ -182,8 +182,10 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
     }
 
     // Promote values to views-of-values if needed:
-    if (t->tag == PointerType && Match(t, PointerType)->is_stack && actual->tag != PointerType)
-        return Texts("stack(", compile_to_type(env, ast, Match(t, PointerType)->pointed), ")");
+    if (t->tag == PointerType && Match(t, PointerType)->is_stack && actual->tag != PointerType) {
+        if (type_eq(actual, Match(t, PointerType)->pointed) && can_be_mutated(env, ast))
+            return Texts("&(", compile_lvalue(env, ast), ")");
+    }
 
     if (!is_incomplete_type(actual)) {
         Text_t code = compile(env, ast);

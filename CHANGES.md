@@ -50,6 +50,8 @@
     resources, which could lead to exhausting the number of open file handles.
     When that happens, the standard library now forces a GC collection to clean
     up resources, which can result in file handles being freed up.
+  - `&` references failed to propagate when accessing fields like
+    `foo.baz.method()` when `foo` is a `&Foo` and `baz.method()` takes a `&Baz`.
 
 ## v0.3
 
