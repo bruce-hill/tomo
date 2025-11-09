@@ -161,7 +161,7 @@ config.mk: configure.sh
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Integer implementations depend on the shared header:
-src/stdlib/int64.o src/stdlib/int32.o src/stdlib/int16.o src/stdlib/int8.o: src/stdlib/intX.c.h
+src/stdlib/int64.o src/stdlib/int32.o src/stdlib/int16.o src/stdlib/int8.o: src/stdlib/intX.c.h src/stdlib/intX.h
 
 # Num implementations depend on the shared header:
 src/stdlib/num32.o src/stdlib/num64.o: src/stdlib/numX.c.h
