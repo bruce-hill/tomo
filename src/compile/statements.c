@@ -28,7 +28,7 @@ Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
 static Text_t compile_simple_update_assignment(env_t *env, ast_t *ast, const char *op) {
     binary_operands_t update = BINARY_OPERANDS(ast);
     type_t *lhs_t = get_type(env, update.lhs);
-    if (is_idempotent(update.lhs) && (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType))
+    if (is_idempotent(update.lhs) && (lhs_t->tag == IntType || lhs_t->tag == FloatType || lhs_t->tag == ByteType))
         return Texts(compile_lvalue(env, update.lhs), " ", op, "= ", compile_to_type(env, update.rhs, lhs_t), ";");
     return compile_update_assignment(env, ast);
 }

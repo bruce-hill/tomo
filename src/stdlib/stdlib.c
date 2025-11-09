@@ -204,7 +204,7 @@ cleanup:
 }
 
 public
-void sleep_num(double seconds) {
+void sleep_float64(double seconds) {
     struct timespec ts;
     ts.tv_sec = (time_t)seconds;
     ts.tv_nsec = (long)((seconds - (double)ts.tv_sec) * 1e9);

@@ -49,11 +49,11 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
     if (target->tag == ByteType) {
         if (mpz_cmp_si(i, UINT8_MAX) <= 0 && mpz_cmp_si(i, 0) >= 0) return Texts("(Byte_t)(", c_literal, ")");
         code_err(ast, "This integer cannot fit in a byte");
-    } else if (target->tag == NumType) {
-        if (Match(target, NumType)->bits == TYPE_NBITS64) {
-            return Texts("N64(", c_literal, ")");
+    } else if (target->tag == FloatType) {
+        if (Match(target, FloatType)->bits == TYPE_NBITS64) {
+            return Texts("F64(", c_literal, ")");
         } else {
-            return Texts("N32(", c_literal, ")");
+            return Texts("F32(", c_literal, ")");
         }
     } else if (target->tag == IntType) {
         int64_t target_bits = (int64_t)Match(target, IntType)->bits;

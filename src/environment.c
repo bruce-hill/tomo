@@ -226,27 +226,27 @@ env_t *global_env(bool source_mapping) {
             {"unsigned_right_shifted", "Int8$unsigned_right_shifted", "func(x:Int8,y:Int8 -> Int8)"}, //
             {"wrapping_minus", "Int8$wrapping_minus", "func(x:Int8,y:Int8 -> Int8)"}, //
             {"wrapping_plus", "Int8$wrapping_plus", "func(x:Int8,y:Int8 -> Int8)"}, ),
-#define C(name) {#name, "M_" #name, "Num"}
-#define F(name) {#name, #name, "func(n:Num -> Num)"}
-#define F_opt(name) {#name, #name, "func(n:Num -> Num?)"}
-#define F2(name) {#name, #name, "func(x,y:Num -> Num)"}
+#define C(name) {#name, "M_" #name, "Float64"}
+#define F(name) {#name, #name, "func(n:Float64 -> Float64)"}
+#define F_opt(name) {#name, #name, "func(n:Float64 -> Float64?)"}
+#define F2(name) {#name, #name, "func(x,y:Float64 -> Float64)"}
         MAKE_TYPE( //
-            "Num", Type(NumType, .bits = TYPE_NBITS64), Text("Num_t"), Text("Num$info"),
-            {"near", "Num$near", "func(x,y:Num, ratio=1e-9, min_epsilon=1e-9 -> Bool)"}, //
-            {"clamped", "Num$clamped", "func(x,low,high:Num -> Num)"}, //
-            {"percent", "Num$percent", "func(n:Num,precision=0.01 -> Text)"}, //
-            {"with_precision", "Num$with_precision", "func(n:Num,precision:Num -> Num)"}, //
-            {"is_between", "Num$is_between", "func(x:Num,low:Num,high:Num -> Bool)"}, //
-            {"isinf", "Num$isinf", "func(n:Num -> Bool)"}, //
-            {"isfinite", "Num$isfinite", "func(n:Num -> Bool)"}, //
-            {"modulo", "Num$mod", "func(x,y:Num -> Num)"}, //
-            {"modulo1", "Num$mod1", "func(x,y:Num -> Num)"}, //
+            "Float64", Type(FloatType, .bits = TYPE_NBITS64), Text("Float64_t"), Text("Float64$info"),
+            {"near", "Float64$near", "func(x,y:Float64, ratio=1e-9, min_epsilon=1e-9 -> Bool)"}, //
+            {"clamped", "Float64$clamped", "func(x,low,high:Float64 -> Float64)"}, //
+            {"percent", "Float64$percent", "func(n:Float64,precision=0.01 -> Text)"}, //
+            {"with_precision", "Float64$with_precision", "func(n:Float64,precision:Float64 -> Float64)"}, //
+            {"is_between", "Float64$is_between", "func(x:Float64,low:Float64,high:Float64 -> Bool)"}, //
+            {"isinf", "Float64$isinf", "func(n:Float64 -> Bool)"}, //
+            {"isfinite", "Float64$isfinite", "func(n:Float64 -> Bool)"}, //
+            {"modulo", "Float64$mod", "func(x,y:Float64 -> Float64)"}, //
+            {"modulo1", "Float64$mod1", "func(x,y:Float64 -> Float64)"}, //
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E), C(PI), C(PI_4), C(SQRT2),
-            C(SQRT1_2), {"INF", "(Num_t)(INFINITY)", "Num"}, //
-            {"TAU", "(Num_t)(2.*M_PI)", "Num"}, //
-            {"mix", "Num$mix", "func(amount,x,y:Num -> Num)"}, //
-            {"parse", "Num$parse", "func(text:Text, remainder:&Text? = none -> Num?)"}, //
-            {"abs", "fabs", "func(n:Num -> Num)"}, //
+            C(SQRT1_2), {"INF", "(Float64_t)(INFINITY)", "Float64"}, //
+            {"TAU", "(Float64_t)(2.*M_PI)", "Float64"}, //
+            {"mix", "Float64$mix", "func(amount,x,y:Float64 -> Float64)"}, //
+            {"parse", "Float64$parse", "func(text:Text, remainder:&Text? = none -> Float64?)"}, //
+            {"abs", "fabs", "func(n:Float64 -> Float64)"}, //
             F_opt(acos), F_opt(acosh), F_opt(asin), F(asinh), F(atan), F_opt(atanh), F(cbrt), F(ceil), F_opt(cos),
             F(cosh), F(erf), F(erfc), F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F_opt(log), F_opt(log10),
             F_opt(log1p), F_opt(log2), F(logb), F(rint), F(round), F(significand), F_opt(sin), F(sinh), F_opt(sqrt),
@@ -256,28 +256,28 @@ env_t *global_env(bool source_mapping) {
 #undef F_opt
 #undef F
 #undef C
-#define C(name) {#name, "(Num32_t)(M_" #name ")", "Num32"}
-#define F(name) {#name, #name "f", "func(n:Num32 -> Num32)"}
-#define F_opt(name) {#name, #name "f", "func(n:Num32 -> Num32?)"}
-#define F2(name) {#name, #name "f", "func(x,y:Num32 -> Num32)"}
+#define C(name) {#name, "(Float32_t)(M_" #name ")", "Float32"}
+#define F(name) {#name, #name "f", "func(n:Float32 -> Float32)"}
+#define F_opt(name) {#name, #name "f", "func(n:Float32 -> Float32?)"}
+#define F2(name) {#name, #name "f", "func(x,y:Float32 -> Float32)"}
         MAKE_TYPE( //
-            "Num32", Type(NumType, .bits = TYPE_NBITS32), Text("Num32_t"), Text("Num32$info"), //
-            {"near", "Num32$near", "func(x,y:Num32, ratio=Num32(1e-9), min_epsilon=Num32(1e-9) -> Bool)"}, //
-            {"clamped", "Num32$clamped", "func(x,low,high:Num32 -> Num32)"}, //
-            {"percent", "Num32$percent", "func(n:Num32,precision=Num32(.01) -> Text)"}, //
-            {"with_precision", "Num32$with_precision", "func(n:Num32,precision:Num32 -> Num32)"}, //
-            {"is_between", "Num32$is_between", "func(x:Num32,low:Num32,high:Num32 -> Bool)"}, //
-            {"isinf", "Num32$isinf", "func(n:Num32 -> Bool)"}, //
-            {"isfinite", "Num32$isfinite", "func(n:Num32 -> Bool)"}, //
+            "Float32", Type(FloatType, .bits = TYPE_NBITS32), Text("Float32_t"), Text("Float32$info"), //
+            {"near", "Float32$near", "func(x,y:Float32, ratio=Float32(1e-9), min_epsilon=Float32(1e-9) -> Bool)"}, //
+            {"clamped", "Float32$clamped", "func(x,low,high:Float32 -> Float32)"}, //
+            {"percent", "Float32$percent", "func(n:Float32,precision=Float32(.01) -> Text)"}, //
+            {"with_precision", "Float32$with_precision", "func(n:Float32,precision:Float32 -> Float32)"}, //
+            {"is_between", "Float32$is_between", "func(x:Float32,low:Float32,high:Float32 -> Bool)"}, //
+            {"isinf", "Float32$isinf", "func(n:Float32 -> Bool)"}, //
+            {"isfinite", "Float32$isfinite", "func(n:Float32 -> Bool)"}, //
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E), C(PI), C(PI_4), C(SQRT2),
             C(SQRT1_2), //
-            {"INF", "(Num32_t)(INFINITY)", "Num32"}, //
-            {"TAU", "(Num32_t)(2.f*M_PI)", "Num32"}, //
-            {"mix", "Num32$mix", "func(amount,x,y:Num32 -> Num32)"}, //
-            {"parse", "Num32$parse", "func(text:Text, remainder:&Text? = none -> Num32?)"}, //
-            {"abs", "fabsf", "func(n:Num32 -> Num32)"}, //
-            {"modulo", "Num32$mod", "func(x,y:Num32 -> Num32)"}, //
-            {"modulo1", "Num32$mod1", "func(x,y:Num32 -> Num32)"}, //
+            {"INF", "(Float32_t)(INFINITY)", "Float32"}, //
+            {"TAU", "(Float32_t)(2.f*M_PI)", "Float32"}, //
+            {"mix", "Float32$mix", "func(amount,x,y:Float32 -> Float32)"}, //
+            {"parse", "Float32$parse", "func(text:Text, remainder:&Text? = none -> Float32?)"}, //
+            {"abs", "fabsf", "func(n:Float32 -> Float32)"}, //
+            {"modulo", "Float32$mod", "func(x,y:Float32 -> Float32)"}, //
+            {"modulo1", "Float32$mod1", "func(x,y:Float32 -> Float32)"}, //
             F_opt(acos), F_opt(acosh), F_opt(asin), F(asinh), F(atan), F_opt(atanh), F(cbrt), F(ceil), F_opt(cos),
             F(cosh), F(erf), F(erfc), F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F_opt(log), F_opt(log10),
             F_opt(log1p), F_opt(log2), F(logb), F(rint), F(round), F(significand), F_opt(sin), F(sinh), F_opt(sqrt),
@@ -457,8 +457,8 @@ env_t *global_env(bool source_mapping) {
                      {"Int$from_int16", "func(i:Int16 -> Int)"}, //
                      {"Int$from_int32", "func(i:Int32 -> Int)"}, //
                      {"Int$from_int64", "func(i:Int64 -> Int)"}, //
-                     {"Int$from_num", "func(n:Num, truncate=no -> Int)"}, //
-                     {"Int$from_num32", "func(n:Num32, truncate=no -> Int)"});
+                     {"Int$from_float64", "func(n:Float64, truncate=no -> Int)"}, //
+                     {"Int$from_float32", "func(n:Float32, truncate=no -> Int)"});
     ADD_CONSTRUCTORS("Int64", //
                      {"Int64$from_bool", "func(b:Bool -> Int64)"}, //
                      {"Int64$from_byte", "func(b:Byte -> Int64)"}, //
@@ -466,8 +466,8 @@ env_t *global_env(bool source_mapping) {
                      {"Int64$from_int16", "func(i:Int16 -> Int64)"}, //
                      {"Int64$from_int32", "func(i:Int32 -> Int64)"}, //
                      {"Int64$from_int", "func(i:Int, truncate=no -> Int64)"}, //
-                     {"Int64$from_num", "func(n:Num, truncate=no -> Int64)"}, //
-                     {"Int64$from_num32", "func(n:Num32, truncate=no -> Int64)"});
+                     {"Int64$from_float64", "func(n:Float64, truncate=no -> Int64)"}, //
+                     {"Int64$from_float32", "func(n:Float32, truncate=no -> Int64)"});
     ADD_CONSTRUCTORS("Int32", //
                      {"Int32$from_bool", "func(b:Bool -> Int32)"}, //
                      {"Int32$from_byte", "func(b:Byte -> Int32)"}, //
@@ -475,8 +475,8 @@ env_t *global_env(bool source_mapping) {
                      {"Int32$from_int16", "func(i:Int16 -> Int32)"}, //
                      {"Int32$from_int64", "func(i:Int64, truncate=no -> Int32)"}, //
                      {"Int32$from_int", "func(i:Int, truncate=no -> Int32)"}, //
-                     {"Int32$from_num", "func(n:Num, truncate=no -> Int32)"}, //
-                     {"Int32$from_num32", "func(n:Num32, truncate=no -> Int32)"});
+                     {"Int32$from_float64", "func(n:Float64, truncate=no -> Int32)"}, //
+                     {"Int32$from_float32", "func(n:Float32, truncate=no -> Int32)"});
     ADD_CONSTRUCTORS("Int16", //
                      {"Int16$from_bool", "func(b:Bool -> Int16)"}, //
                      {"Int16$from_byte", "func(b:Byte -> Int16)"}, //
@@ -484,8 +484,8 @@ env_t *global_env(bool source_mapping) {
                      {"Int16$from_int32", "func(i:Int32, truncate=no -> Int16)"}, //
                      {"Int16$from_int64", "func(i:Int64, truncate=no -> Int16)"}, //
                      {"Int16$from_int", "func(i:Int, truncate=no -> Int16)"}, //
-                     {"Int16$from_num", "func(n:Num, truncate=no -> Int16)"}, //
-                     {"Int16$from_num32", "func(n:Num32, truncate=no -> Int16)"});
+                     {"Int16$from_float64", "func(n:Float64, truncate=no -> Int16)"}, //
+                     {"Int16$from_float32", "func(n:Float32, truncate=no -> Int16)"});
     ADD_CONSTRUCTORS("Int8", //
                      {"Int8$from_bool", "func(b:Bool -> Int8)"}, //
                      {"Int8$from_byte", "func(b:Byte -> Int8)"}, //
@@ -493,26 +493,26 @@ env_t *global_env(bool source_mapping) {
                      {"Int8$from_int32", "func(i:Int32, truncate=no -> Int8)"}, //
                      {"Int8$from_int64", "func(i:Int64, truncate=no -> Int8)"}, //
                      {"Int8$from_int", "func(i:Int, truncate=no -> Int8)"}, //
-                     {"Int8$from_num", "func(n:Num, truncate=no -> Int8)"}, //
-                     {"Int8$from_num32", "func(n:Num32, truncate=no -> Int8)"});
-    ADD_CONSTRUCTORS("Num", //
-                     {"Num$from_bool", "func(b:Bool -> Num)"}, //
-                     {"Num$from_byte", "func(b:Byte -> Num)"}, //
-                     {"Num$from_int8", "func(i:Int8 -> Num)"}, //
-                     {"Num$from_int16", "func(i:Int16 -> Num)"}, //
-                     {"Num$from_int32", "func(i:Int32 -> Num)"}, //
-                     {"Num$from_int64", "func(i:Int64, truncate=no -> Num)"}, //
-                     {"Num$from_int", "func(i:Int, truncate=no -> Num)"}, //
-                     {"Num$from_num32", "func(n:Num32 -> Num)"});
-    ADD_CONSTRUCTORS("Num32", //
-                     {"Num32$from_bool", "func(b:Bool -> Num32)"}, //
-                     {"Num32$from_byte", "func(b:Byte -> Num32)"}, //
-                     {"Num32$from_int8", "func(i:Int8 -> Num32)"}, //
-                     {"Num32$from_int16", "func(i:Int16 -> Num32)"}, //
-                     {"Num32$from_int32", "func(i:Int32, truncate=no -> Num32)"}, //
-                     {"Num32$from_int64", "func(i:Int64, truncate=no -> Num32)"}, //
-                     {"Num32$from_int", "func(i:Int, truncate=no -> Num32)"}, //
-                     {"Num32$from_num", "func(n:Num -> Num32)"});
+                     {"Int8$from_float64", "func(n:Float64, truncate=no -> Int8)"}, //
+                     {"Int8$from_float32", "func(n:Float32, truncate=no -> Int8)"});
+    ADD_CONSTRUCTORS("Float64", //
+                     {"Float64$from_bool", "func(b:Bool -> Float64)"}, //
+                     {"Float64$from_byte", "func(b:Byte -> Float64)"}, //
+                     {"Float64$from_int8", "func(i:Int8 -> Float64)"}, //
+                     {"Float64$from_int16", "func(i:Int16 -> Float64)"}, //
+                     {"Float64$from_int32", "func(i:Int32 -> Float64)"}, //
+                     {"Float64$from_int64", "func(i:Int64, truncate=no -> Float64)"}, //
+                     {"Float64$from_int", "func(i:Int, truncate=no -> Float64)"}, //
+                     {"Float64$from_float32", "func(n:Float32 -> Float32)"});
+    ADD_CONSTRUCTORS("Float32", //
+                     {"Float32$from_bool", "func(b:Bool -> Float32)"}, //
+                     {"Float32$from_byte", "func(b:Byte -> Float32)"}, //
+                     {"Float32$from_int8", "func(i:Int8 -> Float32)"}, //
+                     {"Float32$from_int16", "func(i:Int16 -> Float32)"}, //
+                     {"Float32$from_int32", "func(i:Int32, truncate=no -> Float32)"}, //
+                     {"Float32$from_int64", "func(i:Int64, truncate=no -> Float32)"}, //
+                     {"Float32$from_int", "func(i:Int, truncate=no -> Float32)"}, //
+                     {"Float32$from_float64", "func(n:Float64 -> Float32)"});
     ADD_CONSTRUCTORS("Path", //
                      {"Path$escape_text", "func(text:Text -> Path)"}, //
                      {"Path$escape_path", "func(path:Path -> Path)"}, //
@@ -536,7 +536,7 @@ env_t *global_env(bool source_mapping) {
         {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text?)"},
         {"exit", "tomo_exit", "func(message:Text?=none, code=Int32(1) -> Abort)"},
         {"fail", "fail_text", "func(message:Text -> Abort)"},
-        {"sleep", "sleep_num", "func(seconds:Num)"},
+        {"sleep", "sleep_float64", "func(seconds:Float64)"},
         {"EMPTY", "EMPTY", "Empty"},
     };
 
@@ -671,7 +671,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t) {
     case BoolType:
     case IntType:
     case BigIntType:
-    case NumType:
+    case FloatType:
     case ByteType: {
         binding_t *b = get_binding(env, Text$as_c_string(type_to_text(t)));
         assert(b);

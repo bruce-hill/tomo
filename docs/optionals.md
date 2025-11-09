@@ -120,7 +120,7 @@ negative length for lists. However, for fixed-size integers (`Int64`, `Int32`,
 `Int16`, and `Int8`), bytes, and structs, an additional byte is required for
 out-of-band information about whether the value is none or not.
 
-Floating point numbers (`Num` and `Num32`) use `NaN` to represent none, so
+Floating point numbers (`Float64` and `Float32`) use `NaN` to represent none, so
 optional nums should be careful to avoid using `NaN` as a non-none value. This
 option was chosen to minimize the memory overhead of optional nums and because
 `NaN` literally means "not a number".

@@ -706,7 +706,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         return Type(BigIntType);
     }
     case Num: {
-        return Type(NumType, .bits = TYPE_NBITS64);
+        return Type(FloatType, .bits = TYPE_NBITS64);
     }
     case HeapAllocate: {
         type_t *pointed = get_type(env, Match(ast, HeapAllocate)->value);
@@ -912,7 +912,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             binding_t *constructor =
                 get_constructor(env, t, call->args, env->current_type != NULL && type_eq(env->current_type, t));
             if (constructor) return t;
-            else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
+            else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == FloatType
                      || t->tag == ByteType || t->tag == TextType || t->tag == CStringType)
                 return t; // Constructor
             arg_t *arg_types = NULL;
@@ -1081,7 +1081,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
         type_t *t = get_type(env, value);
-        if (t->tag == IntType || t->tag == NumType) return t;
+        if (t->tag == IntType || t->tag == FloatType) return t;
 
         binding_t *b = get_namespace_binding(env, value, "negative");
         if (b && b->type->tag == FunctionType) {
@@ -1093,7 +1093,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case Not: {
         type_t *t = get_type(env, Match(ast, Not)->value);
-        if (t->tag == IntType || t->tag == NumType || t->tag == BoolType) return t;
+        if (t->tag == IntType || t->tag == FloatType || t->tag == BoolType) return t;
         if (t->tag == OptionalType) return Type(BoolType);
 
         ast_t *value = Match(ast, Not)->value;
@@ -1138,8 +1138,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
             non_opt = most_complete_type(non_opt, rhs_t);
             if (non_opt != NULL) return non_opt;
         } else if ((is_numeric_type(lhs_t) || lhs_t->tag == BoolType)
-                   && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType) && lhs_t->tag != NumType
-                   && rhs_t->tag != NumType) {
+                   && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType) && lhs_t->tag != FloatType
+                   && rhs_t->tag != FloatType) {
             if (can_compile_to_type(env, binop.rhs, lhs_t)) return lhs_t;
             else if (can_compile_to_type(env, binop.lhs, rhs_t)) return rhs_t;
         } else if (lhs_t->tag == TableType && rhs_t->tag == TableType && type_eq(lhs_t, rhs_t)) {
@@ -1169,7 +1169,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
         // Bitwise AND:
         if ((is_numeric_type(lhs_t) || lhs_t->tag == BoolType) && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType)
-            && lhs_t->tag != NumType && rhs_t->tag != NumType) {
+            && lhs_t->tag != FloatType && rhs_t->tag != FloatType) {
             if (can_compile_to_type(env, binop.rhs, lhs_t)) return lhs_t;
             else if (can_compile_to_type(env, binop.lhs, rhs_t)) return rhs_t;
         } else if (lhs_t->tag == TableType && rhs_t->tag == TableType && type_eq(lhs_t, rhs_t)) {
@@ -1199,7 +1199,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
         // Bitwise XOR:
         if ((is_numeric_type(lhs_t) || lhs_t->tag == BoolType) && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType)
-            && lhs_t->tag != NumType && rhs_t->tag != NumType) {
+            && lhs_t->tag != FloatType && rhs_t->tag != FloatType) {
             if (can_compile_to_type(env, binop.rhs, lhs_t)) return lhs_t;
             else if (can_compile_to_type(env, binop.lhs, rhs_t)) return rhs_t;
         } else if (lhs_t->tag == TableType && rhs_t->tag == TableType && type_eq(lhs_t, rhs_t)) {
@@ -1699,7 +1699,7 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (actual->tag == OptionalType && needed->tag == OptionalType) return can_promote(actual, needed);
 
     if (is_numeric_type(needed) && ast->tag == Int) return true;
-    if (needed->tag == NumType && ast->tag == Num) return true;
+    if (needed->tag == FloatType && ast->tag == Num) return true;
 
     needed = non_optional(needed);
     if (needed->tag == ListType && ast->tag == List) {

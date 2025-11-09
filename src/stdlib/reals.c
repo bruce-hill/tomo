@@ -6,7 +6,7 @@
 
 #include "bigint.h"
 #include "datatypes.h"
-#include "nums.h"
+#include "floats.h"
 #include "text.h"
 
 struct ieee754_bits {
@@ -54,10 +54,10 @@ static Int_t Real$compute_double(Real_t r, int64_t precision) {
     if (data.bits.biased_exponent + precision > 2047) {
         int64_t double_shift = 2047 - data.bits.biased_exponent;
         data.bits.biased_exponent += double_shift;
-        return Int$left_shifted(Int$from_num(data.n, true), Int$from_int64(precision - double_shift));
+        return Int$left_shifted(Int$from_float64(data.n, true), Int$from_int64(precision - double_shift));
     } else {
         data.bits.biased_exponent += precision;
-        return Int$from_num(data.n, true);
+        return Int$from_float64(data.n, true);
     }
 }
 
@@ -67,26 +67,27 @@ double Real$as_float64(Real_t x) {
     int64_t my_msd = most_significant_bit(x, -1080 /* slightly > exp. range */);
     if (my_msd == INT64_MIN) return 0.0;
     int needed_prec = my_msd - 60;
-    double scaled_int = Num$from_int(Real$compute(x, needed_prec), true);
+    union {
+        double d;
+        uint64_t bits;
+    } scaled_int = {.d = Float64$from_int(Real$compute(x, needed_prec), true)};
     bool may_underflow = (needed_prec < -1000);
-    int64_t scaled_int_rep = *(int64_t *)&scaled_int;
-    long exp_adj = may_underflow ? needed_prec + 96 : needed_prec;
-    long orig_exp = (scaled_int_rep >> 52) & 0x7ff;
-    if (((orig_exp + exp_adj) & ~0x7ff) != 0) {
+    uint64_t exp_adj = may_underflow ? (uint64_t)(needed_prec + 96l) : (uint64_t)needed_prec;
+    uint64_t orig_exp = (scaled_int.bits >> 52) & 0x7fful;
+    if (((orig_exp + exp_adj) & ~0x7fful) != 0) {
         // overflow
-        if (scaled_int < 0.0) {
+        if (scaled_int.d < 0.0) {
             return -INFINITY;
         } else {
             return INFINITY;
         }
     }
-    scaled_int_rep += exp_adj << 52;
-    double result = *(double *)&scaled_int_rep;
+    scaled_int.bits += exp_adj << 52;
     if (may_underflow) {
         double two48 = (double)(1L << 48);
-        return result / two48 / two48;
+        return scaled_int.d / two48 / two48;
     } else {
-        return result;
+        return scaled_int.d;
     }
 
     return 0.0;
@@ -148,7 +149,7 @@ static Int_t Real$compute_times(Real_t r, int64_t precision) {
     Int_t approx_small = Real$compute(big, precision - MAX(lhs_msb, rhs_msb) - 3);
     if (approx_small.small == 0x1) return I(0);
 
-    Int_t approx_big = Real$compute(big, precision - MIN(lhs_msb, rhs_msb) - 3);
+    Int_t approx_big = Real$compute(small, precision - MIN(lhs_msb, rhs_msb) - 3);
     if (approx_big.small == 0x1) return I(0);
 
     return Int$right_shifted(Int$times(approx_big, approx_small), Int$from_int64(lhs_msb + rhs_msb - precision));
@@ -194,10 +195,10 @@ static Int_t Real$compute_sqrt(Real_t r, int64_t precision) {
         int64_t op_prec = (msd - fp_op_prec) & ~1L;
         int64_t working_prec = op_prec - fp_op_prec;
         Int_t scaled_bi_appr = Int$left_shifted(Real$compute(operand, op_prec), Int$from_int64(fp_op_prec));
-        double scaled_appr = Num$from_int(scaled_bi_appr, true);
+        double scaled_appr = Float64$from_int(scaled_bi_appr, true);
         if (scaled_appr < 0.0) fail("Underflow?!?!");
         double scaled_fp_sqrt = sqrt(scaled_appr);
-        Int_t scaled_sqrt = Int$from_num(scaled_fp_sqrt, true);
+        Int_t scaled_sqrt = Int$from_float64(scaled_fp_sqrt, true);
         int64_t shift_count = working_prec / 2 - precision;
         return Int$left_shifted(scaled_sqrt, Int$from_int64(shift_count));
     }

@@ -24,9 +24,7 @@ Text_t compile_type(type_t *t) {
     case CStringType: return Text("const char*");
     case BigIntType: return Text("Int_t");
     case IntType: return Texts("Int", (int32_t)Match(t, IntType)->bits, "_t");
-    case NumType:
-        return Match(t, NumType)->bits == TYPE_NBITS64 ? Text("Num_t")
-                                                       : Texts("Num", (int32_t)Match(t, NumType)->bits, "_t");
+    case FloatType: return Texts("Float", (int32_t)Match(t, FloatType)->bits, "_t");
     case TextType: {
         DeclareMatch(text, t, TextType);
         if (!text->lang || streq(text->lang, "Text")) return Text("Text_t");
@@ -66,7 +64,7 @@ Text_t compile_type(type_t *t) {
         case TextType:
         case IntType:
         case BigIntType:
-        case NumType:
+        case FloatType:
         case BoolType:
         case ByteType:
         case ListType:
@@ -97,7 +95,7 @@ Text_t compile_type_info(type_t *t) {
     case ByteType:
     case IntType:
     case BigIntType:
-    case NumType:
+    case FloatType:
     case CStringType: return Texts("&", type_to_text(t), "$info");
     case TextType: {
         DeclareMatch(text, t, TextType);

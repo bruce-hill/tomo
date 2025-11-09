@@ -1,4 +1,5 @@
 // Big integer type (`Int` in Tomo)
+#pragma once
 
 #include <gmp.h>
 #include <stdbool.h>
@@ -189,13 +190,13 @@ MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-equal"
 #endif
-MACROLIKE PUREFUNC Int_t Int$from_num(double n, bool truncate) {
+MACROLIKE PUREFUNC Int_t Int$from_float64(double n, bool truncate) {
     mpz_t result;
     mpz_init_set_d(result, n);
     if (!truncate && unlikely(mpz_get_d(result) != n)) fail("Could not convert to an integer without truncation: ", n);
     return Int$from_mpz(result);
 }
-MACROLIKE PUREFUNC Int_t Int$from_num32(float n, bool truncate) { return Int$from_num((double)n, truncate); }
+MACROLIKE PUREFUNC Int_t Int$from_float32(float n, bool truncate) { return Int$from_float64((double)n, truncate); }
 MACROLIKE Int_t Int$from_int64(int64_t i) {
     if likely (i >= SMALLEST_SMALL_INT && i <= BIGGEST_SMALL_INT) return (Int_t){.small = (i << 2L) | 1L};
     mpz_t result;

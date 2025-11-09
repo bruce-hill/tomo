@@ -4,8 +4,8 @@
 #include "../environment.h"
 #include "../naming.h"
 #include "../stdlib/datatypes.h"
+#include "../stdlib/floats.h"
 #include "../stdlib/integers.h"
-#include "../stdlib/nums.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
@@ -79,12 +79,12 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
             Text_t value;
             if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                 value = compile_int_to_type(env, call_arg->value, spec_arg->type);
-            } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
+            } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Int) {
                 OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
                 if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
-                if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
-                    value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
-                else value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
+                if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
+                    value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
+                else value = Text$from_str(String(hex_double((double)Float32$from_int(int_val, false)), "f"));
             } else {
                 env_t *arg_env = with_enum_scope(env, spec_arg->type);
                 value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
@@ -103,12 +103,12 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
                 Text_t value;
                 if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
-                } else if (spec_arg->type->tag == NumType && call_arg->value->tag == Int) {
+                } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Int) {
                     OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
                     if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
-                    if (Match(spec_arg->type, NumType)->bits == TYPE_NBITS64)
-                        value = Text$from_str(String(hex_double(Num$from_int(int_val, false))));
-                    else value = Text$from_str(String(hex_double((double)Num32$from_int(int_val, false)), "f"));
+                    if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
+                        value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
+                    else value = Text$from_str(String(hex_double((double)Float32$from_int(int_val, false)), "f"));
                 } else {
                     env_t *arg_env = with_enum_scope(env, spec_arg->type);
                     value = compile_maybe_incref(arg_env, call_arg->value, spec_arg->type);
@@ -179,7 +179,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
         // not go through any conversion, just a cast:
         if (is_numeric_type(t) && call->args && !call->args->next && call->args->value->tag == Int)
             return compile_to_type(env, call->args->value, t);
-        else if (t->tag == NumType && call->args && !call->args->next && call->args->value->tag == Num)
+        else if (t->tag == FloatType && call->args && !call->args->next && call->args->value->tag == Num)
             return compile_to_type(env, call->args->value, t);
 
         binding_t *constructor =

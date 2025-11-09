@@ -24,7 +24,7 @@ Text_t expr_as_text(Text_t expr, type_t *t, Text_t color) {
     case BigIntType:
     case IntType:
     case ByteType:
-    case NumType: {
+    case FloatType: {
         Text_t name = type_to_text(t);
         return Texts(name, "$as_text(stack(", expr, "), ", color, ", &", name, "$info)");
     }

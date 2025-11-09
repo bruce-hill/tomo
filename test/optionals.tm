@@ -43,7 +43,7 @@ func maybe_text(should_i:Bool->Text?)
     else
         return none
 
-func maybe_num(should_i:Bool->Num?)
+func maybe_num(should_i:Bool->Float64?)
     if should_i
         return 12.3
     else

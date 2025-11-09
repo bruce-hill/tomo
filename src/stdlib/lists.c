@@ -345,18 +345,18 @@ Table_t List$counts(List_t list, const TypeInfo_t *type) {
     return counts;
 }
 
-static double _default_random_num(void *userdata) {
+static double _default_random_float64(void *userdata) {
     (void)userdata;
     union {
-        Num_t num;
+        Float64_t n;
         uint64_t bits;
-    } r = {.bits = 0}, one = {.num = 1.0};
+    } r = {.bits = 0}, one = {.n = 1.0};
     assert(getrandom((uint8_t *)&r, sizeof(r), 0) == sizeof(r));
 
-    // Set r.num to 1.<random-bits>
+    // Set r.n to 1.<random-bits>
     r.bits &= ~(0xFFFULL << 52);
     r.bits |= (one.bits & (0xFFFULL << 52));
-    return r.num - 1.0;
+    return r.n - 1.0;
 }
 
 public
@@ -419,7 +419,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
         if (aliases[i].alias == -1) aliases[i].alias = i;
 
     typedef double (*rng_fn_t)(void *);
-    rng_fn_t rng_fn = random_num.fn ? (rng_fn_t)random_num.fn : _default_random_num;
+    rng_fn_t rng_fn = random_num.fn ? (rng_fn_t)random_num.fn : _default_random_float64;
 
     List_t selected = {.data = list.atomic ? GC_MALLOC_ATOMIC((size_t)(n * padded_item_size))
                                            : GC_MALLOC((size_t)(n * padded_item_size)),

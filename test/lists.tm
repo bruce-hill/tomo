@@ -1,10 +1,10 @@
 func main()
 	do
-		nums : [Num32] = []
+		nums : [Float32] = []
 		assert nums == []
 
 	do
-		nums : [Num32]
+		nums : [Float32]
 		assert nums == []
 
 	do

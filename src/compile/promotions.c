@@ -56,7 +56,8 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
     if (actual->tag == TextType && needed->tag == TextType && streq(Match(needed, TextType)->lang, "Text")) return true;
 
     // Automatic optional checking for nums:
-    if (needed->tag == NumType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == NumType) {
+    if (needed->tag == FloatType && actual->tag == OptionalType
+        && Match(actual, OptionalType)->type->tag == FloatType) {
         int64_t line = get_line_number(ast->file, ast->start);
         *code =
             Texts("({ ", compile_declaration(actual, Text("opt")), " = ", *code, "; ", "if unlikely (",
@@ -129,9 +130,9 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
 
     if (ast->tag == Int && is_numeric_type(non_optional(t))) {
         return compile_int_to_type(env, ast, t);
-    } else if (ast->tag == Num && t->tag == NumType) {
+    } else if (ast->tag == Num && t->tag == FloatType) {
         double n = Match(ast, Num)->n;
-        switch (Match(t, NumType)->bits) {
+        switch (Match(t, FloatType)->bits) {
         case TYPE_NBITS64: return Text$from_str(String(hex_double(n)));
         case TYPE_NBITS32: return Text$from_str(String(hex_double(n), "f"));
         default: code_err(ast, "This is not a valid number bit width");

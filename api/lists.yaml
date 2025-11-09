@@ -442,7 +442,7 @@ List.sample:
       description: >
         The number of elements to sample.
     weights:
-      type: '[Num]?'
+      type: '[Float64]?'
       default: 'none'
       description: >
         The probability weights for each element in the list. These
@@ -450,7 +450,7 @@ List.sample:
         weights. If no weights are given, elements will be sampled with uniform
         probability.
     random:
-      type: 'func(->Num)?'
+      type: 'func(->Float64)?'
       default: 'none'
       description: >
         If provided, this function will be used to get random values for

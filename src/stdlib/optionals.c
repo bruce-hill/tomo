@@ -3,8 +3,8 @@
 #include <math.h>
 
 #include "datatypes.h"
+#include "floats.h"
 #include "metamethods.h"
-#include "nums.h"
 #include "optionals.h"
 #include "text.h"
 #include "util.h"
@@ -66,8 +66,8 @@ void Optional$deserialize(FILE *in, void *outval, List_t *pointers, const TypeIn
         if (nonnull->tag == TextInfo) *(Text_t *)outval = NONE_TEXT;
         else if (nonnull->tag == ListInfo) *(List_t *)outval = NONE_LIST;
         else if (nonnull->tag == TableInfo) *(Table_t *)outval = NONE_TABLE;
-        else if (nonnull == &Num$info) *(double *)outval = (double)NAN;
-        else if (nonnull == &Num32$info) *(float *)outval = (float)NAN;
+        else if (nonnull == &Float64$info) *(double *)outval = (double)NAN;
+        else if (nonnull == &Float32$info) *(float *)outval = (float)NAN;
         else if (nonnull->tag == StructInfo || (nonnull->tag == OpaqueInfo && type->size > nonnull->size))
             memset(outval + type->size, -1, (size_t)(type->size - nonnull->size));
         else memset(outval, 0, (size_t)type->size);

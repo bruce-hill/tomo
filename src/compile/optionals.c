@@ -75,7 +75,7 @@ Text_t compile_none(type_t *t) {
     case CStringType: return Text("NULL");
     case PointerType: return Texts("((", compile_type(t), ")NULL)");
     case ClosureType: return Text("NONE_CLOSURE");
-    case NumType: return Text("nan(\"none\")");
+    case FloatType: return Text("nan(\"none\")");
     case StructType: return Texts("((", compile_type(Type(OptionalType, .type = t)), "){.has_value=false})");
     case EnumType: {
         env_t *enum_env = Match(t, EnumType)->env;
@@ -96,8 +96,8 @@ Text_t check_none(type_t *t, Text_t value) {
     else if (t == PATH_TYPE_TYPE) return Texts("((", value, ").$tag == PATHTYPE_NONE)");
     else if (t->tag == BigIntType) return Texts("((", value, ").small == 0)");
     else if (t->tag == ClosureType) return Texts("((", value, ").fn == NULL)");
-    else if (t->tag == NumType)
-        return Texts(Match(t, NumType)->bits == TYPE_NBITS64 ? "Num$isnan(" : "Num32$isnan(", value, ")");
+    else if (t->tag == FloatType)
+        return Texts(Match(t, FloatType)->bits == TYPE_NBITS64 ? "Float64$isnan(" : "Float32$isnan(", value, ")");
     else if (t->tag == ListType) return Texts("((", value, ").data == NULL)");
     else if (t->tag == TableType) return Texts("((", value, ").entries.data == NULL)");
     else if (t->tag == BoolType) return Texts("((", value, ") == NONE_BOOL)");

@@ -47,7 +47,7 @@ and are bound to arguments first, followed by binding positional arguments to
 any unbound arguments, in order:
 
 ```tomo
-func foo(x:Int, y:Text, z:Num)
+func foo(x:Int, y:Text, z:Float64)
     return "x=$x y=$y z=$z"
 
 >> foo(x=1, y="hi", z=2.5)

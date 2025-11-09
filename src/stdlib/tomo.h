@@ -15,12 +15,12 @@
 #include "datatypes.h" // IWYU pragma: export
 #include "enums.h" // IWYU pragma: export
 #include "files.h" // IWYU pragma: export
+#include "floats.h" // IWYU pragma: export
 #include "functiontype.h" // IWYU pragma: export
 #include "integers.h" // IWYU pragma: export
 #include "lists.h" // IWYU pragma: export
 #include "memory.h" // IWYU pragma: export
 #include "metamethods.h" // IWYU pragma: export
-#include "nums.h" // IWYU pragma: export
 #include "optionals.h" // IWYU pragma: export
 #include "paths.h" // IWYU pragma: export
 #include "pointers.h" // IWYU pragma: export

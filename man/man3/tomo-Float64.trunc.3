@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.trunc 3 2025-11-09 "Tomo man-pages"
+.SH NAME
+Float64.trunc \- truncate a number
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.trunc\ :\ func(x:\ Float64\ ->\ Float64)
+.fi
+.SH DESCRIPTION
+Truncates a number to the nearest integer towards zero.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Float64	The number to be truncated. 	-
+.TE
+.SH RETURN
+The integer part of `x` towards zero.
+
+.SH EXAMPLES
+.EX
+assert (3.7).trunc() == 3
+assert (-3.7).trunc() == -3
+.EE

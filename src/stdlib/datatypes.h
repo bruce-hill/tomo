@@ -18,8 +18,8 @@
 #define LIST_MAX_DATA_REFCOUNT MAX_FOR_N_BITS(LIST_REFCOUNT_BITS)
 #define LIST_MAX_FREE_ENTRIES MAX_FOR_N_BITS(LIST_FREE_BITS)
 
-#define Num_t double
-#define Num32_t float
+#define Float64_t double
+#define Float32_t float
 
 #define Int64_t int64_t
 #define Int32_t int32_t

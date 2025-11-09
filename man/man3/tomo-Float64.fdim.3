@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.fdim 3 2025-11-09 "Tomo man-pages"
+.SH NAME
+Float64.fdim \- positive difference
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.fdim\ :\ func(x:\ Float64,\ y:\ Float64\ ->\ Float64)
+.fi
+.SH DESCRIPTION
+Computes the positive difference between two numbers.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Float64	The first number. 	-
+y	Float64	The second number. 	-
+.TE
+.SH RETURN
+The positive difference $\max(0, x - y)$.
+
+.SH EXAMPLES
+.EX
+fd
+
+assert (5.0).fdim(3) == 2
+.EE

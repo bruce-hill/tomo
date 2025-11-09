@@ -5,6 +5,7 @@
   instead of `$TOMO_PATH/share/tomo_vX.Y/installed/module_vZ.W`
 - Core libraries are no longer shipped with the compiler, they have moved to
   separate repositories.
+- Renamed `Num` -> `Float64` and `Num32` -> `Float32`
 - Library installation has been cleaned up a bit.
 - List indexing now gives an optional value.
 - Added support for inline anonymous enums

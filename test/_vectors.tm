@@ -1,1 +1,1 @@
-struct Vec2(x,y:Num) 
+struct Vec2(x,y:Float64) 

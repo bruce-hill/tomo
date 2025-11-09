@@ -22,22 +22,22 @@ Text_t compile_update_assignment(env_t *env, ast_t *ast) {
     Text_t update_assignment = EMPTY_TEXT;
     switch (ast->tag) {
     case PlusUpdate: {
-        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
+        if (lhs_t->tag == IntType || lhs_t->tag == FloatType || lhs_t->tag == ByteType)
             update_assignment = Texts(lhs, " += ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case MinusUpdate: {
-        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
+        if (lhs_t->tag == IntType || lhs_t->tag == FloatType || lhs_t->tag == ByteType)
             update_assignment = Texts(lhs, " -= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case MultiplyUpdate: {
-        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
+        if (lhs_t->tag == IntType || lhs_t->tag == FloatType || lhs_t->tag == ByteType)
             update_assignment = Texts(lhs, " *= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case DivideUpdate: {
-        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
+        if (lhs_t->tag == IntType || lhs_t->tag == FloatType || lhs_t->tag == ByteType)
             update_assignment = Texts(lhs, " /= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }

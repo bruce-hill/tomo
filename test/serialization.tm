@@ -1,7 +1,7 @@
 
 struct Foo(name:Text, next:@Foo?=none)
 
-enum MyEnum(Zero, One(x:Int), Two(x:Num, y:Text))
+enum MyEnum(Zero, One(x:Int), Two(x:Float64, y:Text))
 
 func main()
     do
@@ -74,9 +74,9 @@ func main()
         assert roundtrip == obj
 
     do
-        >> obj : Num? = none
+        >> obj : Float64? = none
         >> bytes : [Byte] = obj
-        >> roundtrip : Num? = bytes
+        >> roundtrip : Float64? = bytes
         assert roundtrip == obj
 
     do

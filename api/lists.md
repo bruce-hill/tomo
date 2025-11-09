@@ -407,7 +407,7 @@ assert [10, 20, 30].reversed() == [30, 20, 10]
 ## List.sample
 
 ```tomo
-List.sample : func(list: [T], count: Int, weights: [Num]? = none, random: func(->Num)? = none -> [T])
+List.sample : func(list: [T], count: Int, weights: [Float64]? = none, random: func(->Float64)? = none -> [T])
 ```
 
 Selects a sample of elements from the list, optionally with weighted probabilities.
@@ -418,8 +418,8 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `[T]` | The list to sample from.  | -
 count | `Int` | The number of elements to sample.  | -
-weights | `[Num]?` | The probability weights for each element in the list. These values do not need to add up to any particular number, they are relative weights. If no weights are given, elements will be sampled with uniform probability.  | `none`
-random | `func(->Num)?` | If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic pseudorandom number generation)  | `none`
+weights | `[Float64]?` | The probability weights for each element in the list. These values do not need to add up to any particular number, they are relative weights. If no weights are given, elements will be sampled with uniform probability.  | `none`
+random | `func(->Float64)?` | If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** A list of sampled elements from the list.
 

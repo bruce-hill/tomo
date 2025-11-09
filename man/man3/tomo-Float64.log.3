@@ -1,0 +1,33 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.log 3 2025-11-09 "Tomo man-pages"
+.SH NAME
+Float64.log \- natural logarithm
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.log\ :\ func(x:\ Float64\ ->\ Float64)
+.fi
+.SH DESCRIPTION
+Computes the natural logarithm (base $e$) of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Float64	The number for which the natural logarithm is to be calculated. 	-
+.TE
+.SH RETURN
+The natural logarithm of `x`.
+
+.SH EXAMPLES
+.EX
+assert Float64.E.log() == 1
+.EE

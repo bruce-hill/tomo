@@ -1,0 +1,34 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.atan2 3 2025-11-09 "Tomo man-pages"
+.SH NAME
+Float64.atan2 \- arc tangent from 2 variables
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.atan2\ :\ func(x:\ Float64,\ y:\ Float64\ ->\ Float64)
+.fi
+.SH DESCRIPTION
+Computes the arc tangent of the quotient of two numbers.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+x	Float64	The numerator. 	-
+y	Float64	The denominator. 	-
+.TE
+.SH RETURN
+The arc tangent of `x/y` in radians.
+
+.SH EXAMPLES
+.EX
+assert Float64.atan2(1, 1) == 0.7854
+.EE
