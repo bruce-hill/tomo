@@ -40,10 +40,10 @@ Text_t NAMESPACED(as_text)(const void *i, bool colorize, const TypeInfo_t *type)
 Text_t NAMESPACED(value_as_text)(INTX_T i);
 PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool NAMESPACED(equal)(const void *x, const void *y, const TypeInfo_t *type);
-Text_t NAMESPACED(hex)(INTX_T i, INTX_T digits, bool uppercase, bool prefix);
-Text_t NAMESPACED(octal)(INTX_T i, INTX_T digits, bool prefix);
+Text_t NAMESPACED(hex)(INTX_T i, Int_t digits, bool uppercase, bool prefix);
+Text_t NAMESPACED(octal)(INTX_T i, Int_t digits, bool prefix);
 List_t NAMESPACED(bits)(INTX_T x);
-bool NAMESPACED(get_bit)(INTX_T x, INTX_T bit_index);
+bool NAMESPACED(get_bit)(INTX_T x, Int_t bit_index);
 Closure_t NAMESPACED(to)(INTX_T first, INTX_T last, OPT_T step);
 Closure_t NAMESPACED(onward)(INTX_T first, INTX_T step);
 PUREFUNC OPT_T NAMESPACED(parse)(Text_t text, Text_t *remainder);
@@ -110,8 +110,8 @@ MACROLIKE PUREFUNC INTX_T NAMESPACED(from_int)(Int_t i, bool truncate) {
 #endif
         return ret;
     }
-    if (!truncate && unlikely(!mpz_fits_slong_p(*i.big))) fail("Integer is too big to fit in an " NAME_STR ": ", i);
-    return mpz_get_si(*i.big);
+    if (!truncate && unlikely(!mpz_fits_slong_p(i.big))) fail("Integer is too big to fit in an " NAME_STR ": ", i);
+    return mpz_get_si(i.big);
 }
 
 #if INTX_H__INT_BITS < 64

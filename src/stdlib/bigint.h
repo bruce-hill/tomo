@@ -34,13 +34,14 @@ bool Int$get_bit(Int_t x, Int_t bit_index);
 #define SMALLEST_SMALL_INT -0x40000000
 
 #define Int$from_mpz(mpz)                                                                                              \
-    (mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0 ? ((Int_t){.small = (mpz_get_si(mpz) << 2L) | 1L})                     \
-                                                : ((Int_t){.big = memcpy(new (mpz_t), &mpz, sizeof(mpz_t))}))
+    (mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0                                                                        \
+         ? ((Int_t){.small = (mpz_get_si(mpz) << 2L) | 1L})                                                            \
+         : ((Int_t){.big = memcpy(new (__mpz_struct), mpz, sizeof(__mpz_struct))}))
 
 #define mpz_init_set_int(mpz, i)                                                                                       \
     do {                                                                                                               \
         if likely ((i).small & 1L) mpz_init_set_si(mpz, (i).small >> 2L);                                              \
-        else mpz_init_set(mpz, *(i).big);                                                                              \
+        else mpz_init_set(mpz, (i).big);                                                                               \
     } while (0)
 
 #define I_small(i) ((Int_t){.small = (int64_t)((uint64_t)(i) << 2L) | 1L})

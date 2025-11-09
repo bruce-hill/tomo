@@ -23,7 +23,7 @@ int Int$print(FILE *f, Int_t i) {
     if (likely(i.small & 1L)) {
         return _print_int(f, (int64_t)((i.small) >> 2L));
     } else {
-        return gmp_fprintf(f, "%Zd", *i.big);
+        return gmp_fprintf(f, "%Zd", i.big);
     }
 }
 
@@ -50,7 +50,7 @@ Text_t Int$value_as_text(Int_t i) {
     if (likely(i.small & 1L)) {
         return _int64_to_text(i.small >> 2L);
     } else {
-        char *str = mpz_get_str(NULL, 10, *i.big);
+        char *str = mpz_get_str(NULL, 10, i.big);
         return Text$from_str(str);
     }
 }
@@ -72,9 +72,9 @@ static bool Int$is_none(const void *i, const TypeInfo_t *info) {
 public
 PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
     if (likely(x.small & y.small & 1L)) return (x.small > y.small) - (x.small < y.small);
-    else if (x.small & 1) return -mpz_cmp_si(*y.big, x.small);
-    else if (y.small & 1) return mpz_cmp_si(*x.big, y.small);
-    else return x.big == y.big ? 0 : mpz_cmp(*x.big, *y.big);
+    else if (x.small & 1) return -mpz_cmp_si(y.big, x.small);
+    else if (y.small & 1) return mpz_cmp_si(x.big, y.small);
+    else return x.big == y.big ? 0 : mpz_cmp(x.big, y.big);
 }
 
 public
@@ -86,7 +86,7 @@ PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo_t *inf
 public
 PUREFUNC bool Int$equal_value(const Int_t x, const Int_t y) {
     if (likely((x.small | y.small) & 1L)) return x.small == y.small;
-    else return x.big == y.big ? 0 : (mpz_cmp(*x.big, *y.big) == 0);
+    else return x.big == y.big ? 0 : (mpz_cmp(x.big, y.big) == 0);
 }
 
 public
@@ -112,7 +112,7 @@ PUREFUNC uint64_t Int$hash(const void *vx, const TypeInfo_t *info) {
     if (likely(x->small & 1L)) {
         return siphash24((void *)x, sizeof(Int_t));
     } else {
-        char *str = mpz_get_str(NULL, 16, *x->big);
+        char *str = mpz_get_str(NULL, 16, x->big);
         return siphash24((void *)str, strlen(str));
     }
 }
@@ -126,7 +126,7 @@ Text_t Int$hex(Int_t i, Int_t digits_int, bool uppercase, bool prefix) {
         return Text$from_str(String(
             hex(u64, .no_prefix = !prefix, .digits = Int32$from_int(digits_int, false), .uppercase = uppercase)));
     } else {
-        char *str = mpz_get_str(NULL, 16, *i.big);
+        char *str = mpz_get_str(NULL, 16, i.big);
         if (uppercase) {
             for (char *c = str; *c; c++)
                 *c = (char)toupper(*c);
@@ -151,7 +151,7 @@ Text_t Int$octal(Int_t i, Int_t digits_int, bool prefix) {
         return Text$from_str(String(oct(u64, .no_prefix = !prefix, .digits = Int32$from_int(digits_int, false))));
     } else {
         int64_t digits = Int64$from_int(digits_int, false);
-        char *str = mpz_get_str(NULL, 8, *i.big);
+        char *str = mpz_get_str(NULL, 8, i.big);
         int64_t needed_zeroes = digits - (int64_t)strlen(str);
         if (needed_zeroes <= 0) return prefix ? Text$concat(Text("0o"), Text$from_str(str)) : Text$from_str(str);
 
@@ -170,7 +170,7 @@ Int_t Int$slow_plus(Int_t x, Int_t y) {
         if (y.small < 0L) mpz_sub_ui(result, result, (uint64_t)(-(y.small >> 2L)));
         else mpz_add_ui(result, result, (uint64_t)(y.small >> 2L));
     } else {
-        mpz_add(result, result, *y.big);
+        mpz_add(result, result, y.big);
     }
     return Int$from_mpz(result);
 }
@@ -183,7 +183,7 @@ Int_t Int$slow_minus(Int_t x, Int_t y) {
         if (y.small < 0L) mpz_add_ui(result, result, (uint64_t)(-(y.small >> 2L)));
         else mpz_sub_ui(result, result, (uint64_t)(y.small >> 2L));
     } else {
-        mpz_sub(result, result, *y.big);
+        mpz_sub(result, result, y.big);
     }
     return Int$from_mpz(result);
 }
@@ -193,7 +193,7 @@ Int_t Int$slow_times(Int_t x, Int_t y) {
     mpz_t result;
     mpz_init_set_int(result, x);
     if (y.small & 1L) mpz_mul_si(result, result, y.small >> 2L);
-    else mpz_mul(result, result, *y.big);
+    else mpz_mul(result, result, y.big);
     return Int$from_mpz(result);
 }
 
@@ -206,7 +206,7 @@ Int_t Int$slow_divided_by(Int_t dividend, Int_t divisor) {
     mpz_init_set_int(remainder, divisor);
     mpz_tdiv_qr(quotient, remainder, quotient, remainder);
     if (mpz_sgn(remainder) < 0) {
-        bool d_positive = likely(divisor.small & 1L) ? divisor.small > 0x1L : mpz_sgn(*divisor.big) > 0;
+        bool d_positive = likely(divisor.small & 1L) ? divisor.small > 0x1L : mpz_sgn(divisor.big) > 0;
         if (d_positive) mpz_sub_ui(quotient, quotient, 1);
         else mpz_add_ui(quotient, quotient, 1);
     }
@@ -328,9 +328,9 @@ Int_t Int$gcd(Int_t x, Int_t y) {
 
     mpz_t result;
     mpz_init(result);
-    if (x.small & 0x1L) mpz_gcd_ui(result, *y.big, (uint64_t)labs(x.small >> 2L));
-    else if (y.small & 0x1L) mpz_gcd_ui(result, *x.big, (uint64_t)labs(y.small >> 2L));
-    else mpz_gcd(result, *x.big, *y.big);
+    if (x.small & 0x1L) mpz_gcd_ui(result, y.big, (uint64_t)labs(x.small >> 2L));
+    else if (y.small & 0x1L) mpz_gcd_ui(result, x.big, (uint64_t)labs(y.small >> 2L));
+    else mpz_gcd(result, x.big, y.big);
     return Int$from_mpz(result);
 }
 

@@ -30,7 +30,7 @@
 
 typedef union {
     int64_t small;
-    mpz_t *big;
+    __mpz_struct *big;
 } Int_t;
 
 #define OptionalInt_t Int_t

@@ -69,11 +69,11 @@ MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int)(Int_t i, bool truncate) {
             fail("Could not convert integer to " TYPE_STR " without losing precision: ", i.small >> 2);
         return ret;
     } else {
-        NUM_T ret = mpz_get_d(*i.big);
+        NUM_T ret = mpz_get_d(i.big);
         if (!truncate) {
             mpz_t roundtrip;
             mpz_init_set_d(roundtrip, (double)ret);
-            if unlikely (mpz_cmp(*i.big, roundtrip) != 0)
+            if unlikely (mpz_cmp(i.big, roundtrip) != 0)
                 fail("Could not convert integer to " TYPE_STR " without losing precision: ", i);
         }
         return ret;
