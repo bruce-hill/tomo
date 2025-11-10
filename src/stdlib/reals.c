@@ -7,6 +7,7 @@
 #include "bigint.h"
 #include "datatypes.h"
 #include "floats.h"
+#include "reals.h"
 #include "text.h"
 
 struct ieee754_bits {
@@ -61,12 +62,34 @@ static Int_t Real$compute_double(Real_t r, int64_t precision) {
     }
 }
 
+OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
+    Text_t decimal_onwards;
+    OptionalInt_t int_component = Int$parse(text, &decimal_onwards);
+    if (int_component.small == 0) int_component = I(0);
+    Text_t fraction_text;
+    if (Text$starts_with(decimal_onwards, Text("."), &fraction_text)) {
+        fraction_text = Text$replace(fraction_text, Text("_"), EMPTY_TEXT);
+        OptionalInt_t fraction = Int$parse(decimal_onwards, remainder);
+        if (fraction.small == 0) return NONE_REAL;
+        int64_t shift = fraction_text.length;
+        Int_t scale = Int$power(I(10), I(shift));
+        Int_t i = Int$plus(Int$times(int_component, scale), fraction);
+        return Real$divided_by(Real$from_int(i), Real$from_int(scale));
+    } else {
+        if (decimal_onwards.length > 0) {
+            if (remainder) *remainder = decimal_onwards;
+            else return NONE_REAL;
+        }
+        return Real$from_int(int_component);
+    }
+}
+
 Real_t Real$from_float64(double n) { return new (struct Real_s, .compute = Real$compute_double, .userdata.n = n); }
 
 double Real$as_float64(Real_t x) {
     int64_t my_msd = most_significant_bit(x, -1080 /* slightly > exp. range */);
     if (my_msd == INT64_MIN) return 0.0;
-    int needed_prec = my_msd - 60;
+    int64_t needed_prec = my_msd - 60;
     union {
         double d;
         uint64_t bits;
@@ -162,6 +185,33 @@ Real_t Real$times(Real_t x, Real_t y) {
     result->userdata.children[1] = *y;
     return result;
 }
+
+static Int_t Real$compute_inverse(Real_t r, int64_t precision) {
+    Real_t op = &r->userdata.children[0];
+    int64_t msd = most_significant_bit(op, 99999);
+    int64_t inv_msd = 1 - msd;
+    int64_t digits_needed = inv_msd - precision + 3;
+    int64_t prec_needed = msd - digits_needed;
+    int64_t log_scale_factor = -precision - prec_needed;
+    if (log_scale_factor < 0) return I(0);
+    Int_t dividend = Int$left_shifted(I(1), I(log_scale_factor));
+    Int_t scaled_divisor = Real$compute(op, prec_needed);
+    Int_t abs_scaled_divisor = Int$abs(scaled_divisor);
+    Int_t adj_dividend = Int$plus(dividend, Int$right_shifted(abs_scaled_divisor, I(1)));
+    // Adjustment so that final result is rounded.
+    Int_t result = Int$divided_by(adj_dividend, abs_scaled_divisor);
+    if (Int$compare_value(scaled_divisor, I(0)) < 0) {
+        return Int$negative(result);
+    } else {
+        return result;
+    }
+
+    return r->approximation;
+}
+
+Real_t Real$inverse(Real_t x) { return new (struct Real_s, .compute = Real$compute_inverse, .userdata.children = x); }
+
+Real_t Real$divided_by(Real_t x, Real_t y) { return Real$times(x, Real$inverse(y)); }
 
 static Int_t Real$compute_sqrt(Real_t r, int64_t precision) {
     static const int64_t fp_prec = 50;

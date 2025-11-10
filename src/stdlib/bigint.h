@@ -23,7 +23,6 @@ Text_t Int$hex(Int_t i, Int_t digits, bool uppercase, bool prefix);
 Text_t Int$octal(Int_t i, Int_t digits, bool prefix);
 PUREFUNC Closure_t Int$to(Int_t first, Int_t last, OptionalInt_t step);
 PUREFUNC Closure_t Int$onward(Int_t first, Int_t step);
-OptionalInt_t Int$from_str(const char *str);
 OptionalInt_t Int$parse(Text_t text, Text_t *remainder);
 Int_t Int$abs(Int_t x);
 Int_t Int$power(Int_t base, Int_t exponent);
