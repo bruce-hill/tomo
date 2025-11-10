@@ -393,7 +393,7 @@ PUREFUNC Closure_t Int$onward(Int_t first, Int_t step) {
 }
 
 public
-Int_t Int$from_str(const char *str) {
+OptionalInt_t Int$from_str(const char *str) {
     mpz_t i;
     int result;
     if (strncmp(str, "0x", 2) == 0) {
