@@ -146,13 +146,6 @@ static int32_t num_synthetic_graphemes = 0;
 
 static Text_t simple_concatenation(Text_t a, Text_t b);
 
-public
-Text_t EMPTY_TEXT = {
-    .length = 0,
-    .tag = TEXT_ASCII,
-    .ascii = 0,
-};
-
 PUREFUNC static bool graphemes_equal(const void *va, const void *vb, const TypeInfo_t *info) {
     (void)info;
     ucs4_t *a = *(ucs4_t **)va;
