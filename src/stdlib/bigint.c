@@ -415,25 +415,28 @@ OptionalInt_t Int$parse(Text_t text, Text_t *remainder) {
     mpz_t i;
     int result;
     if (strncmp(str, "0x", 2) == 0) {
-        const char *end = str + 2 + strspn(str + 2, "0123456789abcdefABCDEF");
+        str += 2;
+        const char *end = str + strspn(str, "0123456789abcdefABCDEF");
         if (remainder) *remainder = Text$from_str(end);
         else if (*end != '\0') return NONE_INT;
-        result = mpz_init_set_str(i, str + 2, 16);
+        result = mpz_init_set_str(i, String(string_slice(str, (size_t)(end - str))), 16);
     } else if (strncmp(str, "0o", 2) == 0) {
-        const char *end = str + 2 + strspn(str + 2, "01234567");
+        str += 2;
+        const char *end = str + strspn(str, "01234567");
         if (remainder) *remainder = Text$from_str(end);
         else if (*end != '\0') return NONE_INT;
-        result = mpz_init_set_str(i, str + 2, 8);
+        result = mpz_init_set_str(i, String(string_slice(str, (size_t)(end - str))), 8);
     } else if (strncmp(str, "0b", 2) == 0) {
-        const char *end = str + 2 + strspn(str + 2, "01");
+        str += 2;
+        const char *end = str + strspn(str, "01");
         if (remainder) *remainder = Text$from_str(end);
         else if (*end != '\0') return NONE_INT;
-        result = mpz_init_set_str(i, str + 2, 2);
+        result = mpz_init_set_str(i, String(string_slice(str, (size_t)(end - str))), 2);
     } else {
         const char *end = str + strspn(str, "0123456789");
         if (remainder) *remainder = Text$from_str(end);
         else if (*end != '\0') return NONE_INT;
-        result = mpz_init_set_str(i, str, 10);
+        result = mpz_init_set_str(i, String(string_slice(str, (size_t)(end - str))), 10);
     }
     if (result != 0) {
         if (remainder) *remainder = text;
