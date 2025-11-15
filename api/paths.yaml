@@ -107,14 +107,31 @@ Path.by_line:
   example: |
     # Safely handle file not being readable:
     if lines := (./file.txt).by_line()
-    for line in lines
-    say(line.upper())
+        for line in lines
+            say(line.upper())
     else
-    say("Couldn't read file!")
+        say("Couldn't read file!")
 
     # Assume the file is readable and error if that's not the case:
     for line in (/dev/stdin).by_line()!
-    say(line.upper())
+        say(line.upper())
+
+Path.lines:
+  short: return the lines in a file
+  description: >
+    Returns a list with the lines of text in a file or returns none if the file
+    could not be opened.
+  return:
+    type: '[Text]?'
+    description: >
+      A list of the lines in a file or none if the file couldn't be read.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file.
+  example: |
+    lines := (./file.txt).lines()!
 
 Path.can_execute:
   short: check execute permissions

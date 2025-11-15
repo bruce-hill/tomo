@@ -57,6 +57,7 @@ Path_t Path$sibling(Path_t path, Text_t name);
 Path_t Path$with_extension(Path_t path, Text_t extension, bool replace);
 Path_t Path$current_dir(void);
 Closure_t Path$by_line(Path_t path);
+OptionalList_t Path$lines(Path_t path);
 List_t Path$glob(Path_t path);
 
 uint64_t Path$hash(const void *obj, const TypeInfo_t *);

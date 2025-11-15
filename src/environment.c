@@ -325,6 +325,7 @@ env_t *global_env(bool source_mapping) {
             {"is_pipe", "Path$is_pipe", "func(path:Path, follow_symlinks=yes -> Bool)"}, //
             {"is_socket", "Path$is_socket", "func(path:Path, follow_symlinks=yes -> Bool)"}, //
             {"is_symlink", "Path$is_symlink", "func(path:Path -> Bool)"}, //
+            {"lines", "Path$lines", "func(path:Path -> [Text]?)"}, //
             {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
             {"owner", "Path$owner", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
             {"parent", "Path$parent", "func(path:Path -> Path)"}, //

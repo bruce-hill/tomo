@@ -11,6 +11,7 @@
 - Syntax for text literals and inline C code has been simplified somewhat.
 - Syntax for tables has changed to use colons (`{k: v}`) instead of equals
   (`{k=v}`).
+- Added `Path.lines()`
 - Deprecated:
   - Sets are no longer a separate type with separate methods.
     - Instead of sets, use tables with a value type of `{KeyType:Empty}`.

@@ -342,6 +342,49 @@ assert [x for x in Byte(2).to(5, step=2)] == [Byte(2), Byte(4)]
 
 ```
 
+# CString
+## CString.as_text
+
+```tomo
+CString.as_text : func(str: CString -> Text)
+```
+
+Convert a C string to Text.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+str | `CString` | The C string.  | -
+
+**Return:** The C string as a Text.
+
+
+**Example:**
+```tomo
+assert CString("Hello").as_text() == "Hello"
+
+```
+## CString.join
+
+```tomo
+CString.join : func(glue: CString, pieces: [CString] -> CString)
+```
+
+Join a list of C strings together with a separator.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+glue | `CString` | The C joiner used to between elements.  | -
+pieces | `[CString]` | A list of C strings to join.  | -
+
+**Return:** A C string of the joined together bits.
+
+
+**Example:**
+```tomo
+assert CString(",").join([CString("a"), CString("b")]) == CString("a,b")
+
+```
+
 # Int
 ## Int.abs
 
@@ -2565,14 +2608,14 @@ path | `Path` | The path of the file.  | -
 ```tomo
 # Safely handle file not being readable:
 if lines := (./file.txt).by_line()
-for line in lines
-say(line.upper())
+    for line in lines
+        say(line.upper())
 else
-say("Couldn't read file!")
+    say("Couldn't read file!")
 
 # Assume the file is readable and error if that's not the case:
 for line in (/dev/stdin).by_line()!
-say(line.upper())
+    say(line.upper())
 
 ```
 ## Path.can_execute
@@ -3017,6 +3060,26 @@ path | `Path` | The path to check.  | -
 **Example:**
 ```tomo
 assert (./link).is_symlink() == yes
+
+```
+## Path.lines
+
+```tomo
+Path.lines : func(path: Path -> [Text]?)
+```
+
+Returns a list with the lines of text in a file or returns none if the file could not be opened.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path of the file.  | -
+
+**Return:** A list of the lines in a file or none if the file couldn't be read.
+
+
+**Example:**
+```tomo
+lines := (./file.txt).lines()!
 
 ```
 ## Path.modified

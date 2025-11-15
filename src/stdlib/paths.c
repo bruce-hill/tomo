@@ -704,6 +704,28 @@ OptionalClosure_t Path$by_line(Path_t path) {
 }
 
 public
+OptionalList_t Path$lines(Path_t path) {
+    const char *path_str = Path$as_c_string(path);
+    FILE *f = fopen(path_str, "r");
+    if (f == NULL) {
+        if (errno == EMFILE || errno == ENFILE) {
+            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that will
+            // be closed by GC finalizers.
+            GC_gcollect();
+            f = fopen(path_str, "r");
+        }
+    }
+
+    if (f == NULL) return NONE_LIST;
+
+    List_t lines = {};
+    for (OptionalText_t line; (line = _next_line(&f)).tag != TEXT_NONE;) {
+        List$insert(&lines, &line, I(0), sizeof(line));
+    }
+    return lines;
+}
+
+public
 List_t Path$glob(Path_t path) {
     glob_t glob_result;
     int status = glob(Path$as_c_string(path), GLOB_BRACE | GLOB_TILDE, NULL, &glob_result);

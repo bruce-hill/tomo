@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.by_line 3 2025-05-17 "Tomo man-pages"
+.TH Path.by_line 3 2025-11-15 "Tomo man-pages"
 .SH NAME
 Path.by_line \- iterate by line
 .SH LIBRARY
@@ -31,12 +31,12 @@ An iterator that can be used to get lines from a file one at a time or none if t
 .EX
 # Safely handle file not being readable:
 if lines := (./file.txt).by_line()
-for line in lines
-say(line.upper())
+    for line in lines
+        say(line.upper())
 else
-say("Couldn't read file!")
+    say("Couldn't read file!")
 
 # Assume the file is readable and error if that's not the case:
 for line in (/dev/stdin).by_line()!
-say(line.upper())
+    say(line.upper())
 .EE
