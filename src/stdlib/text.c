@@ -1605,6 +1605,7 @@ static INLINE const char *codepoint_name(ucs4_t c) {
     char *found_name = unicode_character_name(c, name);
     if (found_name) return found_name;
     const uc_block_t *block = uc_block(c);
+    if (!block) return "???";
     assert(block);
     return String(block->name, "-", hex(c, .no_prefix = true, .uppercase = true));
 }
