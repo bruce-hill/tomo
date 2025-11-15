@@ -397,7 +397,7 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                     List_t texts = Text$split(Text$from_str(arg_value), Text(","));
                     values = EMPTY_LIST;
                     for (int64_t j = 0; j < (int64_t)texts.length; j++)
-                        List$insert_value(&texts, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
+                        List$insert_value(&values, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
                                           sizeof(const char *));
                 } else {
                     // Case: -fVALUE
