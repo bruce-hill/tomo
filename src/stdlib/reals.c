@@ -67,13 +67,13 @@ static Int_t Real$compute_double(Real_t r, int64_t precision) {
 
 public
 OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
-    Text_t decimal_onwards;
+    Text_t decimal_onwards = EMPTY_TEXT;
     OptionalInt_t int_component = Int$parse(text, &decimal_onwards);
     if (int_component.small == 0) int_component = I(0);
-    Text_t fraction_text;
+    Text_t fraction_text = EMPTY_TEXT;
     if (Text$starts_with(decimal_onwards, Text("."), &fraction_text)) {
         fraction_text = Text$replace(fraction_text, Text("_"), EMPTY_TEXT);
-        OptionalInt_t fraction = Int$parse(decimal_onwards, remainder);
+        OptionalInt_t fraction = Int$parse(fraction_text, remainder);
         if (fraction.small == 0) return NONE_REAL;
         int64_t shift = fraction_text.length;
         Int_t scale = Int$power(I(10), I(shift));
@@ -106,9 +106,9 @@ double Real$as_float64(Real_t x) {
     if (((orig_exp + exp_adj) & ~0x7fful) != 0) {
         // overflow
         if (scaled_int.d < 0.0) {
-            return -INFINITY;
+            return (double)-INFINITY;
         } else {
-            return INFINITY;
+            return (double)INFINITY;
         }
     }
     scaled_int.bits += exp_adj << 52;
