@@ -7,6 +7,7 @@
 #include <sys/param.h>
 
 #include "environment.h"
+#include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
@@ -31,6 +32,7 @@ Text_t type_to_text(type_t *t) {
     case BigIntType: return Text("Int");
     case IntType: return Texts("Int", (int32_t)Match(t, IntType)->bits);
     case FloatType: return Match(t, FloatType)->bits == TYPE_NBITS32 ? Text("Float32") : Text("Float64");
+    case RealType: return Text("Real");
     case ListType: {
         DeclareMatch(list, t, ListType);
         return Texts("[", type_to_text(list->item_type), "]");
@@ -155,7 +157,7 @@ type_t *type_or_type(type_t *a, type_t *b) {
     if (type_is_a(a, b)) return b;
     if (a->tag == AbortType || a->tag == ReturnType) return non_optional(b);
     if (b->tag == AbortType || b->tag == ReturnType) return non_optional(a);
-    if ((a->tag == IntType || a->tag == FloatType) && (b->tag == IntType || b->tag == FloatType)) {
+    if (is_numeric_type(a) && is_numeric_type(b)) {
         switch (compare_precision(a, b)) {
         case NUM_PRECISION_EQUAL:
         case NUM_PRECISION_MORE: return a;
@@ -182,6 +184,7 @@ static PUREFUNC INLINE double type_min_magnitude(type_t *t) {
         }
     }
     case FloatType: return -1. / 0.;
+    case RealType: return -1. / 0.;
     default: return (double)NAN;
     }
 }
@@ -201,6 +204,7 @@ static PUREFUNC INLINE double type_max_magnitude(type_t *t) {
         }
     }
     case FloatType: return 1. / 0.;
+    case RealType: return 1. / 0.;
     default: return (double)NAN;
     }
 }
@@ -208,15 +212,17 @@ static PUREFUNC INLINE double type_max_magnitude(type_t *t) {
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b) {
     if (a == NULL || b == NULL) return NUM_PRECISION_INCOMPARABLE;
 
-    if (is_int_type(a) && b->tag == FloatType) return NUM_PRECISION_LESS;
-    else if (a->tag == FloatType && is_int_type(b)) return NUM_PRECISION_MORE;
-
     double a_min = type_min_magnitude(a), b_min = type_min_magnitude(b), a_max = type_max_magnitude(a),
            b_max = type_max_magnitude(b);
 
     if (isnan(a_min) || isnan(b_min) || isnan(a_max) || isnan(b_max)) return NUM_PRECISION_INCOMPARABLE;
-    else if (a_min == b_min && a_max == b_max) return NUM_PRECISION_EQUAL;
-    else if (a_min <= b_min && b_max <= a_max) return NUM_PRECISION_MORE;
+    else if (a_min == b_min && a_max == b_max) {
+        if (is_int_type(a) && (b->tag == FloatType || b->tag == RealType)) return NUM_PRECISION_LESS;
+        else if ((a->tag == FloatType || a->tag == RealType) && is_int_type(b)) return NUM_PRECISION_MORE;
+        else if (a->tag == FloatType && b->tag == RealType) return NUM_PRECISION_LESS;
+        else if (a->tag == RealType && b->tag == FloatType) return NUM_PRECISION_MORE;
+        return NUM_PRECISION_EQUAL;
+    } else if (a_min <= b_min && b_max <= a_max) return NUM_PRECISION_MORE;
     else if (b_min <= a_min && a_max <= b_max) return NUM_PRECISION_LESS;
     else return NUM_PRECISION_INCOMPARABLE;
 }
@@ -228,6 +234,7 @@ PUREFUNC bool has_heap_memory(type_t *t) {
     case PointerType: return true;
     case OptionalType: return has_heap_memory(Match(t, OptionalType)->type);
     case BigIntType: return true;
+    case RealType: return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             if (has_heap_memory(field->type)) return true;
@@ -279,6 +286,8 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
     // Serialization/deserialization
     if (type_eq(actual, Type(ListType, Type(ByteType))) || type_eq(needed, Type(ListType, Type(ByteType)))) return true;
 
+    if (is_numeric_type(actual) && needed->tag == RealType) return true;
+
     if (actual->tag == FloatType && needed->tag == IntType) return false;
 
     if (actual->tag == IntType && (needed->tag == FloatType || needed->tag == BigIntType)) return true;
@@ -305,7 +314,8 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
         if (Match(actual, OptionalType)->type == NULL) return (needed->tag == OptionalType);
 
         // Optional num -> num
-        if (needed->tag == FloatType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == FloatType)
+        if (needed->tag == FloatType && actual->tag == OptionalType
+            && Match(actual, OptionalType)->type->tag == FloatType)
             return can_promote(Match(actual, OptionalType)->type, needed);
     }
 
@@ -379,7 +389,7 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
 PUREFUNC bool is_int_type(type_t *t) { return t->tag == IntType || t->tag == BigIntType || t->tag == ByteType; }
 
 PUREFUNC bool is_numeric_type(type_t *t) {
-    return t->tag == IntType || t->tag == BigIntType || t->tag == FloatType || t->tag == ByteType;
+    return t->tag == IntType || t->tag == BigIntType || t->tag == FloatType || t->tag == ByteType || t->tag == RealType;
 }
 
 PUREFUNC bool is_packed_data(type_t *t) {
@@ -459,6 +469,7 @@ PUREFUNC size_t type_size(type_t *t) {
         }
     }
     case FloatType: return Match(t, FloatType)->bits == TYPE_NBITS64 ? sizeof(double) : sizeof(float);
+    case RealType: return sizeof(Real_t);
     case TextType: return sizeof(Text_t);
     case ListType: return sizeof(List_t);
     case TableType: return sizeof(Table_t);
@@ -548,6 +559,7 @@ PUREFUNC size_t type_align(type_t *t) {
         }
     }
     case FloatType: return Match(t, FloatType)->bits == TYPE_NBITS64 ? __alignof__(double) : __alignof__(float);
+    case RealType: return __alignof__(Real_t);
     case TextType: return __alignof__(Text_t);
     case ListType: return __alignof__(List_t);
     case TableType: return __alignof__(Table_t);

@@ -283,14 +283,24 @@ env_t *global_env(bool source_mapping) {
             F_opt(log1p), F_opt(log2), F(logb), F(rint), F(round), F(significand), F_opt(sin), F(sinh), F_opt(sqrt),
             F_opt(tan), F(tanh), F_opt(tgamma), F(trunc), F_opt(y0), F_opt(y1), F2(atan2), F2(copysign), F2(fdim),
             F2(hypot), F2(nextafter)),
-        MAKE_TYPE( //
-            "CString", Type(CStringType), Text("char*"), Text("CString$info"), //
-            {"as_text", "Text$from_str", "func(str:CString -> Text)"},
-            {"join", "CString$join", "func(glue:CString, pieces:[CString] -> CString)"}),
 #undef F2
 #undef F_opt
 #undef F
 #undef C
+        MAKE_TYPE( //
+            "Real", REAL_TYPE, Text("Real_t"), Text("Real$info"), //
+            {"divided_by", "Real$divided_by", "func(x,y:Real -> Real)"}, //
+            {"inverse", "Real$inverse", "func(x:Real -> Real)"}, //
+            {"minus", "Real$minus", "func(x,y:Real -> Real)"}, //
+            {"negative", "Real$negative", "func(x:Real -> Real)"}, //
+            {"plus", "Real$plus", "func(x,y:Real -> Real)"}, //
+            {"power", "Real$power", "func(base:Real,exponent:Real -> Real)"}, //
+            {"times", "Real$times", "func(x,y:Real -> Real)"}, //
+            ),
+        MAKE_TYPE( //
+            "CString", Type(CStringType), Text("char*"), Text("CString$info"), //
+            {"as_text", "Text$from_str", "func(str:CString -> Text)"},
+            {"join", "CString$join", "func(glue:CString, pieces:[CString] -> CString)"}),
         MAKE_TYPE( //
             "PathType", PATH_TYPE_TYPE, Text("PathType_t"), Text("PathType$info"), //
             {"Relative", "PATHTYPE_RELATIVE", "PathType"}, //

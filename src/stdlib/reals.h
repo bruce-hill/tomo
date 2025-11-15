@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "datatypes.h"
+#include "types.h"
 
 #define NONE_REAL ((Real_t)NULL)
 
@@ -24,3 +25,5 @@ Real_t Real$times(Real_t x, Real_t y);
 Real_t Real$divided_by(Real_t x, Real_t y);
 Real_t Real$left_shifted(Real_t x, Int_t amount);
 Real_t Real$right_shifted(Real_t x, Int_t amount);
+
+extern const TypeInfo_t Real$info;

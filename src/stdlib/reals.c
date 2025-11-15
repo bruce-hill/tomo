@@ -9,6 +9,7 @@
 #include "floats.h"
 #include "reals.h"
 #include "text.h"
+#include "types.h"
 
 struct ieee754_bits {
     bool negative : 1;
@@ -16,23 +17,25 @@ struct ieee754_bits {
     uint64_t fraction : 53;
 };
 
+public
 Int_t Real$compute(Real_t r, int64_t precision) {
     if (r->exact) return Int$left_shifted(r->approximation, Int$from_int64(precision));
 
-    if (r->approximation.small != 0 && precision <= r->approximation_bits)
-        return Int$left_shifted(r->approximation, Int$from_int64(precision - r->approximation_bits));
+    if (r->approximation.small != 0 && precision <= r->approximation_bits) {
+        return Int$right_shifted(r->approximation, Int$from_int64(r->approximation_bits - precision));
+    }
 
     r->approximation = r->compute(r, precision);
     r->approximation_bits = precision;
     return r->approximation;
 }
 
-int64_t most_significant_bit(Real_t r, int64_t prec) {
+static int64_t most_significant_bit(Real_t r, int64_t prec) {
     if ((r->approximation.small | 0x1) == 0x1) {
         (void)Real$compute(r, prec);
     }
 
-    if (r->approximation.small == 1) {
+    if ((r->approximation.small & 0x1) == 0x1) {
         int64_t small = (r->approximation.small) >> 2;
         if (small < 0) small = -small;
         int64_t msb = (int64_t)__builtin_clzl((uint64_t)small);
@@ -62,6 +65,7 @@ static Int_t Real$compute_double(Real_t r, int64_t precision) {
     }
 }
 
+public
 OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
     Text_t decimal_onwards;
     OptionalInt_t int_component = Int$parse(text, &decimal_onwards);
@@ -84,8 +88,10 @@ OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
     }
 }
 
+public
 Real_t Real$from_float64(double n) { return new (struct Real_s, .compute = Real$compute_double, .userdata.n = n); }
 
+public
 double Real$as_float64(Real_t x) {
     int64_t my_msd = most_significant_bit(x, -1080 /* slightly > exp. range */);
     if (my_msd == INT64_MIN) return 0.0;
@@ -116,6 +122,7 @@ double Real$as_float64(Real_t x) {
     return 0.0;
 }
 
+public
 Real_t Real$from_int(Int_t i) {
     return new (struct Real_s, .compute = Real$compute_int, .userdata.i = i, .approximation = i, .exact = 1,
                 .approximation_bits = 0);
@@ -126,6 +133,7 @@ static Int_t Real$compute_negative(Real_t r, int64_t precision) {
     return Int$negative(x);
 }
 
+public
 Real_t Real$negative(Real_t x) { return new (struct Real_s, .compute = Real$compute_negative, .userdata.children = x); }
 
 static Int_t Real$compute_plus(Real_t r, int64_t precision) {
@@ -134,6 +142,7 @@ static Int_t Real$compute_plus(Real_t r, int64_t precision) {
     return Int$right_shifted(Int$plus(lhs, rhs), I(1));
 }
 
+public
 Real_t Real$plus(Real_t x, Real_t y) {
     Real_t result =
         new (struct Real_s, .compute = Real$compute_plus, .userdata.children = GC_MALLOC(sizeof(struct Real_s[2])), );
@@ -148,6 +157,7 @@ static Int_t Real$compute_minus(Real_t r, int64_t precision) {
     return Int$right_shifted(Int$minus(lhs, rhs), I(1));
 }
 
+public
 Real_t Real$minus(Real_t x, Real_t y) {
     Real_t result =
         new (struct Real_s, .compute = Real$compute_minus, .userdata.children = GC_MALLOC(sizeof(struct Real_s[2])), );
@@ -178,6 +188,7 @@ static Int_t Real$compute_times(Real_t r, int64_t precision) {
     return Int$right_shifted(Int$times(approx_big, approx_small), Int$from_int64(lhs_msb + rhs_msb - precision));
 }
 
+public
 Real_t Real$times(Real_t x, Real_t y) {
     Real_t result =
         new (struct Real_s, .compute = Real$compute_times, .userdata.children = GC_MALLOC(sizeof(struct Real_s[2])));
@@ -209,8 +220,10 @@ static Int_t Real$compute_inverse(Real_t r, int64_t precision) {
     return r->approximation;
 }
 
+public
 Real_t Real$inverse(Real_t x) { return new (struct Real_s, .compute = Real$compute_inverse, .userdata.children = x); }
 
+public
 Real_t Real$divided_by(Real_t x, Real_t y) { return Real$times(x, Real$inverse(y)); }
 
 static Int_t Real$compute_sqrt(Real_t r, int64_t precision) {
@@ -256,8 +269,10 @@ static Int_t Real$compute_sqrt(Real_t r, int64_t precision) {
     return I(0);
 }
 
+public
 Real_t Real$sqrt(Real_t x) { return new (struct Real_s, .compute = Real$compute_sqrt, .userdata.children = x); }
 
+public
 Text_t Real$value_as_text(Real_t x, int64_t digits) {
     Int_t scale_factor = Int$power(I(10), Int$from_int64(digits));
     Real_t scaled = Real$times(x, Real$from_int(scale_factor));
@@ -283,3 +298,64 @@ Text_t Real$value_as_text(Real_t x, int64_t digits) {
     }
     return result;
 }
+
+PUREFUNC
+static int32_t Real$compare(const void *x, const void *y, const TypeInfo_t *info) {
+    (void)info;
+    Int_t x_int = Real$compute(*(Real_t *)x, 100);
+    Int_t y_int = Real$compute(*(Real_t *)y, 100);
+    return Int$compare_value(x_int, y_int);
+}
+
+PUREFUNC
+static bool Real$equal(const void *x, const void *y, const TypeInfo_t *info) {
+    (void)info;
+    Int_t x_int = Real$compute(*(Real_t *)x, 100);
+    Int_t y_int = Real$compute(*(Real_t *)y, 100);
+    return Int$equal_value(x_int, y_int);
+}
+
+PUREFUNC
+static uint64_t Real$hash(const void *x, const TypeInfo_t *info) {
+    (void)x, (void)info;
+    fail("Hashing is not implemented for Reals");
+}
+
+static Text_t Real$as_text(const void *x, bool color, const TypeInfo_t *info) {
+    (void)info;
+    if (x == NULL) return Text("Real");
+    Text_t text = Real$value_as_text(*(Real_t *)x, 10);
+    return color ? Texts("\x1b[35m", text, "\x1b[m") : text;
+}
+
+PUREFUNC
+static bool Real$is_none(const void *x, const TypeInfo_t *info) {
+    (void)info;
+    return *(Real_t *)x == NULL;
+}
+
+static void Real$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
+    (void)obj, (void)out, (void)pointers, (void)info;
+    fail("Serialization of Reals is not implemented");
+}
+
+static void Real$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *info) {
+    (void)in, (void)obj, (void)pointers, (void)info;
+    fail("Serialization of Reals is not implemented");
+}
+
+public
+const TypeInfo_t Real$info = {
+    .size = sizeof(Real_t),
+    .align = __alignof__(Real_t),
+    .metamethods =
+        {
+            .compare = Real$compare,
+            .equal = Real$equal,
+            .hash = Real$hash,
+            .as_text = Real$as_text,
+            .is_none = Real$is_none,
+            .serialize = Real$serialize,
+            .deserialize = Real$deserialize,
+        },
+};
