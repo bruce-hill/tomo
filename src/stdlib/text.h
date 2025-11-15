@@ -27,6 +27,8 @@ typedef struct {
 
 #define Text(str) ((Text_t){.length = sizeof(str) - 1, .tag = TEXT_ASCII, .ascii = "" str})
 
+#define EMPTY_TEXT ((Text_t){.length = 0, .tag = TEXT_ASCII, .ascii = 0})
+
 static inline Text_t Text_from_str_literal(const char *str) {
     return (Text_t){.length = strlen(str), .tag = TEXT_ASCII, .ascii = str};
 }
@@ -121,7 +123,6 @@ MACROLIKE int32_t Text$get_grapheme(Text_t text, int64_t index) {
 }
 
 extern const TypeInfo_t Text$info;
-extern Text_t EMPTY_TEXT;
 
 #define Text$metamethods                                                                                               \
     {                                                                                                                  \
