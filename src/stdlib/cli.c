@@ -220,6 +220,7 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
             else if (nonnull == &Int16$info) ((OptionalInt16_t *)dest)->has_value = true;
             else if (nonnull == &Int8$info) ((OptionalInt8_t *)dest)->has_value = true;
             else if (nonnull == &Byte$info) ((OptionalByte_t *)dest)->has_value = true;
+            else if (nonnull == &Path$info) return args;
             else if (nonnull->tag == StructInfo && nonnull != &Path$info) *(bool *)(dest + nonnull->size) = true;
             else print_err("Unsupported type: ", generic_as_text(NULL, true, nonnull));
             return args;
