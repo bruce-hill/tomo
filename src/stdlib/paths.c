@@ -718,7 +718,7 @@ OptionalList_t Path$lines(Path_t path) {
 
     if (f == NULL) return NONE_LIST;
 
-    List_t lines = {};
+    List_t lines = EMPTY_LIST;
     for (OptionalText_t line; (line = _next_line(&f)).tag != TEXT_NONE;) {
         List$insert(&lines, &line, I(0), sizeof(line));
     }
