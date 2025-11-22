@@ -92,8 +92,8 @@ Text_t check_none(type_t *t, Text_t value) {
     // NOTE: these use statement expressions ({...;}) because some compilers
     // complain about excessive parens around equality comparisons
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType) return Texts("(", value, " == NULL)");
-    else if (t == PATH_TYPE) return Texts("((", value, ").type.$tag == PATHTYPE_NONE)");
-    else if (t == PATH_TYPE_TYPE) return Texts("((", value, ").$tag == PATHTYPE_NONE)");
+    else if (t == PATH_TYPE) return Texts("((", value, ").type == PATHTYPE_NONE)");
+    else if (t == PATH_TYPE_TYPE) return Texts("((", value, ") == PATHTYPE_NONE)");
     else if (t->tag == BigIntType) return Texts("((", value, ").small == 0)");
     else if (t->tag == ClosureType) return Texts("((", value, ").fn == NULL)");
     else if (t->tag == NumType)

@@ -53,6 +53,7 @@
     up resources, which can result in file handles being freed up.
   - `&` references failed to propagate when accessing fields like
     `foo.baz.method()` when `foo` is a `&Foo` and `baz.method()` takes a `&Baz`.
+  - Optional paths no longer fail to compile when you check them for `none`.
 
 ## v0.3
 
