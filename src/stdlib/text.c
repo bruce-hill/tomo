@@ -1135,6 +1135,7 @@ Text_t Text$translate(Text_t text, Table_t translations) {
             struct {
                 Text_t target, replacement;
             } *entry = replacement_list.data + r * replacement_list.stride;
+            if (entry->target.length <= 0) continue;
             TextIter_t target_state = NEW_TEXT_ITER_STATE(entry->target);
             if (_matches(&text_state, &target_state, i)) {
                 if (i > span_start) result = concat2(result, Text$slice(text, I(span_start + 1), I(i)));
@@ -1156,6 +1157,7 @@ Text_t Text$translate(Text_t text, Table_t translations) {
 
 public
 Text_t Text$replace(Text_t text, Text_t target, Text_t replacement) {
+    if (target.length <= 0) return text;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
     Text_t result = EMPTY_TEXT;
     int64_t span_start = 0;

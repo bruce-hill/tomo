@@ -57,6 +57,8 @@ func main()
 	assert "xxxx".replace("x", "") == ""
 	assert "xxxx".replace("y", "") == "xxxx"
 	assert "One two three four five six".replace("e ", "") == "Ontwo threfour fivsix"
+	assert "Hello".replace("", "xxx") == "Hello"
+	assert "".replace("", "xxx") == ""
 
 	assert amelie.has(amelie2) == yes
 
