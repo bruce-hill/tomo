@@ -215,12 +215,14 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
             return List$from(args, I(2));
         } else {
             args = parse_arg_list(args, flag, dest, nonnull, allow_dashes);
-            if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
+            if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Num$info || nonnull == &Num32$info
+                || nonnull->tag == TextInfo)
+                return args;
+            else if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
             else if (nonnull == &Int32$info) ((OptionalInt32_t *)dest)->has_value = true;
             else if (nonnull == &Int16$info) ((OptionalInt16_t *)dest)->has_value = true;
             else if (nonnull == &Int8$info) ((OptionalInt8_t *)dest)->has_value = true;
             else if (nonnull == &Byte$info) ((OptionalByte_t *)dest)->has_value = true;
-            else if (nonnull == &Path$info) return args;
             else if (nonnull->tag == StructInfo && nonnull != &Path$info) *(bool *)(dest + nonnull->size) = true;
             else print_err("Unsupported type: ", generic_as_text(NULL, true, nonnull));
             return args;
