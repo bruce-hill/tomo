@@ -276,6 +276,7 @@ typedef enum {
     Use,
     InlineCCode,
     ExplicitlyTyped,
+    Metadata,
 } ast_e;
 #define NUM_AST_TAGS (ExplicitlyTyped + 1)
 
@@ -458,6 +459,9 @@ struct ast_s {
             ast_t *ast;
             struct type_s *type;
         } ExplicitlyTyped;
+        struct {
+            Text_t key, value;
+        } Metadata;
     } __data;
 };
 
@@ -483,3 +487,4 @@ CONSTFUNC ast_e binop_tag(ast_e tag);
 CONSTFUNC bool is_binary_operation(ast_t *ast);
 void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata);
 void type_ast_visit(ast_t *ast, void (*visitor)(type_ast_t *, void *), void *userdata);
+OptionalText_t ast_metadata(ast_t *ast, const char *key);

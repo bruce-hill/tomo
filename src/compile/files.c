@@ -142,6 +142,7 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
         }
         return code;
     }
+    case Metadata:
     default: return EMPTY_TEXT;
     }
 }

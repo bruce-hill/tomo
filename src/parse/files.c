@@ -7,8 +7,11 @@
 #include <string.h>
 
 #include "../ast.h"
+#include "../stdlib/datatypes.h"
+#include "../stdlib/paths.h"
 #include "../stdlib/stdlib.h"
 #include "../stdlib/tables.h"
+#include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "context.h"
 #include "errors.h"
@@ -31,6 +34,35 @@ static ast_t *parse_top_declaration(parse_ctx_t *ctx, const char *pos) {
     return declaration;
 }
 
+static ast_t *parse_metadata(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    const char *key = get_id(&pos);
+    if (!key) return NULL;
+    spaces(&pos);
+    if (!match(&pos, ":")) return NULL;
+    spaces(&pos);
+    ast_t *value = parse_text(ctx, pos, false);
+    Text_t value_text = EMPTY_TEXT;
+    if (value) {
+        for (ast_list_t *child = Match(value, TextJoin)->children; child; child = child->next) {
+            if (child->ast->tag != TextLiteral)
+                parser_err(ctx, child->ast->start, child->ast->end, "Text interpolations are not allowed in metadata");
+            value_text = Texts(value_text, Match(child->ast, TextLiteral)->text);
+        }
+    } else {
+        value = parse_path(ctx, pos);
+        if (!value) return NULL;
+        Path_t path = Path$from_str(Match(value, Path)->path);
+        path = Path$resolved(path, Path$parent(Path$from_str(ctx->file->filename)));
+        OptionalText_t contents = Path$read(path);
+        if (contents.tag == TEXT_NONE) parser_err(ctx, value->start, value->end, "File not found: ", path);
+        value_text = Text$trim(contents, Text("\r\n\t "), true, true);
+    }
+    pos = value->end;
+
+    return NewAST(ctx->file, start, pos, Metadata, .key = Text$from_str(key), .value = value_text);
+}
+
 ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     whitespace(ctx, &pos);
@@ -40,10 +72,11 @@ ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
         whitespace(ctx, &next);
         if (get_indent(ctx, next) != 0) break;
         ast_t *stmt;
-        if ((stmt = optional(ctx, &pos, parse_struct_def)) || (stmt = optional(ctx, &pos, parse_func_def))
-            || (stmt = optional(ctx, &pos, parse_enum_def)) || (stmt = optional(ctx, &pos, parse_lang_def))
-            || (stmt = optional(ctx, &pos, parse_convert_def)) || (stmt = optional(ctx, &pos, parse_use))
-            || (stmt = optional(ctx, &pos, parse_inline_c)) || (stmt = optional(ctx, &pos, parse_top_declaration))) {
+        if ((stmt = optional(ctx, &pos, parse_metadata)) || (stmt = optional(ctx, &pos, parse_struct_def))
+            || (stmt = optional(ctx, &pos, parse_func_def)) || (stmt = optional(ctx, &pos, parse_enum_def))
+            || (stmt = optional(ctx, &pos, parse_lang_def)) || (stmt = optional(ctx, &pos, parse_convert_def))
+            || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_inline_c))
+            || (stmt = optional(ctx, &pos, parse_top_declaration))) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
             whitespace(ctx, &pos); // TODO: check for newline

@@ -216,6 +216,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             return EMPTY_TEXT;
         }
     }
+    case Metadata: return EMPTY_TEXT;
     default:
         // print("Is discardable: ", ast_to_sexp_str(ast), " ==> ",
         // is_discardable(env, ast));

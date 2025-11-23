@@ -1511,6 +1511,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case Unknown: code_err(ast, "I can't figure out the type of: ", ast_to_sexp_str(ast));
     case ExplicitlyTyped: return Match(ast, ExplicitlyTyped)->type;
+    case Metadata: return Type(VoidType);
     }
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -1529,7 +1530,8 @@ PUREFUNC bool is_discardable(env_t *env, ast_t *ast) {
     case StructDef:
     case EnumDef:
     case LangDef:
-    case Use: return true;
+    case Use:
+    case Metadata: return true;
     default: break;
     }
     type_t *t = get_type(env, ast);
@@ -1686,7 +1688,8 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast) {
         default: return is_constant(env, binop.lhs) && is_constant(env, binop.rhs);
         }
     }
-    case Use: return true;
+    case Use:
+    case Metadata: return true;
     case FunctionCall: return false;
     case InlineCCode: return true;
     default: return false;

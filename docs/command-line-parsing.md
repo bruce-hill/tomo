@@ -223,3 +223,36 @@ OPTIONS
        --frob | --no-frob
               Whether or not to frob your gropnoggles
 ```
+
+## Metadata
+
+You can specify metadata for a program, which is used for CLI messages like
+`--help`, as well as manpage documentation. Metadata can be specified as either
+a text literal (no interpolation) or as a file path literal.
+
+```
+USAGE: "--foo <n>"
+HELP: "
+    This is some custom help text.
+    You can use these flags:
+
+    --foo <n>  The foo parameter
+    --help     Show this message
+"
+MANPAGE_DESCRIPTION: (./description.roff)
+```
+
+Supported metadata:
+
+- `USAGE`: the short form usage shown in CLI parsing errors and help pages. This
+  should be a single line without the name of the program, so `USAGE: "--foo"`
+  would translate to the error message `Usage: myprogram --foo`. If this is not
+  present, it will be generated automatically.
+
+- `HELP`: The help message displayed when the `--help` flag is used or when there
+  is an argument parsing error. This should be a description of the program with
+  a multi-line documentation of commonly used flags.
+
+- `MANPAGE_SYNOPSYS`: the synopsis section of the manpage (inserted literally).
+
+- `MANPAGE_DESCRIPTION`: the description section of the manpage (inserted literally).

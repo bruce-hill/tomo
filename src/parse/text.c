@@ -17,7 +17,7 @@
 #include "types.h"
 #include "utils.h"
 
-static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos) {
+static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, bool allow_interps) {
     const char *pos = *out_pos;
 
     int64_t starting_indent = get_indent(ctx, pos);
@@ -40,6 +40,8 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos) {
     } else {
         parser_err(ctx, pos, pos, "I expected a valid text here");
     }
+
+    if (!allow_interps) interp = NULL;
 
     ast_list_t *chunks = NULL;
     Text_t chunk = EMPTY_TEXT;
@@ -123,9 +125,9 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos) {
     return chunks;
 }
 
-ast_t *parse_text(parse_ctx_t *ctx, const char *pos) {
+ast_t *parse_text(parse_ctx_t *ctx, const char *pos, bool allow_interps) {
     // ('"' ... '"' / "'" ... "'" / "`" ... "`")
-    // "$" [name] [interp-char] quote-char ... close-quote
+    // "$" [name] quote-char ... close-quote
     const char *start = pos;
     const char *lang = NULL;
 
@@ -136,7 +138,7 @@ ast_t *parse_text(parse_ctx_t *ctx, const char *pos) {
 
     if (!(*pos == '"' || *pos == '\'' || *pos == '`')) return NULL;
 
-    ast_list_t *chunks = _parse_text_helper(ctx, &pos);
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos, allow_interps);
     bool colorize = match(&pos, "~") && match_word(&pos, "colorized");
     return NewAST(ctx->file, start, pos, TextJoin, .lang = lang, .children = chunks, .colorize = colorize);
 }
@@ -157,7 +159,7 @@ ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
         parser_err(ctx, pos, pos + 1,
                    "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
 
-    ast_list_t *chunks = _parse_text_helper(ctx, &pos);
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos, true);
     return NewAST(ctx->file, start, pos, InlineCCode, .chunks = chunks, .type_ast = type);
 }
 

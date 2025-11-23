@@ -274,6 +274,8 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Assert, "(Assert ", ast_to_sexp(data.expr), " ", optional_sexp("message", data.message), ")");
         T(Use, "(Use ", optional_sexp("var", data.var), " ", quoted_text(data.path), ")");
         T(InlineCCode, "(InlineCCode ", ast_list_to_sexp(data.chunks), optional_type_sexp("type", data.type_ast), ")");
+        T(Metadata, "((Metadata ", Text$quoted(data.key, false, Text("\"")), " ",
+          Text$quoted(data.value, false, Text("\"")), ")");
     default: errx(1, "S-expressions are not implemented for this AST");
 #undef T
     }
@@ -463,7 +465,8 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
     case Int:
     case Num:
     case Path:
-    case TextLiteral: return;
+    case TextLiteral:
+    case Metadata: return;
     case TextJoin: ast_visit_list(Match(ast, TextJoin)->children, visitor, userdata); return;
     case Declare: {
         DeclareMatch(decl, ast, Declare);
@@ -779,4 +782,16 @@ static void _type_ast_visit(ast_t *ast, void *userdata) {
 void type_ast_visit(ast_t *ast, void (*visitor)(type_ast_t *, void *), void *userdata) {
     Closure_t fn = {.fn = visitor, .userdata = userdata};
     ast_visit(ast, _type_ast_visit, &fn);
+}
+
+OptionalText_t ast_metadata(ast_t *ast, const char *key) {
+    if (ast->tag != Block) return NONE_TEXT;
+    Text_t key_text = Text$from_str(key);
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag == Metadata) {
+            DeclareMatch(m, stmt->ast, Metadata);
+            if (Text$equal_values(m->key, key_text)) return m->value;
+        }
+    }
+    return NONE_TEXT;
 }

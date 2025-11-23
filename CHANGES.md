@@ -12,6 +12,13 @@
 - Syntax for text literals and inline C code has been simplified somewhat.
 - Syntax for tables has changed to use colons (`{k: v}`) instead of equals
   (`{k=v}`).
+- Added metadata format instead of `_HELP`/`_USAGE`:
+  ```
+  HELP: "Help text"
+  USAGE: "Usage text"
+  MANPAGE_SYNOPSYS: "Synopsys..."
+  MANPAGE_DESCRIPTION: (./description.txt)
+  ```
 - Added `Path.lines()`.
 - Added `Text.find(text, target, start=1)`.
 - Added `at_cleanup()` to register cleanup functions.
