@@ -202,7 +202,7 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
         if ((type->tag == TextInfo || type == &CString$info) && arg[0] == '\\' && arg[1] == '-') {
             arg = arg + 1;
         } else if (arg[0] == '-') {
-            print_err("Not a valid argument for flag ", flag, ": ", arg);
+            print_err("Not a valid flag: ", arg);
         }
     }
 
