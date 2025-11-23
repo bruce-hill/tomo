@@ -529,17 +529,18 @@ env_t *global_env(bool source_mapping) {
     struct {
         const char *name, *code, *type_str;
     } global_vars[] = {
-        {"USE_COLOR", "USE_COLOR", "Bool"},
+        {"EMPTY", "EMPTY", "Empty"},
         {"TOMO_VERSION", "TOMO_VERSION_TEXT", "Text"},
-        {"say", "say", "func(text:Text, newline=yes)"},
-        {"print", "say", "func(text:Text, newline=yes)"},
-        {"getenv", "getenv_text", "func(name:Text -> Text?)"},
-        {"setenv", "setenv_text", "func(name:Text, value:Text -> Text?)"},
+        {"USE_COLOR", "USE_COLOR", "Bool"},
         {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text?)"},
+        {"at_cleanup", "tomo_at_cleanup", "func(fn:func())"},
         {"exit", "tomo_exit", "func(message:Text?=none, code=Int32(1) -> Abort)"},
         {"fail", "fail_text", "func(message:Text -> Abort)"},
+        {"getenv", "getenv_text", "func(name:Text -> Text?)"},
+        {"print", "say", "func(text:Text, newline=yes)"},
+        {"say", "say", "func(text:Text, newline=yes)"},
+        {"setenv", "setenv_text", "func(name:Text, value:Text -> Text?)"},
         {"sleep", "sleep_num", "func(seconds:Num)"},
-        {"EMPTY", "EMPTY", "Empty"},
     };
 
     for (size_t i = 0; i < sizeof(global_vars) / sizeof(global_vars[0]); i++) {

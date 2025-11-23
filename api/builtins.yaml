@@ -38,7 +38,7 @@ exit:
   description: >
     Exits the program with a given status and optionally prints a message.
   return:
-    type: 'Void'
+    type: 'Abort'
     description: >
       This function never returns.
   args:
@@ -55,6 +55,32 @@ exit:
         The status code that the program with exit with.
   example: |
     exit(status=1, "Goodbye forever!")
+
+at_cleanup:
+  short: register a cleanup function
+  description: >
+    Register a function that runs at cleanup time for Tomo programs. Cleanup
+    time happens when a program exits (see `atexit()` in C), or immediately
+    before printing error messages in a call to `fail()`. This allows for
+    terminal cleanup so error messages can be visible as the program shuts
+    down.
+  note: >
+    Use this API very carefully, because errors that occur during cleanup
+    functions may make it extremely hard to figure out what's going on. Cleanup
+    functions should be designed to not error under any circumstances.
+  args:
+    fn:
+      type: 'func()'
+      description: >
+        A function to run at cleanup time.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  example: |
+    at_cleanup(func()
+        (/tmp/file.txt).remove(ignore_missing=yes)
+    )
 
 getenv:
   short: get an environment variable

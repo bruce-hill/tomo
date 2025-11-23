@@ -72,6 +72,7 @@ void tomo_init(void) {
     sigemptyset(&sigact.sa_mask);
     sigact.sa_flags = 0;
     sigaction(SIGILL, &sigact, (struct sigaction *)NULL);
+    atexit(tomo_cleanup);
 }
 
 public
@@ -219,3 +220,25 @@ OptionalText_t getenv_text(Text_t name) {
 
 public
 void setenv_text(Text_t name, Text_t value) { setenv(Text$as_c_string(name), Text$as_c_string(value), 1); }
+
+typedef struct cleanup_s {
+    Closure_t cleanup_fn;
+    struct cleanup_s *next;
+} cleanup_t;
+
+static cleanup_t *cleanups = NULL;
+
+public
+void tomo_at_cleanup(Closure_t fn) { cleanups = new (cleanup_t, .cleanup_fn = fn, .next = cleanups); }
+
+public
+void tomo_cleanup(void) {
+    while (cleanups) {
+        // NOTE: we *must* remove the cleanup function from the stack before calling it,
+        // otherwise it will cause an infinite loop if the cleanup function fails or exits.
+        void (*run_cleanup)(void *) = cleanups->cleanup_fn.fn;
+        void *userdata = cleanups->cleanup_fn.userdata;
+        cleanups = cleanups->next;
+        run_cleanup(userdata);
+    }
+}
