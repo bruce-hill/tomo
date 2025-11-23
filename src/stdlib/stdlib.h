@@ -30,7 +30,7 @@ void tomo_init(void);
         else fputs("\n", stderr);                                                                                      \
         fflush(stderr);                                                                                                \
         raise(SIGABRT);                                                                                                \
-        _exit(1);                                                                                                      \
+        exit(1);                                                                                                       \
     })
 
 #define fail_source(filename, start, end, ...)                                                                         \
@@ -50,7 +50,7 @@ void tomo_init(void);
         if (USE_COLOR) fputs("\x1b[m", stderr);                                                                        \
         fflush(stderr);                                                                                                \
         raise(SIGABRT);                                                                                                \
-        _exit(1);                                                                                                      \
+        exit(1);                                                                                                       \
     })
 
 _Noreturn void fail_text(Text_t message);

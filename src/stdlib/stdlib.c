@@ -145,7 +145,7 @@ void say(Text_t text, bool newline) {
 public
 _Noreturn void tomo_exit(Text_t text, int32_t status) {
     if (text.length > 0) print(text);
-    _exit(status);
+    exit(status);
 }
 
 public
