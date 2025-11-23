@@ -72,10 +72,15 @@ typedef struct table_s {
 typedef struct Empty$$struct {
 } Empty$$type;
 
+#define EMPTY_STRUCT ((Empty$$type){})
+
 typedef struct {
     bool has_value;
     Empty$$type value;
 } $OptionalEmpty$$type;
+
+#define NONE_EMPTY_STRUCT (($OptionalEmpty$$type){.has_value = false})
+#define OPTIONAL_EMPTY_STRUCT (($OptionalEmpty$$type){.has_value = true})
 
 typedef struct {
     void *fn, *userdata;

@@ -156,15 +156,20 @@ Text_t compile_enum_field_access(env_t *env, ast_t *ast) {
     for (tag_t *tag = e->tags; tag; tag = tag->next) {
         if (streq(f->field, tag->name)) {
             Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts("tag$", tag->name));
-            if (fielded_t->tag == PointerType) {
+            if (tag->type != NULL && Match(tag->type, StructType)->fields) {
+                return Texts("({ ", compile_declaration(value_t, Text("_e")), " = ",
+                             compile_to_pointer_depth(env, f->fielded, 0, false), "; ", "_e.$tag == ", tag_name, " ? ",
+                             promote_to_optional(tag->type, Texts("_e.", tag->name)), " : ", compile_none(tag->type),
+                             "; })");
+            } else if (fielded_t->tag == PointerType) {
                 Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                return Texts("((", fielded, ")->$tag == ", tag_name, ")");
+                return Texts("((", fielded, ")->$tag == ", tag_name, " ? OPTIONAL_EMPTY_STRUCT : NONE_EMPTY_STRUCT)");
             } else if (enum_has_fields(value_t)) {
                 Text_t fielded = compile(env, f->fielded);
-                return Texts("((", fielded, ").$tag == ", tag_name, ")");
+                return Texts("((", fielded, ").$tag == ", tag_name, " ? OPTIONAL_EMPTY_STRUCT : NONE_EMPTY_STRUCT)");
             } else {
                 Text_t fielded = compile(env, f->fielded);
-                return Texts("((", fielded, ") == ", tag_name, ")");
+                return Texts("((", fielded, ") == ", tag_name, " ? OPTIONAL_EMPTY_STRUCT : NONE_EMPTY_STRUCT)");
             }
         }
     }

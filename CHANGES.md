@@ -8,6 +8,7 @@
 - Library installation has been cleaned up a bit.
 - List indexing now gives an optional value.
 - Added support for inline anonymous enums
+- Accessing a field on an enum now gives an optional value instead of a boolean.
 - Syntax for text literals and inline C code has been simplified somewhat.
 - Syntax for tables has changed to use colons (`{k: v}`) instead of equals
   (`{k=v}`).

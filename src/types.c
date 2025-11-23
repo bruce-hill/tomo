@@ -633,7 +633,9 @@ type_t *get_field_type(type_t *t, const char *field_name) {
     case EnumType: {
         DeclareMatch(e, t, EnumType);
         for (tag_t *tag = e->tags; tag; tag = tag->next) {
-            if (streq(field_name, tag->name)) return Type(BoolType);
+            if (!streq(field_name, tag->name)) continue;
+            if (tag->type != NULL && Match(tag->type, StructType)->fields) return Type(OptionalType, tag->type);
+            else return Type(OptionalType, EMPTY_TYPE);
         }
         return NULL;
     }
