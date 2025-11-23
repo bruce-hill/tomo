@@ -1588,8 +1588,9 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
             for (; unused_args; unused_args = unused_args->next) {
                 if (unused_args->name) continue; // Already handled the keyword args
                 if (options.promotion) {
-                    if (!can_compile_to_type(arg_scope, unused_args->value, spec_type))
+                    if (!can_compile_to_type(arg_scope, unused_args->value, spec_type)) {
                         return false; // Positional arg trying to fill in
+                    }
                 } else {
                     type_t *call_type = get_arg_ast_type(arg_scope, unused_args);
                     type_t *complete_call_type =
@@ -1701,16 +1702,16 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (is_numeric_type(needed) && ast->tag == Int) return true;
     if (needed->tag == NumType && ast->tag == Num) return true;
 
-    needed = non_optional(needed);
-    if (needed->tag == ListType && ast->tag == List) {
-        type_t *item_type = Match(needed, ListType)->item_type;
+    type_t *non_optional_needed = non_optional(needed);
+    if (non_optional_needed->tag == ListType && ast->tag == List) {
+        type_t *item_type = Match(non_optional_needed, ListType)->item_type;
         for (ast_list_t *item = Match(ast, List)->items; item; item = item->next) {
             if (!can_compile_to_type(env, item->ast, item_type)) return false;
         }
         return true;
-    } else if (needed->tag == TableType && ast->tag == Table) {
-        type_t *key_type = Match(needed, TableType)->key_type;
-        type_t *value_type = Match(needed, TableType)->value_type;
+    } else if (non_optional_needed->tag == TableType && ast->tag == Table) {
+        type_t *key_type = Match(non_optional_needed, TableType)->key_type;
+        type_t *value_type = Match(non_optional_needed, TableType)->value_type;
         for (ast_list_t *entry = Match(ast, Table)->entries; entry; entry = entry->next) {
             if (entry->ast->tag != TableEntry) continue; // TODO: fix this
             DeclareMatch(e, entry->ast, TableEntry);
@@ -1725,16 +1726,16 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (type_eq(actual, needed)) return true;
     if (actual->tag == OptionalType && needed->tag == OptionalType) return can_promote(actual, needed);
 
-    if (needed->tag == PointerType) {
-        DeclareMatch(ptr, needed, PointerType);
+    if (non_optional_needed->tag == PointerType) {
+        DeclareMatch(ptr, non_optional_needed, PointerType);
         if (ast->tag == HeapAllocate)
             return !ptr->is_stack && can_compile_to_type(env, Match(ast, HeapAllocate)->value, ptr->pointed);
         else if (ast->tag == StackReference)
             return ptr->is_stack && can_compile_to_type(env, Match(ast, StackReference)->value, ptr->pointed);
-        else return can_promote(actual, needed);
-    } else if (actual->tag == OptionalType && needed->tag != OptionalType) {
+        else return can_promote(actual, non_optional_needed);
+    } else if (actual->tag == OptionalType && non_optional_needed->tag != OptionalType) {
         return false;
     } else {
-        return can_promote(actual, needed);
+        return can_promote(actual, non_optional_needed);
     }
 }

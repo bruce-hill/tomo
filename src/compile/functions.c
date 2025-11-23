@@ -163,12 +163,12 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
                     args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
                 REVERSE_LIST(args);
                 code_err(ast,
-                         "This function's signature doesn't match this call site.\n"
-                         "The signature is: ",
-                         type_to_text(fn_t),
-                         "\n"
-                         "But it's being called with: ",
-                         type_to_text(Type(FunctionType, .args = args)));
+                         "This function's signature doesn't match this call site. \n"
+                         " The function takes these args: (",
+                         arg_types_to_text(Match(fn_t, FunctionType)->args, ", "),
+                         ") \n"
+                         " But it's being called with:    (",
+                         arg_types_to_text(args, ", "), ")");
             }
         }
         return Texts(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");

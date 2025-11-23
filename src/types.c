@@ -12,6 +12,15 @@
 #include "stdlib/util.h"
 #include "types.h"
 
+Text_t arg_types_to_text(arg_t *args, const char *separator) {
+    Text_t text = EMPTY_TEXT;
+    for (arg_t *arg = args; arg; arg = arg->next) {
+        text = Texts(text, type_to_text(arg->type));
+        if (arg->next) text = Texts(text, separator);
+    }
+    return text;
+}
+
 Text_t type_to_text(type_t *t) {
     if (!t) return Text("(Unknown type)");
 
@@ -45,15 +54,11 @@ Text_t type_to_text(type_t *t) {
         return type_to_text(Match(t, ClosureType)->fn);
     }
     case FunctionType: {
-        Text_t c = Text("func(");
         DeclareMatch(fn, t, FunctionType);
-        for (arg_t *arg = fn->args; arg; arg = arg->next) {
-            c = Texts(c, type_to_text(arg->type));
-            if (arg->next) c = Texts(c, ",");
-        }
-        if (fn->ret && fn->ret->tag != VoidType) c = Texts(c, fn->args ? " -> " : "-> ", type_to_text(fn->ret));
-        c = Texts(c, ")");
-        return c;
+        Text_t text = Texts("func(", arg_types_to_text(fn->args, ","));
+        if (fn->ret && fn->ret->tag != VoidType) text = Texts(text, fn->args ? " -> " : "-> ", type_to_text(fn->ret));
+        text = Texts(text, ")");
+        return text;
     }
     case StructType: {
         DeclareMatch(struct_, t, StructType);
