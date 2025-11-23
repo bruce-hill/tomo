@@ -287,6 +287,7 @@ struct ast_s {
         struct {
         } Unknown;
         struct {
+            struct type_s *type;
         } None;
         struct {
             bool b;

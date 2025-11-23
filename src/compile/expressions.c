@@ -66,7 +66,9 @@ Text_t compile_empty(type_t *t) {
 Text_t compile(env_t *env, ast_t *ast) {
     switch (ast->tag) {
     case None: {
-        code_err(ast, "I can't figure out what this `none`'s type is!");
+        type_t *type = Match(ast, None)->type;
+        if (type == NULL) code_err(ast, "I can't figure out what this `none`'s type is!");
+        return compile_none(non_optional(type));
     }
     case Bool: return Match(ast, Bool)->b ? Text("yes") : Text("no");
     case Var: {

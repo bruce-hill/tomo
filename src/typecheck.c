@@ -1376,7 +1376,6 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
     case If: {
         DeclareMatch(if_, ast, If);
-        if (!if_->else_body) return Type(VoidType);
 
         env_t *truthy_scope = env;
         env_t *falsey_scope = env;
@@ -1401,6 +1400,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         }
 
         type_t *true_t = get_type(truthy_scope, if_->body);
+        ast_t *else_body = if_->else_body;
+        if (!else_body) else_body = WrapAST(ast, None, .type = true_t);
         type_t *false_t = get_type(falsey_scope, if_->else_body);
         type_t *t_either = type_or_type(true_t, false_t);
         if (!t_either)

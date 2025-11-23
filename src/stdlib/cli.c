@@ -216,7 +216,7 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
         } else {
             args = parse_arg_list(args, flag, dest, nonnull, allow_dashes);
             if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Num$info || nonnull == &Num32$info
-                || nonnull->tag == TextInfo)
+                || nonnull->tag == TextInfo || nonnull->tag == EnumInfo)
                 return args;
             else if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
             else if (nonnull == &Int32$info) ((OptionalInt32_t *)dest)->has_value = true;
