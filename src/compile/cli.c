@@ -144,7 +144,7 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
         code = Texts(code, "{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", &",
                      Texts("_$", Text$from_str(arg->name)), ", ", compile_type_info(arg->type),
                      arg->default_val ? Text("") : Text(", .required=true"),
-                     arg->alias ? Texts(", .short_flag=", quoted_text(Text$from_str(arg->name)),
+                     arg->alias ? Texts(", .short_flag=", quoted_text(Text$from_str(arg->alias)),
                                         "[0]") // TODO: escape char properly
                                 : Text(""),
 

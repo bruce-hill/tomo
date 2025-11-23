@@ -55,6 +55,7 @@
     `foo.baz.method()` when `foo` is a `&Foo` and `baz.method()` takes a `&Baz`.
   - Optional paths no longer fail to compile when you check them for `none`.
   - Text replacement no longer infinitely loops when given an empty text to replace.
+  - Short CLI flag aliases now no longer use the first letter of the argument.
 
 ## v0.3
 
