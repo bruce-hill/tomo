@@ -1218,6 +1218,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         binary_operands_t binop = BINARY_OPERANDS(ast);
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
+        if (type_eq(lhs_t, rhs_t)) return ast->tag == Compare ? Type(IntType, .bits = TYPE_IBITS32) : Type(BoolType);
 
         if ((binop.lhs->tag == Int && is_numeric_type(rhs_t)) || (binop.rhs->tag == Int && is_numeric_type(lhs_t))
             || can_compile_to_type(env, binop.rhs, lhs_t) || can_compile_to_type(env, binop.lhs, rhs_t))
@@ -1696,9 +1697,7 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
 
     if (needed->tag == OptionalType && ast->tag == None) return true;
 
-    type_t *actual = get_type(env, ast);
-    if (actual->tag == OptionalType && needed->tag == OptionalType) return can_promote(actual, needed);
-
+    env = with_enum_scope(env, needed);
     if (is_numeric_type(needed) && ast->tag == Int) return true;
     if (needed->tag == NumType && ast->tag == Num) return true;
 
@@ -1720,7 +1719,13 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
                 return false;
         }
         return true;
-    } else if (needed->tag == PointerType) {
+    }
+
+    type_t *actual = get_type(env, ast);
+    if (type_eq(actual, needed)) return true;
+    if (actual->tag == OptionalType && needed->tag == OptionalType) return can_promote(actual, needed);
+
+    if (needed->tag == PointerType) {
         DeclareMatch(ptr, needed, PointerType);
         if (ast->tag == HeapAllocate)
             return !ptr->is_stack && can_compile_to_type(env, Match(ast, HeapAllocate)->value, ptr->pointed);

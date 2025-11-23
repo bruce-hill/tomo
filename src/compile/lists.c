@@ -53,7 +53,7 @@ list_comprehension: {
     // set_binding(scope, comprehension_name, list_type, comprehension_name);
     for (ast_list_t *item = list->items; item; item = item->next) {
         if (item->ast->tag == Comprehension) code = Texts(code, "\n", compile_statement(scope, item->ast));
-        else code = Texts(code, compile_statement(env, add_to_list_comprehension(item->ast, comprehension_var)));
+        else code = Texts(code, compile_statement(scope, add_to_list_comprehension(item->ast, comprehension_var)));
     }
     code = Texts(code, " ", comprehension_name, "; })");
     return code;
