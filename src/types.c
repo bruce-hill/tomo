@@ -249,6 +249,21 @@ PUREFUNC bool has_stack_memory(type_t *t) {
     switch (t->tag) {
     case PointerType: return Match(t, PointerType)->is_stack;
     case OptionalType: return has_stack_memory(Match(t, OptionalType)->type);
+    case ListType: return has_stack_memory(Match(t, ListType)->item_type);
+    case TableType:
+        return has_stack_memory(Match(t, TableType)->key_type) || has_stack_memory(Match(t, TableType)->value_type);
+    case StructType: {
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            if (has_stack_memory(field->type)) return true;
+        }
+        return false;
+    }
+    case EnumType: {
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            if (tag->type && has_stack_memory(tag->type)) return true;
+        }
+        return false;
+    }
     default: return false;
     }
 }

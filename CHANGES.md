@@ -57,6 +57,8 @@
   - Optional paths no longer fail to compile when you check them for `none`.
   - Text replacement no longer infinitely loops when given an empty text to replace.
   - Short CLI flag aliases now no longer use the first letter of the argument.
+  - Stack memory was not correctly detected in some cases, leading to potential
+    memory errors.
 
 ## v0.3
 
