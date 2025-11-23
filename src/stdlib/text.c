@@ -1057,8 +1057,8 @@ PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeI
 bool _matches(TextIter_t *text_state, TextIter_t *target_state, int64_t pos) {
     for (int64_t i = 0; i < (int64_t)target_state->stack[0].text.length; i++) {
         int32_t text_i = Text$get_grapheme_fast(text_state, pos + i);
-        int32_t prefix_i = Text$get_grapheme_fast(target_state, i);
-        if (text_i != prefix_i) return false;
+        int32_t target_i = Text$get_grapheme_fast(target_state, i);
+        if (text_i != target_i) return false;
     }
     return true;
 }
@@ -1104,6 +1104,19 @@ static bool _has_grapheme(TextIter_t *text, int32_t g) {
         }
     }
     return false;
+}
+
+public
+OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start) {
+    if (text.length < target.length) return NONE_INT;
+    if (target.length <= 0) return I(1);
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
+    for (int64_t i = Int64$from_int(start, false) - 1; i < text.length - target.length + 1; i++) {
+        if (_matches(&text_state, &target_state, i)) {
+            return Int$from_int64(i + 1);
+        }
+    }
+    return NONE_INT;
 }
 
 public

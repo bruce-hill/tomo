@@ -202,3 +202,9 @@ func main()
 		assert Text.from_utf32([150370]) == test
 		assert Text.from_utf16([-10158, -8350]) == test
 		assert Text.from_utf8([0xf0, 0xa4, 0xad, 0xa2]) == test
+
+
+	assert "one two".find("one") == 1
+	assert "one two".find("two") == 5
+	assert "one two".find("three") == none
+    assert "one two".find("o", start=2) == 7

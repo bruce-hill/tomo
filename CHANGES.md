@@ -12,6 +12,7 @@
 - Syntax for tables has changed to use colons (`{k: v}`) instead of equals
   (`{k=v}`).
 - Added `Path.lines()`
+- Added `Text.find(text, target, start=1)`
 - Deprecated:
   - Sets are no longer a separate type with separate methods.
     - Instead of sets, use tables with a value type of `{KeyType:Empty}`.
