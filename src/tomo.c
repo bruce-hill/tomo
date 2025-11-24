@@ -475,7 +475,7 @@ void build_library(Path_t lib_dir) {
 
     FILE *prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
 #ifdef __APPLE__
-                         " -Wl,-install_name,@rpath/'lib", Path$base_name(lib_dir), SHARED_SUFFIX,
+                         " -Wl,-install_name,@rpath/'lib", lib_name, SHARED_SUFFIX,
                          "'"
 #else
                          " -Wl,-soname,'lib", lib_name, SHARED_SUFFIX,
