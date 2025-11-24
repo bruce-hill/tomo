@@ -253,6 +253,8 @@ Supported metadata:
   is an argument parsing error. This should be a description of the program with
   a multi-line documentation of commonly used flags.
 
+- `MANPAGE`: the full manpage (overrules the options below).
+
 - `MANPAGE_SYNOPSYS`: the synopsis section of the manpage (inserted literally).
 
 - `MANPAGE_DESCRIPTION`: the description section of the manpage (inserted literally).

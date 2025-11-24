@@ -877,12 +877,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");
     if (clean_build || !Path$is_file(manpage_file, true) || is_stale(manpage_file, path, true)) {
-        OptionalText_t synopsys = ast_metadata(ast, "MANPAGE_SYNOPSYS");
-        OptionalText_t description = ast_metadata(ast, "MANPAGE_DESCRIPTION");
-        Text_t manpage = compile_manpage(Path$base_name(exe_path), synopsys, description,
-                                         Match(main_binding->type, FunctionType)->args);
-        if (!quiet) print("Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
+        Text_t manpage = compile_manpage(Path$base_name(exe_path), ast, Match(main_binding->type, FunctionType)->args);
         Path$write(manpage_file, manpage, 0644);
+        if (!quiet) print("Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
     } else {
         if (verbose) whisper("Unchanged: ", manpage_file);
     }
