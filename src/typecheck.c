@@ -1402,7 +1402,10 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
         type_t *true_t = get_type(truthy_scope, if_->body);
         ast_t *else_body = if_->else_body;
-        if (!else_body) else_body = WrapAST(ast, None, .type = true_t);
+        if (!else_body) {
+            if (true_t->tag == AbortType) return Type(VoidType);
+            else_body = WrapAST(ast, None, .type = true_t);
+        }
         type_t *false_t = get_type(falsey_scope, if_->else_body);
         type_t *t_either = type_or_type(true_t, false_t);
         if (!t_either)
