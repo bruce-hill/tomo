@@ -459,7 +459,7 @@ env_t *global_env(bool source_mapping) {
                      {"Int$from_int16", "func(i:Int16 -> Int)"}, //
                      {"Int$from_int32", "func(i:Int32 -> Int)"}, //
                      {"Int$from_int64", "func(i:Int64 -> Int)"}, //
-                     {"Int$from_num", "func(n:Num, truncate=no -> Int)"}, //
+                     {"Int$from_num64", "func(n:Num, truncate=no -> Int)"}, //
                      {"Int$from_num32", "func(n:Num32, truncate=no -> Int)"});
     ADD_CONSTRUCTORS("Int64", //
                      {"Int64$from_bool", "func(b:Bool -> Int64)"}, //
@@ -468,7 +468,7 @@ env_t *global_env(bool source_mapping) {
                      {"Int64$from_int16", "func(i:Int16 -> Int64)"}, //
                      {"Int64$from_int32", "func(i:Int32 -> Int64)"}, //
                      {"Int64$from_int", "func(i:Int, truncate=no -> Int64)"}, //
-                     {"Int64$from_num", "func(n:Num, truncate=no -> Int64)"}, //
+                     {"Int64$from_num64", "func(n:Num, truncate=no -> Int64)"}, //
                      {"Int64$from_num32", "func(n:Num32, truncate=no -> Int64)"});
     ADD_CONSTRUCTORS("Int32", //
                      {"Int32$from_bool", "func(b:Bool -> Int32)"}, //
@@ -477,7 +477,7 @@ env_t *global_env(bool source_mapping) {
                      {"Int32$from_int16", "func(i:Int16 -> Int32)"}, //
                      {"Int32$from_int64", "func(i:Int64, truncate=no -> Int32)"}, //
                      {"Int32$from_int", "func(i:Int, truncate=no -> Int32)"}, //
-                     {"Int32$from_num", "func(n:Num, truncate=no -> Int32)"}, //
+                     {"Int32$from_num64", "func(n:Num, truncate=no -> Int32)"}, //
                      {"Int32$from_num32", "func(n:Num32, truncate=no -> Int32)"});
     ADD_CONSTRUCTORS("Int16", //
                      {"Int16$from_bool", "func(b:Bool -> Int16)"}, //
@@ -486,7 +486,7 @@ env_t *global_env(bool source_mapping) {
                      {"Int16$from_int32", "func(i:Int32, truncate=no -> Int16)"}, //
                      {"Int16$from_int64", "func(i:Int64, truncate=no -> Int16)"}, //
                      {"Int16$from_int", "func(i:Int, truncate=no -> Int16)"}, //
-                     {"Int16$from_num", "func(n:Num, truncate=no -> Int16)"}, //
+                     {"Int16$from_num64", "func(n:Num, truncate=no -> Int16)"}, //
                      {"Int16$from_num32", "func(n:Num32, truncate=no -> Int16)"});
     ADD_CONSTRUCTORS("Int8", //
                      {"Int8$from_bool", "func(b:Bool -> Int8)"}, //
@@ -495,7 +495,7 @@ env_t *global_env(bool source_mapping) {
                      {"Int8$from_int32", "func(i:Int32, truncate=no -> Int8)"}, //
                      {"Int8$from_int64", "func(i:Int64, truncate=no -> Int8)"}, //
                      {"Int8$from_int", "func(i:Int, truncate=no -> Int8)"}, //
-                     {"Int8$from_num", "func(n:Num, truncate=no -> Int8)"}, //
+                     {"Int8$from_num64", "func(n:Num, truncate=no -> Int8)"}, //
                      {"Int8$from_num32", "func(n:Num32, truncate=no -> Int8)"});
     ADD_CONSTRUCTORS("Num", //
                      {"Num$from_bool", "func(b:Bool -> Num)"}, //
@@ -514,7 +514,7 @@ env_t *global_env(bool source_mapping) {
                      {"Num32$from_int32", "func(i:Int32, truncate=no -> Num32)"}, //
                      {"Num32$from_int64", "func(i:Int64, truncate=no -> Num32)"}, //
                      {"Num32$from_int", "func(i:Int, truncate=no -> Num32)"}, //
-                     {"Num32$from_num", "func(n:Num -> Num32)"});
+                     {"Num32$from_num64", "func(n:Num -> Num32)"});
     ADD_CONSTRUCTORS("Path", //
                      {"Path$escape_text", "func(text:Text -> Path)"}, //
                      {"Path$escape_path", "func(path:Path -> Path)"}, //

@@ -88,7 +88,7 @@ MACROLIKE PUREFUNC INTX_T NAMESPACED(unsigned_right_shifted)(INTX_T x, INTX_T y)
 void NAMESPACED(serialize)(const void *obj, FILE *out, Table_t *, const TypeInfo_t *);
 void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *, const TypeInfo_t *);
 
-MACROLIKE PUREFUNC INTX_T NAMESPACED(from_num)(Num_t n, bool truncate) {
+MACROLIKE PUREFUNC INTX_T NAMESPACED(from_num64)(Num_t n, bool truncate) {
     INTX_T i = (INTX_T)n;
     if (!truncate && unlikely((Num_t)i != n)) fail("Could not convert Num to an " NAME_STR " without truncation: ", n);
     return i;
