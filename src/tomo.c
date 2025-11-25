@@ -423,7 +423,8 @@ int main(int argc, char *argv[]) {
         pid_t child = i == (int64_t)run_files.length - 1 ? 0 : fork();
         if (child == 0) {
             const char *prog_args[1 + args.length + 1];
-            prog_args[0] = (char *)Path$as_c_string(exe_path);
+            Path_t relative_exe = Path$relative_to(exe_path, Path$current_dir());
+            prog_args[0] = (char *)Path$as_c_string(relative_exe);
             for (int64_t j = 0; j < (int64_t)args.length; j++)
                 prog_args[j + 1] = *(const char **)(args.data + j * args.stride);
             prog_args[1 + args.length] = NULL;
