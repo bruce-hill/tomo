@@ -129,6 +129,7 @@ bool try_install_module(module_info_t mod, bool ask_confirmation) {
         }
         print("Installing ", mod.name, " from git...");
         if (mod.revision) xsystem("git clone --depth=1 --revision ", mod.revision, " ", mod.git, " ", dest);
+        else if (mod.version) xsystem("git clone --depth=1 --branch ", mod.version, " ", mod.git, " ", dest);
         else xsystem("git clone --depth=1 ", mod.git, " ", dest);
         xsystem("tomo -L ", dest);
         return true;
