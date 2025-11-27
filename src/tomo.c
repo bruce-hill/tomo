@@ -116,6 +116,7 @@ static bool is_stale_for_any(Path_t path, List_t relative_to, bool ignore_missin
 static Path_t build_file(Path_t path, const char *extension);
 static void wait_for_child_success(pid_t child);
 static bool is_config_outdated(Path_t path);
+static Path_t get_exe_path(Path_t path);
 
 typedef struct {
     bool h : 1, c : 1, o : 1;
@@ -368,7 +369,9 @@ int main(int argc, char *argv[]) {
         for (int64_t i = 0; i < (int64_t)compile_executables.length; i++) {
             Path_t path = *(Path_t *)(compile_executables.data + i * compile_executables.stride);
 
-            Path_t exe_path = Path$with_extension(path, Text(""), true);
+            Path_t exe_path = get_exe_path(path);
+            // Put executable as a sibling to the .tm file instead of in the .build directory
+            exe_path = Path$sibling(path, Path$base_name(exe_path));
             pid_t child = fork();
             if (child == 0) {
                 env_t *env = global_env(source_mapping);
@@ -399,7 +402,7 @@ int main(int argc, char *argv[]) {
     // Compile runnable files in parallel, then execute in serial:
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
         Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
-        Path_t exe_path = build_file(Path$with_extension(path, Text(""), true), "");
+        Path_t exe_path = get_exe_path(path);
         pid_t child = fork();
         if (child == 0) {
             env_t *env = global_env(source_mapping);
@@ -418,7 +421,7 @@ int main(int argc, char *argv[]) {
     // After parallel compilation, do serial execution:
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
         Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
-        Path_t exe_path = build_file(Path$with_extension(path, Text(""), true), "");
+        Path_t exe_path = get_exe_path(path);
         // Don't fork for the last program
         pid_t child = i == (int64_t)run_files.length - 1 ? 0 : fork();
         if (child == 0) {
@@ -447,6 +450,18 @@ void wait_for_child_success(pid_t child) {
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         _exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
     }
+}
+
+Path_t get_exe_path(Path_t path) {
+    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+    OptionalText_t exe_name = ast_metadata(ast, "EXECUTABLE");
+    if (exe_name.tag == TEXT_NONE) exe_name = Path$base_name(Path$with_extension(path, Text(""), true));
+
+    Path_t build_dir = Path$sibling(path, Text(".build"));
+    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
+        if (!Path$is_directory(build_dir, true)) err(1, "Could not make .build directory");
+    }
+    return Path$child(build_dir, exe_name);
 }
 
 Path_t build_file(Path_t path, const char *extension) {

@@ -244,6 +244,9 @@ MANPAGE_DESCRIPTION: (./description.roff)
 
 Supported metadata:
 
+- `EXECUTABLE`: the name of the executable to compile. If not provided, the name
+  will be the name of the Tomo source file without the ".tm" extension.
+
 - `USAGE`: the short form usage shown in CLI parsing errors and help pages. This
   should be a single line without the name of the program, so `USAGE: "--foo"`
   would translate to the error message `Usage: myprogram --foo`. If this is not
