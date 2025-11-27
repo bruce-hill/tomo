@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH at_cleanup 3 2025-11-23 "Tomo man-pages"
+.SH NAME
+at_cleanup \- register a cleanup function
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI at_cleanup\ :\ func(fn:\ func()\ ->\ Void)
+.fi
+.SH DESCRIPTION
+Register a function that runs at cleanup time for Tomo programs. Cleanup time happens when a program exits (see `atexit()` in C), or immediately before printing error messages in a call to `fail()`. This allows for terminal cleanup so error messages can be visible as the program shuts down.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+fn	func()	A function to run at cleanup time. 	-
+.TE
+.SH RETURN
+Nothing.
+
+.SH NOTES
+Use this API very carefully, because errors that occur during cleanup functions may make it extremely hard to figure out what's going on. Cleanup functions should be designed to not error under any circumstances.
+
+.SH EXAMPLES
+.EX
+at_cleanup(func()
+    (/tmp/file.txt).remove(ignore_missing=yes)
+)
+.EE

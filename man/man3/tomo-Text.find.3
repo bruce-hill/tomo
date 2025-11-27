@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.find 3 2025-11-23 "Tomo man-pages"
+.SH NAME
+Text.find \- find a substring
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Text.find\ :\ func(text:\ Text,\ target:\ Text,\ start:\ Int\ =\ 1\ ->\ Int)
+.fi
+.SH DESCRIPTION
+Find a substring within a text and return its index, if found.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to be searched. 	-
+target	Text	The target text to find. 	-
+start	Int	The index at which to begin searching. 	1
+.TE
+.SH RETURN
+The index where the first occurrence of `target` appears, or `none` if it is not found.
+
+.SH EXAMPLES
+.EX
+assert "one two".find("one") == 1
+assert "one two".find("two") == 5
+assert "one two".find("three") == none
+assert "one two".find("o", start=2) == 7
+.EE
