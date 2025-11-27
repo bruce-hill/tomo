@@ -71,54 +71,64 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default'''
 
-def write_method(f, name, info):
-    def add_line(line): f.write(line + "\n")
+def write_method(path, name, info):
+    lines = []
     year = datetime.now().strftime("%Y")
     date = datetime.now().strftime("%Y-%m-%d")
     signature = get_signature(name, info)
-    add_line(template.format(year=year, date=date, name=name, short=info["short"], description=info["description"], signature=signature))
+    lines.append(template.format(year=year, date=date, name=name, short=info["short"], description=info["description"], signature=signature))
 
     if "args" in info and info["args"]:
-        add_line(".SH ARGUMENTS")
-        add_line(arg_prefix)
+        lines.append(".SH ARGUMENTS")
+        lines.append(arg_prefix)
         for arg,arg_info in info["args"].items():
             default = escape(arg_info['default'], spaces=True) if 'default' in arg_info else '-'
             description = arg_info['description'].replace('\n', ' ')
-            add_line(f"{arg}\t{arg_info.get('type', '')}\t{description}\t{default}")
-        add_line(".TE")
+            lines.append(f"{arg}\t{arg_info.get('type', '')}\t{description}\t{default}")
+        lines.append(".TE")
 
     if "return" in info:
-        add_line(".SH RETURN")
-        add_line(info['return'].get('description', 'Nothing.'))
+        lines.append(".SH RETURN")
+        lines.append(info['return'].get('description', 'Nothing.'))
 
     if "note" in info:
-        add_line(".SH NOTES")
-        add_line(info["note"])
+        lines.append(".SH NOTES")
+        lines.append(info["note"])
 
     if "errors" in info:
-        add_line(".SH ERRORS")
-        add_line(info["errors"])
+        lines.append(".SH ERRORS")
+        lines.append(info["errors"])
 
     if "example" in info:
-        add_line(".SH EXAMPLES")
-        add_line(".EX")
-        add_line(escape(info['example']))
-        add_line(".EE")
+        lines.append(".SH EXAMPLES")
+        lines.append(".EX")
+        lines.append(escape(info['example']))
+        lines.append(".EE")
+
+    to_write = '\n'.join(lines) + '\n'
+    try:
+        with open(path, "r") as f:
+            existing = f.read()
+            if to_write.splitlines()[5:] == existing.splitlines()[5:]:
+                return
+    except FileNotFoundError:
+        pass
+
+    with open(path, "w") as f:
+        f.write(to_write)
+        print(f"Updated {path}")
 
 def convert_to_markdown(yaml_doc:str)->str:
     data = yaml.safe_load(yaml_doc)
 
     for name,info in data.items():
-        with open(f"man/man3/tomo-{name}.3", "w") as f:
-            print(f"Wrote to man/man3/tomo-{name}.3")
-            write_method(f, name, data[name])
+        write_method(f"man/man3/tomo-{name}.3", name, data[name])
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
         all_files = ""
         for filename in sys.argv[1:]:
-            print(f"Making mandoc for {filename}")
             with open(filename, "r") as f:
                 all_files += f.read()
         convert_to_markdown(all_files)
