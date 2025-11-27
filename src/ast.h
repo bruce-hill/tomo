@@ -23,6 +23,9 @@
 #define LiteralCode(code, ...)                                                                                         \
     new (ast_t, .tag = InlineCCode,                                                                                    \
          .__data.InlineCCode = {.chunks = new (ast_list_t, .ast = FakeAST(TextLiteral, code)), __VA_ARGS__})
+#define WrapLiteralCode(ast, code, ...)                                                                                \
+    new (ast_t, .tag = InlineCCode, .file = (ast)->file, .start = (ast)->start, .end = (ast)->end,                     \
+         .__data.InlineCCode = {.chunks = new (ast_list_t, .ast = WrapAST(ast, TextLiteral, code)), __VA_ARGS__})
 #define Match(x, _tag)                                                                                                 \
     ((x)->tag == _tag ? &(x)->__data._tag                                                                              \
                       : (errx(1, __FILE__ ":%d This was supposed to be a " #_tag "\n", __LINE__), &(x)->__data._tag))

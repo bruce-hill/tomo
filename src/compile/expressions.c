@@ -30,8 +30,7 @@ Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t) {
         } else {
             Text_t code = Texts("({ ", compile_declaration(t, Text("_tmp")), " = ", compile_to_type(env, ast, t), "; ",
                                 "((", compile_type(t), "){");
-            ast_t *tmp = WrapAST(ast, InlineCCode,
-                                 .chunks = new (ast_list_t, .ast = WrapAST(ast, TextLiteral, Text("_tmp"))), .type = t);
+            ast_t *tmp = WrapLiteralCode(ast, Text("_tmp"), .type = t);
             for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
                 Text_t val = compile_maybe_incref(env, WrapAST(ast, FieldAccess, .fielded = tmp, .field = field->name),
                                                   get_arg_type(env, field));

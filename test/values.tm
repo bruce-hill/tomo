@@ -3,6 +3,8 @@ struct Inner(xs:[Int32])
 
 struct Outer(inner:Inner)
 
+enum HoldsList(HasList(xs:[Int32]))
+
 func sneaky(outer:Outer)
     (&outer.inner.xs)[1] = 99
 
@@ -45,3 +47,9 @@ func main()
         assert foo.inner.xs == [99, 20, 30]
         assert copy.inner.xs == [10, 20, 30]
 
+    do
+        x := HoldsList.HasList([10, 20, 30])
+        when x is HasList(list)
+            (&list)[1] = 99
+
+        assert x == HoldsList.HasList([10, 20, 30])
