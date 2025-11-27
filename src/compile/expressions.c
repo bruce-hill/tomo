@@ -11,11 +11,39 @@
 
 public
 Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t) {
-    if (is_idempotent(ast) && can_be_mutated(env, ast)) {
-        type_t *actual = get_type(with_enum_scope(env, t), ast);
-        if (t->tag == ListType && type_eq(t, actual)) return Texts("LIST_COPY(", compile_to_type(env, ast, t), ")");
-        else if (t->tag == TableType && type_eq(t, actual))
-            return Texts("TABLE_COPY(", compile_to_type(env, ast, t), ")");
+    if (!has_refcounts(t) || !can_be_mutated(env, ast)) {
+        return compile_to_type(env, ast, t);
+    }
+
+    // When using a struct as a value, we need to increment the refcounts of the inner fields as well:
+    if (t->tag == StructType) {
+        // If the struct is non-idempotent, we have to stash it in a local var first
+        if (is_idempotent(ast)) {
+            Text_t code = Texts("((", compile_type(t), "){");
+            for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+                Text_t val = compile_maybe_incref(env, WrapAST(ast, FieldAccess, .fielded = ast, .field = field->name),
+                                                  get_arg_type(env, field));
+                code = Texts(code, val);
+                if (field->next) code = Texts(code, ", ");
+            }
+            return Texts(code, "})");
+        } else {
+            Text_t code = Texts("({ ", compile_declaration(t, Text("_tmp")), " = ", compile_to_type(env, ast, t), "; ",
+                                "((", compile_type(t), "){");
+            ast_t *tmp = WrapAST(ast, InlineCCode,
+                                 .chunks = new (ast_list_t, .ast = WrapAST(ast, TextLiteral, Text("_tmp"))), .type = t);
+            for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+                Text_t val = compile_maybe_incref(env, WrapAST(ast, FieldAccess, .fielded = tmp, .field = field->name),
+                                                  get_arg_type(env, field));
+                code = Texts(code, val);
+                if (field->next) code = Texts(code, ", ");
+            }
+            return Texts(code, "}); })");
+        }
+    } else if (t->tag == ListType && ast->tag != List && can_be_mutated(env, ast) && type_eq(get_type(env, ast), t)) {
+        return Texts("LIST_COPY(", compile_to_type(env, ast, t), ")");
+    } else if (t->tag == TableType && ast->tag != Table && can_be_mutated(env, ast) && type_eq(get_type(env, ast), t)) {
+        return Texts("TABLE_COPY(", compile_to_type(env, ast, t), ")");
     }
     return compile_to_type(env, ast, t);
 }

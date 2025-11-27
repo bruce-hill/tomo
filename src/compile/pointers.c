@@ -55,13 +55,13 @@ Text_t compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type) {
     type_t *pointed = Match(pointer_type, PointerType)->pointed;
     switch (ast->tag) {
     case HeapAllocate: {
-        return Texts("heap(", compile_to_type(env, Match(ast, HeapAllocate)->value, pointed), ")");
+        return Texts("heap(", compile_maybe_incref(env, Match(ast, HeapAllocate)->value, pointed), ")");
     }
     case StackReference: {
         ast_t *subject = Match(ast, StackReference)->value;
         if (can_be_mutated(env, subject) && type_eq(pointed, get_type(env, subject)))
             return Texts("(&", compile_lvalue(env, subject), ")");
-        else return Texts("stack(", compile_to_type(env, subject, pointed), ")");
+        else return Texts("stack(", compile_maybe_incref(env, subject, pointed), ")");
     }
     default: code_err(ast, "Not an allocation!");
     }

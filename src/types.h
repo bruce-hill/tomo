@@ -150,6 +150,7 @@ typedef enum {
 } precision_cmp_e;
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b);
 PUREFUNC bool has_heap_memory(type_t *t);
+PUREFUNC bool has_refcounts(type_t *t);
 PUREFUNC bool has_stack_memory(type_t *t);
 PUREFUNC bool can_promote(type_t *actual, type_t *needed);
 PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t);

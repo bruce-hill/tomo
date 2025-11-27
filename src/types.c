@@ -249,6 +249,27 @@ PUREFUNC bool has_heap_memory(type_t *t) {
     }
 }
 
+PUREFUNC bool has_refcounts(type_t *t) {
+    switch (t->tag) {
+    case ListType: return true;
+    case TableType: return true;
+    case OptionalType: return has_refcounts(Match(t, OptionalType)->type);
+    case StructType: {
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            if (has_refcounts(field->type)) return true;
+        }
+        return false;
+    }
+    case EnumType: {
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            if (tag->type && has_refcounts(tag->type)) return true;
+        }
+        return false;
+    }
+    default: return false;
+    }
+}
+
 PUREFUNC bool has_stack_memory(type_t *t) {
     if (!t) return false;
     switch (t->tag) {
