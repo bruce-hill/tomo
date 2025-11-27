@@ -8,6 +8,7 @@
 
 #include "environment.h"
 #include "stdlib/integers.h"
+#include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
 #include "types.h"
@@ -226,22 +227,27 @@ PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b) {
     else return NUM_PRECISION_INCOMPARABLE;
 }
 
-PUREFUNC bool has_heap_memory(type_t *t) {
+bool _has_heap_memory(type_t *t, Table_t *visited) {
+    if (!t) return false;
+    Text_t type_text = type_to_text(t);
+    if (Table$get(*visited, &type_text, Set$info(&Text$info))) return false;
+    Table$set(visited, &type_text, NULL, Set$info(&Text$info));
+
     switch (t->tag) {
     case ListType: return true;
     case TableType: return true;
     case PointerType: return true;
-    case OptionalType: return has_heap_memory(Match(t, OptionalType)->type);
+    case OptionalType: return _has_heap_memory(Match(t, OptionalType)->type, visited);
     case BigIntType: return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-            if (has_heap_memory(field->type)) return true;
+            if (_has_heap_memory(field->type, visited)) return true;
         }
         return false;
     }
     case EnumType: {
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            if (tag->type && has_heap_memory(tag->type)) return true;
+            if (tag->type && _has_heap_memory(tag->type, visited)) return true;
         }
         return false;
     }
@@ -249,20 +255,30 @@ PUREFUNC bool has_heap_memory(type_t *t) {
     }
 }
 
-PUREFUNC bool has_refcounts(type_t *t) {
+bool has_heap_memory(type_t *t) {
+    Table_t visited = EMPTY_TABLE;
+    return _has_heap_memory(t, &visited);
+}
+
+bool _has_refcounts(type_t *t, Table_t *visited) {
+    if (!t) return false;
+    Text_t type_text = type_to_text(t);
+    if (Table$get(*visited, &type_text, Set$info(&Text$info))) return false;
+    Table$set(visited, &type_text, NULL, Set$info(&Text$info));
+
     switch (t->tag) {
     case ListType: return true;
     case TableType: return true;
-    case OptionalType: return has_refcounts(Match(t, OptionalType)->type);
+    case OptionalType: return _has_refcounts(Match(t, OptionalType)->type, visited);
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-            if (has_refcounts(field->type)) return true;
+            if (_has_refcounts(field->type, visited)) return true;
         }
         return false;
     }
     case EnumType: {
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            if (tag->type && has_refcounts(tag->type)) return true;
+            if (tag->type && _has_refcounts(tag->type, visited)) return true;
         }
         return false;
     }
@@ -270,28 +286,43 @@ PUREFUNC bool has_refcounts(type_t *t) {
     }
 }
 
-PUREFUNC bool has_stack_memory(type_t *t) {
+bool has_refcounts(type_t *t) {
+    Table_t visited = EMPTY_TABLE;
+    return _has_refcounts(t, &visited);
+}
+
+bool _has_stack_memory(type_t *t, Table_t *visited) {
     if (!t) return false;
+    Text_t type_text = type_to_text(t);
+    if (Table$get(*visited, &type_text, Set$info(&Text$info))) return false;
+    Table$set(visited, &type_text, NULL, Set$info(&Text$info));
+
     switch (t->tag) {
     case PointerType: return Match(t, PointerType)->is_stack;
-    case OptionalType: return has_stack_memory(Match(t, OptionalType)->type);
-    case ListType: return has_stack_memory(Match(t, ListType)->item_type);
+    case OptionalType: return _has_stack_memory(Match(t, OptionalType)->type, visited);
+    case ListType: return _has_stack_memory(Match(t, ListType)->item_type, visited);
     case TableType:
-        return has_stack_memory(Match(t, TableType)->key_type) || has_stack_memory(Match(t, TableType)->value_type);
+        return _has_stack_memory(Match(t, TableType)->key_type, visited)
+               || _has_stack_memory(Match(t, TableType)->value_type, visited);
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-            if (has_stack_memory(field->type)) return true;
+            if (_has_stack_memory(field->type, visited)) return true;
         }
         return false;
     }
     case EnumType: {
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            if (tag->type && has_stack_memory(tag->type)) return true;
+            if (tag->type && _has_stack_memory(tag->type, visited)) return true;
         }
         return false;
     }
     default: return false;
     }
+}
+
+bool has_stack_memory(type_t *t) {
+    Table_t visited = EMPTY_TABLE;
+    return _has_stack_memory(t, &visited);
 }
 
 PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t) {
