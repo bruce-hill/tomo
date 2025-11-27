@@ -157,9 +157,10 @@ setenv:
       description: >
         The name of the environment variable to set.
     value:
-      type: 'Text'
+      type: 'Text?'
       description: >
-        The new value of the environment variable.
+        The new value of the environment variable. If `none`, then the
+        environment variable will be unset.
   example: |
     setenv("FOOBAR", "xyz")
 

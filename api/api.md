@@ -166,7 +166,7 @@ say("world!")
 ## setenv
 
 ```tomo
-setenv : func(name: Text, value: Text -> Void)
+setenv : func(name: Text, value: Text? -> Void)
 ```
 
 Sets an environment variable.
@@ -174,7 +174,7 @@ Sets an environment variable.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 name | `Text` | The name of the environment variable to set.  | -
-value | `Text` | The new value of the environment variable.  | -
+value | `Text?` | The new value of the environment variable. If `none`, then the environment variable will be unset.  | -
 
 **Return:** Nothing.
 

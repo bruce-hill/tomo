@@ -540,7 +540,7 @@ env_t *global_env(bool source_mapping) {
         {"getenv", "getenv_text", "func(name:Text -> Text?)"},
         {"print", "say", "func(text:Text, newline=yes)"},
         {"say", "say", "func(text:Text, newline=yes)"},
-        {"setenv", "setenv_text", "func(name:Text, value:Text -> Text?)"},
+        {"setenv", "setenv_text", "func(name:Text, value:Text?)"},
         {"sleep", "sleep_num", "func(seconds:Num)"},
     };
 

@@ -219,7 +219,10 @@ OptionalText_t getenv_text(Text_t name) {
 }
 
 public
-void setenv_text(Text_t name, Text_t value) { setenv(Text$as_c_string(name), Text$as_c_string(value), 1); }
+void setenv_text(Text_t name, OptionalText_t value) {
+    if (value.tag == TEXT_NONE) unsetenv(Text$as_c_string(name));
+    else setenv(Text$as_c_string(name), Text$as_c_string(value), 1);
+}
 
 typedef struct cleanup_s {
     Closure_t cleanup_fn;

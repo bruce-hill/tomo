@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH setenv 3 2025-05-17 "Tomo man-pages"
+.TH setenv 3 2025-11-27 "Tomo man-pages"
 .SH NAME
 setenv \- set an environment variable
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI setenv\ :\ func(name:\ Text,\ value:\ Text\ ->\ Void)
+.BI setenv\ :\ func(name:\ Text,\ value:\ Text?\ ->\ Void)
 .fi
 .SH DESCRIPTION
 Sets an environment variable.
@@ -23,7 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 name	Text	The name of the environment variable to set. 	-
-value	Text	The new value of the environment variable. 	-
+value	Text?	The new value of the environment variable. If `none`, then the environment variable will be unset. 	-
 .TE
 .SH RETURN
 Nothing.

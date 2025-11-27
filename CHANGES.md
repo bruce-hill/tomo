@@ -24,6 +24,8 @@
 - Added `at_cleanup()` to register cleanup functions.
 - Added `recursive` argument to `Path.create_directory()` to create parent
   directories if needed.
+- `setenv()` now takes an optional parameter for value, which allows for
+  unsetting environment values.
 - Deprecated:
   - Sets are no longer a separate type with separate methods.
     - Instead of sets, use tables with a value type of `{KeyType:Empty}`.
