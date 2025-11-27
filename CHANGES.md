@@ -22,6 +22,8 @@
 - Added `Path.lines()`.
 - Added `Text.find(text, target, start=1)`.
 - Added `at_cleanup()` to register cleanup functions.
+- Added `recursive` argument to `Path.create_directory()` to create parent
+  directories if needed.
 - Deprecated:
   - Sets are no longer a separate type with separate methods.
     - Instead of sets, use tables with a value type of `{KeyType:Empty}`.

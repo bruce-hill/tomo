@@ -468,11 +468,19 @@ void Path$remove(Path_t path, bool ignore_missing) {
 }
 
 public
-void Path$create_directory(Path_t path, int permissions) {
+void Path$create_directory(Path_t path, int permissions, bool recursive) {
+retry:
     path = Path$expand_home(path);
     const char *c_path = Path$as_c_string(path);
     int status = mkdir(c_path, (mode_t)permissions);
-    if (status != 0 && errno != EEXIST) fail("Could not create directory: ", c_path, " (", strerror(errno), ")");
+    if (status != 0) {
+        if (recursive && errno == ENOENT) {
+            Path$create_directory(Path$parent(path), permissions, recursive);
+            goto retry;
+        } else if (errno != EEXIST) {
+            fail("Could not create directory: ", c_path, " (", strerror(errno), ")");
+        }
+    }
 }
 
 static List_t _filtered_children(Path_t path, bool include_hidden, mode_t filter) {

@@ -2777,15 +2777,17 @@ assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
 ## Path.create_directory
 
 ```tomo
-Path.create_directory : func(path: Path, permissions = Int32(0o755) -> Void)
+Path.create_directory : func(path: Path, permissions = Int32(0o755), recursive = yes -> Void)
 ```
 
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
+
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory to create.  | -
 permissions | `` | The permissions to set on the new directory.  | `Int32(0o755)`
+recursive | `` | If set to `yes`, then recursively create any parent directories if they don't exist, otherwise fail if the parent directory does not exist. When set to `yes`, this function behaves like `mkdir -p`.  | `yes`
 
 **Return:** Nothing.
 

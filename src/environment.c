@@ -310,7 +310,8 @@ env_t *global_env(bool source_mapping) {
             {"child", "Path$child", "func(path:Path, child:Text -> Path)"}, //
             {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"}, //
-            {"create_directory", "Path$create_directory", "func(path:Path, permissions=Int32(0o755))"}, //
+            {"create_directory", "Path$create_directory",
+             "func(path:Path, permissions=Int32(0o755), recursive=yes)"}, //
             {"current_dir", "Path$current_dir", "func(->Path)"}, //
             {"exists", "Path$exists", "func(path:Path -> Bool)"}, //
             {"expand_home", "Path$expand_home", "func(path:Path -> Path)"}, //

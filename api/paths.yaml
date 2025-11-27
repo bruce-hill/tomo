@@ -258,6 +258,7 @@ Path.create_directory:
   description: >
     Creates a new directory at the specified path with the given permissions. If
     any of the parent directories do not exist, they will be created as needed.
+  note: >
   return:
     type: 'Void'
     description: >
@@ -271,6 +272,12 @@ Path.create_directory:
       default: 'Int32(0o755)'
       description: >
         The permissions to set on the new directory.
+    recursive:
+      default: 'yes'
+      description: >
+        If set to `yes`, then recursively create any parent directories if they
+        don't exist, otherwise fail if the parent directory does not exist. When
+        set to `yes`, this function behaves like `mkdir -p`.
   example: |
     (./new_directory).create_directory()
 

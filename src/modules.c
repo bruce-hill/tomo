@@ -153,10 +153,10 @@ bool try_install_module(module_info_t mod, bool ask_confirmation) {
         const char *extension = p + 1;
         Path_t tmpdir = Path$unique_directory(Path("/tmp/tomo-module-XXXXXX"));
         tmpdir = Path$child(tmpdir, Text$from_str(mod.name));
-        Path$create_directory(tmpdir, 0755);
+        Path$create_directory(tmpdir, 0755, true);
 
         xsystem("curl ", mod.url, " -o ", tmpdir);
-        Path$create_directory(dest, 0755);
+        Path$create_directory(dest, 0755, true);
         if (streq(extension, ".zip")) xsystem("unzip ", tmpdir, "/", filename, " -d ", dest);
         else if (streq(extension, ".tar.gz") || streq(extension, ".tar"))
             xsystem("tar xf ", tmpdir, "/", filename, " -C ", dest);

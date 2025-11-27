@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.create_directory 3 2025-05-17 "Tomo man-pages"
+.TH Path.create_directory 3 2025-11-27 "Tomo man-pages"
 .SH NAME
 Path.create_directory \- make a directory
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.create_directory\ :\ func(path:\ Path,\ permissions\ =\ Int32(0o755)\ ->\ Void)
+.BI Path.create_directory\ :\ func(path:\ Path,\ permissions\ =\ Int32(0o755),\ recursive\ =\ yes\ ->\ Void)
 .fi
 .SH DESCRIPTION
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
@@ -24,9 +24,12 @@ l l l l.
 Name	Type	Description	Default
 path	Path	The path of the directory to create. 	-
 permissions		The permissions to set on the new directory. 	Int32(0o755)
+recursive		If set to `yes`, then recursively create any parent directories if they don't exist, otherwise fail if the parent directory does not exist. When set to `yes`, this function behaves like `mkdir -p`. 	yes
 .TE
 .SH RETURN
 Nothing.
+
+.SH NOTES
 
 .SH EXAMPLES
 .EX
