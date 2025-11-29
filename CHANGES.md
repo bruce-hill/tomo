@@ -1,5 +1,11 @@
 # Version History
 
+## v2025-11-29.2
+
+### Bugfixes
+
+- Fix for undefined behavior on enums and structs with padding.
+
 ## v2025-11-29
 
 ### Syntax changes

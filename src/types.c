@@ -459,15 +459,25 @@ PUREFUNC bool is_packed_data(type_t *t) {
         || t->tag == FunctionType) {
         return true;
     } else if (t->tag == StructType) {
+        size_t offset = 0;
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             if (!is_packed_data(field->type)) return false;
+            size_t align = type_align(field->type);
+            if (align > 0 && offset % align != 0) return false;
+            offset += type_size(field->type);
         }
-        return true;
+        size_t overall_align = type_align(t);
+        return overall_align == 0 || (offset % overall_align == 0);
     } else if (t->tag == EnumType) {
+        size_t offset = sizeof(int32_t);
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
             if (!is_packed_data(tag->type)) return false;
+            size_t align = type_align(tag->type);
+            if (align > 0 && offset % align != 0) return false;
+            offset += type_size(tag->type);
         }
-        return true;
+        size_t overall_align = type_align(t);
+        return overall_align == 0 || (offset % overall_align == 0);
     } else {
         return false;
     }
