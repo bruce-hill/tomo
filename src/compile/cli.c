@@ -167,7 +167,6 @@ Text_t compile_cli_arg_call(env_t *env, ast_t *ast, Text_t fn_name, type_t *fn_t
             Text_t default_val;
             if (arg->type) {
                 default_val = compile_to_type(env, arg->default_val, arg->type);
-                if (arg->type->tag != OptionalType) default_val = promote_to_optional(arg->type, default_val);
             } else {
                 default_val = compile(env, arg->default_val);
             }
