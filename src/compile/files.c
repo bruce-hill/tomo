@@ -194,7 +194,7 @@ Text_t compile_file(env_t *env, ast_t *ast) {
     const char *name = file_base_name(ast->file->filename);
     return Texts(env->do_source_mapping ? Texts("#line 1 ", quoted_str(ast->file->filename), "\n") : EMPTY_TEXT,
                  "#define __SOURCE_FILE__ ", quoted_str(ast->file->filename), "\n",
-                 "#include <tomo_" TOMO_VERSION "/tomo.h>\n"
+                 "#include <tomo@" TOMO_VERSION "/tomo.h>\n"
                  "#include \"",
                  name, ".tm.h\"\n\n", includes, env->code->local_typedefs, "\n", env->code->lambdas, "\n",
                  env->code->staticdefs, "\n", top_level_code, "public void ",

@@ -231,8 +231,8 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
     case USE_MODULE: {
         module_info_t mod = get_used_module_info(use_ast);
         glob_t tm_files;
-        const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
-        if (glob(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files)
+        const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
+        if (glob(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files)
             != 0) {
             if (!try_install_module(mod, true)) code_err(use_ast, "Couldn't find or install library: ", folder);
         }
