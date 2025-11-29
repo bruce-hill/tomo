@@ -71,6 +71,13 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default'''
 
+arg_prefix_no_default = '''
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description'''
+
 type_template = ''''\\" t
 .\\" Copyright (c) {year} Bruce Hill
 .\\" All rights reserved.
@@ -99,11 +106,16 @@ def write_method(path, name, info):
 
     if "args" in info and info["args"]:
         lines.append(".SH ARGUMENTS")
-        lines.append(arg_prefix)
+        has_defaults = any('default' in a for a in info['args'].values())
+        lines.append(arg_prefix if has_defaults else arg_prefix_no_default)
         for arg,arg_info in info["args"].items():
-            default = escape(arg_info['default'], spaces=True) if 'default' in arg_info else '-'
-            description = markdown_to_roff(arg_info['description'])
-            lines.append(f"{arg}\t{arg_info.get('type', '')}\t{description}\t{default}")
+            if has_defaults:
+                default = escape(arg_info['default'], spaces=True) if 'default' in arg_info else '-'
+                description = markdown_to_roff(arg_info['description'])
+                lines.append(f"{arg}\t{arg_info.get('type', '')}\t{description}\t{default}")
+            else:
+                description = markdown_to_roff(arg_info['description'])
+                lines.append(f"{arg}\t{arg_info.get('type', '')}\t{description}")
         lines.append(".TE")
 
     if "return" in info:

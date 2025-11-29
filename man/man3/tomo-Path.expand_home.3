@@ -19,10 +19,10 @@ For home-based paths (those starting with `~`), expand the path to replace the t
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-path	Path	The path to expand. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path to expand. 
 .TE
 .SH RETURN
 If the path does not start with a `~`, then return it unmodified. Otherwise, replace the `~` with an absolute path to the user's home directory.

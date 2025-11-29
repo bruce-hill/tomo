@@ -19,10 +19,10 @@ Reads the contents of the file at the specified path or none if the file could n
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-path	Path	The path of the file to read. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path of the file to read. 
 .TE
 .SH RETURN
 The contents of the file. If the file could not be read, none will be returned. If the file can be read, but is not valid UTF8 data, an error will be raised.

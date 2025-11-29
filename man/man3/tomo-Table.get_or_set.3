@@ -19,12 +19,12 @@ If the given key is in the table, return the associated value. Otherwise, insert
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-t	&{K:V}	The table. 	-
-key	K	The key whose associated value is to be retrieved. 	-
-default	V	The default value to insert and return if the key is not present in the table. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+t	&{K:V}	The table. 
+key	K	The key whose associated value is to be retrieved. 
+default	V	The default value to insert and return if the key is not present in the table. 
 .TE
 .SH RETURN
 Either the value associated with the key (if present) or the default value. The table will be mutated if the key is not already present.
