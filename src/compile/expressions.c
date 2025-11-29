@@ -28,9 +28,12 @@ Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t) {
             }
             return Texts(code, "})");
         } else {
-            Text_t code = Texts("({ ", compile_declaration(t, Text("_tmp")), " = ", compile_to_type(env, ast, t), "; ",
+            static int64_t tmp_index = 1;
+            Text_t tmp_name = Texts("_tmp", tmp_index);
+            tmp_index += 1;
+            Text_t code = Texts("({ ", compile_declaration(t, tmp_name), " = ", compile_to_type(env, ast, t), "; ",
                                 "((", compile_type(t), "){");
-            ast_t *tmp = WrapLiteralCode(ast, Text("_tmp"), .type = t);
+            ast_t *tmp = WrapLiteralCode(ast, tmp_name, .type = t);
             for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
                 Text_t val = compile_maybe_incref(env, WrapAST(ast, FieldAccess, .fielded = tmp, .field = field->name),
                                                   get_arg_type(env, field));
