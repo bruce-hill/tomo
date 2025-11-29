@@ -99,7 +99,7 @@ func main()
                 break x # This is the same as `stop x`
 
     # Tables are efficient hash maps
-    table := {"one"=1, "two"=2}
+    table := {"one": 1, "two": 2}
     assert table["two"] == 2
 
     # The value returned is optional because none will be returned if the key
@@ -130,19 +130,19 @@ func main()
 
     # Tables can have a fallback table that's used as a fallback when the key
     # isn't found in the table itself:
-    table2 := {"three"=3; fallback=table}
+    table2 := {"three": 3; fallback=table}
     assert table2["two"]! == 2
     assert table2["three"]! == 3
 
     # Tables can also be created with comprehension loops:
-    assert {x=10*x for x in 5} == {1=10, 2=20, 3=30, 4=40, 5=50}
+    assert {x: 10*x for x in 5} == {1: 10, 2: 20, 3: 30, 4: 40, 5: 50}
 
     # If no default is provided and a missing key is looked up, the program
     # will print an error message and halt.
 
     # Any types can be used in tables, for example, a table mapping lists to
     # strings:
-    table3 := {[10, 20]="one", [30, 40, 50]="two"}
+    table3 := {[10, 20]: "one", [30, 40, 50]: "two"}
     assert table3[[10, 20]]! == "one"
 
     # So far, the datastructures that have been discussed are all *immutable*,
@@ -248,7 +248,7 @@ func demo_structs()
 
     assert "$alice" == 'Person(name="Alice", age=30)' == yes
 
-    table := {alice="first", bob="second"}
+    table := {alice: "first", bob: "second"}
     assert table[alice]! == "first"
 
 
