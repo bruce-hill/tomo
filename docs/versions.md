@@ -33,6 +33,10 @@ Major version change including:
 Bugfixes and new features...
 ```
 
+The versions here use a `vMAJOR.MINOR` semantic versioning style, but this is
+not required. Versions can be any string literal, for example:
+`edition-2025-11-29` or `1.2.3` or `6.1-EliteOcelot`.
+
 When you build the compiler or a library, if this file exists, it will be used
 to determine the current version (the top-most level 2 header).
 
@@ -40,16 +44,16 @@ to determine the current version (the top-most level 2 header).
 
 The version for the Tomo language itself will come into play in a few ways:
 
-1. The compiler will be installed to `tomo_vX.Y` (where `X` is the major
-   version number and `Y` is the minor version number).
+1. The compiler will be installed to `tomo@TOMO_VERSION` (where `TOMO_VERSION`
+   is the verion of the Tomo compiler).
 2. A symbolic link will be installed from `tomo` to the largest version of Tomo
    that is installed on your machine (e.g. `~/.local/bin/tomo ->
-   ~/.local/bin/tomo_v2.12`).
+   ~/.local/bin/tomo@v2025-11-29.1`).
 3. Each version of Tomo will build and install its own shared library file
-   (e.g. `~/.local/lib/libtomo_v1.2.so`) and headers (e.g.
-   `~/.local/include/tomo_v1.2/tomo.h`).
+   (e.g. `~/.local/lib/libtomo@v2025-11-29.1.so`) and headers (e.g.
+   `~/.local/include/tomo@v2025-11-29.1/tomo.h`).
 4. Tomo libraries will be installed to a separate subdirectory for each version
-   of the compiler (e.g. `~/.local/lib/tomo_v1.2/`).
+   of the compiler (e.g. `~/.local/lib/tomo@v2025-11-29.1/`).
 
 ## Tomo Program Versions
 
@@ -57,7 +61,7 @@ When you write a Tomo program (say, `foo.tm`) and run it, Tomo will
 automatically add support for parsing a version number out of an accompanying
 `CHANGES.md` file in the same directory. You can use the `--version` flag to
 print the version number and exit. For example, if I run `tomo foo.tm --
---version`, it will print `v0.0` if no `CHANGES.md` file exists, otherwise it
+--version`, it will print `v0` if no `CHANGES.md` file exists, otherwise it
 will compile the program with the most recent version number from that file and
 print it instead. Similarly, if you run `tomo -e foo.tm` to build `foo` as a
 standalone executable and then run `./foo --version`, it will print the version
@@ -68,7 +72,7 @@ number and exit without running the program.
 Tomo libraries also have version numbers. When you install a library, its
 version number will be used to determine its installation location and how it's
 used in code. You must either explicitly import the library with its version
-number (e.g. `use foo_v1.2`) or include a `modules.ini` configuration file that
+number (e.g. `use foo@v1.2`) or include a `modules.ini` configuration file that
 maps a shorthand alias to a specific version of a library. For example, if the
 `modules.ini` file has a `[foo]` section with `version=v1.2`, you can put `use
 foo` to use v1.2 of the `foo` library (assuming you have it installed).
