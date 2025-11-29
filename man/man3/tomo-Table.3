@@ -1,0 +1,99 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Table 3 2025-11-29 "Tomo man-pages"
+.SH NAME
+Table \- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+
+.TP
+.BI Table.clear\ :\ func(t:\ &{K:V}\ ->\ Void)
+Removes all key-value pairs from the table. 
+
+For more, see:
+.BR Tomo-Table.clear (3)
+
+
+.TP
+.BI Table.difference\ :\ func(t:\ {K:V},\ other:\ {K:V}\ ->\ {K:V})
+Return a table whose key/value pairs correspond to keys only present in one table, but not the other. 
+
+For more, see:
+.BR Tomo-Table.difference (3)
+
+
+.TP
+.BI Table.get\ :\ func(t:\ {K:V},\ key:\ K\ ->\ V?)
+Retrieves the value associated with a key, or returns \fBnone\fR if the key is not present. 
+
+For more, see:
+.BR Tomo-Table.get (3)
+
+
+.TP
+.BI Table.get_or_set\ :\ func(t:\ &{K:V},\ key:\ K,\ default:\ V\ ->\ V?)
+If the given key is in the table, return the associated value. Otherwise, insert the given default value into the table and return it. 
+
+For more, see:
+.BR Tomo-Table.get_or_set (3)
+
+
+.TP
+.BI Table.has\ :\ func(t:\ {K:V},\ key:\ K\ ->\ Bool)
+Checks if the table contains a specified key. 
+
+For more, see:
+.BR Tomo-Table.has (3)
+
+
+.TP
+.BI Table.intersection\ :\ func(t:\ {K:V},\ other:\ {K:V}\ ->\ {K:V})
+Return a table with only the matching key/value pairs that are common to both tables. 
+
+For more, see:
+.BR Tomo-Table.intersection (3)
+
+
+.TP
+.BI Table.remove\ :\ func(t:\ {K:V},\ key:\ K\ ->\ Void)
+Removes the key-value pair associated with a specified key. 
+
+For more, see:
+.BR Tomo-Table.remove (3)
+
+
+.TP
+.BI Table.set\ :\ func(t:\ {K:V},\ key:\ K,\ value:\ V\ ->\ Void)
+Sets or updates the value associated with a specified key. 
+
+For more, see:
+.BR Tomo-Table.set (3)
+
+
+.TP
+.BI Table.with\ :\ func(t:\ {K:V},\ other:\ {K:V}\ ->\ {K:V})
+Return a copy of a table with values added from another table 
+
+For more, see:
+.BR Tomo-Table.with (3)
+
+
+.TP
+.BI Table.with_fallback\ :\ func(t:\ {K:V},\ fallback:\ {K:V}?\ ->\ {K:V})
+Return a copy of a table with a different fallback table. 
+
+For more, see:
+.BR Tomo-Table.with_fallback (3)
+
+
+.TP
+.BI Table.without\ :\ func(t:\ {K:V},\ other:\ {K:V}\ ->\ {K:V})
+Return a copy of a table, but without any of the exact key/value pairs found in the other table. 
+
+For more, see:
+.BR Tomo-Table.without (3)
+

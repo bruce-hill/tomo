@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.children 3 2025-09-21 "Tomo man-pages"
+.TH Path.children 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.children \- get children of a directory
 .SH LIBRARY
@@ -23,7 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 path	Path	The path of the directory. 	-
-include_hidden		Whether to include hidden files, which start with a `.`. 	no
+include_hidden		Whether to include hidden files, which start with a \fB.\fR. 	no
 .TE
 .SH RETURN
 A list of paths for the children.
@@ -32,3 +32,5 @@ A list of paths for the children.
 .EX
 assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

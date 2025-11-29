@@ -71,6 +71,25 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default'''
 
+type_template = ''''\\" t
+.\\" Copyright (c) {year} Bruce Hill
+.\\" All rights reserved.
+.\\"
+.TH {type} 3 {date} "Tomo man-pages"
+.SH NAME
+{type} \\- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+{methods}
+'''
+
+def markdown_to_roff(text):
+    text = text.replace('\n', ' ')
+    text = re.sub(r'`([^`]*)`', '\\\\fB\\1\\\\fR', text)
+    return text
+
 def write_method(path, name, info):
     lines = []
     year = datetime.now().strftime("%Y")
@@ -83,7 +102,7 @@ def write_method(path, name, info):
         lines.append(arg_prefix)
         for arg,arg_info in info["args"].items():
             default = escape(arg_info['default'], spaces=True) if 'default' in arg_info else '-'
-            description = arg_info['description'].replace('\n', ' ')
+            description = markdown_to_roff(arg_info['description'])
             lines.append(f"{arg}\t{arg_info.get('type', '')}\t{description}\t{default}")
         lines.append(".TE")
 
@@ -105,6 +124,11 @@ def write_method(path, name, info):
         lines.append(escape(info['example']))
         lines.append(".EE")
 
+    if "." in name:
+        type,_ = name.split(".")
+        lines.append(".SH SEE ALSO")
+        lines.append(f".BR Tomo-{type} (3)")
+
     to_write = '\n'.join(lines) + '\n'
     try:
         with open(path, "r") as f:
@@ -118,11 +142,62 @@ def write_method(path, name, info):
         f.write(to_write)
         print(f"Updated {path}")
 
+fn_summary_template = '''
+.TP
+{signature}
+{description}
+
+For more, see:
+.BR Tomo-{type}.{name} (3)
+'''
+
+def fn_summary(type, name, info) -> str:
+    signature = get_signature(type+"."+name, info)
+    return fn_summary_template.format(
+        type=type,
+        name=name,
+        signature=signature,
+        description=markdown_to_roff(info["description"]),
+    )
+
+def write_type_manpage(path, type, methods):
+    year = datetime.now().strftime("%Y")
+    date = datetime.now().strftime("%Y-%m-%d")
+    method_summaries = [fn_summary(type, name, methods[name]) for name in sorted(methods.keys())]
+    type_manpage = type_template.format(
+        year=year,
+        date=date,
+        type=type,
+        methods='\n'.join(method_summaries),
+    )
+
+    try:
+        with open(path, "r") as f:
+            existing = f.read()
+            if type_manpage.splitlines()[5:] == existing.splitlines()[5:]:
+                return
+    except FileNotFoundError:
+        pass
+
+    with open(path, "w") as f:
+        f.write(type_manpage)
+        print(f"Updated {path}")
+
+
 def convert_to_markdown(yaml_doc:str)->str:
     data = yaml.safe_load(yaml_doc)
 
+    types = {}
     for name,info in data.items():
         write_method(f"man/man3/tomo-{name}.3", name, data[name])
+        if "." in name:
+            type,fn = name.split(".")
+            if type not in types:
+                types[type] = {}
+            types[type][fn] = info
+
+    for type,methods in types.items():
+        write_type_manpage(f"man/man3/tomo-{type}.3", type, methods)
 
 if __name__ == "__main__":
     import sys

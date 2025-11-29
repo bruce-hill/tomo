@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.ends_with 3 2025-09-21 "Tomo man-pages"
+.TH Text.ends_with 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.ends_with \- check suffix
 .SH LIBRARY
@@ -36,3 +36,5 @@ remainder : Text
 assert "hello world".ends_with("world", &remainder) == yes
 assert remainder == "hello "
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

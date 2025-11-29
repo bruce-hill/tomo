@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.without_suffix 3 2025-09-21 "Tomo man-pages"
+.TH Text.without_suffix 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.without_suffix \- remove suffix
 .SH LIBRARY
@@ -33,3 +33,5 @@ A text without the given suffix (if present) or the unmodified text if the suffi
 assert "baz.foo".without_suffix(".foo") == "baz"
 assert "qux".without_suffix(".foo") == "qux"
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

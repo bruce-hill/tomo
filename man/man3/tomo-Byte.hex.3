@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.hex 3 2025-09-21 "Tomo man-pages"
+.TH Byte.hex 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Byte.hex \- convert to hexidecimal
 .SH LIBRARY
@@ -24,7 +24,7 @@ l l l l.
 Name	Type	Description	Default
 byte	Byte	The byte to convert to hex. 	-
 uppercase	Bool	Whether or not to use uppercase hexidecimal letters. 	yes
-prefix	Bool	Whether or not to prepend a `0x` prefix. 	no
+prefix	Bool	Whether or not to prepend a \fB0x\fR prefix. 	no
 .TE
 .SH RETURN
 The byte as a hexidecimal text.
@@ -33,3 +33,5 @@ The byte as a hexidecimal text.
 .EX
 assert Byte(18).hex() == "0x12"
 .EE
+.SH SEE ALSO
+.BR Tomo-Byte (3)

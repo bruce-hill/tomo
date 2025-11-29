@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.read 3 2025-09-21 "Tomo man-pages"
+.TH Path.read 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.read \- read file contents
 .SH LIBRARY
@@ -32,3 +32,5 @@ The contents of the file. If the file could not be read, none will be returned. 
 assert (./hello.txt).read() == "Hello"
 assert (./nosuchfile.xxx).read() == none
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

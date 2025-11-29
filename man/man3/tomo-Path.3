@@ -1,0 +1,347 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path 3 2025-11-29 "Tomo man-pages"
+.SH NAME
+Path \- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+
+.TP
+.BI Path.accessed\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Int64?)
+Gets the file access time of a file. 
+
+For more, see:
+.BR Tomo-Path.accessed (3)
+
+
+.TP
+.BI Path.append\ :\ func(path:\ Path,\ text:\ Text,\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Void)
+Appends the given text to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error. 
+
+For more, see:
+.BR Tomo-Path.append (3)
+
+
+.TP
+.BI Path.append_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Void)
+Appends the given bytes to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error. 
+
+For more, see:
+.BR Tomo-Path.append_bytes (3)
+
+
+.TP
+.BI Path.base_name\ :\ func(path:\ Path\ ->\ Text)
+Returns the base name of the file or directory at the specified path. 
+
+For more, see:
+.BR Tomo-Path.base_name (3)
+
+
+.TP
+.BI Path.by_line\ :\ func(path:\ Path\ ->\ func(->Text?)?)
+Returns an iterator that can be used to iterate over a file one line at a time, or returns none if the file could not be opened. 
+
+For more, see:
+.BR Tomo-Path.by_line (3)
+
+
+.TP
+.BI Path.can_execute\ :\ func(path:\ Path\ ->\ Bool)
+Returns whether or not a file can be executed by the current user/group. 
+
+For more, see:
+.BR Tomo-Path.can_execute (3)
+
+
+.TP
+.BI Path.can_read\ :\ func(path:\ Path\ ->\ Bool)
+Returns whether or not a file can be read by the current user/group. 
+
+For more, see:
+.BR Tomo-Path.can_read (3)
+
+
+.TP
+.BI Path.can_write\ :\ func(path:\ Path\ ->\ Bool)
+Returns whether or not a file can be written by the current user/group. 
+
+For more, see:
+.BR Tomo-Path.can_write (3)
+
+
+.TP
+.BI Path.changed\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Int64?)
+Gets the file change time of a file. 
+
+For more, see:
+.BR Tomo-Path.changed (3)
+
+
+.TP
+.BI Path.child\ :\ func(path:\ Path,\ child:\ Text\ ->\ Path)
+Return a path that is a child of another path. 
+
+For more, see:
+.BR Tomo-Path.child (3)
+
+
+.TP
+.BI Path.children\ :\ func(path:\ Path,\ include_hidden\ =\ no\ ->\ [Path])
+Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. 
+
+For more, see:
+.BR Tomo-Path.children (3)
+
+
+.TP
+.BI Path.create_directory\ :\ func(path:\ Path,\ permissions\ =\ Int32(0o755),\ recursive\ =\ yes\ ->\ Void)
+Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed. 
+
+For more, see:
+.BR Tomo-Path.create_directory (3)
+
+
+.TP
+.BI Path.current_dir\ :\ func(->\ Path)
+Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed. 
+
+For more, see:
+.BR Tomo-Path.current_dir (3)
+
+
+.TP
+.BI Path.exists\ :\ func(path:\ Path\ ->\ Bool)
+Checks if a file or directory exists at the specified path. 
+
+For more, see:
+.BR Tomo-Path.exists (3)
+
+
+.TP
+.BI Path.expand_home\ :\ func(path:\ Path\ ->\ Path)
+For home-based paths (those starting with \fB~\fR), expand the path to replace the tilde with and absolute path to the user's \fB$HOME\fR directory. 
+
+For more, see:
+.BR Tomo-Path.expand_home (3)
+
+
+.TP
+.BI Path.extension\ :\ func(path:\ Path,\ full:\ Bool\ =\ yes\ ->\ Text)
+Returns the file extension of the file at the specified path. Optionally returns the full extension. 
+
+For more, see:
+.BR Tomo-Path.extension (3)
+
+
+.TP
+.BI Path.files\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no\ ->\ [Path])
+Returns a list of files within the directory at the specified path. Optionally includes hidden files. 
+
+For more, see:
+.BR Tomo-Path.files (3)
+
+
+.TP
+.BI Path.from_components\ :\ func(components:\ [Text]\ ->\ Path)
+Returns a path built from a list of path components. 
+
+For more, see:
+.BR Tomo-Path.from_components (3)
+
+
+.TP
+.BI Path.glob\ :\ func(path:\ Path\ ->\ [Path])
+Perform a globbing operation and return a list of matching paths. Some glob specific details: - The paths "." and ".." are *not* included in any globbing results. - Files or directories that begin with "." will not match \fB*\fR, but will match \fB.*\fR. - Globs do support \fB{a,b}\fR syntax for matching files that match any of several   choices of patterns.  - The shell-style syntax \fB**\fR for matching subdirectories is not supported. 
+
+For more, see:
+.BR Tomo-Path.glob (3)
+
+
+.TP
+.BI Path.group\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Text?)
+Get the owning group of a file or directory. 
+
+For more, see:
+.BR Tomo-Path.group (3)
+
+
+.TP
+.BI Path.has_extension\ :\ func(path:\ Path,\ extension:\ Text\ ->\ Bool)
+Return whether or not a path has a given file extension. 
+
+For more, see:
+.BR Tomo-Path.has_extension (3)
+
+
+.TP
+.BI Path.is_directory\ :\ func(path:\ Path,\ follow_symlinks\ =\ yes\ ->\ Bool)
+Checks if the path represents a directory. Optionally follows symbolic links. 
+
+For more, see:
+.BR Tomo-Path.is_directory (3)
+
+
+.TP
+.BI Path.is_file\ :\ func(path:\ Path,\ follow_symlinks\ =\ yes\ ->\ Bool)
+Checks if the path represents a file. Optionally follows symbolic links. 
+
+For more, see:
+.BR Tomo-Path.is_file (3)
+
+
+.TP
+.BI Path.is_socket\ :\ func(path:\ Path,\ follow_symlinks\ =\ yes\ ->\ Bool)
+Checks if the path represents a socket. Optionally follows symbolic links. 
+
+For more, see:
+.BR Tomo-Path.is_socket (3)
+
+
+.TP
+.BI Path.is_symlink\ :\ func(path:\ Path\ ->\ Bool)
+Checks if the path represents a symbolic link. 
+
+For more, see:
+.BR Tomo-Path.is_symlink (3)
+
+
+.TP
+.BI Path.lines\ :\ func(path:\ Path\ ->\ [Text]?)
+Returns a list with the lines of text in a file or returns none if the file could not be opened. 
+
+For more, see:
+.BR Tomo-Path.lines (3)
+
+
+.TP
+.BI Path.modified\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Int64?)
+Gets the file modification time of a file. 
+
+For more, see:
+.BR Tomo-Path.modified (3)
+
+
+.TP
+.BI Path.owner\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Text?)
+Get the owning user of a file or directory. 
+
+For more, see:
+.BR Tomo-Path.owner (3)
+
+
+.TP
+.BI Path.parent\ :\ func(path:\ Path\ ->\ Path)
+Returns the parent directory of the file or directory at the specified path. 
+
+For more, see:
+.BR Tomo-Path.parent (3)
+
+
+.TP
+.BI Path.read\ :\ func(path:\ Path\ ->\ Text?)
+Reads the contents of the file at the specified path or none if the file could not be read. 
+
+For more, see:
+.BR Tomo-Path.read (3)
+
+
+.TP
+.BI Path.read_bytes\ :\ func(path:\ Path,\ limit:\ Int?\ =\ none\ ->\ [Byte]?)
+Reads the contents of the file at the specified path or none if the file could not be read. 
+
+For more, see:
+.BR Tomo-Path.read_bytes (3)
+
+
+.TP
+.BI Path.relative_to\ :\ func(path:\ Path,\ relative_to\ =\ (./)\ ->\ Path)
+Returns the path relative to a given base path. By default, the base path is the current directory. 
+
+For more, see:
+.BR Tomo-Path.relative_to (3)
+
+
+.TP
+.BI Path.remove\ :\ func(path:\ Path,\ ignore_missing\ =\ no\ ->\ Void)
+Removes the file or directory at the specified path. A runtime error is raised if something goes wrong. 
+
+For more, see:
+.BR Tomo-Path.remove (3)
+
+
+.TP
+.BI Path.resolved\ :\ func(path:\ Path,\ relative_to\ =\ (./)\ ->\ Path)
+Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory. 
+
+For more, see:
+.BR Tomo-Path.resolved (3)
+
+
+.TP
+.BI Path.set_owner\ :\ func(path:\ Path,\ owner:\ Text?\ =\ none,\ group:\ Text?\ =\ none,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Void)
+Set the owning user and/or group for a path. 
+
+For more, see:
+.BR Tomo-Path.set_owner (3)
+
+
+.TP
+.BI Path.sibling\ :\ func(path:\ Path,\ name:\ Text\ ->\ Path)
+Return a path that is a sibling of another path (i.e. has the same parent, but a different name). This is equivalent to \fB.parent().child(name)\fR 
+
+For more, see:
+.BR Tomo-Path.sibling (3)
+
+
+.TP
+.BI Path.subdirectories\ :\ func(path:\ Path,\ include_hidden\ =\ no\ ->\ [Path])
+Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories. 
+
+For more, see:
+.BR Tomo-Path.subdirectories (3)
+
+
+.TP
+.BI Path.unique_directory\ :\ func(path:\ Path\ ->\ Path)
+Generates a unique directory path based on the given path. Useful for creating temporary directories. 
+
+For more, see:
+.BR Tomo-Path.unique_directory (3)
+
+
+.TP
+.BI Path.write\ :\ func(path:\ Path,\ text:\ Text,\ permissions\ =\ Int32(0o644)\ ->\ Void)
+Writes the given text to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised. 
+
+For more, see:
+.BR Tomo-Path.write (3)
+
+
+.TP
+.BI Path.write_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions\ =\ Int32(0o644)\ ->\ Void)
+Writes the given bytes to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised. 
+
+For more, see:
+.BR Tomo-Path.write_bytes (3)
+
+
+.TP
+.BI Path.write_unique\ :\ func(path:\ Path,\ text:\ Text\ ->\ Path)
+Writes the given text to a unique file path based on the specified path. The file is created if it doesn't exist. This is useful for creating temporary files. 
+
+For more, see:
+.BR Tomo-Path.write_unique (3)
+
+
+.TP
+.BI Path.write_unique_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte]\ ->\ Path)
+Writes the given bytes to a unique file path based on the specified path. The file is created if it doesn't exist. This is useful for creating temporary files. 
+
+For more, see:
+.BR Tomo-Path.write_unique_bytes (3)
+

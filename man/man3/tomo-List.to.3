@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.to 3 2025-09-21 "Tomo man-pages"
+.TH List.to 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 List.to \- slice a list to an end index
 .SH LIBRARY
@@ -33,3 +33,5 @@ A new list containing elements from the start up to the specified index.
 assert [10, 20, 30, 40, 50].to(3) == [10, 20, 30]
 assert [10, 20, 30, 40, 50].to(-2) == [10, 20, 30, 40]
 .EE
+.SH SEE ALSO
+.BR Tomo-List (3)

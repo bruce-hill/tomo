@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.shuffled 3 2025-09-21 "Tomo man-pages"
+.TH List.shuffled 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 List.shuffled \- return a shuffled list
 .SH LIBRARY
@@ -23,7 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 list	[T]	The list to be shuffled. 	-
-random	func(min,max:Int64->Int64)?	If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation) 	none
+random	func(min,max:Int64->Int64)?	If provided, this function will be used to get a random index in the list. Returned values must be between \fBmin\fR and \fBmax\fR (inclusive). (Used for deterministic pseudorandom number generation) 	none
 .TE
 .SH RETURN
 A new list with shuffled elements.
@@ -32,3 +32,5 @@ A new list with shuffled elements.
 .EX
 assert [10, 20, 30, 40].shuffled() == [40, 10, 30, 20]
 .EE
+.SH SEE ALSO
+.BR Tomo-List (3)

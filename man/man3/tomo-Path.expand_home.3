@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.expand_home 3 2025-10-11 "Tomo man-pages"
+.TH Path.expand_home 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.expand_home \- expand ~ to $HOME
 .SH LIBRARY
@@ -34,3 +34,5 @@ assert (~/foo).expand_home() == (/home/user/foo)
 # No change
 assert (/foo).expand_home() == (/foo)
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.has_extension 3 2025-09-21 "Tomo man-pages"
+.TH Path.has_extension 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.has_extension \- check if a path has a given extension
 .SH LIBRARY
@@ -23,7 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 path	Path	A path. 	-
-extension	Text	A file extension (leading `.` is optional). If empty, the check will test if the file does not have any file extension. 	-
+extension	Text	A file extension (leading \fB.\fR is optional). If empty, the check will test if the file does not have any file extension. 	-
 .TE
 .SH RETURN
 Whether or not the path has the given extension.
@@ -35,3 +35,5 @@ assert (/foo.txt).has_extension(".txt") == yes
 assert (/foo.tar.gz).has_extension("gz") == yes
 assert (/foo.tar.gz).has_extension("zip") == no
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

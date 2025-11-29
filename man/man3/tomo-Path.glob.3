@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.glob 3 2025-09-21 "Tomo man-pages"
+.TH Path.glob 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.glob \- perform file globbing
 .SH LIBRARY
@@ -28,7 +28,7 @@ allbox;
 lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
-path	Path	The path of the directory which may contain special globbing characters like `*`, `?`, or `{...}` 	-
+path	Path	The path of the directory which may contain special globbing characters like \fB*\fR, \fB?\fR, or \fB{...}\fR 	-
 .TE
 .SH RETURN
 A list of file paths that match the glob.
@@ -44,3 +44,5 @@ assert (./.*).glob() == [(./.hidden)]
 # Globs with no matches return an empty list:
 assert (./*.xxx).glob() == []
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

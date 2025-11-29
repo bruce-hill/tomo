@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Bool.parse 3 2025-09-21 "Tomo man-pages"
+.TH Bool.parse 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Bool.parse \- parse into boolean
 .SH LIBRARY
@@ -39,3 +39,5 @@ remainder : Text
 assert Bool.parse("yesJUNK", &remainder) == yes
 assert remainder == "JUNK"
 .EE
+.SH SEE ALSO
+.BR Tomo-Bool (3)

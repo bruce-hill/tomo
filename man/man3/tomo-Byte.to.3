@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.to 3 2025-10-11 "Tomo man-pages"
+.TH Byte.to 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Byte.to \- iterate over a range of bytes
 .SH LIBRARY
@@ -24,7 +24,7 @@ l l l l.
 Name	Type	Description	Default
 first	Byte	The starting value of the range. 	-
 last	Byte	The ending value of the range. 	-
-step	Byte?	An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`. 	none
+step	Byte?	An optional step size to use. If unspecified or \fBnone\fR, the step will be inferred to be \fB+1\fR if \fBlast >= first\fR, otherwise \fB-1\fR. 	none
 .TE
 .SH RETURN
 An iterator function that returns each byte in the given range (inclusive).
@@ -41,3 +41,5 @@ assert [x for x in Byte(2).to(5)] == [Byte(2), Byte(3), Byte(4), Byte(5)]
 assert [x for x in Byte(5).to(2)] == [Byte(5), Byte(4), Byte(3), Byte(2)]
 assert [x for x in Byte(2).to(5, step=2)] == [Byte(2), Byte(4)]
 .EE
+.SH SEE ALSO
+.BR Tomo-Byte (3)

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.extension 3 2025-09-21 "Tomo man-pages"
+.TH Path.extension 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.extension \- get file extension
 .SH LIBRARY
@@ -23,7 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 path	Path	The path of the file. 	-
-full	Bool	Whether to return everything after the first `.` in the base name, or only the last part of the extension. 	yes
+full	Bool	Whether to return everything after the first \fB.\fR in the base name, or only the last part of the extension. 	yes
 .TE
 .SH RETURN
 The file extension (not including the leading `.`) or an empty text if there is no file extension.
@@ -35,3 +35,5 @@ assert (./file.tar.gz).extension(full=no) == "gz"
 assert (/foo).extension() == ""
 assert (./.git).extension() == ""
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

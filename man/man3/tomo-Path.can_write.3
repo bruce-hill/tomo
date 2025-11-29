@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.can_write 3 2025-09-21 "Tomo man-pages"
+.TH Path.can_write 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.can_write \- check write permissions
 .SH LIBRARY
@@ -33,3 +33,5 @@ assert (/tmp).can_write() == yes
 assert (/etc/passwd).can_write() == no
 assert (/non/existant/file).can_write() == no
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

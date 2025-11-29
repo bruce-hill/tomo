@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.lines 3 2025-09-21 "Tomo man-pages"
+.TH Text.lines 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.lines \- get list of lines
 .SH LIBRARY
@@ -35,3 +35,5 @@ assert "one\[rs]ntwo\[rs]nthree\[rs]n\[rs]n".lines() == ["one", "two", "three", 
 assert "one\[rs]r\[rs]ntwo\[rs]r\[rs]nthree\[rs]r\[rs]n".lines() == ["one", "two", "three"]
 assert "".lines() == []
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

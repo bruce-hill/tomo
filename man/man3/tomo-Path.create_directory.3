@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.create_directory 3 2025-11-27 "Tomo man-pages"
+.TH Path.create_directory 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.create_directory \- make a directory
 .SH LIBRARY
@@ -24,7 +24,7 @@ l l l l.
 Name	Type	Description	Default
 path	Path	The path of the directory to create. 	-
 permissions		The permissions to set on the new directory. 	Int32(0o755)
-recursive		If set to `yes`, then recursively create any parent directories if they don't exist, otherwise fail if the parent directory does not exist. When set to `yes`, this function behaves like `mkdir -p`. 	yes
+recursive		If set to \fByes\fR, then recursively create any parent directories if they don't exist, otherwise fail if the parent directory does not exist. When set to \fByes\fR, this function behaves like \fBmkdir -p\fR. 	yes
 .TE
 .SH RETURN
 Nothing.
@@ -35,3 +35,5 @@ Nothing.
 .EX
 (./new_directory).create_directory()
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

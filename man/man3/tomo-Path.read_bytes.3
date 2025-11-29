@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.read_bytes 3 2025-09-21 "Tomo man-pages"
+.TH Path.read_bytes 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.read_bytes \- read file contents as bytes
 .SH LIBRARY
@@ -33,3 +33,5 @@ The byte contents of the file. If the file cannot be read, none will be returned
 assert (./hello.txt).read() == [72, 101, 108, 108, 111]
 assert (./nosuchfile.xxx).read() == none
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

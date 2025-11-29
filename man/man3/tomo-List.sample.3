@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.sample 3 2025-09-21 "Tomo man-pages"
+.TH List.sample 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 List.sample \- weighted random choices
 .SH LIBRARY
@@ -25,7 +25,7 @@ Name	Type	Description	Default
 list	[T]	The list to sample from. 	-
 count	Int	The number of elements to sample. 	-
 weights	[Num]?	The probability weights for each element in the list. These values do not need to add up to any particular number, they are relative weights. If no weights are given, elements will be sampled with uniform probability. 	none
-random	func(->Num)?	If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic pseudorandom number generation) 	none
+random	func(->Num)?	If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between \fB0.0\fR (inclusive) and \fB1.0\fR (exclusive). (Used for deterministic pseudorandom number generation) 	none
 .TE
 .SH RETURN
 A list of sampled elements from the list.
@@ -37,3 +37,5 @@ Errors will be raised if any of the following conditions occurs: - The given lis
 .EX
 assert [10, 20, 30].sample(2, weights=[90%, 5%, 5%]) == [10, 10]
 .EE
+.SH SEE ALSO
+.BR Tomo-List (3)

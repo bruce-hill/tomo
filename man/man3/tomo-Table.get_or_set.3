@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.get_or_set 3 2025-09-21 "Tomo man-pages"
+.TH Table.get_or_set 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Table.get_or_set \- get an item or set a default if absent
 .SH LIBRARY
@@ -43,3 +43,5 @@ assert t == &{"A": @[1, 2, 3, 4], "B": @[99]}
 assert t.get_or_set("C", @[0, 0, 0]) == @[0, 0, 0]
 assert t == &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
 .EE
+.SH SEE ALSO
+.BR Tomo-Table (3)

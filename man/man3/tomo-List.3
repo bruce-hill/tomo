@@ -1,0 +1,219 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List 3 2025-11-29 "Tomo man-pages"
+.SH NAME
+List \- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+
+.TP
+.BI List.binary_search\ :\ func(list:\ [T],\ by:\ func(x,y:&T->Int32)\ =\ T.compare\ ->\ Int)
+Performs a binary search on a sorted list. 
+
+For more, see:
+.BR Tomo-List.binary_search (3)
+
+
+.TP
+.BI List.by\ :\ func(list:\ [T],\ step:\ Int\ ->\ [T])
+Creates a new list with elements spaced by the specified step value. 
+
+For more, see:
+.BR Tomo-List.by (3)
+
+
+.TP
+.BI List.clear\ :\ func(list:\ @[T]\ ->\ Void)
+Clears all elements from the list. 
+
+For more, see:
+.BR Tomo-List.clear (3)
+
+
+.TP
+.BI List.counts\ :\ func(list:\ [T]\ ->\ {T=Int})
+Counts the occurrences of each element in the list. 
+
+For more, see:
+.BR Tomo-List.counts (3)
+
+
+.TP
+.BI List.find\ :\ func(list:\ [T],\ target:\ T\ ->\ Int?)
+Finds the index of the first occurrence of an element (if any). 
+
+For more, see:
+.BR Tomo-List.find (3)
+
+
+.TP
+.BI List.from\ :\ func(list:\ [T],\ first:\ Int\ ->\ [T])
+Returns a slice of the list starting from a specified index. 
+
+For more, see:
+.BR Tomo-List.from (3)
+
+
+.TP
+.BI List.has\ :\ func(list:\ [T],\ target:\ T\ ->\ Bool)
+Checks if the list has an element. 
+
+For more, see:
+.BR Tomo-List.has (3)
+
+
+.TP
+.BI List.heap_pop\ :\ func(list:\ @[T],\ by:\ func(x,y:&T->Int32)\ =\ T.compare\ ->\ T?)
+Removes and returns the top element of a heap or \fBnone\fR if the list is empty. By default, this is the *minimum* value in the heap. 
+
+For more, see:
+.BR Tomo-List.heap_pop (3)
+
+
+.TP
+.BI List.heap_push\ :\ func(list:\ @[T],\ item:\ T,\ by\ =\ T.compare\ ->\ Void)
+Adds an element to the heap and maintains the heap property. By default, this is a *minimum* heap. 
+
+For more, see:
+.BR Tomo-List.heap_push (3)
+
+
+.TP
+.BI List.heapify\ :\ func(list:\ @[T],\ by:\ func(x,y:&T->Int32)\ =\ T.compare\ ->\ Void)
+Converts a list into a heap. 
+
+For more, see:
+.BR Tomo-List.heapify (3)
+
+
+.TP
+.BI List.insert\ :\ func(list:\ @[T],\ item:\ T,\ at:\ Int\ =\ 0\ ->\ Void)
+Inserts an element at a specified position in the list. 
+
+For more, see:
+.BR Tomo-List.insert (3)
+
+
+.TP
+.BI List.insert_all\ :\ func(list:\ @[T],\ items:\ [T],\ at:\ Int\ =\ 0\ ->\ Void)
+Inserts a list of items at a specified position in the list. 
+
+For more, see:
+.BR Tomo-List.insert_all (3)
+
+
+.TP
+.BI List.pop\ :\ func(list:\ &[T],\ index:\ Int\ =\ -1\ ->\ T?)
+Removes and returns an item from the list. If the given index is present in the list, the item at that index will be removed and the list will become one element shorter. 
+
+For more, see:
+.BR Tomo-List.pop (3)
+
+
+.TP
+.BI List.random\ :\ func(list:\ [T],\ random:\ func(min,max:Int64->Int64)?\ =\ none\ ->\ T)
+Selects a random element from the list. 
+
+For more, see:
+.BR Tomo-List.random (3)
+
+
+.TP
+.BI List.remove_at\ :\ func(list:\ @[T],\ at:\ Int\ =\ -1,\ count:\ Int\ =\ 1\ ->\ Void)
+Removes elements from the list starting at a specified index. 
+
+For more, see:
+.BR Tomo-List.remove_at (3)
+
+
+.TP
+.BI List.remove_item\ :\ func(list:\ @[T],\ item:\ T,\ max_count:\ Int\ =\ -1\ ->\ Void)
+Removes all occurrences of a specified item from the list. 
+
+For more, see:
+.BR Tomo-List.remove_item (3)
+
+
+.TP
+.BI List.reversed\ :\ func(list:\ [T]\ ->\ [T])
+Returns a reversed slice of the list. 
+
+For more, see:
+.BR Tomo-List.reversed (3)
+
+
+.TP
+.BI List.sample\ :\ func(list:\ [T],\ count:\ Int,\ weights:\ [Num]?\ =\ none,\ random:\ func(->Num)?\ =\ none\ ->\ [T])
+Selects a sample of elements from the list, optionally with weighted probabilities. 
+
+For more, see:
+.BR Tomo-List.sample (3)
+
+
+.TP
+.BI List.shuffle\ :\ func(list:\ @[T],\ random:\ func(min,max:Int64->Int64)?\ =\ none\ ->\ Void)
+Shuffles the elements of the list in place. 
+
+For more, see:
+.BR Tomo-List.shuffle (3)
+
+
+.TP
+.BI List.shuffled\ :\ func(list:\ [T],\ random:\ func(min,max:Int64->Int64)?\ =\ none\ ->\ [T])
+Creates a new list with elements shuffled. 
+
+For more, see:
+.BR Tomo-List.shuffled (3)
+
+
+.TP
+.BI List.slice\ :\ func(list:\ [T],\ from:\ Int,\ to:\ Int\ ->\ [T])
+Returns a slice of the list spanning the given indices (inclusive). 
+
+For more, see:
+.BR Tomo-List.slice (3)
+
+
+.TP
+.BI List.sort\ :\ func(list:\ @[T],\ by\ =\ T.compare\ ->\ Void)
+Sorts the elements of the list in place in ascending order (small to large). 
+
+For more, see:
+.BR Tomo-List.sort (3)
+
+
+.TP
+.BI List.sorted\ :\ func(list:\ [T],\ by\ =\ T.compare\ ->\ [T])
+Creates a new list with elements sorted. 
+
+For more, see:
+.BR Tomo-List.sorted (3)
+
+
+.TP
+.BI List.to\ :\ func(list:\ [T],\ last:\ Int\ ->\ [T])
+Returns a slice of the list from the start of the original list up to a specified index (inclusive). 
+
+For more, see:
+.BR Tomo-List.to (3)
+
+
+.TP
+.BI List.unique\ :\ func(list:\ [T]\ ->\ {T})
+Returns a set of the unique elements of the list. 
+
+For more, see:
+.BR Tomo-List.unique (3)
+
+
+.TP
+.BI List.where\ :\ func(list:\ [T],\ predicate:\ func(item:&T\ ->\ Bool)\ ->\ Int)
+Find the index of the first item that matches a predicate function (if any). 
+
+For more, see:
+.BR Tomo-List.where (3)
+

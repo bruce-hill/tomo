@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.mix 3 2025-09-21 "Tomo man-pages"
+.TH Num.mix 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Num.mix \- mix two numbers by an amount
 .SH LIBRARY
@@ -22,7 +22,7 @@ allbox;
 lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
-amount	Num	The interpolation factor (between `0` and `1`). 	-
+amount	Num	The interpolation factor (between \fB0\fR and \fB1\fR). 	-
 x	Num	The starting number. 	-
 y	Num	The ending number. 	-
 .TE
@@ -34,3 +34,5 @@ The interpolated number between `x` and `y` based on `amount`.
 assert (0.5).mix(10, 20) == 15
 assert (0.25).mix(10, 20) == 12.5
 .EE
+.SH SEE ALSO
+.BR Tomo-Num (3)

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.group 3 2025-09-21 "Tomo man-pages"
+.TH Path.group 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.group \- get the owning group
 .SH LIBRARY
@@ -33,3 +33,5 @@ The name of the group which owns the file or directory, or `none` if the path do
 assert (/bin).group() == "root"
 assert (/non/existent/file).group() == none
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

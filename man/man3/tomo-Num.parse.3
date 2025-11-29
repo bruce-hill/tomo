@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.parse 3 2025-09-21 "Tomo man-pages"
+.TH Num.parse 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Num.parse \- convert text to number
 .SH LIBRARY
@@ -37,3 +37,5 @@ remainder : Text
 assert Num.parse("1.5junk", &remainder) == 1.5
 assert remainder == "junk"
 .EE
+.SH SEE ALSO
+.BR Tomo-Num (3)
