@@ -27,11 +27,9 @@ Default arguments are used to fill in arguments that were not provided at the
 callsite:
 
 ```tomo
->> increment(5)
-= 6
+assert increment(5) == 6
 
->> increment(5, 10)
-= 15
+assert increment(5, 10) == 15
 ```
 
 **Note:** Default arguments are re-evaluated at the callsite for each function
@@ -50,11 +48,9 @@ any unbound arguments, in order:
 func foo(x:Int, y:Text, z:Num)
     return "x=$x y=$y z=$z"
 
->> foo(x=1, y="hi", z=2.5)
-= "x=1 y=hi z=2.5"
-
->> foo(z=2.5, 1, "hi")
-= "x=1 y=hi z=2.5"
+func main()
+    assert foo(x=1, y="hi", z=2.5) == "x=1 y=hi z=2.5"
+    assert foo(z=2.5, 1, "hi") == "x=1 y=hi z=2.5"
 ```
 
 As an implementation detail, all function calls are compiled to normal
@@ -157,10 +153,10 @@ func create_adder(n:Int -> func(i:Int -> Int))
 
     n = -1 // This does not affect the adder
     return adder
-...
-add10 := create_adder(10)
->> add10(5)
-= 15
+
+func main()
+    add10 := create_adder(10)
+    assert add10(5) == 15
 ```
 
 Under the hood, all user functions that are passed around in Tomo are passed as

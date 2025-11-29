@@ -7,8 +7,7 @@ infix operator followed by a colon, followed by a collection:
 ```tomo
 nums := [10, 20, 30]
 sum := (+: nums)
->> sum
-= 60 : Int?
+assert sum == 60
 ```
 
 Reductions return an optional value which will be a null value if the thing
@@ -21,15 +20,12 @@ provide a fallback value:
 nums : [Int] = []
 sum := (+: nums)
 
->> sum
-= none : Int?
+assert sum == none
 
->> sum or 0
-= 0
+assert sum or 0 == 0
 
->> nums = [10, 20]
->> (+: nums)!
-= 30
+nums = [10, 20]
+assert (+: nums)! == 30
 ```
 
 Reductions can be used as an alternative to generic functions like `sum()`,
@@ -38,20 +34,16 @@ Reductions can be used as an alternative to generic functions like `sum()`,
 
 ```tomo
 # Sum:
->> (+: [10, 20, 30])!
-= 60
+assert (+: [10, 20, 30])! == 60
 
 # Product:
->> (*: [2, 3, 4])!
-= 24
+assert (*: [2, 3, 4])! == 24
 
 # Any:
->> (or: [no, yes, no])!
-= yes
+assert (or: [no, yes, no])! == yes
 
 # All:
->> (and: [no, yes, no])!
-= no
+assert (and: [no, yes, no])! == no
 ```
 
 ## Minimum and Maximum
@@ -61,12 +53,10 @@ a collection using the `_min_` and `_max_` infix operators.
 
 ```tomo
 # Get the maximum value:
->> (_max_: [10, 30, 20])!
-= 30
+assert (_max_: [10, 30, 20])! == 30
 
 # Get the minimum value:
->> (_min_: [10, 30, 20])!
-= 10
+assert (_min_: [10, 30, 20])! == 10
 ```
 
 Reducers also support field and method call suffixes, which makes it very easy
@@ -76,28 +66,22 @@ feature_.
 
 ```tomo
 # Get the longest text:
->> (_max_.length: ["z", "aaaaa", "mmm"])!
-= "aaaaa"
+assert (_max_.length: ["z", "aaaaa", "mmm"])! == "aaaaa"
 
 # Get the number with the biggest absolute value:
->> (_max_.abs(): [1, -2, 3, -4])!
-= -4
+assert (_max_.abs(): [1, -2, 3, -4])! == -4
 ```
 
 You can also use suffixes on other operators:
 
 ```tomo
 texts := ["x", "y", "z"]
->> (==: texts)
-= no
->> (==.length: texts)
-= yes
->> (+.length: texts)
-= 3
+assert (==: texts) == no
+assert (==.length: texts) == yes
+assert (+.length: texts) == 3
 
 nums := [1, 2, -3]
->> (+.abs(): nums)
-= 6
+assert (+.abs(): nums) == 6
 ```
 
 ## Comprehensions
@@ -108,10 +92,8 @@ while filtering out values or while applying a transformation:
 
 ```tomo
 # Sum the lengths of these texts:
->> (+: t.length for t in ["a", "bc", "def"])!
-= 6
+assert (+: t.length for t in ["a", "bc", "def"])! == 6
 
 # Sum the primes between 1-100:
->> (+: i for i in 100 if i.is_prime())!
-= 1060
+assert (+: i for i in 100 if i.is_prime())! == 1060
 ```

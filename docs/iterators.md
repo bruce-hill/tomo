@@ -14,15 +14,11 @@ successively gets one line from a file at a time until the file is exhausted:
     line three
 ")
 
->> iter := (./test.txt).each_line()
->> iter()
-= "line one" : Text?
->> iter()
-= "line two" : Text?
->> iter()
-= "line three" : Text?
->> iter()
-= none : Text?
+iter := (./test.txt).each_line()
+assert iter() == "line one"
+assert iter() == "line two"
+assert iter() == "line three"
+assert iter() == none
 
 for line in (./test.txt).each_line()
     pass
@@ -44,7 +40,6 @@ func primes_up_to(limit:Int)
         n += 1
         return (n - 1)?
 
->> [p for p in primes_up_to(11)]
-= [2, 3, 5, 7, 11]
+assert [p for p in primes_up_to(11)] == [2, 3, 5, 7, 11]
 ```
 

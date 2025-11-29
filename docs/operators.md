@@ -25,19 +25,16 @@ between the two objects. The `<>` operator exposes this signed comparison
 value to the user.
 
 ```tomo
->> 0 <> 99
-= -1[32]
->> 5 <> 5
-= 0[32]
->> 99 <> 0
-= 1[32]
+assert 0 <> 99 == -1[32]
+assert 5 <> 5 == 0[32]
+assert 99 <> 0 == 1[32]
 ```
 
 It's particularly handy for using the list `sort()` method, which takes a
 function that returns a signed integer:
 
 ```tomo
->> foos.sort(func(a,b:&Foo): a.length <> b.length)
+foos.sort(func(a,b:&Foo): a.length <> b.length)
 ```
 
 ## Reducers
@@ -50,15 +47,12 @@ the need for several polymorphic functions used in other languages like
 reducers in action:
 
 ```tomo
->> nums := [10, 20, 30]
->> (+: nums)!
-= 60
->> (or: n > 15 for n in nums)!
-= yes
+nums := [10, 20, 30]
+assert (+: nums)! == 60
+assert (or: n > 15 for n in nums)! == yes
 
->> texts := ["one", "two", "three"]
->> (++: texts)!
-= "onetwothree"
+texts := ["one", "two", "three"]
+assert (++: texts)! == "onetwothree"
 ```
 
 The simplest form of a reducer is an infix operator surrounded by parentheses,
@@ -75,8 +69,8 @@ first option is to not account for it, in which case you'll get a runtime error
 if you use a reducer on something that has no values:
 
 ```tomo
->> nums : [Int] = []
->> (+: nums)!
+nums : [Int] = []
+result := (+: nums)!
 
 Error: this collection was empty!
 ```
@@ -85,8 +79,7 @@ If you want to handle this case, you can either wrap it in a conditional
 statement or you can provide a fallback option with `else` like this:
 
 ```tomo
->> (+: nums) or 0
-= 0
+assert (+: nums) or 0 == 0
 ```
 
 The `else` clause must be a value of the same type that would be returned.
@@ -102,21 +95,17 @@ struct Foo(x,y:Int)
     func is_even(f:Foo -> Bool)
         return (f.x + f.y) mod 2 == 0
 
->> foos := [Foo(1, 2), Foo(-10, 20)]
+foos := [Foo(1, 2), Foo(-10, 20)]
 
->> (+.x: foos)
-= -9
+assert (+.x: foos) == -9
 // Shorthand for:
->> (+: f.x for f in foos)
-= -9
+assert (+: f.x for f in foos) == -9
 
->> (or).is_even() foos
-= yes
+assert (or).is_even() foos == yes
 // Shorthand for:
->> (or) f.is_even() for f in foos
+assert ((or) f.is_even() for f in foos) == yes
 
->> (+.x.abs(): foos)
-= 11
+assert (+.x.abs(): foos) == 11
 ```
 
 ## `_min_` and `_max_`
@@ -126,10 +115,8 @@ Tomo introduces a new pair of operators that may be unfamiliar: `_min_` and
 larger or smaller of two elements:
 
 ```tomo
->> 3 _max_ 5
-= 5
->> "XYZ" _min_ "ABC"
-= "ABC"
+assert 3 _max_ 5 == 5
+assert "XYZ" _min_ "ABC" == "ABC"
 ```
 
 Initially, this might seem like a fairly useless operator, but there are two
@@ -144,22 +131,18 @@ Here's some examples:
 
 ```tomo
 // Get the largest absolute value number:
->> 3 _max_.abs() -15
-= -15
+assert 3 _max_.abs() -15 == -15
 
 struct Person(name:Text, age:Int)
 
 // Get the oldest of two people:
->> Person("Alice", 33) _max_.age Person("Bob", 20)
-= Person(name="Alice", age=33)
+assert Person("Alice", 33) _max_.age Person("Bob", 20) == Person(name="Alice", age=33)
 
 // Get the longest of two lists:
->> [10, 20, 30, 40] _max_.length [99, 1]
-= [10, 20, 30, 40]
+assert [10, 20, 30, 40] _max_.length [99, 1] == [10, 20, 30, 40]
 
 // Get the list with the highest value in the last position:
->> [10, 20, 999] _max_[-1] [99, 1]
-= [10, 20, 999]
+assert [10, 20, 999] _max_[-1] [99, 1] == [10, 20, 999]
 ```
 
 The keyed comparison can chain together multiple field accesses, list index
@@ -173,12 +156,9 @@ This means that you get get the minimum or maximum element from an iterable
 object using them:
 
 ```tomo
->> nums := [10, -20, 30, -40]
->> (_max_: nums)
-= 30
-
->> (_max_.abs(): nums)
-= -40
+nums := [10, -20, 30, -40]
+assert (_max_: nums) == 30
+assert (_max_.abs(): nums) == -40
 ```
 
 ## Operator Overloading

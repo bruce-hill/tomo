@@ -34,10 +34,8 @@ an `else` block to handle all unmatched patterns.
 Tags can also be quickly checked using the `.TagName` field:
 
 ```tomo
->> a.AnInteger
-= yes
->> a.TwoWords
-= no
+assert a.AnInteger != none
+assert a.TwoWords == none
 ```
 
 ## Reducing Boilerplate
@@ -62,10 +60,8 @@ func increment(arg:ArgumentType -> ReturnType)
 
 ...
 
->> increment(AnInt(5))
-= AnInt(6)
->> increment(SomeText("HI"))
-= Nothiing
+assert increment(AnInt(5)) == AnInt(6)
+assert increment(SomeText("HI")) == Nothiing
 ```
 
 This lets us have overlapping tag names for different types, but smartly infer

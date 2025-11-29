@@ -41,46 +41,39 @@ very liberal use of type coercion and implicit `none` checks when values are
 required to be non-none. Here are a few examples:
 
 ```tomo
->> x := 0.0
-= 0 : Num
+zero := 0.0
+assert zero == 0
 
 y := 1.0
 
 # Division might produce none:
->> x / y
-= 0 : Num?
->> x / x
-= none : Num?
+assert zero / y == 0
+assert zero / zero == none
 
 # Optional types and none values propagate:
->> x/y + 1 + 2
-= 3 : Num?
->> x/x + 1 + 2
-= none : Num?
+assert zero/y + 1 + 2 == 3
+assert zero/zero + 1 + 2 == none
 
 # Optional Nums can be handled explicitly using `or` and `!`:
->> x/x or -123
-= -123 : Num
+assert zero/zero or -123 == -123
 
-# This would raise a runtime error if `x` and `y` were zero:
->> (x/y)!
-= 0 : Num
+# This would raise a runtime error if `zero` and `y` were zero:
+assert (zero/y)! == 0
 
 # Assigning to a non-optional variable will do an implicit check for none and
 # raise a runtime error if the value is none, essentially the same as an
 # implicit `!`:
-x = x/y
+zero = zero/y
 
 func doop(x:Num -> Num)
     # If a function's return type is non-optional and an optional value is
     # used in a return statement, an implicit none check will be inserted and
     # will error if the value is none:
-    return x / 2
+    return zero / 2
 
 # Function arguments are also implicitly checked for none if the given value
 # is optional and the function needs a non-optional value:
->> doop(x/y)
-= 0 : Num
+assert doop(zero/y) == 0
 ```
 
 Hopefully the end result of this system is one where users can take advantage

@@ -37,8 +37,7 @@ The simplest form of integer literal is a string of digits, which is inferred
 to have type `Int` (unbounded size).
 
 ```tomo
->>> 123456789012345678901234567890
-= 123456789012345678901234567890 : Int
+i := 123456789012345678901234567890
 ```
 
 Underscores may also be used to visually break up the integer for readability:
@@ -79,12 +78,10 @@ quotient := numerator / denominator
 remainder := numerator mod denominator
 
 # Modulus always gives a non-negative result:
->> remainder >= 0
-= yes
+assert remainder >= 0
 
 # The numerator can be reconstructed sensibly:
->> numerator == denominator * quotient + remainder
-= yes
+assert numerator == denominator * quotient + remainder
 ```
 
 Importantly, these invariants hold for both positive and negative numerators
@@ -95,25 +92,23 @@ negative numbers are involved. Integer division rounds _down_ instead of
 rounding _towards zero_, and modulus never gives negative results:
 
 ```tomo
->> quotient := -1 / 5
-= -1
+quotient := -1 / 5
+assert quotient == -1
 
->> remainder := -1 mod 5
-= 4
+remainder := -1 mod 5
+assert remainder == 4
 
->> -1 == 5 * -1 + 4
-= yes
+assert -1 == 5 * -1 + 4
 ```
 
 ```tomo
->> quotient := 16 / -5
-= -3
+quotient := 16 / -5
+assert quotient == -3
 
->> remainder := -1 mod 5
-= 1
+remainder := -1 mod 5
+assert remainder == 1
 
->> 16 == -5 * -3 + 1
-= yes
+assert 16 == -5 * -3 + 1
 ```
 
 # API

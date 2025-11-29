@@ -30,17 +30,15 @@ Lists can also use comprehensions, where you specify how to dynamically create
 all the elements by iteration instead of manually specifying each:
 
 ```tomo
->> [i*10 for i in (3).to(8)]
-= [30, 40, 50, 60, 70, 80]
->> [i*10 for i in (3).to(8) if i != 4]
-= [30, 50, 60, 70, 80]
+assert [i*10 for i in (3).to(8)] == [30, 40, 50, 60, 70, 80]
+assert [i*10 for i in (3).to(8) if i != 4] == [30, 50, 60, 70, 80]
 ```
 
 Comprehensions can be combined with regular items or other comprehensions:
 
 ```tomo
->> [-1, i*10 for i in (3).to(8), i for i in 3]
-= [-1, 30, 40, 50, 60, 70, 80, 1, 2, 3]
+nums := [-1, i*10 for i in (3).to(8), i for i in 3]
+assert nums == [-1, 30, 40, 50, 60, 70, 80, 1, 2, 3]
 ```
 
 ## Length
@@ -48,8 +46,7 @@ Comprehensions can be combined with regular items or other comprehensions:
 List length can be accessed by the `.length` field:
 
 ```tomo
->> [10, 20, 30].length
-= 3
+assert [10, 20, 30].length == 3
 ```
 
 ## Indexing
@@ -61,20 +58,15 @@ last item, `-2` is the second-to-last, and so on.
 
 ```tomo
 list := [10, 20, 30, 40]
->> list[1]
-= 10?
+assert list[1] == 10?
 
->> list[2]
-= 20?
+assert list[2] == 20?
 
->> list[999]
-= none
+assert list[999] == none
 
->> list[-1]
-= 40?
+assert list[-1] == 40?
 
->> list[-2]
-= 30?
+assert list[-2] == 30?
 ```
 
 If a list index of `0` or any value larger than the length of the list is
@@ -103,8 +95,7 @@ has the items from one appended to the other. This should not be confused with
 the addition operator `+`, which does not work with lists.
 
 ```tomo
->> [1, 2] ++ [3, 4]
-= [1, 2, 3, 4]
+assert [1, 2] ++ [3, 4] == [1, 2, 3, 4]
 ```
 
 ## Implementation Details 
@@ -172,24 +163,20 @@ nums[4] = 40
 
 // Constant time operation, but increments the reference count:
 tmp := nums
->> tmp
-= [10, 20, 30, 40]
+assert tmp == [10, 20, 30, 40]
 
 // Now, a mutation will trigger a copy-on-write,
 // which resets the reference count to zero:
 nums[4] = 999
->> nums
-= [10, 20, 30, 999]
+assert nums == [10, 20, 30, 999]
 
 // Because of the copy-on-write, `tmp` is unchanged:
->> tmp
-= [10, 20, 30, 40]
+assert tmp == [10, 20, 30, 40]
 
 // Since the reference count has been reset, we can do more
 // mutations without triggering another copy-on-write:
 nums[4] = -1
->> nums
-= [10, 20, 30, -1]
+assert nums == [10, 20, 30, -1]
 ```
 
 List reference counting is _approximate_, but will only ever err on the side
@@ -211,8 +198,7 @@ nums := @[10, 20, 30]
 tmp := nums
 
 nums.insert(40)
->> tmp
-= @[10, 20, 30, 40]
+assert tmp == @[10, 20, 30, 40]
 ```
 
 Having multiple pointers to the same heap-allocated list does not cause the

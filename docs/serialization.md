@@ -67,12 +67,14 @@ struct Cycle(name:Text, next:@Cycle?=none)
 
 c := @Cycle("A")
 c.next = @Cycle("B", next=c)
->> c
+say("$c")
 # @Cycle(name="A", next=@Cycle(name="B", next=@~1))
->> bytes : [Byte] = c
-# [0x02, 0x02, 0x41, 0x01, 0x04, 0x02, 0x42, 0x01, 0x02] : [Byte]
->> roundtrip : @Cycle = bytes
-# @Cycle(name="A", next=@Cycle(name="B", next=@~1)) : @Cycle
+bytes : [Byte] = c
+say("$bytes")
+# [0x02, 0x02, 0x41, 0x01, 0x04, 0x02, 0x42, 0x01, 0x02]
+roundtrip : @Cycle = bytes
+say("$roundtrip")
+# @Cycle(name="A", next=@Cycle(name="B", next=@~1))
 assert roundtrip.next.next == roundtrip
 ```
 

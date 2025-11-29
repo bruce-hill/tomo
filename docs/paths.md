@@ -13,10 +13,8 @@ syntax. A path literal begins with either `(/`, `(./`, `(../`, or `(~/` and cont
 until a matching closing parenethesis:
 
 ```tomo
->> (/tmp)
-= (/tmp)
->> (~/path with/(parens) is/ok/)
-= (~/path with/(parens) is/ok/)
+assert (/tmp) == (/tmp)
+assert (~/path with/(parens) is/ok/) == (~/path with/(parens) is/ok/)
 ```
 
 ### Interpolation

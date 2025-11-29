@@ -18,16 +18,14 @@ func no_mutation_possible(nums:[Int])
 ...
 my_nums := [0, 1, 2]
 no_mutation_possible(my_nums)
->> my_nums
-= [0, 1, 2]
+assert my_nums == [0, 1, 2]
 
 func do_mutation(nums:@[Int])
     nums[1] = 10 // The mutates the value at the given pointer's location
 ...
 my_nums := @[0, 1, 2]
 do_mutation(my_nums)
->> my_nums
-= @[10, 1, 2]
+assert my_nums == @[10, 1, 2]
 ```
 
 ## Dereferencing
@@ -37,8 +35,7 @@ memory location using the `[]` postfix operator (with no value inside).
 
 ```tomo
 nums := @[10, 20]
->> nums[]
-= [10, 20]
+assert nums[] == [10, 20]
 ```
 
 ## Equality and Comparisons
@@ -52,12 +49,10 @@ doing a mutation to the other.
 ```tomo
 x := @[10, 20, 30]
 y := @[10, 20, 30]
->> x == y
-= no
+assert x != y
 
 z := x
->> x == z
-= yes
+assert x == z
 ```
 
 Pointers are ordered by memory address, which is somewhat arbitrary, but
@@ -112,8 +107,7 @@ inside of any datastructures as elements or members.
 
 ```tomo
 nums := @[10, 20, 30]
->> nums.first(func(x:&Int): x / 2 == 10)
-= 2 : Int?
+assert nums.first(func(x:&Int): x / 2 == 10) == 2
 ```
 
 Normal `@` pointers can be promoted to immutable view pointers automatically,
