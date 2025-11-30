@@ -6,6 +6,7 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
 #include "../stdlib/nums.h"
+#include "../stdlib/optionals.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
@@ -703,7 +704,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         definition = Texts(definition, wrapper);
     } else if (cache && cache->tag == Int) {
         assert(args);
-        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NULL);
+        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NONE_INT, NULL);
         Text_t pop_code = EMPTY_TEXT;
         if (cache->tag == Int && cache_size.has_value && cache_size.value > 0) {
             // FIXME: this currently just deletes the first entry, but this

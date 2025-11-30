@@ -226,7 +226,7 @@ check-utilities: check-c-compiler
 	@which debugedit 2>/dev/null >/dev/null \
 		|| printf '\033[33;1m%s\033[m\n' "I couldn't find 'debugedit' on your system! Try installing the package 'debugedit' with your package manager. (It's not required though)"
 
-install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) check-utilities
+install-files: $(INCLUDE_SYMLINK) build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) check-utilities
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		echo $$PATH; \
 		printf "\033[31;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \

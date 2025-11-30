@@ -1,5 +1,16 @@
 # Version History
 
+## v2025-11-30
+
+### API changes
+
+- Added `base` parameter to various `Int.parse()` methods to allow explicitly
+  setting the numeric base from 1-36.
+
+### Bugfixes
+
+- Fixed various issues around parsing integers.
+
 ## v2025-11-29.2
 
 ### Bugfixes

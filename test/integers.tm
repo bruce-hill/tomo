@@ -105,3 +105,24 @@ func main()
 	assert Int64(6).get_bit(2) == yes
 	assert Int64(6).get_bit(3) == yes
 	assert Int64(6).get_bit(4) == no
+
+	assert Int.parse("123") == 123
+	assert Int.parse("0x10") == 16
+	assert Int.parse("0o10") == 8
+	assert Int.parse("0b10") == 2
+	assert Int.parse("abc") == none
+
+	assert Int.parse("-123") == -123
+	assert Int.parse("-0x10") == -16
+	assert Int.parse("-0o10") == -8
+	assert Int.parse("-0b10") == -2
+
+	for base in (2).to(36)
+		assert Int.parse("10", base=base) == base
+	
+	assert Int.parse("111", base=1) == 3
+
+	assert Int.parse("z", base=36) == 35
+	assert Int.parse("Z", base=36) == 35
+	assert Int.parse("-z", base=36) == -35
+	assert Int.parse("-Z", base=36) == -35

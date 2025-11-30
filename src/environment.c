@@ -93,7 +93,7 @@ env_t *global_env(bool source_mapping) {
         MAKE_TYPE("Empty", EMPTY_TYPE, Text("Empty$$type"), Text("Empty$$info")),
         MAKE_TYPE( //
             "Bool", Type(BoolType), Text("Bool_t"), Text("Bool$info"),
-            {"parse", "Bool$parse", "func(text:Text, remainder:&Text? = none -> Bool?)"}),
+            {"parse", "Bool$parse", "func(text:Text, remainder:&Text?=none -> Bool?)"}),
         MAKE_TYPE( //
             "Byte", Type(ByteType), Text("Byte_t"), Text("Byte$info"),
             {"get_bit", "Byte$get_bit", "func(x:Byte, bit_index:Int -> Bool)"}, //
@@ -101,7 +101,7 @@ env_t *global_env(bool source_mapping) {
             {"is_between", "Byte$is_between", "func(x:Byte, low:Byte, high:Byte -> Bool)"}, //
             {"max", "Byte$max", "Byte"}, //
             {"min", "Byte$min", "Byte"}, //
-            {"parse", "Byte$parse", "func(text:Text, remainder:&Text? = none -> Byte?)"}, //
+            {"parse", "Byte$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Byte?)"}, //
             {"to", "Byte$to", "func(first:Byte, last:Byte, step:Int8?=none -> func(->Byte?))"}),
         MAKE_TYPE( //
             "Int", Type(BigIntType), Text("Int_t"), Text("Int$info"), {"abs", "Int$abs", "func(x:Int -> Int)"}, //
@@ -126,7 +126,7 @@ env_t *global_env(bool source_mapping) {
             {"next_prime", "Int$next_prime", "func(x:Int -> Int)"}, //
             {"octal", "Int$octal", "func(i:Int, digits=0, prefix=yes -> Text)"}, //
             {"onward", "Int$onward", "func(first:Int,step=1 -> func(->Int?))"}, //
-            {"parse", "Int$parse", "func(text:Text, remainder:&Text? = none -> Int?)"}, //
+            {"parse", "Int$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int?)"}, //
             {"plus", "Int$plus", "func(x,y:Int -> Int)"}, //
             {"power", "Int$power", "func(base:Int,exponent:Int -> Int)"}, //
 #if __GNU_MP_VERSION >= 6
@@ -145,7 +145,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Int64$clamped", "func(x,low,high:Int64 -> Int64)"}, //
             {"divided_by", "Int64$divided_by", "func(x,y:Int64 -> Int64)"}, //
             {"gcd", "Int64$gcd", "func(x,y:Int64 -> Int64)"}, //
-            {"parse", "Int64$parse", "func(text:Text, remainder:&Text? = none -> Int64?)"}, //
+            {"parse", "Int64$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int64?)"}, //
             {"get_bit", "Int64$get_bit", "func(x:Int64, bit_index:Int -> Bool)"}, //
             {"hex", "Int64$hex", "func(i:Int64, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int64$is_between", "func(x:Int64,low:Int64,high:Int64 -> Bool)"}, //
@@ -167,7 +167,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Int32$clamped", "func(x,low,high:Int32 -> Int32)"}, //
             {"divided_by", "Int32$divided_by", "func(x,y:Int32 -> Int32)"}, //
             {"gcd", "Int32$gcd", "func(x,y:Int32 -> Int32)"}, //
-            {"parse", "Int32$parse", "func(text:Text, remainder:&Text? = none -> Int32?)"}, //
+            {"parse", "Int32$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int32?)"}, //
             {"get_bit", "Int32$get_bit", "func(x:Int32, bit_index:Int -> Bool)"}, //
             {"hex", "Int32$hex", "func(i:Int32, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int32$is_between", "func(x:Int32,low:Int32,high:Int32 -> Bool)"}, //
@@ -189,7 +189,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Int16$clamped", "func(x,low,high:Int16 -> Int16)"}, //
             {"divided_by", "Int16$divided_by", "func(x,y:Int16 -> Int16)"}, //
             {"gcd", "Int16$gcd", "func(x,y:Int16 -> Int16)"}, //
-            {"parse", "Int16$parse", "func(text:Text, remainder:&Text? = none -> Int16?)"}, //
+            {"parse", "Int16$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int16?)"}, //
             {"get_bit", "Int16$get_bit", "func(x:Int16, bit_index:Int -> Bool)"}, //
             {"hex", "Int16$hex", "func(i:Int16, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int16$is_between", "func(x:Int16,low:Int16,high:Int16 -> Bool)"}, //
@@ -211,7 +211,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Int8$clamped", "func(x,low,high:Int8 -> Int8)"}, //
             {"divided_by", "Int8$divided_by", "func(x,y:Int8 -> Int8)"}, //
             {"gcd", "Int8$gcd", "func(x,y:Int8 -> Int8)"}, //
-            {"parse", "Int8$parse", "func(text:Text, remainder:&Text? = none -> Int8?)"}, //
+            {"parse", "Int8$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int8?)"}, //
             {"get_bit", "Int8$get_bit", "func(x:Int8, bit_index:Int -> Bool)"}, //
             {"hex", "Int8$hex", "func(i:Int8, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int8$is_between", "func(x:Int8,low:Int8,high:Int8 -> Bool)"}, //
@@ -245,7 +245,7 @@ env_t *global_env(bool source_mapping) {
             C(SQRT1_2), {"INF", "(Num_t)(INFINITY)", "Num"}, //
             {"TAU", "(Num_t)(2.*M_PI)", "Num"}, //
             {"mix", "Num$mix", "func(amount,x,y:Num -> Num)"}, //
-            {"parse", "Num$parse", "func(text:Text, remainder:&Text? = none -> Num?)"}, //
+            {"parse", "Num$parse", "func(text:Text, remainder:&Text?=none -> Num?)"}, //
             {"abs", "fabs", "func(n:Num -> Num)"}, //
             F_opt(acos), F_opt(acosh), F_opt(asin), F(asinh), F(atan), F_opt(atanh), F(cbrt), F(ceil), F_opt(cos),
             F(cosh), F(erf), F(erfc), F(exp), F(exp2), F(expm1), F(floor), F(j0), F(j1), F_opt(log), F_opt(log10),
@@ -274,7 +274,7 @@ env_t *global_env(bool source_mapping) {
             {"INF", "(Num32_t)(INFINITY)", "Num32"}, //
             {"TAU", "(Num32_t)(2.f*M_PI)", "Num32"}, //
             {"mix", "Num32$mix", "func(amount,x,y:Num32 -> Num32)"}, //
-            {"parse", "Num32$parse", "func(text:Text, remainder:&Text? = none -> Num32?)"}, //
+            {"parse", "Num32$parse", "func(text:Text, remainder:&Text?=none -> Num32?)"}, //
             {"abs", "fabsf", "func(n:Num32 -> Num32)"}, //
             {"modulo", "Num32$mod", "func(x,y:Num32 -> Num32)"}, //
             {"modulo1", "Num32$mod1", "func(x,y:Num32 -> Num32)"}, //

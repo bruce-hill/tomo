@@ -238,23 +238,23 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
         if (parsed.small == 0) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int_t *)dest = parsed;
     } else if (type == &Int64$info) {
-        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
+        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int64_t *)dest = parsed.value;
     } else if (type == &Int32$info) {
-        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
+        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int32_t *)dest = parsed.value;
     } else if (type == &Int16$info) {
-        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
+        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int16_t *)dest = parsed.value;
     } else if (type == &Int8$info) {
-        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
+        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int8_t *)dest = parsed.value;
     } else if (type == &Byte$info) {
-        OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NULL);
+        OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Byte_t *)dest = parsed.value;
     } else if (type == &Bool$info) {
