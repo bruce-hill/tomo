@@ -763,8 +763,10 @@ static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters) {
 public
 OptionalText_t Text$from_strn(const char *str, size_t len) {
     int64_t ascii_span = 0;
-    for (size_t i = 0; i < len && isascii(str[i]); i++)
+    for (size_t i = 0; i < len && isascii(str[i]); i++) {
         ascii_span++;
+        if (str[i] == 0) return NONE_TEXT;
+    }
 
     if (ascii_span == (int64_t)len) { // All ASCII
         char *copy = GC_MALLOC_ATOMIC(len);
@@ -786,12 +788,15 @@ OptionalText_t Text$from_strn(const char *str, size_t len) {
         uint32_t buf[256];
         size_t u32_len = sizeof(buf) / sizeof(buf[0]);
         uint32_t *u32s = u8_to_u32(pos, (size_t)(next - pos), buf, &u32_len);
+        if (u32s == NULL) return NONE_TEXT;
 
         uint32_t buf2[256];
         size_t u32_normlen = sizeof(buf2) / sizeof(buf2[0]);
         uint32_t *u32s_normalized = u32_normalize(UNINORM_NFC, u32s, u32_len, buf2, &u32_normlen);
+        if (u32s_normalized == NULL) return NONE_TEXT;
 
         int32_t g = get_synthetic_grapheme(u32s_normalized, (int64_t)u32_normlen);
+        if (g == 0) return NONE_TEXT;
         List$insert(&graphemes, &g, I(0), sizeof(int32_t));
         Table$get_or_setdefault(&unique_clusters, int32_t, uint8_t, g, (uint8_t)unique_clusters.entries.length,
                                 Table$info(&Int32$info, &Byte$info));
