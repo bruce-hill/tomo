@@ -325,7 +325,8 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                 // Case: --flag values...
                 if (i + 1 >= (int64_t)args->length) print_err("No value provided for flag: ", flag);
                 List_t values = List$slice(*args, I(i + 2), I(-1));
-                *args = parse_arg_list(values, flag, dest, type, false);
+                List_t remaining_args = parse_arg_list(values, flag, dest, type, false);
+                *args = List$concat(List$to(*args, I(i)), remaining_args, sizeof(const char *));
                 return true;
             } else if (starts_with(arg + 2, flag) && arg[2 + strlen(flag)] == '=') {
                 // Case: --flag=...
@@ -341,7 +342,8 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                 } else {
                     values = List(arg_value);
                 }
-                *args = parse_arg_list(values, flag, dest, type, false);
+                List_t remaining_args = parse_arg_list(values, flag, dest, type, false);
+                *args = List$concat(List$to(*args, I(i)), remaining_args, sizeof(const char *));
                 return true;
             }
         } else if (short_flag && arg[0] == '-' && arg[1] != '-' && strchr(arg + 1, short_flag)) {
