@@ -74,16 +74,17 @@ static Text_t generate_usage(env_t *env, type_t *fn_type) {
         type_t *t = get_arg_type(main_env, arg);
         OptionalText_t flag = flagify(arg->name, arg->default_val != NULL);
         assert(flag.tag != TEXT_NONE);
-        OptionalText_t alias_flag = flagify(arg->alias, arg->default_val != NULL);
         Text_t flags = Texts("\x1b[1m", flag, "\x1b[m");
-        if (alias_flag.tag != TEXT_NONE) flags = Texts(flags, ",\x1b[1m", alias_flag, "\x1b[m");
         if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
             flags = Texts(flags, "|\x1b[1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
         if (arg->default_val || value_type(t)->tag == BoolType) {
             if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
                 usage = Texts(usage, "[", flags, "]");
             else if (t->tag == ListType) usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
+            else if (t->tag == EnumType) usage = Texts(usage, "[", flags, " val]");
             else usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
+        } else if (t->tag == EnumType) {
+            usage = Texts(usage, "\x1b[1m", flag, "\x1b[m");
         } else {
             usage = Texts(usage, "\x1b[1m", get_flag_options(t, Text("|")), "\x1b[m");
         }
@@ -103,7 +104,7 @@ static Text_t generate_help(env_t *env, type_t *fn_type) {
         assert(flag.tag != TEXT_NONE);
         OptionalText_t alias_flag = flagify(arg->alias, true);
         Text_t flags = Texts("\x1b[33;1m", flag, "\x1b[m");
-        if (alias_flag.tag != TEXT_NONE) flags = Texts(flags, ",\x1b[33;1m", alias_flag, "\x1b[m");
+        if (alias_flag.tag != TEXT_NONE) flags = Texts("\x1b[33;1m", alias_flag, "\x1b[0;2m,\x1b[m ", flags);
         if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
             flags = Texts(flags, "|\x1b[33;1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
         if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
@@ -137,7 +138,7 @@ Text_t compile_cli_arg_call(env_t *env, ast_t *ast, Text_t fn_name, type_t *fn_t
                  "Text_t usage = Texts(Text(\"\\x1b[1mUsage:\\x1b[m \"), "
                  "Text$from_str(argv[0]), Text(\" \")",
                  usage.length == 0 ? EMPTY_TEXT : Texts(", Text(", quoted_text(usage), ")"), ");\n",
-                 "Text_t help = Texts(usage, Text(\"\\n\\n\"", quoted_text(help), "));\n");
+                 "Text_t help = Texts(usage, Text(\"\\n\"", quoted_text(help), "\"\\n\"));\n");
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         code = Texts(code, compile_declaration(arg->type, Texts("_$", Text$from_str(arg->name))), " = ",
