@@ -1539,7 +1539,7 @@ PUREFUNC bool is_discardable(env_t *env, ast_t *ast) {
     default: break;
     }
     type_t *t = get_type(env, ast);
-    return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType);
+    return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType || t == EMPTY_TYPE);
 }
 
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg) {

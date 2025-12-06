@@ -1,5 +1,9 @@
 # Version History
 
+## v2025-12-06
+
+- You can now discard Empty values.
+
 ## v2025-11-30
 
 ### API changes
