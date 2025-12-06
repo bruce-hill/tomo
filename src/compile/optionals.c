@@ -115,12 +115,54 @@ public
 Text_t compile_non_optional(env_t *env, ast_t *ast) {
     ast_t *value = Match(ast, NonOptional)->value;
     if (value->tag == Index && Match(value, Index)->index != NULL) return compile_indexing(env, value, true);
-    type_t *t = get_type(env, value);
-    Text_t value_code = compile(env, value);
+    type_t *value_t = get_type(env, value);
+    if (value_t->tag == PointerType) {
+        // Dereference pointers automatically
+        return compile_non_optional(env, WrapAST(ast, NonOptional, WrapAST(ast, Index, .indexed = value)));
+    }
     int64_t line = get_line_number(ast->file, ast->start);
-    return Texts(
-        "({ ", compile_declaration(t, Text("opt")), " = ", value_code, "; ", "if unlikely (",
-        check_none(t, Text("opt")), ")\n", "#line ", line, "\n", "fail_source(", quoted_str(ast->file->filename), ", ",
-        (int64_t)(value->start - value->file->text), ", ", (int64_t)(value->end - value->file->text), ", ",
-        "\"This was expected to be a value, but it's `none`\\n\");\n", optional_into_nonnone(t, Text("opt")), "; })");
+    if (value_t->tag == EnumType) {
+        // For this case:
+        //   enum Foo(FirstField, SecondField(msg:Text))
+        //   e := ...
+        //   e!
+        // We desugar into `e.FirstField!` using the first enum field
+        tag_t *first_tag = Match(value_t, EnumType)->tags;
+        if (!first_tag) code_err(ast, "'!' cannot be used on an empty enum");
+        return compile_non_optional(
+            env, WrapAST(ast, NonOptional, WrapAST(value, FieldAccess, .fielded = value, .field = first_tag->name)));
+    } else if (value->tag == FieldAccess
+               && value_type(get_type(env, Match(value, FieldAccess)->fielded))->tag == EnumType) {
+        type_t *enum_t = value_type(get_type(env, Match(value, FieldAccess)->fielded));
+        DeclareMatch(e, enum_t, EnumType);
+        DeclareMatch(f, value, FieldAccess);
+        for (tag_t *tag = e->tags; tag; tag = tag->next) {
+            if (streq(f->field, tag->name)) {
+                Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts("tag$", tag->name));
+                return Texts("({ ", compile_declaration(enum_t, Text("_test_enum")), " = ",
+                             compile_to_pointer_depth(env, f->fielded, 0, true), ";",
+                             "if unlikely (_test_enum.$tag != ", tag_name, ") {\n", "#line ", line, "\n",
+                             "fail_source(", quoted_str(f->fielded->file->filename), ", ",
+                             (int64_t)(f->fielded->start - f->fielded->file->text), ", ",
+                             (int64_t)(f->fielded->end - f->fielded->file->text), ", ", "\"This was expected to be ",
+                             tag->name, ", but it was: \", ", expr_as_text(Text("_test_enum"), enum_t, Text("false")),
+                             ", \"\\n\");\n}\n",
+                             Match(tag->type, StructType)->fields
+                                 ? compile_maybe_incref(
+                                       env, WrapLiteralCode(value, Texts("_test_enum.", tag->name), .type = tag->type),
+                                       tag->type)
+                                 : Text("EMPTY_STRUCT"),
+                             "; })");
+            }
+        }
+        code_err(ast, "The field '", f->field, "' is not a valid tag name of ", type_to_text(enum_t));
+    } else {
+        Text_t value_code = compile(env, value);
+        return Texts("({ ", compile_declaration(value_t, Text("opt")), " = ", value_code, "; ", "if unlikely (",
+                     check_none(value_t, Text("opt")), ")\n", "#line ", line, "\n", "fail_source(",
+                     quoted_str(value->file->filename), ", ", (int64_t)(value->start - value->file->text), ", ",
+                     (int64_t)(value->end - value->file->text), ", ",
+                     "\"This was expected to be a value, but it's `none`\\n\");\n",
+                     optional_into_nonnone(value_t, Text("opt")), "; })");
+    }
 }

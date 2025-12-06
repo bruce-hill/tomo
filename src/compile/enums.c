@@ -158,11 +158,7 @@ Text_t compile_enum_field_access(env_t *env, ast_t *ast) {
             Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts("tag$", tag->name));
             if (tag->type != NULL && Match(tag->type, StructType)->fields) {
                 Text_t member = compile_maybe_incref(
-                    env,
-                    WrapAST(ast, InlineCCode,
-                            .chunks = new (ast_list_t, WrapAST(ast, TextLiteral, Texts("_e.", tag->name))),
-                            .type = tag->type),
-                    tag->type);
+                    env, WrapLiteralCode(ast, Texts("_e.", tag->name), .type = tag->type), tag->type);
                 return Texts("({ ", compile_declaration(value_t, Text("_e")), " = ",
                              compile_to_pointer_depth(env, f->fielded, 0, false), "; ", "_e.$tag == ", tag_name, " ? ",
                              promote_to_optional(tag->type, member), " : ", compile_none(tag->type), "; })");

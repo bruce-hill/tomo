@@ -755,7 +755,12 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case NonOptional: {
         ast_t *value = Match(ast, NonOptional)->value;
-        type_t *t = get_type(env, value);
+        type_t *t = value_type(get_type(env, value));
+        if (t->tag == EnumType) {
+            tag_t *first_tag = Match(t, EnumType)->tags;
+            if (!first_tag) code_err(ast, "'!' cannot be used on an empty enum");
+            return first_tag->type;
+        }
         if (t->tag != OptionalType)
             code_err(value, "This value is not optional. Only optional values can use the '!' operator.");
         return Match(t, OptionalType)->type;
@@ -1539,7 +1544,10 @@ PUREFUNC bool is_discardable(env_t *env, ast_t *ast) {
     default: break;
     }
     type_t *t = get_type(env, ast);
-    return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType || t == EMPTY_TYPE);
+    if (t->tag == StructType) {
+        return (Match(t, StructType)->fields == NULL);
+    }
+    return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType);
 }
 
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg) {

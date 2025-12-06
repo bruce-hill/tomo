@@ -219,7 +219,9 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
     case Metadata: return EMPTY_TEXT;
     default:
         if (!is_discardable(env, ast))
-            code_err(ast, "The ", type_to_text(get_type(env, ast)), " result of this statement cannot be discarded");
+            code_err(
+                ast, "The ", type_to_text(get_type(env, ast)),
+                " value of this statement is implicitly ignored. \n Use `_ := ` if you want to explicitly discard it.");
         return Texts("(void)", compile(env, ast), ";");
     }
 }

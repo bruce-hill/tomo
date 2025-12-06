@@ -63,7 +63,7 @@ Text_t type_to_text(type_t *t) {
     }
     case StructType: {
         DeclareMatch(struct_, t, StructType);
-        return Text$from_str(struct_->name);
+        return Text$replace(Text$from_str(struct_->name), Text("$"), Text("."));
     }
     case PointerType: {
         DeclareMatch(ptr, t, PointerType);
@@ -73,7 +73,7 @@ Text_t type_to_text(type_t *t) {
     case EnumType: {
         DeclareMatch(enum_, t, EnumType);
         if (enum_->name != NULL && strncmp(enum_->name, "enum$", strlen("enum$")) != 0)
-            return Text$from_str(enum_->name);
+            return Text$replace(Text$from_str(enum_->name), Text("$"), Text("."));
         Text_t text = Text("enum(");
         for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
             text = Texts(text, Text$from_str(tag->name));
