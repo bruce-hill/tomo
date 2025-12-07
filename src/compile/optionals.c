@@ -103,10 +103,7 @@ Text_t check_none(type_t *t, Text_t value) {
     else if (t->tag == BoolType) return Texts("((", value, ") == NONE_BOOL)");
     else if (t->tag == TextType) return Texts("((", value, ").tag == TEXT_NONE)");
     else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType) return Texts("!(", value, ").has_value");
-    else if (t->tag == EnumType) {
-        if (enum_has_fields(t)) return Texts("((", value, ").$tag == 0)");
-        else return Texts("((", value, ") == 0)");
-    }
+    else if (t->tag == EnumType) return Texts("((", value, ").$tag == 0)");
     print_err("Optional check not implemented for: ", type_to_text(t));
     return EMPTY_TEXT;
 }
@@ -139,20 +136,17 @@ Text_t compile_non_optional(env_t *env, ast_t *ast) {
         for (tag_t *tag = e->tags; tag; tag = tag->next) {
             if (streq(f->field, tag->name)) {
                 Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts("tag$", tag->name));
-                return Texts("({ ", compile_declaration(enum_t, Text("_test_enum")), " = ",
-                             compile_to_pointer_depth(env, f->fielded, 0, true), ";",
-                             "if unlikely (_test_enum.$tag != ", tag_name, ") {\n", "#line ", line, "\n",
-                             "fail_source(", quoted_str(f->fielded->file->filename), ", ",
-                             (int64_t)(f->fielded->start - f->fielded->file->text), ", ",
-                             (int64_t)(f->fielded->end - f->fielded->file->text), ", ", "\"This was expected to be ",
-                             tag->name, ", but it was: \", ", expr_as_text(Text("_test_enum"), enum_t, Text("false")),
-                             ", \"\\n\");\n}\n",
-                             Match(tag->type, StructType)->fields
-                                 ? compile_maybe_incref(
-                                       env, WrapLiteralCode(value, Texts("_test_enum.", tag->name), .type = tag->type),
-                                       tag->type)
-                                 : Text("EMPTY_STRUCT"),
-                             "; })");
+                return Texts(
+                    "({ ", compile_declaration(enum_t, Text("_test_enum")), " = ",
+                    compile_to_pointer_depth(env, f->fielded, 0, true), ";",
+                    "if unlikely (_test_enum.$tag != ", tag_name, ") {\n", "#line ", line, "\n", "fail_source(",
+                    quoted_str(f->fielded->file->filename), ", ", (int64_t)(f->fielded->start - f->fielded->file->text),
+                    ", ", (int64_t)(f->fielded->end - f->fielded->file->text), ", ", "\"This was expected to be ",
+                    tag->name, ", but it was: \", ", expr_as_text(Text("_test_enum"), enum_t, Text("false")),
+                    ", \"\\n\");\n}\n",
+                    compile_maybe_incref(
+                        env, WrapLiteralCode(value, Texts("_test_enum.", tag->name), .type = tag->type), tag->type),
+                    "; })");
             }
         }
         code_err(ast, "The field '", f->field, "' is not a valid tag name of ", type_to_text(enum_t));

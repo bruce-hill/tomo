@@ -701,8 +701,7 @@ type_t *get_field_type(type_t *t, const char *field_name) {
         DeclareMatch(e, t, EnumType);
         for (tag_t *tag = e->tags; tag; tag = tag->next) {
             if (!streq(field_name, tag->name)) continue;
-            if (tag->type != NULL && Match(tag->type, StructType)->fields) return Type(OptionalType, tag->type);
-            else return Type(OptionalType, EMPTY_TYPE);
+            return Type(OptionalType, tag->type);
         }
         return NULL;
     }
@@ -834,11 +833,4 @@ type_t *_make_function_type(type_t *ret, int n, arg_t args[n]) {
         if (i + 1 < n) arg_pointers[i].next = &arg_pointers[i + 1];
     }
     return Type(FunctionType, .ret = ret, .args = &arg_pointers[0]);
-}
-
-PUREFUNC bool enum_has_fields(type_t *t) {
-    for (tag_t *e_tag = Match(t, EnumType)->tags; e_tag; e_tag = e_tag->next) {
-        if (e_tag->type != NULL && Match(e_tag->type, StructType)->fields) return true;
-    }
-    return false;
 }

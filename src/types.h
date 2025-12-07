@@ -166,4 +166,3 @@ PUREFUNC type_t *non_optional(type_t *t);
 type_t *get_field_type(type_t *t, const char *field_name);
 PUREFUNC type_t *get_iterated_type(type_t *t);
 type_t *_make_function_type(type_t *ret, int n, arg_t args[n]);
-PUREFUNC bool enum_has_fields(type_t *t);

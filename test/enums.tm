@@ -98,17 +98,17 @@ func main()
 
 	do
 		e := OnlyTags.A
-		assert e.A == EMPTY
+		assert e.A == OnlyTags.A.A
 		assert e.B == none
 
 	do
 		e := Foo.Zero
-		assert e.Zero == EMPTY
+		assert e.Zero == Foo.Zero.Zero
 		assert e.One == none
 		assert e.Two == none
 
 		ep := @Foo.Zero
-		assert ep.Zero == EMPTY
+		assert ep.Zero == Foo.Zero.Zero
 		assert ep.One == none
 		assert ep.Two == none
 

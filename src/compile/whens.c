@@ -43,11 +43,7 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
 
     DeclareMatch(enum_t, subject_t, EnumType);
 
-    Text_t code;
-    if (enum_has_fields(subject_t))
-        code = Texts("WHEN(", compile_type(subject_t), ", ", compile(env, when->subject), ", _when_subject, {\n");
-    else code = Texts("switch(", compile(env, when->subject), ") {\n");
-
+    Text_t code = Texts("WHEN(", compile_type(subject_t), ", ", compile(env, when->subject), ", _when_subject, {\n");
     for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
         if (clause->pattern->tag == Var) {
             const char *clause_tag_name = Match(clause->pattern, Var)->name;
@@ -132,7 +128,7 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
     } else {
         code = Texts(code, "default: errx(1, \"Invalid tag!\");\n");
     }
-    code = Texts(code, "\n}", enum_has_fields(subject_t) ? Text(")") : EMPTY_TEXT, "\n");
+    code = Texts(code, "\n}", Text(")"), "\n");
     return code;
 }
 

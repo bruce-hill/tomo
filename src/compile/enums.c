@@ -12,8 +12,6 @@ Text_t compile_enum_typeinfo(env_t *env, const char *name, tag_ast_t *tags) {
     // Compile member types and constructors:
     Text_t member_typeinfos = EMPTY_TEXT;
     for (tag_ast_t *tag = tags; tag; tag = tag->next) {
-        if (!tag->fields) continue;
-
         const char *tag_name = String(name, "$", tag->name);
         type_t *tag_type = Table$str_get(*env->types, tag_name);
         assert(tag_type && tag_type->tag == StructType);
@@ -38,9 +36,7 @@ Text_t compile_enum_typeinfo(env_t *env, const char *name, tag_ast_t *tags) {
     for (tag_ast_t *tag = tags; tag; tag = tag->next) {
         const char *tag_type_name = String(name, "$", tag->name);
         type_t *tag_type = Table$str_get(*env->types, tag_type_name);
-        if (tag_type && Match(tag_type, StructType)->fields)
-            typeinfo = Texts(typeinfo, "{\"", tag->name, "\", ", compile_type_info(tag_type), "}, ");
-        else typeinfo = Texts(typeinfo, "{\"", tag->name, "\"}, ");
+        typeinfo = Texts(typeinfo, "{\"", tag->name, "\", ", compile_type_info(tag_type), "}, ");
     }
     typeinfo = Texts(typeinfo, "}}}};\n");
     return Texts(member_typeinfos, typeinfo);
@@ -49,8 +45,6 @@ Text_t compile_enum_typeinfo(env_t *env, const char *name, tag_ast_t *tags) {
 Text_t compile_enum_constructors(env_t *env, const char *name, tag_ast_t *tags) {
     Text_t constructors = EMPTY_TEXT;
     for (tag_ast_t *tag = tags; tag; tag = tag->next) {
-        if (!tag->fields) continue;
-
         Text_t arg_sig = EMPTY_TEXT;
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
             type_t *field_t = get_arg_ast_type(env, field);
@@ -76,24 +70,15 @@ Text_t compile_enum_constructors(env_t *env, const char *name, tag_ast_t *tags) 
 Text_t compile_enum_header(env_t *env, const char *name, tag_ast_t *tags) {
     Text_t all_defs = EMPTY_TEXT;
     Text_t none_name = namespace_name(env, env->namespace, Texts(name, "$none"));
-    Text_t enum_name = namespace_name(env, env->namespace, Texts(name, "$$enum"));
     Text_t enum_tags = Texts("{ ", none_name, "=0, ");
     assert(Table$str_get(*env->types, name));
 
-    bool has_any_tags_with_fields = false;
     for (tag_ast_t *tag = tags; tag; tag = tag->next) {
         Text_t tag_name = namespace_name(env, env->namespace, Texts(name, "$tag$", tag->name));
         enum_tags = Texts(enum_tags, tag_name);
         if (tag->next) enum_tags = Texts(enum_tags, ", ");
-        has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
     }
     enum_tags = Texts(enum_tags, " }");
-
-    if (!has_any_tags_with_fields) {
-        Text_t enum_def = Texts("enum ", enum_name, " ", enum_tags, ";\n");
-        Text_t info = namespace_name(env, env->namespace, Texts(name, "$$info"));
-        return Texts(enum_def, "extern const TypeInfo_t ", info, ";\n");
-    }
 
     Text_t struct_name = namespace_name(env, env->namespace, Texts(name, "$$struct"));
     Text_t enum_def = Texts("struct ", struct_name,
@@ -103,7 +88,6 @@ Text_t compile_enum_header(env_t *env, const char *name, tag_ast_t *tags) {
                             " $tag;\n"
                             "union {\n");
     for (tag_ast_t *tag = tags; tag; tag = tag->next) {
-        if (!tag->fields) continue;
         Text_t field_def = compile_struct_header(env, NewAST(tag->file, tag->start, tag->end, StructDef,
                                                              .name = Text$as_c_string(Texts(name, "$", tag->name)),
                                                              .fields = tag->fields));
@@ -117,8 +101,6 @@ Text_t compile_enum_header(env_t *env, const char *name, tag_ast_t *tags) {
     Text_t info = namespace_name(env, env->namespace, Texts(name, "$$info"));
     all_defs = Texts(all_defs, "extern const TypeInfo_t ", info, ";\n");
     for (tag_ast_t *tag = tags; tag; tag = tag->next) {
-        if (!tag->fields) continue;
-
         Text_t arg_sig = EMPTY_TEXT;
         for (arg_ast_t *field = tag->fields; field; field = field->next) {
             type_t *field_t = get_arg_ast_type(env, field);
@@ -140,11 +122,8 @@ Text_t compile_empty_enum(type_t *t) {
     tag_t *tag = enum_->tags;
     assert(tag);
     assert(tag->type);
-    if (Match(tag->type, StructType)->fields)
-        return Texts("((", compile_type(t), "){.$tag=", tag->tag_value, ", .", tag->name, "=", compile_empty(tag->type),
-                     "})");
-    else if (enum_has_fields(t)) return Texts("((", compile_type(t), "){.$tag=", tag->tag_value, "})");
-    else return Texts("((", compile_type(t), ")", tag->tag_value, ")");
+    return Texts("((", compile_type(t), "){.$tag=", tag->tag_value, ", .", tag->name, "=", compile_empty(tag->type),
+                 "})");
 }
 
 public
@@ -156,22 +135,11 @@ Text_t compile_enum_field_access(env_t *env, ast_t *ast) {
     for (tag_t *tag = e->tags; tag; tag = tag->next) {
         if (streq(f->field, tag->name)) {
             Text_t tag_name = namespace_name(e->env, e->env->namespace, Texts("tag$", tag->name));
-            if (tag->type != NULL && Match(tag->type, StructType)->fields) {
-                Text_t member = compile_maybe_incref(
-                    env, WrapLiteralCode(ast, Texts("_e.", tag->name), .type = tag->type), tag->type);
-                return Texts("({ ", compile_declaration(value_t, Text("_e")), " = ",
-                             compile_to_pointer_depth(env, f->fielded, 0, false), "; ", "_e.$tag == ", tag_name, " ? ",
-                             promote_to_optional(tag->type, member), " : ", compile_none(tag->type), "; })");
-            } else if (fielded_t->tag == PointerType) {
-                Text_t fielded = compile_to_pointer_depth(env, f->fielded, 1, false);
-                return Texts("((", fielded, ")->$tag == ", tag_name, " ? OPTIONAL_EMPTY_STRUCT : NONE_EMPTY_STRUCT)");
-            } else if (enum_has_fields(value_t)) {
-                Text_t fielded = compile(env, f->fielded);
-                return Texts("((", fielded, ").$tag == ", tag_name, " ? OPTIONAL_EMPTY_STRUCT : NONE_EMPTY_STRUCT)");
-            } else {
-                Text_t fielded = compile(env, f->fielded);
-                return Texts("((", fielded, ") == ", tag_name, " ? OPTIONAL_EMPTY_STRUCT : NONE_EMPTY_STRUCT)");
-            }
+            Text_t member =
+                compile_maybe_incref(env, WrapLiteralCode(ast, Texts("_e.", tag->name), .type = tag->type), tag->type);
+            return Texts("({ ", compile_declaration(value_t, Text("_e")), " = ",
+                         compile_to_pointer_depth(env, f->fielded, 0, false), "; ", "_e.$tag == ", tag_name, " ? ",
+                         promote_to_optional(tag->type, member), " : ", compile_none(tag->type), "; })");
         }
     }
     code_err(ast, "The field '", f->field, "' is not a valid tag name of ", type_to_text(value_t));

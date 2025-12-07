@@ -79,28 +79,16 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast) {
         *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
     } else if (ast->tag == EnumDef) {
         DeclareMatch(def, ast, EnumDef);
-        bool has_any_tags_with_fields = false;
+        Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$struct"));
+        Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
+        *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
+
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
-        }
-
-        if (has_any_tags_with_fields) {
-            Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$struct"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
-            *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
-
-            for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-                if (!tag->fields) continue;
-                Text_t tag_struct =
-                    namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$struct"));
-                Text_t tag_type =
-                    namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$type"));
-                *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
-            }
-        } else {
-            Text_t enum_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$enum"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
-            *info->header = Texts(*info->header, "typedef enum ", enum_name, " ", type_name, ";\n");
+            Text_t tag_struct =
+                namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$struct"));
+            Text_t tag_type =
+                namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$type"));
+            *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
         }
     } else if (ast->tag == LangDef) {
         DeclareMatch(def, ast, LangDef);
@@ -124,29 +112,16 @@ static void add_type_headers(type_ast_t *type_ast, void *userdata) {
         // Force the type to get defined:
         (void)parse_type_ast(info->env, type_ast);
         DeclareMatch(enum_, type_ast, EnumTypeAST);
-        bool has_any_tags_with_fields = false;
-        for (tag_ast_t *tag = enum_->tags; tag; tag = tag->next) {
-            has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
-        }
-
         const char *name = String("enum$", (int64_t)(type_ast->start - type_ast->file->text));
-        if (has_any_tags_with_fields) {
-            Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$struct"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$type"));
-            *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
+        Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$struct"));
+        Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$type"));
+        *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
 
-            for (tag_ast_t *tag = enum_->tags; tag; tag = tag->next) {
-                if (!tag->fields) continue;
-                Text_t tag_struct =
-                    namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$struct"));
-                Text_t tag_type =
-                    namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$type"));
-                *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
-            }
-        } else {
-            Text_t enum_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$enum"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$type"));
-            *info->header = Texts(*info->header, "typedef enum ", enum_name, " ", type_name, ";\n");
+        for (tag_ast_t *tag = enum_->tags; tag; tag = tag->next) {
+            Text_t tag_struct =
+                namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$struct"));
+            Text_t tag_type = namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$type"));
+            *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
         }
 
         *info->header = Texts(*info->header, compile_enum_header(info->env, name, enum_->tags));

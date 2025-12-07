@@ -125,11 +125,6 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
 
         Table$str_set(env->types, enum_name, enum_type);
 
-        bool has_any_tags_with_fields = false;
-        for (tag_ast_t *tag_ast = tag_asts; tag_ast; tag_ast = tag_ast->next) {
-            has_any_tags_with_fields = has_any_tags_with_fields || tag_ast->fields;
-        }
-
         for (tag_ast_t *tag_ast = tag_asts; tag_ast; tag_ast = tag_ast->next) {
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
@@ -151,13 +146,10 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
                 set_binding(ns_env, tag_ast->name, constructor_t, tagged_name);
                 binding_t binding = {.type = constructor_t, .code = tagged_name};
                 List$insert(&ns_env->namespace->constructors, &binding, I(1), sizeof(binding));
-            } else if (has_any_tags_with_fields) { // Empty singleton value:
+            } else { // Empty singleton value:
                 Text_t code =
                     Texts("((", namespace_name(env, env->namespace, Texts(enum_name, "$$type")), "){",
                           namespace_name(env, env->namespace, Texts(enum_name, "$tag$", tag_ast->name)), "})");
-                set_binding(ns_env, tag_ast->name, enum_type, code);
-            } else {
-                Text_t code = namespace_name(env, env->namespace, Texts(enum_name, "$tag$", tag_ast->name));
                 set_binding(ns_env, tag_ast->name, enum_type, code);
             }
             Table$str_set(env->types, String(enum_name, "$", tag_ast->name), tag_type);
@@ -441,9 +433,7 @@ void bind_statement(env_t *env, ast_t *statement) {
         ns_env->current_type = type;
         tag_t *tags = NULL;
         int64_t next_tag = 1;
-        bool has_any_tags_with_fields = false;
         for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
-            has_any_tags_with_fields = has_any_tags_with_fields || tag_ast->fields;
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
                 type_t *field_t = get_arg_ast_type(env, field_ast);
@@ -496,12 +486,9 @@ void bind_statement(env_t *env, ast_t *statement) {
                 set_binding(ns_env, tag->name, constructor_t, tagged_name);
                 binding_t binding = {.type = constructor_t, .code = tagged_name};
                 List$insert(&ns_env->namespace->constructors, &binding, I(1), sizeof(binding));
-            } else if (has_any_tags_with_fields) { // Empty singleton value:
+            } else { // Empty singleton value:
                 Text_t code = Texts("((", namespace_name(env, env->namespace, Texts(def->name, "$$type")), "){",
                                     namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name)), "})");
-                set_binding(ns_env, tag->name, type, code);
-            } else {
-                Text_t code = namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name));
                 set_binding(ns_env, tag->name, type, code);
             }
             Table$str_set(env->types, String(def->name, "$", tag->name), tag->type);
