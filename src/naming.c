@@ -94,16 +94,12 @@ Text_t valid_c_name(const char *name) {
     return Text$from_str(name);
 }
 
-#include "stdlib/stdlib.h"
 public
 Text_t CONSTFUNC namespace_name(env_t *env, namespace_t *ns, Text_t name) {
-    if (Text$has(name, Text("\n"))) fail("WTF??");
     for (; ns; ns = ns->parent) {
-        if (strchr(ns->name, '\n')) fail("WTF");
         name = Texts(ns->name, "$", name);
     }
     if (env->id_suffix.length > 0) name = Texts(name, env->id_suffix);
-    if (Text$has(env->id_suffix, Text("\n"))) fail("WTF?????");
     return name;
 }
 
