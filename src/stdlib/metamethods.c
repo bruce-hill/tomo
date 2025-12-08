@@ -85,12 +85,6 @@ void generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type) {
     fclose(input);
 }
 
-public
-int generic_print(const void *obj, bool colorize, const TypeInfo_t *type) {
-    Text_t text = generic_as_text(obj, colorize, type);
-    return Text$print(stdout, text) + fputc('\n', stdout);
-}
-
 __attribute__((noreturn)) public
 void cannot_serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type) {
     (void)obj, (void)out, (void)pointers;
