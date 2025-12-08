@@ -11,6 +11,7 @@
 
 Path_t Path$from_str(const char *str);
 Path_t Path$from_text(Text_t text);
+// This function is defined as an extern in `src/stdlib/print.h`
 // int Path$print(FILE *f, Path_t path);
 // UNSAFE: this works because each type of path has a .components in the same place
 #define Path$components(path) ((path).components)
