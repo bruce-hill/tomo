@@ -136,6 +136,31 @@ Table iteration operates over the value of the table when the loop began, so
 modifying the table during iteration is safe and will not result in the loop
 iterating over any of the new values.
 
+## Sets
+
+For an interface similar to Python's Sets, Tomo tables can be used with an
+empty struct as its value type. For convenience, if a value or value is
+omitted, Tomo will assign a default value type of `struct Present()` (an empty
+struct). This way, the values stored in the table take up no space, but you
+still have an easy way to represent Set-like data.
+
+```tomo
+nums := {10, 20, 30, 10}
+assert nums.items == [10, 20, 30]
+assert nums[10] == Present()
+assert nums[99] == none
+```
+
+The following set-theoretic operations are available for tables:
+
+- Set union: (AKA `or`) `{10, 20, 30}.with({30, 40})` -> `{10, 20, 30, 40}`
+- Set intersection (AKA `and`) `{10, 20, 30}.intersection({30, 40})` -> `{10,
+  20, 30, 40}`
+- Set difference (AKA, `xor`, disjunctive union, symmetric difference) `{10,
+  20, 30}.difference({30, 40})` -> `{10, 20, 40}`
+- Set subtraction (AKA, `-`, asymmetric difference) `{10, 20, 30}.without({30,
+  40})` -> `{10, 20}`
+
 # API
 
 [API documentation](../api/tables.md)
