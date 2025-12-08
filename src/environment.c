@@ -541,7 +541,7 @@ env_t *global_env(bool source_mapping) {
         {"print", "say", "func(text:Text, newline=yes)"},
         {"say", "say", "func(text:Text, newline=yes)"},
         {"setenv", "setenv_text", "func(name:Text, value:Text?)"},
-        {"sleep", "sleep_num", "func(seconds:Num)"},
+        {"sleep", "sleep_seconds", "func(seconds:Num)"},
     };
 
     for (size_t i = 0; i < sizeof(global_vars) / sizeof(global_vars[0]); i++) {

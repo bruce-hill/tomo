@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <gc.h>
 #include <locale.h>
+#include <math.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -205,11 +206,16 @@ cleanup:
 }
 
 public
-void sleep_num(double seconds) {
+void sleep_seconds(double seconds) {
+    if (seconds < 0) fail("Cannot sleep for a negative amount of time: ", seconds);
+    else if (isnan(seconds)) fail("Cannot sleep for a time that is NaN");
     struct timespec ts;
     ts.tv_sec = (time_t)seconds;
     ts.tv_nsec = (long)((seconds - (double)ts.tv_sec) * 1e9);
-    nanosleep(&ts, NULL);
+    while (nanosleep(&ts, NULL) != 0) {
+        if (errno == EINTR) continue;
+        fail("Failed to sleep for the requested time (", strerror(errno), ")");
+    }
 }
 
 public

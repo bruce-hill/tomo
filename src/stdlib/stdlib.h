@@ -79,6 +79,6 @@ Text_t ask(Text_t prompt, bool bold, bool force_tty);
 _Noreturn void tomo_exit(Text_t text, int32_t status);
 
 Closure_t spawn(Closure_t fn);
-void sleep_num(double seconds);
+void sleep_seconds(double seconds);
 OptionalText_t getenv_text(Text_t name);
 void setenv_text(Text_t name, Text_t value);
