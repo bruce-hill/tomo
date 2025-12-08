@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.write 3 2025-11-29 "Tomo man-pages"
+.TH Path.write 3 2025-12-07 "Tomo man-pages"
 .SH NAME
 Path.write \- write to a file
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.write\ :\ func(path:\ Path,\ text:\ Text,\ permissions\ =\ Int32(0o644)\ ->\ Void)
+.BI Path.write\ :\ func(path:\ Path,\ text:\ Text,\ permissions\ =\ Int32(0o644)\ ->\ Result)
 .fi
 .SH DESCRIPTION
 Writes the given text to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised.
@@ -27,7 +27,7 @@ text	Text	The text to write to the file. 	-
 permissions		The permissions to set on the file if it is created. 	Int32(0o644)
 .TE
 .SH RETURN
-Nothing.
+Either `Success` or `Failure(reason)`.
 
 .SH EXAMPLES
 .EX

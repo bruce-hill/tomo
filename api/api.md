@@ -2556,7 +2556,7 @@ assert (./not-a-file).accessed() == none
 ## Path.append
 
 ```tomo
-Path.append : func(path: Path, text: Text, permissions: Int32 = Int32(0o644) -> Void)
+Path.append : func(path: Path, text: Text, permissions: Int32 = Int32(0o644) -> Result)
 ```
 
 Appends the given text to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error.
@@ -2567,18 +2567,18 @@ path | `Path` | The path of the file to append to.  | -
 text | `Text` | The text to append to the file.  | -
 permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
 ```tomo
-(./log.txt).append("extra line$(\n)")
+(./log.txt).append("extra line\n")!
 
 ```
 ## Path.append_bytes
 
 ```tomo
-Path.append_bytes : func(path: Path, bytes: [Byte], permissions: Int32 = Int32(0o644) -> Void)
+Path.append_bytes : func(path: Path, bytes: [Byte], permissions: Int32 = Int32(0o644) -> Result)
 ```
 
 Appends the given bytes to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error.
@@ -2589,12 +2589,12 @@ path | `Path` | The path of the file to append to.  | -
 bytes | `[Byte]` | The bytes to append to the file.  | -
 permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
 ```tomo
-(./log.txt).append_bytes([104, 105])
+(./log.txt).append_bytes([104, 105])!
 
 ```
 ## Path.base_name
@@ -2781,7 +2781,7 @@ assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
 ## Path.create_directory
 
 ```tomo
-Path.create_directory : func(path: Path, permissions = Int32(0o755), recursive = yes -> Void)
+Path.create_directory : func(path: Path, permissions = Int32(0o755), recursive = yes -> Result)
 ```
 
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
@@ -2793,7 +2793,7 @@ path | `Path` | The path of the directory to create.  | -
 permissions | `` | The permissions to set on the new directory.  | `Int32(0o755)`
 recursive | `` | If set to `yes`, then recursively create any parent directories if they don't exist, otherwise fail if the parent directory does not exist. When set to `yes`, this function behaves like `mkdir -p`.  | `yes`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
@@ -3159,7 +3159,7 @@ assert (/non/existent/file).owner() == none
 ## Path.parent
 
 ```tomo
-Path.parent : func(path: Path -> Path)
+Path.parent : func(path: Path -> Path?)
 ```
 
 Returns the parent directory of the file or directory at the specified path.
@@ -3168,7 +3168,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file or directory.  | -
 
-**Return:** The path of the parent directory.
+**Return:** The path of the parent directory or `none` if the path is `(/)` (the file root).
 
 
 **Example:**
@@ -3232,18 +3232,19 @@ Argument | Type | Description | Default
 path | `Path` | The path to convert.  | -
 relative_to | `` | The base path for the relative path.  | `(./)`
 
-**Return:** The relative path.
+**Return:** A relative path from the reference point to the given path.
 
 
 **Example:**
 ```tomo
-assert (./path/to/file.txt).relative(relative_to=(./path)) == (./to/file.txt)
+assert (./path/to/file.txt).relative_to((./path)) == (./to/file.txt)
+assert (/tmp/foo).relative_to((/tmp)) == (./foo)
 
 ```
 ## Path.remove
 
 ```tomo
-Path.remove : func(path: Path, ignore_missing = no -> Void)
+Path.remove : func(path: Path, ignore_missing = no -> Result)
 ```
 
 Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
@@ -3253,7 +3254,7 @@ Argument | Type | Description | Default
 path | `Path` | The path to remove.  | -
 ignore_missing | `` | Whether to ignore errors if the file or directory does not exist.  | `no`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
@@ -3286,7 +3287,7 @@ assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.t
 ## Path.set_owner
 
 ```tomo
-Path.set_owner : func(path: Path, owner: Text? = none, group: Text? = none, follow_symlinks: Bool = yes -> Void)
+Path.set_owner : func(path: Path, owner: Text? = none, group: Text? = none, follow_symlinks: Bool = yes -> Result)
 ```
 
 Set the owning user and/or group for a path.
@@ -3298,7 +3299,7 @@ owner | `Text?` | If non-none, the new user to assign to be the owner of the fil
 group | `Text?` | If non-none, the new group to assign to be the owner of the file.  | `none`
 follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
-**Return:** Nothing. If a path does not exist, a failure will be raised.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
@@ -3374,7 +3375,7 @@ created.remove()
 ## Path.write
 
 ```tomo
-Path.write : func(path: Path, text: Text, permissions = Int32(0o644) -> Void)
+Path.write : func(path: Path, text: Text, permissions = Int32(0o644) -> Result)
 ```
 
 Writes the given text to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised.
@@ -3385,7 +3386,7 @@ path | `Path` | The path of the file to write to.  | -
 text | `Text` | The text to write to the file.  | -
 permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
@@ -3396,7 +3397,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 ## Path.write_bytes
 
 ```tomo
-Path.write_bytes : func(path: Path, bytes: [Byte], permissions = Int32(0o644) -> Void)
+Path.write_bytes : func(path: Path, bytes: [Byte], permissions = Int32(0o644) -> Result)
 ```
 
 Writes the given bytes to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised.
@@ -3407,7 +3408,7 @@ path | `Path` | The path of the file to write to.  | -
 bytes | `[Byte]` | A list of bytes to write to the file.  | -
 permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**

@@ -18,6 +18,8 @@ public
 type_t *PATH_TYPE = NULL;
 public
 type_t *PRESENT_TYPE = NULL;
+public
+type_t *RESULT_TYPE = NULL;
 
 static type_t *declare_type(env_t *env, const char *def_str) {
     ast_t *ast = parse_file_str(def_str);
@@ -68,6 +70,7 @@ env_t *global_env(bool source_mapping) {
     PATH_TYPE = declare_type(
         env,
         "enum Path(AbsolutePath(components:[Text]), RelativePath(components:[Text]), HomePath(components:[Text]))");
+    RESULT_TYPE = declare_type(env, "enum Result(Success, Failure(reason:Text))");
 
     PRESENT_TYPE = declare_type(env, "struct Present()");
 
@@ -90,6 +93,7 @@ env_t *global_env(bool source_mapping) {
         MAKE_TYPE("Abort", Type(AbortType), Text("void"), Text("Abort$info")),
         MAKE_TYPE("Memory", Type(MemoryType), Text("void"), Text("Memory$info")),
         MAKE_TYPE("Present", PRESENT_TYPE, Text("Present$$type"), Text("Present$$info")),
+        MAKE_TYPE("Result", RESULT_TYPE, Text("Result_t"), Text("Result$$info")),
         MAKE_TYPE( //
             "Bool", Type(BoolType), Text("Bool_t"), Text("Bool$info"),
             {"parse", "Bool$parse", "func(text:Text, remainder:&Text?=none -> Bool?)"}),
@@ -293,8 +297,9 @@ env_t *global_env(bool source_mapping) {
         MAKE_TYPE( //
             "Path", PATH_TYPE, Text("Path_t"), Text("Path$info"), //
             {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
-            {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644))"}, //
-            {"append_bytes", "Path$append_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644))"}, //
+            {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
+            {"append_bytes", "Path$append_bytes",
+             "func(path:Path, bytes:[Byte], permissions=Int32(0o644) -> Result)"}, //
             {"base_name", "Path$base_name", "func(path:Path -> Text)"}, //
             {"by_line", "Path$by_line", "func(path:Path -> func(->Text?)?)"}, //
             {"can_execute", "Path$can_execute", "func(path:Path -> Bool)"}, //
@@ -306,7 +311,7 @@ env_t *global_env(bool source_mapping) {
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"}, //
             {"components", "Path$components", "func(path:Path -> [Text])"}, //
             {"create_directory", "Path$create_directory",
-             "func(path:Path, permissions=Int32(0o755), recursive=yes)"}, //
+             "func(path:Path, permissions=Int32(0o755), recursive=yes -> Result)"}, //
             {"current_dir", "Path$current_dir", "func(->Path)"}, //
             {"exists", "Path$exists", "func(path:Path -> Bool)"}, //
             {"expand_home", "Path$expand_home", "func(path:Path -> Path)"}, //
@@ -324,21 +329,21 @@ env_t *global_env(bool source_mapping) {
             {"lines", "Path$lines", "func(path:Path -> [Text]?)"}, //
             {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
             {"owner", "Path$owner", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
-            {"parent", "Path$parent", "func(path:Path -> Path)"}, //
+            {"parent", "Path$parent", "func(path:Path -> Path?)"}, //
             {"read", "Path$read", "func(path:Path -> Text?)"}, //
             {"read_bytes", "Path$read_bytes", "func(path:Path, limit:Int?=none -> [Byte]?)"}, //
             {"relative_to", "Path$relative_to", "func(path:Path, relative_to:Path -> Path)"}, //
-            {"remove", "Path$remove", "func(path:Path, ignore_missing=no)"}, //
+            {"remove", "Path$remove", "func(path:Path, ignore_missing=no -> Result)"}, //
             {"resolved", "Path$resolved", "func(path:Path, relative_to=(./) -> Path)"}, //
-            {"set_owner", "Path$set_owner", //
-             "func(path:Path, owner:Text?=none, group:Text?=none, follow_symlinks=yes)"}, //
+            {"set_owner", "Path$set_owner",
+             "func(path:Path, owner:Text?=none, group:Text?=none, follow_symlinks=yes -> Result)"}, //
             {"sibling", "Path$sibling", "func(path:Path, name:Text -> Path)"}, //
             {"subdirectories", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"unique_directory", "Path$unique_directory", "func(path:Path -> Path)"}, //
-            {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644))"}, //
-            {"write_bytes", "Path$write_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644))"}, //
-            {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path)"}, //
-            {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path)"}),
+            {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
+            {"write_bytes", "Path$write_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644) -> Result)"}, //
+            {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path?)"}, //
+            {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path?)"}),
         MAKE_TYPE( //
             "Text", TEXT_TYPE, Text("Text_t"), Text("Text$info"), //
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"}, //

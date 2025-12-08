@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.parent 3 2025-11-29 "Tomo man-pages"
+.TH Path.parent 3 2025-12-07 "Tomo man-pages"
 .SH NAME
 Path.parent \- get parent directory
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.parent\ :\ func(path:\ Path\ ->\ Path)
+.BI Path.parent\ :\ func(path:\ Path\ ->\ Path?)
 .fi
 .SH DESCRIPTION
 Returns the parent directory of the file or directory at the specified path.
@@ -25,7 +25,7 @@ Name	Type	Description
 path	Path	The path of the file or directory. 
 .TE
 .SH RETURN
-The path of the parent directory.
+The path of the parent directory or `none` if the path is `(/)` (the file root).
 
 .SH EXAMPLES
 .EX

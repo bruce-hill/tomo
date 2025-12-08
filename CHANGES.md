@@ -10,6 +10,17 @@
   have tags with member fields and those without.
 - Rename `Empty()` to `Present()` for set-like tables.
 - Paths are now an `enum Path(AbsolutePath(components:[Text]), RelativePath(components:[Text]), HomePath(components:[Text]))`
+- Added `enum Result(Success, Failure(message:Text))` type for indicating
+  success or failure.
+- Some path methods now use `Result` return types instead of failing:
+  - `Path.append()`
+  - `Path.append_bytes()`
+  - `Path.create_directory()`
+  - `Path.remove()`
+  - `Path.set_owner()`
+  - `Path.write()`
+  - `Path.write_bytes()`
+- `Path.parent()` returns `none` if path is `(/)` (file root)
 
 ## v2025-11-30
 

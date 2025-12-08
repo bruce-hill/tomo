@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.append 3 2025-11-29 "Tomo man-pages"
+.TH Path.append 3 2025-12-07 "Tomo man-pages"
 .SH NAME
 Path.append \- append to a file
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.append\ :\ func(path:\ Path,\ text:\ Text,\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Void)
+.BI Path.append\ :\ func(path:\ Path,\ text:\ Text,\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Result)
 .fi
 .SH DESCRIPTION
 Appends the given text to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error.
@@ -27,11 +27,11 @@ text	Text	The text to append to the file. 	-
 permissions	Int32	The permissions to set on the file if it is being created. 	Int32(0o644)
 .TE
 .SH RETURN
-Nothing.
+Either `Success` or `Failure(reason)`.
 
 .SH EXAMPLES
 .EX
-(./log.txt).append("extra line$(\[rs]n)")
+(./log.txt).append("extra line\[rs]n")!
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

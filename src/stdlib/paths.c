@@ -128,8 +128,10 @@ Path_t Path$_concat(int n, Path_t items[n]) {
 
 public
 Path_t Path$resolved(Path_t path, Path_t relative_to) {
-    if (path.$tag == Path$tag$RelativePath
-        && !(relative_to.$tag == Path$tag$RelativePath && relative_to.components.length == 0)) {
+    if (path.$tag == Path$tag$HomePath) {
+        return Path$expand_home(path);
+    } else if (path.$tag == Path$tag$RelativePath
+               && !(relative_to.$tag == Path$tag$RelativePath && relative_to.components.length == 0)) {
         Path_t result = {
             .$tag = relative_to.$tag,
             .components = relative_to.components,
@@ -144,16 +146,18 @@ Path_t Path$resolved(Path_t path, Path_t relative_to) {
 
 public
 Path_t Path$relative_to(Path_t path, Path_t relative_to) {
-    if (path.$tag != relative_to.$tag)
-        fail("Cannot create a path relative to a different path with a mismatching type: (", path, ") relative to (",
-             relative_to, ")");
+    if (path.$tag != relative_to.$tag) {
+        path = Path$resolved(path, Path$current_dir());
+        relative_to = Path$resolved(relative_to, Path$current_dir());
+    }
 
     Path_t result = Path$tagged$RelativePath(EMPTY_LIST);
     int64_t shared = 0;
-    for (; shared < (int64_t)path.components.length && shared < (int64_t)relative_to.components.length; shared++) {
+    while (shared < (int64_t)path.components.length && shared < (int64_t)relative_to.components.length) {
         Text_t *p = (Text_t *)(path.components.data + shared * path.components.stride);
         Text_t *r = (Text_t *)(relative_to.components.data + shared * relative_to.components.stride);
         if (!Text$equal_values(*p, *r)) break;
+        shared += 1;
     }
 
     for (int64_t i = shared; i < (int64_t)relative_to.components.length; i++)
@@ -163,7 +167,6 @@ Path_t Path$relative_to(Path_t path, Path_t relative_to) {
         Text_t *p = (Text_t *)(path.components.data + i * path.components.stride);
         List$insert(&result.components, p, I(0), sizeof(Text_t));
     }
-    // clean_components(&result.components);
     return result;
 }
 
@@ -277,7 +280,7 @@ OptionalInt64_t Path$changed(Path_t path, bool follow_symlinks) {
     return (OptionalInt64_t){.value = (int64_t)sb.st_ctime};
 }
 
-static void _write(Path_t path, List_t bytes, int mode, int permissions) {
+static Result_t _write(Path_t path, List_t bytes, int mode, int permissions) {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     int fd = open(path_str, mode, permissions);
@@ -287,36 +290,38 @@ static void _write(Path_t path, List_t bytes, int mode, int permissions) {
             // be closed by GC finalizers.
             GC_gcollect();
             fd = open(path_str, mode, permissions);
-            if (fd == -1) fail("Could not write to file: ", path_str, "\n", strerror(errno));
         }
+        if (fd == -1) return FailureResult("Could not write to file: ", path_str, " (", strerror(errno), ")");
     }
 
     if (bytes.stride != 1) List$compact(&bytes, 1);
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
-    if (written != (ssize_t)bytes.length) fail("Could not write to file: ", path_str, "\n", strerror(errno));
+    if (written != (ssize_t)bytes.length)
+        return FailureResult("Could not write to file: ", path_str, " (", strerror(errno), ")");
     close(fd);
+    return SuccessResult;
 }
 
 public
-void Path$write(Path_t path, Text_t text, int permissions) {
+Result_t Path$write(Path_t path, Text_t text, int permissions) {
     List_t bytes = Text$utf8(text);
-    _write(path, bytes, O_WRONLY | O_CREAT | O_TRUNC, permissions);
+    return _write(path, bytes, O_WRONLY | O_CREAT | O_TRUNC, permissions);
 }
 
 public
-void Path$write_bytes(Path_t path, List_t bytes, int permissions) {
-    _write(path, bytes, O_WRONLY | O_CREAT | O_TRUNC, permissions);
+Result_t Path$write_bytes(Path_t path, List_t bytes, int permissions) {
+    return _write(path, bytes, O_WRONLY | O_CREAT | O_TRUNC, permissions);
 }
 
 public
-void Path$append(Path_t path, Text_t text, int permissions) {
+Result_t Path$append(Path_t path, Text_t text, int permissions) {
     List_t bytes = Text$utf8(text);
-    _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
+    return _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
 }
 
 public
-void Path$append_bytes(Path_t path, List_t bytes, int permissions) {
-    _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
+Result_t Path$append_bytes(Path_t path, List_t bytes, int permissions) {
+    return _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
 }
 
 public
@@ -347,8 +352,7 @@ OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count) {
         memcpy(content, mem, (size_t)sb.st_size);
         content[sb.st_size] = '\0';
         close(fd);
-        if (count.small && (int64_t)sb.st_size < target_count)
-            fail("Could not read ", target_count, " bytes from ", path, " (only got ", (uint64_t)sb.st_size, ")");
+        if (count.small && (int64_t)sb.st_size < target_count) return NONE_LIST;
         int64_t len = count.small ? target_count : (int64_t)sb.st_size;
         return (List_t){.data = content, .atomic = 1, .stride = 1, .length = (uint64_t)len};
     } else {
@@ -376,8 +380,7 @@ OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count) {
             len += (size_t)just_read;
         }
         close(fd);
-        if (count.small != 0 && (int64_t)len < target_count)
-            fail("Could not read ", target_count, " bytes from ", path, " (only got ", (uint64_t)len, ")");
+        if (count.small != 0 && (int64_t)len < target_count) return NONE_LIST;
         return (List_t){.data = content, .atomic = 1, .stride = 1, .length = (uint64_t)len};
     }
 }
@@ -408,23 +411,24 @@ OptionalText_t Path$group(Path_t path, bool follow_symlinks) {
 }
 
 public
-void Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t group, bool follow_symlinks) {
+Result_t Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t group, bool follow_symlinks) {
     uid_t owner_id = (uid_t)-1;
     if (owner.tag == TEXT_NONE) {
         struct passwd *pwd = getpwnam(Text$as_c_string(owner));
-        if (pwd == NULL) fail("Not a valid user: ", owner);
+        if (pwd == NULL) return FailureResult("Not a valid user: ", owner);
         owner_id = pwd->pw_uid;
     }
 
     gid_t group_id = (gid_t)-1;
     if (group.tag == TEXT_NONE) {
         struct group *grp = getgrnam(Text$as_c_string(group));
-        if (grp == NULL) fail("Not a valid group: ", group);
+        if (grp == NULL) return FailureResult("Not a valid group: ", group);
         group_id = grp->gr_gid;
     }
     const char *path_str = Path$as_c_string(path);
     int result = follow_symlinks ? chown(path_str, owner_id, group_id) : lchown(path_str, owner_id, group_id);
-    if (result < 0) fail("Could not set owner!");
+    if (result < 0) return FailureResult("Could not set owner!");
+    return SuccessResult;
 }
 
 static int _remove_files(const char *path, const struct stat *sbuf, int type, struct FTW *ftwb) {
@@ -446,29 +450,30 @@ static int _remove_files(const char *path, const struct stat *sbuf, int type, st
 }
 
 public
-void Path$remove(Path_t path, bool ignore_missing) {
+Result_t Path$remove(Path_t path, bool ignore_missing) {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     struct stat sb;
     if (lstat(path_str, &sb) != 0) {
-        if (!ignore_missing) fail("Could not remove file: ", path_str, " (", strerror(errno), ")");
-        return;
+        if (!ignore_missing) return FailureResult("Could not remove file: ", path_str, " (", strerror(errno), ")");
+        return SuccessResult;
     }
 
     if ((sb.st_mode & S_IFMT) == S_IFREG || (sb.st_mode & S_IFMT) == S_IFLNK) {
         if (unlink(path_str) != 0 && !ignore_missing)
-            fail("Could not remove file: ", path_str, " (", strerror(errno), ")");
+            return FailureResult("Could not remove file: ", path_str, " (", strerror(errno), ")");
     } else if ((sb.st_mode & S_IFMT) == S_IFDIR) {
         const int num_open_fd = 10;
         if (nftw(path_str, _remove_files, num_open_fd, FTW_DEPTH | FTW_MOUNT | FTW_PHYS) < 0)
-            fail("Could not remove directory: %s (%s)", path_str, strerror(errno));
+            return FailureResult("Could not remove directory: ", path_str, " (", strerror(errno), ")");
     } else {
-        fail("Could not remove path: ", path_str, " (not a file or directory)");
+        return FailureResult("Could not remove path: ", path_str, " (not a file or directory)");
     }
+    return SuccessResult;
 }
 
 public
-void Path$create_directory(Path_t path, int permissions, bool recursive) {
+Result_t Path$create_directory(Path_t path, int permissions, bool recursive) {
 retry:
     path = Path$expand_home(path);
     const char *c_path = Path$as_c_string(path);
@@ -478,19 +483,20 @@ retry:
             Path$create_directory(Path$parent(path), permissions, recursive);
             goto retry;
         } else if (errno != EEXIST) {
-            fail("Could not create directory: ", c_path, " (", strerror(errno), ")");
+            return FailureResult("Could not create directory: ", c_path, " (", strerror(errno), ")");
         }
     }
+    return SuccessResult;
 }
 
-static List_t _filtered_children(Path_t path, bool include_hidden, mode_t filter) {
+static OptionalList_t _filtered_children(Path_t path, bool include_hidden, mode_t filter) {
     path = Path$expand_home(path);
     struct dirent *dir;
     List_t children = EMPTY_LIST;
     const char *path_str = Path$as_c_string(path);
     size_t path_len = strlen(path_str);
     DIR *d = opendir(path_str);
-    if (!d) fail("Could not open directory: ", path, " (", strerror(errno), ")");
+    if (!d) return NONE_LIST;
 
     if (path_str[path_len - 1] == '/') --path_len;
 
@@ -511,18 +517,22 @@ static List_t _filtered_children(Path_t path, bool include_hidden, mode_t filter
 }
 
 public
-List_t Path$children(Path_t path, bool include_hidden) { return _filtered_children(path, include_hidden, (mode_t)-1); }
+OptionalList_t Path$children(Path_t path, bool include_hidden) {
+    return _filtered_children(path, include_hidden, (mode_t)-1);
+}
 
 public
-List_t Path$files(Path_t path, bool include_hidden) { return _filtered_children(path, include_hidden, S_IFREG); }
+OptionalList_t Path$files(Path_t path, bool include_hidden) {
+    return _filtered_children(path, include_hidden, S_IFREG);
+}
 
 public
-List_t Path$subdirectories(Path_t path, bool include_hidden) {
+OptionalList_t Path$subdirectories(Path_t path, bool include_hidden) {
     return _filtered_children(path, include_hidden, S_IFDIR);
 }
 
 public
-Path_t Path$unique_directory(Path_t path) {
+OptionalPath_t Path$unique_directory(Path_t path) {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     size_t len = strlen(path_str);
@@ -532,12 +542,12 @@ Path_t Path$unique_directory(Path_t path) {
     buf[len] = '\0';
     if (buf[len - 1] == '/') buf[--len] = '\0';
     char *created = mkdtemp(buf);
-    if (!created) fail("Failed to create temporary directory: ", path_str, " (", strerror(errno), ")");
+    if (!created) return NONE_PATH;
     return Path$from_str(created);
 }
 
 public
-Path_t Path$write_unique_bytes(Path_t path, List_t bytes) {
+OptionalPath_t Path$write_unique_bytes(Path_t path, List_t bytes) {
     path = Path$expand_home(path);
     const char *path_str = Path$as_c_string(path);
     size_t len = strlen(path_str);
@@ -553,23 +563,23 @@ Path_t Path$write_unique_bytes(Path_t path, List_t bytes) {
         ++suffixlen;
 
     int fd = mkstemps(buf, suffixlen);
-    if (fd == -1) fail("Could not write to unique file: ", buf, "\n", strerror(errno));
+    if (fd == -1) return NONE_PATH;
 
     if (bytes.stride != 1) List$compact(&bytes, 1);
 
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
-    if (written != (ssize_t)bytes.length) fail("Could not write to file: ", buf, "\n", strerror(errno));
+    if (written != (ssize_t)bytes.length) fail("Could not write to file: ", buf, " (", strerror(errno), ")");
     close(fd);
     return Path$from_str(buf);
 }
 
 public
-Path_t Path$write_unique(Path_t path, Text_t text) { return Path$write_unique_bytes(path, Text$utf8(text)); }
+OptionalPath_t Path$write_unique(Path_t path, Text_t text) { return Path$write_unique_bytes(path, Text$utf8(text)); }
 
 public
-Path_t Path$parent(Path_t path) {
+OptionalPath_t Path$parent(Path_t path) {
     if (path.$tag == Path$tag$AbsolutePath && path.components.length == 0) {
-        return path;
+        return NONE_PATH;
     } else if (path.components.length > 0
                && !Text$equal_values(
                    *(Text_t *)(path.components.data + path.components.stride * ((int64_t)path.components.length - 1)),
@@ -631,11 +641,10 @@ public
 Path_t Path$sibling(Path_t path, Text_t name) { return Path$child(Path$parent(path), name); }
 
 public
-Path_t Path$with_extension(Path_t path, Text_t extension, bool replace) {
-    if (path.components.length == 0) fail("A path with no components can't have an extension!");
+OptionalPath_t Path$with_extension(Path_t path, Text_t extension, bool replace) {
+    if (path.components.length == 0) return NONE_PATH;
 
-    if (Text$has(extension, Text("/")) || Text$has(extension, Text(";")))
-        fail("Path extension has invalid characters: ", extension);
+    if (Text$has(extension, Text("/")) || Text$has(extension, Text(";"))) return NONE_PATH;
 
     Path_t result = {
         .$tag = path.$tag,

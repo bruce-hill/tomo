@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path 3 2025-11-29 "Tomo man-pages"
+.TH Path 3 2025-12-07 "Tomo man-pages"
 .SH NAME
 Path \- a Tomo type
 .SH LIBRARY
@@ -19,7 +19,7 @@ For more, see:
 
 
 .TP
-.BI Path.append\ :\ func(path:\ Path,\ text:\ Text,\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Void)
+.BI Path.append\ :\ func(path:\ Path,\ text:\ Text,\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Result)
 Appends the given text to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error. 
 
 For more, see:
@@ -27,7 +27,7 @@ For more, see:
 
 
 .TP
-.BI Path.append_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Void)
+.BI Path.append_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Result)
 Appends the given bytes to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error. 
 
 For more, see:
@@ -99,7 +99,7 @@ For more, see:
 
 
 .TP
-.BI Path.create_directory\ :\ func(path:\ Path,\ permissions\ =\ Int32(0o755),\ recursive\ =\ yes\ ->\ Void)
+.BI Path.create_directory\ :\ func(path:\ Path,\ permissions\ =\ Int32(0o755),\ recursive\ =\ yes\ ->\ Result)
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed. 
 
 For more, see:
@@ -235,7 +235,7 @@ For more, see:
 
 
 .TP
-.BI Path.parent\ :\ func(path:\ Path\ ->\ Path)
+.BI Path.parent\ :\ func(path:\ Path\ ->\ Path?)
 Returns the parent directory of the file or directory at the specified path. 
 
 For more, see:
@@ -267,7 +267,7 @@ For more, see:
 
 
 .TP
-.BI Path.remove\ :\ func(path:\ Path,\ ignore_missing\ =\ no\ ->\ Void)
+.BI Path.remove\ :\ func(path:\ Path,\ ignore_missing\ =\ no\ ->\ Result)
 Removes the file or directory at the specified path. A runtime error is raised if something goes wrong. 
 
 For more, see:
@@ -283,7 +283,7 @@ For more, see:
 
 
 .TP
-.BI Path.set_owner\ :\ func(path:\ Path,\ owner:\ Text?\ =\ none,\ group:\ Text?\ =\ none,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Void)
+.BI Path.set_owner\ :\ func(path:\ Path,\ owner:\ Text?\ =\ none,\ group:\ Text?\ =\ none,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Result)
 Set the owning user and/or group for a path. 
 
 For more, see:
@@ -315,7 +315,7 @@ For more, see:
 
 
 .TP
-.BI Path.write\ :\ func(path:\ Path,\ text:\ Text,\ permissions\ =\ Int32(0o644)\ ->\ Void)
+.BI Path.write\ :\ func(path:\ Path,\ text:\ Text,\ permissions\ =\ Int32(0o644)\ ->\ Result)
 Writes the given text to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised. 
 
 For more, see:
@@ -323,7 +323,7 @@ For more, see:
 
 
 .TP
-.BI Path.write_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions\ =\ Int32(0o644)\ ->\ Void)
+.BI Path.write_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions\ =\ Int32(0o644)\ ->\ Result)
 Writes the given bytes to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised. 
 
 For more, see:

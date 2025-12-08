@@ -87,3 +87,4 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 extern type_t *TEXT_TYPE;
 extern type_t *PATH_TYPE;
 extern type_t *PRESENT_TYPE;
+extern type_t *RESULT_TYPE;

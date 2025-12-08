@@ -27,9 +27,9 @@ Path.append:
     Appends the given text to the file at the specified path, creating the file if
     it doesn't already exist. Failure to write will result in a runtime error.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -45,7 +45,7 @@ Path.append:
       description: >
         The permissions to set on the file if it is being created.
   example: |
-    (./log.txt).append("extra line$(\n)")
+    (./log.txt).append("extra line\n")!
 
 Path.append_bytes:
   short: append bytes to a file
@@ -53,9 +53,9 @@ Path.append_bytes:
     Appends the given bytes to the file at the specified path, creating the file if
     it doesn't already exist. Failure to write will result in a runtime error.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -71,7 +71,7 @@ Path.append_bytes:
       description: >
         The permissions to set on the file if it is being created.
   example: |
-    (./log.txt).append_bytes([104, 105])
+    (./log.txt).append_bytes([104, 105])!
 
 Path.base_name:
   short: base name of a file
@@ -260,9 +260,9 @@ Path.create_directory:
     any of the parent directories do not exist, they will be created as needed.
   note: >
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -604,9 +604,9 @@ Path.parent:
   description: >
     Returns the parent directory of the file or directory at the specified path.
   return:
-    type: 'Path'
+    type: 'Path?'
     description: >
-      The path of the parent directory.
+      The path of the parent directory or `none` if the path is `(/)` (the file root).
   args:
     path:
       type: 'Path'
@@ -666,7 +666,7 @@ Path.relative_to:
   return:
     type: 'Path'
     description: >
-      The relative path.
+      A relative path from the reference point to the given path.
   args:
     path:
       type: 'Path'
@@ -677,16 +677,17 @@ Path.relative_to:
       description: >
         The base path for the relative path.
   example: |
-    assert (./path/to/file.txt).relative(relative_to=(./path)) == (./to/file.txt)
+    assert (./path/to/file.txt).relative_to((./path)) == (./to/file.txt)
+    assert (/tmp/foo).relative_to((/tmp)) == (./foo)
 
 Path.remove:
   short: remove a file or directory
   description: >
     Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -725,9 +726,9 @@ Path.set_owner:
   description: >
     Set the owning user and/or group for a path.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing. If a path does not exist, a failure will be raised.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -818,9 +819,9 @@ Path.write:
     it doesn't already exist. Sets the file permissions as specified. If the file
     writing cannot be successfully completed, a runtime error is raised.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -844,9 +845,9 @@ Path.write_bytes:
     it doesn't already exist. Sets the file permissions as specified. If the file
     writing cannot be successfully completed, a runtime error is raised.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
