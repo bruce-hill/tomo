@@ -226,8 +226,16 @@ OptionalText_t getenv_text(Text_t name) {
 
 public
 void setenv_text(Text_t name, OptionalText_t value) {
-    if (value.tag == TEXT_NONE) unsetenv(Text$as_c_string(name));
-    else setenv(Text$as_c_string(name), Text$as_c_string(value), 1);
+    int status;
+    if (value.tag == TEXT_NONE) {
+        status = unsetenv(Text$as_c_string(name));
+    } else {
+        status = setenv(Text$as_c_string(name), Text$as_c_string(value), 1);
+    }
+    if (status != 0) {
+        if (errno == EINVAL) fail("Invalid environment variable name: ", Text$quoted(name, false, Text("\"")));
+        else fail("Failed to set environment variable (", strerror(errno));
+    }
 }
 
 typedef struct cleanup_s {
