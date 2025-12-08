@@ -47,7 +47,7 @@ Text_t type_to_text(type_t *t) {
     }
     case TableType: {
         DeclareMatch(table, t, TableType);
-        return (table->value_type && table->value_type != EMPTY_TYPE)
+        return (table->value_type && table->value_type != PRESENT_TYPE)
                    ? Texts("{", type_to_text(table->key_type), ":", type_to_text(table->value_type), "}")
                    : Texts("{", type_to_text(table->key_type), "}");
     }

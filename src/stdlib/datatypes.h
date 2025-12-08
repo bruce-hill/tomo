@@ -69,18 +69,18 @@ typedef struct table_s {
     struct table_s *fallback;
 } Table_t;
 
-typedef struct Empty$$struct {
-} Empty$$type;
+typedef struct Present$$struct {
+} Present$$type;
 
-#define EMPTY_STRUCT ((Empty$$type){})
+#define PRESENT_STRUCT ((Present$$type){})
 
 typedef struct {
     bool has_value;
-    Empty$$type value;
-} $OptionalEmpty$$type;
+    Present$$type value;
+} $OptionalPresent$$type;
 
-#define NONE_EMPTY_STRUCT (($OptionalEmpty$$type){.has_value = false})
-#define OPTIONAL_EMPTY_STRUCT (($OptionalEmpty$$type){.has_value = true})
+#define NONE_PRESENT_STRUCT (($OptionalPresent$$type){.has_value = false})
+#define OPTIONAL_PRESENT_STRUCT (($OptionalPresent$$type){.has_value = true})
 
 typedef struct {
     void *fn, *userdata;

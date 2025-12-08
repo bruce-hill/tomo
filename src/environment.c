@@ -19,7 +19,7 @@ type_t *PATH_TYPE = NULL;
 public
 type_t *PATH_TYPE_TYPE = NULL;
 public
-type_t *EMPTY_TYPE = NULL;
+type_t *PRESENT_TYPE = NULL;
 
 static type_t *declare_type(env_t *env, const char *def_str) {
     ast_t *ast = parse_file_str(def_str);
@@ -70,7 +70,7 @@ env_t *global_env(bool source_mapping) {
     PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
     PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
 
-    EMPTY_TYPE = declare_type(env, "struct Empty()");
+    PRESENT_TYPE = declare_type(env, "struct Present()");
 
     typedef struct {
         const char *name, *code, *type_str;
@@ -90,7 +90,7 @@ env_t *global_env(bool source_mapping) {
         MAKE_TYPE("Void", Type(VoidType), Text("void"), Text("Void$info")),
         MAKE_TYPE("Abort", Type(AbortType), Text("void"), Text("Abort$info")),
         MAKE_TYPE("Memory", Type(MemoryType), Text("void"), Text("Memory$info")),
-        MAKE_TYPE("Empty", EMPTY_TYPE, Text("Empty$$type"), Text("Empty$$info")),
+        MAKE_TYPE("Present", PRESENT_TYPE, Text("Present$$type"), Text("Present$$info")),
         MAKE_TYPE( //
             "Bool", Type(BoolType), Text("Bool_t"), Text("Bool$info"),
             {"parse", "Bool$parse", "func(text:Text, remainder:&Text?=none -> Bool?)"}),
@@ -530,7 +530,7 @@ env_t *global_env(bool source_mapping) {
     struct {
         const char *name, *code, *type_str;
     } global_vars[] = {
-        {"EMPTY", "EMPTY", "Empty"},
+        {"PRESENT", "PRESENT", "Present"},
         {"TOMO_VERSION", "TOMO_VERSION_TEXT", "Text"},
         {"USE_COLOR", "USE_COLOR", "Bool"},
         {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text?)"},

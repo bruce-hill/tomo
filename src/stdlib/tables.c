@@ -18,6 +18,7 @@
 #include "metamethods.h"
 #include "pointers.h"
 #include "siphash.h"
+#include "structs.h"
 #include "tables.h"
 #include "text.h"
 #include "types.h"
@@ -757,3 +758,14 @@ void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_
 
     *(Table_t *)outval = t;
 }
+
+public
+const TypeInfo_t Present$$info = {.size = 0,
+                                  .align = 0,
+                                  .tag = StructInfo,
+                                  .metamethods = Struct$metamethods,
+                                  .StructInfo.name = "Present",
+                                  .StructInfo.num_fields = 0};
+
+public
+const Present$$type PRESENT = {};

@@ -38,7 +38,7 @@ static Text_t get_flag_options(type_t *t, Text_t separator) {
     } else if (t->tag == ListType) {
         Text_t item_option = get_flag_options(Match(t, ListType)->item_type, separator);
         return Texts(item_option, "1 ", item_option, "2...");
-    } else if (t->tag == TableType && Match(t, TableType)->value_type == EMPTY_TYPE) {
+    } else if (t->tag == TableType && Match(t, TableType)->value_type == PRESENT_TYPE) {
         Text_t item_option = get_flag_options(Match(t, TableType)->key_type, separator);
         return Texts(item_option, "1 ", item_option, "2...");
     } else if (t->tag == TableType) {

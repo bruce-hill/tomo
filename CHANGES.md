@@ -2,12 +2,13 @@
 
 ## v2025-12-06
 
-- You can now discard Empty values.
+- You can now discard empty struct values.
 - For an enum `Foo(A,B,C)`, the syntax `f!` now desugars to `f.A!` using the
   first tag defined in the enum.
 - Error messages are more helpful for `foo.Whatever!` enum field accessing.
 - Simplified logic for enums so there is less difference between enums that
   have tags with member fields and those without.
+- Rename `Empty()` to `Present()` for set-like tables.
 
 ## v2025-11-30
 
