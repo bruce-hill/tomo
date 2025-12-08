@@ -21,6 +21,7 @@
   - `Path.write()`
   - `Path.write_bytes()`
 - `Path.parent()` returns `none` if path is `(/)` (file root)
+- Added check for unused variables.
 
 ## v2025-11-30
 

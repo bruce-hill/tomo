@@ -30,7 +30,7 @@ func main()
 
     assert (./does-not-exist.xxx).read() == none
     assert (./does-not-exist.xxx).read_bytes() == none
-    if lines := (./does-not-exist.xxx).by_line() then
+    if (./does-not-exist.xxx).by_line()
         fail("I could read lines in a nonexistent file")
     else
         pass

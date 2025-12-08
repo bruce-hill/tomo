@@ -104,8 +104,8 @@ static void _define_types_and_funcs(compile_typedef_info_t *info, ast_t *ast) {
                           compile_statement_namespace_header(info->env, info->header_path, ast));
 }
 
-static void add_type_headers(type_ast_t *type_ast, void *userdata) {
-    if (!type_ast) return;
+static visit_behavior_t add_type_headers(type_ast_t *type_ast, void *userdata) {
+    if (!type_ast) return VISIT_STOP;
 
     if (type_ast->tag == EnumTypeAST) {
         compile_typedef_info_t *info = (compile_typedef_info_t *)userdata;
@@ -126,6 +126,8 @@ static void add_type_headers(type_ast_t *type_ast, void *userdata) {
 
         *info->header = Texts(*info->header, compile_enum_header(info->env, name, enum_->tags));
     }
+
+    return VISIT_PROCEED;
 }
 
 public

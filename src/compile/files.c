@@ -152,7 +152,7 @@ typedef struct {
     Text_t *code;
 } compile_info_t;
 
-static void add_type_infos(type_ast_t *type_ast, void *userdata) {
+static visit_behavior_t add_type_infos(type_ast_t *type_ast, void *userdata) {
     if (type_ast && type_ast->tag == EnumTypeAST) {
         compile_info_t *info = (compile_info_t *)userdata;
         // Force the type to get defined:
@@ -164,6 +164,7 @@ static void add_type_infos(type_ast_t *type_ast, void *userdata) {
             compile_enum_constructors(info->env, String("enum$", (int64_t)(type_ast->start - type_ast->file->text)),
                                       Match(type_ast, EnumTypeAST)->tags));
     }
+    return VISIT_PROCEED;
 }
 
 public
