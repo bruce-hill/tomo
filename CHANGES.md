@@ -9,6 +9,7 @@
 - Simplified logic for enums so there is less difference between enums that
   have tags with member fields and those without.
 - Rename `Empty()` to `Present()` for set-like tables.
+- Paths are now an `enum Path(AbsolutePath(components:[Text]), RelativePath(components:[Text]), HomePath(components:[Text]))`
 
 ## v2025-11-30
 

@@ -17,8 +17,6 @@ type_t *TEXT_TYPE = NULL;
 public
 type_t *PATH_TYPE = NULL;
 public
-type_t *PATH_TYPE_TYPE = NULL;
-public
 type_t *PRESENT_TYPE = NULL;
 
 static type_t *declare_type(env_t *env, const char *def_str) {
@@ -67,8 +65,9 @@ env_t *global_env(bool source_mapping) {
     (void)bind_type(env, "Int", Type(BigIntType));
     (void)bind_type(env, "Int32", Type(IntType, .bits = TYPE_IBITS32));
     (void)bind_type(env, "Memory", Type(MemoryType));
-    PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
-    PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
+    PATH_TYPE = declare_type(
+        env,
+        "enum Path(AbsolutePath(components:[Text]), RelativePath(components:[Text]), HomePath(components:[Text]))");
 
     PRESENT_TYPE = declare_type(env, "struct Present()");
 
@@ -292,11 +291,6 @@ env_t *global_env(bool source_mapping) {
 #undef F
 #undef C
         MAKE_TYPE( //
-            "PathType", PATH_TYPE_TYPE, Text("PathType_t"), Text("PathType$info"), //
-            {"Relative", "PATHTYPE_RELATIVE", "PathType"}, //
-            {"Absolute", "PATHTYPE_ABSOLUTE", "PathType"}, //
-            {"Home", "PATHTYPE_HOME", "PathType"}),
-        MAKE_TYPE( //
             "Path", PATH_TYPE, Text("Path_t"), Text("Path$info"), //
             {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
             {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644))"}, //
@@ -310,6 +304,7 @@ env_t *global_env(bool source_mapping) {
             {"child", "Path$child", "func(path:Path, child:Text -> Path)"}, //
             {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"}, //
+            {"components", "Path$components", "func(path:Path -> [Text])"}, //
             {"create_directory", "Path$create_directory",
              "func(path:Path, permissions=Int32(0o755), recursive=yes)"}, //
             {"current_dir", "Path$current_dir", "func(->Path)"}, //

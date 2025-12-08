@@ -516,7 +516,6 @@ PUREFUNC size_t unpadded_struct_size(type_t *t) {
 
 PUREFUNC size_t type_size(type_t *t) {
     if (t == PATH_TYPE) return sizeof(Path_t);
-    if (t == PATH_TYPE_TYPE) return sizeof(PathType_t);
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
@@ -605,7 +604,6 @@ PUREFUNC size_t type_size(type_t *t) {
 
 PUREFUNC size_t type_align(type_t *t) {
     if (t == PATH_TYPE) return __alignof__(Path_t);
-    if (t == PATH_TYPE_TYPE) return __alignof__(PathType_t);
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"

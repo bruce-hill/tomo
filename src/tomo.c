@@ -28,6 +28,7 @@
 #include "stdlib/c_strings.h"
 #include "stdlib/cli.h"
 #include "stdlib/datatypes.h"
+#include "stdlib/enums.h"
 #include "stdlib/lists.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
@@ -511,7 +512,7 @@ void install_library(Path_t lib_dir) {
     Text_t lib_name = get_library_name(lib_dir);
     Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION)), lib_name);
     print("Installing ", lib_dir, " into ", dest);
-    if (!Path$equal_values(lib_dir, dest)) {
+    if (!Enum$equal(&lib_dir, &dest, &Path$info)) {
         if (verbose) whisper("Clearing out any pre-existing version of ", lib_name);
         xsystem(as_owner, "rm -rf '", dest, "'");
         if (verbose) whisper("Moving files to ", dest);

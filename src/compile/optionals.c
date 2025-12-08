@@ -15,18 +15,14 @@ Text_t optional_into_nonnone(type_t *t, Text_t value) {
     switch (t->tag) {
     case IntType:
     case ByteType: return Texts(value, ".value");
-    case StructType:
-        if (t == PATH_TYPE || t == PATH_TYPE_TYPE) return value;
-        return Texts(value, ".value");
+    case StructType: return Texts(value, ".value");
     default: return value;
     }
 }
 
 public
 Text_t promote_to_optional(type_t *t, Text_t code) {
-    if (t == PATH_TYPE || t == PATH_TYPE_TYPE) {
-        return code;
-    } else if (t->tag == IntType) {
+    if (t->tag == IntType) {
         switch (Match(t, IntType)->bits) {
         case TYPE_IBITS8: return Texts("((OptionalInt8_t){.has_value=true, .value=", code, "})");
         case TYPE_IBITS16: return Texts("((OptionalInt16_t){.has_value=true, .value=", code, "})");
@@ -53,7 +49,6 @@ Text_t compile_none(type_t *t) {
     if (t == NULL) compiler_err(NULL, NULL, NULL, "I can't compile a `none` value with no type");
 
     if (t == PATH_TYPE) return Text("NONE_PATH");
-    else if (t == PATH_TYPE_TYPE) return Text("PATHTYPE_NONE");
 
     switch (t->tag) {
     case BigIntType: return Text("NONE_INT");
@@ -92,8 +87,6 @@ Text_t check_none(type_t *t, Text_t value) {
     // NOTE: these use statement expressions ({...;}) because some compilers
     // complain about excessive parens around equality comparisons
     if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType) return Texts("(", value, " == NULL)");
-    else if (t == PATH_TYPE) return Texts("((", value, ").type == PATHTYPE_NONE)");
-    else if (t == PATH_TYPE_TYPE) return Texts("((", value, ") == PATHTYPE_NONE)");
     else if (t->tag == BigIntType) return Texts("((", value, ").small == 0)");
     else if (t->tag == ClosureType) return Texts("((", value, ").fn == NULL)");
     else if (t->tag == NumType)

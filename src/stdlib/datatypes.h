@@ -75,8 +75,8 @@ typedef struct Present$$struct {
 #define PRESENT_STRUCT ((Present$$type){})
 
 typedef struct {
-    bool has_value;
     Present$$type value;
+    bool has_value;
 } $OptionalPresent$$type;
 
 #define NONE_PRESENT_STRUCT (($OptionalPresent$$type){.has_value = false})
@@ -111,14 +111,46 @@ typedef struct Text_s {
     };
 } Text_t;
 
-typedef enum PathEnum { PATHTYPE_NONE, PATHTYPE_RELATIVE, PATHTYPE_ABSOLUTE, PATHTYPE_HOME } PathType_t;
-#define OptionalPathType_t PathType_t
+typedef struct Path$AbsolutePath$$struct {
+    List_t components;
+} Path$AbsolutePath$$type;
 
 typedef struct {
-    PathType_t type;
+    Path$AbsolutePath$$type value;
+    bool has_value;
+} $OptionalPath$AbsolutePath$$type;
+
+typedef struct Path$RelativePath$$struct {
     List_t components;
+} Path$RelativePath$$type;
+
+typedef struct {
+    Path$RelativePath$$type value;
+    bool has_value;
+} $OptionalPath$RelativePath$$type;
+
+typedef struct Path$HomePath$$struct {
+    List_t components;
+} Path$HomePath$$type;
+
+typedef struct {
+    Path$HomePath$$type value;
+    bool has_value;
+} $OptionalPath$HomePath$$type;
+
+#define Path$tagged$AbsolutePath(comps) ((Path_t){.$tag = Path$tag$AbsolutePath, .AbsolutePath.components = comps})
+#define Path$tagged$RelativePath(comps) ((Path_t){.$tag = Path$tag$RelativePath, .RelativePath.components = comps})
+#define Path$tagged$HomePath(comps) ((Path_t){.$tag = Path$tag$HomePath, .HomePath.components = comps})
+
+typedef struct {
+    enum { Path$tag$none, Path$tag$AbsolutePath, Path$tag$RelativePath, Path$tag$HomePath } $tag;
+    union {
+        Path$RelativePath$$type RelativePath;
+        Path$AbsolutePath$$type AbsolutePath;
+        Path$HomePath$$type HomePath;
+        List_t components;
+    };
 } Path_t;
-#define OptionalPath_t Path_t
 
 #define OptionalBool_t uint8_t
 #define OptionalList_t List_t

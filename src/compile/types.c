@@ -12,7 +12,6 @@
 public
 Text_t compile_type(type_t *t) {
     if (t == PATH_TYPE) return Text("Path_t");
-    else if (t == PATH_TYPE_TYPE) return Text("PathType_t");
 
     switch (t->tag) {
     case ReturnType: errx(1, "Shouldn't be compiling ReturnType to a type");
@@ -73,7 +72,6 @@ Text_t compile_type(type_t *t) {
         case TableType: return Texts("Optional", compile_type(nonnull));
         case StructType: {
             if (nonnull == PATH_TYPE) return Text("OptionalPath_t");
-            if (nonnull == PATH_TYPE_TYPE) return Text("OptionalPathType_t");
             DeclareMatch(s, nonnull, StructType);
             return namespace_name(s->env, s->env->namespace->parent, Texts("$Optional", s->name, "$$type"));
         }
@@ -90,7 +88,6 @@ public
 Text_t compile_type_info(type_t *t) {
     if (t == NULL) compiler_err(NULL, NULL, NULL, "Attempt to compile a NULL type");
     if (t == PATH_TYPE) return Text("&Path$info");
-    else if (t == PATH_TYPE_TYPE) return Text("&PathType$info");
 
     switch (t->tag) {
     case BoolType:

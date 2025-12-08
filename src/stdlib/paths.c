@@ -29,11 +29,8 @@
 #include "types.h"
 #include "util.h"
 
-// Use inline version of the siphash code for performance:
-#include "siphash-internals.h"
-
-static const Path_t HOME_PATH = {.type = PATHTYPE_HOME}, ROOT_PATH = {.type = PATHTYPE_ABSOLUTE},
-                    CURDIR_PATH = {.type = PATHTYPE_RELATIVE};
+static const Path_t HOME_PATH = Path$tagged$HomePath(EMPTY_LIST), ROOT_PATH = Path$tagged$AbsolutePath(EMPTY_LIST),
+                    CURDIR_PATH = Path$tagged$RelativePath(EMPTY_LIST);
 
 static void clean_components(List_t *components) {
     for (int64_t i = 0; i < (int64_t)components->length;) {
@@ -62,40 +59,41 @@ Path_t Path$from_str(const char *str) {
 
     if (strchr(str, ';') != NULL) fail("Path has illegal character (semicolon): ", str);
 
-    Path_t result = {.components = {}};
+    Path_t result = {};
     if (str[0] == '/') {
-        result.type = PATHTYPE_ABSOLUTE;
+        result.$tag = Path$tag$AbsolutePath;
         str += 1;
     } else if (str[0] == '~' && str[1] == '/') {
-        result.type = PATHTYPE_HOME;
+        result.$tag = Path$tag$HomePath;
         str += 2;
     } else if (str[0] == '.' && str[1] == '/') {
-        result.type = PATHTYPE_RELATIVE;
+        result.$tag = Path$tag$RelativePath;
         str += 2;
     } else {
-        result.type = PATHTYPE_RELATIVE;
+        result.$tag = Path$tag$RelativePath;
     }
 
+    List_t components = EMPTY_LIST;
     while (str && *str) {
         size_t component_len = strcspn(str, "/");
         if (component_len > 0) {
             if (component_len == 1 && str[0] == '.') {
                 // ignore /./
-            } else if (component_len == 2 && strncmp(str, "..", 2) == 0 && result.components.length > 1
+            } else if (component_len == 2 && strncmp(str, "..", 2) == 0 && components.length > 1
                        && !Text$equal_values(
                            Text(".."),
-                           *(Text_t *)(result.components.data
-                                       + result.components.stride * ((int64_t)result.components.length - 1)))) {
+                           *(Text_t *)(components.data + components.stride * ((int64_t)components.length - 1)))) {
                 // Pop off /foo/baz/.. -> /foo
-                List$remove_at(&result.components, I((int64_t)result.components.length), I(1), sizeof(Text_t));
+                List$remove_at(&components, I((int64_t)components.length), I(1), sizeof(Text_t));
             } else {
                 Text_t component = Text$from_strn(str, component_len);
-                List$insert_value(&result.components, component, I(0), sizeof(Text_t));
+                List$insert_value(&components, component, I(0), sizeof(Text_t));
             }
             str += component_len;
         }
         str += strspn(str, "/");
     }
+    result.components = components;
     return result;
 }
 
@@ -104,12 +102,12 @@ Path_t Path$from_text(Text_t text) { return Path$from_str(Text$as_c_string(text)
 
 public
 Path_t Path$expand_home(Path_t path) {
-    if (path.type == PATHTYPE_HOME) {
+    if (path.$tag == Path$tag$HomePath) {
         Path_t pwd = Path$from_str(getenv("HOME"));
-        List_t components = List$concat(pwd.components, path.components, sizeof(Text_t));
-        assert(components.length == path.components.length + pwd.components.length);
+        List_t components = List$concat(pwd.AbsolutePath.components, path.HomePath.components, sizeof(Text_t));
+        assert(components.length == path.HomePath.components.length + pwd.AbsolutePath.components.length);
         clean_components(&components);
-        path = (Path_t){.type = PATHTYPE_ABSOLUTE, .components = components};
+        path = Path$tagged$AbsolutePath(components);
     }
     return path;
 }
@@ -120,7 +118,7 @@ Path_t Path$_concat(int n, Path_t items[n]) {
     Path_t result = items[0];
     LIST_INCREF(result.components);
     for (int i = 1; i < n; i++) {
-        if (items[i].type != PATHTYPE_RELATIVE)
+        if (items[i].$tag != Path$tag$RelativePath)
             fail("Cannot concatenate an absolute or home-based path onto another path: (", items[i], ")");
         List$insert_all(&result.components, items[i].components, I(0), sizeof(Text_t));
     }
@@ -130,10 +128,12 @@ Path_t Path$_concat(int n, Path_t items[n]) {
 
 public
 Path_t Path$resolved(Path_t path, Path_t relative_to) {
-    if (path.type == PATHTYPE_RELATIVE
-        && !(relative_to.type == PATHTYPE_RELATIVE && relative_to.components.length == 0)) {
-        Path_t result = {.type = relative_to.type};
-        result.components = relative_to.components;
+    if (path.$tag == Path$tag$RelativePath
+        && !(relative_to.$tag == Path$tag$RelativePath && relative_to.components.length == 0)) {
+        Path_t result = {
+            .$tag = relative_to.$tag,
+            .components = relative_to.components,
+        };
         LIST_INCREF(result.components);
         List$insert_all(&result.components, path.components, I(0), sizeof(Text_t));
         clean_components(&result.components);
@@ -144,11 +144,11 @@ Path_t Path$resolved(Path_t path, Path_t relative_to) {
 
 public
 Path_t Path$relative_to(Path_t path, Path_t relative_to) {
-    if (path.type != relative_to.type)
+    if (path.$tag != relative_to.$tag)
         fail("Cannot create a path relative to a different path with a mismatching type: (", path, ") relative to (",
              relative_to, ")");
 
-    Path_t result = {.type = PATHTYPE_RELATIVE};
+    Path_t result = Path$tagged$RelativePath(EMPTY_LIST);
     int64_t shared = 0;
     for (; shared < (int64_t)path.components.length && shared < (int64_t)relative_to.components.length; shared++) {
         Text_t *p = (Text_t *)(path.components.data + shared * path.components.stride);
@@ -568,15 +568,15 @@ Path_t Path$write_unique(Path_t path, Text_t text) { return Path$write_unique_by
 
 public
 Path_t Path$parent(Path_t path) {
-    if (path.type == PATHTYPE_ABSOLUTE && path.components.length == 0) {
+    if (path.$tag == Path$tag$AbsolutePath && path.components.length == 0) {
         return path;
     } else if (path.components.length > 0
                && !Text$equal_values(
                    *(Text_t *)(path.components.data + path.components.stride * ((int64_t)path.components.length - 1)),
                    Text(".."))) {
-        return (Path_t){.type = path.type, .components = List$slice(path.components, I(1), I(-2))};
+        return (Path_t){.$tag = path.$tag, .components = List$slice(path.components, I(1), I(-2))};
     } else {
-        Path_t result = {.type = path.type, .components = path.components};
+        Path_t result = {.$tag = path.$tag, .components = path.components};
         LIST_INCREF(result.components);
         List$insert_value(&result.components, Text(".."), I(0), sizeof(Text_t));
         return result;
@@ -587,8 +587,8 @@ public
 PUREFUNC Text_t Path$base_name(Path_t path) {
     if (path.components.length >= 1)
         return *(Text_t *)(path.components.data + path.components.stride * ((int64_t)path.components.length - 1));
-    else if (path.type == PATHTYPE_HOME) return Text("~");
-    else if (path.type == PATHTYPE_RELATIVE) return Text(".");
+    else if (path.$tag == Path$tag$HomePath) return Text("~");
+    else if (path.$tag == Path$tag$RelativePath) return Text(".");
     else return EMPTY_TEXT;
 }
 
@@ -618,7 +618,7 @@ public
 Path_t Path$child(Path_t path, Text_t name) {
     if (Text$has(name, Text("/")) || Text$has(name, Text(";"))) fail("Path name has invalid characters: ", name);
     Path_t result = {
-        .type = path.type,
+        .$tag = path.$tag,
         .components = path.components,
     };
     LIST_INCREF(result.components);
@@ -638,7 +638,7 @@ Path_t Path$with_extension(Path_t path, Text_t extension, bool replace) {
         fail("Path extension has invalid characters: ", extension);
 
     Path_t result = {
-        .type = path.type,
+        .$tag = path.$tag,
         .components = path.components,
     };
     LIST_INCREF(result.components);
@@ -760,55 +760,19 @@ Path_t Path$current_dir(void) {
 }
 
 public
-PUREFUNC uint64_t Path$hash(const void *obj, const TypeInfo_t *type) {
-    (void)type;
-    Path_t *path = (Path_t *)obj;
-    siphash sh;
-    siphashinit(&sh, (uint64_t)path->type);
-    for (int64_t i = 0; i < (int64_t)path->components.length; i++) {
-        uint64_t item_hash = Text$hash(path->components.data + i * path->components.stride, &Text$info);
-        siphashadd64bits(&sh, item_hash);
-    }
-    return siphashfinish_last_part(&sh, (uint64_t)path->components.length);
-}
-
-public
-PUREFUNC int32_t Path$compare(const void *va, const void *vb, const TypeInfo_t *type) {
-    (void)type;
-    Path_t *a = (Path_t *)va, *b = (Path_t *)vb;
-    int diff = ((int)a->type - (int)b->type);
-    if (diff != 0) return diff;
-    return List$compare(&a->components, &b->components, List$info(&Text$info));
-}
-
-public
-PUREFUNC bool Path$equal(const void *va, const void *vb, const TypeInfo_t *type) {
-    (void)type;
-    Path_t *a = (Path_t *)va, *b = (Path_t *)vb;
-    if (a->type != b->type) return false;
-    return List$equal(&a->components, &b->components, List$info(&Text$info));
-}
-
-public
-PUREFUNC bool Path$equal_values(Path_t a, Path_t b) {
-    if (a.type != b.type) return false;
-    return List$equal(&a.components, &b.components, List$info(&Text$info));
-}
-
-public
 int Path$print(FILE *f, Path_t path) {
     if (path.components.length == 0) {
-        if (path.type == PATHTYPE_ABSOLUTE) return fputs("/", f);
-        else if (path.type == PATHTYPE_RELATIVE) return fputs(".", f);
-        else if (path.type == PATHTYPE_HOME) return fputs("~", f);
+        if (path.$tag == Path$tag$AbsolutePath) return fputs("/", f);
+        else if (path.$tag == Path$tag$RelativePath) return fputs(".", f);
+        else if (path.$tag == Path$tag$HomePath) return fputs("~", f);
     }
 
     int n = 0;
-    if (path.type == PATHTYPE_ABSOLUTE) {
+    if (path.$tag == Path$tag$AbsolutePath) {
         n += fputc('/', f);
-    } else if (path.type == PATHTYPE_HOME) {
+    } else if (path.$tag == Path$tag$HomePath) {
         n += fputs("~/", f);
-    } else if (path.type == PATHTYPE_RELATIVE) {
+    } else if (path.$tag == Path$tag$RelativePath) {
         if (!Text$equal_values(*(Text_t *)path.components.data, Text(".."))) n += fputs("./", f);
     }
 
@@ -829,9 +793,9 @@ Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type) {
     if (!obj) return Text("Path");
     Path_t *path = (Path_t *)obj;
     Text_t text = Text$join(Text("/"), path->components);
-    if (path->type == PATHTYPE_HOME) text = Text$concat(path->components.length > 0 ? Text("~/") : Text("~"), text);
-    else if (path->type == PATHTYPE_ABSOLUTE) text = Text$concat(Text("/"), text);
-    else if (path->type == PATHTYPE_RELATIVE
+    if (path->$tag == Path$tag$HomePath) text = Text$concat(path->components.length > 0 ? Text("~/") : Text("~"), text);
+    else if (path->$tag == Path$tag$AbsolutePath) text = Text$concat(Text("/"), text);
+    else if (path->$tag == Path$tag$RelativePath
              && (path->components.length == 0 || !Text$equal_values(*(Text_t *)(path->components.data), Text(".."))))
         text = Text$concat(path->components.length > 0 ? Text("./") : Text("."), text);
 
@@ -841,52 +805,80 @@ Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type) {
 }
 
 public
-CONSTFUNC bool Path$is_none(const void *obj, const TypeInfo_t *type) {
-    (void)type;
-    return ((Path_t *)obj)->type == PATHTYPE_NONE;
-}
+const TypeInfo_t Path$AbsolutePath$$info = {
+    .size = sizeof(Path$AbsolutePath$$type),
+    .align = __alignof__(Path$AbsolutePath$$type),
+    .metamethods = Struct$metamethods,
+    .tag = StructInfo,
+    .StructInfo =
+        {
+            .name = "AbsolutePath",
+            .num_fields = 1,
+            .fields = (NamedType_t[1]){{
+                .name = "components",
+                .type = List$info(&Text$info),
+            }},
+        },
+};
 
 public
-void Path$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type) {
-    (void)type;
-    Path_t *path = (Path_t *)obj;
-    fputc((int)path->type, out);
-    List$serialize(&path->components, out, pointers, List$info(&Text$info));
-}
+const TypeInfo_t Path$RelativePath$$info = {
+    .size = sizeof(Path$RelativePath$$type),
+    .align = __alignof__(Path$RelativePath$$type),
+    .metamethods = Struct$metamethods,
+    .tag = StructInfo,
+    .StructInfo =
+        {
+            .name = "RelativePath",
+            .num_fields = 1,
+            .fields = (NamedType_t[1]){{
+                .name = "components",
+                .type = List$info(&Text$info),
+            }},
+        },
+};
 
 public
-void Path$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *type) {
-    (void)type;
-    Path_t path = {};
-    path.type = fgetc(in);
-    List$deserialize(in, &path.components, pointers, List$info(&Text$info));
-    *(Path_t *)obj = path;
-}
+const TypeInfo_t Path$HomePath$$info = {
+    .size = sizeof(Path$HomePath$$type),
+    .align = __alignof__(Path$HomePath$$type),
+    .metamethods = Struct$metamethods,
+    .tag = StructInfo,
+    .StructInfo =
+        {
+            .name = "HomePath",
+            .num_fields = 1,
+            .fields = (NamedType_t[1]){{
+                .name = "components",
+                .type = List$info(&Text$info),
+            }},
+        },
+};
 
 public
-const TypeInfo_t Path$info = {.size = sizeof(Path_t),
-                              .align = __alignof__(Path_t),
-                              .tag = OpaqueInfo,
-                              .metamethods = {
-                                  .as_text = Path$as_text,
-                                  .hash = Path$hash,
-                                  .compare = Path$compare,
-                                  .equal = Path$equal,
-                                  .is_none = Path$is_none,
-                                  .serialize = Path$serialize,
-                                  .deserialize = Path$deserialize,
-                              }};
-
-public
-const TypeInfo_t PathType$info = {
-    .size = sizeof(PathType_t),
-    .align = __alignof__(PathType_t),
-    .metamethods = PackedDataEnum$metamethods,
+const TypeInfo_t Path$info = {
+    .size = sizeof(Path_t),
+    .align = __alignof__(Path_t),
     .tag = EnumInfo,
     .EnumInfo =
         {
-            .name = "PathType",
+            .name = "Path",
             .num_tags = 3,
-            .tags = ((NamedType_t[3]){{.name = "Relative"}, {.name = "Absolute"}, {.name = "Home"}}),
+            .tags =
+                (NamedType_t[3]){
+                    {.name = "AbsolutePath", &Path$AbsolutePath$$info},
+                    {.name = "RelativePath", &Path$RelativePath$$info},
+                    {.name = "HomePath", &Path$HomePath$$info},
+                },
+        },
+    .metamethods =
+        {
+            .as_text = Path$as_text,
+            .compare = Enum$compare,
+            .equal = Enum$equal,
+            .hash = Enum$hash,
+            .is_none = Enum$is_none,
+            .serialize = Enum$serialize,
+            .deserialize = Enum$deserialize,
         },
 };
