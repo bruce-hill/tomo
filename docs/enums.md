@@ -50,7 +50,7 @@ from a function with an explicit return type:
 
 ```tomo
 enum ArgumentType(AnInt(x:Int), SomeText(text:Text))
-enum ReturnType(Nothing, AnInt(x:Int))
+enum ReturnType(AnInt(x:Int), Nothing)
 
 func increment(arg:ArgumentType -> ReturnType)
     when arg is AnInt(x)
@@ -123,3 +123,92 @@ func pad_text_wrapper(text:Text, width:Int, align:???)
 **Note:** Each enum type is distinct, regardless of whether the enum shares the
 same values with another enum, so you can't define another enum with the same
 values and use that in places where a different anonymous enum is expected.
+
+
+## Result Type
+
+One very common pattern for enums is something which can either succeed or fail
+with an informative message. For example, if you try to delete a file, you will
+either succeed or fail, and if you fail, you might want to know that it was
+because the file doesn't exist or if you don't have permission to delete it.
+For this common pattern, Tomo includes a `Result` enum type in the standard
+library:
+
+```
+enum Result(Success, Failure(reason:Text))
+```
+
+You're free to define your own similar enum type or reuse this one as you see
+fit.
+
+
+## Field Access
+
+In some cases, a full `when` block is overkill when a value is assumed to have
+a certain tag. In those cases, you can access the enum's tag value using field
+access. The resulting value is `none` if the enum value is not the expected tag,
+otherwise it will hold the struct contents of the enum value for the given tag.
+
+```tomo
+func maybe_fail(should_fail:Bool -> Result)
+    if should_fail
+        return Failure("It failed")
+    else
+        return Success
+
+>> maybe_fail(yes).Failure
+# Prints 'Failure("It failed")'
+assert maybe_fail(yes).Failure!.text == "It failed"
+
+>> maybe_fail(no).Failure
+# Prints 'none'
+```
+
+## Enum Assertions
+
+In general, it's best to always handle failure results close to the call site
+where they occurred. However, sometimes, there's simply nothing you can do
+beyond reporting the error to the user and closing the program.
+
+```tomo
+result := (/tmp/log.txt).append(msg)
+when result is Failure(msg)
+    fail(msg)
+is Success
+    pass
+```
+
+For these cases, you can reduce the amount of code using a couple of
+simplifications. Firstly, you can access `.Success` to get the optional empty
+value of the Result enum (or `none` if there was a failure) and use `!` to
+assert that the value is non-`none`.
+
+```tomo
+(/tmp/log.txt).append(msg).Success!
+```
+
+Tomo is smart enough to give you a good error message in this case that will
+look something like:
+
+```
+This was expected to be Success, but it was:
+Failure("Could not write to file: /tmp/log.txt (Permission denied)")
+```
+
+You can further reduce the verbosity of this code by applying the `!` directly
+to the Result enum value:
+
+```tomo
+(/tmp/log.txt).append(msg)!
+```
+
+When the `!` operator is applied to an enum value, the effect is the same as
+applying `.Success!` or whatever the first tag in the enum definition is.
+
+```tomo
+enum Foo(A(member:Int), B)
+
+f := Foo.A(123)
+assert f! == f.A!
+assert f!.member == 123
+```
