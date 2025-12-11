@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.tgamma 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.tgamma \- true gamma function
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.tgamma\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes the gamma function of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number for which the gamma function is to be calculated. 
+.TE
+.SH RETURN
+The gamma function of `x`.
+
+.SH EXAMPLES
+.EX
+assert (1.0).tgamma() == 1
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

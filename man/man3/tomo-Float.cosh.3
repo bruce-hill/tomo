@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.cosh 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.cosh \- hyperbolic cosine
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.cosh\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes the hyperbolic cosine of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number for which the hyperbolic cosine is to be calculated. 
+.TE
+.SH RETURN
+The hyperbolic cosine of `x`.
+
+.SH EXAMPLES
+.EX
+assert (0.0).cosh() == 1
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.erf 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.erf \- error function
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.erf\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes the error function of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number for which the error function is to be calculated. 
+.TE
+.SH RETURN
+The error function of `x`.
+
+.SH EXAMPLES
+.EX
+assert (0.0).erf() == 0
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

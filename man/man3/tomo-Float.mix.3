@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.mix 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.mix \- mix two numbers by an amount
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.mix\ :\ func(amount:\ Float,\ x:\ Float,\ y:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Interpolates between two numbers based on a given amount.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+amount	Float	The interpolation factor (between \fB0\fR and \fB1\fR). 
+x	Float	The starting number. 
+y	Float	The ending number. 
+.TE
+.SH RETURN
+The interpolated number between `x` and `y` based on `amount`.
+
+.SH EXAMPLES
+.EX
+assert (0.5).mix(10, 20) == 15
+assert (0.25).mix(10, 20) == 12.5
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

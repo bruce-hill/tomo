@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.y0 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.y0 \- Bessel function
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.y0\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes the Bessel function of the second kind of order 0.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number for which the Bessel function is to be calculated. 
+.TE
+.SH RETURN
+The Bessel function of the second kind of order 0 of `x`.
+
+.SH EXAMPLES
+.EX
+assert (1.0).y0() == -0.7652
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

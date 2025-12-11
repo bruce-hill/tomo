@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.copysign 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.copysign \- copy a number's sign
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.copysign\ :\ func(x:\ Float,\ y:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Copies the sign of one number to another.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number whose magnitude will be copied. 
+y	Float	The number whose sign will be copied. 
+.TE
+.SH RETURN
+A number with the magnitude of `x` and the sign of `y`.
+
+.SH EXAMPLES
+.EX
+assert (3.0).copysign(-1) == -3
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

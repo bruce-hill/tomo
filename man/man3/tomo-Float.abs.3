@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.abs 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.abs \- absolute value
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.abs\ :\ func(n:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Calculates the absolute value of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+n	Float	The number whose absolute value is to be computed. 
+.TE
+.SH RETURN
+The absolute value of `n`.
+
+.SH EXAMPLES
+.EX
+assert (-3.5).abs() == 3.5
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.atanh 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.atanh \- arc hyperbolic tangent.
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.atanh\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes the inverse hyperbolic tangent of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number for which the inverse hyperbolic tangent is to be calculated. 
+.TE
+.SH RETURN
+The inverse hyperbolic tangent of `x`.
+
+.SH EXAMPLES
+.EX
+assert (0.5).atanh() == 0.5493
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.with_precision 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.with_precision \- round to a given precision
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.with_precision\ :\ func(n:\ Float,\ precision:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Round a number to the given precision level (specified as `10`, `.1`, `.001` etc).
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+n	Float	The number to be rounded to a given precision. 
+precision	Float	The precision to which the number should be rounded. 
+.TE
+.SH RETURN
+The number, rounded to the given precision level.
+
+.SH EXAMPLES
+.EX
+assert (0.1234567).with_precision(0.01) == 0.12
+assert (123456.).with_precision(100) == 123500
+assert (1234567.).with_precision(5) == 1234565
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

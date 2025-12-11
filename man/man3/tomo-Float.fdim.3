@@ -1,0 +1,38 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.fdim 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.fdim \- positive difference
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.fdim\ :\ func(x:\ Float,\ y:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes the positive difference between two numbers.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The first number. 
+y	Float	The second number. 
+.TE
+.SH RETURN
+The positive difference $\max(0, x - y)$.
+
+.SH EXAMPLES
+.EX
+fd
+
+assert (5.0).fdim(3) == 2
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.sqrt 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.sqrt \- square root
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.sqrt\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes the square root of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number for which the square root is to be calculated. 
+.TE
+.SH RETURN
+The square root of `x`.
+
+.SH EXAMPLES
+.EX
+assert (16.0).sqrt() == 4
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.expm1 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.expm1 \- base-e exponential minus 1
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.expm1\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes $e^x - 1$ for a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The exponent. 
+.TE
+.SH RETURN
+The value of $e^x - 1$.
+
+.SH EXAMPLES
+.EX
+assert (1.0).expm1() == 1.7183
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

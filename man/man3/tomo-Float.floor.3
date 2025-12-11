@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.floor 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.floor \- floor function
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.floor\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Rounds a number down to the nearest integer.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number to be rounded down. 
+.TE
+.SH RETURN
+The largest integer less than or equal to `x`.
+
+.SH EXAMPLES
+.EX
+assert (3.7).floor() == 3
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.log1p 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.log1p \- logarithm of 1 plus x
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.log1p\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes $\log(1 + x)$ for a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number for which $\log(1 + x)$ is to be calculated. 
+.TE
+.SH RETURN
+The value of $\log(1 + x)$.
+
+.SH EXAMPLES
+.EX
+assert (1.0).log1p() == 0.6931
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

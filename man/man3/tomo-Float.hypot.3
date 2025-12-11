@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.hypot 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.hypot \- Euclidean distance function
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.hypot\ :\ func(x:\ Float,\ y:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The first number. 
+y	Float	The second number. 
+.TE
+.SH RETURN
+The Euclidean norm of `x` and `y`.
+
+.SH EXAMPLES
+.EX
+assert Float.hypot(3, 4) == 5
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.clamped 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.clamped \- clamp a number
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.clamped\ :\ func(x:\ Float,\ low:\ Float,\ high:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Returns the given number clamped between two values so that it is within that range.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number to clamp. 
+low	Float	The lowest value the result can take. 
+high	Float	The highest value the result can take. 
+.TE
+.SH RETURN
+The first argument clamped between the other two arguments.
+
+.SH EXAMPLES
+.EX
+assert (2.5).clamped(5.5, 10.5) == 5.5
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)

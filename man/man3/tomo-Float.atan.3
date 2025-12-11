@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float.atan 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float.atan \- arc tangent
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float.atan\ :\ func(x:\ Float\ ->\ Float)
+.fi
+.SH DESCRIPTION
+Computes the arc tangent of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float	The number for which the arc tangent is to be calculated. 
+.TE
+.SH RETURN
+The arc tangent of `x` in radians.
+
+.SH EXAMPLES
+.EX
+assert (1.0).atan() == 0.7854
+.EE
+.SH SEE ALSO
+.BR Tomo-Float (3)
