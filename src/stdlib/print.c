@@ -7,13 +7,16 @@
 
 #include "fpconv.h"
 #include "print.h"
+#include "reals.h"
 #include "util.h"
 
 public
 int _print_int(FILE *f, int64_t n) {
+    if (n == 0) return fputc('0', f);
     char buf[21] = {[20] = 0}; // Big enough for INT64_MIN + '\0'
     char *p = &buf[19];
     bool negative = n < 0;
+    if (negative) n = -n;
 
     do {
         *(p--) = '0' + (n % 10);
@@ -91,6 +94,9 @@ int _print_double(FILE *f, double n) {
     int len = fpconv_dtoa(n, buf);
     return (int)fwrite(buf, sizeof(char), (size_t)len, f);
 }
+
+public
+int _print_real(FILE *f, Real_t n) { return Text$print(f, Real$value_as_text(n, 10)); }
 
 public
 int _print_hex_double(FILE *f, hex_double_t hex) {

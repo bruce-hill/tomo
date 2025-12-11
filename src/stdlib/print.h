@@ -77,6 +77,7 @@ typedef struct {
 int _print_int(FILE *f, int64_t x);
 int _print_uint(FILE *f, uint64_t x);
 int _print_double(FILE *f, double x);
+int _print_real(FILE *f, Real_t x);
 int _print_hex(FILE *f, hex_format_t hex);
 int _print_hex_double(FILE *f, hex_double_t hex);
 int _print_oct(FILE *f, oct_format_t oct);
@@ -116,6 +117,7 @@ extern int Int$print(FILE *f, Int_t i);
         uint8_t: _print_uint,                                                                                          \
         float: _print_float,                                                                                           \
         double: _print_double,                                                                                         \
+        Real_t: _print_real,                                                                                           \
         hex_format_t: _print_hex,                                                                                      \
         hex_double_t: _print_hex_double,                                                                               \
         oct_format_t: _print_oct,                                                                                      \
