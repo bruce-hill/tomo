@@ -7,6 +7,7 @@
 #include "bigint.h"
 #include "datatypes.h"
 #include "floats.h"
+#include "optionals.h"
 #include "reals.h"
 #include "text.h"
 #include "types.h"
@@ -68,12 +69,12 @@ static Int_t Real$compute_double(Real_t r, int64_t precision) {
 public
 OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
     Text_t decimal_onwards = EMPTY_TEXT;
-    OptionalInt_t int_component = Int$parse(text, &decimal_onwards);
+    OptionalInt_t int_component = Int$parse(text, NONE_INT, &decimal_onwards);
     if (int_component.small == 0) int_component = I(0);
     Text_t fraction_text = EMPTY_TEXT;
     if (Text$starts_with(decimal_onwards, Text("."), &fraction_text)) {
         fraction_text = Text$replace(fraction_text, Text("_"), EMPTY_TEXT);
-        OptionalInt_t fraction = Int$parse(fraction_text, remainder);
+        OptionalInt_t fraction = Int$parse(fraction_text, NONE_INT, remainder);
         if (fraction.small == 0) return NONE_REAL;
         int64_t shift = fraction_text.length;
         Int_t scale = Int$power(I(10), I(shift));

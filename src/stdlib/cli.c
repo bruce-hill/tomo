@@ -15,12 +15,13 @@
 #include "bytes.h"
 #include "c_strings.h"
 #include "cli.h"
+#include "floats.h"
 #include "integers.h"
 #include "metamethods.h"
-#include "floats.h"
 #include "optionals.h"
 #include "paths.h"
 #include "print.h"
+#include "reals.h"
 #include "stdlib.h"
 #include "tables.h"
 #include "text.h"
@@ -215,8 +216,8 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
             return List$from(args, I(2));
         } else {
             args = parse_arg_list(args, flag, dest, nonnull, allow_dashes);
-            if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Num$info || nonnull == &Num32$info
-                || nonnull->tag == TextInfo || nonnull->tag == EnumInfo)
+            if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Float64$info || nonnull == &Float32$info
+                || nonnull == &Real$info || nonnull->tag == TextInfo || nonnull->tag == EnumInfo)
                 return args;
             else if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
             else if (nonnull == &Int32$info) ((OptionalInt32_t *)dest)->has_value = true;
