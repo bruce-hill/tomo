@@ -188,8 +188,8 @@ Closure_t NAMESPACED(onward)(INT_T first, INT_T step) {
     return (Closure_t){.fn = _next_int, .userdata = range};
 }
 public
-PUREFUNC OPT_T NAMESPACED(parse)(Text_t text, Text_t *remainder) {
-    OptionalInt_t full_int = Int$parse(text, remainder);
+PUREFUNC OPT_T NAMESPACED(parse)(Text_t text, OptionalInt_t base, Text_t *remainder) {
+    OptionalInt_t full_int = Int$parse(text, base, remainder);
     if (full_int.small == 0L) return (OPT_T){.has_value = false};
     if (Int$compare_value(full_int, I(NAMESPACED(min))) < 0) {
         return (OPT_T){.has_value = false};

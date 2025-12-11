@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.get_bit 3 2025-11-09 "Tomo man-pages"
+.TH Int.get_bit 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Int.get_bit \- check whether a bit is set
 .SH LIBRARY
@@ -19,11 +19,11 @@ In the binary representation of an integer, check whether a given bit index is s
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-i	Int	The integer whose bits are being inspected. 	-
-bit_index	Int	The index of the bit to check (1-indexed). 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+i	Int	The integer whose bits are being inspected. 
+bit_index	Int	The index of the bit to check (1-indexed). 
 .TE
 .SH RETURN
 Whether or not the given bit index is set to 1 in the binary representation of the integer.
@@ -38,3 +38,5 @@ assert (6).get_bit(2) == yes
 assert (6).get_bit(3) == yes
 assert (6).get_bit(4) == no
 .EE
+.SH SEE ALSO
+.BR Tomo-Int (3)

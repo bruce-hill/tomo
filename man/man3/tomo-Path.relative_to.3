@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.relative_to 3 2025-11-09 "Tomo man-pages"
+.TH Path.relative_to 3 2025-12-07 "Tomo man-pages"
 .SH NAME
 Path.relative_to \- apply a relative path to another
 .SH LIBRARY
@@ -26,9 +26,12 @@ path	Path	The path to convert. 	-
 relative_to		The base path for the relative path. 	(./)
 .TE
 .SH RETURN
-The relative path.
+A relative path from the reference point to the given path.
 
 .SH EXAMPLES
 .EX
-assert (./path/to/file.txt).relative(relative_to=(./path)) == (./to/file.txt)
+assert (./path/to/file.txt).relative_to((./path)) == (./to/file.txt)
+assert (/tmp/foo).relative_to((/tmp)) == (./foo)
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

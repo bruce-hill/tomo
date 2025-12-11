@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.at 3 2025-11-09 "Tomo man-pages"
+.TH Text.at 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.at \- get a letter
 .SH LIBRARY
@@ -19,11 +19,11 @@ Get the graphical cluster at a given index. This is similar to `str[i]` with ASC
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-text	Text	The text from which to get a cluster. 	-
-index	Int	The index of the graphical cluster (1-indexed). 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+text	Text	The text from which to get a cluster. 
+index	Int	The index of the graphical cluster (1-indexed). 
 .TE
 .SH RETURN
 A `Text` with the single graphical cluster at the given index.
@@ -35,3 +35,5 @@ Negative indices are counted from the back of the text, so `-1` means the last c
 .EX
 assert "Amélie".at(3) == "é"
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

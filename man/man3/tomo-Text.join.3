@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.join 3 2025-11-09 "Tomo man-pages"
+.TH Text.join 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.join \- concatenate with separator
 .SH LIBRARY
@@ -19,11 +19,11 @@ Joins a list of text pieces with a specified glue.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-glue	Text	The text used to join the pieces. 	-
-pieces	[Text]	The list of text pieces to be joined. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+glue	Text	The text used to join the pieces. 
+pieces	[Text]	The list of text pieces to be joined. 
 .TE
 .SH RETURN
 A single `Text` value with the pieces joined by the glue.
@@ -32,3 +32,5 @@ A single `Text` value with the pieces joined by the glue.
 .EX
 assert ", ".join(["one", "two", "three"]) == "one, two, three"
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.by 3 2025-11-09 "Tomo man-pages"
+.TH List.by 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 List.by \- slice by a step value
 .SH LIBRARY
@@ -19,11 +19,11 @@ Creates a new list with elements spaced by the specified step value.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-list	[T]	The original list. 	-
-step	Int	The step value for selecting elements. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+list	[T]	The original list. 
+step	Int	The step value for selecting elements. 
 .TE
 .SH RETURN
 A new list with every `step`-th element from the original list.
@@ -32,3 +32,5 @@ A new list with every `step`-th element from the original list.
 .EX
 assert [1, 2, 3, 4, 5, 6].by(2) == [1, 3, 5]
 .EE
+.SH SEE ALSO
+.BR Tomo-List (3)

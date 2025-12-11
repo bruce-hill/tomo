@@ -140,6 +140,7 @@ struct type_s {
     _make_function_type(ret, sizeof((arg_t[]){__VA_ARGS__}) / sizeof(arg_t), (arg_t[]){__VA_ARGS__})
 
 Text_t type_to_text(type_t *t);
+Text_t arg_types_to_text(arg_t *args, const char *separator);
 const char *get_type_name(type_t *t);
 PUREFUNC bool type_eq(type_t *a, type_t *b);
 PUREFUNC bool type_is_a(type_t *t, type_t *req);
@@ -152,8 +153,9 @@ typedef enum {
     NUM_PRECISION_INCOMPARABLE
 } precision_cmp_e;
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b);
-PUREFUNC bool has_heap_memory(type_t *t);
-PUREFUNC bool has_stack_memory(type_t *t);
+bool has_heap_memory(type_t *t);
+bool has_refcounts(type_t *t);
+bool has_stack_memory(type_t *t);
 PUREFUNC bool can_promote(type_t *actual, type_t *needed);
 PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t);
 PUREFUNC bool is_int_type(type_t *t);
@@ -168,4 +170,3 @@ PUREFUNC type_t *non_optional(type_t *t);
 type_t *get_field_type(type_t *t, const char *field_name);
 PUREFUNC type_t *get_iterated_type(type_t *t);
 type_t *_make_function_type(type_t *ret, int n, arg_t args[n]);
-PUREFUNC bool enum_has_fields(type_t *t);

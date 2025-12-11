@@ -28,6 +28,7 @@
 #include "stdlib/c_strings.h"
 #include "stdlib/cli.h"
 #include "stdlib/datatypes.h"
+#include "stdlib/enums.h"
 #include "stdlib/lists.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
@@ -91,7 +92,7 @@ static OptionalText_t show_codegen = NONE_TEXT,
                                     " -D_BSD_SOURCE"
 #endif
                                     " -DGC_THREADS"),
-                      ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo_" TOMO_VERSION), ldflags = Text(""),
+                      ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo@" TOMO_VERSION), ldflags = Text(""),
                       optimization = Text("2"), cc = Text(DEFAULT_C_COMPILER);
 
 static Text_t config_summary,
@@ -116,6 +117,7 @@ static bool is_stale_for_any(Path_t path, List_t relative_to, bool ignore_missin
 static Path_t build_file(Path_t path, const char *extension);
 static void wait_for_child_success(pid_t child);
 static bool is_config_outdated(Path_t path);
+static Path_t get_exe_path(Path_t path);
 
 typedef struct {
     bool h : 1, c : 1, o : 1;
@@ -166,7 +168,7 @@ int main(int argc, char *argv[]) {
 
     if (getenv("TOMO_PATH")) TOMO_PATH = getenv("TOMO_PATH");
 
-    cflags = Texts("-I'", TOMO_PATH, "/include' -I'", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "' ", cflags);
+    cflags = Texts("-I'", TOMO_PATH, "/include' -I'", TOMO_PATH, "/lib/tomo@" TOMO_VERSION "' ", cflags);
 
     // Set up environment variables:
     const char *PATH = getenv("PATH");
@@ -185,7 +187,7 @@ int main(int argc, char *argv[]) {
     // Run a tool:
     if ((streq(argv[1], "-r") || streq(argv[1], "--run")) && argc >= 3) {
         if (strcspn(argv[2], "/;$") == strlen(argv[2])) {
-            const char *program = String("'", TOMO_PATH, "'/lib/tomo_" TOMO_VERSION "/", argv[2], "/", argv[2]);
+            const char *program = String("'", TOMO_PATH, "'/lib/tomo@" TOMO_VERSION "/", argv[2], "/", argv[2]);
             execv(program, &argv[2]);
         }
         print_err("This is not an installed tomo program: ", argv[2]);
@@ -194,8 +196,8 @@ int main(int argc, char *argv[]) {
     Text_t usage = Texts("\x1b[33;4;1mUsage:\x1b[m\n"
                          "\x1b[1mRun a program:\x1b[m         tomo file.tm [-- args...]\n"
                          "\x1b[1mTranspile files:\x1b[m       tomo -t file.tm\n"
-                         "\x1b[1mCompile object file:\x1b[m  tomo -c file.tm\n"
-                         "\x1b[1mCompile executable:\x1b[m   tomo -e file.tm\n"
+                         "\x1b[1mCompile object file:\x1b[m   tomo -c file.tm\n"
+                         "\x1b[1mCompile executable:\x1b[m    tomo -e file.tm\n"
                          "\x1b[1mBuild libraries:\x1b[m       tomo -L lib...\n"
                          "\x1b[1mUninstall libraries:\x1b[m   tomo -u lib...\n"
                          "\x1b[1mOther flags:\x1b[m\n"
@@ -217,7 +219,7 @@ int main(int argc, char *argv[]) {
                          "  --source-mapping|-m <yes|no>: toggle source mapping in generated code\n"
                          "  --changelog: show the Tomo changelog\n"
                          "  --run|-r: run a program from ",
-                         TOMO_PATH, "/share/tomo_" TOMO_VERSION "/installed\n");
+                         TOMO_PATH, "/share/tomo@" TOMO_VERSION "/installed\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     cli_arg_t tomo_args[] = {
         {"run", &run_files, List$info(&Path$info), .short_flag = 'r'}, //
@@ -291,7 +293,7 @@ int main(int argc, char *argv[]) {
     // Uninstall libraries:
     for (int64_t i = 0; i < (int64_t)uninstall_libraries.length; i++) {
         Text_t *u = (Text_t *)(uninstall_libraries.data + i * uninstall_libraries.stride);
-        xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo_" TOMO_VERSION "/", *u, " '", TOMO_PATH, "'/bin/", *u,
+        xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo@" TOMO_VERSION "/", *u, " '", TOMO_PATH, "'/bin/", *u,
                 " '", TOMO_PATH, "'/man/man1/", *u, ".1");
         print("Uninstalled ", *u);
     }
@@ -368,7 +370,9 @@ int main(int argc, char *argv[]) {
         for (int64_t i = 0; i < (int64_t)compile_executables.length; i++) {
             Path_t path = *(Path_t *)(compile_executables.data + i * compile_executables.stride);
 
-            Path_t exe_path = Path$with_extension(path, Text(""), true);
+            Path_t exe_path = get_exe_path(path);
+            // Put executable as a sibling to the .tm file instead of in the .build directory
+            exe_path = Path$sibling(path, Path$base_name(exe_path));
             pid_t child = fork();
             if (child == 0) {
                 env_t *env = global_env(source_mapping);
@@ -399,7 +403,7 @@ int main(int argc, char *argv[]) {
     // Compile runnable files in parallel, then execute in serial:
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
         Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
-        Path_t exe_path = build_file(Path$with_extension(path, Text(""), true), "");
+        Path_t exe_path = get_exe_path(path);
         pid_t child = fork();
         if (child == 0) {
             env_t *env = global_env(source_mapping);
@@ -418,12 +422,13 @@ int main(int argc, char *argv[]) {
     // After parallel compilation, do serial execution:
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
         Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
-        Path_t exe_path = build_file(Path$with_extension(path, Text(""), true), "");
+        Path_t exe_path = get_exe_path(path);
         // Don't fork for the last program
         pid_t child = i == (int64_t)run_files.length - 1 ? 0 : fork();
         if (child == 0) {
             const char *prog_args[1 + args.length + 1];
-            prog_args[0] = (char *)Path$as_c_string(exe_path);
+            Path_t relative_exe = Path$relative_to(exe_path, Path$current_dir());
+            prog_args[0] = (char *)Path$as_c_string(relative_exe);
             for (int64_t j = 0; j < (int64_t)args.length; j++)
                 prog_args[j + 1] = *(const char **)(args.data + j * args.stride);
             prog_args[1 + args.length] = NULL;
@@ -446,6 +451,18 @@ void wait_for_child_success(pid_t child) {
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         _exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
     }
+}
+
+Path_t get_exe_path(Path_t path) {
+    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+    OptionalText_t exe_name = ast_metadata(ast, "EXECUTABLE");
+    if (exe_name.tag == TEXT_NONE) exe_name = Path$base_name(Path$with_extension(path, Text(""), true));
+
+    Path_t build_dir = Path$sibling(path, Text(".build"));
+    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
+        if (!Path$is_directory(build_dir, true)) err(1, "Could not make .build directory");
+    }
+    return Path$child(build_dir, exe_name);
 }
 
 Path_t build_file(Path_t path, const char *extension) {
@@ -475,7 +492,7 @@ void build_library(Path_t lib_dir) {
 
     FILE *prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
 #ifdef __APPLE__
-                         " -Wl,-install_name,@rpath/'lib", Path$base_name(lib_dir), SHARED_SUFFIX,
+                         " -Wl,-install_name,@rpath/'lib", lib_name, SHARED_SUFFIX,
                          "'"
 #else
                          " -Wl,-soname,'lib", lib_name, SHARED_SUFFIX,
@@ -493,9 +510,9 @@ void build_library(Path_t lib_dir) {
 
 void install_library(Path_t lib_dir) {
     Text_t lib_name = get_library_name(lib_dir);
-    Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION)), lib_name);
+    Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION)), lib_name);
     print("Installing ", lib_dir, " into ", dest);
-    if (!Path$equal_values(lib_dir, dest)) {
+    if (!Enum$equal(&lib_dir, &dest, &Path$info)) {
         if (verbose) whisper("Clearing out any pre-existing version of ", lib_name);
         xsystem(as_owner, "rm -rf '", dest, "'");
         if (verbose) whisper("Moving files to ", dest);
@@ -513,7 +530,7 @@ void install_library(Path_t lib_dir) {
                                "' "
                                ">/dev/null 2>/dev/null"));
     (void)result;
-    print("Installed \033[1m", lib_dir, "\033[m to ", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", lib_name);
+    print("Installed \033[1m", lib_dir, "\033[m to ", TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", lib_name);
 }
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs, compile_mode_t mode) {
@@ -674,14 +691,14 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         }
         case USE_MODULE: {
             module_info_t mod = get_used_module_info(stmt_ast);
-            const char *full_name = mod.version ? String(mod.name, "_", mod.version) : mod.name;
-            Text_t lib = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", Text$from_str(full_name),
-                               "' '", TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", Text$from_str(full_name), "/lib",
+            const char *full_name = mod.version ? String(mod.name, "@", mod.version) : mod.name;
+            Text_t lib = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", Text$from_str(full_name),
+                               "' '", TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", Text$from_str(full_name), "/lib",
                                Text$from_str(full_name), SHARED_SUFFIX "'");
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
             List_t children =
-                Path$glob(Path$from_str(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", full_name, "/[!._0-9]*.tm")));
+                Path$glob(Path$from_str(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", full_name, "/[!._0-9]*.tm")));
             for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t *child = (Path_t *)(children.data + i * children.stride);
                 Table_t discarded = {.entries = EMPTY_LIST, .fallback = to_compile};
@@ -841,7 +858,7 @@ void transpile_code(env_t *base_env, Path_t path) {
                                  namespace_name(module_env, module_env->namespace, Text("$initialize")),
                                  "();\n"
                                  "\n",
-                                 compile_cli_arg_call(module_env, main_binding->code, main_binding->type, version),
+                                 compile_cli_arg_call(module_env, ast, main_binding->code, main_binding->type, version),
                                  "return 0;\n"
                                  "}\n"));
     }
@@ -877,10 +894,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");
     if (clean_build || !Path$is_file(manpage_file, true) || is_stale(manpage_file, path, true)) {
-        Text_t manpage = compile_manpage(Path$base_name(exe_path), NONE_TEXT, NONE_TEXT,
-                                         Match(main_binding->type, FunctionType)->args);
-        if (!quiet) print("Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
+        Text_t manpage = compile_manpage(Path$base_name(exe_path), ast, Match(main_binding->type, FunctionType)->args);
         Path$write(manpage_file, manpage, 0644);
+        if (!quiet) print("Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
     } else {
         if (verbose) whisper("Unchanged: ", manpage_file);
     }

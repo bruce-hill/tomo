@@ -196,8 +196,8 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         } else if (use->what == USE_MODULE) {
             module_info_t mod = get_used_module_info(ast);
             glob_t tm_files;
-            const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
-            if (glob(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
+            const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
+            if (glob(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
                      &tm_files)
                 != 0) {
                 if (!try_install_module(mod, true)) code_err(ast, "Could not find library");
@@ -216,11 +216,12 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             return EMPTY_TEXT;
         }
     }
+    case Metadata: return EMPTY_TEXT;
     default:
-        // print("Is discardable: ", ast_to_sexp_str(ast), " ==> ",
-        // is_discardable(env, ast));
         if (!is_discardable(env, ast))
-            code_err(ast, "The ", type_to_text(get_type(env, ast)), " result of this statement cannot be discarded");
+            code_err(
+                ast, "The ", type_to_text(get_type(env, ast)),
+                " value of this statement is implicitly ignored. \n Use `_ := ` if you want to explicitly discard it.");
         return Texts("(void)", compile(env, ast), ";");
     }
 }

@@ -280,6 +280,15 @@ Int.parse:
       type: 'Text'
       description: >
         The text containing the integer.
+    base:
+      type: 'Int?'
+      default: 'none'
+      description: >
+        The numeric base to use when parsing the integer. If unspecified, the
+        integer's base will be inferred from the text prefix. After any "+" or
+        "-" sign, if the text begins with "0x", the base will be assumed to be
+        16, "0o" will assume base 8, "0b" will assume base 2, otherwise the
+        base will be assumed to be 10.
     remainder:
       type: '&Text?'
       default: 'none'
@@ -299,6 +308,9 @@ Int.parse:
 
     # Outside valid range:
     assert Int8.parse("9999999") == none
+
+    # Explicitly specifying base:
+    assert Int.parse("10", base=16) == 16
 
 Int.prev_prime:
   short: get the previous prime

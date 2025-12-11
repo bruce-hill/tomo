@@ -67,6 +67,7 @@ PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInf
 #elif FLOATX_C_H__BITS == 32
 public
 PUREFUNC Text_t NAMESPACED(value_as_text)(FLOAT_T x) { return Float64$value_as_text((double)x); }
+public
 PUREFUNC Text_t NAMESPACED(as_text)(const void *x, bool colorize, const TypeInfo_t *info) {
     (void)info;
     if (!x) return Text(TYPE_STR);

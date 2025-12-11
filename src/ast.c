@@ -274,6 +274,8 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Assert, "(Assert ", ast_to_sexp(data.expr), " ", optional_sexp("message", data.message), ")");
         T(Use, "(Use ", optional_sexp("var", data.var), " ", quoted_text(data.path), ")");
         T(InlineCCode, "(InlineCCode ", ast_list_to_sexp(data.chunks), optional_type_sexp("type", data.type_ast), ")");
+        T(Metadata, "((Metadata ", Text$quoted(data.key, false, Text("\"")), " ",
+          Text$quoted(data.value, false, Text("\"")), ")");
     default: errx(1, "S-expressions are not implemented for this AST");
 #undef T
     }
@@ -441,19 +443,19 @@ CONSTFUNC ast_e binop_tag(ast_e tag) {
     }
 }
 
-static void ast_visit_list(ast_list_t *ast_list, void (*visitor)(ast_t *, void *), void *userdata) {
+static void ast_visit_list(ast_list_t *ast_list, visit_behavior_t (*visitor)(ast_t *, void *), void *userdata) {
     for (ast_list_t *ast = ast_list; ast; ast = ast->next)
         ast_visit(ast->ast, visitor, userdata);
 }
 
-static void ast_visit_args(arg_ast_t *args, void (*visitor)(ast_t *, void *), void *userdata) {
+static void ast_visit_args(arg_ast_t *args, visit_behavior_t (*visitor)(ast_t *, void *), void *userdata) {
     for (arg_ast_t *arg = args; arg; arg = arg->next)
         ast_visit(arg->value, visitor, userdata);
 }
 
-void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
+void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *userdata) {
     if (!ast) return;
-    visitor(ast, userdata);
+    if (visitor(ast, userdata) == VISIT_STOP) return;
 
     switch (ast->tag) {
     case Unknown:
@@ -463,7 +465,8 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
     case Int:
     case Num:
     case Path:
-    case TextLiteral: return;
+    case TextLiteral:
+    case Metadata: return;
     case TextJoin: ast_visit_list(Match(ast, TextJoin)->children, visitor, userdata); return;
     case Declare: {
         DeclareMatch(decl, ast, Declare);
@@ -683,26 +686,25 @@ void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata) {
 static void _recursive_type_ast_visit(type_ast_t *ast, void *userdata) {
     if (ast == NULL) return;
 
-    void (*visit)(type_ast_t *, void *) = ((Closure_t *)userdata)->fn;
+    visit_behavior_t (*visit)(type_ast_t *, void *) = ((Closure_t *)userdata)->fn;
     void *visitor_userdata = ((Closure_t *)userdata)->userdata;
+    if (visit(ast, visitor_userdata) == VISIT_STOP) return;
+
     switch (ast->tag) {
     case UnknownTypeAST:
-    case VarTypeAST: visit(ast, visitor_userdata); break;
+    case VarTypeAST: break;
     case PointerTypeAST: {
         _recursive_type_ast_visit(Match(ast, PointerTypeAST)->pointed, userdata);
-        visit(ast, visitor_userdata);
         break;
     }
     case ListTypeAST: {
         _recursive_type_ast_visit(Match(ast, ListTypeAST)->item, userdata);
-        visit(ast, visitor_userdata);
         break;
     }
     case TableTypeAST: {
         DeclareMatch(table, ast, TableTypeAST);
         _recursive_type_ast_visit(table->key, userdata);
         _recursive_type_ast_visit(table->value, userdata);
-        visit(ast, visitor_userdata);
         break;
     }
     case FunctionTypeAST: {
@@ -710,12 +712,10 @@ static void _recursive_type_ast_visit(type_ast_t *ast, void *userdata) {
         for (arg_ast_t *arg = fn->args; arg; arg = arg->next)
             _recursive_type_ast_visit(arg->type, userdata);
         _recursive_type_ast_visit(fn->ret, userdata);
-        visit(ast, visitor_userdata);
         break;
     }
     case OptionalTypeAST: {
         _recursive_type_ast_visit(Match(ast, OptionalTypeAST)->type, userdata);
-        visit(ast, visitor_userdata);
         break;
     }
     case EnumTypeAST: {
@@ -724,14 +724,13 @@ static void _recursive_type_ast_visit(type_ast_t *ast, void *userdata) {
                 _recursive_type_ast_visit(field->type, userdata);
             }
         }
-        visit(ast, visitor_userdata);
         break;
     }
     default: errx(1, "Invalid type AST");
     }
 }
 
-static void _type_ast_visit(ast_t *ast, void *userdata) {
+static visit_behavior_t _type_ast_visit(ast_t *ast, void *userdata) {
     switch (ast->tag) {
     case Declare: {
         _recursive_type_ast_visit(Match(ast, Declare)->type, userdata);
@@ -774,9 +773,22 @@ static void _type_ast_visit(ast_t *ast, void *userdata) {
     }
     default: break;
     }
+    return VISIT_PROCEED;
 }
 
-void type_ast_visit(ast_t *ast, void (*visitor)(type_ast_t *, void *), void *userdata) {
+void type_ast_visit(ast_t *ast, visit_behavior_t (*visitor)(type_ast_t *, void *), void *userdata) {
     Closure_t fn = {.fn = visitor, .userdata = userdata};
     ast_visit(ast, _type_ast_visit, &fn);
+}
+
+OptionalText_t ast_metadata(ast_t *ast, const char *key) {
+    if (ast->tag != Block) return NONE_TEXT;
+    Text_t key_text = Text$from_str(key);
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag == Metadata) {
+            DeclareMatch(m, stmt->ast, Metadata);
+            if (Text$equal_values(m->key, key_text)) return m->value;
+        }
+    }
+    return NONE_TEXT;
 }

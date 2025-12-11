@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.expm1 3 2025-11-09 "Tomo man-pages"
+.TH Float64.expm1 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.expm1 \- base-e exponential minus 1
 .SH LIBRARY
@@ -19,10 +19,10 @@ Computes $e^x - 1$ for a number.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The exponent. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The exponent. 
 .TE
 .SH RETURN
 The value of $e^x - 1$.
@@ -31,3 +31,5 @@ The value of $e^x - 1$.
 .EX
 assert (1.0).expm1() == 1.7183
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

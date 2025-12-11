@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.abs 3 2025-11-09 "Tomo man-pages"
+.TH Int.abs 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Int.abs \- absolute value
 .SH LIBRARY
@@ -19,10 +19,10 @@ Calculates the absolute value of an integer.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Int	The integer whose absolute value is to be calculated. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Int	The integer whose absolute value is to be calculated. 
 .TE
 .SH RETURN
 The absolute value of `x`.
@@ -31,3 +31,5 @@ The absolute value of `x`.
 .EX
 assert (-10).abs() == 10
 .EE
+.SH SEE ALSO
+.BR Tomo-Int (3)

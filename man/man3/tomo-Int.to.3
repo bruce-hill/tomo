@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.to 3 2025-11-09 "Tomo man-pages"
+.TH Int.to 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Int.to \- iterate a range of integers
 .SH LIBRARY
@@ -24,7 +24,7 @@ l l l l.
 Name	Type	Description	Default
 first	Int	The starting value of the range. 	-
 last	Int	The ending value of the range. 	-
-step	Int?	An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`. 	none
+step	Int?	An optional step size to use. If unspecified or \fBnone\fR, the step will be inferred to be \fB+1\fR if \fBlast >= first\fR, otherwise \fB-1\fR. 	none
 .TE
 .SH RETURN
 An iterator function that returns each integer in the given range (inclusive).
@@ -42,3 +42,5 @@ assert [x for x in (2).to(5)] == [2, 3, 4, 5]
 assert [x for x in (5).to(2)] == [5, 4, 3, 2]
 assert [x for x in (2).to(5, step=2)] == [2, 4]
 .EE
+.SH SEE ALSO
+.BR Tomo-Int (3)

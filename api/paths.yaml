@@ -27,9 +27,9 @@ Path.append:
     Appends the given text to the file at the specified path, creating the file if
     it doesn't already exist. Failure to write will result in a runtime error.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -45,7 +45,7 @@ Path.append:
       description: >
         The permissions to set on the file if it is being created.
   example: |
-    (./log.txt).append("extra line$(\n)")
+    (./log.txt).append("extra line\n")!
 
 Path.append_bytes:
   short: append bytes to a file
@@ -53,9 +53,9 @@ Path.append_bytes:
     Appends the given bytes to the file at the specified path, creating the file if
     it doesn't already exist. Failure to write will result in a runtime error.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -71,7 +71,7 @@ Path.append_bytes:
       description: >
         The permissions to set on the file if it is being created.
   example: |
-    (./log.txt).append_bytes([104, 105])
+    (./log.txt).append_bytes([104, 105])!
 
 Path.base_name:
   short: base name of a file
@@ -107,14 +107,31 @@ Path.by_line:
   example: |
     # Safely handle file not being readable:
     if lines := (./file.txt).by_line()
-    for line in lines
-    say(line.upper())
+        for line in lines
+            say(line.upper())
     else
-    say("Couldn't read file!")
+        say("Couldn't read file!")
 
     # Assume the file is readable and error if that's not the case:
     for line in (/dev/stdin).by_line()!
-    say(line.upper())
+        say(line.upper())
+
+Path.lines:
+  short: return the lines in a file
+  description: >
+    Returns a list with the lines of text in a file or returns none if the file
+    could not be opened.
+  return:
+    type: '[Text]?'
+    description: >
+      A list of the lines in a file or none if the file couldn't be read.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file.
+  example: |
+    lines := (./file.txt).lines()!
 
 Path.can_execute:
   short: check execute permissions
@@ -241,10 +258,11 @@ Path.create_directory:
   description: >
     Creates a new directory at the specified path with the given permissions. If
     any of the parent directories do not exist, they will be created as needed.
+  note: >
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -254,6 +272,12 @@ Path.create_directory:
       default: 'Int32(0o755)'
       description: >
         The permissions to set on the new directory.
+    recursive:
+      default: 'yes'
+      description: >
+        If set to `yes`, then recursively create any parent directories if they
+        don't exist, otherwise fail if the parent directory does not exist. When
+        set to `yes`, this function behaves like `mkdir -p`.
   example: |
     (./new_directory).create_directory()
 
@@ -580,9 +604,9 @@ Path.parent:
   description: >
     Returns the parent directory of the file or directory at the specified path.
   return:
-    type: 'Path'
+    type: 'Path?'
     description: >
-      The path of the parent directory.
+      The path of the parent directory or `none` if the path is `(/)` (the file root).
   args:
     path:
       type: 'Path'
@@ -642,7 +666,7 @@ Path.relative_to:
   return:
     type: 'Path'
     description: >
-      The relative path.
+      A relative path from the reference point to the given path.
   args:
     path:
       type: 'Path'
@@ -653,16 +677,17 @@ Path.relative_to:
       description: >
         The base path for the relative path.
   example: |
-    assert (./path/to/file.txt).relative(relative_to=(./path)) == (./to/file.txt)
+    assert (./path/to/file.txt).relative_to((./path)) == (./to/file.txt)
+    assert (/tmp/foo).relative_to((/tmp)) == (./foo)
 
 Path.remove:
   short: remove a file or directory
   description: >
     Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -701,9 +726,9 @@ Path.set_owner:
   description: >
     Set the owning user and/or group for a path.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing. If a path does not exist, a failure will be raised.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -794,9 +819,9 @@ Path.write:
     it doesn't already exist. Sets the file permissions as specified. If the file
     writing cannot be successfully completed, a runtime error is raised.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'
@@ -820,9 +845,9 @@ Path.write_bytes:
     it doesn't already exist. Sets the file permissions as specified. If the file
     writing cannot be successfully completed, a runtime error is raised.
   return:
-    type: 'Void'
+    type: 'Result'
     description: >
-      Nothing.
+      Either `Success` or `Failure(reason)`.
   args:
     path:
       type: 'Path'

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.sinh 3 2025-11-09 "Tomo man-pages"
+.TH Float64.sinh 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.sinh \- hyperbolic sine
 .SH LIBRARY
@@ -19,10 +19,10 @@ Computes the hyperbolic sine of a number.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The number for which the hyperbolic sine is to be calculated. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The number for which the hyperbolic sine is to be calculated. 
 .TE
 .SH RETURN
 The hyperbolic sine of `x`.
@@ -31,3 +31,5 @@ The hyperbolic sine of `x`.
 .EX
 assert (0.0).sinh() == 0
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

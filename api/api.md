@@ -33,10 +33,34 @@ force_tty | `Bool` | Whether or not to force the use of /dev/tty.  | `yes`
 assert ask("What's your name? ") == "Arthur Dent"
 
 ```
+## at_cleanup
+
+```tomo
+at_cleanup : func(fn: func() -> Void)
+```
+
+Register a function that runs at cleanup time for Tomo programs. Cleanup time happens when a program exits (see `atexit()` in C), or immediately before printing error messages in a call to `fail()`. This allows for terminal cleanup so error messages can be visible as the program shuts down.
+
+Use this API very carefully, because errors that occur during cleanup functions may make it extremely hard to figure out what's going on. Cleanup functions should be designed to not error under any circumstances.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+fn | `func()` | A function to run at cleanup time.  | -
+
+**Return:** Nothing.
+
+
+**Example:**
+```tomo
+at_cleanup(func()
+    (/tmp/file.txt).remove(ignore_missing=yes)
+)
+
+```
 ## exit
 
 ```tomo
-exit : func(message: Text? = none, status: Int32 = Int32(1) -> Void)
+exit : func(message: Text? = none, status: Int32 = Int32(1) -> Abort)
 ```
 
 Exits the program with a given status and optionally prints a message.
@@ -142,7 +166,7 @@ say("world!")
 ## setenv
 
 ```tomo
-setenv : func(name: Text, value: Text -> Void)
+setenv : func(name: Text, value: Text? -> Void)
 ```
 
 Sets an environment variable.
@@ -150,7 +174,7 @@ Sets an environment variable.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 name | `Text` | The name of the environment variable to set.  | -
-value | `Text` | The new value of the environment variable.  | -
+value | `Text?` | The new value of the environment variable. If `none`, then the environment variable will be unset.  | -
 
 **Return:** Nothing.
 
@@ -1791,7 +1815,7 @@ assert nums[] == [5, 6, 7, 8, 9, 10]
 ## Int.parse
 
 ```tomo
-Int.parse : func(text: Text, remainder: &Text? = none -> Int?)
+Int.parse : func(text: Text, base: Int? = none, remainder: &Text? = none -> Int?)
 ```
 
 Converts a text representation of an integer into an integer.
@@ -1799,6 +1823,7 @@ Converts a text representation of an integer into an integer.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text containing the integer.  | -
+base | `Int?` | The numeric base to use when parsing the integer. If unspecified, the integer's base will be inferred from the text prefix. After any "+" or "-" sign, if the text begins with "0x", the base will be assumed to be 16, "0o" will assume base 8, "0b" will assume base 2, otherwise the base will be assumed to be 10.  | `none`
 remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The integer represented by the text. If the given text contains a value outside of the representable range or if the entire text can't be parsed as an integer, `none` will be returned.
@@ -1818,6 +1843,9 @@ assert Int.parse("asdf") == none
 
 # Outside valid range:
 assert Int8.parse("9999999") == none
+
+# Explicitly specifying base:
+assert Int.parse("10", base=16) == 16
 
 ```
 ## Int.prev_prime
@@ -2528,7 +2556,7 @@ assert (./not-a-file).accessed() == none
 ## Path.append
 
 ```tomo
-Path.append : func(path: Path, text: Text, permissions: Int32 = Int32(0o644) -> Void)
+Path.append : func(path: Path, text: Text, permissions: Int32 = Int32(0o644) -> Result)
 ```
 
 Appends the given text to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error.
@@ -2539,18 +2567,18 @@ path | `Path` | The path of the file to append to.  | -
 text | `Text` | The text to append to the file.  | -
 permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
 ```tomo
-(./log.txt).append("extra line$(\n)")
+(./log.txt).append("extra line\n")!
 
 ```
 ## Path.append_bytes
 
 ```tomo
-Path.append_bytes : func(path: Path, bytes: [Byte], permissions: Int32 = Int32(0o644) -> Void)
+Path.append_bytes : func(path: Path, bytes: [Byte], permissions: Int32 = Int32(0o644) -> Result)
 ```
 
 Appends the given bytes to the file at the specified path, creating the file if it doesn't already exist. Failure to write will result in a runtime error.
@@ -2561,12 +2589,12 @@ path | `Path` | The path of the file to append to.  | -
 bytes | `[Byte]` | The bytes to append to the file.  | -
 permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
 ```tomo
-(./log.txt).append_bytes([104, 105])
+(./log.txt).append_bytes([104, 105])!
 
 ```
 ## Path.base_name
@@ -2608,14 +2636,14 @@ path | `Path` | The path of the file.  | -
 ```tomo
 # Safely handle file not being readable:
 if lines := (./file.txt).by_line()
-for line in lines
-say(line.upper())
+    for line in lines
+        say(line.upper())
 else
-say("Couldn't read file!")
+    say("Couldn't read file!")
 
 # Assume the file is readable and error if that's not the case:
 for line in (/dev/stdin).by_line()!
-say(line.upper())
+    say(line.upper())
 
 ```
 ## Path.can_execute
@@ -2753,17 +2781,19 @@ assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
 ## Path.create_directory
 
 ```tomo
-Path.create_directory : func(path: Path, permissions = Int32(0o755) -> Void)
+Path.create_directory : func(path: Path, permissions = Int32(0o755), recursive = yes -> Result)
 ```
 
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
+
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory to create.  | -
 permissions | `` | The permissions to set on the new directory.  | `Int32(0o755)`
+recursive | `` | If set to `yes`, then recursively create any parent directories if they don't exist, otherwise fail if the parent directory does not exist. When set to `yes`, this function behaves like `mkdir -p`.  | `yes`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
@@ -3062,6 +3092,26 @@ path | `Path` | The path to check.  | -
 assert (./link).is_symlink() == yes
 
 ```
+## Path.lines
+
+```tomo
+Path.lines : func(path: Path -> [Text]?)
+```
+
+Returns a list with the lines of text in a file or returns none if the file could not be opened.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path of the file.  | -
+
+**Return:** A list of the lines in a file or none if the file couldn't be read.
+
+
+**Example:**
+```tomo
+lines := (./file.txt).lines()!
+
+```
 ## Path.modified
 
 ```tomo
@@ -3109,7 +3159,7 @@ assert (/non/existent/file).owner() == none
 ## Path.parent
 
 ```tomo
-Path.parent : func(path: Path -> Path)
+Path.parent : func(path: Path -> Path?)
 ```
 
 Returns the parent directory of the file or directory at the specified path.
@@ -3118,7 +3168,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file or directory.  | -
 
-**Return:** The path of the parent directory.
+**Return:** The path of the parent directory or `none` if the path is `(/)` (the file root).
 
 
 **Example:**
@@ -3182,18 +3232,19 @@ Argument | Type | Description | Default
 path | `Path` | The path to convert.  | -
 relative_to | `` | The base path for the relative path.  | `(./)`
 
-**Return:** The relative path.
+**Return:** A relative path from the reference point to the given path.
 
 
 **Example:**
 ```tomo
-assert (./path/to/file.txt).relative(relative_to=(./path)) == (./to/file.txt)
+assert (./path/to/file.txt).relative_to((./path)) == (./to/file.txt)
+assert (/tmp/foo).relative_to((/tmp)) == (./foo)
 
 ```
 ## Path.remove
 
 ```tomo
-Path.remove : func(path: Path, ignore_missing = no -> Void)
+Path.remove : func(path: Path, ignore_missing = no -> Result)
 ```
 
 Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
@@ -3203,7 +3254,7 @@ Argument | Type | Description | Default
 path | `Path` | The path to remove.  | -
 ignore_missing | `` | Whether to ignore errors if the file or directory does not exist.  | `no`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
@@ -3236,7 +3287,7 @@ assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.t
 ## Path.set_owner
 
 ```tomo
-Path.set_owner : func(path: Path, owner: Text? = none, group: Text? = none, follow_symlinks: Bool = yes -> Void)
+Path.set_owner : func(path: Path, owner: Text? = none, group: Text? = none, follow_symlinks: Bool = yes -> Result)
 ```
 
 Set the owning user and/or group for a path.
@@ -3248,7 +3299,7 @@ owner | `Text?` | If non-none, the new user to assign to be the owner of the fil
 group | `Text?` | If non-none, the new group to assign to be the owner of the file.  | `none`
 follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
-**Return:** Nothing. If a path does not exist, a failure will be raised.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
@@ -3324,7 +3375,7 @@ created.remove()
 ## Path.write
 
 ```tomo
-Path.write : func(path: Path, text: Text, permissions = Int32(0o644) -> Void)
+Path.write : func(path: Path, text: Text, permissions = Int32(0o644) -> Result)
 ```
 
 Writes the given text to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised.
@@ -3335,7 +3386,7 @@ path | `Path` | The path of the file to write to.  | -
 text | `Text` | The text to write to the file.  | -
 permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
@@ -3346,7 +3397,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 ## Path.write_bytes
 
 ```tomo
-Path.write_bytes : func(path: Path, bytes: [Byte], permissions = Int32(0o644) -> Void)
+Path.write_bytes : func(path: Path, bytes: [Byte], permissions = Int32(0o644) -> Result)
 ```
 
 Writes the given bytes to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised.
@@ -3357,7 +3408,7 @@ path | `Path` | The path of the file to write to.  | -
 bytes | `[Byte]` | A list of bytes to write to the file.  | -
 permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
-**Return:** Nothing.
+**Return:** Either `Success` or `Failure(reason)`.
 
 
 **Example:**
@@ -3883,6 +3934,31 @@ assert "hello world".ends_with("world") == yes
 remainder : Text
 assert "hello world".ends_with("world", &remainder) == yes
 assert remainder == "hello "
+
+```
+## Text.find
+
+```tomo
+Text.find : func(text: Text, target: Text, start: Int = 1 -> Int)
+```
+
+Find a substring within a text and return its index, if found.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+text | `Text` | The text to be searched.  | -
+target | `Text` | The target text to find.  | -
+start | `Int` | The index at which to begin searching.  | `1`
+
+**Return:** The index where the first occurrence of `target` appears, or `none` if it is not found.
+
+
+**Example:**
+```tomo
+assert "one two".find("one") == 1
+assert "one two".find("two") == 5
+assert "one two".find("three") == none
+assert "one two".find("o", start=2) == 7
 
 ```
 ## Text.from

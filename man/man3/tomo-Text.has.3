@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.has 3 2025-11-09 "Tomo man-pages"
+.TH Text.has 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.has \- check for substring
 .SH LIBRARY
@@ -19,11 +19,11 @@ Checks if the `Text` contains some target text.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-text	Text	The text to be searched. 	-
-target	Text	The text to search for. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+text	Text	The text to be searched. 
+target	Text	The text to search for. 
 .TE
 .SH RETURN
 `yes` if the target text is found, `no` otherwise.
@@ -33,3 +33,5 @@ target	Text	The text to search for. 	-
 assert "hello world".has("wo") == yes
 assert "hello world".has("xxx") == no
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

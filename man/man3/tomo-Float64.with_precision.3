@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.with_precision 3 2025-11-09 "Tomo man-pages"
+.TH Float64.with_precision 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.with_precision \- round to a given precision
 .SH LIBRARY
@@ -19,11 +19,11 @@ Round a number to the given precision level (specified as `10`, `.1`, `.001` etc
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-n	Float64	The number to be rounded to a given precision. 	-
-precision	Float64	The precision to which the number should be rounded. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+n	Float64	The number to be rounded to a given precision. 
+precision	Float64	The precision to which the number should be rounded. 
 .TE
 .SH RETURN
 The number, rounded to the given precision level.
@@ -34,3 +34,5 @@ assert (0.1234567).with_precision(0.01) == 0.12
 assert (123456.).with_precision(100) == 123500
 assert (1234567.).with_precision(5) == 1234565
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

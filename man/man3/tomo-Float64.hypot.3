@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.hypot 3 2025-11-09 "Tomo man-pages"
+.TH Float64.hypot 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.hypot \- Euclidean distance function
 .SH LIBRARY
@@ -19,11 +19,11 @@ Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The first number. 	-
-y	Float64	The second number. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The first number. 
+y	Float64	The second number. 
 .TE
 .SH RETURN
 The Euclidean norm of `x` and `y`.
@@ -32,3 +32,5 @@ The Euclidean norm of `x` and `y`.
 .EX
 assert Float64.hypot(3, 4) == 5
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

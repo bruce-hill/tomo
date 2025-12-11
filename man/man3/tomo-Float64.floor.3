@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.floor 3 2025-11-09 "Tomo man-pages"
+.TH Float64.floor 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.floor \- floor function
 .SH LIBRARY
@@ -19,10 +19,10 @@ Rounds a number down to the nearest integer.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The number to be rounded down. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The number to be rounded down. 
 .TE
 .SH RETURN
 The largest integer less than or equal to `x`.
@@ -31,3 +31,5 @@ The largest integer less than or equal to `x`.
 .EX
 assert (3.7).floor() == 3
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

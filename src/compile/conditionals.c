@@ -126,17 +126,22 @@ Text_t compile_if_expression(env_t *env, ast_t *ast) {
     }
 
     type_t *true_type = get_type(truthy_scope, if_->body);
-    type_t *false_type = get_type(falsey_scope, if_->else_body);
+    ast_t *else_body = if_->else_body;
+    if (else_body && else_body->tag == Block && Match(else_body, Block)->statements
+        && !Match(else_body, Block)->statements->next)
+        else_body = Match(else_body, Block)->statements->ast;
+    if (else_body == NULL || else_body->tag == None) else_body = WrapAST(ast, None, .type = true_type);
+    type_t *false_type = get_type(falsey_scope, else_body);
     if (true_type->tag == AbortType || true_type->tag == ReturnType)
         return Texts("({ ", decl_code, "if (", condition_code, ") ", compile_statement(truthy_scope, if_->body), "\n",
-                     compile(falsey_scope, if_->else_body), "; })");
+                     compile(falsey_scope, else_body), "; })");
     else if (false_type->tag == AbortType || false_type->tag == ReturnType)
-        return Texts("({ ", decl_code, "if (!(", condition_code, ")) ", compile_statement(falsey_scope, if_->else_body),
+        return Texts("({ ", decl_code, "if (!(", condition_code, ")) ", compile_statement(falsey_scope, else_body),
                      "\n", compile(truthy_scope, if_->body), "; })");
     else if (decl_code.length > 0)
         return Texts("({ ", decl_code, "(", condition_code, ") ? ", compile(truthy_scope, if_->body), " : ",
-                     compile(falsey_scope, if_->else_body), ";})");
+                     compile(falsey_scope, else_body), ";})");
     else
         return Texts("((", condition_code, ") ? ", compile(truthy_scope, if_->body), " : ",
-                     compile(falsey_scope, if_->else_body), ")");
+                     compile(falsey_scope, else_body), ")");
 }

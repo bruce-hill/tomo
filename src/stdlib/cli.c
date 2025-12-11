@@ -202,7 +202,7 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
         if ((type->tag == TextInfo || type == &CString$info) && arg[0] == '\\' && arg[1] == '-') {
             arg = arg + 1;
         } else if (arg[0] == '-') {
-            print_err("Not a valid argument for flag ", flag, ": ", arg);
+            print_err("Not a valid flag: ", arg);
         }
     }
 
@@ -215,7 +215,10 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
             return List$from(args, I(2));
         } else {
             args = parse_arg_list(args, flag, dest, nonnull, allow_dashes);
-            if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
+            if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Num$info || nonnull == &Num32$info
+                || nonnull->tag == TextInfo || nonnull->tag == EnumInfo)
+                return args;
+            else if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
             else if (nonnull == &Int32$info) ((OptionalInt32_t *)dest)->has_value = true;
             else if (nonnull == &Int16$info) ((OptionalInt16_t *)dest)->has_value = true;
             else if (nonnull == &Int8$info) ((OptionalInt8_t *)dest)->has_value = true;
@@ -235,23 +238,23 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
         if (parsed.small == 0) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int_t *)dest = parsed;
     } else if (type == &Int64$info) {
-        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NULL);
+        OptionalInt64_t parsed = Int64$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int64_t *)dest = parsed.value;
     } else if (type == &Int32$info) {
-        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NULL);
+        OptionalInt32_t parsed = Int32$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int32_t *)dest = parsed.value;
     } else if (type == &Int16$info) {
-        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NULL);
+        OptionalInt16_t parsed = Int16$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int16_t *)dest = parsed.value;
     } else if (type == &Int8$info) {
-        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NULL);
+        OptionalInt8_t parsed = Int8$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Int8_t *)dest = parsed.value;
     } else if (type == &Byte$info) {
-        OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NULL);
+        OptionalByte_t parsed = Byte$parse(Text$from_str(arg), NONE_INT, NULL);
         if (!parsed.has_value) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Byte_t *)dest = parsed.value;
     } else if (type == &Bool$info) {
@@ -322,7 +325,8 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                 // Case: --flag values...
                 if (i + 1 >= (int64_t)args->length) print_err("No value provided for flag: ", flag);
                 List_t values = List$slice(*args, I(i + 2), I(-1));
-                *args = parse_arg_list(values, flag, dest, type, false);
+                List_t remaining_args = parse_arg_list(values, flag, dest, type, false);
+                *args = List$concat(List$to(*args, I(i)), remaining_args, sizeof(const char *));
                 return true;
             } else if (starts_with(arg + 2, flag) && arg[2 + strlen(flag)] == '=') {
                 // Case: --flag=...
@@ -338,7 +342,8 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                 } else {
                     values = List(arg_value);
                 }
-                *args = parse_arg_list(values, flag, dest, type, false);
+                List_t remaining_args = parse_arg_list(values, flag, dest, type, false);
+                *args = List$concat(List$to(*args, I(i)), remaining_args, sizeof(const char *));
                 return true;
             }
         } else if (short_flag && arg[0] == '-' && arg[1] != '-' && strchr(arg + 1, short_flag)) {
@@ -397,7 +402,7 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                     List_t texts = Text$split(Text$from_str(arg_value), Text(","));
                     values = EMPTY_LIST;
                     for (int64_t j = 0; j < (int64_t)texts.length; j++)
-                        List$insert_value(&texts, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
+                        List$insert_value(&values, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
                                           sizeof(const char *));
                 } else {
                     // Case: -fVALUE

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from_utf8 3 2025-11-09 "Tomo man-pages"
+.TH Text.from_utf8 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.from_utf8 \- convert UTF8 byte list to text
 .SH LIBRARY
@@ -19,10 +19,10 @@ Returns text that has been constructed from the given UTF8 bytes.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-bytes	[Byte]	The UTF-8 bytes of the desired text. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+bytes	[Byte]	The UTF-8 bytes of the desired text. 
 .TE
 .SH RETURN
 A new text based on the input UTF8 bytes after normalization has been applied.
@@ -34,3 +34,5 @@ The text will be normalized, so the resulting text's UTF8 bytes may not exactly 
 .EX
 assert Text.from_utf8([195, 133, 107, 101]) == "Åke"
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.get_bit 3 2025-11-09 "Tomo man-pages"
+.TH Byte.get_bit 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Byte.get_bit \- check whether a bit is set
 .SH LIBRARY
@@ -19,11 +19,11 @@ In the binary representation of a byte, check whether a given bit index is set t
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-i	Byte	The byte whose bits are being inspected. 	-
-bit_index	Int	The index of the bit to check (1-indexed, range 1-8). 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+i	Byte	The byte whose bits are being inspected. 
+bit_index	Int	The index of the bit to check (1-indexed, range 1-8). 
 .TE
 .SH RETURN
 Whether or not the given bit index is set to 1 in the byte.
@@ -38,3 +38,5 @@ assert Byte(6).get_bit(2) == yes
 assert Byte(6).get_bit(3) == yes
 assert Byte(6).get_bit(4) == no
 .EE
+.SH SEE ALSO
+.BR Tomo-Byte (3)

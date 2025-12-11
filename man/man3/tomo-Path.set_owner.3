@@ -2,14 +2,14 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.set_owner 3 2025-11-09 "Tomo man-pages"
+.TH Path.set_owner 3 2025-12-07 "Tomo man-pages"
 .SH NAME
 Path.set_owner \- set the owner
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.set_owner\ :\ func(path:\ Path,\ owner:\ Text?\ =\ none,\ group:\ Text?\ =\ none,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Void)
+.BI Path.set_owner\ :\ func(path:\ Path,\ owner:\ Text?\ =\ none,\ group:\ Text?\ =\ none,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Result)
 .fi
 .SH DESCRIPTION
 Set the owning user and/or group for a path.
@@ -28,9 +28,11 @@ group	Text?	If non-none, the new group to assign to be the owner of the file. 	n
 follow_symlinks	Bool	Whether to follow symbolic links. 	yes
 .TE
 .SH RETURN
-Nothing. If a path does not exist, a failure will be raised.
+Either `Success` or `Failure(reason)`.
 
 .SH EXAMPLES
 .EX
 (./file.txt).set_owner(owner="root", group="wheel")
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

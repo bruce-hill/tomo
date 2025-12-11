@@ -168,7 +168,7 @@ ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos) {
     (void)(false || (term = parse_none(ctx, pos)) || (term = parse_num(ctx, pos)) // Must come before int
            || (term = parse_int(ctx, pos)) || (term = parse_negative(ctx, pos)) // Must come after num/int
            || (term = parse_heap_alloc(ctx, pos)) || (term = parse_stack_reference(ctx, pos))
-           || (term = parse_bool(ctx, pos)) || (term = parse_text(ctx, pos)) || (term = parse_path(ctx, pos))
+           || (term = parse_bool(ctx, pos)) || (term = parse_text(ctx, pos, true)) || (term = parse_path(ctx, pos))
            || (term = parse_lambda(ctx, pos)) || (term = parse_parens(ctx, pos)) || (term = parse_table(ctx, pos))
            || (term = parse_var(ctx, pos)) || (term = parse_list(ctx, pos)) || (term = parse_reduction(ctx, pos))
            || (term = parse_pass(ctx, pos)) || (term = parse_defer(ctx, pos)) || (term = parse_skip(ctx, pos))

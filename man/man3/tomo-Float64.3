@@ -1,0 +1,523 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64 3 2025-12-11 "Tomo man-pages"
+.SH NAME
+Float64 \- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+
+.TP
+.BI Float64.1_PI\ :\ Float64
+The constant $\frac{1}{\pi}$. 
+
+For more, see:
+.BR Tomo-Float64.1_PI (3)
+
+
+.TP
+.BI Float64.2_PI\ :\ Float64
+The constant $2 \times \pi$. 
+
+For more, see:
+.BR Tomo-Float64.2_PI (3)
+
+
+.TP
+.BI Float64.2_SQRTPI\ :\ Float64
+The constant $2 \times \sqrt{\pi}$. 
+
+For more, see:
+.BR Tomo-Float64.2_SQRTPI (3)
+
+
+.TP
+.BI Float64.E\ :\ Float64
+The base of the natural logarithm ($e$). 
+
+For more, see:
+.BR Tomo-Float64.E (3)
+
+
+.TP
+.BI Float64.INF\ :\ Float64
+Positive infinity. 
+
+For more, see:
+.BR Tomo-Float64.INF (3)
+
+
+.TP
+.BI Float64.LN10\ :\ Float64
+The natural logarithm of 10. 
+
+For more, see:
+.BR Tomo-Float64.LN10 (3)
+
+
+.TP
+.BI Float64.LN2\ :\ Float64
+The natural logarithm of 2. 
+
+For more, see:
+.BR Tomo-Float64.LN2 (3)
+
+
+.TP
+.BI Float64.LOG2E\ :\ Float64
+The base 2 logarithm of $e$ 
+
+For more, see:
+.BR Tomo-Float64.LOG2E (3)
+
+
+.TP
+.BI Float64.PI\ :\ Float64
+Pi ($\pi$). 
+
+For more, see:
+.BR Tomo-Float64.PI (3)
+
+
+.TP
+.BI Float64.PI_2\ :\ Float64
+$\frac{\pi}{2}$ 
+
+For more, see:
+.BR Tomo-Float64.PI_2 (3)
+
+
+.TP
+.BI Float64.PI_4\ :\ Float64
+$\frac{\pi}{4}$ 
+
+For more, see:
+.BR Tomo-Float64.PI_4 (3)
+
+
+.TP
+.BI Float64.SQRT1_2\ :\ Float64
+$\sqrt{\frac{1}{2}}$ 
+
+For more, see:
+.BR Tomo-Float64.SQRT1_2 (3)
+
+
+.TP
+.BI Float64.SQRT2\ :\ Float64
+$\sqrt{2}$ 
+
+For more, see:
+.BR Tomo-Float64.SQRT2 (3)
+
+
+.TP
+.BI Float64.TAU\ :\ Float64
+Tau ($2 \times \pi$) 
+
+For more, see:
+.BR Tomo-Float64.TAU (3)
+
+
+.TP
+.BI Float64.abs\ :\ func(n:\ Float64\ ->\ Float64)
+Calculates the absolute value of a number. 
+
+For more, see:
+.BR Tomo-Float64.abs (3)
+
+
+.TP
+.BI Float64.acos\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the arc cosine of a number. 
+
+For more, see:
+.BR Tomo-Float64.acos (3)
+
+
+.TP
+.BI Float64.acosh\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the inverse hyperbolic cosine of a number. 
+
+For more, see:
+.BR Tomo-Float64.acosh (3)
+
+
+.TP
+.BI Float64.asin\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the arc sine of a number. 
+
+For more, see:
+.BR Tomo-Float64.asin (3)
+
+
+.TP
+.BI Float64.asinh\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the inverse hyperbolic sine of a number. 
+
+For more, see:
+.BR Tomo-Float64.asinh (3)
+
+
+.TP
+.BI Float64.atan\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the arc tangent of a number. 
+
+For more, see:
+.BR Tomo-Float64.atan (3)
+
+
+.TP
+.BI Float64.atan2\ :\ func(x:\ Float64,\ y:\ Float64\ ->\ Float64)
+Computes the arc tangent of the quotient of two numbers. 
+
+For more, see:
+.BR Tomo-Float64.atan2 (3)
+
+
+.TP
+.BI Float64.atanh\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the inverse hyperbolic tangent of a number. 
+
+For more, see:
+.BR Tomo-Float64.atanh (3)
+
+
+.TP
+.BI Float64.cbrt\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the cube root of a number. 
+
+For more, see:
+.BR Tomo-Float64.cbrt (3)
+
+
+.TP
+.BI Float64.ceil\ :\ func(x:\ Float64\ ->\ Float64)
+Rounds a number up to the nearest integer. 
+
+For more, see:
+.BR Tomo-Float64.ceil (3)
+
+
+.TP
+.BI Float64.clamped\ :\ func(x:\ Float64,\ low:\ Float64,\ high:\ Float64\ ->\ Float64)
+Returns the given number clamped between two values so that it is within that range. 
+
+For more, see:
+.BR Tomo-Float64.clamped (3)
+
+
+.TP
+.BI Float64.copysign\ :\ func(x:\ Float64,\ y:\ Float64\ ->\ Float64)
+Copies the sign of one number to another. 
+
+For more, see:
+.BR Tomo-Float64.copysign (3)
+
+
+.TP
+.BI Float64.cos\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the cosine of a number (angle in radians). 
+
+For more, see:
+.BR Tomo-Float64.cos (3)
+
+
+.TP
+.BI Float64.cosh\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the hyperbolic cosine of a number. 
+
+For more, see:
+.BR Tomo-Float64.cosh (3)
+
+
+.TP
+.BI Float64.erf\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the error function of a number. 
+
+For more, see:
+.BR Tomo-Float64.erf (3)
+
+
+.TP
+.BI Float64.erfc\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the complementary error function of a number. 
+
+For more, see:
+.BR Tomo-Float64.erfc (3)
+
+
+.TP
+.BI Float64.exp\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the exponential function $e^x$ for a number. 
+
+For more, see:
+.BR Tomo-Float64.exp (3)
+
+
+.TP
+.BI Float64.exp2\ :\ func(x:\ Float64\ ->\ Float64)
+Computes $2^x$ for a number. 
+
+For more, see:
+.BR Tomo-Float64.exp2 (3)
+
+
+.TP
+.BI Float64.expm1\ :\ func(x:\ Float64\ ->\ Float64)
+Computes $e^x - 1$ for a number. 
+
+For more, see:
+.BR Tomo-Float64.expm1 (3)
+
+
+.TP
+.BI Float64.fdim\ :\ func(x:\ Float64,\ y:\ Float64\ ->\ Float64)
+Computes the positive difference between two numbers. 
+
+For more, see:
+.BR Tomo-Float64.fdim (3)
+
+
+.TP
+.BI Float64.floor\ :\ func(x:\ Float64\ ->\ Float64)
+Rounds a number down to the nearest integer. 
+
+For more, see:
+.BR Tomo-Float64.floor (3)
+
+
+.TP
+.BI Float64.hypot\ :\ func(x:\ Float64,\ y:\ Float64\ ->\ Float64)
+Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers. 
+
+For more, see:
+.BR Tomo-Float64.hypot (3)
+
+
+.TP
+.BI Float64.is_between\ :\ func(x:\ Float64,\ low:\ Float64,\ high:\ Float64\ ->\ Bool)
+Determines if a number is between two numbers (inclusive). 
+
+For more, see:
+.BR Tomo-Float64.is_between (3)
+
+
+.TP
+.BI Float64.isfinite\ :\ func(n:\ Float64\ ->\ Bool)
+Checks if a number is finite. 
+
+For more, see:
+.BR Tomo-Float64.isfinite (3)
+
+
+.TP
+.BI Float64.isinf\ :\ func(n:\ Float64\ ->\ Bool)
+Checks if a number is infinite. 
+
+For more, see:
+.BR Tomo-Float64.isinf (3)
+
+
+.TP
+.BI Float64.j0\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the Bessel function of the first kind of order 0. 
+
+For more, see:
+.BR Tomo-Float64.j0 (3)
+
+
+.TP
+.BI Float64.j1\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the Bessel function of the first kind of order 1. 
+
+For more, see:
+.BR Tomo-Float64.j1 (3)
+
+
+.TP
+.BI Float64.log\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the natural logarithm (base $e$) of a number. 
+
+For more, see:
+.BR Tomo-Float64.log (3)
+
+
+.TP
+.BI Float64.log10\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the base-10 logarithm of a number. 
+
+For more, see:
+.BR Tomo-Float64.log10 (3)
+
+
+.TP
+.BI Float64.log1p\ :\ func(x:\ Float64\ ->\ Float64)
+Computes $\log(1 + x)$ for a number. 
+
+For more, see:
+.BR Tomo-Float64.log1p (3)
+
+
+.TP
+.BI Float64.log2\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the base-2 logarithm of a number. 
+
+For more, see:
+.BR Tomo-Float64.log2 (3)
+
+
+.TP
+.BI Float64.logb\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the binary exponent (base-2 logarithm) of a number. 
+
+For more, see:
+.BR Tomo-Float64.logb (3)
+
+
+.TP
+.BI Float64.mix\ :\ func(amount:\ Float64,\ x:\ Float64,\ y:\ Float64\ ->\ Float64)
+Interpolates between two numbers based on a given amount. 
+
+For more, see:
+.BR Tomo-Float64.mix (3)
+
+
+.TP
+.BI Float64.near\ :\ func(x:\ Float64,\ y:\ Float64,\ ratio:\ Float64\ =\ 1e-9,\ min_epsilon:\ Float64\ =\ 1e-9\ ->\ Bool)
+Checks if two numbers are approximately equal within specified tolerances. If two numbers are within an absolute difference or the ratio between the two is small enough, they are considered near each other. 
+
+For more, see:
+.BR Tomo-Float64.near (3)
+
+
+.TP
+.BI Float64.nextafter\ :\ func(x:\ Float64,\ y:\ Float64\ ->\ Float64)
+Computes the next representable value after a given number towards a specified direction. 
+
+For more, see:
+.BR Tomo-Float64.nextafter (3)
+
+
+.TP
+.BI Float64.parse\ :\ func(text:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Float64?)
+Converts a text representation of a number into a floating-point number. 
+
+For more, see:
+.BR Tomo-Float64.parse (3)
+
+
+.TP
+.BI Float64.percent\ :\ func(n:\ Float64,\ precision:\ Float64\ =\ 0.01\ ->\ Text)
+Convert a number into a percentage text with a percent sign. 
+
+For more, see:
+.BR Tomo-Float64.percent (3)
+
+
+.TP
+.BI Float64.rint\ :\ func(x:\ Float64\ ->\ Float64)
+Rounds a number to the nearest integer, with ties rounded to the nearest even integer. 
+
+For more, see:
+.BR Tomo-Float64.rint (3)
+
+
+.TP
+.BI Float64.round\ :\ func(x:\ Float64\ ->\ Float64)
+Rounds a number to the nearest whole number integer. 
+
+For more, see:
+.BR Tomo-Float64.round (3)
+
+
+.TP
+.BI Float64.significand\ :\ func(x:\ Float64\ ->\ Float64)
+Extracts the significand (or mantissa) of a number. 
+
+For more, see:
+.BR Tomo-Float64.significand (3)
+
+
+.TP
+.BI Float64.sin\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the sine of a number (angle in radians). 
+
+For more, see:
+.BR Tomo-Float64.sin (3)
+
+
+.TP
+.BI Float64.sinh\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the hyperbolic sine of a number. 
+
+For more, see:
+.BR Tomo-Float64.sinh (3)
+
+
+.TP
+.BI Float64.sqrt\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the square root of a number. 
+
+For more, see:
+.BR Tomo-Float64.sqrt (3)
+
+
+.TP
+.BI Float64.tan\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the tangent of a number (angle in radians). 
+
+For more, see:
+.BR Tomo-Float64.tan (3)
+
+
+.TP
+.BI Float64.tanh\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the hyperbolic tangent of a number. 
+
+For more, see:
+.BR Tomo-Float64.tanh (3)
+
+
+.TP
+.BI Float64.tgamma\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the gamma function of a number. 
+
+For more, see:
+.BR Tomo-Float64.tgamma (3)
+
+
+.TP
+.BI Float64.trunc\ :\ func(x:\ Float64\ ->\ Float64)
+Truncates a number to the nearest integer towards zero. 
+
+For more, see:
+.BR Tomo-Float64.trunc (3)
+
+
+.TP
+.BI Float64.with_precision\ :\ func(n:\ Float64,\ precision:\ Float64\ ->\ Float64)
+Round a number to the given precision level (specified as \fB10\fR, \fB.1\fR, \fB.001\fR etc). 
+
+For more, see:
+.BR Tomo-Float64.with_precision (3)
+
+
+.TP
+.BI Float64.y0\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the Bessel function of the second kind of order 0. 
+
+For more, see:
+.BR Tomo-Float64.y0 (3)
+
+
+.TP
+.BI Float64.y1\ :\ func(x:\ Float64\ ->\ Float64)
+Computes the Bessel function of the second kind of order 1. 
+
+For more, see:
+.BR Tomo-Float64.y1 (3)
+

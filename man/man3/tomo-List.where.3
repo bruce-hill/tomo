@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.where 3 2025-11-09 "Tomo man-pages"
+.TH List.where 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 List.where \- find an index where a predicate matches
 .SH LIBRARY
@@ -19,11 +19,11 @@ Find the index of the first item that matches a predicate function (if any).
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-list	[T]	The list to search through. 	-
-predicate	func(item:&T -> Bool)	A function that returns `yes` if the item's index should be returned or `no` if it should not. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+list	[T]	The list to search through. 
+predicate	func(item:&T -> Bool)	A function that returns \fByes\fR if the item's index should be returned or \fBno\fR if it should not. 
 .TE
 .SH RETURN
 Returns the index of the first item where the predicate is true or `none` if no item matches.
@@ -33,3 +33,5 @@ Returns the index of the first item where the predicate is true or `none` if no 
 assert [4, 5, 6].where(func(i:&Int): i.is_prime()) == 5
 assert [4, 6, 8].find(func(i:&Int): i.is_prime()) == none
 .EE
+.SH SEE ALSO
+.BR Tomo-List (3)

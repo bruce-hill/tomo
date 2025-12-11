@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from_utf16 3 2025-11-09 "Tomo man-pages"
+.TH Text.from_utf16 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.from_utf16 \- convert UTF16 list to text
 .SH LIBRARY
@@ -19,10 +19,10 @@ Returns text that has been constructed from the given UTF16 sequence.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-bytes	[Int16]	The UTF-16 integers of the desired text. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+bytes	[Int16]	The UTF-16 integers of the desired text. 
 .TE
 .SH RETURN
 A new text based on the input UTF16 sequence after normalization has been applied.
@@ -35,3 +35,5 @@ The text will be normalized, so the resulting text's UTF16 sequence may not exac
 assert Text.from_utf16([197, 107, 101]) == "Åke"
 assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界".utf16()
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

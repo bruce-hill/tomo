@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.slice 3 2025-11-09 "Tomo man-pages"
+.TH List.slice 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 List.slice \- get a slice of a list
 .SH LIBRARY
@@ -19,12 +19,12 @@ Returns a slice of the list spanning the given indices (inclusive).
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-list	[T]	The original list. 	-
-from	Int	The first index to include. 	-
-to	Int	The last index to include. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+list	[T]	The original list. 
+from	Int	The first index to include. 
+to	Int	The last index to include. 
 .TE
 .SH RETURN
 A new list spanning the given indices. Note: negative indices are counted from the back of the list, so `-1` refers to the last element, `-2` the second-to-last, and so on.
@@ -34,3 +34,5 @@ A new list spanning the given indices. Note: negative indices are counted from t
 assert [10, 20, 30, 40, 50].slice(2, 4) == [20, 30, 40]
 assert [10, 20, 30, 40, 50].slice(-3, -2) == [30, 40]
 .EE
+.SH SEE ALSO
+.BR Tomo-List (3)

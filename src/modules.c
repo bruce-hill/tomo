@@ -28,7 +28,7 @@ const char *get_library_version(Path_t lib_dir) {
     Path_t changes_file = Path$child(lib_dir, Text("CHANGES.md"));
     OptionalText_t changes = Path$read(changes_file);
     if (changes.length <= 0) {
-        return "v0.0";
+        return "v0";
     }
     const char *changes_str = Text$as_c_string(Texts(Text("\n"), changes));
     const char *version_line = strstr(changes_str, "\n## ");
@@ -41,7 +41,7 @@ Text_t get_library_name(Path_t lib_dir) {
     Text_t name = Path$base_name(lib_dir);
     name = Text$without_prefix(name, Text("tomo-"));
     name = Text$without_suffix(name, Text("-tomo"));
-    Text_t suffix = Texts(Text("_"), Text$from_str(get_library_version(lib_dir)));
+    Text_t suffix = Texts(Text("@"), Text$from_str(get_library_version(lib_dir)));
     if (!Text$ends_with(name, suffix, NULL)) name = Texts(name, suffix);
     return name;
 }
@@ -102,7 +102,7 @@ module_info_t get_used_module_info(ast_t *use) {
     const char *name = Match(use, Use)->path;
     module_info_t *info = new (module_info_t, .name = name);
     Path_t tomo_default_modules =
-        Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo_" TOMO_VERSION "/modules.ini"));
+        Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@" TOMO_VERSION "/modules.ini"));
     read_modules_ini(tomo_default_modules, info);
     read_modules_ini(Path$sibling(Path$from_str(use->file->filename), Text("modules.ini")), info);
     read_modules_ini(Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false), info);
@@ -111,8 +111,8 @@ module_info_t get_used_module_info(ast_t *use) {
 }
 
 bool try_install_module(module_info_t mod, bool ask_confirmation) {
-    Path_t dest = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo_" TOMO_VERSION "/", Text$from_str(mod.name),
-                                       "_", Text$from_str(mod.version)));
+    Path_t dest = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@" TOMO_VERSION "/", Text$from_str(mod.name),
+                                       "@", Text$from_str(mod.version)));
     if (Path$exists(dest)) return true;
 
     print("No such path: ", dest);
@@ -129,6 +129,7 @@ bool try_install_module(module_info_t mod, bool ask_confirmation) {
         }
         print("Installing ", mod.name, " from git...");
         if (mod.revision) xsystem("git clone --depth=1 --revision ", mod.revision, " ", mod.git, " ", dest);
+        else if (mod.version) xsystem("git clone --depth=1 --branch ", mod.version, " ", mod.git, " ", dest);
         else xsystem("git clone --depth=1 ", mod.git, " ", dest);
         xsystem("tomo -L ", dest);
         return true;
@@ -152,10 +153,10 @@ bool try_install_module(module_info_t mod, bool ask_confirmation) {
         const char *extension = p + 1;
         Path_t tmpdir = Path$unique_directory(Path("/tmp/tomo-module-XXXXXX"));
         tmpdir = Path$child(tmpdir, Text$from_str(mod.name));
-        Path$create_directory(tmpdir, 0755);
+        Path$create_directory(tmpdir, 0755, true);
 
         xsystem("curl ", mod.url, " -o ", tmpdir);
-        Path$create_directory(dest, 0755);
+        Path$create_directory(dest, 0755, true);
         if (streq(extension, ".zip")) xsystem("unzip ", tmpdir, "/", filename, " -d ", dest);
         else if (streq(extension, ".tar.gz") || streq(extension, ".tar"))
             xsystem("tar xf ", tmpdir, "/", filename, " -C ", dest);

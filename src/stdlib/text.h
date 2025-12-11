@@ -50,6 +50,7 @@ static inline Text_t Text_from_text(Text_t t) { return t; }
 Text_t Text$_concat(int n, Text_t items[n]);
 #define Text$concat(...) Text$_concat(sizeof((Text_t[]){__VA_ARGS__}) / sizeof(Text_t), (Text_t[]){__VA_ARGS__})
 #define Texts(...) Text$concat(MAP_LIST(convert_to_text, __VA_ARGS__))
+// This function is defined as an extern in `src/stdlib/print.h`
 // int Text$print(FILE *stream, Text_t t);
 Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int);
 Text_t Text$from(Text_t text, Int_t first);
@@ -84,6 +85,7 @@ PUREFUNC bool Text$starts_with(Text_t text, Text_t prefix, Text_t *remainder);
 PUREFUNC bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainder);
 Text_t Text$without_prefix(Text_t text, Text_t prefix);
 Text_t Text$without_suffix(Text_t text, Text_t suffix);
+OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start);
 Text_t Text$replace(Text_t text, Text_t target, Text_t replacement);
 Text_t Text$translate(Text_t text, Table_t translations);
 PUREFUNC bool Text$has(Text_t text, Text_t target);

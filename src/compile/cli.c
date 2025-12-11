@@ -38,7 +38,7 @@ static Text_t get_flag_options(type_t *t, Text_t separator) {
     } else if (t->tag == ListType) {
         Text_t item_option = get_flag_options(Match(t, ListType)->item_type, separator);
         return Texts(item_option, "1 ", item_option, "2...");
-    } else if (t->tag == TableType && Match(t, TableType)->value_type == EMPTY_TYPE) {
+    } else if (t->tag == TableType && Match(t, TableType)->value_type == PRESENT_TYPE) {
         Text_t item_option = get_flag_options(Match(t, TableType)->key_type, separator);
         return Texts(item_option, "1 ", item_option, "2...");
     } else if (t->tag == TableType) {
@@ -58,80 +58,87 @@ static OptionalText_t flagify(const char *name, bool prefix) {
     return flag;
 }
 
+static Text_t generate_usage(env_t *env, type_t *fn_type) {
+    DeclareMatch(fn_info, fn_type, FunctionType);
+    bool explicit_help_flag = false;
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        if (streq(arg->name, "help")) {
+            explicit_help_flag = true;
+            break;
+        }
+    }
+    env_t *main_env = fresh_scope(env);
+    Text_t usage = explicit_help_flag ? EMPTY_TEXT : Text(" [\x1b[1m--help\x1b[m]");
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        usage = Texts(usage, " ");
+        type_t *t = get_arg_type(main_env, arg);
+        OptionalText_t flag = flagify(arg->name, arg->default_val != NULL);
+        assert(flag.tag != TEXT_NONE);
+        Text_t flags = Texts("\x1b[1m", flag, "\x1b[m");
+        if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+            flags = Texts(flags, "|\x1b[1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
+        if (arg->default_val || value_type(t)->tag == BoolType) {
+            if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+                usage = Texts(usage, "[", flags, "]");
+            else if (t->tag == ListType) usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
+            else if (t->tag == EnumType) usage = Texts(usage, "[", flags, " val]");
+            else usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
+        } else if (t->tag == EnumType) {
+            usage = Texts(usage, "\x1b[1m", flag, "\x1b[m");
+        } else {
+            usage = Texts(usage, "\x1b[1m", get_flag_options(t, Text("|")), "\x1b[m");
+        }
+    }
+    return usage;
+}
+
+static Text_t generate_help(env_t *env, type_t *fn_type) {
+    DeclareMatch(fn_info, fn_type, FunctionType);
+    env_t *main_env = fresh_scope(env);
+    Text_t help_text = EMPTY_TEXT;
+
+    for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
+        help_text = Texts(help_text, "\n");
+        type_t *t = get_arg_type(main_env, arg);
+        OptionalText_t flag = flagify(arg->name, true);
+        assert(flag.tag != TEXT_NONE);
+        OptionalText_t alias_flag = flagify(arg->alias, true);
+        Text_t flags = Texts("\x1b[33;1m", flag, "\x1b[m");
+        if (alias_flag.tag != TEXT_NONE) flags = Texts("\x1b[33;1m", alias_flag, "\x1b[0;2m,\x1b[m ", flags);
+        if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+            flags = Texts(flags, "|\x1b[33;1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
+        if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
+            help_text = Texts(help_text, "  ", flags);
+        else
+            help_text = Texts(help_text, "  ", flags, " \x1b[1;34m", get_flag_options(t, Text("\x1b[m | \x1b[1;34m")),
+                              "\x1b[m");
+
+        if (arg->comment.length > 0) help_text = Texts(help_text, " \x1b[3m", arg->comment, "\x1b[m");
+        if (arg->default_val) {
+            Text_t default_text =
+                Text$from_strn(arg->default_val->start, (size_t)(arg->default_val->end - arg->default_val->start));
+            help_text = Texts(help_text, " \x1b[2m(default:", default_text, ")\x1b[m");
+        }
+    }
+    return help_text;
+}
+
 public
-Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const char *version) {
+Text_t compile_cli_arg_call(env_t *env, ast_t *ast, Text_t fn_name, type_t *fn_type, const char *version) {
     DeclareMatch(fn_info, fn_type, FunctionType);
 
-    env_t *main_env = fresh_scope(env);
-
     Text_t code = EMPTY_TEXT;
-    binding_t *usage_binding = get_binding(env, "_USAGE");
-    Text_t usage_code = usage_binding ? usage_binding->code : Text("usage");
-    binding_t *help_binding = get_binding(env, "_HELP");
-    Text_t help_code = help_binding ? help_binding->code : usage_code;
-    if (!usage_binding) {
-        bool explicit_help_flag = false;
-        for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-            if (streq(arg->name, "help")) {
-                explicit_help_flag = true;
-                break;
-            }
-        }
+    OptionalText_t usage = ast_metadata(ast, "USAGE");
+    if (usage.tag == TEXT_NONE) usage = generate_usage(env, fn_type);
 
-        Text_t usage = explicit_help_flag ? EMPTY_TEXT : Text(" [\x1b[1m--help\x1b[m]");
-        for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-            usage = Texts(usage, " ");
-            type_t *t = get_arg_type(main_env, arg);
-            OptionalText_t flag = flagify(arg->name, arg->default_val != NULL);
-            assert(flag.tag != TEXT_NONE);
-            OptionalText_t alias_flag = flagify(arg->alias, arg->default_val != NULL);
-            Text_t flags = Texts("\x1b[1m", flag, "\x1b[m");
-            if (alias_flag.tag != TEXT_NONE) flags = Texts(flags, ",\x1b[1m", alias_flag, "\x1b[m");
-            if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                flags = Texts(flags, "|\x1b[1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
-            if (arg->default_val || value_type(t)->tag == BoolType) {
-                if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                    usage = Texts(usage, "[", flags, "]");
-                else if (t->tag == ListType) usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
-                else usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
-            } else {
-                usage = Texts(usage, "\x1b[1m", get_flag_options(t, Text("|")), "\x1b[m");
-            }
-        }
-        code = Texts(code,
-                     "Text_t usage = Texts(Text(\"\\x1b[1mUsage:\\x1b[m \"), "
-                     "Text$from_str(argv[0])",
-                     usage.length == 0 ? EMPTY_TEXT : Texts(", Text(", quoted_text(usage), ")"), ");\n");
-    }
-    if (!help_binding) {
-        Text_t help_text = fn_info->args ? Text("\n") : Text("\n\n\x1b[2;3m  No arguments...\x1b[m");
+    OptionalText_t help = ast_metadata(ast, "HELP");
+    if (help.tag == TEXT_NONE) help = generate_help(env, fn_type);
 
-        for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
-            help_text = Texts(help_text, "\n");
-            type_t *t = get_arg_type(main_env, arg);
-            OptionalText_t flag = flagify(arg->name, true);
-            assert(flag.tag != TEXT_NONE);
-            OptionalText_t alias_flag = flagify(arg->alias, true);
-            Text_t flags = Texts("\x1b[33;1m", flag, "\x1b[m");
-            if (alias_flag.tag != TEXT_NONE) flags = Texts(flags, ",\x1b[33;1m", alias_flag, "\x1b[m");
-            if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                flags = Texts(flags, "|\x1b[33;1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
-            if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-                help_text = Texts(help_text, "  ", flags);
-            else
-                help_text = Texts(help_text, "  ", flags, " \x1b[1;34m",
-                                  get_flag_options(t, Text("\x1b[m | \x1b[1;34m")), "\x1b[m");
-
-            if (arg->comment.length > 0) help_text = Texts(help_text, " \x1b[3m", arg->comment, "\x1b[m");
-            if (arg->default_val) {
-                Text_t default_text =
-                    Text$from_strn(arg->default_val->start, (size_t)(arg->default_val->end - arg->default_val->start));
-                help_text = Texts(help_text, " \x1b[2m(default:", default_text, ")\x1b[m");
-            }
-        }
-        code = Texts(code, "Text_t help = Texts(usage, ", quoted_text(Texts(help_text, "\n")), ");\n");
-        help_code = Text("help");
-    }
+    code = Texts(code,
+                 "Text_t usage = Texts(Text(\"\\x1b[1mUsage:\\x1b[m \"), "
+                 "Text$from_str(argv[0]), Text(\" \")",
+                 usage.length == 0 ? EMPTY_TEXT : Texts(", Text(", quoted_text(usage), ")"), ");\n",
+                 "Text_t help = Texts(usage, Text(\"\\n\"", quoted_text(help), "\"\\n\"));\n");
 
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         code = Texts(code, compile_declaration(arg->type, Texts("_$", Text$from_str(arg->name))), " = ",
@@ -144,14 +151,14 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
         code = Texts(code, "{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", &",
                      Texts("_$", Text$from_str(arg->name)), ", ", compile_type_info(arg->type),
                      arg->default_val ? Text("") : Text(", .required=true"),
-                     arg->alias ? Texts(", .short_flag=", quoted_text(Text$from_str(arg->name)),
+                     arg->alias ? Texts(", .short_flag=", quoted_text(Text$from_str(arg->alias)),
                                         "[0]") // TODO: escape char properly
                                 : Text(""),
 
                      "},\n");
     }
     code = Texts(code, "};\n");
-    code = Texts(code, "tomo_parse_args(argc, argv, ", usage_code, ", ", help_code, ", ", version_code,
+    code = Texts(code, "tomo_parse_args(argc, argv, usage, help, ", version_code,
                  ", sizeof(cli_args)/sizeof(cli_args[0]), cli_args);\n");
 
     // Lazily initialize default values to prevent side effects
@@ -161,7 +168,6 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
             Text_t default_val;
             if (arg->type) {
                 default_val = compile_to_type(env, arg->default_val, arg->type);
-                if (arg->type->tag != OptionalType) default_val = promote_to_optional(arg->type, default_val);
             } else {
                 default_val = compile(env, arg->default_val);
             }
@@ -181,14 +187,21 @@ Text_t compile_cli_arg_call(env_t *env, Text_t fn_name, type_t *fn_type, const c
 }
 
 public
-Text_t compile_manpage(Text_t program, OptionalText_t synopsis, OptionalText_t description, arg_t *args) {
+Text_t compile_manpage(Text_t program, ast_t *ast, arg_t *args) {
+    OptionalText_t user_manpage = ast_metadata(ast, "MANPAGE");
+    if (user_manpage.tag != TEXT_NONE) {
+        return user_manpage;
+    }
+
+    OptionalText_t synopsys = ast_metadata(ast, "MANPAGE_SYNOPSYS");
+    OptionalText_t description = ast_metadata(ast, "MANPAGE_DESCRIPTION");
     Text_t date = Text(""); // TODO: use date
     Text_t man = Texts(".\\\" Automatically generated by Tomo\n"
                        ".TH \"",
                        Text$upper(program, Text("C")), "\" \"1\" \"", date,
                        "\" \"\" \"\"\n"
                        ".SH NAME\n",
-                       program, " \\- ", synopsis.tag == TEXT_NONE ? Text("a Tomo program") : synopsis, "\n");
+                       program, " \\- ", synopsys.tag == TEXT_NONE ? Text("a Tomo program") : synopsys, "\n");
 
     if (description.tag != TEXT_NONE) {
         man = Texts(man, ".SH DESCRIPTION\n", description, "\n");

@@ -79,28 +79,16 @@ static void _make_typedefs(compile_typedef_info_t *info, ast_t *ast) {
         *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
     } else if (ast->tag == EnumDef) {
         DeclareMatch(def, ast, EnumDef);
-        bool has_any_tags_with_fields = false;
+        Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$struct"));
+        Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
+        *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
+
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-            has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
-        }
-
-        if (has_any_tags_with_fields) {
-            Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$struct"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
-            *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
-
-            for (tag_ast_t *tag = def->tags; tag; tag = tag->next) {
-                if (!tag->fields) continue;
-                Text_t tag_struct =
-                    namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$struct"));
-                Text_t tag_type =
-                    namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$type"));
-                *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
-            }
-        } else {
-            Text_t enum_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$enum"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(def->name, "$$type"));
-            *info->header = Texts(*info->header, "typedef enum ", enum_name, " ", type_name, ";\n");
+            Text_t tag_struct =
+                namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$struct"));
+            Text_t tag_type =
+                namespace_name(info->env, info->env->namespace, Texts(def->name, "$", tag->name, "$$type"));
+            *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
         }
     } else if (ast->tag == LangDef) {
         DeclareMatch(def, ast, LangDef);
@@ -116,41 +104,30 @@ static void _define_types_and_funcs(compile_typedef_info_t *info, ast_t *ast) {
                           compile_statement_namespace_header(info->env, info->header_path, ast));
 }
 
-static void add_type_headers(type_ast_t *type_ast, void *userdata) {
-    if (!type_ast) return;
+static visit_behavior_t add_type_headers(type_ast_t *type_ast, void *userdata) {
+    if (!type_ast) return VISIT_STOP;
 
     if (type_ast->tag == EnumTypeAST) {
         compile_typedef_info_t *info = (compile_typedef_info_t *)userdata;
         // Force the type to get defined:
         (void)parse_type_ast(info->env, type_ast);
         DeclareMatch(enum_, type_ast, EnumTypeAST);
-        bool has_any_tags_with_fields = false;
-        for (tag_ast_t *tag = enum_->tags; tag; tag = tag->next) {
-            has_any_tags_with_fields = has_any_tags_with_fields || (tag->fields != NULL);
-        }
-
         const char *name = String("enum$", (int64_t)(type_ast->start - type_ast->file->text));
-        if (has_any_tags_with_fields) {
-            Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$struct"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$type"));
-            *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
+        Text_t struct_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$struct"));
+        Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$type"));
+        *info->header = Texts(*info->header, "typedef struct ", struct_name, " ", type_name, ";\n");
 
-            for (tag_ast_t *tag = enum_->tags; tag; tag = tag->next) {
-                if (!tag->fields) continue;
-                Text_t tag_struct =
-                    namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$struct"));
-                Text_t tag_type =
-                    namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$type"));
-                *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
-            }
-        } else {
-            Text_t enum_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$enum"));
-            Text_t type_name = namespace_name(info->env, info->env->namespace, Texts(name, "$$type"));
-            *info->header = Texts(*info->header, "typedef enum ", enum_name, " ", type_name, ";\n");
+        for (tag_ast_t *tag = enum_->tags; tag; tag = tag->next) {
+            Text_t tag_struct =
+                namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$struct"));
+            Text_t tag_type = namespace_name(info->env, info->env->namespace, Texts(name, "$", tag->name, "$$type"));
+            *info->header = Texts(*info->header, "typedef struct ", tag_struct, " ", tag_type, ";\n");
         }
 
         *info->header = Texts(*info->header, compile_enum_header(info->env, name, enum_->tags));
     }
+
+    return VISIT_PROCEED;
 }
 
 public
@@ -158,7 +135,7 @@ Text_t compile_file_header(env_t *env, Path_t header_path, ast_t *ast) {
     Text_t header =
         Texts("#pragma once\n",
               env->do_source_mapping ? Texts("#line 1 ", quoted_str(ast->file->filename), "\n") : EMPTY_TEXT,
-              "#include <tomo_" TOMO_VERSION "/tomo.h>\n");
+              "#include <tomo@" TOMO_VERSION "/tomo.h>\n");
 
     compile_typedef_info_t info = {.env = env, .header = &header, .header_path = header_path};
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn = (void *)_make_typedefs, &info});
@@ -183,8 +160,8 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         case USE_MODULE: {
             module_info_t mod = get_used_module_info(ast);
             glob_t tm_files;
-            const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
-            if (glob(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
+            const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
+            if (glob(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
                      &tm_files)
                 != 0) {
                 if (!try_install_module(mod, true)) code_err(ast, "Could not find library");

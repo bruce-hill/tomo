@@ -3,9 +3,12 @@
 #include "../ast.h"
 #include "../environment.h"
 #include "../naming.h"
+#include "../stdlib/c_strings.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/floats.h"
 #include "../stdlib/integers.h"
+#include "../stdlib/nums.h"
+#include "../stdlib/optionals.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
@@ -163,12 +166,12 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
                     args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
                 REVERSE_LIST(args);
                 code_err(ast,
-                         "This function's signature doesn't match this call site.\n"
-                         "The signature is: ",
-                         type_to_text(fn_t),
-                         "\n"
-                         "But it's being called with: ",
-                         type_to_text(Type(FunctionType, .args = args)));
+                         "This function's signature doesn't match this call site. \n"
+                         " The function takes these args: (",
+                         arg_types_to_text(Match(fn_t, FunctionType)->args, ", "),
+                         ") \n"
+                         " But it's being called with:    (",
+                         arg_types_to_text(args, ", "), ")");
             }
         }
         return Texts(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
@@ -244,85 +247,6 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
     } else {
         code_err(call->fn, "This is not a function, it's a ", type_to_text(fn_t));
     }
-}
-
-public
-Text_t compile_lambda(env_t *env, ast_t *ast) {
-    DeclareMatch(lambda, ast, Lambda);
-    Text_t name = namespace_name(env, env->namespace, Texts("lambda$", lambda->id));
-
-    env_t *body_scope = fresh_scope(env);
-    body_scope->deferred = NULL;
-    for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
-        type_t *arg_type = get_arg_ast_type(env, arg);
-        set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
-    }
-
-    body_scope->fn = ast;
-
-    Table_t closed_vars = get_closed_vars(env, lambda->args, ast);
-    if (Table$length(closed_vars) > 0) { // Create a typedef for the lambda's closure userdata
-        Text_t def = Text("typedef struct {");
-        for (int64_t i = 0; i < (int64_t)closed_vars.entries.length; i++) {
-            struct {
-                const char *name;
-                binding_t *b;
-            } *entry = closed_vars.entries.data + closed_vars.entries.stride * i;
-            if (has_stack_memory(entry->b->type))
-                code_err(ast, "This function is holding onto a reference to ", type_to_text(entry->b->type),
-                         " stack memory in the variable `", entry->name,
-                         "`, but the function may outlive the stack memory");
-            if (entry->b->type->tag == ModuleType) continue;
-            set_binding(body_scope, entry->name, entry->b->type, Texts("userdata->", entry->name));
-            def = Texts(def, compile_declaration(entry->b->type, Text$from_str(entry->name)), "; ");
-        }
-        def = Texts(def, "} ", name, "$userdata_t;");
-        env->code->local_typedefs = Texts(env->code->local_typedefs, def);
-    }
-
-    type_t *ret_t = get_function_return_type(env, ast);
-    Text_t code = Texts("static ", compile_type(ret_t), " ", name, "(");
-    for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
-        type_t *arg_type = get_arg_ast_type(env, arg);
-        code = Texts(code, compile_type(arg_type), " _$", arg->name, ", ");
-    }
-
-    Text_t userdata;
-    if (Table$length(closed_vars) == 0) {
-        code = Texts(code, "void *_)");
-        userdata = Text("NULL");
-    } else {
-        userdata = Texts("new(", name, "$userdata_t");
-        for (int64_t i = 0; i < (int64_t)closed_vars.entries.length; i++) {
-            struct {
-                const char *name;
-                binding_t *b;
-            } *entry = closed_vars.entries.data + closed_vars.entries.stride * i;
-            if (entry->b->type->tag == ModuleType) continue;
-            binding_t *b = get_binding(env, entry->name);
-            assert(b);
-            Text_t binding_code = b->code;
-            if (entry->b->type->tag == ListType) userdata = Texts(userdata, ", LIST_COPY(", binding_code, ")");
-            else if (entry->b->type->tag == TableType) userdata = Texts(userdata, ", TABLE_COPY(", binding_code, ")");
-            else userdata = Texts(userdata, ", ", binding_code);
-        }
-        userdata = Texts(userdata, ")");
-        code = Texts(code, name, "$userdata_t *userdata)");
-    }
-
-    Text_t body = EMPTY_TEXT;
-    for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
-        if (stmt->next || ret_t->tag == VoidType || ret_t->tag == AbortType
-            || get_type(body_scope, stmt->ast)->tag == ReturnType)
-            body = Texts(body, compile_statement(body_scope, stmt->ast), "\n");
-        else body = Texts(body, compile_statement(body_scope, FakeAST(Return, stmt->ast)), "\n");
-        bind_statement(body_scope, stmt->ast);
-    }
-    if ((ret_t->tag == VoidType || ret_t->tag == AbortType) && body_scope->deferred)
-        body = Texts(body, compile_statement(body_scope, FakeAST(Return)), "\n");
-
-    env->code->lambdas = Texts(env->code->lambdas, code, " {\n", body, "\n}\n");
-    return Texts("((Closure_t){", name, ", ", userdata, "})");
 }
 
 static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t *env, ast_t *ast) {
@@ -594,6 +518,206 @@ Table_t get_closed_vars(env_t *env, arg_ast_t *args, ast_t *block) {
     return closed_vars;
 }
 
+static visit_behavior_t find_used_variables(ast_t *ast, void *userdata) {
+    Table_t *vars = (Table_t *)userdata;
+    switch (ast->tag) {
+    case Var: {
+        const char *name = Match(ast, Var)->name;
+        Table$str_set(vars, name, ast);
+        return VISIT_STOP;
+    }
+    case Assign: {
+        for (ast_list_t *target = Match(ast, Assign)->targets; target; target = target->next) {
+            ast_t *var = target->ast;
+            for (;;) {
+                if (var->tag == Index) {
+                    ast_t *index = Match(var, Index)->index;
+                    if (index) ast_visit(index, find_used_variables, userdata);
+                    var = Match(var, Index)->indexed;
+                } else if (var->tag == FieldAccess) {
+                    var = Match(var, FieldAccess)->fielded;
+                } else {
+                    break;
+                }
+            }
+        }
+        for (ast_list_t *val = Match(ast, Assign)->values; val; val = val->next) {
+            ast_visit(val->ast, find_used_variables, userdata);
+        }
+        return VISIT_STOP;
+    }
+    case UPDATE_CASES: {
+        binary_operands_t operands = BINARY_OPERANDS(ast);
+        ast_t *lhs = operands.lhs;
+        for (;;) {
+            if (lhs->tag == Index) {
+                ast_t *index = Match(lhs, Index)->index;
+                if (index) ast_visit(index, find_used_variables, userdata);
+                lhs = Match(lhs, Index)->indexed;
+            } else if (lhs->tag == FieldAccess) {
+                lhs = Match(lhs, FieldAccess)->fielded;
+            } else {
+                break;
+            }
+        }
+        ast_visit(operands.rhs, find_used_variables, userdata);
+        return VISIT_STOP;
+    }
+    case Declare: {
+        ast_visit(Match(ast, Declare)->value, find_used_variables, userdata);
+        return VISIT_STOP;
+    }
+    default: return VISIT_PROCEED;
+    }
+}
+
+static visit_behavior_t find_assigned_variables(ast_t *ast, void *userdata) {
+    Table_t *vars = (Table_t *)userdata;
+    switch (ast->tag) {
+    case Assign:
+        for (ast_list_t *target = Match(ast, Assign)->targets; target; target = target->next) {
+            ast_t *var = target->ast;
+            for (;;) {
+                if (var->tag == Index) var = Match(var, Index)->indexed;
+                else if (var->tag == FieldAccess) var = Match(var, FieldAccess)->fielded;
+                else break;
+            }
+            if (var->tag == Var) {
+                const char *name = Match(var, Var)->name;
+                Table$str_set(vars, name, var);
+            }
+        }
+        return VISIT_STOP;
+    case UPDATE_CASES: {
+        binary_operands_t operands = BINARY_OPERANDS(ast);
+        ast_t *var = operands.lhs;
+        for (;;) {
+            if (var->tag == Index) var = Match(var, Index)->indexed;
+            else if (var->tag == FieldAccess) var = Match(var, FieldAccess)->fielded;
+            else break;
+        }
+        if (var->tag == Var) {
+            const char *name = Match(var, Var)->name;
+            Table$str_set(vars, name, var);
+        }
+        return VISIT_STOP;
+    }
+    case Declare: {
+        ast_t *var = Match(ast, Declare)->var;
+        const char *name = Match(var, Var)->name;
+        Table$str_set(vars, name, var);
+        return VISIT_STOP;
+    }
+    default: return VISIT_PROCEED;
+    }
+}
+
+static void check_unused_vars(env_t *env, arg_ast_t *args, ast_t *body) {
+    Table_t used_vars = EMPTY_TABLE;
+    ast_visit(body, find_used_variables, &used_vars);
+    Table_t assigned_vars = EMPTY_TABLE;
+    ast_visit(body, find_assigned_variables, &assigned_vars);
+
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
+        type_t *arg_type = get_arg_ast_type(env, arg);
+        if (arg_type->tag == PointerType) {
+            Table$str_remove(&assigned_vars, arg->name);
+        }
+    }
+
+    Table_t unused = Table$without(assigned_vars, used_vars, Table$info(&CString$info, &Present$$info));
+    for (int64_t i = 0; i < (int64_t)unused.entries.length; i++) {
+        struct {
+            const char *name;
+        } *entry = unused.entries.data + i * unused.entries.stride;
+        if (streq(entry->name, "_")) continue;
+        ast_t *var = Table$str_get(assigned_vars, entry->name);
+        code_err(var, "This variable was assigned to, but never read from.");
+    }
+}
+
+public
+Text_t compile_lambda(env_t *env, ast_t *ast) {
+    DeclareMatch(lambda, ast, Lambda);
+    Text_t name = namespace_name(env, env->namespace, Texts("lambda$", lambda->id));
+
+    env_t *body_scope = fresh_scope(env);
+    body_scope->deferred = NULL;
+    for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
+        type_t *arg_type = get_arg_ast_type(env, arg);
+        set_binding(body_scope, arg->name, arg_type, Texts("_$", arg->name));
+    }
+
+    body_scope->fn = ast;
+
+    Table_t closed_vars = get_closed_vars(env, lambda->args, ast);
+    if (Table$length(closed_vars) > 0) { // Create a typedef for the lambda's closure userdata
+        Text_t def = Text("typedef struct {");
+        for (int64_t i = 0; i < (int64_t)closed_vars.entries.length; i++) {
+            struct {
+                const char *name;
+                binding_t *b;
+            } *entry = closed_vars.entries.data + closed_vars.entries.stride * i;
+            if (has_stack_memory(entry->b->type))
+                code_err(ast, "This function is holding onto a reference to ", type_to_text(entry->b->type),
+                         " stack memory in the variable `", entry->name,
+                         "`, but the function may outlive the stack memory");
+            if (entry->b->type->tag == ModuleType) continue;
+            set_binding(body_scope, entry->name, entry->b->type, Texts("userdata->", entry->name));
+            def = Texts(def, compile_declaration(entry->b->type, Text$from_str(entry->name)), "; ");
+        }
+        def = Texts(def, "} ", name, "$userdata_t;");
+        env->code->local_typedefs = Texts(env->code->local_typedefs, def);
+    }
+
+    type_t *ret_t = get_function_return_type(env, ast);
+    Text_t code = Texts("static ", compile_type(ret_t), " ", name, "(");
+    for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
+        type_t *arg_type = get_arg_ast_type(env, arg);
+        code = Texts(code, compile_type(arg_type), " _$", arg->name, ", ");
+    }
+
+    Text_t userdata;
+    if (Table$length(closed_vars) == 0) {
+        code = Texts(code, "void *_)");
+        userdata = Text("NULL");
+    } else {
+        userdata = Texts("new(", name, "$userdata_t");
+        for (int64_t i = 0; i < (int64_t)closed_vars.entries.length; i++) {
+            struct {
+                const char *name;
+                binding_t *b;
+            } *entry = closed_vars.entries.data + closed_vars.entries.stride * i;
+            if (entry->b->type->tag == ModuleType) continue;
+            binding_t *b = get_binding(env, entry->name);
+            assert(b);
+            Text_t binding_code = b->code;
+            if (entry->b->type->tag == ListType) userdata = Texts(userdata, ", LIST_COPY(", binding_code, ")");
+            else if (entry->b->type->tag == TableType) userdata = Texts(userdata, ", TABLE_COPY(", binding_code, ")");
+            else userdata = Texts(userdata, ", ", binding_code);
+        }
+        userdata = Texts(userdata, ")");
+        code = Texts(code, name, "$userdata_t *userdata)");
+    }
+
+    Text_t body = EMPTY_TEXT;
+    for (ast_list_t *stmt = Match(lambda->body, Block)->statements; stmt; stmt = stmt->next) {
+        if (stmt->next || ret_t->tag == VoidType || ret_t->tag == AbortType
+            || get_type(body_scope, stmt->ast)->tag == ReturnType)
+            body = Texts(body, compile_statement(body_scope, stmt->ast), "\n");
+        else body = Texts(body, compile_statement(body_scope, FakeAST(Return, stmt->ast)), "\n");
+        bind_statement(body_scope, stmt->ast);
+    }
+    if ((ret_t->tag == VoidType || ret_t->tag == AbortType) && body_scope->deferred)
+        body = Texts(body, compile_statement(body_scope, FakeAST(Return)), "\n");
+
+    env->code->lambdas = Texts(env->code->lambdas, code, " {\n", body, "\n}\n");
+
+    check_unused_vars(env, lambda->args, lambda->body);
+
+    return Texts("((Closure_t){", name, ", ", userdata, "})");
+}
+
 public
 Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *staticdefs) {
     bool is_private = false;
@@ -703,7 +827,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         definition = Texts(definition, wrapper);
     } else if (cache && cache->tag == Int) {
         assert(args);
-        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NULL);
+        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NONE_INT, NULL);
         Text_t pop_code = EMPTY_TEXT;
         if (cache->tag == Int && cache_size.has_value && cache_size.value > 0) {
             // FIXME: this currently just deletes the first entry, but this
@@ -783,6 +907,8 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
             definition = Texts(definition, wrapper);
         }
     }
+
+    check_unused_vars(env, args, body);
 
     return definition;
 }

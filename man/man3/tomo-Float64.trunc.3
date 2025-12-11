@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.trunc 3 2025-11-09 "Tomo man-pages"
+.TH Float64.trunc 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.trunc \- truncate a number
 .SH LIBRARY
@@ -19,10 +19,10 @@ Truncates a number to the nearest integer towards zero.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The number to be truncated. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The number to be truncated. 
 .TE
 .SH RETURN
 The integer part of `x` towards zero.
@@ -32,3 +32,5 @@ The integer part of `x` towards zero.
 assert (3.7).trunc() == 3
 assert (-3.7).trunc() == -3
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

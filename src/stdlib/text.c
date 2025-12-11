@@ -763,8 +763,10 @@ static Text_t Text$from_components(List_t graphemes, Table_t unique_clusters) {
 public
 OptionalText_t Text$from_strn(const char *str, size_t len) {
     int64_t ascii_span = 0;
-    for (size_t i = 0; i < len && isascii(str[i]); i++)
+    for (size_t i = 0; i < len && isascii(str[i]); i++) {
         ascii_span++;
+        if (str[i] == 0) return NONE_TEXT;
+    }
 
     if (ascii_span == (int64_t)len) { // All ASCII
         char *copy = GC_MALLOC_ATOMIC(len);
@@ -786,12 +788,15 @@ OptionalText_t Text$from_strn(const char *str, size_t len) {
         uint32_t buf[256];
         size_t u32_len = sizeof(buf) / sizeof(buf[0]);
         uint32_t *u32s = u8_to_u32(pos, (size_t)(next - pos), buf, &u32_len);
+        if (u32s == NULL) return NONE_TEXT;
 
         uint32_t buf2[256];
         size_t u32_normlen = sizeof(buf2) / sizeof(buf2[0]);
         uint32_t *u32s_normalized = u32_normalize(UNINORM_NFC, u32s, u32_len, buf2, &u32_normlen);
+        if (u32s_normalized == NULL) return NONE_TEXT;
 
         int32_t g = get_synthetic_grapheme(u32s_normalized, (int64_t)u32_normlen);
+        if (g == 0) return NONE_TEXT;
         List$insert(&graphemes, &g, I(0), sizeof(int32_t));
         Table$get_or_setdefault(&unique_clusters, int32_t, uint8_t, g, (uint8_t)unique_clusters.entries.length,
                                 Table$info(&Int32$info, &Byte$info));
@@ -1057,8 +1062,8 @@ PUREFUNC public int32_t Text$compare(const void *va, const void *vb, const TypeI
 bool _matches(TextIter_t *text_state, TextIter_t *target_state, int64_t pos) {
     for (int64_t i = 0; i < (int64_t)target_state->stack[0].text.length; i++) {
         int32_t text_i = Text$get_grapheme_fast(text_state, pos + i);
-        int32_t prefix_i = Text$get_grapheme_fast(target_state, i);
-        if (text_i != prefix_i) return false;
+        int32_t target_i = Text$get_grapheme_fast(target_state, i);
+        if (text_i != target_i) return false;
     }
     return true;
 }
@@ -1107,6 +1112,19 @@ static bool _has_grapheme(TextIter_t *text, int32_t g) {
 }
 
 public
+OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start) {
+    if (text.length < target.length) return NONE_INT;
+    if (target.length <= 0) return I(1);
+    TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
+    for (int64_t i = Int64$from_int(start, false) - 1; i < text.length - target.length + 1; i++) {
+        if (_matches(&text_state, &target_state, i)) {
+            return Int$from_int64(i + 1);
+        }
+    }
+    return NONE_INT;
+}
+
+public
 Text_t Text$trim(Text_t text, Text_t to_trim, bool left, bool right) {
     int64_t first = 0;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), trim_state = NEW_TEXT_ITER_STATE(to_trim);
@@ -1135,6 +1153,7 @@ Text_t Text$translate(Text_t text, Table_t translations) {
             struct {
                 Text_t target, replacement;
             } *entry = replacement_list.data + r * replacement_list.stride;
+            if (entry->target.length <= 0) continue;
             TextIter_t target_state = NEW_TEXT_ITER_STATE(entry->target);
             if (_matches(&text_state, &target_state, i)) {
                 if (i > span_start) result = concat2(result, Text$slice(text, I(span_start + 1), I(i)));
@@ -1156,6 +1175,7 @@ Text_t Text$translate(Text_t text, Table_t translations) {
 
 public
 Text_t Text$replace(Text_t text, Text_t target, Text_t replacement) {
+    if (target.length <= 0) return text;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
     Text_t result = EMPTY_TEXT;
     int64_t span_start = 0;
@@ -1605,6 +1625,7 @@ static INLINE const char *codepoint_name(ucs4_t c) {
     char *found_name = unicode_character_name(c, name);
     if (found_name) return found_name;
     const uc_block_t *block = uc_block(c);
+    if (!block) return "???";
     assert(block);
     return String(block->name, "-", hex(c, .no_prefix = true, .uppercase = true));
 }

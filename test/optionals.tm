@@ -61,6 +61,12 @@ func maybe_c_string(should_i:Bool->CString?)
     else
         return none
 
+func maybe_path(should_i:Bool->Path?)
+    if should_i
+        return (./foo)
+    else
+        return none
+
 func main()
     optional : Int? = 5
     assert optional == 5
@@ -209,6 +215,20 @@ func main()
         assert nope == none
         >> if yep
             assert yep == CString("hi")
+        else fail("Falsey: $yep")
+        >> if nope
+            fail("Truthy: $nope")
+        else say("Falsey: $nope")
+
+    do
+        say("...")
+        say("Paths:")
+        yep := maybe_path(yes)
+        assert yep == (./foo)
+        nope := maybe_path(no)
+        assert nope == none
+        >> if yep
+            assert yep == (./foo)
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.next_prime 3 2025-11-09 "Tomo man-pages"
+.TH Int.next_prime 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Int.next_prime \- get the next prime
 .SH LIBRARY
@@ -19,10 +19,10 @@ Finds the next prime number greater than the given integer.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Int	The integer after which to find the next prime. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Int	The integer after which to find the next prime. 
 .TE
 .SH RETURN
 The next prime number greater than `x`.
@@ -34,3 +34,5 @@ This function is _probabilistic_, but the chances of getting an incorrect answer
 .EX
 assert (11).next_prime() == 13
 .EE
+.SH SEE ALSO
+.BR Tomo-Int (3)

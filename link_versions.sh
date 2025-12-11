@@ -1,17 +1,5 @@
 #!/bin/sh
 TOMO_PREFIX="$(awk -F= '/PREFIX/{print $2}' config.mk)"
 cd "$TOMO_PREFIX/bin"
-
-commands="$(ls | awk -F '[v.]' '
-    /^tomo_v/{
-        if ($2 >= max_major) max_major=$2;
-        if ($3 >= max_minor[$2]) max_minor[$2] = $3;
-        link_tomo=1
-    }
-    END {
-        for (major in max_minor) {
-            if (max_major > 0) print "ln -fs tomo_v"major"."max_minor[major]" tomo"major
-        }
-        if (link_tomo) print "ln -fs tomo_v"max_major"."max_minor[max_major]" tomo"
-    }')"
-eval "$commands"
+top_version="$(printf '%s\n' 'tomo@'* | sort -r | head -1)"
+ln -fs "$top_version" tomo

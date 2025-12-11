@@ -71,54 +71,151 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default'''
 
-def write_method(f, name, info):
-    def add_line(line): f.write(line + "\n")
+arg_prefix_no_default = '''
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description'''
+
+type_template = ''''\\" t
+.\\" Copyright (c) {year} Bruce Hill
+.\\" All rights reserved.
+.\\"
+.TH {type} 3 {date} "Tomo man-pages"
+.SH NAME
+{type} \\- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+{methods}
+'''
+
+def markdown_to_roff(text):
+    text = text.replace('\n', ' ')
+    text = re.sub(r'`([^`]*)`', '\\\\fB\\1\\\\fR', text)
+    return text
+
+def write_method(path, name, info):
+    lines = []
     year = datetime.now().strftime("%Y")
     date = datetime.now().strftime("%Y-%m-%d")
     signature = get_signature(name, info)
-    add_line(template.format(year=year, date=date, name=name, short=info["short"], description=info["description"], signature=signature))
+    lines.append(template.format(year=year, date=date, name=name, short=info["short"], description=info["description"], signature=signature))
 
     if "args" in info and info["args"]:
-        add_line(".SH ARGUMENTS")
-        add_line(arg_prefix)
+        lines.append(".SH ARGUMENTS")
+        has_defaults = any('default' in a for a in info['args'].values())
+        lines.append(arg_prefix if has_defaults else arg_prefix_no_default)
         for arg,arg_info in info["args"].items():
-            default = escape(arg_info['default'], spaces=True) if 'default' in arg_info else '-'
-            description = arg_info['description'].replace('\n', ' ')
-            add_line(f"{arg}\t{arg_info.get('type', '')}\t{description}\t{default}")
-        add_line(".TE")
+            if has_defaults:
+                default = escape(arg_info['default'], spaces=True) if 'default' in arg_info else '-'
+                description = markdown_to_roff(arg_info['description'])
+                lines.append(f"{arg}\t{arg_info.get('type', '')}\t{description}\t{default}")
+            else:
+                description = markdown_to_roff(arg_info['description'])
+                lines.append(f"{arg}\t{arg_info.get('type', '')}\t{description}")
+        lines.append(".TE")
 
     if "return" in info:
-        add_line(".SH RETURN")
-        add_line(info['return'].get('description', 'Nothing.'))
+        lines.append(".SH RETURN")
+        lines.append(info['return'].get('description', 'Nothing.'))
 
     if "note" in info:
-        add_line(".SH NOTES")
-        add_line(info["note"])
+        lines.append(".SH NOTES")
+        lines.append(info["note"])
 
     if "errors" in info:
-        add_line(".SH ERRORS")
-        add_line(info["errors"])
+        lines.append(".SH ERRORS")
+        lines.append(info["errors"])
 
     if "example" in info:
-        add_line(".SH EXAMPLES")
-        add_line(".EX")
-        add_line(escape(info['example']))
-        add_line(".EE")
+        lines.append(".SH EXAMPLES")
+        lines.append(".EX")
+        lines.append(escape(info['example']))
+        lines.append(".EE")
+
+    if "." in name:
+        type,_ = name.split(".")
+        lines.append(".SH SEE ALSO")
+        lines.append(f".BR Tomo-{type} (3)")
+
+    to_write = '\n'.join(lines) + '\n'
+    try:
+        with open(path, "r") as f:
+            existing = f.read()
+            if to_write.splitlines()[5:] == existing.splitlines()[5:]:
+                return
+    except FileNotFoundError:
+        pass
+
+    with open(path, "w") as f:
+        f.write(to_write)
+        print(f"Updated {path}")
+
+fn_summary_template = '''
+.TP
+{signature}
+{description}
+
+For more, see:
+.BR Tomo-{type}.{name} (3)
+'''
+
+def fn_summary(type, name, info) -> str:
+    signature = get_signature(type+"."+name, info)
+    return fn_summary_template.format(
+        type=type,
+        name=name,
+        signature=signature,
+        description=markdown_to_roff(info["description"]),
+    )
+
+def write_type_manpage(path, type, methods):
+    year = datetime.now().strftime("%Y")
+    date = datetime.now().strftime("%Y-%m-%d")
+    method_summaries = [fn_summary(type, name, methods[name]) for name in sorted(methods.keys())]
+    type_manpage = type_template.format(
+        year=year,
+        date=date,
+        type=type,
+        methods='\n'.join(method_summaries),
+    )
+
+    try:
+        with open(path, "r") as f:
+            existing = f.read()
+            if type_manpage.splitlines()[5:] == existing.splitlines()[5:]:
+                return
+    except FileNotFoundError:
+        pass
+
+    with open(path, "w") as f:
+        f.write(type_manpage)
+        print(f"Updated {path}")
+
 
 def convert_to_markdown(yaml_doc:str)->str:
     data = yaml.safe_load(yaml_doc)
 
+    types = {}
     for name,info in data.items():
-        with open(f"man/man3/tomo-{name}.3", "w") as f:
-            print(f"Wrote to man/man3/tomo-{name}.3")
-            write_method(f, name, data[name])
+        write_method(f"man/man3/tomo-{name}.3", name, data[name])
+        if "." in name:
+            type,fn = name.split(".")
+            if type not in types:
+                types[type] = {}
+            types[type][fn] = info
+
+    for type,methods in types.items():
+        write_type_manpage(f"man/man3/tomo-{type}.3", type, methods)
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:
         all_files = ""
         for filename in sys.argv[1:]:
-            print(f"Making mandoc for {filename}")
             with open(filename, "r") as f:
                 all_files += f.read()
         convert_to_markdown(all_files)

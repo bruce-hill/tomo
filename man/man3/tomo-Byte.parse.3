@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.parse 3 2025-11-09 "Tomo man-pages"
+.TH Byte.parse 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Byte.parse \- convert text to a byte
 .SH LIBRARY
@@ -38,3 +38,5 @@ remainder : Text
 assert Byte.parse("123xyz", &remainder) == Byte(123)
 assert remainder == "xyz"
 .EE
+.SH SEE ALSO
+.BR Tomo-Byte (3)

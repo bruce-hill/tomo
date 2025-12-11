@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.set 3 2025-11-09 "Tomo man-pages"
+.TH Table.set 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Table.set \- set a table entry
 .SH LIBRARY
@@ -19,12 +19,12 @@ Sets or updates the value associated with a specified key.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-t	{K:V}	The reference to the table. 	-
-key	K	The key to set or update. 	-
-value	V	The value to associate with the key. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+t	{K:V}	The reference to the table. 
+key	K	The key to set or update. 
+value	V	The value to associate with the key. 
 .TE
 .SH RETURN
 Nothing.
@@ -35,3 +35,5 @@ t := {"A": 1, "B": 2}
 t.set("C", 3)
 assert t == {"A": 1, "B": 2, "C": 3}
 .EE
+.SH SEE ALSO
+.BR Tomo-Table (3)

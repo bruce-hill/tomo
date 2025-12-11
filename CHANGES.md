@@ -1,40 +1,108 @@
 # Version History
 
-## v0.4
-- Tomo libraries are now installed to `$TOMO_PATH/lib/tomo_vX.Y/module_vZ.W`
-  instead of `$TOMO_PATH/share/tomo_vX.Y/installed/module_vZ.W`
+## v2025-12-06
+
+- You can now discard empty struct values.
+- For an enum `Foo(A,B,C)`, the syntax `f!` now desugars to `f.A!` using the
+  first tag defined in the enum.
+- Error messages are more helpful for `foo.Whatever!` enum field accessing.
+- Simplified logic for enums so there is less difference between enums that
+  have tags with member fields and those without.
+- Rename `Empty()` to `Present()` for set-like tables.
+- Paths are now an `enum Path(AbsolutePath(components:[Text]), RelativePath(components:[Text]), HomePath(components:[Text]))`
+- Added `enum Result(Success, Failure(message:Text))` type for indicating
+  success or failure.
+- Some path methods now use `Result` return types instead of failing:
+  - `Path.append()`
+  - `Path.append_bytes()`
+  - `Path.create_directory()`
+  - `Path.remove()`
+  - `Path.set_owner()`
+  - `Path.write()`
+  - `Path.write_bytes()`
+- `Path.parent()` returns `none` if path is `(/)` (file root)
+- Added check for unused variables.
+
+## v2025-11-30
+
+### API changes
+
+- Added `base` parameter to various `Int.parse()` methods to allow explicitly
+  setting the numeric base from 1-36.
+
+### Bugfixes
+
+- Fixed various issues around parsing integers.
+
+## v2025-11-29.2
+
+### Bugfixes
+
+- Fix for undefined behavior on enums and structs with padding.
+
+## v2025-11-29
+
+### Syntax changes
+
+- Syntax for tables has changed to use colons (`{k: v}`) instead of equals
+  (`{k=v}`).
+- Syntax for text literals and inline C code has been simplified.
+- Added metadata format instead of `_HELP`/`_USAGE`:
+  ```
+  HELP: "Help text"
+  USAGE: "Usage text"
+  MANPAGE_SYNOPSYS: "Synopsys..."
+  MANPAGE_DESCRIPTION: (./description.txt)
+  ```
+- **Deprecated:** `extern` keyword for declaring external symbols from C.
+  - Use `C_code` instead.
+- **Deprecated:** postfix `?` to make values optional.
+  - Explicitly optional values can be declared as `my_var : T? = value`.
+- **Deprecated:** `>> ... = ...` form of doctests. They are now called "debug logs"
+  and you can specify multiple values: `>> a, b, c`
+- **Deprecated:** `extend` blocks
+- **Deprecated:** `deserialize` operation and `.serialized()` method call
+  - Instead, convert to and from `[Byte]`
+
+### Versioning and library changes
+
+- Tomo versioning now uses dates instead of semantic versioning.
+- Tomo libraries are now installed to
+  `$TOMO_PATH/lib/tomo@TOMO_VERSION/library@LIBRARY_VERSION` instead of
+  `$TOMO_PATH/share/tomo_TOMO_VERSION/installed/module_LIBRARY_VERSION`
 - Core libraries are no longer shipped with the compiler, they have moved to
   separate repositories.
 - Renamed `Num` -> `Float64` and `Num32` -> `Float32`
 - Library installation has been cleaned up a bit.
+
+### Type Changes
+
 - List indexing now gives an optional value.
 - Added support for inline anonymous enums
-- Syntax for text literals and inline C code has been simplified somewhat.
-- Syntax for tables has changed to use colons (`{k: v}`) instead of equals
-  (`{k=v}`).
-- Deprecated:
-  - Sets are no longer a separate type with separate methods.
-    - Instead of sets, use tables with a value type of `{KeyType:Empty}`.
-    - As a shorthand, you can use `{a,b,c}` instead of `{a:Empty(),
-      b:Empty(), c:Empty()}` and the type annotation `{K}` as shorthand for
-      `{K:Empty}`.
-    - Tables now have `and`, `or`, `xor`, and `-` (minus) metamethods.
-  - `extern` keyword for declaring external symbols from C.
-    - Use `C_code` instead.
-  - Postfix `?` to make values optional.
-    - Explicitly optional values can be declared as `my_var : T? = value`.
-  - `>> ... = ...` form of doctests. They are now called "debug logs" and you
-    can specify multiple values: `>> a, b, c`
-  - `extend` blocks
-  - `deserialize` operation and `.serialized()` method call
-    - Instead, convert to and from `[Byte]`
+- Accessing a field on an enum now gives an optional value instead of a boolean.
+- **Deprecated**: Sets are no longer a separate type with separate methods.
+  - Instead of sets, use tables with a value type of `{KeyType:Empty}`.
+  - As a shorthand, you can use `{a,b,c}` instead of `{a:Empty(),
+    b:Empty(), c:Empty()}` and the type annotation `{K}` as shorthand for
+    `{K:Empty}`.
+- Added `Empty` for a built-in empty struct type and `EMPTY` for an instance of
+  the empty struct.
 - Struct fields that start with underscores can be accessed again and function
   arguments that start with underscore can be passed (but only as keyword
   arguments).
+
+### API changes
+
+- Added `Path.lines()`.
+- Added `Text.find(text, target, start=1)`.
+- Added `at_cleanup()` to register cleanup functions.
+- Added `recursive` argument to `Path.create_directory()` to create parent
+  directories if needed.
+- `setenv()` now takes an optional parameter for value, which allows for
+  unsetting environment values.
+- Tables now have `and`, `or`, `xor`, and `-` (minus) metamethods.
 - Added `table.with(other)`, `table.without(other)`,
   `table.intersection(other)`, and `table.difference(other)`.
-- Added `Empty` for a built-in empty struct type and `EMPTY` for an instance of
-  the empty struct.
 - Changed `list.unique()` to return a table with `Empty()` values for each
   unique list item.
 - Added a `--format` flag to the `tomo` binary that autoformats your code
@@ -43,16 +111,26 @@
   - `Text.from_utf8()`/`Text.utf8()`
   - `Text.from_utf16()`/`Text.utf16()`
   - `Text.from_utf32()`/`Text.utf32()`
+
+### Bug fixes
+
+- `Int.parse()` had a memory bug.
+- Breaking out of a `for line in file.by_line()!` loop would leak file handle
+  resources, which could lead to exhausting the number of open file handles.
+  When that happens, the standard library now forces a GC collection to clean
+  up resources, which can result in file handles being freed up.
+- `&` references failed to propagate when accessing fields like
+  `foo.baz.method()` when `foo` is a `&Foo` and `baz.method()` takes a `&Baz`.
+- Optional paths no longer fail to compile when you check them for `none`.
+- Text replacement no longer infinitely loops when given an empty text to replace.
+- Short CLI flag aliases now no longer use the first letter of the argument.
+- Stack memory was not correctly detected in some cases, leading to potential
+  memory errors.
+
+### Other changes
+
 - Added automatic manpage generation.
 - Major improvements to robustness of CLI argument parsing.
-- Fixed bugs:
-  - `Int.parse()` had a memory bug.
-  - Breaking out of a `for line in file.by_line()!` loop would leak file handle
-    resources, which could lead to exhausting the number of open file handles.
-    When that happens, the standard library now forces a GC collection to clean
-    up resources, which can result in file handles being freed up.
-  - `&` references failed to propagate when accessing fields like
-    `foo.baz.method()` when `foo` is a `&Foo` and `baz.method()` takes a `&Baz`.
 
 ## v0.3
 

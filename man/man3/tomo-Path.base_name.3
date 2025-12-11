@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.base_name 3 2025-11-09 "Tomo man-pages"
+.TH Path.base_name 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.base_name \- base name of a file
 .SH LIBRARY
@@ -19,10 +19,10 @@ Returns the base name of the file or directory at the specified path.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-path	Path	The path of the file or directory. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path of the file or directory. 
 .TE
 .SH RETURN
 The base name of the file or directory.
@@ -31,3 +31,5 @@ The base name of the file or directory.
 .EX
 assert (./path/to/file.txt).base_name() == "file.txt"
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

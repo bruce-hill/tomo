@@ -393,51 +393,97 @@ PUREFUNC Closure_t Int$onward(Int_t first, Int_t step) {
 }
 
 public
-OptionalInt_t Int$from_str(const char *str) {
-    mpz_t i;
-    int result;
-    if (strncmp(str, "0x", 2) == 0) {
-        result = mpz_init_set_str(i, str + 2, 16);
-    } else if (strncmp(str, "0o", 2) == 0) {
-        result = mpz_init_set_str(i, str + 2, 8);
-    } else if (strncmp(str, "0b", 2) == 0) {
-        result = mpz_init_set_str(i, str + 2, 2);
-    } else {
-        result = mpz_init_set_str(i, str, 10);
-    }
-    if (result != 0) return NONE_INT;
-    return Int$from_mpz(i);
-}
+Int_t Int$from_str(const char *str) { return Int$parse(Text$from_str(str), NONE_INT, NULL); }
 
 public
-OptionalInt_t Int$parse(Text_t text, Text_t *remainder) {
+OptionalInt_t Int$parse(Text_t text, OptionalInt_t base, Text_t *remainder) {
     const char *str = Text$as_c_string(text);
-    mpz_t i;
-    int result;
-    if (strncmp(str, "0x", 2) == 0) {
-        const char *end = str + 2 + strspn(str + 2, "0123456789abcdefABCDEF");
-        if (remainder) *remainder = Text$from_str(end);
-        else if (*end != '\0') return NONE_INT;
-        result = mpz_init_set_str(i, String(string_slice(str + 2, (size_t)(end - (str + 2)))), 16);
+    bool negative = (*str == '-');
+    if (negative || *str == '+') str += 1;
+    const char *end = str;
+    int32_t base32;
+    if (base.small != 0) {
+        base32 = Int32$from_int(base, false);
+        switch (base32) {
+        case 16:
+            if (strncmp(str, "0x", 2) == 0) {
+            base16_prefix:
+                str += 2;
+            }
+            end = str + strspn(str, "0123456789abcdefABCDEF");
+            break;
+        case 10:
+        base10:
+            end = str + strspn(str, "0123456789");
+            break;
+        case 8:
+            if (strncmp(str, "0o", 2) == 0) {
+            base8_prefix:
+                str += 2;
+            }
+            end = str + strspn(str, "01234567");
+            break;
+        case 2:
+            if (strncmp(str, "0b", 2) == 0) {
+            base2_prefix:
+                str += 2;
+            }
+            end = str + strspn(str, "01");
+            break;
+        case 1: {
+            str += strspn(str, "0");
+            size_t n = strspn(str, "1");
+            end = str + n;
+            if (remainder) *remainder = Text$from_str(end);
+            else if (*end != '\0') return NONE_INT;
+            return Int$from_int64((int64_t)n);
+        }
+        default: {
+            if (base32 < 1 || base32 > 36) {
+                if (remainder) *remainder = text;
+                return NONE_INT;
+            }
+            for (; *end; end++) {
+                char c = *end;
+                int32_t digit;
+                if ('0' <= c && c <= '9') {
+                    digit = (c - (int)'0');
+                } else if ('a' <= c && c <= 'z') {
+                    digit = (c - (int)'a');
+                } else if ('A' <= c && c <= 'Z') {
+                    digit = (c - (int)'A');
+                } else {
+                    break;
+                }
+                if (digit >= base32) break;
+            }
+        }
+        }
+    } else if (strncmp(str, "0x", 2) == 0) {
+        base32 = 16;
+        goto base16_prefix;
     } else if (strncmp(str, "0o", 2) == 0) {
-        const char *end = str + 2 + strspn(str + 2, "01234567");
-        if (remainder) *remainder = Text$from_str(end);
-        else if (*end != '\0') return NONE_INT;
-        result = mpz_init_set_str(i, String(string_slice(str + 2, (size_t)(end - (str + 2)))), 8);
+        base32 = 8;
+        goto base8_prefix;
     } else if (strncmp(str, "0b", 2) == 0) {
-        const char *end = str + 2 + strspn(str + 2, "01");
-        if (remainder) *remainder = Text$from_str(end);
-        else if (*end != '\0') return NONE_INT;
-        result = mpz_init_set_str(i, String(string_slice(str + 2, (size_t)(end - (str + 2)))), 2);
+        base32 = 2;
+        goto base2_prefix;
     } else {
-        const char *end = str + strspn(str, "0123456789");
-        if (remainder) *remainder = Text$from_str(end);
-        else if (*end != '\0') return NONE_INT;
-        result = mpz_init_set_str(i, String(string_slice(str, (size_t)(end - str))), 10);
+        base32 = 10;
+        goto base10;
     }
+
+    if (remainder) *remainder = Text$from_str(end);
+    else if (*end != '\0') return NONE_INT;
+
+    mpz_t i;
+    int result = mpz_init_set_str(i, String(string_slice(str, (size_t)(end - str))), base32);
     if (result != 0) {
         if (remainder) *remainder = text;
         return NONE_INT;
+    }
+    if (negative) {
+        mpz_neg(i, i);
     }
     return Int$from_mpz(i);
 }

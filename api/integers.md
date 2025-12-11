@@ -255,7 +255,7 @@ assert nums[] == [5, 6, 7, 8, 9, 10]
 ## Int.parse
 
 ```tomo
-Int.parse : func(text: Text, remainder: &Text? = none -> Int?)
+Int.parse : func(text: Text, base: Int? = none, remainder: &Text? = none -> Int?)
 ```
 
 Converts a text representation of an integer into an integer.
@@ -263,6 +263,7 @@ Converts a text representation of an integer into an integer.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text containing the integer.  | -
+base | `Int?` | The numeric base to use when parsing the integer. If unspecified, the integer's base will be inferred from the text prefix. After any "+" or "-" sign, if the text begins with "0x", the base will be assumed to be 16, "0o" will assume base 8, "0b" will assume base 2, otherwise the base will be assumed to be 10.  | `none`
 remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The integer represented by the text. If the given text contains a value outside of the representable range or if the entire text can't be parsed as an integer, `none` will be returned.
@@ -282,6 +283,9 @@ assert Int.parse("asdf") == none
 
 # Outside valid range:
 assert Int8.parse("9999999") == none
+
+# Explicitly specifying base:
+assert Int.parse("10", base=16) == 16
 
 ```
 ## Int.prev_prime

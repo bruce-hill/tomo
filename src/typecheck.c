@@ -14,6 +14,7 @@
 #include "naming.h"
 #include "parse/files.h"
 #include "parse/types.h"
+#include "stdlib/optionals.h"
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
@@ -73,7 +74,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
         if (has_stack_memory(key_type))
             code_err(key_type_ast, "Tables can't have stack references because the list may outlive the stack frame.");
 
-        type_t *val_type = table_type->value ? parse_type_ast(env, table_type->value) : EMPTY_TYPE;
+        type_t *val_type = table_type->value ? parse_type_ast(env, table_type->value) : PRESENT_TYPE;
         if (!val_type) code_err(ast, "I can't figure out what the value type for this entry is.");
 
         if (table_type->value && has_stack_memory(val_type))
@@ -124,11 +125,6 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
 
         Table$str_set(env->types, enum_name, enum_type);
 
-        bool has_any_tags_with_fields = false;
-        for (tag_ast_t *tag_ast = tag_asts; tag_ast; tag_ast = tag_ast->next) {
-            has_any_tags_with_fields = has_any_tags_with_fields || tag_ast->fields;
-        }
-
         for (tag_ast_t *tag_ast = tag_asts; tag_ast; tag_ast = tag_ast->next) {
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
@@ -150,13 +146,10 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
                 set_binding(ns_env, tag_ast->name, constructor_t, tagged_name);
                 binding_t binding = {.type = constructor_t, .code = tagged_name};
                 List$insert(&ns_env->namespace->constructors, &binding, I(1), sizeof(binding));
-            } else if (has_any_tags_with_fields) { // Empty singleton value:
+            } else { // Empty singleton value:
                 Text_t code =
                     Texts("((", namespace_name(env, env->namespace, Texts(enum_name, "$$type")), "){",
                           namespace_name(env, env->namespace, Texts(enum_name, "$tag$", tag_ast->name)), "})");
-                set_binding(ns_env, tag_ast->name, enum_type, code);
-            } else {
-                Text_t code = namespace_name(env, env->namespace, Texts(enum_name, "$tag$", tag_ast->name));
                 set_binding(ns_env, tag_ast->name, enum_type, code);
             }
             Table$str_set(env->types, String(enum_name, "$", tag_ast->name), tag_type);
@@ -231,8 +224,8 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
     case USE_MODULE: {
         module_info_t mod = get_used_module_info(use_ast);
         glob_t tm_files;
-        const char *folder = mod.version ? String(mod.name, "_", mod.version) : mod.name;
-        if (glob(String(TOMO_PATH, "/lib/tomo_" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files)
+        const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
+        if (glob(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files)
             != 0) {
             if (!try_install_module(mod, true)) code_err(use_ast, "Couldn't find or install library: ", folder);
         }
@@ -440,9 +433,7 @@ void bind_statement(env_t *env, ast_t *statement) {
         ns_env->current_type = type;
         tag_t *tags = NULL;
         int64_t next_tag = 1;
-        bool has_any_tags_with_fields = false;
         for (tag_ast_t *tag_ast = def->tags; tag_ast; tag_ast = tag_ast->next) {
-            has_any_tags_with_fields = has_any_tags_with_fields || tag_ast->fields;
             arg_t *fields = NULL;
             for (arg_ast_t *field_ast = tag_ast->fields; field_ast; field_ast = field_ast->next) {
                 type_t *field_t = get_arg_ast_type(env, field_ast);
@@ -495,12 +486,9 @@ void bind_statement(env_t *env, ast_t *statement) {
                 set_binding(ns_env, tag->name, constructor_t, tagged_name);
                 binding_t binding = {.type = constructor_t, .code = tagged_name};
                 List$insert(&ns_env->namespace->constructors, &binding, I(1), sizeof(binding));
-            } else if (has_any_tags_with_fields) { // Empty singleton value:
+            } else { // Empty singleton value:
                 Text_t code = Texts("((", namespace_name(env, env->namespace, Texts(def->name, "$$type")), "){",
                                     namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name)), "})");
-                set_binding(ns_env, tag->name, type, code);
-            } else {
-                Text_t code = namespace_name(env, env->namespace, Texts(def->name, "$tag$", tag->name));
                 set_binding(ns_env, tag->name, type, code);
             }
             Table$str_set(env->types, String(def->name, "$", tag->name), tag->type);
@@ -754,7 +742,12 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case NonOptional: {
         ast_t *value = Match(ast, NonOptional)->value;
-        type_t *t = get_type(env, value);
+        type_t *t = value_type(get_type(env, value));
+        if (t->tag == EnumType) {
+            tag_t *first_tag = Match(t, EnumType)->tags;
+            if (!first_tag) code_err(ast, "'!' cannot be used on an empty enum");
+            return first_tag->type;
+        }
         if (t->tag != OptionalType)
             code_err(value, "This value is not optional. Only optional values can use the '!' operator.");
         return Match(t, OptionalType)->type;
@@ -816,7 +809,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
             DeclareMatch(e, entry_ast, TableEntry);
             type_t *key_t = get_type(scope, e->key);
-            type_t *value_t = e->value ? get_type(scope, e->value) : EMPTY_TYPE;
+            type_t *value_t = e->value ? get_type(scope, e->value) : PRESENT_TYPE;
 
             type_t *key_merged = key_type ? type_or_type(key_type, key_t) : key_t;
             if (!key_merged) ambiguous_key_type = true;
@@ -849,7 +842,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         } else if (comp->expr->tag == TableEntry) {
             DeclareMatch(e, comp->expr, TableEntry);
             return Type(TableType, .key_type = get_type(scope, e->key),
-                        .value_type = e->value ? get_type(scope, e->value) : EMPTY_TYPE, .env = env);
+                        .value_type = e->value ? get_type(scope, e->value) : PRESENT_TYPE, .env = env);
         } else {
             return Type(ListType, .item_type = get_type(scope, comp->expr));
         }
@@ -971,7 +964,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "sorted")) return self_value_t;
             else if (streq(call->name, "to")) return self_value_t;
             else if (streq(call->name, "unique"))
-                return Type(TableType, .key_type = item_type, .value_type = EMPTY_TYPE);
+                return Type(TableType, .key_type = item_type, .value_type = PRESENT_TYPE);
             else code_err(ast, "There is no '", call->name, "' method for lists");
         }
         case TableType: {
@@ -1218,6 +1211,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         binary_operands_t binop = BINARY_OPERANDS(ast);
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
+        if (type_eq(lhs_t, rhs_t)) return ast->tag == Compare ? Type(IntType, .bits = TYPE_IBITS32) : Type(BoolType);
 
         if ((binop.lhs->tag == Int && is_numeric_type(rhs_t)) || (binop.rhs->tag == Int && is_numeric_type(lhs_t))
             || can_compile_to_type(env, binop.rhs, lhs_t) || can_compile_to_type(env, binop.lhs, rhs_t))
@@ -1376,7 +1370,6 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
     case If: {
         DeclareMatch(if_, ast, If);
-        if (!if_->else_body) return Type(VoidType);
 
         env_t *truthy_scope = env;
         env_t *falsey_scope = env;
@@ -1401,6 +1394,11 @@ type_t *get_type(env_t *env, ast_t *ast) {
         }
 
         type_t *true_t = get_type(truthy_scope, if_->body);
+        ast_t *else_body = if_->else_body;
+        if (!else_body) {
+            if (true_t->tag == AbortType) return Type(VoidType);
+            else_body = WrapAST(ast, None, .type = true_t);
+        }
         type_t *false_t = get_type(falsey_scope, if_->else_body);
         type_t *t_either = type_or_type(true_t, false_t);
         if (!t_either)
@@ -1509,6 +1507,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case Unknown: code_err(ast, "I can't figure out the type of: ", ast_to_sexp_str(ast));
     case ExplicitlyTyped: return Match(ast, ExplicitlyTyped)->type;
+    case Metadata: return Type(VoidType);
     }
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -1527,10 +1526,14 @@ PUREFUNC bool is_discardable(env_t *env, ast_t *ast) {
     case StructDef:
     case EnumDef:
     case LangDef:
-    case Use: return true;
+    case Use:
+    case Metadata: return true;
     default: break;
     }
     type_t *t = get_type(env, ast);
+    if (t->tag == StructType) {
+        return (Match(t, StructType)->fields == NULL);
+    }
     return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType);
 }
 
@@ -1586,8 +1589,9 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
             for (; unused_args; unused_args = unused_args->next) {
                 if (unused_args->name) continue; // Already handled the keyword args
                 if (options.promotion) {
-                    if (!can_compile_to_type(arg_scope, unused_args->value, spec_type))
+                    if (!can_compile_to_type(arg_scope, unused_args->value, spec_type)) {
                         return false; // Positional arg trying to fill in
+                    }
                 } else {
                     type_t *call_type = get_arg_ast_type(arg_scope, unused_args);
                     type_t *complete_call_type =
@@ -1651,7 +1655,7 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast) {
     case None: return true;
     case Int: {
         DeclareMatch(info, ast, Int);
-        Int_t int_val = Int$parse(Text$from_str(info->str), NULL);
+        Int_t int_val = Int$parse(Text$from_str(info->str), NONE_INT, NULL);
         if (int_val.small == 0) return false; // Failed to parse
         return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
     }
@@ -1683,7 +1687,8 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast) {
         default: return is_constant(env, binop.lhs) && is_constant(env, binop.rhs);
         }
     }
-    case Use: return true;
+    case Use:
+    case Metadata: return true;
     case FunctionCall: return false;
     case InlineCCode: return true;
     default: return false;
@@ -1695,40 +1700,44 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
 
     if (needed->tag == OptionalType && ast->tag == None) return true;
 
-    type_t *actual = get_type(env, ast);
-    if (actual->tag == OptionalType && needed->tag == OptionalType) return can_promote(actual, needed);
-
+    env = with_enum_scope(env, needed);
     if (is_numeric_type(needed) && ast->tag == Int) return true;
     if (needed->tag == FloatType && ast->tag == Num) return true;
 
-    needed = non_optional(needed);
-    if (needed->tag == ListType && ast->tag == List) {
-        type_t *item_type = Match(needed, ListType)->item_type;
+    type_t *non_optional_needed = non_optional(needed);
+    if (non_optional_needed->tag == ListType && ast->tag == List) {
+        type_t *item_type = Match(non_optional_needed, ListType)->item_type;
         for (ast_list_t *item = Match(ast, List)->items; item; item = item->next) {
             if (!can_compile_to_type(env, item->ast, item_type)) return false;
         }
         return true;
-    } else if (needed->tag == TableType && ast->tag == Table) {
-        type_t *key_type = Match(needed, TableType)->key_type;
-        type_t *value_type = Match(needed, TableType)->value_type;
+    } else if (non_optional_needed->tag == TableType && ast->tag == Table) {
+        type_t *key_type = Match(non_optional_needed, TableType)->key_type;
+        type_t *value_type = Match(non_optional_needed, TableType)->value_type;
         for (ast_list_t *entry = Match(ast, Table)->entries; entry; entry = entry->next) {
             if (entry->ast->tag != TableEntry) continue; // TODO: fix this
             DeclareMatch(e, entry->ast, TableEntry);
             if (!can_compile_to_type(env, e->key, key_type)
-                || !(e->value ? can_compile_to_type(env, e->value, value_type) : type_eq(value_type, EMPTY_TYPE)))
+                || !(e->value ? can_compile_to_type(env, e->value, value_type) : type_eq(value_type, PRESENT_TYPE)))
                 return false;
         }
         return true;
-    } else if (needed->tag == PointerType) {
-        DeclareMatch(ptr, needed, PointerType);
+    }
+
+    type_t *actual = get_type(env, ast);
+    if (type_eq(actual, needed)) return true;
+    if (actual->tag == OptionalType && needed->tag == OptionalType) return can_promote(actual, needed);
+
+    if (non_optional_needed->tag == PointerType) {
+        DeclareMatch(ptr, non_optional_needed, PointerType);
         if (ast->tag == HeapAllocate)
             return !ptr->is_stack && can_compile_to_type(env, Match(ast, HeapAllocate)->value, ptr->pointed);
         else if (ast->tag == StackReference)
             return ptr->is_stack && can_compile_to_type(env, Match(ast, StackReference)->value, ptr->pointed);
-        else return can_promote(actual, needed);
-    } else if (actual->tag == OptionalType && needed->tag != OptionalType) {
+        else return can_promote(actual, non_optional_needed);
+    } else if (actual->tag == OptionalType && non_optional_needed->tag != OptionalType) {
         return false;
     } else {
-        return can_promote(actual, needed);
+        return can_promote(actual, non_optional_needed);
     }
 }

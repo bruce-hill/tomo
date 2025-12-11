@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.from_components 3 2025-11-09 "Tomo man-pages"
+.TH Path.from_components 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.from_components \- build a path from components
 .SH LIBRARY
@@ -19,10 +19,10 @@ Returns a path built from a list of path components.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-components	[Text]	A list of path components. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+components	[Text]	A list of path components. 
 .TE
 .SH RETURN
 A path representing the given components.
@@ -33,3 +33,5 @@ assert Path.from_components(["/", "usr", "include"]) == (/usr/include)
 assert Path.from_components(["foo.txt"]) == (./foo.txt)
 assert Path.from_components(["~", ".local"]) == (~/.local)
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

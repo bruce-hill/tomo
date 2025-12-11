@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.atan 3 2025-11-09 "Tomo man-pages"
+.TH Float64.atan 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.atan \- arc tangent
 .SH LIBRARY
@@ -19,10 +19,10 @@ Computes the arc tangent of a number.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The number for which the arc tangent is to be calculated. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The number for which the arc tangent is to be calculated. 
 .TE
 .SH RETURN
 The arc tangent of `x` in radians.
@@ -31,3 +31,5 @@ The arc tangent of `x` in radians.
 .EX
 assert (1.0).atan() == 0.7854
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

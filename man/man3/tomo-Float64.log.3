@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.log 3 2025-11-09 "Tomo man-pages"
+.TH Float64.log 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.log \- natural logarithm
 .SH LIBRARY
@@ -19,10 +19,10 @@ Computes the natural logarithm (base $e$) of a number.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The number for which the natural logarithm is to be calculated. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The number for which the natural logarithm is to be calculated. 
 .TE
 .SH RETURN
 The natural logarithm of `x`.
@@ -31,3 +31,5 @@ The natural logarithm of `x`.
 .EX
 assert Float64.E.log() == 1
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

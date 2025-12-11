@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.isinf 3 2025-11-09 "Tomo man-pages"
+.TH Float64.isinf 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.isinf \- check for infinite number
 .SH LIBRARY
@@ -19,10 +19,10 @@ Checks if a number is infinite.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-n	Float64	The number to be checked. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+n	Float64	The number to be checked. 
 .TE
 .SH RETURN
 `yes` if `n` is infinite, `no` otherwise.
@@ -32,3 +32,5 @@ n	Float64	The number to be checked. 	-
 assert Float64.INF.isinf() == yes
 assert (1.0).isinf() == no
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

@@ -13,7 +13,7 @@ static ast_t *add_to_table_comprehension(ast_t *entry, ast_t *subject) {
     return WrapAST(
         entry, MethodCall, .name = "set", .self = subject,
         .args = new (arg_ast_t, .value = e->key,
-                     .next = new (arg_ast_t, .value = e->value ? e->value : WrapAST(entry, Var, .name = "EMPTY"))));
+                     .next = new (arg_ast_t, .value = e->value ? e->value : WrapAST(entry, Var, .name = "PRESENT"))));
 }
 
 Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type) {
@@ -51,10 +51,10 @@ Text_t compile_typed_table(env_t *env, ast_t *ast, type_t *table_type) {
 
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
             DeclareMatch(e, entry->ast, TableEntry);
-            code = Texts(
-                code, ",\n\t{", compile_to_type(key_scope, e->key, key_t), ", ",
-                compile_to_type(value_scope, e->value ? e->value : WrapAST(entry->ast, Var, .name = "EMPTY"), value_t),
-                "}");
+            code = Texts(code, ",\n\t{", compile_to_type(key_scope, e->key, key_t), ", ",
+                         compile_to_type(value_scope, e->value ? e->value : WrapAST(entry->ast, Var, .name = "PRESENT"),
+                                         value_t),
+                         "}");
         }
         return Texts(code, ")");
     }

@@ -17,8 +17,8 @@ func main()
     assert optional_path == (./foo)
 
     >> tmpfile := (tmpdir++(./one.txt))
-    >> tmpfile.write("Hello world")
-    >> tmpfile.append("!")
+    >> tmpfile.write("Hello world")!
+    >> tmpfile.append("!")!
     assert tmpfile.read() == "Hello world!"
     assert tmpfile.read_bytes()! == [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x21]
     assert tmpdir.files().has(tmpfile)
@@ -30,16 +30,16 @@ func main()
 
     assert (./does-not-exist.xxx).read() == none
     assert (./does-not-exist.xxx).read_bytes() == none
-    if lines := (./does-not-exist.xxx).by_line() then
+    if (./does-not-exist.xxx).by_line()
         fail("I could read lines in a nonexistent file")
     else
         pass
 
-    >> tmpfile.remove()
+    >> tmpfile.remove()!
 
     assert tmpdir.files().has(tmpfile) == no
 
-    >> tmpdir.remove()
+    >> tmpdir.remove()!
 
     >> p := (/foo/baz.x/qux.tar.gz)
     assert p.base_name() == "qux.tar.gz"
@@ -59,12 +59,12 @@ func main()
 
     assert (~/.foo.baz.qux).extension() == "baz.qux"
 
-    assert (/).parent() == (/)
     assert (~/x/.).parent() == (~)
     assert (~/x).parent() == (~)
     assert (.).parent() == (..)
     assert (..).parent() == (../..)
     assert (../foo).parent() == (..)
+    assert (/).parent() == none
 
     # Concatenation tests:
     say("Basic relative path concatenation:")
@@ -103,8 +103,8 @@ func main()
     say("Globbing:")
     >> (./*.tm).glob()
 
-    assert (./foo).type == Relative
-    assert (/foo).type == Absolute
-    assert (~/foo).type == Home
-    assert (/foo/baz).components == ["foo", "baz"]
-    assert Path(type=Relative, ["foo", "baz"]) == (./foo/baz)
+    assert (./foo).RelativePath
+    assert (/foo).AbsolutePath
+    assert (~/foo).HomePath
+    assert (/foo/baz).components() == ["foo", "baz"]
+    assert Path.RelativePath(["foo", "baz"]) == (./foo/baz)

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.with_fallback 3 2025-11-09 "Tomo man-pages"
+.TH Table.with_fallback 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Table.with_fallback \- return a table with a new fallback
 .SH LIBRARY
@@ -19,11 +19,11 @@ Return a copy of a table with a different fallback table.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-t	{K:V}	The table whose fallback will be replaced. 	-
-fallback	{K:V}?	The new fallback table value. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+t	{K:V}	The table whose fallback will be replaced. 
+fallback	{K:V}?	The new fallback table value. 
 .TE
 .SH RETURN
 The original table with a different fallback.
@@ -36,3 +36,5 @@ assert t2["B"] == 3
 t3 = t.with_fallback(none)
 assert t2["B"] == none
 .EE
+.SH SEE ALSO
+.BR Tomo-Table (3)

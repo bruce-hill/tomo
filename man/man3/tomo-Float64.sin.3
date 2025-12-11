@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.sin 3 2025-11-09 "Tomo man-pages"
+.TH Float64.sin 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.sin \- sine
 .SH LIBRARY
@@ -19,10 +19,10 @@ Computes the sine of a number (angle in radians).
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The angle in radians. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The angle in radians. 
 .TE
 .SH RETURN
 The sine of `x`.
@@ -31,3 +31,5 @@ The sine of `x`.
 .EX
 assert (0.0).sin() == 0
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

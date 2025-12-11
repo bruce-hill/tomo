@@ -247,10 +247,8 @@ when you think of "letters" in a string. If you have text with an emoji that has
 several joining modifiers attached to it, that text has a length of 1.
 
 ```tomo
->> "hello".length
-= 5
->> "👩🏽‍🚀".length
-= 1
+assert "hello".length == 5
+assert "👩🏽‍🚀".length == 1
 ```
 
 ### Iteration

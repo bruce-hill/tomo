@@ -90,14 +90,11 @@ an `Abort` type like `fail()` or `exit()`:
 
 ```tomo
 maybe_x : Int? = 5
->> maybe_x or -1
-= 5 : Int
->> maybe_x or fail("No value!")
-= 5 : Int
+assert (maybe_x or -1) == 5
+assert (maybe_x or fail("No value!")) == 5
 
 maybe_x = none
->> maybe_x or -1
-= -1 : Int
+assert (maybe_x or -1) == -1
 >> maybe_x or fail("No value!")
 # Failure!
 

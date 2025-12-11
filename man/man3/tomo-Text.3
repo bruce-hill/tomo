@@ -1,0 +1,339 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text 3 2025-11-29 "Tomo man-pages"
+.SH NAME
+Text \- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+
+.TP
+.BI Text.as_c_string\ :\ func(text:\ Text\ ->\ CString)
+Converts a \fBText\fR value to a C-style string. 
+
+For more, see:
+.BR Tomo-Text.as_c_string (3)
+
+
+.TP
+.BI Text.at\ :\ func(text:\ Text,\ index:\ Int\ ->\ Text)
+Get the graphical cluster at a given index. This is similar to \fBstr[i]\fR with ASCII text, but has more correct behavior for unicode text. 
+
+For more, see:
+.BR Tomo-Text.at (3)
+
+
+.TP
+.BI Text.by_line\ :\ func(text:\ Text\ ->\ func(->Text?))
+Returns an iterator function that can be used to iterate over the lines in a text. 
+
+For more, see:
+.BR Tomo-Text.by_line (3)
+
+
+.TP
+.BI Text.by_split\ :\ func(text:\ Text,\ delimiter:\ Text\ =\ ""\ ->\ func(->Text?))
+Returns an iterator function that can be used to iterate over text separated by a delimiter. 
+
+For more, see:
+.BR Tomo-Text.by_split (3)
+
+
+.TP
+.BI Text.by_split_any\ :\ func(text:\ Text,\ delimiters:\ Text\ =\ "\ $\[rs]t\[rs]r\[rs]n"\ ->\ func(->Text?))
+Returns an iterator function that can be used to iterate over text separated by one or more characters (grapheme clusters) from a given text of delimiters. 
+
+For more, see:
+.BR Tomo-Text.by_split_any (3)
+
+
+.TP
+.BI Text.caseless_equals\ :\ func(a:\ Text,\ b:\ Text,\ language:\ Text\ =\ "C"\ ->\ Bool)
+Checks whether two texts are equal, ignoring the casing of the letters (i.e. case-insensitive comparison). 
+
+For more, see:
+.BR Tomo-Text.caseless_equals (3)
+
+
+.TP
+.BI Text.codepoint_names\ :\ func(text:\ Text\ ->\ [Text])
+Returns a list of the names of each codepoint in the text. 
+
+For more, see:
+.BR Tomo-Text.codepoint_names (3)
+
+
+.TP
+.BI Text.ends_with\ :\ func(text:\ Text,\ suffix:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Bool)
+Checks if the \fBText\fR ends with a literal suffix text. 
+
+For more, see:
+.BR Tomo-Text.ends_with (3)
+
+
+.TP
+.BI Text.find\ :\ func(text:\ Text,\ target:\ Text,\ start:\ Int\ =\ 1\ ->\ Int)
+Find a substring within a text and return its index, if found. 
+
+For more, see:
+.BR Tomo-Text.find (3)
+
+
+.TP
+.BI Text.from\ :\ func(text:\ Text,\ first:\ Int\ ->\ Text)
+Get a slice of the text, starting at the given position. 
+
+For more, see:
+.BR Tomo-Text.from (3)
+
+
+.TP
+.BI Text.from_c_string\ :\ func(str:\ CString\ ->\ Text)
+Converts a C-style string to a \fBText\fR value. 
+
+For more, see:
+.BR Tomo-Text.from_c_string (3)
+
+
+.TP
+.BI Text.from_codepoint_names\ :\ func(codepoint_names:\ [Text]\ ->\ [Text])
+Returns text that has the given codepoint names (according to the Unicode specification) as its codepoints. 
+
+For more, see:
+.BR Tomo-Text.from_codepoint_names (3)
+
+
+.TP
+.BI Text.from_utf16\ :\ func(bytes:\ [Int16]\ ->\ [Text])
+Returns text that has been constructed from the given UTF16 sequence. 
+
+For more, see:
+.BR Tomo-Text.from_utf16 (3)
+
+
+.TP
+.BI Text.from_utf32\ :\ func(codepoints:\ [Int32]\ ->\ [Text])
+Returns text that has been constructed from the given UTF32 codepoints. 
+
+For more, see:
+.BR Tomo-Text.from_utf32 (3)
+
+
+.TP
+.BI Text.from_utf8\ :\ func(bytes:\ [Byte]\ ->\ [Text])
+Returns text that has been constructed from the given UTF8 bytes. 
+
+For more, see:
+.BR Tomo-Text.from_utf8 (3)
+
+
+.TP
+.BI Text.has\ :\ func(text:\ Text,\ target:\ Text\ ->\ Bool)
+Checks if the \fBText\fR contains some target text. 
+
+For more, see:
+.BR Tomo-Text.has (3)
+
+
+.TP
+.BI Text.join\ :\ func(glue:\ Text,\ pieces:\ [Text]\ ->\ Text)
+Joins a list of text pieces with a specified glue. 
+
+For more, see:
+.BR Tomo-Text.join (3)
+
+
+.TP
+.BI Text.left_pad\ :\ func(text:\ Text,\ width:\ Int,\ pad:\ Text\ =\ "\ ",\ language:\ Text\ =\ "C"\ ->\ Text)
+Pad some text on the left side so it reaches a target width. 
+
+For more, see:
+.BR Tomo-Text.left_pad (3)
+
+
+.TP
+.BI Text.lines\ :\ func(text:\ Text\ ->\ [Text])
+Splits the text into a list of lines of text, preserving blank lines, ignoring trailing newlines, and handling \fB\r\n\fR the same as \fB\n\fR. 
+
+For more, see:
+.BR Tomo-Text.lines (3)
+
+
+.TP
+.BI Text.lower\ :\ func(text:\ Text,\ language:\ Text\ =\ "C"\ ->\ Text)
+Converts all characters in the text to lowercase. 
+
+For more, see:
+.BR Tomo-Text.lower (3)
+
+
+.TP
+.BI Text.middle_pad\ :\ func(text:\ Text,\ width:\ Int,\ pad:\ Text\ =\ "\ ",\ language:\ Text\ =\ "C"\ ->\ Text)
+Pad some text on the left and right side so it reaches a target width. 
+
+For more, see:
+.BR Tomo-Text.middle_pad (3)
+
+
+.TP
+.BI Text.quoted\ :\ func(text:\ Text,\ color:\ Bool\ =\ no,\ quotation_mark:\ Text\ =\ `"`\ ->\ Text)
+Formats the text with quotation marks and escapes. 
+
+For more, see:
+.BR Tomo-Text.quoted (3)
+
+
+.TP
+.BI Text.repeat\ :\ func(text:\ Text,\ count:\ Int\ ->\ Text)
+Repeat some text multiple times. 
+
+For more, see:
+.BR Tomo-Text.repeat (3)
+
+
+.TP
+.BI Text.replace\ :\ func(text:\ Text,\ target:\ Text,\ replacement:\ Text\ ->\ Text)
+Replaces occurrences of a target text with a replacement text. 
+
+For more, see:
+.BR Tomo-Text.replace (3)
+
+
+.TP
+.BI Text.reversed\ :\ func(text:\ Text\ ->\ Text)
+Return a text that has the grapheme clusters in reverse order. 
+
+For more, see:
+.BR Tomo-Text.reversed (3)
+
+
+.TP
+.BI Text.right_pad\ :\ func(text:\ Text,\ width:\ Int,\ pad:\ Text\ =\ "\ ",\ language:\ Text\ =\ "C"\ ->\ Text)
+Pad some text on the right side so it reaches a target width. 
+
+For more, see:
+.BR Tomo-Text.right_pad (3)
+
+
+.TP
+.BI Text.slice\ :\ func(text:\ Text,\ from:\ Int\ =\ 1,\ to:\ Int\ =\ -1\ ->\ Text)
+Get a slice of the text. 
+
+For more, see:
+.BR Tomo-Text.slice (3)
+
+
+.TP
+.BI Text.split\ :\ func(text:\ Text,\ delimiter:\ Text\ =\ ""\ ->\ [Text])
+Splits the text into a list of substrings based on exact matches of a delimiter. 
+
+For more, see:
+.BR Tomo-Text.split (3)
+
+
+.TP
+.BI Text.split_any\ :\ func(text:\ Text,\ delimiters:\ Text\ =\ "\ $\[rs]t\[rs]r\[rs]n"\ ->\ [Text])
+Splits the text into a list of substrings at one or more occurrences of a set of delimiter characters (grapheme clusters). 
+
+For more, see:
+.BR Tomo-Text.split_any (3)
+
+
+.TP
+.BI Text.starts_with\ :\ func(text:\ Text,\ prefix:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Bool)
+Checks if the \fBText\fR starts with a literal prefix text. 
+
+For more, see:
+.BR Tomo-Text.starts_with (3)
+
+
+.TP
+.BI Text.title\ :\ func(text:\ Text,\ language:\ Text\ =\ "C"\ ->\ Text)
+Converts the text to title case (capitalizing the first letter of each word). 
+
+For more, see:
+.BR Tomo-Text.title (3)
+
+
+.TP
+.BI Text.to\ :\ func(text:\ Text,\ last:\ Int\ ->\ Text)
+Get a slice of the text, ending at the given position. 
+
+For more, see:
+.BR Tomo-Text.to (3)
+
+
+.TP
+.BI Text.translate\ :\ func(text:\ Text,\ translations:\ {Text:Text}\ ->\ Text)
+Takes a table mapping target texts to their replacements and performs all the replacements in the table on the whole text. At each position, the first matching replacement is applied and the matching moves on to *after* the replacement text, so replacement text is not recursively modified. See Text.replace() for more information about replacement behavior. 
+
+For more, see:
+.BR Tomo-Text.translate (3)
+
+
+.TP
+.BI Text.trim\ :\ func(text:\ Text,\ to_trim:\ Text\ =\ "\ $\[rs]t\[rs]r\[rs]n",\ left:\ Bool\ =\ yes,\ right:\ Bool\ =\ yes\ ->\ Text)
+Trims the given characters (grapheme clusters) from the left and/or right side of the text. 
+
+For more, see:
+.BR Tomo-Text.trim (3)
+
+
+.TP
+.BI Text.upper\ :\ func(text:\ Text,\ language:\ Text\ =\ "C"\ ->\ Text)
+Converts all characters in the text to uppercase. 
+
+For more, see:
+.BR Tomo-Text.upper (3)
+
+
+.TP
+.BI Text.utf16\ :\ func(text:\ Text\ ->\ [Int16])
+Returns a list of Unicode code points for UTF16 encoding of the text. 
+
+For more, see:
+.BR Tomo-Text.utf16 (3)
+
+
+.TP
+.BI Text.utf32\ :\ func(text:\ Text\ ->\ [Int32])
+Returns a list of Unicode code points for UTF32 encoding of the text. 
+
+For more, see:
+.BR Tomo-Text.utf32 (3)
+
+
+.TP
+.BI Text.utf8\ :\ func(text:\ Text\ ->\ [Byte])
+Converts a \fBText\fR value to a list of bytes representing a UTF8 encoding of the text. 
+
+For more, see:
+.BR Tomo-Text.utf8 (3)
+
+
+.TP
+.BI Text.width\ :\ func(text:\ Text\ ->\ Int)
+Returns the display width of the text as seen in a terminal with appropriate font rendering. This is usually the same as the text's \fB.length\fR, but there are some characters like emojis that render wider than 1 cell. 
+
+For more, see:
+.BR Tomo-Text.width (3)
+
+
+.TP
+.BI Text.without_prefix\ :\ func(text:\ Text,\ prefix:\ Text\ ->\ Text)
+Returns the text with a given prefix removed (if present). 
+
+For more, see:
+.BR Tomo-Text.without_prefix (3)
+
+
+.TP
+.BI Text.without_suffix\ :\ func(text:\ Text,\ suffix:\ Text\ ->\ Text)
+Returns the text with a given suffix removed (if present). 
+
+For more, see:
+.BR Tomo-Text.without_suffix (3)
+

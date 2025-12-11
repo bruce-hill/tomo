@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.random 3 2025-11-09 "Tomo man-pages"
+.TH List.random 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 List.random \- pick a random element
 .SH LIBRARY
@@ -23,7 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 list	[T]	The list from which to select a random element. 	-
-random	func(min,max:Int64->Int64)?	If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation) 	none
+random	func(min,max:Int64->Int64)?	If provided, this function will be used to get a random index in the list. Returned values must be between \fBmin\fR and \fBmax\fR (inclusive). (Used for deterministic pseudorandom number generation) 	none
 .TE
 .SH RETURN
 A random element from the list.
@@ -32,3 +32,5 @@ A random element from the list.
 .EX
 assert [10, 20, 30].random() == 20
 .EE
+.SH SEE ALSO
+.BR Tomo-List (3)

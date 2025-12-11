@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.width 3 2025-11-09 "Tomo man-pages"
+.TH Text.width 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.width \- get display width
 .SH LIBRARY
@@ -19,10 +19,10 @@ Returns the display width of the text as seen in a terminal with appropriate fon
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-text	Text	The text whose length you want. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+text	Text	The text whose length you want. 
 .TE
 .SH RETURN
 An integer representing the display width of the text.
@@ -35,3 +35,5 @@ This will not always be exactly accurate when your terminal's font rendering can
 assert "Amélie".width() == 6
 assert "🤠".width() == 2
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

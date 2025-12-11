@@ -205,6 +205,31 @@ assert "hello world".ends_with("world", &remainder) == yes
 assert remainder == "hello "
 
 ```
+## Text.find
+
+```tomo
+Text.find : func(text: Text, target: Text, start: Int = 1 -> Int)
+```
+
+Find a substring within a text and return its index, if found.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+text | `Text` | The text to be searched.  | -
+target | `Text` | The target text to find.  | -
+start | `Int` | The index at which to begin searching.  | `1`
+
+**Return:** The index where the first occurrence of `target` appears, or `none` if it is not found.
+
+
+**Example:**
+```tomo
+assert "one two".find("one") == 1
+assert "one two".find("two") == 5
+assert "one two".find("three") == none
+assert "one two".find("o", start=2) == 7
+
+```
 ## Text.from
 
 ```tomo

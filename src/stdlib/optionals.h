@@ -15,7 +15,7 @@
 #define NONE_TABLE ((OptionalTable_t){.entries.data = NULL})
 #define NONE_CLOSURE ((OptionalClosure_t){.fn = NULL})
 #define NONE_TEXT ((OptionalText_t){.tag = TEXT_NONE})
-#define NONE_PATH ((Path_t){.type = PATHTYPE_NONE})
+#define NONE_PATH ((OptionalPath_t){.$tag = Path$tag$none})
 
 PUREFUNC bool is_none(const void *obj, const TypeInfo_t *non_optional_type);
 PUREFUNC uint64_t Optional$hash(const void *obj, const TypeInfo_t *type);

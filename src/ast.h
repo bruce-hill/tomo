@@ -23,6 +23,9 @@
 #define LiteralCode(code, ...)                                                                                         \
     new (ast_t, .tag = InlineCCode,                                                                                    \
          .__data.InlineCCode = {.chunks = new (ast_list_t, .ast = FakeAST(TextLiteral, code)), __VA_ARGS__})
+#define WrapLiteralCode(_ast, code, ...)                                                                               \
+    new (ast_t, .tag = InlineCCode, .file = (_ast)->file, .start = (_ast)->start, .end = (_ast)->end,                  \
+         .__data.InlineCCode = {.chunks = new (ast_list_t, .ast = WrapAST(_ast, TextLiteral, code)), __VA_ARGS__})
 #define Match(x, _tag)                                                                                                 \
     ((x)->tag == _tag ? &(x)->__data._tag                                                                              \
                       : (errx(1, __FILE__ ":%d This was supposed to be a " #_tag "\n", __LINE__), &(x)->__data._tag))
@@ -276,6 +279,7 @@ typedef enum {
     Use,
     InlineCCode,
     ExplicitlyTyped,
+    Metadata,
 } ast_e;
 #define NUM_AST_TAGS (ExplicitlyTyped + 1)
 
@@ -287,6 +291,7 @@ struct ast_s {
         struct {
         } Unknown;
         struct {
+            struct type_s *type;
         } None;
         struct {
             bool b;
@@ -457,6 +462,9 @@ struct ast_s {
             ast_t *ast;
             struct type_s *type;
         } ExplicitlyTyped;
+        struct {
+            Text_t key, value;
+        } Metadata;
     } __data;
 };
 
@@ -480,5 +488,7 @@ void visit_topologically(ast_list_t *ast, Closure_t fn);
 CONSTFUNC bool is_update_assignment(ast_t *ast);
 CONSTFUNC ast_e binop_tag(ast_e tag);
 CONSTFUNC bool is_binary_operation(ast_t *ast);
-void ast_visit(ast_t *ast, void (*visitor)(ast_t *, void *), void *userdata);
-void type_ast_visit(ast_t *ast, void (*visitor)(type_ast_t *, void *), void *userdata);
+typedef enum { VISIT_STOP, VISIT_PROCEED } visit_behavior_t;
+void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *userdata);
+void type_ast_visit(ast_t *ast, visit_behavior_t (*visitor)(type_ast_t *, void *), void *userdata);
+OptionalText_t ast_metadata(ast_t *ast, const char *key);

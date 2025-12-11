@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.caseless_equals 3 2025-11-09 "Tomo man-pages"
+.TH Text.caseless_equals 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.caseless_equals \- case-insensitive comparison
 .SH LIBRARY
@@ -36,3 +36,5 @@ assert "A".caseless_equals("a") == yes
 # Turkish lowercase "I" is "ı" (dotless I), not "i"
 assert "I".caseless_equals("i", language="tr_TR") == no
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

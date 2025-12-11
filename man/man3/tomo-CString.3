@@ -1,0 +1,27 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH CString 3 2025-11-29 "Tomo man-pages"
+.SH NAME
+CString \- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+
+.TP
+.BI CString.as_text\ :\ func(str:\ CString\ ->\ Text)
+Convert a C string to Text. 
+
+For more, see:
+.BR Tomo-CString.as_text (3)
+
+
+.TP
+.BI CString.join\ :\ func(glue:\ CString,\ pieces:\ [CString]\ ->\ CString)
+Join a list of C strings together with a separator. 
+
+For more, see:
+.BR Tomo-CString.join (3)
+

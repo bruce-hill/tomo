@@ -86,13 +86,18 @@ typedef struct table_s {
     struct table_s *fallback;
 } Table_t;
 
-typedef struct Empty$$struct {
-} Empty$$type;
+typedef struct Present$$struct {
+} Present$$type;
+
+#define PRESENT_STRUCT ((Present$$type){})
 
 typedef struct {
+    Present$$type value;
     bool has_value;
-    Empty$$type value;
-} $OptionalEmpty$$type;
+} $OptionalPresent$$type;
+
+#define NONE_PRESENT_STRUCT (($OptionalPresent$$type){.has_value = false})
+#define OPTIONAL_PRESENT_STRUCT (($OptionalPresent$$type){.has_value = true})
 
 typedef struct {
     void *fn, *userdata;
@@ -123,14 +128,81 @@ typedef struct Text_s {
     };
 } Text_t;
 
-typedef enum PathEnum { PATHTYPE_NONE, PATHTYPE_RELATIVE, PATHTYPE_ABSOLUTE, PATHTYPE_HOME } PathType_t;
-#define OptionalPathType_t PathType_t
+typedef struct Path$AbsolutePath$$struct {
+    List_t components;
+} Path$AbsolutePath$$type;
 
 typedef struct {
-    PathType_t type;
+    Path$AbsolutePath$$type value;
+    bool has_value;
+} $OptionalPath$AbsolutePath$$type;
+
+typedef struct Path$RelativePath$$struct {
     List_t components;
+} Path$RelativePath$$type;
+
+typedef struct {
+    Path$RelativePath$$type value;
+    bool has_value;
+} $OptionalPath$RelativePath$$type;
+
+typedef struct Path$HomePath$$struct {
+    List_t components;
+} Path$HomePath$$type;
+
+typedef struct {
+    Path$HomePath$$type value;
+    bool has_value;
+} $OptionalPath$HomePath$$type;
+
+#define Path$tagged$AbsolutePath(comps) ((Path_t){.$tag = Path$tag$AbsolutePath, .AbsolutePath.components = comps})
+#define Path$tagged$RelativePath(comps) ((Path_t){.$tag = Path$tag$RelativePath, .RelativePath.components = comps})
+#define Path$tagged$HomePath(comps) ((Path_t){.$tag = Path$tag$HomePath, .HomePath.components = comps})
+
+typedef struct {
+    enum { Path$tag$none, Path$tag$AbsolutePath, Path$tag$RelativePath, Path$tag$HomePath } $tag;
+    union {
+        Path$RelativePath$$type RelativePath;
+        Path$AbsolutePath$$type AbsolutePath;
+        Path$HomePath$$type HomePath;
+        List_t components;
+    };
 } Path_t;
+
+#define $OptionalPath$$type Path_t
 #define OptionalPath_t Path_t
+
+typedef struct Result$Success$$struct {
+} Result$Success$$type;
+
+typedef struct {
+    Result$Success$$type value;
+    bool has_value;
+} $OptionalResult$Success$$type;
+
+typedef struct Result$Failure$$struct {
+    Text_t reason;
+} Result$Failure$$type;
+
+typedef struct {
+    Result$Failure$$type value;
+    bool has_value;
+} $OptionalResult$Failure$$type;
+
+#define Result$Success ((Result$$type){.$tag = Result$tag$Success})
+#define SuccessResult Result$Success
+#define Result$tagged$Failure(msg) ((Result$$type){.$tag = Result$tag$Failure, .Failure.reason = msg})
+#define FailureResult(...) Result$tagged$Failure(Texts(__VA_ARGS__))
+
+typedef struct Result$$struct {
+    enum { Result$tag$none, Result$tag$Success, Result$tag$Failure } $tag;
+    union {
+        Result$Success$$type Success;
+        Result$Failure$$type Failure;
+    };
+} Result$$type;
+
+#define Result_t Result$$type
 
 #define OptionalBool_t uint8_t
 #define OptionalList_t List_t

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.factorial 3 2025-11-09 "Tomo man-pages"
+.TH Int.factorial 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Int.factorial \- factorial
 .SH LIBRARY
@@ -19,10 +19,10 @@ Computes the factorial of an integer.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-n	Int	The integer to compute the factorial of. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+n	Int	The integer to compute the factorial of. 
 .TE
 .SH RETURN
 The factorial of the given integer.
@@ -31,3 +31,5 @@ The factorial of the given integer.
 .EX
 assert (10).factorial() == 3628800
 .EE
+.SH SEE ALSO
+.BR Tomo-Int (3)

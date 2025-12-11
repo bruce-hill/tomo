@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.get_or_set 3 2025-11-09 "Tomo man-pages"
+.TH Table.get_or_set 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Table.get_or_set \- get an item or set a default if absent
 .SH LIBRARY
@@ -19,12 +19,12 @@ If the given key is in the table, return the associated value. Otherwise, insert
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-t	&{K:V}	The table. 	-
-key	K	The key whose associated value is to be retrieved. 	-
-default	V	The default value to insert and return if the key is not present in the table. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+t	&{K:V}	The table. 
+key	K	The key whose associated value is to be retrieved. 
+default	V	The default value to insert and return if the key is not present in the table. 
 .TE
 .SH RETURN
 Either the value associated with the key (if present) or the default value. The table will be mutated if the key is not already present.
@@ -43,3 +43,5 @@ assert t == &{"A": @[1, 2, 3, 4], "B": @[99]}
 assert t.get_or_set("C", @[0, 0, 0]) == @[0, 0, 0]
 assert t == &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
 .EE
+.SH SEE ALSO
+.BR Tomo-Table (3)

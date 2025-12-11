@@ -26,18 +26,21 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
     if (more_complete) return true;
 
     // Serialization/deserialization:
-    if (type_eq(needed, Type(ListType, Type(ByteType)))) {
-        *code = Texts("generic_serialize((", compile_declaration(actual, Text("[1]")), "){", *code, "}, ",
-                      compile_type_info(actual), ")");
-        return true;
-    } else if (type_eq(actual, Type(ListType, Type(ByteType)))) {
-        *code = Texts("({ ", compile_declaration(needed, Text("deserialized")),
-                      ";\n"
-                      "generic_deserialize(",
-                      *code, ", &deserialized, ", compile_type_info(needed),
-                      ");\n"
-                      "deserialized; })");
-        return true;
+    if (!type_eq(non_optional(value_type(needed)), Type(ListType, Type(ByteType)))
+        || !type_eq(non_optional(value_type(actual)), Type(ListType, Type(ByteType)))) {
+        if (type_eq(needed, Type(ListType, Type(ByteType)))) {
+            *code = Texts("generic_serialize((", compile_declaration(actual, Text("[1]")), "){", *code, "}, ",
+                          compile_type_info(actual), ")");
+            return true;
+        } else if (type_eq(actual, Type(ListType, Type(ByteType)))) {
+            *code = Texts("({ ", compile_declaration(needed, Text("deserialized")),
+                          ";\n"
+                          "generic_deserialize(",
+                          *code, ", &deserialized, ", compile_type_info(needed),
+                          ");\n"
+                          "deserialized; })");
+            return true;
+        }
     }
 
     // Optional promotion:
@@ -126,6 +129,10 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
 
     if (t->tag == EnumType) {
         env = with_enum_scope(env, t);
+    }
+
+    if (ast->tag == Block && Match(ast, Block)->statements && !Match(ast, Block)->statements->next) {
+        ast = Match(ast, Block)->statements->ast;
     }
 
     if (ast->tag == Int && is_numeric_type(non_optional(t))) {

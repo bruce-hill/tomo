@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.split_any 3 2025-11-09 "Tomo man-pages"
+.TH Text.split_any 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.split_any \- split a text by multiple delimiters
 .SH LIBRARY
@@ -36,3 +36,5 @@ To split based on an exact delimiter, use Text.split().
 .EX
 assert "one, two,,three".split_any(", ") == ["one", "two", "three"]
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

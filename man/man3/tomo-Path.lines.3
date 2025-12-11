@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.lines 3 2025-11-29 "Tomo man-pages"
+.SH NAME
+Path.lines \- return the lines in a file
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.lines\ :\ func(path:\ Path\ ->\ [Text]?)
+.fi
+.SH DESCRIPTION
+Returns a list with the lines of text in a file or returns none if the file could not be opened.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path of the file. 
+.TE
+.SH RETURN
+A list of the lines in a file or none if the file couldn't be read.
+
+.SH EXAMPLES
+.EX
+lines := (./file.txt).lines()!
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

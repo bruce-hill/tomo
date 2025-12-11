@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.prev_prime 3 2025-11-09 "Tomo man-pages"
+.TH Int.prev_prime 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Int.prev_prime \- get the previous prime
 .SH LIBRARY
@@ -19,10 +19,10 @@ Finds the previous prime number less than the given integer. If there is no prev
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Int	The integer before which to find the previous prime. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Int	The integer before which to find the previous prime. 
 .TE
 .SH RETURN
 The previous prime number less than `x`, or `none` if `x` is less than 2.
@@ -34,3 +34,5 @@ This function is _probabilistic_, but the chances of getting an incorrect answer
 .EX
 assert (11).prev_prime() == 7
 .EE
+.SH SEE ALSO
+.BR Tomo-Int (3)

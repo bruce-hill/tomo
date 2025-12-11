@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.fdim 3 2025-11-09 "Tomo man-pages"
+.TH Float64.fdim 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.fdim \- positive difference
 .SH LIBRARY
@@ -19,11 +19,11 @@ Computes the positive difference between two numbers.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The first number. 	-
-y	Float64	The second number. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The first number. 
+y	Float64	The second number. 
 .TE
 .SH RETURN
 The positive difference $\max(0, x - y)$.
@@ -34,3 +34,5 @@ fd
 
 assert (5.0).fdim(3) == 2
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

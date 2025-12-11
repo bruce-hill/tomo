@@ -142,6 +142,7 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
         }
         return code;
     }
+    case Metadata:
     default: return EMPTY_TEXT;
     }
 }
@@ -151,7 +152,7 @@ typedef struct {
     Text_t *code;
 } compile_info_t;
 
-static void add_type_infos(type_ast_t *type_ast, void *userdata) {
+static visit_behavior_t add_type_infos(type_ast_t *type_ast, void *userdata) {
     if (type_ast && type_ast->tag == EnumTypeAST) {
         compile_info_t *info = (compile_info_t *)userdata;
         // Force the type to get defined:
@@ -163,6 +164,7 @@ static void add_type_infos(type_ast_t *type_ast, void *userdata) {
             compile_enum_constructors(info->env, String("enum$", (int64_t)(type_ast->start - type_ast->file->text)),
                                       Match(type_ast, EnumTypeAST)->tags));
     }
+    return VISIT_PROCEED;
 }
 
 public
@@ -193,7 +195,7 @@ Text_t compile_file(env_t *env, ast_t *ast) {
     const char *name = file_base_name(ast->file->filename);
     return Texts(env->do_source_mapping ? Texts("#line 1 ", quoted_str(ast->file->filename), "\n") : EMPTY_TEXT,
                  "#define __SOURCE_FILE__ ", quoted_str(ast->file->filename), "\n",
-                 "#include <tomo_" TOMO_VERSION "/tomo.h>\n"
+                 "#include <tomo@" TOMO_VERSION "/tomo.h>\n"
                  "#include \"",
                  name, ".tm.h\"\n\n", includes, env->code->local_typedefs, "\n", env->code->lambdas, "\n",
                  env->code->staticdefs, "\n", top_level_code, "public void ",

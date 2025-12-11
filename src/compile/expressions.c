@@ -11,11 +11,41 @@
 
 public
 Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t) {
-    if (is_idempotent(ast) && can_be_mutated(env, ast)) {
-        type_t *actual = get_type(with_enum_scope(env, t), ast);
-        if (t->tag == ListType && type_eq(t, actual)) return Texts("LIST_COPY(", compile_to_type(env, ast, t), ")");
-        else if (t->tag == TableType && type_eq(t, actual))
-            return Texts("TABLE_COPY(", compile_to_type(env, ast, t), ")");
+    if (!has_refcounts(t) || !can_be_mutated(env, ast)) {
+        return compile_to_type(env, ast, t);
+    }
+
+    // When using a struct as a value, we need to increment the refcounts of the inner fields as well:
+    if (t->tag == StructType) {
+        // If the struct is non-idempotent, we have to stash it in a local var first
+        if (is_idempotent(ast)) {
+            Text_t code = Texts("((", compile_type(t), "){");
+            for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+                Text_t val = compile_maybe_incref(env, WrapAST(ast, FieldAccess, .fielded = ast, .field = field->name),
+                                                  get_arg_type(env, field));
+                code = Texts(code, val);
+                if (field->next) code = Texts(code, ", ");
+            }
+            return Texts(code, "})");
+        } else {
+            static int64_t tmp_index = 1;
+            Text_t tmp_name = Texts("_tmp", tmp_index);
+            tmp_index += 1;
+            Text_t code = Texts("({ ", compile_declaration(t, tmp_name), " = ", compile_to_type(env, ast, t), "; ",
+                                "((", compile_type(t), "){");
+            ast_t *tmp = WrapLiteralCode(ast, tmp_name, .type = t);
+            for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+                Text_t val = compile_maybe_incref(env, WrapAST(ast, FieldAccess, .fielded = tmp, .field = field->name),
+                                                  get_arg_type(env, field));
+                code = Texts(code, val);
+                if (field->next) code = Texts(code, ", ");
+            }
+            return Texts(code, "}); })");
+        }
+    } else if (t->tag == ListType && ast->tag != List && can_be_mutated(env, ast) && type_eq(get_type(env, ast), t)) {
+        return Texts("LIST_COPY(", compile_to_type(env, ast, t), ")");
+    } else if (t->tag == TableType && ast->tag != Table && can_be_mutated(env, ast) && type_eq(get_type(env, ast), t)) {
+        return Texts("TABLE_COPY(", compile_to_type(env, ast, t), ")");
     }
     return compile_to_type(env, ast, t);
 }
@@ -27,7 +57,6 @@ Text_t compile_empty(type_t *t) {
     if (t->tag == OptionalType) return compile_none(t);
 
     if (t == PATH_TYPE) return Text("NONE_PATH");
-    else if (t == PATH_TYPE_TYPE) return Text("PATHTYPE_ABSOLUTE");
 
     switch (t->tag) {
     case BigIntType: return Text("I(0)");
@@ -66,7 +95,9 @@ Text_t compile_empty(type_t *t) {
 Text_t compile(env_t *env, ast_t *ast) {
     switch (ast->tag) {
     case None: {
-        code_err(ast, "I can't figure out what this `none`'s type is!");
+        type_t *type = Match(ast, None)->type;
+        if (type == NULL) code_err(ast, "I can't figure out what this `none`'s type is!");
+        return compile_none(non_optional(type));
     }
     case Bool: return Match(ast, Bool)->b ? Text("yes") : Text("no");
     case Var: {

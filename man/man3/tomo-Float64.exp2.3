@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.exp2 3 2025-11-09 "Tomo man-pages"
+.TH Float64.exp2 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.exp2 \- base-2 exponentiation
 .SH LIBRARY
@@ -19,10 +19,10 @@ Computes $2^x$ for a number.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The exponent. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The exponent. 
 .TE
 .SH RETURN
 The value of $2^x$.
@@ -31,3 +31,5 @@ The value of $2^x$.
 .EX
 assert (3.0).exp2() == 8
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

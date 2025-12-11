@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.exists 3 2025-11-09 "Tomo man-pages"
+.TH Path.exists 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.exists \- check if a path exists
 .SH LIBRARY
@@ -19,10 +19,10 @@ Checks if a file or directory exists at the specified path.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-path	Path	The path to check. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path to check. 
 .TE
 .SH RETURN
 `True` if the file or directory exists, `False` otherwise.
@@ -31,3 +31,5 @@ path	Path	The path to check. 	-
 .EX
 assert (/).exists() == yes
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

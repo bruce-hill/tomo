@@ -33,10 +33,34 @@ force_tty | `Bool` | Whether or not to force the use of /dev/tty.  | `yes`
 assert ask("What's your name? ") == "Arthur Dent"
 
 ```
+## at_cleanup
+
+```tomo
+at_cleanup : func(fn: func() -> Void)
+```
+
+Register a function that runs at cleanup time for Tomo programs. Cleanup time happens when a program exits (see `atexit()` in C), or immediately before printing error messages in a call to `fail()`. This allows for terminal cleanup so error messages can be visible as the program shuts down.
+
+Use this API very carefully, because errors that occur during cleanup functions may make it extremely hard to figure out what's going on. Cleanup functions should be designed to not error under any circumstances.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+fn | `func()` | A function to run at cleanup time.  | -
+
+**Return:** Nothing.
+
+
+**Example:**
+```tomo
+at_cleanup(func()
+    (/tmp/file.txt).remove(ignore_missing=yes)
+)
+
+```
 ## exit
 
 ```tomo
-exit : func(message: Text? = none, status: Int32 = Int32(1) -> Void)
+exit : func(message: Text? = none, status: Int32 = Int32(1) -> Abort)
 ```
 
 Exits the program with a given status and optionally prints a message.
@@ -142,7 +166,7 @@ say("world!")
 ## setenv
 
 ```tomo
-setenv : func(name: Text, value: Text -> Void)
+setenv : func(name: Text, value: Text? -> Void)
 ```
 
 Sets an environment variable.
@@ -150,7 +174,7 @@ Sets an environment variable.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 name | `Text` | The name of the environment variable to set.  | -
-value | `Text` | The new value of the environment variable.  | -
+value | `Text?` | The new value of the environment variable. If `none`, then the environment variable will be unset.  | -
 
 **Return:** Nothing.
 

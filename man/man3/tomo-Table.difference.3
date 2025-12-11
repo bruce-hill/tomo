@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.difference 3 2025-11-09 "Tomo man-pages"
+.TH Table.difference 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Table.difference \- return a table using keys not present in both tables
 .SH LIBRARY
@@ -19,11 +19,11 @@ Return a table whose key/value pairs correspond to keys only present in one tabl
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-t	{K:V}	The base table. 	-
-other	{K:V}	The other table. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+t	{K:V}	The base table. 
+other	{K:V}	The other table. 
 .TE
 .SH RETURN
 A table containing the common key/value pairs whose keys only appear in one table.
@@ -34,3 +34,5 @@ t1 := {"A": 1; "B": 2, "C": 3}
 t2 := {"B": 2, "C":30, "D": 40}
 assert t1.difference(t2) == {"A": 1, "D": 40}
 .EE
+.SH SEE ALSO
+.BR Tomo-Table (3)

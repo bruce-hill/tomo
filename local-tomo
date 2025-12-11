@@ -1,11 +1,11 @@
 #!/bin/sh
 version=$(awk '/^## / {print $2; exit}' CHANGES.md)
 here="$(realpath "$(dirname "$0")")"
-if [ ! -e "$here/build/bin/tomo_$version" ]; then
+if [ ! -e "$here/build/bin/tomo@$version" ]; then
     echo "Tomo hasn't been compiled yet! Run \`make\` to compile it!"
     exit 1;
 fi
 
 PATH="$here/build/bin${PATH:+:$PATH}" \
 TOMO_PATH="$here/build" \
-tomo_"$version" "$@"
+tomo@"$version" "$@"

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.changed 3 2025-11-09 "Tomo man-pages"
+.TH Path.changed 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.changed \- get the last changed time
 .SH LIBRARY
@@ -36,3 +36,5 @@ This is the ["ctime"](https://en.wikipedia.org/wiki/Stat_(system_call)#ctime) of
 assert (./file.txt).changed() == 1704221100
 assert (./not-a-file).changed() == none
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

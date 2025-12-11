@@ -101,7 +101,7 @@ Text_t compile_assignment_statement(env_t *env, ast_t *ast) {
                           "variable's scope may outlive the scope of the "
                           "stack memory.");
         env_t *val_env = with_enum_scope(env, lhs_t);
-        Text_t val = compile_to_type(val_env, assign->values->ast, lhs_t);
+        Text_t val = compile_maybe_incref(val_env, assign->values->ast, lhs_t);
         return Texts(compile_assignment(env, assign->targets->ast, val), ";\n");
     }
 
@@ -120,7 +120,7 @@ Text_t compile_assignment_statement(env_t *env, ast_t *ast) {
                           "variable's scope may outlive the scope of the "
                           "stack memory.");
         env_t *val_env = with_enum_scope(env, lhs_t);
-        Text_t val = compile_to_type(val_env, value->ast, lhs_t);
+        Text_t val = compile_maybe_incref(val_env, value->ast, lhs_t);
         code = Texts(code, compile_type(lhs_t), " $", i, " = ", val, ";\n");
         i += 1;
     }
@@ -178,13 +178,13 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
                 type_t *value_type = get_type(env, table_type->default_value);
                 return Texts("*Table$get_or_setdefault(", compile_to_pointer_depth(env, index->indexed, 1, false), ", ",
                              compile_type(table_type->key_type), ", ", compile_type(value_type), ", ",
-                             compile_to_type(env, index->index, table_type->key_type), ", ",
-                             compile_to_type(env, table_type->default_value, table_type->value_type), ", ",
+                             compile_maybe_incref(env, index->index, table_type->key_type), ", ",
+                             compile_maybe_incref(env, table_type->default_value, table_type->value_type), ", ",
                              compile_type_info(container_t), ")");
             }
             return Texts("*(", compile_type(Type(PointerType, table_type->value_type)), ")Table$reserve(",
                          compile_to_pointer_depth(env, index->indexed, 1, false), ", ", "stack(",
-                         compile_to_type(env, index->index, table_type->key_type), ")", ", NULL,",
+                         compile_maybe_incref(env, index->index, table_type->key_type), ")", ", NULL,",
                          compile_type_info(container_t), ")");
         } else {
             code_err(ast, "I don't know how to assign to this target");

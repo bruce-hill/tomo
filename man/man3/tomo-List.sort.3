@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.sort 3 2025-11-09 "Tomo man-pages"
+.TH List.sort 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 List.sort \- sort a list
 .SH LIBRARY
@@ -37,3 +37,5 @@ assert list == [-30, 10, 20, 40]
 list.sort(func(a,b:&Int): a.abs() <> b.abs())
 assert list == [10, 20, -30, 40]
 .EE
+.SH SEE ALSO
+.BR Tomo-List (3)

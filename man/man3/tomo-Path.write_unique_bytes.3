@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.write_unique_bytes 3 2025-11-09 "Tomo man-pages"
+.TH Path.write_unique_bytes 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.write_unique_bytes \- write bytes to a uniquely named file
 .SH LIBRARY
@@ -19,11 +19,11 @@ Writes the given bytes to a unique file path based on the specified path. The fi
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-path	Path	The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name. 	-
-bytes	[Byte]	The bytes to write to the file. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The base path for generating the unique file. This path must include the string \fBXXXXXX\fR in the file base name. 
+bytes	[Byte]	The bytes to write to the file. 
 .TE
 .SH RETURN
 The path of the newly created unique file.
@@ -35,3 +35,5 @@ assert created == (./file-27QHtq.txt)
 assert created.read() == [1, 2, 3]
 created.remove()
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

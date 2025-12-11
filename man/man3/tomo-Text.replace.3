@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.replace 3 2025-11-09 "Tomo man-pages"
+.TH Text.replace 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.replace \- replace a substring
 .SH LIBRARY
@@ -19,12 +19,12 @@ Replaces occurrences of a target text with a replacement text.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-text	Text	The text in which to perform replacements. 	-
-target	Text	The target text to be replaced. 	-
-replacement	Text	The text to replace the target with. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+text	Text	The text in which to perform replacements. 
+target	Text	The target text to be replaced. 
+replacement	Text	The text to replace the target with. 
 .TE
 .SH RETURN
 The text with occurrences of the target replaced.
@@ -33,3 +33,5 @@ The text with occurrences of the target replaced.
 .EX
 assert "Hello world".replace("world", "there") == "Hello there"
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

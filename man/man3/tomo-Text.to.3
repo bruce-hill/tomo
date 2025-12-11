@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.to 3 2025-11-09 "Tomo man-pages"
+.TH Text.to 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Text.to \- slice to an end index
 .SH LIBRARY
@@ -19,11 +19,11 @@ Get a slice of the text, ending at the given position.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-text	Text	The text to be sliced. 	-
-last	Int	The index of the last grapheme cluster to include (1-indexed). 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+text	Text	The text to be sliced. 
+last	Int	The index of the last grapheme cluster to include (1-indexed). 
 .TE
 .SH RETURN
 The text up to and including the given grapheme cluster.
@@ -36,3 +36,5 @@ A negative index counts backwards from the end of the text, so `-1` refers to th
 assert "goodbye".to(3) == "goo"
 assert "goodbye".to(-2) == "goodby"
 .EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

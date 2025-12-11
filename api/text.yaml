@@ -225,6 +225,34 @@ Text.ends_with:
     assert "hello world".ends_with("world", &remainder) == yes
     assert remainder == "hello "
 
+Text.find:
+  short: find a substring
+  description: >
+    Find a substring within a text and return its index, if found.
+  return:
+    type: 'Int'
+    description: >
+      The index where the first occurrence of `target` appears, or `none` if it is not found.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to be searched.
+    target:
+      type: 'Text'
+      description: >
+        The target text to find.
+    start:
+      type: 'Int'
+      default: '1'
+      description: >
+        The index at which to begin searching.
+  example: |
+    assert "one two".find("one") == 1
+    assert "one two".find("two") == 5
+    assert "one two".find("three") == none
+    assert "one two".find("o", start=2) == 7
+
 Text.from:
   short: slice from a starting index
   description: >

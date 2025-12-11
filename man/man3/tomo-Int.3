@@ -1,0 +1,131 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Int 3 2025-11-30 "Tomo man-pages"
+.SH NAME
+Int \- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+
+.TP
+.BI Int.abs\ :\ func(x:\ Int\ ->\ Int)
+Calculates the absolute value of an integer. 
+
+For more, see:
+.BR Tomo-Int.abs (3)
+
+
+.TP
+.BI Int.choose\ :\ func(n:\ Int,\ k:\ Int\ ->\ Int)
+Computes the binomial coefficient of the given numbers (the equivalent of \fBn\fR choose \fBk\fR in combinatorics). This is equal to \fBn.factorial()/(k.factorial() * (n-k).factorial())\fR. 
+
+For more, see:
+.BR Tomo-Int.choose (3)
+
+
+.TP
+.BI Int.clamped\ :\ func(x:\ Int,\ low:\ Int,\ high:\ Int\ ->\ Int)
+Returns the given number clamped between two values so that it is within that range. 
+
+For more, see:
+.BR Tomo-Int.clamped (3)
+
+
+.TP
+.BI Int.factorial\ :\ func(n:\ Int\ ->\ Text)
+Computes the factorial of an integer. 
+
+For more, see:
+.BR Tomo-Int.factorial (3)
+
+
+.TP
+.BI Int.get_bit\ :\ func(i:\ Int,\ bit_index:\ Int\ ->\ Bool)
+In the binary representation of an integer, check whether a given bit index is set to 1 or not. 
+
+For more, see:
+.BR Tomo-Int.get_bit (3)
+
+
+.TP
+.BI Int.hex\ :\ func(i:\ Int,\ digits:\ Int\ =\ 0,\ uppercase:\ Bool\ =\ yes,\ prefix:\ Bool\ =\ yes\ ->\ Text)
+Converts an integer to its hexadecimal representation. 
+
+For more, see:
+.BR Tomo-Int.hex (3)
+
+
+.TP
+.BI Int.is_between\ :\ func(x:\ Int,\ low:\ Int,\ high:\ Int\ ->\ Bool)
+Determines if an integer is between two numbers (inclusive). 
+
+For more, see:
+.BR Tomo-Int.is_between (3)
+
+
+.TP
+.BI Int.is_prime\ :\ func(x:\ Int,\ reps:\ Int\ =\ 50\ ->\ Bool)
+Determines if an integer is a prime number. 
+
+For more, see:
+.BR Tomo-Int.is_prime (3)
+
+
+.TP
+.BI Int.next_prime\ :\ func(x:\ Int\ ->\ Int)
+Finds the next prime number greater than the given integer. 
+
+For more, see:
+.BR Tomo-Int.next_prime (3)
+
+
+.TP
+.BI Int.octal\ :\ func(i:\ Int,\ digits:\ Int\ =\ 0,\ prefix:\ Bool\ =\ yes\ ->\ Text)
+Converts an integer to its octal representation. 
+
+For more, see:
+.BR Tomo-Int.octal (3)
+
+
+.TP
+.BI Int.onward\ :\ func(first:\ Int,\ step:\ Int\ =\ 1\ ->\ Text)
+Return an iterator that counts infinitely from the starting integer (with an optional step size). 
+
+For more, see:
+.BR Tomo-Int.onward (3)
+
+
+.TP
+.BI Int.parse\ :\ func(text:\ Text,\ base:\ Int?\ =\ none,\ remainder:\ &Text?\ =\ none\ ->\ Int?)
+Converts a text representation of an integer into an integer. 
+
+For more, see:
+.BR Tomo-Int.parse (3)
+
+
+.TP
+.BI Int.prev_prime\ :\ func(x:\ Int\ ->\ Int?)
+Finds the previous prime number less than the given integer. If there is no previous prime number (i.e. if a number less than \fB2\fR is provided), then the function will create a runtime error. 
+
+For more, see:
+.BR Tomo-Int.prev_prime (3)
+
+
+.TP
+.BI Int.sqrt\ :\ func(x:\ Int\ ->\ Int)
+Calculates the nearest square root of an integer. 
+
+For more, see:
+.BR Tomo-Int.sqrt (3)
+
+
+.TP
+.BI Int.to\ :\ func(first:\ Int,\ last:\ Int,\ step:\ Int?\ =\ none\ ->\ func(->Int?))
+Returns an iterator function that iterates over the range of numbers specified. 
+
+For more, see:
+.BR Tomo-Int.to (3)
+

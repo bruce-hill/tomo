@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.without 3 2025-11-09 "Tomo man-pages"
+.TH Table.without 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Table.without \- return a table without key/value pairs in another table
 .SH LIBRARY
@@ -19,11 +19,11 @@ Return a copy of a table, but without any of the exact key/value pairs found in 
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-t	{K:V}	The base table. 	-
-other	{K:V}	The other table whose key/value pairs will be omitted. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+t	{K:V}	The base table. 
+other	{K:V}	The other table whose key/value pairs will be omitted. 
 .TE
 .SH RETURN
 The original table, but without the key/value pairs from the other table.
@@ -36,3 +36,5 @@ Only exact key/value pairs will be discarded. Keys with a non-matching value wil
 t := {"A": 1; "B": 2, "C": 3}
 assert t.without({"B": 2, "C": 30, "D": 40}) == {"A": 1, "C": 3}
 .EE
+.SH SEE ALSO
+.BR Tomo-Table (3)

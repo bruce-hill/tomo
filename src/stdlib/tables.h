@@ -130,6 +130,8 @@ void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_
 
 #define Table$length(t) ((t).entries.length)
 
+extern const TypeInfo_t Present$$info;
+extern const Present$$type PRESENT;
 extern const TypeInfo_t CStrToVoidStarTable;
 
 #define Table$metamethods                                                                                              \

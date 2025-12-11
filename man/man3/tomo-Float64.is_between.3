@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float64.is_between 3 2025-11-09 "Tomo man-pages"
+.TH Float64.is_between 3 2025-12-11 "Tomo man-pages"
 .SH NAME
 Float64.is_between \- check if a number is in a range
 .SH LIBRARY
@@ -19,12 +19,12 @@ Determines if a number is between two numbers (inclusive).
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-x	Float64	The integer to be checked. 	-
-low	Float64	The lower bound to check (inclusive). 	-
-high	Float64	The upper bound to check (inclusive). 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The integer to be checked. 
+low	Float64	The lower bound to check (inclusive). 
+high	Float64	The upper bound to check (inclusive). 
 .TE
 .SH RETURN
 `yes` if `low <= x and x <= high`, otherwise `no`
@@ -35,3 +35,5 @@ assert (7.5).is_between(1, 10) == yes
 assert (7.5).is_between(100, 200) == no
 assert (7.5).is_between(1, 7.5) == yes
 .EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

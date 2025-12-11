@@ -33,8 +33,8 @@ public
 CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high) { return low <= x && x <= high; }
 
 public
-OptionalByte_t Byte$parse(Text_t text, Text_t *remainder) {
-    OptionalInt_t full_int = Int$parse(text, remainder);
+OptionalByte_t Byte$parse(Text_t text, OptionalInt_t base, Text_t *remainder) {
+    OptionalInt_t full_int = Int$parse(text, base, remainder);
     if (full_int.small != 0L && Int$compare_value(full_int, I(0)) >= 0 && Int$compare_value(full_int, I(255)) <= 0) {
         return (OptionalByte_t){.has_value = true, .value = Byte$from_int(full_int, true)};
     } else {

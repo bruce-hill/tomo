@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <gc.h>
 #include <locale.h>
+#include <math.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -72,6 +73,7 @@ void tomo_init(void) {
     sigemptyset(&sigact.sa_mask);
     sigact.sa_flags = 0;
     sigaction(SIGILL, &sigact, (struct sigaction *)NULL);
+    atexit(tomo_cleanup);
 }
 
 public
@@ -145,7 +147,7 @@ void say(Text_t text, bool newline) {
 public
 _Noreturn void tomo_exit(Text_t text, int32_t status) {
     if (text.length > 0) print(text);
-    _exit(status);
+    exit(status);
 }
 
 public
@@ -204,11 +206,16 @@ cleanup:
 }
 
 public
-void sleep_float64(double seconds) {
+void sleep_seconds(double seconds) {
+    if (seconds < 0) fail("Cannot sleep for a negative amount of time: ", seconds);
+    else if (isnan(seconds)) fail("Cannot sleep for a time that is NaN");
     struct timespec ts;
     ts.tv_sec = (time_t)seconds;
     ts.tv_nsec = (long)((seconds - (double)ts.tv_sec) * 1e9);
-    nanosleep(&ts, NULL);
+    while (nanosleep(&ts, NULL) != 0) {
+        if (errno == EINTR) continue;
+        fail("Failed to sleep for the requested time (", strerror(errno), ")");
+    }
 }
 
 public
@@ -218,4 +225,37 @@ OptionalText_t getenv_text(Text_t name) {
 }
 
 public
-void setenv_text(Text_t name, Text_t value) { setenv(Text$as_c_string(name), Text$as_c_string(value), 1); }
+void setenv_text(Text_t name, OptionalText_t value) {
+    int status;
+    if (value.tag == TEXT_NONE) {
+        status = unsetenv(Text$as_c_string(name));
+    } else {
+        status = setenv(Text$as_c_string(name), Text$as_c_string(value), 1);
+    }
+    if (status != 0) {
+        if (errno == EINVAL) fail("Invalid environment variable name: ", Text$quoted(name, false, Text("\"")));
+        else fail("Failed to set environment variable (", strerror(errno));
+    }
+}
+
+typedef struct cleanup_s {
+    Closure_t cleanup_fn;
+    struct cleanup_s *next;
+} cleanup_t;
+
+static cleanup_t *cleanups = NULL;
+
+public
+void tomo_at_cleanup(Closure_t fn) { cleanups = new (cleanup_t, .cleanup_fn = fn, .next = cleanups); }
+
+public
+void tomo_cleanup(void) {
+    while (cleanups) {
+        // NOTE: we *must* remove the cleanup function from the stack before calling it,
+        // otherwise it will cause an infinite loop if the cleanup function fails or exits.
+        void (*run_cleanup)(void *) = cleanups->cleanup_fn.fn;
+        void *userdata = cleanups->cleanup_fn.userdata;
+        cleanups = cleanups->next;
+        run_cleanup(userdata);
+    }
+}

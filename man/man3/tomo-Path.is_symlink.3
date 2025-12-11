@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.is_symlink 3 2025-11-09 "Tomo man-pages"
+.TH Path.is_symlink 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.is_symlink \- check if a path is a symbolic link
 .SH LIBRARY
@@ -19,10 +19,10 @@ Checks if the path represents a symbolic link.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-path	Path	The path to check. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path to check. 
 .TE
 .SH RETURN
 `True` if the path is a symbolic link, `False` otherwise.
@@ -31,3 +31,5 @@ path	Path	The path to check. 	-
 .EX
 assert (./link).is_symlink() == yes
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

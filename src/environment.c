@@ -17,9 +17,9 @@ type_t *TEXT_TYPE = NULL;
 public
 type_t *PATH_TYPE = NULL;
 public
-type_t *PATH_TYPE_TYPE = NULL;
+type_t *PRESENT_TYPE = NULL;
 public
-type_t *EMPTY_TYPE = NULL;
+type_t *RESULT_TYPE = NULL;
 
 static type_t *declare_type(env_t *env, const char *def_str) {
     ast_t *ast = parse_file_str(def_str);
@@ -67,10 +67,12 @@ env_t *global_env(bool source_mapping) {
     (void)bind_type(env, "Int", Type(BigIntType));
     (void)bind_type(env, "Int32", Type(IntType, .bits = TYPE_IBITS32));
     (void)bind_type(env, "Memory", Type(MemoryType));
-    PATH_TYPE_TYPE = declare_type(env, "enum PathType(Relative, Absolute, Home)");
-    PATH_TYPE = declare_type(env, "struct Path(type:PathType, components:[Text])");
+    PATH_TYPE = declare_type(
+        env,
+        "enum Path(AbsolutePath(components:[Text]), RelativePath(components:[Text]), HomePath(components:[Text]))");
+    RESULT_TYPE = declare_type(env, "enum Result(Success, Failure(reason:Text))");
 
-    EMPTY_TYPE = declare_type(env, "struct Empty()");
+    PRESENT_TYPE = declare_type(env, "struct Present()");
 
     typedef struct {
         const char *name, *code, *type_str;
@@ -90,10 +92,11 @@ env_t *global_env(bool source_mapping) {
         MAKE_TYPE("Void", Type(VoidType), Text("void"), Text("Void$info")),
         MAKE_TYPE("Abort", Type(AbortType), Text("void"), Text("Abort$info")),
         MAKE_TYPE("Memory", Type(MemoryType), Text("void"), Text("Memory$info")),
-        MAKE_TYPE("Empty", EMPTY_TYPE, Text("Empty$$type"), Text("Empty$$info")),
+        MAKE_TYPE("Present", PRESENT_TYPE, Text("Present$$type"), Text("Present$$info")),
+        MAKE_TYPE("Result", RESULT_TYPE, Text("Result_t"), Text("Result$$info")),
         MAKE_TYPE( //
             "Bool", Type(BoolType), Text("Bool_t"), Text("Bool$info"),
-            {"parse", "Bool$parse", "func(text:Text, remainder:&Text? = none -> Bool?)"}),
+            {"parse", "Bool$parse", "func(text:Text, remainder:&Text?=none -> Bool?)"}),
         MAKE_TYPE( //
             "Byte", Type(ByteType), Text("Byte_t"), Text("Byte$info"),
             {"get_bit", "Byte$get_bit", "func(x:Byte, bit_index:Int -> Bool)"}, //
@@ -101,7 +104,7 @@ env_t *global_env(bool source_mapping) {
             {"is_between", "Byte$is_between", "func(x:Byte, low:Byte, high:Byte -> Bool)"}, //
             {"max", "Byte$max", "Byte"}, //
             {"min", "Byte$min", "Byte"}, //
-            {"parse", "Byte$parse", "func(text:Text, remainder:&Text? = none -> Byte?)"}, //
+            {"parse", "Byte$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Byte?)"}, //
             {"to", "Byte$to", "func(first:Byte, last:Byte, step:Int8?=none -> func(->Byte?))"}),
         MAKE_TYPE( //
             "Int", Type(BigIntType), Text("Int_t"), Text("Int$info"), {"abs", "Int$abs", "func(x:Int -> Int)"}, //
@@ -126,7 +129,7 @@ env_t *global_env(bool source_mapping) {
             {"next_prime", "Int$next_prime", "func(x:Int -> Int)"}, //
             {"octal", "Int$octal", "func(i:Int, digits=0, prefix=yes -> Text)"}, //
             {"onward", "Int$onward", "func(first:Int,step=1 -> func(->Int?))"}, //
-            {"parse", "Int$parse", "func(text:Text, remainder:&Text? = none -> Int?)"}, //
+            {"parse", "Int$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int?)"}, //
             {"plus", "Int$plus", "func(x,y:Int -> Int)"}, //
             {"power", "Int$power", "func(base:Int,exponent:Int -> Int)"}, //
 #if __GNU_MP_VERSION >= 6
@@ -145,7 +148,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Int64$clamped", "func(x,low,high:Int64 -> Int64)"}, //
             {"divided_by", "Int64$divided_by", "func(x,y:Int64 -> Int64)"}, //
             {"gcd", "Int64$gcd", "func(x,y:Int64 -> Int64)"}, //
-            {"parse", "Int64$parse", "func(text:Text, remainder:&Text? = none -> Int64?)"}, //
+            {"parse", "Int64$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int64?)"}, //
             {"get_bit", "Int64$get_bit", "func(x:Int64, bit_index:Int -> Bool)"}, //
             {"hex", "Int64$hex", "func(i:Int64, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int64$is_between", "func(x:Int64,low:Int64,high:Int64 -> Bool)"}, //
@@ -167,7 +170,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Int32$clamped", "func(x,low,high:Int32 -> Int32)"}, //
             {"divided_by", "Int32$divided_by", "func(x,y:Int32 -> Int32)"}, //
             {"gcd", "Int32$gcd", "func(x,y:Int32 -> Int32)"}, //
-            {"parse", "Int32$parse", "func(text:Text, remainder:&Text? = none -> Int32?)"}, //
+            {"parse", "Int32$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int32?)"}, //
             {"get_bit", "Int32$get_bit", "func(x:Int32, bit_index:Int -> Bool)"}, //
             {"hex", "Int32$hex", "func(i:Int32, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int32$is_between", "func(x:Int32,low:Int32,high:Int32 -> Bool)"}, //
@@ -189,7 +192,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Int16$clamped", "func(x,low,high:Int16 -> Int16)"}, //
             {"divided_by", "Int16$divided_by", "func(x,y:Int16 -> Int16)"}, //
             {"gcd", "Int16$gcd", "func(x,y:Int16 -> Int16)"}, //
-            {"parse", "Int16$parse", "func(text:Text, remainder:&Text? = none -> Int16?)"}, //
+            {"parse", "Int16$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int16?)"}, //
             {"get_bit", "Int16$get_bit", "func(x:Int16, bit_index:Int -> Bool)"}, //
             {"hex", "Int16$hex", "func(i:Int16, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int16$is_between", "func(x:Int16,low:Int16,high:Int16 -> Bool)"}, //
@@ -211,7 +214,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Int8$clamped", "func(x,low,high:Int8 -> Int8)"}, //
             {"divided_by", "Int8$divided_by", "func(x,y:Int8 -> Int8)"}, //
             {"gcd", "Int8$gcd", "func(x,y:Int8 -> Int8)"}, //
-            {"parse", "Int8$parse", "func(text:Text, remainder:&Text? = none -> Int8?)"}, //
+            {"parse", "Int8$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int8?)"}, //
             {"get_bit", "Int8$get_bit", "func(x:Int8, bit_index:Int -> Bool)"}, //
             {"hex", "Int8$hex", "func(i:Int8, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int8$is_between", "func(x:Int8,low:Int8,high:Int8 -> Bool)"}, //
@@ -302,15 +305,11 @@ env_t *global_env(bool source_mapping) {
             {"as_text", "Text$from_str", "func(str:CString -> Text)"},
             {"join", "CString$join", "func(glue:CString, pieces:[CString] -> CString)"}),
         MAKE_TYPE( //
-            "PathType", PATH_TYPE_TYPE, Text("PathType_t"), Text("PathType$info"), //
-            {"Relative", "PATHTYPE_RELATIVE", "PathType"}, //
-            {"Absolute", "PATHTYPE_ABSOLUTE", "PathType"}, //
-            {"Home", "PATHTYPE_HOME", "PathType"}),
-        MAKE_TYPE( //
             "Path", PATH_TYPE, Text("Path_t"), Text("Path$info"), //
             {"accessed", "Path$accessed", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
-            {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644))"}, //
-            {"append_bytes", "Path$append_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644))"}, //
+            {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
+            {"append_bytes", "Path$append_bytes",
+             "func(path:Path, bytes:[Byte], permissions=Int32(0o644) -> Result)"}, //
             {"base_name", "Path$base_name", "func(path:Path -> Text)"}, //
             {"by_line", "Path$by_line", "func(path:Path -> func(->Text?)?)"}, //
             {"can_execute", "Path$can_execute", "func(path:Path -> Bool)"}, //
@@ -320,7 +319,9 @@ env_t *global_env(bool source_mapping) {
             {"child", "Path$child", "func(path:Path, child:Text -> Path)"}, //
             {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"}, //
-            {"create_directory", "Path$create_directory", "func(path:Path, permissions=Int32(0o755))"}, //
+            {"components", "Path$components", "func(path:Path -> [Text])"}, //
+            {"create_directory", "Path$create_directory",
+             "func(path:Path, permissions=Int32(0o755), recursive=yes -> Result)"}, //
             {"current_dir", "Path$current_dir", "func(->Path)"}, //
             {"exists", "Path$exists", "func(path:Path -> Bool)"}, //
             {"expand_home", "Path$expand_home", "func(path:Path -> Path)"}, //
@@ -335,23 +336,24 @@ env_t *global_env(bool source_mapping) {
             {"is_pipe", "Path$is_pipe", "func(path:Path, follow_symlinks=yes -> Bool)"}, //
             {"is_socket", "Path$is_socket", "func(path:Path, follow_symlinks=yes -> Bool)"}, //
             {"is_symlink", "Path$is_symlink", "func(path:Path -> Bool)"}, //
+            {"lines", "Path$lines", "func(path:Path -> [Text]?)"}, //
             {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
             {"owner", "Path$owner", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
-            {"parent", "Path$parent", "func(path:Path -> Path)"}, //
+            {"parent", "Path$parent", "func(path:Path -> Path?)"}, //
             {"read", "Path$read", "func(path:Path -> Text?)"}, //
             {"read_bytes", "Path$read_bytes", "func(path:Path, limit:Int?=none -> [Byte]?)"}, //
             {"relative_to", "Path$relative_to", "func(path:Path, relative_to:Path -> Path)"}, //
-            {"remove", "Path$remove", "func(path:Path, ignore_missing=no)"}, //
+            {"remove", "Path$remove", "func(path:Path, ignore_missing=no -> Result)"}, //
             {"resolved", "Path$resolved", "func(path:Path, relative_to=(./) -> Path)"}, //
-            {"set_owner", "Path$set_owner", //
-             "func(path:Path, owner:Text?=none, group:Text?=none, follow_symlinks=yes)"}, //
+            {"set_owner", "Path$set_owner",
+             "func(path:Path, owner:Text?=none, group:Text?=none, follow_symlinks=yes -> Result)"}, //
             {"sibling", "Path$sibling", "func(path:Path, name:Text -> Path)"}, //
             {"subdirectories", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"unique_directory", "Path$unique_directory", "func(path:Path -> Path)"}, //
-            {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644))"}, //
-            {"write_bytes", "Path$write_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644))"}, //
-            {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path)"}, //
-            {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path)"}),
+            {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
+            {"write_bytes", "Path$write_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644) -> Result)"}, //
+            {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path?)"}, //
+            {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path?)"}),
         MAKE_TYPE( //
             "Text", TEXT_TYPE, Text("Text_t"), Text("Text$info"), //
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"}, //
@@ -362,6 +364,7 @@ env_t *global_env(bool source_mapping) {
             {"caseless_equals", "Text$equal_ignoring_case", "func(a,b:Text, language='C' -> Bool)"}, //
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"}, //
             {"ends_with", "Text$ends_with", "func(text,suffix:Text, remainder:&Text? = none -> Bool)"}, //
+            {"find", "Text$find", "func(text,target:Text, start=1 -> Int?)"}, //
             {"from", "Text$from", "func(text:Text, first:Int -> Text)"}, //
             {"from_c_string", "Text$from_str", "func(str:CString -> Text?)"}, //
             {"from_codepoint_names", "Text$from_codepoint_names", "func(codepoint_names:[Text] -> Text?)"}, //
@@ -537,17 +540,18 @@ env_t *global_env(bool source_mapping) {
     struct {
         const char *name, *code, *type_str;
     } global_vars[] = {
-        {"USE_COLOR", "USE_COLOR", "Bool"},
+        {"PRESENT", "PRESENT", "Present"},
         {"TOMO_VERSION", "TOMO_VERSION_TEXT", "Text"},
-        {"say", "say", "func(text:Text, newline=yes)"},
-        {"print", "say", "func(text:Text, newline=yes)"},
-        {"getenv", "getenv_text", "func(name:Text -> Text?)"},
-        {"setenv", "setenv_text", "func(name:Text, value:Text -> Text?)"},
+        {"USE_COLOR", "USE_COLOR", "Bool"},
         {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text?)"},
+        {"at_cleanup", "tomo_at_cleanup", "func(fn:func())"},
         {"exit", "tomo_exit", "func(message:Text?=none, code=Int32(1) -> Abort)"},
         {"fail", "fail_text", "func(message:Text -> Abort)"},
-        {"sleep", "sleep_float64", "func(seconds:Float64)"},
-        {"EMPTY", "EMPTY", "Empty"},
+        {"getenv", "getenv_text", "func(name:Text -> Text?)"},
+        {"print", "say", "func(text:Text, newline=yes)"},
+        {"say", "say", "func(text:Text, newline=yes)"},
+        {"setenv", "setenv_text", "func(name:Text, value:Text?)"},
+        {"sleep", "sleep_seconds", "func(seconds:Float64)"},
     };
 
     for (size_t i = 0; i < sizeof(global_vars) / sizeof(global_vars[0]); i++) {

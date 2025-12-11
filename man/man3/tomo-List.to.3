@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.to 3 2025-11-09 "Tomo man-pages"
+.TH List.to 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 List.to \- slice a list to an end index
 .SH LIBRARY
@@ -19,11 +19,11 @@ Returns a slice of the list from the start of the original list up to a specifie
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-list	[T]	The original list. 	-
-last	Int	The index up to which elements should be included. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+list	[T]	The original list. 
+last	Int	The index up to which elements should be included. 
 .TE
 .SH RETURN
 A new list containing elements from the start up to the specified index.
@@ -33,3 +33,5 @@ A new list containing elements from the start up to the specified index.
 assert [10, 20, 30, 40, 50].to(3) == [10, 20, 30]
 assert [10, 20, 30, 40, 50].to(-2) == [10, 20, 30, 40]
 .EE
+.SH SEE ALSO
+.BR Tomo-List (3)

@@ -17,7 +17,7 @@ public
 Text_t Memory$as_text(const void *p, bool colorize, const TypeInfo_t *info) {
     (void)info;
     if (!p) return Text("Memory");
-    Text_t text = Text$from_str(String("Memory<", *(void **)p, ">"));
+    Text_t text = Text$from_str(String("Memory<", (void *)p, ">"));
     return colorize ? Texts(Text("\x1b[0;34;1m"), text, Text("\x1b[m")) : text;
 }
 

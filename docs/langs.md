@@ -29,8 +29,8 @@ situations where a malicious user might set their username to something like
 `<script>alert('pwned')</script>`.
 
 ```
->> username := Text.read_line("Choose a username: ")
-= "<script>alert('pwned')</script>"
+username := Text.read_line("Choose a username: ")
+assert username == "<script>alert('pwned')</script>"
 page := $HTML"
     <html><body>
     Hello $username! How are you?

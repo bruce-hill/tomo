@@ -1,0 +1,51 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Byte 3 2025-11-29 "Tomo man-pages"
+.SH NAME
+Byte \- a Tomo type
+.SH LIBRARY
+Tomo Standard Library
+.fi
+.SH METHODS
+
+.TP
+.BI Byte.get_bit\ :\ func(i:\ Byte,\ bit_index:\ Int\ ->\ Bool)
+In the binary representation of a byte, check whether a given bit index is set to 1 or not. 
+
+For more, see:
+.BR Tomo-Byte.get_bit (3)
+
+
+.TP
+.BI Byte.hex\ :\ func(byte:\ Byte,\ uppercase:\ Bool\ =\ yes,\ prefix:\ Bool\ =\ no\ ->\ Text)
+Convert a byte to a hexidecimal text representation. 
+
+For more, see:
+.BR Tomo-Byte.hex (3)
+
+
+.TP
+.BI Byte.is_between\ :\ func(x:\ Byte,\ low:\ Byte,\ high:\ Byte\ ->\ Bool)
+Determines if an integer is between two numbers (inclusive). 
+
+For more, see:
+.BR Tomo-Byte.is_between (3)
+
+
+.TP
+.BI Byte.parse\ :\ func(text:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Byte?)
+Parse a byte literal from text. 
+
+For more, see:
+.BR Tomo-Byte.parse (3)
+
+
+.TP
+.BI Byte.to\ :\ func(first:\ Byte,\ last:\ Byte,\ step:\ Byte?\ =\ none\ ->\ func(->Byte?))
+Returns an iterator function that iterates over the range of bytes specified. 
+
+For more, see:
+.BR Tomo-Byte.to (3)
+

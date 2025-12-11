@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.can_execute 3 2025-11-09 "Tomo man-pages"
+.TH Path.can_execute 3 2025-11-29 "Tomo man-pages"
 .SH NAME
 Path.can_execute \- check execute permissions
 .SH LIBRARY
@@ -19,10 +19,10 @@ Returns whether or not a file can be executed by the current user/group.
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-path	Path	The path of the file to check. 	-
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path of the file to check. 
 .TE
 .SH RETURN
 `yes` if the file or directory exists and the current user has execute permissions, otherwise `no`.
@@ -33,3 +33,5 @@ assert (/bin/sh).can_execute() == yes
 assert (/usr/include/stdlib.h).can_execute() == no
 assert (/non/existant/file).can_execute() == no
 .EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

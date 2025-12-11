@@ -9,9 +9,19 @@
 #include "environment.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
+#include "stdlib/tables.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"
 #include "types.h"
+
+Text_t arg_types_to_text(arg_t *args, const char *separator) {
+    Text_t text = EMPTY_TEXT;
+    for (arg_t *arg = args; arg; arg = arg->next) {
+        text = Texts(text, type_to_text(arg->type));
+        if (arg->next) text = Texts(text, separator);
+    }
+    return text;
+}
 
 Text_t type_to_text(type_t *t) {
     if (!t) return Text("(Unknown type)");
@@ -39,7 +49,7 @@ Text_t type_to_text(type_t *t) {
     }
     case TableType: {
         DeclareMatch(table, t, TableType);
-        return (table->value_type && table->value_type != EMPTY_TYPE)
+        return (table->value_type && table->value_type != PRESENT_TYPE)
                    ? Texts("{", type_to_text(table->key_type), ":", type_to_text(table->value_type), "}")
                    : Texts("{", type_to_text(table->key_type), "}");
     }
@@ -47,19 +57,15 @@ Text_t type_to_text(type_t *t) {
         return type_to_text(Match(t, ClosureType)->fn);
     }
     case FunctionType: {
-        Text_t c = Text("func(");
         DeclareMatch(fn, t, FunctionType);
-        for (arg_t *arg = fn->args; arg; arg = arg->next) {
-            c = Texts(c, type_to_text(arg->type));
-            if (arg->next) c = Texts(c, ",");
-        }
-        if (fn->ret && fn->ret->tag != VoidType) c = Texts(c, fn->args ? " -> " : "-> ", type_to_text(fn->ret));
-        c = Texts(c, ")");
-        return c;
+        Text_t text = Texts("func(", arg_types_to_text(fn->args, ","));
+        if (fn->ret && fn->ret->tag != VoidType) text = Texts(text, fn->args ? " -> " : "-> ", type_to_text(fn->ret));
+        text = Texts(text, ")");
+        return text;
     }
     case StructType: {
         DeclareMatch(struct_, t, StructType);
-        return Text$from_str(struct_->name);
+        return Text$replace(Text$from_str(struct_->name), Text("$"), Text("."));
     }
     case PointerType: {
         DeclareMatch(ptr, t, PointerType);
@@ -69,7 +75,7 @@ Text_t type_to_text(type_t *t) {
     case EnumType: {
         DeclareMatch(enum_, t, EnumType);
         if (enum_->name != NULL && strncmp(enum_->name, "enum$", strlen("enum$")) != 0)
-            return Text$from_str(enum_->name);
+            return Text$replace(Text$from_str(enum_->name), Text("$"), Text("."));
         Text_t text = Text("enum(");
         for (tag_t *tag = enum_->tags; tag; tag = tag->next) {
             text = Texts(text, Text$from_str(tag->name));
@@ -227,23 +233,28 @@ PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b) {
     else return NUM_PRECISION_INCOMPARABLE;
 }
 
-PUREFUNC bool has_heap_memory(type_t *t) {
+bool _has_heap_memory(type_t *t, Table_t *visited) {
+    if (!t) return false;
+    Text_t type_text = type_to_text(t);
+    if (Table$get(*visited, &type_text, Set$info(&Text$info))) return false;
+    Table$set(visited, &type_text, NULL, Set$info(&Text$info));
+
     switch (t->tag) {
     case ListType: return true;
     case TableType: return true;
     case PointerType: return true;
-    case OptionalType: return has_heap_memory(Match(t, OptionalType)->type);
+    case OptionalType: return _has_heap_memory(Match(t, OptionalType)->type, visited);
     case BigIntType: return true;
     case RealType: return true;
     case StructType: {
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
-            if (has_heap_memory(field->type)) return true;
+            if (_has_heap_memory(field->type, visited)) return true;
         }
         return false;
     }
     case EnumType: {
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
-            if (tag->type && has_heap_memory(tag->type)) return true;
+            if (tag->type && _has_heap_memory(tag->type, visited)) return true;
         }
         return false;
     }
@@ -251,13 +262,74 @@ PUREFUNC bool has_heap_memory(type_t *t) {
     }
 }
 
-PUREFUNC bool has_stack_memory(type_t *t) {
+bool has_heap_memory(type_t *t) {
+    Table_t visited = EMPTY_TABLE;
+    return _has_heap_memory(t, &visited);
+}
+
+bool _has_refcounts(type_t *t, Table_t *visited) {
     if (!t) return false;
+    Text_t type_text = type_to_text(t);
+    if (Table$get(*visited, &type_text, Set$info(&Text$info))) return false;
+    Table$set(visited, &type_text, NULL, Set$info(&Text$info));
+
     switch (t->tag) {
-    case PointerType: return Match(t, PointerType)->is_stack;
-    case OptionalType: return has_stack_memory(Match(t, OptionalType)->type);
+    case ListType: return true;
+    case TableType: return true;
+    case OptionalType: return _has_refcounts(Match(t, OptionalType)->type, visited);
+    case StructType: {
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            if (_has_refcounts(field->type, visited)) return true;
+        }
+        return false;
+    }
+    case EnumType: {
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            if (tag->type && _has_refcounts(tag->type, visited)) return true;
+        }
+        return false;
+    }
     default: return false;
     }
+}
+
+bool has_refcounts(type_t *t) {
+    Table_t visited = EMPTY_TABLE;
+    return _has_refcounts(t, &visited);
+}
+
+bool _has_stack_memory(type_t *t, Table_t *visited) {
+    if (!t) return false;
+    Text_t type_text = type_to_text(t);
+    if (Table$get(*visited, &type_text, Set$info(&Text$info))) return false;
+    Table$set(visited, &type_text, NULL, Set$info(&Text$info));
+
+    switch (t->tag) {
+    case PointerType: return Match(t, PointerType)->is_stack;
+    case OptionalType: return _has_stack_memory(Match(t, OptionalType)->type, visited);
+    case ListType: return _has_stack_memory(Match(t, ListType)->item_type, visited);
+    case TableType:
+        return _has_stack_memory(Match(t, TableType)->key_type, visited)
+               || _has_stack_memory(Match(t, TableType)->value_type, visited);
+    case StructType: {
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            if (_has_stack_memory(field->type, visited)) return true;
+        }
+        return false;
+    }
+    case EnumType: {
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            if (tag->type && _has_stack_memory(tag->type, visited)) return true;
+        }
+        return false;
+    }
+    default: return false;
+    }
+}
+
+bool has_stack_memory(type_t *t) {
+    Table_t visited = EMPTY_TABLE;
+    return _has_stack_memory(t, &visited);
 }
 
 PUREFUNC const char *enum_single_value_tag(type_t *enum_type, type_t *t) {
@@ -397,15 +469,25 @@ PUREFUNC bool is_packed_data(type_t *t) {
         || t->tag == FunctionType) {
         return true;
     } else if (t->tag == StructType) {
+        size_t offset = 0;
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             if (!is_packed_data(field->type)) return false;
+            size_t align = type_align(field->type);
+            if (align > 0 && offset % align != 0) return false;
+            offset += type_size(field->type);
         }
-        return true;
+        size_t overall_align = type_align(t);
+        return overall_align == 0 || (offset % overall_align == 0);
     } else if (t->tag == EnumType) {
+        size_t offset = sizeof(int32_t);
         for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
             if (!is_packed_data(tag->type)) return false;
+            size_t align = type_align(tag->type);
+            if (align > 0 && offset % align != 0) return false;
+            offset += type_size(tag->type);
         }
-        return true;
+        size_t overall_align = type_align(t);
+        return overall_align == 0 || (offset % overall_align == 0);
     } else {
         return false;
     }
@@ -444,7 +526,6 @@ PUREFUNC size_t unpadded_struct_size(type_t *t) {
 
 PUREFUNC size_t type_size(type_t *t) {
     if (t == PATH_TYPE) return sizeof(Path_t);
-    if (t == PATH_TYPE_TYPE) return sizeof(PathType_t);
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
@@ -534,7 +615,6 @@ PUREFUNC size_t type_size(type_t *t) {
 
 PUREFUNC size_t type_align(type_t *t) {
     if (t == PATH_TYPE) return __alignof__(Path_t);
-    if (t == PATH_TYPE_TYPE) return __alignof__(PathType_t);
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
@@ -630,7 +710,8 @@ type_t *get_field_type(type_t *t, const char *field_name) {
     case EnumType: {
         DeclareMatch(e, t, EnumType);
         for (tag_t *tag = e->tags; tag; tag = tag->next) {
-            if (streq(field_name, tag->name)) return Type(BoolType);
+            if (!streq(field_name, tag->name)) continue;
+            return Type(OptionalType, tag->type);
         }
         return NULL;
     }
@@ -762,11 +843,4 @@ type_t *_make_function_type(type_t *ret, int n, arg_t args[n]) {
         if (i + 1 < n) arg_pointers[i].next = &arg_pointers[i + 1];
     }
     return Type(FunctionType, .ret = ret, .args = &arg_pointers[0]);
-}
-
-PUREFUNC bool enum_has_fields(type_t *t) {
-    for (tag_t *e_tag = Match(t, EnumType)->tags; e_tag; e_tag = e_tag->next) {
-        if (e_tag->type != NULL && Match(e_tag->type, StructType)->fields) return true;
-    }
-    return false;
 }

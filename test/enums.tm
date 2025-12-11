@@ -1,4 +1,5 @@
 enum Foo(Zero, One(x:Int), Two(x:Int, y:Int), Three(x:Int, y:Text, z:Bool), Four(x,y,z,w:Int), Last(t:Text))
+enum OnlyTags(A, B, C, D)
 
 func choose_text(f:Foo->Text)
 	>> f
@@ -32,10 +33,6 @@ func main()
 	assert Foo.Zero == Foo.Zero
 	assert Foo.One(123) == Foo.One(123)
 	assert Foo.Two(123, 456) == Foo.Two(x=123, y=456)
-
-	>> one := Foo.One(123)
-	assert one.One == yes
-	assert one.Two == no
 
 	assert Foo.One(10) == Foo.One(10)
 
@@ -99,3 +96,35 @@ func main()
 
 	assert EnumFields(A) == EnumFields(x=A)
 
+	do
+		e := OnlyTags.A
+		assert e.A == OnlyTags.A.A
+		assert e.B == none
+
+	do
+		e := Foo.Zero
+		assert e.Zero == Foo.Zero.Zero
+		assert e.One == none
+		assert e.Two == none
+
+		ep := @Foo.Zero
+		assert ep.Zero == Foo.Zero.Zero
+		assert ep.One == none
+		assert ep.Two == none
+
+	do
+		e := Foo.Two(123, 456)
+		assert e.Zero == none
+		assert e.One == none
+		assert e.Two != none
+
+		ep := Foo.Two(123, 456)
+		assert ep.Zero == none
+		assert ep.One == none
+		assert ep.Two != none
+
+		two := e.Two!
+		when e is Two(x,y)
+			assert two.x == x
+			assert two.y == y
+		else fail("Unreachable")

@@ -43,6 +43,7 @@ int _print_hex(FILE *f, hex_format_t hex) {
     int printed = 0;
     if (!hex.no_prefix) printed += fputs("0x", f);
     if (hex.digits > 0) {
+        hex.digits -= (hex.n == 0); // Don't need a leading zero for a zero
         for (uint64_t n = hex.n; n > 0 && hex.digits > 0; n /= 16) {
             hex.digits -= 1;
         }
@@ -68,6 +69,7 @@ int _print_oct(FILE *f, oct_format_t oct) {
     int printed = 0;
     if (!oct.no_prefix) printed += fputs("0o", f);
     if (oct.digits > 0) {
+        oct.digits -= (oct.n == 0); // Don't need a leading zero for a zero
         for (uint64_t n = oct.n; n > 0 && oct.digits > 0; n /= 8)
             oct.digits -= 1;
         for (; oct.digits > 0; oct.digits -= 1)

@@ -16,9 +16,12 @@ extern bool USE_COLOR;
 extern Text_t TOMO_VERSION_TEXT;
 
 void tomo_init(void);
+void tomo_at_cleanup(Closure_t fn);
+void tomo_cleanup(void);
 
 #define fail(...)                                                                                                      \
     ({                                                                                                                 \
+        tomo_cleanup();                                                                                                \
         fflush(stdout);                                                                                                \
         if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \033[m\n\n", stderr);         \
         else fputs("==================== ERROR ====================\n\n", stderr);                                     \
@@ -30,11 +33,12 @@ void tomo_init(void);
         else fputs("\n", stderr);                                                                                      \
         fflush(stderr);                                                                                                \
         raise(SIGABRT);                                                                                                \
-        _exit(1);                                                                                                      \
+        exit(1);                                                                                                       \
     })
 
 #define fail_source(filename, start, end, ...)                                                                         \
     ({                                                                                                                 \
+        tomo_cleanup();                                                                                                \
         fflush(stdout);                                                                                                \
         if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);      \
         else fputs("==================== ERROR ====================\n\n", stderr);                                     \
@@ -50,7 +54,7 @@ void tomo_init(void);
         if (USE_COLOR) fputs("\x1b[m", stderr);                                                                        \
         fflush(stderr);                                                                                                \
         raise(SIGABRT);                                                                                                \
-        _exit(1);                                                                                                      \
+        exit(1);                                                                                                       \
     })
 
 _Noreturn void fail_text(Text_t message);
@@ -75,6 +79,6 @@ Text_t ask(Text_t prompt, bool bold, bool force_tty);
 _Noreturn void tomo_exit(Text_t text, int32_t status);
 
 Closure_t spawn(Closure_t fn);
-void sleep_num(double seconds);
+void sleep_seconds(double seconds);
 OptionalText_t getenv_text(Text_t name);
 void setenv_text(Text_t name, Text_t value);

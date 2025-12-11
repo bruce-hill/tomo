@@ -96,29 +96,30 @@ else
 	LDLIBS += -ldl
 endif
 
-AR_FILE=libtomo_$(TOMO_VERSION).a
+AR_FILE=libtomo@$(TOMO_VERSION).a
 ifeq ($(OS),Darwin)
 	INCLUDE_DIRS += -I/opt/homebrew/include
 	LDFLAGS += -L/opt/homebrew/lib
-	LIB_FILE=libtomo_$(TOMO_VERSION).dylib
-	LIBTOMO_FLAGS += -Wl,-install_name,@rpath/libtomo_$(TOMO_VERSION).dylib
+	LIB_FILE=libtomo@$(TOMO_VERSION).dylib
+	LIBTOMO_FLAGS += -Wl,-install_name,@rpath/libtomo@$(TOMO_VERSION).dylib
 else
-	LIB_FILE=libtomo_$(TOMO_VERSION).so
-	LIBTOMO_FLAGS += -Wl,-soname,libtomo_$(TOMO_VERSION).so
+	LIB_FILE=libtomo@$(TOMO_VERSION).so
+	LIBTOMO_FLAGS += -Wl,-soname,libtomo@$(TOMO_VERSION).so
 endif
-EXE_FILE=tomo_$(TOMO_VERSION)
-MODULES_FILE=build/lib/tomo_$(TOMO_VERSION)/modules.ini
+EXE_FILE=tomo@$(TOMO_VERSION)
+MODULES_FILE=build/lib/tomo@$(TOMO_VERSION)/modules.ini
 
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c src/compile/*.c src/parse/*.c src/formatter/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm))
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
+INCLUDE_SYMLINK=build/include/tomo@$(TOMO_VERSION)
 
-all: config.mk check-c-compiler check-libs build/include/tomo_$(TOMO_VERSION) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) build/bin/$(EXE_FILE)
+all: config.mk check-c-compiler check-libs $(INCLUDE_SYMLINK) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) build/bin/$(EXE_FILE)
 	@$(ECHO) "All done!"
 
-build/include/tomo_$(TOMO_VERSION):
+$(INCLUDE_SYMLINK):
 	ln -s ../../src/stdlib $@
 
 version:
@@ -143,7 +144,7 @@ build/lib/$(LIB_FILE): $(STDLIB_OBJS)
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 
 $(MODULES_FILE): modules/core.ini modules/examples.ini
-	@mkdir -p build/lib/tomo_$(TOMO_VERSION)
+	@mkdir -p build/lib/tomo@$(TOMO_VERSION)
 	@cat $^ > $@
 
 build/lib/$(AR_FILE): $(STDLIB_OBJS)
@@ -166,14 +167,16 @@ src/stdlib/int64.o src/stdlib/int32.o src/stdlib/int16.o src/stdlib/int8.o: src/
 # Float implementations depend on the shared header:
 src/stdlib/float32.o src/stdlib/float64.o: src/stdlib/floatX.c.h src/stdlib/floatX.h
 
-# Specifically src/tomo.c needs to recompile if CHANGES.md changes:
-src/tomo.o: src/tomo.c src/ast.h src/environment.h src/types.h config.mk src/changes.md.h
-	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
-	@$(CC) $(CFLAGS) -c $< -o $@
+# These files all depend on the current tomo version:
+src/compile/files.o src/compile/headers.o src/compile/statements.o src/config.o src/environment.o \
+	src/modules.o src/stdlib/stacktrace.o src/stdlib/stdlib.o src/tomo.o src/typecheck.o: CHANGES.md
 
 src/changes.md.h: CHANGES.md
 	@$(ECHO) "Embedding changes.md"
 	xxd -i $< > $@
+
+# The main Tomo executable embeds the changelog:
+src/tomo.o: src/changes.md.h
 
 %: %.tm
 	./local-tomo -e $<
@@ -206,7 +209,6 @@ api-docs: $(API_MD) api/api.md
 
 .PHONY: manpages
 manpages: $(API_YAML) man/man1/tomo.1
-	rm -f man/man3/*
 	./scripts/mandoc_gen.py $(API_YAML)
 
 man/man1/tomo.1: docs/tomo.1.md
@@ -226,7 +228,7 @@ check-utilities: check-c-compiler
 	@which debugedit 2>/dev/null >/dev/null \
 		|| printf '\033[33;1m%s\033[m\n' "I couldn't find 'debugedit' on your system! Try installing the package 'debugedit' with your package manager. (It's not required though)"
 
-install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) check-utilities
+install-files: $(INCLUDE_SYMLINK) build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) check-utilities
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		echo $$PATH; \
 		printf "\033[31;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
@@ -240,11 +242,11 @@ install-files: build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) 
 		exit 0; \
 	fi; \
 	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" \
-		"$(PREFIX)/include/tomo_$(TOMO_VERSION)" "$(PREFIX)/lib" "$(PREFIX)/lib/tomo_$(TOMO_VERSION)" "$(PREFIX)/share/licenses/tomo_$(TOMO_VERSION)"; \
-	cp src/stdlib/*.h "$(PREFIX)/include/tomo_$(TOMO_VERSION)/"; \
+		"$(PREFIX)/include/tomo@$(TOMO_VERSION)" "$(PREFIX)/lib" "$(PREFIX)/lib/tomo@$(TOMO_VERSION)" "$(PREFIX)/share/licenses/tomo@$(TOMO_VERSION)"; \
+	cp src/stdlib/*.h "$(PREFIX)/include/tomo@$(TOMO_VERSION)/"; \
 	cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"; \
-	cp $(MODULES_FILE) "$(PREFIX)/lib/tomo_$(TOMO_VERSION)"; \
-	cp LICENSE.md "$(PREFIX)/share/licenses/tomo_$(TOMO_VERSION)"; \
+	cp $(MODULES_FILE) "$(PREFIX)/lib/tomo@$(TOMO_VERSION)"; \
+	cp LICENSE.md "$(PREFIX)/share/licenses/tomo@$(TOMO_VERSION)"; \
 	rm -f "$(PREFIX)/bin/$(EXE_FILE)"; \
 	cp build/bin/$(EXE_FILE) "$(PREFIX)/bin/"; \
 	cp man/man1/* "$(PREFIX)/man/man1/"; \
@@ -259,7 +261,7 @@ uninstall:
 		exit 0; \
 	fi; \
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"[0-9]* "$(PREFIX)/bin/tomo_v"* "$(PREFIX)/include/tomo_v"* \
-		"$(PREFIX)/lib/libtomo_v*" "$(PREFIX)/lib/tomo_$(TOMO_VERSION)" "$(PREFIX)/share/licenses/tomo_$(TOMO_VERSION)"; \
+		"$(PREFIX)/lib/libtomo_v*" "$(PREFIX)/lib/tomo@$(TOMO_VERSION)" "$(PREFIX)/share/licenses/tomo@$(TOMO_VERSION)"; \
 	sh link_versions.sh
 
 endif
