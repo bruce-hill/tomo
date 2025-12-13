@@ -61,8 +61,13 @@ OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
     Text_t fraction_text = EMPTY_TEXT;
     if (Text$starts_with(decimal_onwards, Text("."), &fraction_text)) {
         fraction_text = Text$replace(fraction_text, Text("_"), EMPTY_TEXT);
-        OptionalInt_t fraction = Int$parse(fraction_text, I(10), remainder);
-        if (fraction.small == 0) return NONE_REAL;
+        OptionalInt_t fraction;
+        if (fraction_text.length == 0) {
+            fraction = I(0);
+        } else {
+            fraction = Int$parse(fraction_text, I(10), remainder);
+            if (fraction.small == 0) return NONE_REAL;
+        }
         int64_t shift = fraction_text.length;
         Int_t scale = Int$power(I(10), I(shift));
         Int_t i = Int$plus(Int$times(int_component, scale), fraction);
