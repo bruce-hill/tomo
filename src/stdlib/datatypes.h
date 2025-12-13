@@ -38,7 +38,7 @@ typedef union {
 typedef struct Real_s *Real_t;
 
 struct Real_s {
-    // Compute floor(real*2^n)
+    // Compute floor(real*10^n)
     Int_t (*compute)(Real_t, int64_t);
     union {
         double n;
@@ -47,7 +47,7 @@ struct Real_s {
     } userdata;
     Int_t approximation;
     bool exact : 1;
-    int64_t approximation_bits : 63;
+    int64_t approximation_decimals : 63;
 };
 
 #define OptionalReal_t Real_t

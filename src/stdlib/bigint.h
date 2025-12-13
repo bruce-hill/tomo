@@ -137,7 +137,7 @@ MACROLIKE Int_t Int$modulo1(Int_t x, Int_t y) {
 }
 
 MACROLIKE Int_t Int$left_shifted(Int_t x, Int_t y) {
-    if likely (x.small & y.small & 1L) {
+    if likely (x.small & y.small & 1L & ((y.small >> 2L) < 30)) {
         const int64_t z = ((x.small >> 2L) << (y.small >> 2L)) << 2L;
         if likely (z == (int32_t)z) return (Int_t){.small = z + 1L};
     }
