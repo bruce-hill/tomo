@@ -240,7 +240,7 @@ Real_t Real$divided_by(Real_t x, Real_t y) {
 }
 
 static Int_t Real$compute_sqrt(Real_t r, int64_t decimals) {
-    Real_t operand = &r->userdata.children[0];
+    Real_t operand = r->userdata.children;
     double d = Real$as_float64(operand);
     // TODO: newton's method to iterate
     return Int$from_float64(sqrt(d) * pow(10.0, (double)decimals), true);

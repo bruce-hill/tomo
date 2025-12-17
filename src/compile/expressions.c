@@ -110,14 +110,11 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Num: {
         // return Text$from_str(String(hex_double(Match(ast, Num)->n)));
         Text_t original = Text$from_str(String(string_slice(ast->start, (size_t)(ast->end - ast->start))));
-        // Text_t roundtrip = Text$from_str(String(Match(ast, Num)->n));
-        // original = Text$replace(original, Text("_"), EMPTY_TEXT);
-        // original = Text$without_suffix(original, Text("."));
-        // if (Text$equal_values(original, roundtrip)) {
-        //     return Texts("Real$from_float64(", Text$from_str(String(hex_double(Match(ast, Num)->n))), ")");
-        // } else {
+        original = Text$replace(original, Text("_"), EMPTY_TEXT);
+        original = Text$replace(original, Text("("), EMPTY_TEXT);
+        original = Text$replace(original, Text(")"), EMPTY_TEXT);
+        original = Text$replace(original, Text(" "), EMPTY_TEXT);
         return Texts("Real$parse(Text(\"", original, "\"), NULL)");
-        // }
     }
     case Not: {
         ast_t *value = Match(ast, Not)->value;

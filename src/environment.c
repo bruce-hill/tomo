@@ -298,6 +298,7 @@ env_t *global_env(bool source_mapping) {
             {"negative", "Real$negative", "func(x:Real -> Real)"}, //
             {"plus", "Real$plus", "func(x,y:Real -> Real)"}, //
             {"power", "Real$power", "func(base:Real,exponent:Real -> Real)"}, //
+            {"sqrt", "Real$sqrt", "func(x:Real -> Real)"}, //
             {"times", "Real$times", "func(x,y:Real -> Real)"}, //
             ),
         MAKE_TYPE( //

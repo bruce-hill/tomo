@@ -18,7 +18,7 @@ double Real$as_float64(Real_t x);
 Int_t Real$as_int(Real_t x);
 
 Real_t Real$negative(Real_t x);
-// Real_t Real$inverse(Real_t x);
+Real_t Real$sqrt(Real_t x);
 Real_t Real$plus(Real_t x, Real_t y);
 Real_t Real$minus(Real_t x, Real_t y);
 Real_t Real$times(Real_t x, Real_t y);
