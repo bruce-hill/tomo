@@ -1,0 +1,105 @@
+name: Release binaries
+
+on:
+  [push]
+
+jobs:
+  linux-x86_64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgmp-dev \
+            libunistring-dev \
+            libgc-dev \
+            xxd \
+            binutils
+
+      - name: Build
+        run: |
+          make clean
+          make
+
+      - name: Package
+        run: |
+          mkdir -p tomo
+          cp tomo tomo/tomo
+          tar -czf tomo-linux-x86_64.tar.gz tomo
+          sha256sum tomo-linux-x86_64.tar.gz > tomo-linux-x86_64.tar.gz.sha256
+
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tomo-linux-x86_64.tar.gz
+            tomo-linux-x86_64.tar.gz.sha256
+
+  linux-aarch64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgmp-dev \
+            libunistring-dev \
+            libgc-dev \
+            xxd \
+            binutils
+
+      - name: Build
+        run: |
+          make clean
+          make
+
+      - name: Package
+        run: |
+          mkdir -p tomo
+          cp tomo tomo/tomo
+          tar -czf tomo-linux-aarch64.tar.gz tomo
+          sha256sum tomo-linux-aarch64.tar.gz > tomo-linux-aarch64.tar.gz.sha256
+
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tomo-linux-aarch64.tar.gz
+            tomo-linux-aarch64.tar.gz.sha256
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          brew update
+          brew install gmp libunistring bdw-gc xxd llvm binutils
+
+      - name: Build
+        run: |
+          make clean
+          make
+
+      - name: Package
+        run: |
+          mkdir -p tomo
+          cp tomo tomo/tomo
+          tar -czf tomo-macos-universal.tar.gz tomo
+          shasum -a 256 tomo-macos-universal.tar.gz > tomo-macos-universal.tar.gz.sha256
+
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tomo-macos-universal.tar.gz
+            tomo-macos-universal.tar.gz.sha256
+
