@@ -55,8 +55,8 @@ case "$PKG_MGR" in
     xbps) $SUDO xbps-install -S gc libunistring binutils gmp xxd ;;
     pkg_add) $SUDO pkg_add boehm-gc libunistring binutils gmp xxd ;;
     freebsd-pkg) $SUDO pkg install boehm-gc libunistring binutils gmp xxd ;;
-    brew) brew install bdw-gc libunistring binutils llvm gmp xxd ;;
-    macports) $SUDO port install boehm-gc libunistring binutils gmp xxd ;;
+    brew) brew install bdw-gc libunistring binutils llvm gmp ;;
+    macports) $SUDO port install boehm-gc libunistring binutils gmp ;;
     zypper) $SUDO zypper install gc-devel libunistring-devel binutils gmp-devel xxd ;;
     nix) nix-env -iA nixpkgs.boehmgc.dev nixpkgs.libunistring nixpkgs.binutils nixpkgs.nixpkgs.gmp xxd ;;
     spack) spack install boehm-gc libunistring binutils gmp xxd ;;
