@@ -40,7 +40,7 @@ are implemented in Tomo.
 If you don't want to build from source but just want to install, run this script:
 
 ```
-curl https://raw.githubusercontent.com/bruce-hill/tomo/refs/heads/main/install_script.sh | bash`
+curl https://raw.githubusercontent.com/bruce-hill/tomo/refs/heads/main/install_script.sh | bash
 ```
 
 ## Features
