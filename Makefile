@@ -107,20 +107,70 @@ else
 	LIBTOMO_FLAGS += -Wl,-soname,libtomo@$(TOMO_VERSION).so
 endif
 EXE_FILE=tomo@$(TOMO_VERSION)
-MODULES_FILE=build/lib/tomo@$(TOMO_VERSION)/modules.ini
 
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c src/compile/*.c src/parse/*.c src/formatter/*.c))
 STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm))
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
-INCLUDE_SYMLINK=build/include/tomo@$(TOMO_VERSION)
 
-all: config.mk check-c-compiler check-libs $(INCLUDE_SYMLINK) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) build/bin/$(EXE_FILE)
+all: config.mk check-c-compiler check-libs build
 	@$(ECHO) "All done!"
 
-$(INCLUDE_SYMLINK):
-	ln -s ../../src/stdlib $@
+headers := $(wildcard src/stdlib/*.h)
+build_headers := $(patsubst src/stdlib/%.h, build/$(TOMO_VERSION)/include/tomo@$(TOMO_VERSION)/%.h, $(headers))
+
+# find all man pages
+manpages := $(wildcard man/*/*)
+
+# generate corresponding build paths with .gz
+build_manpages := $(foreach f,$(manpages),build/$(TOMO_VERSION)/$(f).gz)
+
+# Ensure directories exist
+dirs := build/$(TOMO_VERSION)/include/tomo@$(TOMO_VERSION) \
+        build/$(TOMO_VERSION)/lib \
+        build/$(TOMO_VERSION)/lib/tomo@$(TOMO_VERSION) \
+        build/$(TOMO_VERSION)/bin \
+        build/$(TOMO_VERSION)/man/man1 \
+        build/$(TOMO_VERSION)/man/man3 \
+        build/$(TOMO_VERSION)/share/licenses/tomo@$(TOMO_VERSION)
+
+$(dirs):
+	mkdir -p $@
+
+# Rule for copying headers
+build/$(TOMO_VERSION)/include/tomo@$(TOMO_VERSION)%.h: src/stdlib/%.h | build/$(TOMO_VERSION)/include/tomo@$(TOMO_VERSION)
+	cp $< $@
+
+# Rule for gzipping man pages
+build/$(TOMO_VERSION)/man/man1/%.gz: man/man1/% | build/$(TOMO_VERSION)/man/man1
+	gzip -c $< > $@
+build/$(TOMO_VERSION)/man/man3/%.gz: man/man3/% | build/$(TOMO_VERSION)/man/man3
+	gzip -c $< > $@
+
+build/$(TOMO_VERSION)/bin/tomo: build/$(TOMO_VERSION)/bin/tomo@$(TOMO_VERSION) | build/$(TOMO_VERSION)/bin
+	ln -sf tomo@$(TOMO_VERSION) $@
+
+build/$(TOMO_VERSION)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | build/$(TOMO_VERSION)/bin
+	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+build/$(TOMO_VERSION)/lib/$(LIB_FILE): $(STDLIB_OBJS) | build/$(TOMO_VERSION)/lib
+	@$(ECHO) $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
+	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
+
+build/$(TOMO_VERSION)/lib/$(AR_FILE): $(STDLIB_OBJS) | build/$(TOMO_VERSION)/lib
+	ar -rcs $@ $^
+
+build/$(TOMO_VERSION)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | build/$(TOMO_VERSION)/lib/tomo@$(TOMO_VERSION)
+	@cat $^ > $@
+
+build/$(TOMO_VERSION)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md: LICENSE.md | build/$(TOMO_VERSION)/share/licenses/tomo@$(TOMO_VERSION)
+	cp $< $@
+
+build: build/$(TOMO_VERSION)/bin/tomo build/$(TOMO_VERSION)/bin/tomo@$(TOMO_VERSION) build/$(TOMO_VERSION)/lib/$(LIB_FILE) \
+	build/$(TOMO_VERSION)/lib/$(AR_FILE) build/$(TOMO_VERSION)/lib/tomo@$(TOMO_VERSION)/modules.ini \
+	build/$(TOMO_VERSION)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md $(build_headers) $(build_manpages)
 
 version:
 	@echo $(TOMO_VERSION)
@@ -132,24 +182,6 @@ check-c-compiler:
 check-libs: check-c-compiler
 	@echo 'int main() { return 0; }' | $(DEFAULT_C_COMPILER) $(LDFLAGS) $(LDLIBS) -x c - -o /dev/null 2>/dev/null >/dev/null \
 		|| { printf '\033[31;1m%s\033[m\n' "I expected to find the following libraries on your system, but I can't find them: $(LDLIBS)"; exit 1; }
-
-build/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS)
-	@mkdir -p build/bin
-	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
-
-build/lib/$(LIB_FILE): $(STDLIB_OBJS)
-	@mkdir -p build/lib
-	@$(ECHO) $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
-	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
-
-$(MODULES_FILE): modules/core.ini modules/examples.ini
-	@mkdir -p build/lib/tomo@$(TOMO_VERSION)
-	@cat $^ > $@
-
-build/lib/$(AR_FILE): $(STDLIB_OBJS)
-	@mkdir -p build/lib
-	ar -rcs $@ $^
 
 tags:
 	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h} src/formatter/*.{c,h}
@@ -181,7 +213,7 @@ src/tomo.o: src/changes.md.h
 %: %.tm
 	./local-tomo -e $<
 
-test/results/%.tm.testresult: test/%.tm build/bin/$(EXE_FILE)
+test/results/%.tm.testresult: test/%.tm build
 	@mkdir -p test/results
 	@printf '\033[33;1;4m%s\033[m\n' $<
 	@if ! COLOR=1 LC_ALL=C ./local-tomo -O 1 $< 2>&1 | tee $@; then \
@@ -193,7 +225,7 @@ test: $(TESTS)
 	@printf '\033[32;7m ALL TESTS PASSED! \033[m\n'
 
 clean:
-	rm -rf build/{lib,bin}/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
+	rm -rf build/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
 
 %: %.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
@@ -228,7 +260,7 @@ check-utilities: check-c-compiler
 	@which debugedit 2>/dev/null >/dev/null \
 		|| printf '\033[33;1m%s\033[m\n' "I couldn't find 'debugedit' on your system! Try installing the package 'debugedit' with your package manager. (It's not required though)"
 
-install-files: $(INCLUDE_SYMLINK) build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) build/lib/$(AR_FILE) $(MODULES_FILE) check-utilities
+install-files: build check-utilities
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		echo $$PATH; \
 		printf "\033[31;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
@@ -241,17 +273,7 @@ install-files: $(INCLUDE_SYMLINK) build/bin/$(EXE_FILE) build/lib/$(LIB_FILE) bu
 		$(SUDO) -u $(OWNER) $(MAKE) install-files; \
 		exit 0; \
 	fi; \
-	mkdir -p -m 755 "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" "$(PREFIX)/bin" \
-		"$(PREFIX)/include/tomo@$(TOMO_VERSION)" "$(PREFIX)/lib" "$(PREFIX)/lib/tomo@$(TOMO_VERSION)" "$(PREFIX)/share/licenses/tomo@$(TOMO_VERSION)"; \
-	cp src/stdlib/*.h "$(PREFIX)/include/tomo@$(TOMO_VERSION)/"; \
-	cp build/lib/$(LIB_FILE) build/lib/$(AR_FILE) "$(PREFIX)/lib/"; \
-	cp $(MODULES_FILE) "$(PREFIX)/lib/tomo@$(TOMO_VERSION)"; \
-	cp LICENSE.md "$(PREFIX)/share/licenses/tomo@$(TOMO_VERSION)"; \
-	rm -f "$(PREFIX)/bin/$(EXE_FILE)"; \
-	cp build/bin/$(EXE_FILE) "$(PREFIX)/bin/"; \
-	cp man/man1/* "$(PREFIX)/man/man1/"; \
-	cp man/man3/* "$(PREFIX)/man/man3/"; \
-	sh link_versions.sh
+	cp -r build/$(TOMO_VERSION)/* $(PREFIX)/
 
 install: install-files
 
@@ -260,11 +282,10 @@ uninstall:
 		$(SUDO) -u $(OWNER) $(MAKE) uninstall; \
 		exit 0; \
 	fi; \
-	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"[0-9]* "$(PREFIX)/bin/tomo_v"* "$(PREFIX)/include/tomo_v"* \
-		"$(PREFIX)/lib/libtomo_v*" "$(PREFIX)/lib/tomo@$(TOMO_VERSION)" "$(PREFIX)/share/licenses/tomo@$(TOMO_VERSION)"; \
-	sh link_versions.sh
+	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"* "$(PREFIX)/include/tomo"* \
+		"$(PREFIX)/lib/libtomo@"* "$(PREFIX)/lib/tomo@"* "$(PREFIX)/share/licenses/tomo@"*; \
 
 endif
 
 .SUFFIXES:
-.PHONY: all clean install install-files uninstall test tags core-libs examples deps check-utilities check-c-compiler check-libs version
+.PHONY: all build clean install install-files uninstall test tags core-libs examples deps check-utilities check-c-compiler check-libs version
