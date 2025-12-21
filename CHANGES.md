@@ -1,5 +1,9 @@
 # Version History
 
+## v2025-12-21.3
+
+- Version bump
+
 ## v2025-12-21.2
 
 - Update build process

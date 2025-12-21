@@ -99,3 +99,6 @@ jobs:
             tomo-macos-universal.tar.gz
             tomo-macos-universal.tar.gz.sha256
 
+permissions:
+  contents: write
+  packages: write
