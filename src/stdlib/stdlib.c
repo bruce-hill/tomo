@@ -17,6 +17,7 @@
 #include "files.h"
 #include "metamethods.h"
 #include "optionals.h"
+#include "paths.h"
 #include "print.h"
 #include "siphash.h"
 #include "stacktrace.h"
@@ -39,11 +40,66 @@ static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
 
 public
 bool USE_COLOR;
-public
-Text_t TOMO_VERSION_TEXT = Text(TOMO_VERSION);
 
 public
-const char *TOMO_PATH = TOMO_INSTALL;
+const char *TOMO_PATH = "/usr/local";
+
+public
+const char *TOMO_VERSION = "v0";
+
+public
+Text_t TOMO_VERSION_TEXT = Text("v0");
+
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD)
+#include <dlfcn.h>
+
+static inline const char *get_library_path(void *func) {
+    static Dl_info info;
+    if (dladdr(func, &info)) {
+        return info.dli_fname; // full path of the library
+    }
+    return NULL;
+}
+
+#elif defined(_WIN32)
+#include <windows.h>
+
+static inline const char *get_library_path(void *func) {
+    static char path[MAX_PATH];
+    HMODULE hm = NULL;
+    if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                          (LPCSTR)func, &hm)) {
+        if (GetModuleFileName(hm, path, MAX_PATH)) {
+            return path;
+        }
+    }
+    return NULL;
+}
+
+#else
+#error "Unsupported platform"
+#endif
+
+const char *resolve_symlinks(const char *path) {
+    static char resolved[PATH_MAX];
+    if (realpath(path, resolved) != NULL) {
+        return resolved;
+    } else {
+        perror("realpath");
+        return NULL;
+    }
+}
+
+public
+void tomo_configure(void) {
+    const char *lib_path = resolve_symlinks(get_library_path(get_library_path));
+    Path_t path = Path$from_str(lib_path);
+    TOMO_PATH = Path$as_c_string(Path$parent(Path$parent(path)));
+    Text_t base_name = Path$base_name(path);
+    TOMO_VERSION_TEXT = Text$without_suffix(
+        Text$without_prefix(Text$without_prefix(base_name, Text("lib")), Text("tomo@")), Text(".so"));
+    TOMO_VERSION = Text$as_c_string(TOMO_VERSION_TEXT);
+}
 
 static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
     (void)info, (void)userdata;
@@ -60,6 +116,7 @@ static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
 public
 void tomo_init(void) {
     GC_INIT();
+    tomo_configure();
     const char *color_env = getenv("COLOR");
     USE_COLOR = color_env ? strcmp(color_env, "1") == 0 : isatty(STDOUT_FILENO);
     const char *no_color_env = getenv("NO_COLOR");
