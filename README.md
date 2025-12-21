@@ -35,6 +35,14 @@ of many language features or the other example programs/modules in
 [examples/](examples/). You can also look at the [core libraries](lib/) which
 are implemented in Tomo.
 
+## Quick Installation
+
+If you don't want to build from source but just want to install, run this script:
+
+```
+curl https://raw.githubusercontent.com/bruce-hill/tomo/refs/heads/main/install_script.sh | bash`
+```
+
 ## Features
 
 ### Performance

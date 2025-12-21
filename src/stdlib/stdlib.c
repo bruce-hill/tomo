@@ -80,20 +80,45 @@ static inline const char *get_library_path(void *func) {
 #error "Unsupported platform"
 #endif
 
-const char *resolve_symlinks(const char *path) {
-    static char resolved[PATH_MAX];
-    if (realpath(path, resolved) != NULL) {
-        return resolved;
-    } else {
-        perror("realpath");
-        return NULL;
+char *find_in_path(const char *name) {
+    if (strchr(name, '/')) {
+        // name contains a slash → treat as path
+        char *abs = realpath(name, NULL);
+        if (abs == NULL) fail("Couldn't find real path of: ", name);
+        char *ret = String(abs);
+        free(abs);
+        return ret;
     }
+
+    char *path_env = getenv("PATH");
+    if (!path_env) return NULL;
+
+    char *paths = strdup(path_env);
+    if (!paths) return NULL;
+
+    char *token = strtok(paths, ":");
+    while (token) {
+        char candidate[PATH_MAX];
+        snprintf(candidate, sizeof(candidate), "%s/%s", token, name);
+        if (access(candidate, X_OK) == 0) {
+            char *abs = realpath(candidate, NULL);
+            free(paths);
+            char *ret = String(abs);
+            free(abs);
+            return ret;
+        }
+        token = strtok(NULL, ":");
+    }
+
+    free(paths);
+    return NULL; // not found
 }
 
 public
 void tomo_configure(void) {
-    const char *lib_path = resolve_symlinks(get_library_path(get_library_path));
-    Path_t path = Path$from_str(lib_path);
+    const char *p = get_library_path(get_library_path);
+    p = find_in_path(p);
+    Path_t path = Path$from_str(p);
     TOMO_PATH = Path$as_c_string(Path$parent(Path$parent(path)));
     Text_t base_name = Path$base_name(path);
     TOMO_VERSION_TEXT = Text$without_suffix(

@@ -129,7 +129,7 @@ if echo "$PATH" | tr ':' '\n' | grep -qx "$HOME/.local/bin"; then
     default_prefix="~/.local"
 fi
 printf '\033[1mChoose where to install Tomo (default: %s):\033[m ' "$default_prefix"
-read DEST
+read DEST </dev/tty
 if [ -z "$DEST" ]; then DEST="$default_prefix"; fi
 DEST="${DEST/#\~/$HOME}"
 
@@ -141,3 +141,5 @@ else
     tar -xzf "$FILE" -C "$DEST" --strip-components=1 "tomo@$TAG"
 fi
 echo "Installed to $DEST"
+
+rm -f "$FILE" "$FILE.sha256"
