@@ -1,5 +1,9 @@
 # Version History
 
+## v2025-12-21.4
+
+- Version bump and deprecated `--changelog` flag
+
 ## v2025-12-21.3
 
 - Version bump

@@ -200,17 +200,6 @@ src/stdlib/int64.o src/stdlib/int32.o src/stdlib/int16.o src/stdlib/int8.o: src/
 # Num implementations depend on the shared header:
 src/stdlib/num32.o src/stdlib/num64.o: src/stdlib/numX.c.h
 
-# These files all depend on the current tomo version:
-src/compile/files.o src/compile/headers.o src/compile/statements.o src/config.o src/environment.o \
-	src/modules.o src/stdlib/stacktrace.o src/stdlib/stdlib.o src/tomo.o src/typecheck.o: CHANGES.md
-
-src/changes.md.h: CHANGES.md
-	@$(ECHO) "Embedding changes.md"
-	xxd -i $< > $@
-
-# The main Tomo executable embeds the changelog:
-src/tomo.o: src/changes.md.h
-
 %: %.tm
 	./local-tomo -e $<
 

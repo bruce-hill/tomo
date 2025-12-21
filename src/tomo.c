@@ -14,7 +14,6 @@
 #endif
 
 #include "ast.h"
-#include "changes.md.h"
 #include "compile/cli.h"
 #include "compile/files.h"
 #include "compile/headers.h"
@@ -77,7 +76,7 @@ static const char *paths_str(List_t paths) {
 #endif
 
 static OptionalBool_t verbose = false, quiet = false, show_version = false, show_prefix = false, clean_build = false,
-                      source_mapping = true, show_changelog = false, should_install = false;
+                      source_mapping = true, should_install = false;
 
 static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
               transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
@@ -244,17 +243,11 @@ int main(int argc, char *argv[]) {
         {"optimization", &optimization, &Text$info, .short_flag = 'O'}, //
         {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f'}, //
         {"source-mapping", &source_mapping, &Bool$info, .short_flag = 'm'},
-        {"changelog", &show_changelog, &Bool$info}, //
     };
 
     tomo_parse_args(argc, argv, usage, help, TOMO_VERSION, sizeof(tomo_args) / sizeof(tomo_args[0]), tomo_args);
     if (show_prefix) {
         print(TOMO_PATH);
-        return 0;
-    }
-
-    if (show_changelog) {
-        print_inline(string_slice((const char *)CHANGES_md, (size_t)CHANGES_md_len));
         return 0;
     }
 

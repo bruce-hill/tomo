@@ -48,19 +48,19 @@ fi
 
 # Install packages
 case "$PKG_MGR" in
-    apt) $SUDO apt install libgc-dev libunistring-dev binutils libgmp-dev xxd ;;
-    dnf) $SUDO dnf install gc-devel libunistring-devel binutils gmp-devel xxd ;;
-    pacman) $SUDO pacman -S gc libunistring binutils gmp xxd ;;
-    yay|paru) $PKG_MGR -S gc libunistring binutils gmp xxd ;;
-    xbps) $SUDO xbps-install -S gc libunistring binutils gmp xxd ;;
-    pkg_add) $SUDO pkg_add boehm-gc libunistring binutils gmp xxd ;;
-    freebsd-pkg) $SUDO pkg install boehm-gc libunistring binutils gmp xxd ;;
+    apt) $SUDO apt install libgc-dev libunistring-dev binutils libgmp-dev ;;
+    dnf) $SUDO dnf install gc-devel libunistring-devel binutils gmp-devel ;;
+    pacman) $SUDO pacman -S gc libunistring binutils gmp ;;
+    yay|paru) $PKG_MGR -S gc libunistring binutils gmp ;;
+    xbps) $SUDO xbps-install -S gc libunistring binutils gmp ;;
+    pkg_add) $SUDO pkg_add boehm-gc libunistring binutils gmp ;;
+    freebsd-pkg) $SUDO pkg install boehm-gc libunistring binutils gmp ;;
     brew) brew install bdw-gc libunistring binutils llvm gmp ;;
     macports) $SUDO port install boehm-gc libunistring binutils gmp ;;
-    zypper) $SUDO zypper install gc-devel libunistring-devel binutils gmp-devel xxd ;;
-    nix) nix-env -iA nixpkgs.boehmgc.dev nixpkgs.libunistring nixpkgs.binutils nixpkgs.nixpkgs.gmp xxd ;;
-    spack) spack install boehm-gc libunistring binutils gmp xxd ;;
-    conda) conda install boehm-gc libunistring binutils gmp xxd ;;
+    zypper) $SUDO zypper install gc-devel libunistring-devel binutils gmp-devel ;;
+    nix) nix-env -iA nixpkgs.boehmgc.dev nixpkgs.libunistring nixpkgs.binutils nixpkgs.nixpkgs.gmp ;;
+    spack) spack install boehm-gc libunistring binutils gmp ;;
+    conda) conda install boehm-gc libunistring binutils gmp ;;
     *)
         echo "Unknown package manager: $PKG_MGR" >&2
         exit 1
