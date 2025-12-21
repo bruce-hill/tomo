@@ -64,7 +64,7 @@ jobs:
       - name: Package
         run: |
           TAG=${GITHUB_REF#refs/tags/}
-          tar -C build -czf tomo-linux-aarch64.tar.gz tomo@{TAG}
+          tar -C build -czf tomo-linux-aarch64.tar.gz tomo@${TAG}
           sha256sum tomo-linux-aarch64.tar.gz > tomo-linux-aarch64.tar.gz.sha256
 
       - name: Upload
