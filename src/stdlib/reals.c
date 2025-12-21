@@ -16,7 +16,11 @@ struct ieee754_bits {
     uint64_t fraction : 53;
 };
 
-#define pow10(x, n) Int$times(x, Int$power(I(10), I(n)))
+static inline Int_t pow10(Int_t x, int64_t n) {
+    if (n == 0) return x;
+    else if (n < 0) return Int$divided_by(x, Int$power(I(10), I(-n)));
+    else return Int$times(x, Int$power(I(10), I(n)));
+}
 
 public
 Int_t Real$compute(Real_t r, int64_t decimals) {
@@ -187,34 +191,6 @@ Real_t Real$times(Real_t x, Real_t y) {
     result->userdata.children[1] = *y;
     return result;
 }
-
-// static Int_t Real$compute_inverse(Real_t r, int64_t decimals) {
-//     Real_t op = &r->userdata.children[0];
-//     int64_t magnitude = approx_log10(op, 100);
-//     int64_t inv_magnitude = 1 - magnitude;
-//     int64_t digits_needed = inv_magnitude - decimals + 3;
-//     int64_t prec_needed = magnitude - digits_needed;
-//     int64_t log_scale_factor = -decimals - prec_needed;
-//     if (log_scale_factor < 0) return I(0);
-//     Int_t dividend = Int$left_shifted(I(1), I(log_scale_factor));
-//     Int_t scaled_divisor = Real$compute(op, prec_needed);
-//     Int_t abs_scaled_divisor = Int$abs(scaled_divisor);
-//     Int_t adj_dividend = Int$plus(dividend, Int$right_shifted(abs_scaled_divisor, I(1)));
-//     // Adjustment so that final result is rounded.
-//     Int_t result = Int$divided_by(adj_dividend, abs_scaled_divisor);
-
-// if (Int$compare_value(scaled_divisor, I(0)) < 0) {
-//     return Int$negative(result);
-// } else {
-//     return result;
-// }
-
-//     return r->approximation;
-// }
-
-// public
-// Real_t Real$inverse(Real_t x) { return new (struct Real_s, .compute = Real$compute_inverse, .userdata.children = x);
-// }
 
 static Int_t Real$compute_divided_by(Real_t r, int64_t decimals) {
     int64_t den_mag = approx_log10(&r->userdata.children[1], 100);

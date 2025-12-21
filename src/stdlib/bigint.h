@@ -103,6 +103,7 @@ MACROLIKE Int_t Int$divided_by(Int_t x, Int_t y) {
         // https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small >> 2L);
         const int64_t d = (y.small >> 2L);
+        if unlikely (d == 0) fail("Cannot divide by zero");
         int64_t q = D / d, r = D % d;
         q -= (r < 0L) * (2L * (d > 0L) - 1L);
         if likely (q == (int32_t)q) return (Int_t){.small = (q << 2L) | 1L};
@@ -116,6 +117,7 @@ MACROLIKE Int_t Int$modulo(Int_t x, Int_t y) {
         // https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
         const int64_t D = (x.small >> 2L);
         const int64_t d = (y.small >> 2L);
+        if unlikely (d == 0) fail("Cannot divide by zero");
         int64_t r = D % d;
         r -= (r < 0L) * (2L * (d < 0L) - 1L) * d;
         return (Int_t){.small = (r << 2L) | 1L};

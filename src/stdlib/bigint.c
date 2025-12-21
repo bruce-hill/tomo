@@ -204,6 +204,7 @@ Int_t Int$slow_divided_by(Int_t dividend, Int_t divisor) {
     mpz_t quotient, remainder;
     mpz_init_set_int(quotient, dividend);
     mpz_init_set_int(remainder, divisor);
+    if unlikely (mpz_sgn(remainder) == 0) fail("Cannot divide by zero");
     mpz_tdiv_qr(quotient, remainder, quotient, remainder);
     if (mpz_sgn(remainder) < 0) {
         bool d_positive = likely(divisor.small & 1L) ? divisor.small > 0x1L : mpz_sgn(divisor.big) > 0;
@@ -219,6 +220,7 @@ Int_t Int$slow_modulo(Int_t x, Int_t modulus) {
     mpz_init_set_int(result, x);
     mpz_t divisor;
     mpz_init_set_int(divisor, modulus);
+    if unlikely (mpz_sgn(divisor) == 0) fail("Cannot divide by zero");
     mpz_mod(result, result, divisor);
     return Int$from_mpz(result);
 }
