@@ -1,5 +1,9 @@
 # Version History
 
+## v2025-12-21.2
+
+- Update build process
+
 ## v2025-12-21
 
 - You can now discard empty struct values.

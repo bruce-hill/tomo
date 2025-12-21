@@ -1,7 +1,9 @@
 name: Release binaries
 
 on:
-  [push]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   linux-x86_64:
@@ -78,7 +80,7 @@ jobs:
       - name: Install deps
         run: |
           brew update
-          brew install gmp libunistring bdw-gc xxd llvm binutils
+          brew install gmp libunistring bdw-gc llvm binutils
 
       - name: Build
         run: |
