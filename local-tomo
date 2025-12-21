@@ -1,6 +1,6 @@
 #!/bin/sh
 version=$(awk '/^## / {print $2; exit}' CHANGES.md)
-if ! [ -e ./build/$version/bin/tomo ]; then
+if ! [ -e ./build/tomo@$version/bin/tomo ]; then
     make -j
 fi
-exec ./build/$version/bin/tomo "$@"
+exec ./build/tomo@$version/bin/tomo "$@"

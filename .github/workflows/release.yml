@@ -27,9 +27,7 @@ jobs:
 
       - name: Package
         run: |
-          mkdir -p tomo
-          cp tomo tomo/tomo
-          tar -czf tomo-linux-x86_64.tar.gz tomo
+          tar -czf tomo-linux-x86_64.tar.gz build/*
           sha256sum tomo-linux-x86_64.tar.gz > tomo-linux-x86_64.tar.gz.sha256
 
       - name: Upload
@@ -62,9 +60,7 @@ jobs:
 
       - name: Package
         run: |
-          mkdir -p tomo
-          cp tomo tomo/tomo
-          tar -czf tomo-linux-aarch64.tar.gz tomo
+          tar -czf tomo-linux-aarch64.tar.gz build/*
           sha256sum tomo-linux-aarch64.tar.gz > tomo-linux-aarch64.tar.gz.sha256
 
       - name: Upload
@@ -91,9 +87,7 @@ jobs:
 
       - name: Package
         run: |
-          mkdir -p tomo
-          cp tomo tomo/tomo
-          tar -czf tomo-macos-universal.tar.gz tomo
+          tar -czf tomo-macos-universal.tar.gz build/*
           shasum -a 256 tomo-macos-universal.tar.gz > tomo-macos-universal.tar.gz.sha256
 
       - name: Upload

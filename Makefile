@@ -117,7 +117,7 @@ API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 all: config.mk check-c-compiler check-libs build
 	@$(ECHO) "All done!"
 
-BUILD_DIR=build/$(TOMO_VERSION)
+BUILD_DIR=build/tomo@$(TOMO_VERSION)
 headers := $(wildcard src/stdlib/*.h)
 build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/%.h, $(headers))
 
