@@ -61,7 +61,8 @@ extern char _EMPTY_LIST_SENTINEL;
         t items[] = {__VA_ARGS__};                                                                                     \
         (List_t){.length = sizeof(items) / sizeof(items[0]),                                                           \
                  .stride = (int64_t)&items[1] - (int64_t)&items[0],                                                    \
-                 .data = memcpy(GC_MALLOC(sizeof(items)), items, sizeof(items)),                                       \
+                 .data = sizeof(items) == 0 ? &_EMPTY_LIST_SENTINEL                                                    \
+                                            : memcpy(GC_MALLOC(sizeof(items)), items, sizeof(items)),                  \
                  .atomic = 0,                                                                                          \
                  .data_refcount = 0};                                                                                  \
     })
@@ -70,7 +71,7 @@ extern char _EMPTY_LIST_SENTINEL;
         t items[N] = {__VA_ARGS__};                                                                                    \
         (List_t){.length = N,                                                                                          \
                  .stride = (int64_t)&items[1] - (int64_t)&items[0],                                                    \
-                 .data = memcpy(GC_MALLOC(sizeof(items)), items, sizeof(items)),                                       \
+                 .data = N == 0 ? &_EMPTY_LIST_SENTINEL : memcpy(GC_MALLOC(sizeof(items)), items, sizeof(items)),      \
                  .atomic = 0,                                                                                          \
                  .data_refcount = 0};                                                                                  \
     })

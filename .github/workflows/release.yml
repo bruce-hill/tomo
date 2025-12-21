@@ -23,7 +23,7 @@ jobs:
       - name: Build
         run: |
           make clean
-          make
+          make -j
 
       - name: Package
         run: |
@@ -58,7 +58,7 @@ jobs:
       - name: Build
         run: |
           make clean
-          make
+          make -j
 
       - name: Package
         run: |
@@ -87,7 +87,7 @@ jobs:
       - name: Build
         run: |
           make clean
-          make
+          make -j
 
       - name: Package
         run: |
