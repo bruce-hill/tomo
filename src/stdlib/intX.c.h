@@ -55,12 +55,12 @@ public
 void NAMESPACED(serialize)(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
     (void)info, (void)pointers;
 #if INTX_C_H__INT_BITS < 32
-    fwrite(obj, sizeof(INT_T), 1, out);
+    if (fwrite(obj, sizeof(INT_T), 1, out) != sizeof(INT_T)) fail("Failed to write whole integer");
 #else
     INT_T i = *(INT_T *)obj;
     UINT_T z = (UINT_T)((i << 1L) ^ (i >> (INTX_C_H__INT_BITS - 1L))); // Zigzag encode
     while (z >= 0x80L) {
-        fputc((uint8_t)(z | 0x80L), out);
+        if (fputc((uint8_t)(z | 0x80L), out) == EOF) fail("Failed to write full integer");
         z >>= 7L;
     }
     fputc((uint8_t)z, out);
@@ -71,11 +71,13 @@ public
 void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info) {
     (void)info, (void)pointers;
 #if INTX_C_H__INT_BITS < 32
-    fread(outval, sizeof(INT_T), 1, in);
+    if (fread(outval, sizeof(INT_T), 1, in) != sizeof(INT_T)) fail("Failed to read full integer");
 #else
     UINT_T z = 0;
     for (size_t shift = 0;; shift += 7) {
-        uint8_t byte = (uint8_t)fgetc(in);
+        int i = fgetc(in);
+        if (i == EOF) fail("Failed to read whole integer");
+        uint8_t byte = (uint8_t)i;
         z |= ((UINT_T)(byte & 0x7F)) << shift;
         if ((byte & 0x80) == 0) break;
     }

@@ -1,9 +1,7 @@
 name: Release binaries
 
 on:
-  push:
-    tags:
-      - 'v*'
+  [push]
 
 jobs:
   linux-x86_64:
