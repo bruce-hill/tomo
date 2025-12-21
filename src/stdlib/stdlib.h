@@ -15,6 +15,7 @@
 extern bool USE_COLOR;
 extern Text_t TOMO_VERSION_TEXT;
 
+void tomo_configure(void);
 void tomo_init(void);
 void tomo_at_cleanup(Closure_t fn);
 void tomo_cleanup(void);

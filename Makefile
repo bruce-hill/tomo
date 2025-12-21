@@ -84,8 +84,8 @@ O=-O3
 TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print $$2; exit}' CHANGES.md)
 GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h")
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
-	   -DTOMO_INSTALL='"$(PREFIX)"' -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
-	   -DTOMO_VERSION='"$(TOMO_VERSION)"' -DGIT_VERSION='"$(GIT_VERSION)"'
+	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
+	   -DGIT_VERSION='"$(GIT_VERSION)"'
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lm -lunistring -lgmp
 LIBTOMO_FLAGS=-shared
@@ -117,60 +117,61 @@ API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 all: config.mk check-c-compiler check-libs build
 	@$(ECHO) "All done!"
 
+BUILD_DIR=build/$(TOMO_VERSION)
 headers := $(wildcard src/stdlib/*.h)
-build_headers := $(patsubst src/stdlib/%.h, build/$(TOMO_VERSION)/include/tomo@$(TOMO_VERSION)/%.h, $(headers))
+build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/%.h, $(headers))
 
 # find all man pages
 manpages := $(wildcard man/*/*)
 
 # generate corresponding build paths with .gz
-build_manpages := $(foreach f,$(manpages),build/$(TOMO_VERSION)/$(f).gz)
+build_manpages := $(foreach f,$(manpages),$(BUILD_DIR)/$(f).gz)
 
 # Ensure directories exist
-dirs := build/$(TOMO_VERSION)/include/tomo@$(TOMO_VERSION) \
-        build/$(TOMO_VERSION)/lib \
-        build/$(TOMO_VERSION)/lib/tomo@$(TOMO_VERSION) \
-        build/$(TOMO_VERSION)/bin \
-        build/$(TOMO_VERSION)/man/man1 \
-        build/$(TOMO_VERSION)/man/man3 \
-        build/$(TOMO_VERSION)/share/licenses/tomo@$(TOMO_VERSION)
+dirs := $(BUILD_DIR)/include/tomo@$(TOMO_VERSION) \
+        $(BUILD_DIR)/lib \
+        $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION) \
+        $(BUILD_DIR)/bin \
+        $(BUILD_DIR)/man/man1 \
+        $(BUILD_DIR)/man/man3 \
+        $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
 
 $(dirs):
 	mkdir -p $@
 
 # Rule for copying headers
-build/$(TOMO_VERSION)/include/tomo@$(TOMO_VERSION)%.h: src/stdlib/%.h | build/$(TOMO_VERSION)/include/tomo@$(TOMO_VERSION)
+$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)%.h: src/stdlib/%.h | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)
 	cp $< $@
 
 # Rule for gzipping man pages
-build/$(TOMO_VERSION)/man/man1/%.gz: man/man1/% | build/$(TOMO_VERSION)/man/man1
+$(BUILD_DIR)/man/man1/%.gz: man/man1/% | $(BUILD_DIR)/man/man1
 	gzip -c $< > $@
-build/$(TOMO_VERSION)/man/man3/%.gz: man/man3/% | build/$(TOMO_VERSION)/man/man3
+$(BUILD_DIR)/man/man3/%.gz: man/man3/% | $(BUILD_DIR)/man/man3
 	gzip -c $< > $@
 
-build/$(TOMO_VERSION)/bin/tomo: build/$(TOMO_VERSION)/bin/tomo@$(TOMO_VERSION) | build/$(TOMO_VERSION)/bin
+$(BUILD_DIR)/bin/tomo: $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) | $(BUILD_DIR)/bin
 	ln -sf tomo@$(TOMO_VERSION) $@
 
-build/$(TOMO_VERSION)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | build/$(TOMO_VERSION)/bin
+$(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | $(BUILD_DIR)/bin
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-build/$(TOMO_VERSION)/lib/$(LIB_FILE): $(STDLIB_OBJS) | build/$(TOMO_VERSION)/lib
+$(BUILD_DIR)/lib/$(LIB_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib
 	@$(ECHO) $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
 
-build/$(TOMO_VERSION)/lib/$(AR_FILE): $(STDLIB_OBJS) | build/$(TOMO_VERSION)/lib
+$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib
 	ar -rcs $@ $^
 
-build/$(TOMO_VERSION)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | build/$(TOMO_VERSION)/lib/tomo@$(TOMO_VERSION)
+$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	@cat $^ > $@
 
-build/$(TOMO_VERSION)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md: LICENSE.md | build/$(TOMO_VERSION)/share/licenses/tomo@$(TOMO_VERSION)
+$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md: LICENSE.md | $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
 	cp $< $@
 
-build: build/$(TOMO_VERSION)/bin/tomo build/$(TOMO_VERSION)/bin/tomo@$(TOMO_VERSION) build/$(TOMO_VERSION)/lib/$(LIB_FILE) \
-	build/$(TOMO_VERSION)/lib/$(AR_FILE) build/$(TOMO_VERSION)/lib/tomo@$(TOMO_VERSION)/modules.ini \
-	build/$(TOMO_VERSION)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md $(build_headers) $(build_manpages)
+build: $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) $(BUILD_DIR)/lib/$(LIB_FILE) \
+	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini \
+	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md $(build_headers) $(build_manpages)
 
 version:
 	@echo $(TOMO_VERSION)
@@ -273,7 +274,7 @@ install-files: build check-utilities
 		$(SUDO) -u $(OWNER) $(MAKE) install-files; \
 		exit 0; \
 	fi; \
-	cp -r build/$(TOMO_VERSION)/* $(PREFIX)/
+	cp -r $(BUILD_DIR)/* $(PREFIX)/
 
 install: install-files
 

@@ -102,7 +102,7 @@ module_info_t get_used_module_info(ast_t *use) {
     const char *name = Match(use, Use)->path;
     module_info_t *info = new (module_info_t, .name = name);
     Path_t tomo_default_modules =
-        Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@" TOMO_VERSION "/modules.ini"));
+        Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/modules.ini"));
     read_modules_ini(tomo_default_modules, info);
     read_modules_ini(Path$sibling(Path$from_str(use->file->filename), Text("modules.ini")), info);
     read_modules_ini(Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false), info);
@@ -111,8 +111,8 @@ module_info_t get_used_module_info(ast_t *use) {
 }
 
 bool try_install_module(module_info_t mod, bool ask_confirmation) {
-    Path_t dest = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@" TOMO_VERSION "/", Text$from_str(mod.name),
-                                       "@", Text$from_str(mod.version)));
+    Path_t dest = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/",
+                                       Text$from_str(mod.name), "@", Text$from_str(mod.version)));
     if (Path$exists(dest)) return true;
 
     print("No such path: ", dest);
