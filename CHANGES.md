@@ -1,6 +1,6 @@
 # Version History
 
-## v2025-12-06
+## v2025-12-21
 
 - You can now discard empty struct values.
 - For an enum `Foo(A,B,C)`, the syntax `f!` now desugars to `f.A!` using the
