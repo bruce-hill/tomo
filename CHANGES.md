@@ -1,5 +1,9 @@
 # Version History
 
+## v2025-12-22
+
+- Added `Path.writer()` and `Path.byte_writer()` for multiple successive writes
+
 ## v2025-12-21.6
 
 - Add smarter default behavior if run without any args (REPL-like script runner)

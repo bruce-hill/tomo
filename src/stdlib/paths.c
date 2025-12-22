@@ -324,6 +324,77 @@ Result_t Path$append_bytes(Path_t path, List_t bytes, int permissions) {
     return _write(path, bytes, O_WRONLY | O_APPEND | O_CREAT, permissions);
 }
 
+typedef struct {
+    const char *path_str;
+    int fd;
+    int mode;
+    int permissions;
+} writer_data_t;
+
+static Result_t _write_bytes_to_fd(List_t bytes, bool close_file, void *userdata) {
+    writer_data_t *data = userdata;
+    if (bytes.length > 0) {
+        int fd = open(data->path_str, data->mode, data->permissions);
+        if (fd == -1) {
+            if (errno == EMFILE || errno == ENFILE) {
+                // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that
+                // will be closed by GC finalizers.
+                GC_gcollect();
+                fd = open(data->path_str, data->mode, data->permissions);
+            }
+            if (fd == -1) return FailureResult("Could not write to file: ", data->path_str, " (", strerror(errno), ")");
+        }
+        data->fd = fd;
+
+        if (bytes.stride != 1) List$compact(&bytes, 1);
+        ssize_t written = write(data->fd, bytes.data, (size_t)bytes.length);
+        if (written != (ssize_t)bytes.length)
+            return FailureResult("Could not write to file: ", data->path_str, " (", strerror(errno), ")");
+    }
+    // After first successful write, all writes are appends
+    data->mode = (O_WRONLY | O_CREAT | O_APPEND);
+
+    if (close_file && data->fd != -1) {
+        if (close(data->fd) == -1)
+            return FailureResult("Failed to close file: ", data->path_str, " (", strerror(errno), ")");
+        data->fd = -1;
+    }
+    return SuccessResult;
+}
+
+static Result_t _write_text_to_fd(Text_t text, bool close_file, void *userdata) {
+    return _write_bytes_to_fd(Text$utf8(text), close_file, userdata);
+}
+
+static void _writer_cleanup(writer_data_t *data) {
+    if (data && data->fd != -1) {
+        close(data->fd);
+        data->fd = -1;
+    }
+}
+
+public
+Closure_t Path$byte_writer(Path_t path, bool append, int permissions) {
+    path = Path$expand_home(path);
+    const char *path_str = Path$as_c_string(path);
+    int mode = append ? (O_WRONLY | O_CREAT | O_APPEND) : (O_WRONLY | O_CREAT | O_TRUNC);
+    writer_data_t *userdata =
+        new (writer_data_t, .fd = -1, .path_str = path_str, .mode = mode, .permissions = permissions);
+    GC_register_finalizer(userdata, (void *)_writer_cleanup, NULL, NULL, NULL);
+    return (Closure_t){.fn = _write_bytes_to_fd, .userdata = userdata};
+}
+
+public
+Closure_t Path$writer(Path_t path, bool append, int permissions) {
+    path = Path$expand_home(path);
+    const char *path_str = Path$as_c_string(path);
+    int mode = append ? (O_WRONLY | O_CREAT | O_APPEND) : (O_WRONLY | O_CREAT | O_TRUNC);
+    writer_data_t *userdata =
+        new (writer_data_t, .fd = -1, .path_str = path_str, .mode = mode, .permissions = permissions);
+    GC_register_finalizer(userdata, (void *)_writer_cleanup, NULL, NULL, NULL);
+    return (Closure_t){.fn = _write_text_to_fd, .userdata = userdata};
+}
+
 public
 OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count) {
     path = Path$expand_home(path);
@@ -331,8 +402,8 @@ OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t count) {
     int fd = open(path_str, O_RDONLY);
     if (fd == -1) {
         if (errno == EMFILE || errno == ENFILE) {
-            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that will
-            // be closed by GC finalizers.
+            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that
+            // will be closed by GC finalizers.
             GC_gcollect();
             fd = open(path_str, O_RDONLY);
         }
@@ -705,8 +776,8 @@ OptionalClosure_t Path$by_line(Path_t path) {
     FILE *f = fopen(path_str, "r");
     if (f == NULL) {
         if (errno == EMFILE || errno == ENFILE) {
-            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that will
-            // be closed by GC finalizers.
+            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that
+            // will be closed by GC finalizers.
             GC_gcollect();
             f = fopen(path_str, "r");
         }
@@ -726,8 +797,8 @@ OptionalList_t Path$lines(Path_t path) {
     FILE *f = fopen(path_str, "r");
     if (f == NULL) {
         if (errno == EMFILE || errno == ENFILE) {
-            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that will
-            // be closed by GC finalizers.
+            // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that
+            // will be closed by GC finalizers.
             GC_gcollect();
             f = fopen(path_str, "r");
         }

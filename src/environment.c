@@ -341,6 +341,10 @@ env_t *global_env(bool source_mapping) {
             {"subdirectories", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"unique_directory", "Path$unique_directory", "func(path:Path -> Path)"}, //
             {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
+            {"writer", "Path$writer",
+             "func(path:Path, append=no, permissions=Int32(0o644) -> func(text:Text, close=no -> Result))"}, //
+            {"byte_writer", "Path$byte_writer",
+             "func(path:Path, append=no, permissions=Int32(0o644) -> func(bytes:[Byte], close=no -> Result))"}, //
             {"write_bytes", "Path$write_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644) -> Result)"}, //
             {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path?)"}, //
             {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path?)"}),

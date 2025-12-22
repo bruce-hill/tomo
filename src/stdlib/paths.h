@@ -39,6 +39,8 @@ Result_t Path$write(Path_t path, Text_t text, int permissions);
 Result_t Path$write_bytes(Path_t path, List_t bytes, int permissions);
 Result_t Path$append(Path_t path, Text_t text, int permissions);
 Result_t Path$append_bytes(Path_t path, List_t bytes, int permissions);
+Closure_t Path$byte_writer(Path_t path, bool append, int permissions);
+Closure_t Path$writer(Path_t path, bool append, int permissions);
 OptionalText_t Path$read(Path_t path);
 OptionalList_t Path$read_bytes(Path_t path, OptionalInt_t limit);
 Result_t Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t group, bool follow_symlinks);
