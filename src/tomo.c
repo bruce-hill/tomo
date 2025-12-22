@@ -69,12 +69,6 @@ static const char *paths_str(List_t paths) {
     return Text$as_c_string(result);
 }
 
-#ifdef __APPLE__
-#define SHARED_SUFFIX ".dylib"
-#else
-#define SHARED_SUFFIX ".so"
-#endif
-
 static OptionalBool_t verbose = false, quiet = false, show_version = false, show_prefix = false, clean_build = false,
                       source_mapping = true, should_install = false;
 
@@ -507,29 +501,6 @@ void build_library(Path_t lib_dir) {
     compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
 
     Text_t lib_name = get_library_name(lib_dir);
-    Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), lib_name, Text(SHARED_SUFFIX)));
-    if (is_stale_for_any(shared_lib, object_files, false)) {
-        FILE *prog =
-            run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
-#ifdef __APPLE__
-                    " -Wl,-install_name,@rpath/'lib", lib_name, SHARED_SUFFIX,
-                    "'"
-#else
-                    " -Wl,-soname,'lib", lib_name, SHARED_SUFFIX,
-                    "'"
-#endif
-                    " -shared ",
-                    paths_str(object_files), " -o '", shared_lib, "'");
-
-        if (!prog) print_err("Failed to run C compiler: ", cc);
-        int status = pclose(prog);
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
-
-        if (!quiet) print("Compiled shared library:\t", Path$relative_to(shared_lib, Path$current_dir()));
-    } else {
-        if (verbose) whisper("Unchanged: ", shared_lib);
-    }
-
     Path_t archive = Path$child(lib_dir, Texts(Text("lib"), lib_name, ".a"));
     if (is_stale_for_any(archive, object_files, false)) {
         FILE *prog = run_cmd("ar -rcs '", archive, "' ", paths_str(object_files));
@@ -556,11 +527,11 @@ void install_library(Path_t lib_dir) {
     }
     // If we have `debugedit` on this system, use it to remap the debugging source information
     // to point to the installed version of the source file. Otherwise, fail silently.
-    if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_name, SHARED_SUFFIX);
+    if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_name, ".a");
     int result = system(String(as_owner, "debugedit -b ", lib_dir, " -d '", dest,
                                "'"
                                " '",
-                               dest, "/lib", lib_name, SHARED_SUFFIX,
+                               dest, "/lib", lib_name, ".a",
                                "' "
                                ">/dev/null 2>/dev/null"));
     (void)result;

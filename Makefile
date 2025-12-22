@@ -88,7 +88,6 @@ CFLAGS += $(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LT
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lm -lunistring -lgmp
-LIBTOMO_FLAGS=-shared
 
 ifeq ($(OS),OpenBSD)
 	LDLIBS += -lexecinfo
@@ -100,11 +99,6 @@ AR_FILE=libtomo@$(TOMO_VERSION).a
 ifeq ($(OS),Darwin)
 	INCLUDE_DIRS += -I/opt/homebrew/include
 	LDFLAGS += -L/opt/homebrew/lib
-	LIB_FILE=libtomo@$(TOMO_VERSION).dylib
-	LIBTOMO_FLAGS += -Wl,-install_name,@rpath/libtomo@$(TOMO_VERSION).dylib
-else
-	LIB_FILE=libtomo@$(TOMO_VERSION).so
-	LIBTOMO_FLAGS += -Wl,-soname,libtomo@$(TOMO_VERSION).so
 endif
 EXE_FILE=tomo@$(TOMO_VERSION)
 
@@ -151,10 +145,6 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | $(BUILD_DIR)/bin
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-$(BUILD_DIR)/lib/$(LIB_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib
-	@$(ECHO) $(CC) $^ $(CFLAGS_PLACEHOLDER) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
-	@$(CC) $^ $(CFLAGS) $(OSFLAGS) $(LDFLAGS) $(LDLIBS) $(LIBTOMO_FLAGS) -o $@
-
 $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib
 	ar -rcs $@ $^
 
@@ -164,7 +154,7 @@ $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/exam
 $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md: LICENSE.md | $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
 	cp $< $@
 
-build: $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) $(BUILD_DIR)/lib/$(LIB_FILE) \
+build: $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
 	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini \
 	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md $(build_headers) $(build_manpages)
 
