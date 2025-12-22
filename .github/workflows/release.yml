@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   linux-x86_64:
     runs-on: ubuntu-latest
@@ -84,10 +88,31 @@ jobs:
           brew update
           brew install gmp libunistring bdw-gc llvm binutils
 
-      - name: Build
+      - name: Build arm64
         run: |
           make clean
-          make -j
+          make -j \
+            CC=clang \
+            CFLAGS="-arch arm64" \
+            LDFLAGS="-arch arm64"
+          mv build/tomo build/tomo-arm64
+
+      - name: Build x86_64
+        run: |
+          make clean
+          make -j \
+            CC=clang \
+            CFLAGS="-arch x86_64" \
+            LDFLAGS="-arch x86_64"
+          mv build/tomo build/tomo-x86_64
+
+      - name: Create universal binary
+        run: |
+          lipo -create \
+            build/tomo-arm64 \
+            build/tomo-x86_64 \
+            -output build/tomo
+          lipo -info build/tomo
 
       - name: Package
         run: |
@@ -102,6 +127,3 @@ jobs:
             tomo-macos-universal.tar.gz
             tomo-macos-universal.tar.gz.sha256
 
-permissions:
-  contents: write
-  packages: write
