@@ -1,5 +1,9 @@
 # Version History
 
+## v2025-12-21.6
+
+- Add smarter default behavior if run without any args (REPL-like script runner)
+
 ## v2025-12-21.5
 
 - Various fixes for versioning and builds.

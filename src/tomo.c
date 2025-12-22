@@ -397,6 +397,32 @@ int main(int argc, char *argv[]) {
 
     run_files = normalize_tm_paths(run_files);
 
+    if (run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0 && parse_files.length == 0
+        && transpile_files.length == 0 && compile_objects.length == 0 && compile_executables.length == 0
+        && run_files.length == 0 && uninstall_libraries.length == 0 && libraries.length == 0) {
+        Path_t path = Path$from_str(String("~/.local/tomo/state/tomo@", TOMO_VERSION, "/run.tm"));
+        path = Path$expand_home(path);
+        Path$create_directory(Path$parent(path), 0755, true);
+        if (!Path$exists(path)) {
+            Path$write(path,
+                       Text("# This is a handy Tomo REPL-like runner\n" //
+                            "# Normally you would run `tomo ./file.tm` to run a script\n" //
+                            "# See `tomo --help` for full usage\n" //
+                            "\n" //
+                            "func main()\n" //
+                            "    # Put your code here:\n" //
+                            "    pass\n" //
+                            "\n" //
+                            "# Save and exit to run\n"),
+                       0644);
+        }
+        List$insert(&run_files, &path, I(0), sizeof(path));
+        const char *editor = getenv("EDITOR");
+        if (!editor || editor[0] == '\0') editor = "vim";
+        int status = system(String(editor, " ", path));
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) return 1;
+    }
+
     // Compile runnable files in parallel, then execute in serial:
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
         Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
