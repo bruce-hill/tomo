@@ -131,11 +131,8 @@ BUILD_DIR=build/tomo@$(TOMO_VERSION)
 headers := $(wildcard src/stdlib/*.h)
 build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/%.h, $(headers))
 
-# find all man pages
-manpages := $(wildcard man/*/*)
-
 # generate corresponding build paths with .gz
-build_manpages := $(foreach f,$(manpages),$(BUILD_DIR)/$(f).gz)
+build_manpages := $(patsubst %,$(BUILD_DIR)/%.gz,$(wildcard man/man*/*))
 
 # Ensure directories exist
 dirs := $(BUILD_DIR)/include/tomo@$(TOMO_VERSION) \
@@ -154,11 +151,7 @@ $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)%.h: src/stdlib/%.h | $(BUILD_DIR)/incl
 	cp $< $@
 
 # Rule for gzipping man pages
-$(BUILD_DIR)/man/man1/%.gz: man/man1/% | $(BUILD_DIR)/man/man1
-	@$(ECHO) Gzipping manpage $<
-	gzip -c $< > $@
-$(BUILD_DIR)/man/man3/%.gz: man/man3/% | $(BUILD_DIR)/man/man3
-	@$(ECHO) Gzipping manpage $<
+$(BUILD_DIR)/man/%.gz: man/% | $(BUILD_DIR)/man/man1 $(BUILD_DIR)/man/man3
 	gzip -c $< > $@
 
 $(BUILD_DIR)/bin/tomo: $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) | $(BUILD_DIR)/bin
