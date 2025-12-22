@@ -2,6 +2,7 @@
 
 ## v2025-12-22
 
+- Use static linking for compiled executables
 - Added `Path.writer()` and `Path.byte_writer()` for multiple successive writes
 
 ## v2025-12-21.6

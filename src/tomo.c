@@ -151,7 +151,6 @@ int main(int argc, char *argv[]) {
     if (stat(compiler_path, &compiler_stat) != 0) err(1, "Could not find age of compiler");
 #endif
 
-    ldlibs = Texts(ldlibs, " -ltomo@", TOMO_VERSION);
 #ifdef __OpenBSD__
     ldlibs = Texts(ldlibs, Text(" -lexecinfo"));
 #endif
@@ -268,7 +267,8 @@ int main(int argc, char *argv[]) {
         cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
     }
 
-    ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags);
+    ldflags =
+        Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections -Wl,--gc-sections");
 
 #ifdef __APPLE__
     cflags = Texts(cflags, Text(" -I/opt/homebrew/include"));
@@ -508,27 +508,38 @@ void build_library(Path_t lib_dir) {
 
     Text_t lib_name = get_library_name(lib_dir);
     Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), lib_name, Text(SHARED_SUFFIX)));
-    if (!is_stale_for_any(shared_lib, object_files, false)) {
+    if (is_stale_for_any(shared_lib, object_files, false)) {
+        FILE *prog =
+            run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
+#ifdef __APPLE__
+                    " -Wl,-install_name,@rpath/'lib", lib_name, SHARED_SUFFIX,
+                    "'"
+#else
+                    " -Wl,-soname,'lib", lib_name, SHARED_SUFFIX,
+                    "'"
+#endif
+                    " -shared ",
+                    paths_str(object_files), " -o '", shared_lib, "'");
+
+        if (!prog) print_err("Failed to run C compiler: ", cc);
+        int status = pclose(prog);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
+
+        if (!quiet) print("Compiled shared library:\t", Path$relative_to(shared_lib, Path$current_dir()));
+    } else {
         if (verbose) whisper("Unchanged: ", shared_lib);
-        return;
     }
 
-    FILE *prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
-#ifdef __APPLE__
-                         " -Wl,-install_name,@rpath/'lib", lib_name, SHARED_SUFFIX,
-                         "'"
-#else
-                         " -Wl,-soname,'lib", lib_name, SHARED_SUFFIX,
-                         "'"
-#endif
-                         " -shared ",
-                         paths_str(object_files), " -o '", shared_lib, "'");
-
-    if (!prog) print_err("Failed to run C compiler: ", cc);
-    int status = pclose(prog);
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
-
-    if (!quiet) print("Compiled library:\t", Path$relative_to(shared_lib, Path$current_dir()));
+    Path_t archive = Path$child(lib_dir, Texts(Text("lib"), lib_name, ".a"));
+    if (is_stale_for_any(archive, object_files, false)) {
+        FILE *prog = run_cmd("ar -rcs '", archive, "' ", paths_str(object_files));
+        if (!prog) print_err("Failed to run `ar`");
+        int status = pclose(prog);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
+        if (!quiet) print("Compiled static library:\t", Path$relative_to(archive, Path$current_dir()));
+    } else {
+        if (verbose) whisper("Unchanged: ", archive);
+    }
 }
 
 void install_library(Path_t lib_dir) {
@@ -715,9 +726,8 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         case USE_MODULE: {
             module_info_t mod = get_used_module_info(stmt_ast);
             const char *full_name = mod.version ? String(mod.name, "@", mod.version) : mod.name;
-            Text_t lib = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(full_name),
-                               "' '", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(full_name), "/lib",
-                               Text$from_str(full_name), SHARED_SUFFIX "'");
+            Text_t lib = Texts(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(full_name), "/lib",
+                               Text$from_str(full_name), ".a");
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
             List_t children = Path$glob(
@@ -943,8 +953,35 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     Path_t runner_file = build_file(path, ".runner.c");
     Path$write(runner_file, program, 0644);
 
-    FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ",
-                           list_text(extra_ldlibs), " ", paths_str(object_files), " ", runner_file, " -o ", exe_path);
+    // .a archive files need to go later in the positional order:
+    List_t archives = EMPTY_LIST;
+    for (int64_t i = 0; i < (int64_t)extra_ldlibs.length;) {
+        Text_t *lib = (Text_t *)(extra_ldlibs.data + i * extra_ldlibs.stride);
+        if (Text$ends_with(*lib, Text(".a"), NULL)) {
+            List$insert(&archives, lib, I(0), sizeof(Text_t));
+            List$remove_at(&extra_ldlibs, I(i + 1), I(1), sizeof(Text_t));
+        } else {
+            i += 1;
+        }
+    }
+
+    FILE *runner = run_cmd(cc, " ",
+                           // C flags:
+                           cflags, " -O", optimization, " ",
+                           // Linker flags and dynamically linked shared libraries:
+                           ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
+                           // Object files:
+                           paths_str(object_files), " ",
+                           // Input file:
+                           runner_file,
+                           // Statically linked archive files (must come after runner):
+                           // Libraries are grouped to allow for circular dependencies among
+                           // the libraries that are used.
+                           " -Wl,--start-group ", list_text(archives), " -Wl,--end-group ",
+                           // Tomo static library:
+                           TOMO_PATH, "/lib/libtomo@", TOMO_VERSION, ".a",
+                           // Output file:
+                           " -o ", exe_path);
 
     if (show_codegen.length > 0) {
         FILE *out = run_cmd(show_codegen);
