@@ -18,13 +18,23 @@ else
 include config.mk
 
 # Modified progress counter based on: https://stackoverflow.com/a/35320895
+# Only run counter if we're actually building (not for phony targets or no-ops)
 ifndef NO_PROGRESS
 ifndef ECHO
-T := $(shell $(MAKE) ECHO="COUNTTHIS" $(MAKECMDGOALS) --no-print-directory \
-      -n | grep -c "COUNTTHIS")
+# Only count if building actual files, not just checking
+ifneq ($(filter build all,$(MAKECMDGOALS)),)
+T := $(shell $(MAKE) ECHO="COUNTTHIS" $(filter-out check-c-compiler check-libs,$(MAKECMDGOALS)) --no-print-directory \
+      -nq 2>/dev/null | grep -c "COUNTTHIS")
+ifeq ($(T),0)
+ECHO = echo
+else
 N := x
 C = $(words $N)$(eval N := x $N)
 ECHO = echo -e "[`expr $C '*' 100 / $T`%]"
+endif
+else
+ECHO = echo
+endif
 endif
 endif
 ifndef ECHO
@@ -82,7 +92,7 @@ G=-ggdb
 O=-O3
 # Note: older versions of Make have buggy behavior with hash marks inside strings, so this ugly code is necessary:
 TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print $$2; exit}' CHANGES.md)
-GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h")
+GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h" 2>/dev/null || echo "unknown")
 CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
 	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"'
@@ -145,8 +155,10 @@ $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)%.h: src/stdlib/%.h | $(BUILD_DIR)/incl
 
 # Rule for gzipping man pages
 $(BUILD_DIR)/man/man1/%.gz: man/man1/% | $(BUILD_DIR)/man/man1
+	@$(ECHO) Gzipping manpage $<
 	gzip -c $< > $@
 $(BUILD_DIR)/man/man3/%.gz: man/man3/% | $(BUILD_DIR)/man/man3
+	@$(ECHO) Gzipping manpage $<
 	gzip -c $< > $@
 
 $(BUILD_DIR)/bin/tomo: $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) | $(BUILD_DIR)/bin
