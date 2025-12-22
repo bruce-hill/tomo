@@ -37,6 +37,14 @@ are implemented in Tomo.
 
 ## Quick Installation
 
+### Arch User Repository (AUR)
+
+```
+yay -Sy tomo-bin
+```
+
+### Install Script
+
 If you don't want to build from source but just want to install, run this script:
 
 ```
