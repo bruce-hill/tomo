@@ -142,6 +142,7 @@ PUREFUNC bool type_eq(type_t *a, type_t *b);
 PUREFUNC bool type_is_a(type_t *t, type_t *req);
 type_t *type_or_type(type_t *a, type_t *b);
 type_t *value_type(type_t *a);
+PUREFUNC bool is_discardable_type(type_t *t);
 typedef enum {
     NUM_PRECISION_EQUAL,
     NUM_PRECISION_LESS,

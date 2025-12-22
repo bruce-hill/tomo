@@ -1531,11 +1531,7 @@ PUREFUNC bool is_discardable(env_t *env, ast_t *ast) {
     case Metadata: return true;
     default: break;
     }
-    type_t *t = get_type(env, ast);
-    if (t->tag == StructType) {
-        return (Match(t, StructType)->fields == NULL);
-    }
-    return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType);
+    return is_discardable_type(get_type(env, ast));
 }
 
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg) {

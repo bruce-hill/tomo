@@ -144,6 +144,13 @@ PUREFUNC type_t *value_type(type_t *t) {
     return t;
 }
 
+PUREFUNC bool is_discardable_type(type_t *t) {
+    if (t->tag == StructType) {
+        return (Match(t, StructType)->fields == NULL);
+    }
+    return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType);
+}
+
 type_t *type_or_type(type_t *a, type_t *b) {
     if (!a) return b;
     if (!b) return a;
@@ -153,6 +160,8 @@ type_t *type_or_type(type_t *a, type_t *b) {
         return a->tag == OptionalType ? a : Type(OptionalType, a);
     if (a->tag == ReturnType && b->tag == ReturnType)
         return Type(ReturnType, .ret = type_or_type(Match(a, ReturnType)->ret, Match(b, ReturnType)->ret));
+    if ((a->tag == VoidType && is_discardable_type(b)) || (is_discardable_type(a) && b->tag == VoidType))
+        return Type(VoidType);
 
     if (is_incomplete_type(a) && type_eq(b, most_complete_type(a, b))) return b;
     if (is_incomplete_type(b) && type_eq(a, most_complete_type(a, b))) return a;
