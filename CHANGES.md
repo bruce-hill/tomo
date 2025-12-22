@@ -2,7 +2,9 @@
 
 ## v2025-12-22
 
-- Use static linking for compiled executables
+- Use static linking instead of dynamic linking for the Tomo standard library
+  as well as for user libraries. This produces binaries that do not depend on
+  having Tomo and the library installed at runtime.
 - Added `Path.writer()` and `Path.byte_writer()` for multiple successive writes
 
 ## v2025-12-21.6
