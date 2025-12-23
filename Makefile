@@ -18,23 +18,13 @@ else
 include config.mk
 
 # Modified progress counter based on: https://stackoverflow.com/a/35320895
-# Only run counter if we're actually building (not for phony targets or no-ops)
 ifndef NO_PROGRESS
 ifndef ECHO
-# Only count if building actual files, not just checking
-ifneq ($(filter build all,$(MAKECMDGOALS)),)
-T := $(shell $(MAKE) ECHO="COUNTTHIS" $(filter-out check-c-compiler check-libs,$(MAKECMDGOALS)) --no-print-directory \
-      -nq 2>/dev/null | grep -c "COUNTTHIS")
-ifeq ($(T),0)
-ECHO = echo
-else
+T := $(shell $(MAKE) ECHO="COUNTTHIS" $(MAKECMDGOALS) --no-print-directory \
+      -n | grep -c "COUNTTHIS")
 N := x
 C = $(words $N)$(eval N := x $N)
 ECHO = echo -e "[`expr $C '*' 100 / $T`%]"
-endif
-else
-ECHO = echo
-endif
 endif
 endif
 ifndef ECHO
