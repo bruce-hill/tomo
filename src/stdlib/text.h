@@ -45,7 +45,8 @@ static inline Text_t Text_from_text(Text_t t) { return t; }
         int32_t: Int32$value_as_text,                                                                                  \
         int64_t: Int64$value_as_text,                                                                                  \
         double: Num$value_as_text,                                                                                     \
-        float: Num32$value_as_text)(x)
+        float: Num32$value_as_text,                                                                                    \
+        Int_t: Int$value_as_text)(x)
 
 Text_t Text$_concat(int n, Text_t items[n]);
 #define Text$concat(...) Text$_concat(sizeof((Text_t[]){__VA_ARGS__}) / sizeof(Text_t), (Text_t[]){__VA_ARGS__})
