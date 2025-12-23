@@ -83,7 +83,7 @@ O=-O3
 # Note: older versions of Make have buggy behavior with hash marks inside strings, so this ugly code is necessary:
 TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print $$2; exit}' CHANGES.md)
 GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h" 2>/dev/null || echo "unknown")
-CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
+CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
 	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
