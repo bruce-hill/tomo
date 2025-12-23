@@ -1,3 +1,5 @@
+[![Release binaries](https://github.com/bruce-hill/tomo/actions/workflows/release.yml/badge.svg)](https://github.com/bruce-hill/tomo/releases)
+
 # Tomo - Tomorrow's Language
 
 Tomo is a statically typed, safe, simple, lightweight, efficient programming
