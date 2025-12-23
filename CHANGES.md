@@ -1,5 +1,9 @@
 # Version History
 
+## v2025-12-23.2
+
+- Fixes for OpenBSD and Mac.
+
 ## v2025-12-23
 
 - Improved C preprocessing performance by eliminating expensive macro calls.
