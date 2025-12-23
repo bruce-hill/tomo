@@ -537,9 +537,9 @@ Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *type) {
     __typeof(type->TableInfo) table = type->TableInfo;
 
     if (!t) {
-        return table.value->size > 0 ? Texts("{", generic_as_text(NULL, false, table.key), ":",
-                                             generic_as_text(NULL, false, table.value), "}")
-                                     : Texts("{", generic_as_text(NULL, false, table.key), "}");
+        return table.value->size > 0 ? Text$concat(Text("{"), generic_as_text(NULL, false, table.key), Text(":"),
+                                                   generic_as_text(NULL, false, table.value), Text("}"))
+                                     : Text$concat(Text("{"), generic_as_text(NULL, false, table.key), Text("}"));
     }
 
     int64_t val_off = (int64_t)value_offset(type);

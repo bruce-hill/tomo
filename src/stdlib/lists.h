@@ -20,8 +20,9 @@ extern char _EMPTY_LIST_SENTINEL;
         int64_t index = index_expr;                                                                                    \
         int64_t off = index + (index < 0) * (list.length + 1) - 1;                                                     \
         if (unlikely(off < 0 || off >= list.length))                                                                   \
-            fail_source(__SOURCE_FILE__, start, end, "Invalid list index: ", index, " (list has length ",              \
-                        (int64_t)list.length, ")\n");                                                                  \
+            fail_source(__SOURCE_FILE__, start, end,                                                                   \
+                        Text$concat(Text("Invalid list index: "), convert_to_text(index), Text(" (list has length "),  \
+                                    convert_to_text((int64_t)list.length), Text(")\n")));                              \
         *(item_type *)(list.data + list.stride * off);                                                                 \
     })
 #define List_get(list_expr, index_expr, item_type, var, optional_expr, none_expr)                                      \
@@ -40,8 +41,9 @@ extern char _EMPTY_LIST_SENTINEL;
         int64_t index = index_expr;                                                                                    \
         int64_t off = index + (index < 0) * (list->length + 1) - 1;                                                    \
         if (unlikely(off < 0 || off >= list->length))                                                                  \
-            fail_source(__SOURCE_FILE__, start, end, "Invalid list index: ", index, " (list has length ",              \
-                        (int64_t)list->length, ")\n");                                                                 \
+            fail_source(__SOURCE_FILE__, start, end,                                                                   \
+                        Text$concat(Text("Invalid list index: "), convert_to_text(index), Text(" (list has length "),  \
+                                    convert_to_text((int64_t)list->length), Text(")\n")));                             \
         if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                            \
         (item_type *)(list->data + list->stride * off);                                                                \
     })

@@ -98,7 +98,7 @@ Text_t NAMESPACED(as_text)(const void *i, bool colorize, const TypeInfo_t *info)
     (void)info;
     if (!i) return Text(NAME_STR);
     Text_t text = _int64_to_text((int64_t)(*(INT_T *)i));
-    return colorize ? Texts(Text("\033[35m"), text, Text("\033[m")) : text;
+    return colorize ? Text$concat(Text("\033[35m"), text, Text("\033[m")) : text;
 }
 public
 Text_t NAMESPACED(value_as_text)(INT_T i) { return _int64_to_text((int64_t)i); }

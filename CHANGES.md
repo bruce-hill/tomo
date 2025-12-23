@@ -1,5 +1,9 @@
 # Version History
 
+## v2025-12-23
+
+- Improved C preprocessing performance by eliminating expensive macro calls.
+
 ## v2025-12-22
 
 - Use static linking instead of dynamic linking for the Tomo standard library

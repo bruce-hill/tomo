@@ -47,8 +47,8 @@ void *Table$get(Table_t t, const void *key, const TypeInfo_t *type);
         val_t *value = Table$get(t, &key, info);                                                                       \
         if (unlikely(value == NULL))                                                                                   \
             fail_source(__SOURCE_FILE__, start, end,                                                                   \
-                        "This key was not found in the table: ", generic_as_text(&key, false, info->TableInfo.key),    \
-                        "\n");                                                                                         \
+                        Text$concat(Text("This key was not found in the table: "),                                     \
+                                    generic_as_text(&key, false, info->TableInfo.key), Text("\n")));                   \
         *value;                                                                                                        \
     })
 #define Table$get_or_setdefault(table_expr, key_t, val_t, key_expr, default_expr, info_expr)                           \

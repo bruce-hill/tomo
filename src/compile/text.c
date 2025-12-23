@@ -4,7 +4,6 @@
 
 #include "../ast.h"
 #include "../environment.h"
-#include "../naming.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
@@ -102,19 +101,12 @@ Text_t compile_text_ast(env_t *env, ast_t *ast) {
     type_t *text_t = lang ? Table$str_get(*env->types, lang) : TEXT_TYPE;
     if (!text_t || text_t->tag != TextType) code_err(ast, quoted(lang), " is not a valid text language name");
 
-    Text_t lang_constructor;
-    if (!lang || streq(lang, "Text")) lang_constructor = Text("Text");
-    else
-        lang_constructor = namespace_name(Match(text_t, TextType)->env, Match(text_t, TextType)->env->namespace->parent,
-                                          Text$from_str(lang));
-
     ast_list_t *chunks = Match(ast, TextJoin)->children;
     if (!chunks) {
-        return Texts(lang_constructor, "(\"\")");
+        return Text("EMPTY_TEXT");
     } else if (!chunks->next && chunks->ast->tag == TextLiteral) {
         Text_t literal = Match(chunks->ast, TextLiteral)->text;
-        if (string_literal_is_all_ascii(literal))
-            return Texts(lang_constructor, "(", compile_text_literal(literal), ")");
+        if (string_literal_is_all_ascii(literal)) return Texts("Text(", compile_text_literal(literal), ")");
         return Texts("((", compile_type(text_t), ")", compile(env, chunks->ast), ")");
     } else {
         Text_t code = EMPTY_TEXT;
@@ -142,7 +134,6 @@ Text_t compile_text_ast(env_t *env, ast_t *ast) {
             code = Texts(code, chunk_code);
             if (chunk->next) code = Texts(code, ", ");
         }
-        if (chunks->next) return Texts(lang_constructor, "s(", code, ")");
-        else return code;
+        return Texts("Text$concat(", code, ")");
     }
 }

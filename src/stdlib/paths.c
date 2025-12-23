@@ -690,7 +690,7 @@ bool Path$has_extension(Path_t path, Text_t extension) {
     if (extension.length == 0)
         return !Text$has(Text$from(last, I(2)), Text(".")) || Text$equal_values(last, Text(".."));
 
-    if (!Text$starts_with(extension, Text("."), NULL)) extension = Texts(Text("."), extension);
+    if (!Text$starts_with(extension, Text("."), NULL)) extension = Text$concat(Text("."), extension);
 
     return Text$ends_with(Text$from(last, I(2)), extension, NULL);
 }
@@ -879,7 +879,7 @@ Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type) {
              && (path->components.length == 0 || !Text$equal_values(*(Text_t *)(path->components.data), Text(".."))))
         text = Text$concat(path->components.length > 0 ? Text("./") : Text("."), text);
 
-    if (color) text = Texts(Text("\033[32;1m"), text, Text("\033[m"));
+    if (color) text = Text$concat(Text("\033[32;1m"), text, Text("\033[m"));
 
     return text;
 }
