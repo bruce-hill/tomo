@@ -47,7 +47,7 @@ jobs:
           sha256sum "$FILE" > "$FILE.sha256"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
           path: |
@@ -75,7 +75,7 @@ jobs:
           shasum -a 256 ${PKGNAME}-macos-arm64.tar.gz > ${PKGNAME}-macos-arm64.tar.gz.sha256
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-arm64
           path: |
