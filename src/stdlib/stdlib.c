@@ -50,7 +50,7 @@ const char *TOMO_VERSION = "v0";
 public
 Text_t TOMO_VERSION_TEXT = Text("v0");
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <dlfcn.h>
 
 static inline const char *get_library_path(void *func) {
