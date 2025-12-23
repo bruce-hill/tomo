@@ -71,6 +71,7 @@ static const char *paths_str(List_t paths) {
 
 static OptionalBool_t verbose = false, quiet = false, show_version = false, show_prefix = false, clean_build = false,
                       source_mapping = true, should_install = false;
+static bool is_gcc = false, is_clang = false;
 
 static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
               transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
@@ -250,19 +251,20 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    bool is_gcc = (system(String(cc, " -v 2>&1 | grep -q 'gcc version'")) == 0);
+    is_gcc = (system(String(cc, " -v 2>&1 | grep -q 'gcc version'")) == 0);
     if (is_gcc) {
         cflags = Texts(cflags, Text(" -fsanitize=signed-integer-overflow -fno-sanitize-recover"
                                     " -fno-signaling-nans -fno-trapping-math -fno-finite-math-only"));
     }
 
-    bool is_clang = (system(String(cc, " -v 2>&1 | grep -q 'clang version'")) == 0);
+    is_clang = (system(String(cc, " -v 2>&1 | grep -q 'clang version'")) == 0);
     if (is_clang) {
         cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
     }
 
-    ldflags =
-        Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections -Wl,--gc-sections");
+    ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections");
+    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections");
+    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip");
 
 #ifdef __APPLE__
     cflags = Texts(cflags, Text(" -I/opt/homebrew/include"));
@@ -936,23 +938,24 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         }
     }
 
-    FILE *runner = run_cmd(cc, " ",
-                           // C flags:
-                           cflags, " -O", optimization, " ",
-                           // Linker flags and dynamically linked shared libraries:
-                           ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
-                           // Object files:
-                           paths_str(object_files), " ",
-                           // Input file:
-                           runner_file,
-                           // Statically linked archive files (must come after runner):
-                           // Libraries are grouped to allow for circular dependencies among
-                           // the libraries that are used.
-                           " -Wl,--start-group ", list_text(archives), " -Wl,--end-group ",
-                           // Tomo static library:
-                           TOMO_PATH, "/lib/libtomo@", TOMO_VERSION, ".a",
-                           // Output file:
-                           " -o ", exe_path);
+    FILE *runner = run_cmd(
+        cc,
+        // C flags:
+        " ", cflags, " -O", optimization,
+        // Linker flags and dynamically linked shared libraries:
+        " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
+        // Object files:
+        paths_str(object_files),
+        // Input file:
+        " ", runner_file,
+        // Statically linked archive files (must come after runner):
+        // Libraries are grouped to allow for circular dependencies among
+        // the libraries that are used.
+        " ", is_gcc ? Texts("-Wl,--start-group ", list_text(archives), " -Wl,--end-group") : list_text(archives),
+        // Tomo static library:
+        " ", TOMO_PATH, "/lib/libtomo@", TOMO_VERSION, ".a",
+        // Output file:
+        " -o ", exe_path);
 
     if (show_codegen.length > 0) {
         FILE *out = run_cmd(show_codegen);
