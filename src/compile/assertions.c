@@ -60,13 +60,10 @@ Text_t compile_assertion(env_t *env, ast_t *ast) {
             compile_declaration(operand_t, Text("_rhs")), " = ", compile_to_type(env, cmp.rhs, operand_t), ";\n",
             "\n#line ", line, "\n", "if (!(", compile_condition(env, var_comparison), "))\n", "#line ", line, "\n",
             Texts("fail_source(", quoted_str(ast->file->filename), ", ", (int64_t)(expr->start - expr->file->text),
-                  ", ", (int64_t)(expr->end - expr->file->text), ", ",
-                  message ? Texts("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
-                          : Text("\"This assertion failed!\""),
-                  ", ", "\" (\", ", expr_as_text(Text("_lhs"), operand_t, Text("no")),
-                  ", "
-                  "\" ",
-                  failure, " \", ", expr_as_text(Text("_rhs"), operand_t, Text("no")), ", \")\");\n"),
+                  ", ", (int64_t)(expr->end - expr->file->text), ", Text$concat(",
+                  message ? compile_to_type(env, message, Type(TextType)) : Text("Text(\"This assertion failed!\")"),
+                  ", Text(\" (\"), ", expr_as_text(Text("_lhs"), operand_t, Text("no")), ", Text(\" ", failure,
+                  " \"), ", expr_as_text(Text("_rhs"), operand_t, Text("no")), ", Text(\")\")));\n"),
             "}\n");
     }
     default: {
@@ -74,8 +71,7 @@ Text_t compile_assertion(env_t *env, ast_t *ast) {
         return Texts("if (!(", compile_condition(env, expr), "))\n", "#line ", line, "\n", "fail_source(",
                      quoted_str(ast->file->filename), ", ", (int64_t)(expr->start - expr->file->text), ", ",
                      (int64_t)(expr->end - expr->file->text), ", ",
-                     message ? Texts("Text$as_c_string(", compile_to_type(env, message, Type(TextType)), ")")
-                             : Text("\"This assertion failed!\""),
+                     message ? compile_to_type(env, message, Type(TextType)) : Text("Text(\"This assertion failed!\")"),
                      ");\n");
     }
     }

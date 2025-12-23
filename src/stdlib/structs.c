@@ -126,10 +126,10 @@ PUREFUNC public Text_t Struct$as_text(const void *obj, bool colorize, const Type
 
     Text_t name = Text$from_str(type->StructInfo.name);
     if (type->StructInfo.is_secret || type->StructInfo.is_opaque) {
-        return colorize ? Texts(Text("\x1b[0;1m"), name, Text("\x1b[m(...)")) : Texts(name, Text("(...)"));
+        return colorize ? Text$concat(Text("\x1b[0;1m"), name, Text("\x1b[m(...)")) : Text$concat(name, Text("(...)"));
     }
 
-    Text_t text = colorize ? Texts(Text("\x1b[0;1m"), name, Text("\x1b[m(")) : Texts(name, Text("("));
+    Text_t text = colorize ? Text$concat(Text("\x1b[0;1m"), name, Text("\x1b[m(")) : Text$concat(name, Text("("));
     ptrdiff_t byte_offset = 0;
     ptrdiff_t bit_offset = 0;
     for (int i = 0; i < type->StructInfo.num_fields; i++) {

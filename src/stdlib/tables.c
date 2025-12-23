@@ -24,14 +24,6 @@
 #include "types.h"
 #include "util.h"
 
-// #define DEBUG_TABLES
-
-#ifdef DEBUG_TABLES
-#define hdebug(...) print_inline("\x1b[2m", __VA_ARGS__, "\x1b[m")
-#else
-#define hdebug(...) (void)0
-#endif
-
 // Helper accessors for type functions/values:
 #define HASH_KEY(t, k) (generic_hash((k), type->TableInfo.key) % ((t).bucket_info->count))
 #define EQUAL_KEYS(x, y) (generic_equal((x), (y), type->TableInfo.key))
@@ -76,18 +68,6 @@ PUREFUNC static INLINE size_t value_offset(const TypeInfo_t *info) {
     return offset;
 }
 
-static INLINE void hshow(const Table_t *t) {
-    hdebug("{");
-    for (uint32_t i = 0; t->bucket_info && i < t->bucket_info->count; i++) {
-        if (i > 0) hdebug(" ");
-        if (t->bucket_info->buckets[i].occupied)
-            hdebug("[", i, "]=", (uint32_t)t->bucket_info->buckets[i].index, "(",
-                   t->bucket_info->buckets[i].next_bucket, ")");
-        else hdebug("[", i, "]=_");
-    }
-    hdebug("}\n");
-}
-
 static void maybe_copy_on_write(Table_t *t, const TypeInfo_t *type) {
     if (t->entries.data_refcount != 0) List$compact(&t->entries, (int64_t)entry_size(type));
 
@@ -104,14 +84,10 @@ PUREFUNC public void *Table$get_raw(Table_t t, const void *key, const TypeInfo_t
     if (!key || !t.bucket_info) return NULL;
 
     uint64_t hash = HASH_KEY(t, key);
-    hshow(&t);
-    hdebug("Getting value with initial probe at ", hash, "\n");
     bucket_t *buckets = t.bucket_info->buckets;
     for (uint64_t i = hash; buckets[i].occupied; i = buckets[i].next_bucket) {
-        hdebug("Checking against key in bucket ", i, "\n");
         void *entry = GET_ENTRY(t, buckets[i].index);
         if (EQUAL_KEYS(entry, key)) {
-            hdebug("Found key!\n");
             return entry + value_offset(type);
         }
         if (buckets[i].next_bucket == END_OF_CHAIN) break;
@@ -130,23 +106,17 @@ PUREFUNC public void *Table$get(Table_t t, const void *key, const TypeInfo_t *ty
 
 static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const TypeInfo_t *type) {
     assert(t->bucket_info);
-    hshow(t);
     const void *key = entry;
     bucket_t *buckets = t->bucket_info->buckets;
     uint64_t hash = HASH_KEY(*t, key);
-    hdebug("Hash value (mod ", (int32_t)t->bucket_info->count, ") = ", hash, "\n");
     bucket_t *bucket = &buckets[hash];
     if (!bucket->occupied) {
-        hdebug("Got an empty space\n");
         // Empty space:
         bucket->occupied = 1;
         bucket->index = index;
         bucket->next_bucket = END_OF_CHAIN;
-        hshow(t);
         return;
     }
-
-    hdebug("Collision detected in bucket ", hash, " (entry ", (uint32_t)bucket->index, ")\n");
 
     while (buckets[t->bucket_info->last_free].occupied) {
         assert(t->bucket_info->last_free > 0);
@@ -155,7 +125,6 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
 
     uint64_t collided_hash = HASH_KEY(*t, GET_ENTRY(*t, bucket->index));
     if (collided_hash != hash) { // Collided with a mid-chain entry
-        hdebug("Hit a mid-chain entry at bucket ", hash, " (chain starting at ", collided_hash, ")\n");
         // Find chain predecessor
         uint64_t predecessor = collided_hash;
         while (buckets[predecessor].next_bucket != hash)
@@ -169,19 +138,15 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
         bucket->index = index;
         bucket->next_bucket = END_OF_CHAIN;
     } else { // Collided with the start of a chain, put the new entry in chain position #2
-        hdebug("Hit start of a chain\n");
         buckets[t->bucket_info->last_free] =
             (bucket_t){.occupied = 1, .index = index, .next_bucket = bucket->next_bucket};
         bucket->next_bucket = t->bucket_info->last_free;
     }
-    hshow(t);
 }
 
 static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const TypeInfo_t *type) {
     if (unlikely(new_capacity > TABLE_MAX_BUCKETS))
         fail("Table has exceeded the maximum table size (2^31) and cannot grow further!");
-    hdebug("About to resize from ", t->bucket_info ? (int32_t)t->bucket_info->count : 0, " to ", new_capacity, "\n");
-    hshow(t);
     size_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[new_capacity]);
     t->bucket_info = GC_MALLOC_ATOMIC(alloc_size);
     memset(t->bucket_info->buckets, 0, sizeof(bucket_t[new_capacity]));
@@ -189,12 +154,8 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
     t->bucket_info->last_free = new_capacity - 1;
     // Rehash:
     for (int64_t i = 0; i < (int64_t)Table$length(*t); i++) {
-        hdebug("Rehashing ", i, "\n");
         Table$set_bucket(t, GET_ENTRY(*t, i), i, type);
     }
-
-    hshow(t);
-    hdebug("Finished resizing\n");
 }
 
 // Return address of value
@@ -206,7 +167,6 @@ public
 void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeInfo_t *type) {
     assert(type->tag == TableInfo);
     if (!t || !key) return NULL;
-    hshow(t);
 
     t->hash = 0;
 
@@ -295,12 +255,10 @@ void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type) {
     //    maybe update lastfree_index1 to removed bucket's index
 
     uint64_t hash = HASH_KEY(*t, key);
-    hdebug("Removing key with hash ", hash, "\n");
     bucket_t *bucket, *prev = NULL;
     for (uint64_t i = hash; t->bucket_info->buckets[i].occupied; i = t->bucket_info->buckets[i].next_bucket) {
         if (EQUAL_KEYS(GET_ENTRY(*t, t->bucket_info->buckets[i].index), key)) {
             bucket = &t->bucket_info->buckets[i];
-            hdebug("Found key to delete in bucket ", i, "\n");
             goto found_it;
         }
         if (t->bucket_info->buckets[i].next_bucket == END_OF_CHAIN) return;
@@ -319,8 +277,6 @@ found_it:;
     // instead of O(N)
     int64_t last_entry = (int64_t)t->entries.length - 1;
     if (bucket->index != last_entry) {
-        hdebug("Removing key/value from the middle of the entries list\n");
-
         // Find the bucket that points to the last entry's index:
         uint64_t i = HASH_KEY(*t, GET_ENTRY(*t, last_entry));
         while (t->bucket_info->buckets[i].index != last_entry)
@@ -341,22 +297,17 @@ found_it:;
 
     int64_t bucket_to_clear;
     if (prev) { // Middle (or end) of a chain
-        hdebug("Removing from middle of a chain\n");
         bucket_to_clear = (bucket - t->bucket_info->buckets);
         prev->next_bucket = bucket->next_bucket;
     } else if (bucket->next_bucket != END_OF_CHAIN) { // Start of a chain
-        hdebug("Removing from start of a chain\n");
         bucket_to_clear = bucket->next_bucket;
         *bucket = t->bucket_info->buckets[bucket_to_clear];
     } else { // Empty chain
-        hdebug("Removing from empty chain\n");
         bucket_to_clear = (bucket - t->bucket_info->buckets);
     }
 
     t->bucket_info->buckets[bucket_to_clear] = (bucket_t){0};
     if (bucket_to_clear > t->bucket_info->last_free) t->bucket_info->last_free = bucket_to_clear;
-
-    hshow(t);
 }
 
 CONSTFUNC public void *Table$entry(Table_t t, int64_t n) {
@@ -537,9 +488,9 @@ Text_t Table$as_text(const void *obj, bool colorize, const TypeInfo_t *type) {
     __typeof(type->TableInfo) table = type->TableInfo;
 
     if (!t) {
-        return table.value->size > 0 ? Texts("{", generic_as_text(NULL, false, table.key), ":",
-                                             generic_as_text(NULL, false, table.value), "}")
-                                     : Texts("{", generic_as_text(NULL, false, table.key), "}");
+        return table.value->size > 0 ? Text$concat(Text("{"), generic_as_text(NULL, false, table.key), Text(":"),
+                                                   generic_as_text(NULL, false, table.value), Text("}"))
+                                     : Text$concat(Text("{"), generic_as_text(NULL, false, table.key), Text("}"));
     }
 
     int64_t val_off = (int64_t)value_offset(type);

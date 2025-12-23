@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path 3 2025-12-07 "Tomo man-pages"
+.TH Path 3 2025-12-22 "Tomo man-pages"
 .SH NAME
 Path \- a Tomo type
 .SH LIBRARY
@@ -48,6 +48,14 @@ Returns an iterator that can be used to iterate over a file one line at a time, 
 
 For more, see:
 .BR Tomo-Path.by_line (3)
+
+
+.TP
+.BI Path.byte_writer\ :\ func(path:\ Path,\ append:\ Bool\ =\ no,\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ func(bytes:[Byte],\ close:Bool=no\ ->\ Result))
+Returns a function that can be used to repeatedly write bytes to the same file. 
+
+For more, see:
+.BR Tomo-Path.byte_writer (3)
 
 
 .TP
@@ -344,4 +352,12 @@ Writes the given bytes to a unique file path based on the specified path. The fi
 
 For more, see:
 .BR Tomo-Path.write_unique_bytes (3)
+
+
+.TP
+.BI Path.writer\ :\ func(path:\ Path,\ append:\ Bool\ =\ no,\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ func(text:Text,\ close:Bool=no\ ->\ Result))
+Returns a function that can be used to repeatedly write to the same file. 
+
+For more, see:
+.BR Tomo-Path.writer (3)
 

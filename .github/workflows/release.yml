@@ -5,76 +5,56 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
+env:
+  PKGNAME: tomo
+
 jobs:
-  linux-x86_64:
-    runs-on: ubuntu-latest
+  build-linux:
+    strategy:
+      matrix:
+        arch:
+          - x86_64
+          - aarch64
+
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm64
+
+    runs-on: ${{ matrix.runner }}
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Install deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            libgmp-dev \
-            libunistring-dev \
-            libgc-dev \
-            xxd \
-            binutils
+          sudo apt-get install -y build-essential libgmp-dev libunistring-dev libgc-dev binutils
 
       - name: Build
         run: |
-          make clean
           make -j
 
       - name: Package
         run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          tar -C build -czf tomo-linux-x86_64.tar.gz tomo@${TAG}
-          sha256sum tomo-linux-x86_64.tar.gz > tomo-linux-x86_64.tar.gz.sha256
+          TAG=${GITHUB_REF_NAME}
+          FILE=${PKGNAME}-linux-${{ matrix.arch }}.tar.gz
+          tar -C build -czf "$FILE" ${PKGNAME}@${TAG}
+          sha256sum "$FILE" > "$FILE.sha256"
 
-      - name: Upload
-        uses: softprops/action-gh-release@v2
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
         with:
-          files: |
-            tomo-linux-x86_64.tar.gz
-            tomo-linux-x86_64.tar.gz.sha256
+          name: linux-${{ matrix.arch }}
+          path: |
+            ${PKGNAME}-linux-${{ matrix.arch }}.tar.gz
+            ${PKGNAME}-linux-${{ matrix.arch }}.tar.gz.sha256
 
-  linux-aarch64:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            libgmp-dev \
-            libunistring-dev \
-            libgc-dev \
-            xxd \
-            binutils
-
-      - name: Build
-        run: |
-          make clean
-          make -j
-
-      - name: Package
-        run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          tar -C build -czf tomo-linux-aarch64.tar.gz tomo@${TAG}
-          sha256sum tomo-linux-aarch64.tar.gz > tomo-linux-aarch64.tar.gz.sha256
-
-      - name: Upload
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            tomo-linux-aarch64.tar.gz
-            tomo-linux-aarch64.tar.gz.sha256
-
-  macos:
+  build-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,24 +64,85 @@ jobs:
           brew update
           brew install gmp libunistring bdw-gc llvm binutils
 
-      - name: Build
+      - name: Build arm64
         run: |
-          make clean
           make -j
 
       - name: Package
         run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          tar -C build -czf tomo-macos-universal.tar.gz tomo@${TAG}
-          shasum -a 256 tomo-macos-universal.tar.gz > tomo-macos-universal.tar.gz.sha256
+          TAG=${GITHUB_REF_NAME}
+          tar -C build -czf ${PKGNAME}-macos-arm64.tar.gz ${PKGNAME}@${TAG}
+          shasum -a 256 ${PKGNAME}-macos-arm64.tar.gz > ${PKGNAME}-macos-arm64.tar.gz.sha256
 
-      - name: Upload
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-arm64
+          path: |
+            ${PKGNAME}-macos-arm64.tar.gz
+            ${PKGNAME}-macos-arm64.tar.gz.sha256
+
+  upload-release:
+    needs: [build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: release/
+
+      - name: List artifacts
+        run: ls -l release/
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            tomo-macos-universal.tar.gz
-            tomo-macos-universal.tar.gz.sha256
+          files: release/*
 
-permissions:
-  contents: write
-  packages: write
+  aur:
+    needs: upload-release
+    runs-on: ubuntu-latest
+    env:
+      AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          sudo apt-get install -y pacman-contrib jq gh
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "$AUR_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+
+      - name: Wait for release assets
+        run: |
+          TAG=${GITHUB_REF_NAME}
+          for i in $(seq 60); do
+            if gh release view "$TAG" --json assets \
+              | jq -e '[ .assets[].name ] | index("tomo-linux-x86_64.tar.gz") and index("tomo-linux-aarch64.tar.gz")' >/dev/null
+            then exit 0; fi
+            sleep 10
+          done
+          echo "Timed out waiting for release assets"
+          exit 1
+
+      - name: Update PKGBUILD
+        run: |
+          TAG=${GITHUB_REF_NAME#v}
+          sed -i "s/^_tomo_version=.*/_tomo_version=${TAG}/" PKGBUILD
+          updpkgsums
+          makepkg --printsrcinfo > .SRCINFO
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git diff --quiet || git commit -am "Release v${TAG}"
+
+      - name: Push to AUR
+        run: |
+          git push aur HEAD:master
+

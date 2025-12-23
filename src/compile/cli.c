@@ -83,10 +83,8 @@ static Text_t generate_usage(env_t *env, type_t *fn_type) {
             else if (t->tag == ListType) usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
             else if (t->tag == EnumType) usage = Texts(usage, "[", flags, " val]");
             else usage = Texts(usage, "[", flags, " ", get_flag_options(t, Text("|")), "]");
-        } else if (t->tag == EnumType) {
-            usage = Texts(usage, "\x1b[1m", flag, "\x1b[m");
         } else {
-            usage = Texts(usage, "\x1b[1m", get_flag_options(t, Text("|")), "\x1b[m");
+            usage = Texts(usage, "\x1b[1m", flag, "\x1b[m");
         }
     }
     return usage;

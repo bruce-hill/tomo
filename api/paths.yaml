@@ -838,6 +838,82 @@ Path.write:
   example: |
     (./file.txt).write("Hello, world!")
 
+Path.writer:
+  short: create a file writer
+  description: >
+    Returns a function that can be used to repeatedly write to the same file.
+  note: >
+    The file writer will keep its file descriptor open after each write (unless
+    the `close` argument is set to `yes`). If the file writer is never closed,
+    it will be automatically closed when the file writer is garbage collected.
+  return:
+    type: 'func(text:Text, close:Bool=no -> Result)'
+    description: >
+      Returns a function that can repeatedly write to the same file. If `close`
+      is set to `yes`, then the file will be closed after writing. If this
+      function is called again after closing, the file will be reopened for
+      appending.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to write to.
+    append:
+      type: 'Bool'
+      default: 'no'
+      description: >
+        If set to `yes`, writes to the file will append. If set to `no`, then
+        the first write to the file will overwrite its contents and subsequent
+        calls will append.
+    permissions:
+      type: 'Int32'
+      default: 'Int32(0o644)'
+      description: >
+        The permissions to set on the file if it is created.
+  example: |
+    write := (./file.txt).writer()
+    write("Hello\n")!
+    write("world\n", close=yes)!
+
+Path.byte_writer:
+  short: create a byte-based file writer
+  description: >
+    Returns a function that can be used to repeatedly write bytes to the same
+    file.
+  note: >
+    The file writer will keep its file descriptor open after each write (unless
+    the `close` argument is set to `yes`). If the file writer is never closed,
+    it will be automatically closed when the file writer is garbage collected.
+  return:
+    type: 'func(bytes:[Byte], close:Bool=no -> Result)'
+    description: >
+      Returns a function that can repeatedly write bytes to the same file. If
+      `close` is set to `yes`, then the file will be closed after writing. If
+      this function is called again after closing, the file will be reopened
+      for appending.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file to write to.
+    append:
+      type: 'Bool'
+      default: 'no'
+      description: >
+        If set to `yes`, writes to the file will append. If set to `no`, then
+        the first write to the file will overwrite its contents and subsequent
+        calls will append.
+    permissions:
+      type: 'Int32'
+      default: 'Int32(0o644)'
+      description: >
+        The permissions to set on the file if it is created.
+  example: |
+    write := (./file.txt).byte_writer()
+    write("Hello\n".utf8())!
+    write("world\n".utf8(), close=yes)!
+
+
 Path.write_bytes:
   short: write bytes to a file
   description: >

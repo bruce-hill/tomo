@@ -50,7 +50,7 @@ PUREFUNC Text_t NAMESPACED(as_text)(const void *x, bool colorize, const TypeInfo
     if (!x) return Text(TYPE_STR);
     static const Text_t color_prefix = Text("\x1b[35m"), color_suffix = Text("\x1b[m");
     Text_t text = NAMESPACED(value_as_text)(*(NUM_T *)x);
-    return colorize ? Texts(color_prefix, text, color_suffix) : text;
+    return colorize ? Text$concat(color_prefix, text, color_suffix) : text;
 }
 public
 PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInfo_t *info) {
@@ -73,7 +73,7 @@ PUREFUNC Text_t NAMESPACED(as_text)(const void *x, bool colorize, const TypeInfo
     if (!x) return Text(TYPE_STR);
     static const Text_t color_prefix = Text("\x1b[35m"), color_suffix = Text("\x1b[m");
     Text_t text = Num$value_as_text((double)*(NUM_T *)x);
-    return colorize ? Texts(color_prefix, text, color_suffix) : text;
+    return colorize ? Text$concat(color_prefix, text, color_suffix) : text;
 }
 public
 PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInfo_t *info) {
@@ -115,7 +115,7 @@ public
 Text_t NAMESPACED(percent)(NUM_T x, NUM_T precision) {
     NUM_T d = SUFFIXED(100.) * x;
     d = NAMESPACED(with_precision)(d, precision);
-    return Texts(NAMESPACED(value_as_text)(d), Text("%"));
+    return Text$concat(NAMESPACED(value_as_text)(d), Text("%"));
 }
 
 public

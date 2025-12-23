@@ -134,9 +134,9 @@ Text_t compile_non_optional(env_t *env, ast_t *ast) {
                     compile_to_pointer_depth(env, f->fielded, 0, true), ";",
                     "if unlikely (_test_enum.$tag != ", tag_name, ") {\n", "#line ", line, "\n", "fail_source(",
                     quoted_str(f->fielded->file->filename), ", ", (int64_t)(f->fielded->start - f->fielded->file->text),
-                    ", ", (int64_t)(f->fielded->end - f->fielded->file->text), ", ", "\"This was expected to be ",
-                    tag->name, ", but it was: \", ", expr_as_text(Text("_test_enum"), enum_t, Text("false")),
-                    ", \"\\n\");\n}\n",
+                    ", ", (int64_t)(f->fielded->end - f->fielded->file->text), ", ",
+                    "Text$concat(Text(\"This was expected to be ", tag->name, ", but it was: \"), ",
+                    expr_as_text(Text("_test_enum"), enum_t, Text("false")), ", Text(\"\\n\")));\n}\n",
                     compile_maybe_incref(
                         env, WrapLiteralCode(value, Texts("_test_enum.", tag->name), .type = tag->type), tag->type),
                     "; })");
@@ -149,7 +149,7 @@ Text_t compile_non_optional(env_t *env, ast_t *ast) {
                      check_none(value_t, Text("opt")), ")\n", "#line ", line, "\n", "fail_source(",
                      quoted_str(value->file->filename), ", ", (int64_t)(value->start - value->file->text), ", ",
                      (int64_t)(value->end - value->file->text), ", ",
-                     "\"This was expected to be a value, but it's `none`\\n\");\n",
+                     "Text(\"This was expected to be a value, but it's `none`\\n\"));\n",
                      optional_into_nonnone(value_t, Text("opt")), "; })");
     }
 }

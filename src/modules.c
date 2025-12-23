@@ -131,6 +131,9 @@ bool try_install_module(module_info_t mod, bool ask_confirmation) {
         if (mod.revision) xsystem("git clone --depth=1 --revision ", mod.revision, " ", mod.git, " ", dest);
         else if (mod.version) xsystem("git clone --depth=1 --branch ", mod.version, " ", mod.git, " ", dest);
         else xsystem("git clone --depth=1 ", mod.git, " ", dest);
+        // Clean up .git/ folder after cloning:
+        xsystem("rm -rf ", dest, "/.git");
+        // Build library:
         xsystem("tomo -L ", dest);
         return true;
     } else if (mod.url) {

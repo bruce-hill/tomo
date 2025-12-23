@@ -2646,6 +2646,32 @@ for line in (/dev/stdin).by_line()!
     say(line.upper())
 
 ```
+## Path.byte_writer
+
+```tomo
+Path.byte_writer : func(path: Path, append: Bool = no, permissions: Int32 = Int32(0o644) -> func(bytes:[Byte], close:Bool=no -> Result))
+```
+
+Returns a function that can be used to repeatedly write bytes to the same file.
+
+The file writer will keep its file descriptor open after each write (unless the `close` argument is set to `yes`). If the file writer is never closed, it will be automatically closed when the file writer is garbage collected.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path of the file to write to.  | -
+append | `Bool` | If set to `yes`, writes to the file will append. If set to `no`, then the first write to the file will overwrite its contents and subsequent calls will append.  | `no`
+permissions | `Int32` | The permissions to set on the file if it is created.  | `Int32(0o644)`
+
+**Return:** Returns a function that can repeatedly write bytes to the same file. If `close` is set to `yes`, then the file will be closed after writing. If this function is called again after closing, the file will be reopened for appending.
+
+
+**Example:**
+```tomo
+write := (./file.txt).byte_writer()
+write("Hello\n".utf8())!
+write("world\n".utf8(), close=yes)!
+
+```
 ## Path.can_execute
 
 ```tomo
@@ -3462,6 +3488,32 @@ created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
 assert created == (./file-27QHtq.txt)
 assert created.read() == [1, 2, 3]
 created.remove()
+
+```
+## Path.writer
+
+```tomo
+Path.writer : func(path: Path, append: Bool = no, permissions: Int32 = Int32(0o644) -> func(text:Text, close:Bool=no -> Result))
+```
+
+Returns a function that can be used to repeatedly write to the same file.
+
+The file writer will keep its file descriptor open after each write (unless the `close` argument is set to `yes`). If the file writer is never closed, it will be automatically closed when the file writer is garbage collected.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path of the file to write to.  | -
+append | `Bool` | If set to `yes`, writes to the file will append. If set to `no`, then the first write to the file will overwrite its contents and subsequent calls will append.  | `no`
+permissions | `Int32` | The permissions to set on the file if it is created.  | `Int32(0o644)`
+
+**Return:** Returns a function that can repeatedly write to the same file. If `close` is set to `yes`, then the file will be closed after writing. If this function is called again after closing, the file will be reopened for appending.
+
+
+**Example:**
+```tomo
+write := (./file.txt).writer()
+write("Hello\n")!
+write("world\n", close=yes)!
 
 ```
 

@@ -25,7 +25,7 @@ PUREFUNC public Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo
         '\0',
     };
     Text_t text = Text$from_str(digits);
-    if (colorize) text = Texts(Text("\x1b[35m"), text, Text("\x1b[m"));
+    if (colorize) text = Text$concat(Text("\x1b[35m"), text, Text("\x1b[m"));
     return text;
 }
 
