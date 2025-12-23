@@ -248,7 +248,7 @@ install-files: build check-utilities
 		$(SUDO) -u $(OWNER) $(MAKE) install-files; \
 		exit 0; \
 	fi; \
-	cp -r $(BUILD_DIR)/* $(PREFIX)/
+	cp -R $(BUILD_DIR)/* $(PREFIX)/
 
 install: install-files
 
