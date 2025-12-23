@@ -8,9 +8,6 @@ on:
 permissions:
   contents: write
 
-env:
-  PKGNAME: tomo
-
 jobs:
   build-linux:
     strategy:
@@ -42,8 +39,8 @@ jobs:
       - name: Package
         run: |
           TAG=${GITHUB_REF_NAME}
-          FILE=${PKGNAME}-linux-${{ matrix.arch }}.tar.gz
-          tar -C build -czf "$FILE" ${PKGNAME}@${TAG}
+          FILE=tomo-linux-${{ matrix.arch }}.tar.gz
+          tar -C build -czf "$FILE" tomo@${TAG}
           sha256sum "$FILE" > "$FILE.sha256"
 
       - name: Upload artifacts
@@ -51,8 +48,8 @@ jobs:
         with:
           name: linux-${{ matrix.arch }}
           path: |
-            ${PKGNAME}-linux-${{ matrix.arch }}.tar.gz
-            ${PKGNAME}-linux-${{ matrix.arch }}.tar.gz.sha256
+            tomo-linux-${{ matrix.arch }}.tar.gz
+            tomo-linux-${{ matrix.arch }}.tar.gz.sha256
 
   build-macos:
     runs-on: macos-latest
@@ -62,7 +59,7 @@ jobs:
       - name: Install deps
         run: |
           brew update
-          brew install gmp libunistring bdw-gc llvm binutils
+          brew install --quiet gmp libunistring bdw-gc llvm binutils
 
       - name: Build arm64
         run: |
@@ -71,16 +68,16 @@ jobs:
       - name: Package
         run: |
           TAG=${GITHUB_REF_NAME}
-          tar -C build -czf ${PKGNAME}-macos-arm64.tar.gz ${PKGNAME}@${TAG}
-          shasum -a 256 ${PKGNAME}-macos-arm64.tar.gz > ${PKGNAME}-macos-arm64.tar.gz.sha256
+          tar -C build -czf tomo-macos-arm64.tar.gz tomo@${TAG}
+          shasum -a 256 tomo-macos-arm64.tar.gz > tomo-macos-arm64.tar.gz.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm64
           path: |
-            ${PKGNAME}-macos-arm64.tar.gz
-            ${PKGNAME}-macos-arm64.tar.gz.sha256
+            tomo-macos-arm64.tar.gz
+            tomo-macos-arm64.tar.gz.sha256
 
   upload-release:
     needs: [build-linux, build-macos]
@@ -99,9 +96,15 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*
+          files: |
+            tomo-linux-x86_64.tar.gz
+            tomo-linux-x86_64.tar.gz.sha256
+            tomo-linux-aarch64.tar.gz
+            tomo-linux-aarch64.tar.gz.sha256
+            tomo-macos-arm64.tar.gz
+            tomo-macos-arm64.tar.gz.sha256
 
-  aur:
+  publish-aur:
     needs: upload-release
     runs-on: ubuntu-latest
     env:
