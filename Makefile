@@ -87,13 +87,7 @@ CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-LDLIBS=-lgc -lm -lunistring -lgmp
-
-ifeq ($(OS),OpenBSD)
-	LDLIBS += -lexecinfo
-else
-	LDLIBS += -ldl
-endif
+LDLIBS=-lm ./vendor/build/lib/libgc.a ./vendor/build/lib/libgmp.a ./vendor/build/lib/libunistring.a
 
 AR_FILE=libtomo@$(TOMO_VERSION).a
 ifeq ($(OS),Darwin)
@@ -108,7 +102,7 @@ TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
-all: config.mk check-c-compiler check-libs build
+all: config.mk check-c-compiler build
 	@$(ECHO) "All done!"
 
 BUILD_DIR=build/tomo@$(TOMO_VERSION)
@@ -141,7 +135,7 @@ $(BUILD_DIR)/man/%.gz: man/% | $(BUILD_DIR)/man/man1 $(BUILD_DIR)/man/man3
 $(BUILD_DIR)/bin/tomo: $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) | $(BUILD_DIR)/bin
 	ln -sf tomo@$(TOMO_VERSION) $@
 
-$(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | $(BUILD_DIR)/bin
+$(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | $(BUILD_DIR)/bin deps
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
@@ -165,9 +159,9 @@ check-c-compiler:
 	@$(DEFAULT_C_COMPILER) -v 2>/dev/null >/dev/null \
 		|| { printf '\033[31;1m%s\033[m\n' "You have set your DEFAULT_C_COMPILER to $(DEFAULT_C_COMPILER) in your config.mk, but I can't run it!"; exit 1; }
 
-check-libs: check-c-compiler
-	@echo 'int main() { return 0; }' | $(DEFAULT_C_COMPILER) $(LDFLAGS) $(LDLIBS) -x c - -o /dev/null 2>/dev/null >/dev/null \
-		|| { printf '\033[31;1m%s\033[m\n' "I expected to find the following libraries on your system, but I can't find them: $(LDLIBS)"; exit 1; }
+# check-libs: check-c-compiler | deps
+# 	@echo 'int main() { return 0; }' | $(DEFAULT_C_COMPILER) $(LDFLAGS) -x c - $(LDLIBS) -o /dev/null 2>/dev/null >/dev/null \
+# 		|| { printf '\033[31;1m%s\033[m\n' "I expected to find the following libraries on your system, but I can't find them: $(LDLIBS)"; exit 1; }
 
 tags:
 	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h} src/formatter/*.{c,h}
@@ -229,7 +223,7 @@ core-libs:
 	./local-tomo -L modules/core.ini
 
 deps:
-	bash ./install_dependencies.sh
+	$(MAKE) -C vendor
 
 check-utilities: check-c-compiler
 	@which debugedit 2>/dev/null >/dev/null \
@@ -263,4 +257,4 @@ uninstall:
 endif
 
 .SUFFIXES:
-.PHONY: all build clean install install-files uninstall test tags core-libs examples deps check-utilities check-c-compiler check-libs version
+.PHONY: all build clean install install-files uninstall test tags core-libs examples deps check-utilities check-c-compiler version
