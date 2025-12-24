@@ -119,7 +119,7 @@ void List$remove_item(List_t *list, void *item, Int_t max_removals, const TypeIn
                                          : none_expr;                                                                  \
     })
 
-OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type);
+PUREFUNC OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type);
 #define List$find_value(list, item_expr, type)                                                                         \
     ({                                                                                                                 \
         __typeof(item_expr) item = item_expr;                                                                          \

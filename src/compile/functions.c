@@ -10,9 +10,9 @@
 #include "../stdlib/optionals.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
 #include "../types.h"
+#include "../util.h"
 #include "compilation.h"
 
 public
@@ -683,8 +683,9 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
         code = Texts(code, "void *_)");
         userdata = Text("NULL");
     } else {
-        userdata = Texts("new(", name, "$userdata_t");
+        userdata = Texts("heap(((", name, "$userdata_t){");
         for (int64_t i = 0; i < (int64_t)closed_vars.entries.length; i++) {
+            if (i > 0) userdata = Text$concat(userdata, Text(", "));
             struct {
                 const char *name;
                 binding_t *b;
@@ -693,11 +694,11 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
             binding_t *b = get_binding(env, entry->name);
             assert(b);
             Text_t binding_code = b->code;
-            if (entry->b->type->tag == ListType) userdata = Texts(userdata, ", LIST_COPY(", binding_code, ")");
-            else if (entry->b->type->tag == TableType) userdata = Texts(userdata, ", TABLE_COPY(", binding_code, ")");
-            else userdata = Texts(userdata, ", ", binding_code);
+            if (entry->b->type->tag == ListType) userdata = Texts(userdata, "LIST_COPY(", binding_code, ")");
+            else if (entry->b->type->tag == TableType) userdata = Texts(userdata, "TABLE_COPY(", binding_code, ")");
+            else userdata = Texts(userdata, binding_code);
         }
-        userdata = Texts(userdata, ")");
+        userdata = Texts(userdata, "}))");
         code = Texts(code, name, "$userdata_t *userdata)");
     }
 

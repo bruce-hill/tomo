@@ -18,6 +18,7 @@
 #include <unistd.h>
 
 #include "../unistr-fixed.h"
+#include "../util.h"
 #include "enums.h"
 #include "integers.h"
 #include "lists.h"

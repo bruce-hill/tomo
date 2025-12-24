@@ -328,7 +328,12 @@ typedef struct cleanup_s {
 static cleanup_t *cleanups = NULL;
 
 public
-void tomo_at_cleanup(Closure_t fn) { cleanups = new (cleanup_t, .cleanup_fn = fn, .next = cleanups); }
+void tomo_at_cleanup(Closure_t fn) {
+    cleanup_t *new_cleanup = GC_MALLOC(sizeof(cleanup_t));
+    new_cleanup->cleanup_fn = fn;
+    new_cleanup->next = cleanups;
+    cleanups = new_cleanup;
+}
 
 public
 void tomo_cleanup(void) {

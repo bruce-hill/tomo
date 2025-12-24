@@ -4,7 +4,6 @@
 
 #include <assert.h>
 #include <err.h>
-#include <gc.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -12,9 +11,6 @@
 #define starts_with(line, prefix) (strncmp(line, prefix, strlen(prefix)) == 0)
 #define ends_with(line, suffix)                                                                                        \
     (strlen(line) >= strlen(suffix) && strcmp(line + strlen(line) - strlen(suffix), suffix) == 0)
-#define new(t, ...) ((t *)memcpy(GC_MALLOC(sizeof(t)), &(t){__VA_ARGS__}, sizeof(t)))
-#define heap(x) (__typeof(x) *)memcpy(GC_MALLOC(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
-#define stack(x) (__typeof(x) *)((__typeof(x)[1]){x})
 #define check_initialized(var, init_var, name)                                                                         \
     *({                                                                                                                \
         if (!init_var) fail("The variable " name " is being accessed before it has been initialized!");                \
@@ -60,4 +56,11 @@
 #else
 #define MACROLIKE extern inline __attribute__((gnu_inline, always_inline))
 #endif
+#endif
+
+#ifndef GC_MALLOC
+extern void *GC_malloc(size_t);
+#define GC_MALLOC GC_malloc
+#define heap(x) (__typeof(x) *)memcpy(GC_malloc(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
+#define stack(x) (__typeof(x) *)((__typeof(x)[1]){x})
 #endif

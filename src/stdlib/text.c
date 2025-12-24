@@ -108,6 +108,7 @@
 #include <unistring/version.h>
 #include <uniwidth.h>
 
+#include "../util.h"
 #include "bytes.h"
 #include "datatypes.h"
 #include "integers.h"
@@ -199,9 +200,9 @@ int32_t get_synthetic_grapheme(const ucs4_t *codepoints, int64_t utf32_len) {
     if (num_synthetic_graphemes >= synthetic_grapheme_capacity) {
         // If we don't have space, allocate more:
         synthetic_grapheme_capacity = MAX(128, synthetic_grapheme_capacity * 2);
-        synthetic_grapheme_t *new = GC_MALLOC_ATOMIC(sizeof(synthetic_grapheme_t[synthetic_grapheme_capacity]));
-        memcpy(new, synthetic_graphemes, sizeof(synthetic_grapheme_t[num_synthetic_graphemes]));
-        synthetic_graphemes = new;
+        synthetic_grapheme_t *synth = GC_MALLOC_ATOMIC(sizeof(synthetic_grapheme_t[synthetic_grapheme_capacity]));
+        memcpy(synth, synthetic_graphemes, sizeof(synthetic_grapheme_t[num_synthetic_graphemes]));
+        synthetic_graphemes = synth;
     }
 
     int32_t grapheme_id = -(num_synthetic_graphemes + 1);

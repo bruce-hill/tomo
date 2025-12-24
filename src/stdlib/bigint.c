@@ -18,6 +18,35 @@
 #include "text.h"
 #include "types.h"
 
+#define Int$from_mpz(mpz)                                                                                              \
+    (mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0                                                                        \
+         ? ((Int_t){.small = (mpz_get_si(mpz) << 2L) | 1L})                                                            \
+         : ((Int_t){.big = memcpy(GC_MALLOC(sizeof(__mpz_struct)), mpz, sizeof(__mpz_struct))}))
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+public
+PUREFUNC Int_t Int$from_num64(double n, bool truncate) {
+    mpz_t result;
+    mpz_init_set_d(result, n);
+    if (!truncate && unlikely(mpz_get_d(result) != n)) fail("Could not convert to an integer without truncation: ", n);
+    return Int$from_mpz(result);
+}
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+public
+PUREFUNC Int_t Int$from_int64(int64_t i) {
+    if likely (i >= SMALLEST_SMALL_INT && i <= BIGGEST_SMALL_INT) return (Int_t){.small = (i << 2L) | 1L};
+    mpz_t result;
+    mpz_init_set_si(result, i);
+    return Int$from_mpz(result);
+}
+
 public
 int Int$print(FILE *f, Int_t i) {
     if (likely(i.small & 1L)) {

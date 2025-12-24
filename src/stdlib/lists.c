@@ -227,7 +227,7 @@ void List$remove_item(List_t *list, void *item, Int_t max_removals, const TypeIn
 }
 
 public
-OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type) {
+PUREFUNC OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type) {
     const TypeInfo_t *item_type = type->ListInfo.item;
     for (int64_t i = 0; i < (int64_t)list.length; i++) {
         if (generic_equal(item, list.data + i * list.stride, item_type)) return I(i + 1);

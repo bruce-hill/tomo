@@ -5,7 +5,6 @@
 #include <stdint.h>
 
 #include "datatypes.h"
-#include "stdlib.h"
 #include "types.h"
 #include "util.h"
 
@@ -32,11 +31,6 @@ bool Int$get_bit(Int_t x, Int_t bit_index);
 
 #define BIGGEST_SMALL_INT 0x3fffffff
 #define SMALLEST_SMALL_INT -0x40000000
-
-#define Int$from_mpz(mpz)                                                                                              \
-    (mpz_cmpabs_ui(mpz, BIGGEST_SMALL_INT) <= 0                                                                        \
-         ? ((Int_t){.small = (mpz_get_si(mpz) << 2L) | 1L})                                                            \
-         : ((Int_t){.big = memcpy(new (__mpz_struct), mpz, sizeof(__mpz_struct))}))
 
 #define mpz_init_set_int(mpz, i)                                                                                       \
     do {                                                                                                               \
@@ -185,29 +179,11 @@ MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
 // Constructors/conversion functions:
 
 // Int constructors:
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
-MACROLIKE PUREFUNC Int_t Int$from_num64(double n, bool truncate) {
-    mpz_t result;
-    mpz_init_set_d(result, n);
-    if (!truncate && unlikely(mpz_get_d(result) != n)) fail("Could not convert to an integer without truncation: ", n);
-    return Int$from_mpz(result);
-}
+PUREFUNC Int_t Int$from_num64(double n, bool truncate);
 MACROLIKE PUREFUNC Int_t Int$from_num32(float n, bool truncate) { return Int$from_num64((double)n, truncate); }
-MACROLIKE Int_t Int$from_int64(int64_t i) {
-    if likely (i >= SMALLEST_SMALL_INT && i <= BIGGEST_SMALL_INT) return (Int_t){.small = (i << 2L) | 1L};
-    mpz_t result;
-    mpz_init_set_si(result, i);
-    return Int$from_mpz(result);
-}
+PUREFUNC Int_t Int$from_int64(int64_t i);
 MACROLIKE CONSTFUNC Int_t Int$from_int32(Int32_t i) { return Int$from_int64((Int32_t)i); }
 MACROLIKE CONSTFUNC Int_t Int$from_int16(Int16_t i) { return I_small(i); }
 MACROLIKE CONSTFUNC Int_t Int$from_int8(Int8_t i) { return I_small(i); }
 MACROLIKE CONSTFUNC Int_t Int$from_byte(Byte_t b) { return I_small(b); }
 MACROLIKE CONSTFUNC Int_t Int$from_bool(Bool_t b) { return I_small(b); }
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif

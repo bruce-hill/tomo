@@ -81,7 +81,8 @@ char *file_base_name(const char *path) {
 static file_t *_load_file(const char *filename, FILE *file) {
     if (!file) return NULL;
 
-    file_t *ret = new (file_t, .filename = filename);
+    file_t *ret = GC_MALLOC(sizeof(file_t));
+    ret->filename = filename;
 
     size_t file_size = 0, line_cap = 0;
     char *file_buf = NULL, *line_buf = NULL;
