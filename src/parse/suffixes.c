@@ -4,7 +4,7 @@
 
 #include "../ast.h"
 #include "../stdlib/print.h"
-#include "../stdlib/util.h"
+#include "../util.h"
 #include "context.h"
 #include "errors.h"
 #include "expressions.h"

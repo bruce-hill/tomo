@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "../stdlib/util.h"
+#include "../util.h"
 #include "context.h"
 
 #define SPACES_PER_INDENT 4

@@ -87,7 +87,7 @@ CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-LDLIBS=-lm ./vendor/build/lib/libgc.a ./vendor/build/lib/libgmp.a ./vendor/build/lib/libunistring.a
+LDLIBS=-lm ./build/gc/lib/libgc.a ./build/gmp/lib/libgmp.a ./build/unistring/lib/libunistring.a
 
 AR_FILE=libtomo@$(TOMO_VERSION).a
 ifeq ($(OS),Darwin)
@@ -194,7 +194,7 @@ test: $(TESTS)
 	@printf '\033[32;7m ALL TESTS PASSED! \033[m\n'
 
 clean:
-	rm -rf build/* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
+	rm -rf build/tomo* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
 
 %: %.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@

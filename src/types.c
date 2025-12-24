@@ -10,8 +10,8 @@
 #include "stdlib/integers.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
-#include "stdlib/util.h"
 #include "types.h"
+#include "util.h"
 
 Text_t arg_types_to_text(arg_t *args, const char *separator) {
     Text_t text = EMPTY_TEXT;

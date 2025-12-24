@@ -6,7 +6,7 @@
 #include "../config.h"
 #include "../environment.h"
 #include "../stdlib/text.h"
-#include "../stdlib/util.h"
+#include "../util.h"
 #include "../typecheck.h"
 #include "compilation.h"
 

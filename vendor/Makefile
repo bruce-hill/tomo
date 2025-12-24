@@ -2,7 +2,7 @@ GMP_VERSION=6.3.0
 UNISTRING_VERSION=1.4.1
 GC_VERSION=8.2.8
 
-all: build-gc/include/gc.h build-gc/lib/libgc.a build-gmp/lib/libgmp.a build-unistring/lib/libunistring.a
+all: ../build/gc/include/gc.h ../build/gc/lib/libgc.a ../build/gmp/lib/libgmp.a ../build/unistring/lib/libunistring.a
 
 # Boehm-Demers-Weiser Garbage collector
 gc-$(GC_VERSION).tar.gz:
@@ -12,14 +12,14 @@ gc-$(GC_VERSION)/configure: gc-$(GC_VERSION).tar.gz
 	tar xzfm $<
 
 gc-$(GC_VERSION)/Makefile: gc-$(GC_VERSION)/configure
-	prefix=$$(realpath ./build-gc); \
+	prefix=$$(realpath ../build/gc); \
 	cd gc-$(GC_VERSION); \
 	./configure \
 		--enable-static \
 		--disable-shared \
 		--prefix="$$prefix"; \
 
-build-gc/include/gc.h build-gc/lib/libgc.a: gc-$(GC_VERSION)/Makefile
+../build/gc/include/gc.h ../build/gc/lib/libgc.a: gc-$(GC_VERSION)/Makefile
 	cd gc-$(GC_VERSION); \
 	$(MAKE) -j install
 
@@ -32,14 +32,14 @@ gmp-$(GMP_VERSION)/configure: gmp-$(GMP_VERSION).tar.xz
 	cd gmp-$(GMP_VERSION) && patch -p0 -N < ../gmp-configure-fix.patch
 
 gmp-$(GMP_VERSION)/Makefile: gmp-$(GMP_VERSION)/configure
-	prefix=$$(realpath ./build-gmp); \
+	prefix=$$(realpath ../build/gmp); \
 	cd gmp-$(GMP_VERSION); \
 	./configure \
 		--enable-static \
 		--disable-shared \
 		--prefix="$$prefix"
 
-build-gmp/lib/libgmp.a: gmp-$(GMP_VERSION)/Makefile
+../build/gmp/lib/libgmp.a: gmp-$(GMP_VERSION)/Makefile
 	$(MAKE) -C gmp-$(GMP_VERSION) -j
 	$(MAKE) -C gmp-$(GMP_VERSION) check
 	$(MAKE) -C gmp-$(GMP_VERSION) install
@@ -52,19 +52,19 @@ libunistring-$(UNISTRING_VERSION)/configure: libunistring-$(UNISTRING_VERSION).t
 	tar xzfm $<
 
 libunistring-$(UNISTRING_VERSION)/Makefile: libunistring-$(UNISTRING_VERSION)/configure
-	prefix=$$(realpath ./build-unistring); \
+	prefix=$$(realpath ../build/unistring); \
 	cd libunistring-$(UNISTRING_VERSION); \
 	./configure \
 		--enable-static \
 		--disable-shared \
 		--prefix="$$prefix"
 
-build-unistring/lib/libunistring.a: libunistring-$(UNISTRING_VERSION)/Makefile
+../build/unistring/lib/libunistring.a: libunistring-$(UNISTRING_VERSION)/Makefile
 	$(MAKE) -C libunistring-$(UNISTRING_VERSION) -j
 	$(MAKE) -C libunistring-$(UNISTRING_VERSION) check
 	$(MAKE) -C libunistring-$(UNISTRING_VERSION) install
 
 clean:
-	rm -rf build-gc build-gmp build-unistring
+	rm -rf ../build/gc ../build/gmp ../build/unistring
 
 .PHONY: all clean

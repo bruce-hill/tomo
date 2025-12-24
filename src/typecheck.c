@@ -18,9 +18,9 @@
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
-#include "stdlib/util.h"
 #include "typecheck.h"
 #include "types.h"
+#include "util.h"
 
 type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
 #ifdef __GNUC__

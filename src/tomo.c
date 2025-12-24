@@ -36,8 +36,8 @@
 #include "stdlib/siphash.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
-#include "stdlib/util.h"
 #include "types.h"
+#include "util.h"
 
 #define run_cmd(...)                                                                                                   \
     ({                                                                                                                 \

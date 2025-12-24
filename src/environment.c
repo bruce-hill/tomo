@@ -10,8 +10,8 @@
 #include "stdlib/datatypes.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
-#include "stdlib/util.h"
 #include "typecheck.h"
+#include "util.h"
 
 type_t *TEXT_TYPE = NULL;
 public

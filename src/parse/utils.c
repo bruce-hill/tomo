@@ -7,7 +7,7 @@
 #include <uniname.h>
 
 #include "../stdlib/tables.h"
-#include "../stdlib/util.h"
+#include "../util.h"
 #include "errors.h"
 #include "utils.h"
 

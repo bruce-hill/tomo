@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "../ast.h"
-#include "../stdlib/util.h"
+#include "../util.h"
 #include "context.h"
 #include "errors.h"
 #include "files.h"

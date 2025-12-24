@@ -12,7 +12,7 @@
 #include "../formatter/utils.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
-#include "../stdlib/util.h"
+#include "../util.h"
 #include "context.h"
 #include "controlflow.h"
 #include "errors.h"

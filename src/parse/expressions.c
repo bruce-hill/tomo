@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "../ast.h"
-#include "../stdlib/util.h"
+#include "../util.h"
 #include "binops.h"
 #include "containers.h"
 #include "context.h"
