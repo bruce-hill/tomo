@@ -11,6 +11,8 @@
 /lib/*/*.so
 /lib/*/*.a
 
+/vendor/*/
+
 .build
 /build
 *.o
@@ -20,4 +22,6 @@
 *.tm.h
 *.tm.o
 *.testresult
+*.tar.gz
+*.tar.xz
 tags
