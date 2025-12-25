@@ -87,7 +87,7 @@ CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO)
 	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-LDLIBS=-lm ./build/gc/lib/libgc.a ./build/gmp/lib/libgmp.a ./build/unistring/lib/libunistring.a
+LDLIBS=-lm
 
 AR_FILE=libtomo@$(TOMO_VERSION).a
 ifeq ($(OS),Darwin)
@@ -135,13 +135,15 @@ $(BUILD_DIR)/man/%.gz: man/% | $(BUILD_DIR)/man/man1 $(BUILD_DIR)/man/man3
 $(BUILD_DIR)/bin/tomo: $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) | $(BUILD_DIR)/bin
 	ln -sf tomo@$(TOMO_VERSION) $@
 
-$(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | $(BUILD_DIR)/bin deps
-	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
-	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+$(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) build/gc/lib/libgc.a build/gmp/lib/libgmp.a build/unistring/lib/libunistring.a | $(BUILD_DIR)/bin deps
+	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $(LDLIBS) $^ -o $@
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
 $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) build/gc/lib/libgc.a build/unistring/lib/libunistring.a build/gmp/lib/libgmp.a | $(BUILD_DIR)/lib
-	TOMO_SYMBOLS=$(nm -g --defined-only $TOMO_OBJS | awk '{print "--undefined="$3}'); \
-	ld -r $(STDLIB_OBJS) build/gc/lib/libgc.a build/gmp/lib/libgmp.a build/unistring/lib/libunistring.a $$TOMO_SYMBOLS -o libtomo.o 
+	$(CC) -no-pie -r -flto -nostdlib \
+		src/stdlib/*.o src/print.o \
+		build/gc/lib/libgc.a build/gmp/lib/libgmp.a build/unistring/lib/libunistring.a \
+		-o libtomo.o
 	ar rcs $@ libtomo.o
 
 $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)

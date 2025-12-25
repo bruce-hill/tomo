@@ -1113,7 +1113,7 @@ static bool _has_grapheme(TextIter_t *text, int32_t g) {
 }
 
 public
-OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start) {
+PUREFUNC OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start) {
     if (text.length < target.length) return NONE_INT;
     if (target.length <= 0) return I(1);
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);

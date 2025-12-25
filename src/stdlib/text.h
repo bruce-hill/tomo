@@ -86,7 +86,7 @@ PUREFUNC bool Text$starts_with(Text_t text, Text_t prefix, Text_t *remainder);
 PUREFUNC bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainder);
 Text_t Text$without_prefix(Text_t text, Text_t prefix);
 Text_t Text$without_suffix(Text_t text, Text_t suffix);
-OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start);
+PUREFUNC OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start);
 Text_t Text$replace(Text_t text, Text_t target, Text_t replacement);
 Text_t Text$translate(Text_t text, Table_t translations);
 PUREFUNC bool Text$has(Text_t text, Text_t target);
@@ -120,7 +120,7 @@ Text_t Text$layout(Text_t text);
 void Text$serialize(const void *obj, FILE *out, Table_t *, const TypeInfo_t *);
 void Text$deserialize(FILE *in, void *out, List_t *, const TypeInfo_t *);
 
-MACROLIKE int32_t Text$get_grapheme(Text_t text, int64_t index) {
+MACROLIKE PUREFUNC int32_t Text$get_grapheme(Text_t text, int64_t index) {
     TextIter_t state = NEW_TEXT_ITER_STATE(text);
     return Text$get_grapheme_fast(&state, index);
 }

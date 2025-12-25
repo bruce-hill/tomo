@@ -78,9 +78,10 @@ static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, pars
               run_files = EMPTY_LIST, uninstall_libraries = EMPTY_LIST, libraries = EMPTY_LIST, args = EMPTY_LIST;
 
 static OptionalText_t show_codegen = NONE_TEXT,
-                      cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
+                      cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs"
                                     " -ffunction-sections -fdata-sections"
-                                    " -fno-signed-zeros "
+                                    " -fno-signed-zeros"
+                                    " -flto=auto -fno-fat-lto-objects -Wl,-flto"
                                     " -D_XOPEN_SOURCE -D_DEFAULT_SOURCE -fPIC -ggdb"
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
                                     " -D_BSD_SOURCE"
@@ -952,7 +953,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         // the libraries that are used.
         " ", is_gcc ? Texts("-Wl,--start-group ", list_text(archives), " -Wl,--end-group") : list_text(archives),
         // Tomo static library:
-        " ", TOMO_PATH, "/lib/libtomo@", TOMO_VERSION, ".a",
+        " -Wl,--no-whole-archive", " ", TOMO_PATH, "/lib/libtomo@", TOMO_VERSION, ".a",
         // Output file:
         " -o ", exe_path);
 
