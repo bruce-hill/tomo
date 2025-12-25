@@ -140,22 +140,9 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | $(BUILD_DIR)/bin
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) build/gc/lib/libgc.a build/unistring/lib/libunistring.a build/gmp/lib/libgmp.a | $(BUILD_DIR)/lib
-	mkdir -p build/archive-files; \
-	cd build/archive-files; \
-	rm -rf *; \
-	for f in $(STDLIB_OBJS); do \
-		cp ../../$$f tomo_$$(basename $$f); \
-	done; \
-	mkdir -p gc; \
-	(cd gc && ar -x ../../gc/lib/libgc.a); \
-	for f in gc/*.o; do mv "$$f" gc_"$$(basename $$f)"; done; \
-	rmdir gc; \
-	mkdir -p gmp; \
-	(cd gmp && ar -x ../../gmp/lib/libgmp.a); \
-	for f in gmp/*.o; do mv "$$f" gmp_"$$(basename $$f)"; done; \
-	rmdir gmp; \
-	ar -x ../unistring/lib/libunistring.a; \
-	ar -rcs ../../$@ *.o
+	TOMO_SYMBOLS=$(nm -g --defined-only $TOMO_OBJS | awk '{print "--undefined="$3}'); \
+	ld -r $(STDLIB_OBJS) build/gc/lib/libgc.a build/gmp/lib/libgmp.a build/unistring/lib/libunistring.a $$TOMO_SYMBOLS -o libtomo.o 
+	ar rcs $@ libtomo.o
 
 $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	@cat $^ > $@
