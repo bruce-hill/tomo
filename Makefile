@@ -139,8 +139,13 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | $(BUILD_DIR)/bin
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib
-	ar -rcs $@ $^
+$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) build/gc/lib/libgc.a build/unistring/lib/libunistring.a build/gmp/lib/libgmp.a | $(BUILD_DIR)/lib
+	mkdir -p tmp; \
+	cd tmp; \
+	ar -x ../build/gc/lib/libgc.a; \
+	ar -x ../build/unistring/lib/libunistring.a; \
+	ar -x ../build/gmp/lib/libgmp.a; \
+	ar -rcs ../$@ $(addprefix ../,$(STDLIB_OBJS)) *.o
 
 $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	@cat $^ > $@
@@ -222,7 +227,9 @@ examples:
 core-libs:
 	./local-tomo -L modules/core.ini
 
-deps:
+deps: build/gc/lib/libgc.a build/unistring/lib/libgc.a build/gmp/lib/libgmp.a
+
+build/gc/lib/libgc.a build/unistring/lib/libgc.a build/gmp/lib/libgmp.a:
 	$(MAKE) -C vendor
 
 check-utilities: check-c-compiler
