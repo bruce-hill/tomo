@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "fail.h"
 #include "integers.h"
 #include "siphash.h"
 #include "stdlib.h"
@@ -60,7 +61,8 @@ static void CString$deserialize(FILE *in, void *out, List_t *pointers, const Typ
     int64_t len = -1;
     Int64$deserialize(in, &len, pointers, &Int64$info);
     char *str = GC_MALLOC_ATOMIC((size_t)len + 1);
-    if (fread(str, sizeof(char), (size_t)len, in) != (size_t)len) fail("Not enough data in stream to deserialize");
+    if (fread(str, sizeof(char), (size_t)len, in) != (size_t)len)
+        fail_text(Text("Not enough data in stream to deserialize"));
     str[len + 1] = '\0';
     *(const char **)out = str;
 }

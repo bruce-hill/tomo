@@ -1,6 +1,7 @@
 // Metamethods for enums
 
 #include <stdint.h>
+#include <sys/param.h>
 
 #include "integers.h"
 #include "metamethods.h"

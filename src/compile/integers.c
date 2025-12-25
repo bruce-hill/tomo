@@ -7,9 +7,9 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
 #include "../types.h"
+#include "../util.h"
 #include "compilation.h"
 
 public
@@ -35,7 +35,11 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
     if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
 
     mpz_t i;
-    mpz_init_set_int(i, int_val);
+    if likely (int_val.small & 1L) {
+        mpz_init_set_si(i, int_val.small >> 2L);
+    } else {
+        mpz_init_set(i, int_val.big);
+    }
 
     char *c_literal;
     if (strncmp(literal, "0x", 2) == 0 || strncmp(literal, "0X", 2) == 0 || strncmp(literal, "0b", 2) == 0) {
@@ -86,7 +90,12 @@ Text_t compile_int(ast_t *ast) {
     OptionalInt_t int_val = Int$from_str(str);
     if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
     mpz_t i;
-    mpz_init_set_int(i, int_val);
+    if likely (int_val.small & 1L) {
+        mpz_init_set_si(i, int_val.small >> 2L);
+    } else {
+        mpz_init_set(i, int_val.big);
+    }
+
     if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
         return Texts("I_small(", str, ")");
     } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {

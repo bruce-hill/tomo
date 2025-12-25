@@ -97,7 +97,7 @@ endif
 EXE_FILE=tomo@$(TOMO_VERSION)
 
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c src/compile/*.c src/parse/*.c src/formatter/*.c))
-STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
+STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c)) src/print.o
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm))
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
@@ -194,7 +194,7 @@ test: $(TESTS)
 	@printf '\033[32;7m ALL TESTS PASSED! \033[m\n'
 
 clean:
-	rm -rf build/tomo* $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
+	rm -rf build/tomo*/{bin,lib} $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
 
 %: %.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@

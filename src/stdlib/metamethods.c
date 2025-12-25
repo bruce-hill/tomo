@@ -1,12 +1,15 @@
 // Metamethods are methods that all types share for hashing, equality, comparison, and textifying
 
+#include <gc.h>
 #include <stdint.h>
 #include <string.h>
 
+#include "fail.h"
 #include "lists.h"
 #include "metamethods.h"
 #include "siphash.h"
 #include "tables.h"
+#include "text.h"
 #include "types.h"
 #include "util.h"
 
@@ -34,7 +37,7 @@ PUREFUNC public bool generic_equal(const void *x, const void *y, const TypeInfo_
 
 public
 Text_t generic_as_text(const void *obj, bool colorize, const TypeInfo_t *type) {
-    if (!type->metamethods.as_text) fail("No text metamethod provided for type!");
+    if (!type->metamethods.as_text) fail_text(Text("No text metamethod provided for type!"));
 
     return type->metamethods.as_text(obj, colorize, type);
 }
@@ -72,7 +75,7 @@ void _deserialize(FILE *input, void *outval, List_t *pointers, const TypeInfo_t 
         return;
     }
 
-    if (fread(outval, (size_t)type->size, 1, input) != 1) fail("Not enough data in stream to deserialize");
+    if (fread(outval, (size_t)type->size, 1, input) != 1) fail_text(Text("Not enough data in stream to deserialize"));
 }
 
 public
@@ -88,13 +91,13 @@ void generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type) {
 __attribute__((noreturn)) public
 void cannot_serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type) {
     (void)obj, (void)out, (void)pointers;
-    Text_t typestr = generic_as_text(NULL, false, type);
-    fail("Values of type ", typestr, " cannot be serialized or deserialized!");
+    Text_t type_text = generic_as_text(NULL, false, type);
+    fail_text(Text$concat(Text("Values of type "), type_text, Text(" cannot be serialized or deserialized!")));
 }
 
 __attribute__((noreturn)) public
 void cannot_deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *type) {
     (void)obj, (void)in, (void)pointers;
-    Text_t typestr = generic_as_text(NULL, false, type);
-    fail("Values of type ", typestr, " cannot be serialized or deserialized!");
+    Text_t type_text = generic_as_text(NULL, false, type);
+    fail_text(Text$concat(Text("Values of type "), type_text, Text(" cannot be serialized or deserialized!")));
 }

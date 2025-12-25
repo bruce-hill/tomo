@@ -1,10 +1,11 @@
 // The logic for unsigned bytes
+#include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "../util.h"
 #include "bytes.h"
 #include "integers.h"
-#include "stdlib.h"
 #include "text.h"
 #include "util.h"
 

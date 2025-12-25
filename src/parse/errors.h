@@ -5,8 +5,8 @@
 #include <stdlib.h> // IWYU pragma: export
 #include <string.h> // IWYU pragma: export
 
+#include "../print.h" // IWYU pragma: export
 #include "../stdlib/files.h" // IWYU pragma: export
-#include "../stdlib/print.h" // IWYU pragma: export
 #include "../stdlib/stacktrace.h" // IWYU pragma: export
 #include "../stdlib/stdlib.h" // IWYU pragma: export
 #include "context.h" // IWYU pragma: export

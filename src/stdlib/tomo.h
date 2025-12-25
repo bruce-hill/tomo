@@ -14,6 +14,7 @@
 #include "cli.h" // IWYU pragma: export
 #include "datatypes.h" // IWYU pragma: export
 #include "enums.h" // IWYU pragma: export
+#include "fail.h" // IWYU pragma: export
 #include "files.h" // IWYU pragma: export
 #include "functiontype.h" // IWYU pragma: export
 #include "integers.h" // IWYU pragma: export
@@ -24,10 +25,10 @@
 #include "optionals.h" // IWYU pragma: export
 #include "paths.h" // IWYU pragma: export
 #include "pointers.h" // IWYU pragma: export
-#include "print.h" // IWYU pragma: export
 #include "result.h" // IWYU pragma: export
 #include "siphash.h" // IWYU pragma: export
 #include "stacktrace.h" // IWYU pragma: export
+#include "stdlib.h" // IWYU pragma: export
 #include "structs.h" // IWYU pragma: export
 #include "tables.h" // IWYU pragma: export
 #include "text.h" // IWYU pragma: export

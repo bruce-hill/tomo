@@ -3,7 +3,7 @@
 #include <stdbool.h>
 
 #include "../ast.h"
-#include "../stdlib/print.h"
+#include "../print.h"
 #include "../util.h"
 #include "context.h"
 #include "errors.h"

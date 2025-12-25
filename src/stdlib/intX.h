@@ -6,9 +6,9 @@
 //
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "datatypes.h"
-#include "stdlib.h"
 #include "types.h"
 #include "util.h"
 
@@ -88,64 +88,30 @@ MACROLIKE PUREFUNC INTX_T NAMESPACED(unsigned_right_shifted)(INTX_T x, INTX_T y)
 void NAMESPACED(serialize)(const void *obj, FILE *out, Table_t *, const TypeInfo_t *);
 void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *, const TypeInfo_t *);
 
-MACROLIKE PUREFUNC INTX_T NAMESPACED(from_num64)(Num_t n, bool truncate) {
-    INTX_T i = (INTX_T)n;
-    if (!truncate && unlikely((Num_t)i != n)) fail("Could not convert Num to an " NAME_STR " without truncation: ", n);
-    return i;
-}
-
-MACROLIKE PUREFUNC INTX_T NAMESPACED(from_num32)(Num32_t n, bool truncate) {
-    INTX_T i = (INTX_T)n;
-    if (!truncate && unlikely((Num32_t)i != n))
-        fail("Could not convert Num32 to an " NAME_STR " without truncation: ", n);
-    return i;
-}
-
-MACROLIKE PUREFUNC INTX_T NAMESPACED(from_int)(Int_t i, bool truncate) {
-    if likely (i.small & 1L) {
-        INTX_T ret = i.small >> 2L;
-#if INTX_H__INT_BITS < 32
-        if (!truncate && unlikely((int64_t)ret != (i.small >> 2L)))
-            fail("Integer is too big to fit in an " NAME_STR ": ", i);
-#endif
-        return ret;
-    }
-    if (!truncate && unlikely(!mpz_fits_slong_p(i.big))) fail("Integer is too big to fit in an " NAME_STR ": ", i);
-    return mpz_get_si(i.big);
-}
+PUREFUNC INTX_T NAMESPACED(from_num64)(Num_t n, bool truncate);
+PUREFUNC INTX_T NAMESPACED(from_num32)(Num32_t n, bool truncate);
+PUREFUNC INTX_T NAMESPACED(from_int)(Int_t i, bool truncate);
 
 #if INTX_H__INT_BITS < 64
-MACROLIKE PUREFUNC INTX_T NAMESPACED(from_int64)(Int64_t i64, bool truncate) {
-    INTX_T i = (INTX_T)i64;
-    if (!truncate && unlikely((int64_t)i != i64)) fail("Integer is too big to fit in an " NAME_STR ": ", i64);
-    return i;
-}
+PUREFUNC INTX_T NAMESPACED(from_int64)(Int64_t i64, bool truncate);
 #elif INTX_H__INT_BITS > 64
-MACROLIKE CONSTFUNC INTX_T NAMESPACED(from_int64)(Int64_t i) { return (INTX_T)i; }
+CONSTFUNC INTX_T NAMESPACED(from_int64)(Int64_t i);
 #endif
 
 #if INTX_H__INT_BITS < 32
-MACROLIKE PUREFUNC INTX_T NAMESPACED(from_int32)(Int32_t i32, bool truncate) {
-    INTX_T i = (INTX_T)i32;
-    if (!truncate && unlikely((int32_t)i != i32)) fail("Integer is too big to fit in an " NAME_STR ": ", i32);
-    return i;
-}
+PUREFUNC INTX_T NAMESPACED(from_int32)(Int32_t i32, bool truncate);
 #elif INTX_H__INT_BITS > 32
-MACROLIKE CONSTFUNC INTX_T NAMESPACED(from_int32)(Int32_t i) { return (INTX_T)i; }
+CONSTFUNC INTX_T NAMESPACED(from_int32)(Int32_t i);
 #endif
 
 #if INTX_H__INT_BITS < 16
-MACROLIKE PUREFUNC INTX_T NAMESPACED(from_int16)(Int16_t i16, bool truncate) {
-    INTX_T i = (INTX_T)i16;
-    if (!truncate && unlikely((int16_t)i != i16)) fail("Integer is too big to fit in an " NAME_STR ": ", i16);
-    return i;
-}
+PUREFUNC INTX_T NAMESPACED(from_int16)(Int16_t i16, bool truncate);
 #elif INTX_H__INT_BITS > 16
-MACROLIKE CONSTFUNC INTX_T NAMESPACED(from_int16)(Int16_t i) { return (INTX_T)i; }
+CONSTFUNC INTX_T NAMESPACED(from_int16)(Int16_t i);
 #endif
 
 #if INTX_H__INT_BITS > 8
-MACROLIKE CONSTFUNC INTX_T NAMESPACED(from_int8)(Int8_t i) { return (INTX_T)i; }
+CONSTFUNC INTX_T NAMESPACED(from_int8)(Int8_t i);
 #endif
 
 #undef PASTE3_

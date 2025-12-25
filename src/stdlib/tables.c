@@ -13,6 +13,7 @@
 
 #include "c_strings.h"
 #include "datatypes.h"
+#include "fail.h"
 #include "lists.h"
 #include "memory.h"
 #include "metamethods.h"
@@ -146,7 +147,7 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
 
 static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const TypeInfo_t *type) {
     if (unlikely(new_capacity > TABLE_MAX_BUCKETS))
-        fail("Table has exceeded the maximum table size (2^31) and cannot grow further!");
+        fail_text(Text("Table has exceeded the maximum table size (2^31) and cannot grow further!"));
     size_t alloc_size = sizeof(bucket_info_t) + sizeof(bucket_t[new_capacity]);
     t->bucket_info = GC_MALLOC_ATOMIC(alloc_size);
     memset(t->bucket_info->buckets, 0, sizeof(bucket_t[new_capacity]));

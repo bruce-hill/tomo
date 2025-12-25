@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <sys/param.h>
 
+#include "../util.h"
 #include "integers.h"
 #include "lists.h"
 #include "math.h"

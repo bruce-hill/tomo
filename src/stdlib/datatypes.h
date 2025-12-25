@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <gmp.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -30,7 +29,7 @@
 
 typedef union {
     int64_t small;
-    __mpz_struct *big;
+    void *big;
 } Int_t;
 
 #define OptionalInt_t Int_t

@@ -14,11 +14,12 @@
 #include <time.h>
 
 #include "../config.h"
+#include "../print.h"
+#include "../util.h"
 #include "files.h"
 #include "metamethods.h"
 #include "optionals.h"
 #include "paths.h"
-#include "print.h"
 #include "siphash.h"
 #include "stacktrace.h"
 #include "stdlib.h"
@@ -157,12 +158,6 @@ void tomo_init(void) {
     sigaction(SIGILL, &sigact, (struct sigaction *)NULL);
     atexit(tomo_cleanup);
 }
-
-public
-_Noreturn void fail_text(Text_t message) { fail(message); }
-
-public
-Text_t builtin_last_err() { return Text$from_str(strerror(errno)); }
 
 static int _inspect_depth = 0;
 static file_t *file = NULL;

@@ -18,8 +18,12 @@
 #include <sys/param.h>
 #include <unistd.h>
 
-#include "datatypes.h"
-#include "mapmacro.h"
+#include "stdlib/bigint.h" // IWYU pragma: export
+#include "stdlib/datatypes.h" // IWYU pragma: export
+#include "stdlib/integers.h" // IWYU pragma: export
+#include "stdlib/mapmacro.h"
+#include "stdlib/paths.h" // IWYU pragma: export
+#include "stdlib/text.h" // IWYU pragma: export
 
 // GCC lets you define macro-like functions which are always inlined and never
 // compiled using this combination of flags. See: https://gcc.gnu.org/onlinedocs/gcc/Inline.html
@@ -74,7 +78,6 @@ typedef struct {
 #define FMT64 "l"
 #endif
 
-int _print_int(FILE *f, int64_t x);
 int _print_uint(FILE *f, uint64_t x);
 int _print_double(FILE *f, double x);
 int _print_hex(FILE *f, hex_format_t hex);
@@ -96,9 +99,6 @@ PRINT_FN _print_repeated_char(FILE *f, repeated_char_t repeated) {
     return len;
 }
 
-extern int Text$print(FILE *stream, Text_t text);
-extern int Path$print(FILE *stream, Path_t path);
-extern int Int$print(FILE *f, Int_t i);
 #ifndef _fprint1
 #define _fprint1(f, x)                                                                                                 \
     _Generic((x),                                                                                                      \
@@ -106,10 +106,10 @@ extern int Int$print(FILE *f, Int_t i);
         const char *: _print_str,                                                                                      \
         char: _print_char,                                                                                             \
         bool: _print_bool,                                                                                             \
-        int64_t: _print_int,                                                                                           \
-        int32_t: _print_int,                                                                                           \
-        int16_t: _print_int,                                                                                           \
-        int8_t: _print_int,                                                                                            \
+        int64_t: Int64$print,                                                                                          \
+        int32_t: Int64$print,                                                                                          \
+        int16_t: Int64$print,                                                                                          \
+        int8_t: Int64$print,                                                                                           \
         uint64_t: _print_uint,                                                                                         \
         uint32_t: _print_uint,                                                                                         \
         uint16_t: _print_uint,                                                                                         \

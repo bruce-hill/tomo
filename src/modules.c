@@ -7,10 +7,10 @@
 
 #include "config.h"
 #include "modules.h"
+#include "print.h"
 #include "stdlib/memory.h"
 #include "stdlib/paths.h"
 #include "stdlib/pointers.h"
-#include "stdlib/print.h"
 #include "stdlib/simpleparse.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"

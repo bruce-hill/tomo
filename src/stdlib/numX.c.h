@@ -6,11 +6,13 @@
 //
 #include <float.h>
 #include <gc.h>
+#include <gmp.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "fail.h"
 #include "text.h"
 #include "types.h"
 
@@ -88,6 +90,42 @@ PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInf
     return (rx > ry) - (rx < ry);
 }
 #endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+public
+CONSTFUNC NUM_T NAMESPACED(from_int)(Int_t i, bool truncate) {
+    if likely (i.small & 0x1) {
+        NUM_T ret = (NUM_T)(i.small >> 2);
+        if unlikely (!truncate && (int64_t)ret != (i.small >> 2))
+            fail_text(Text$concat(Text("Could not convert integer to " TYPE_STR " without losing precision: "),
+                                  Int64$value_as_text(i.small >> 2)));
+        return ret;
+    } else {
+        NUM_T ret = mpz_get_d(i.big);
+        if (!truncate) {
+            mpz_t roundtrip;
+            mpz_init_set_d(roundtrip, (double)ret);
+            if unlikely (mpz_cmp(i.big, roundtrip) != 0)
+                fail_text(Text$concat(Text("Could not convert integer to " TYPE_STR " without losing precision: "),
+                                      Int$value_as_text(i)));
+        }
+        return ret;
+    }
+}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+public
+CONSTFUNC NUM_T NAMESPACED(from_int64)(Int64_t i, bool truncate) {
+    NUM_T n = (NUM_T)i;
+    if unlikely (!truncate && (Int64_t)n != i)
+        fail_text(Text$concat(Text("Could not convert integer to " TYPE_STR " without losing precision: "),
+                              Int64$value_as_text(i)));
+    return n;
+}
 
 public
 PUREFUNC bool NAMESPACED(equal)(const void *x, const void *y, const TypeInfo_t *info) {

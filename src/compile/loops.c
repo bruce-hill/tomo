@@ -8,8 +8,8 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
+#include "../util.h"
 #include "compilation.h"
 
 public
@@ -236,7 +236,11 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
             Int_t int_val = Int$from_str(str);
             if (int_val.small == 0) code_err(for_->iter, "Failed to parse this integer");
             mpz_t i;
-            mpz_init_set_int(i, int_val);
+            if likely (int_val.small & 1L) {
+                mpz_init_set_si(i, int_val.small >> 2L);
+            } else {
+                mpz_init_set(i, int_val.big);
+            }
             if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) n = Text$from_str(mpz_get_str(NULL, 10, i));
             else goto big_n;
 

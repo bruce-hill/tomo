@@ -9,7 +9,6 @@
 #include <stdint.h>
 
 #include "datatypes.h"
-#include "stdlib.h"
 #include "types.h"
 #include "util.h"
 
@@ -58,36 +57,8 @@ MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_num32)(float n) { return (NUM_T)n; }
 MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_num64)(double n) { return (NUM_T)n; }
 #endif
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
-MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int)(Int_t i, bool truncate) {
-    if likely (i.small & 0x1) {
-        NUM_T ret = (NUM_T)(i.small >> 2);
-        if unlikely (!truncate && (int64_t)ret != (i.small >> 2))
-            fail("Could not convert integer to " TYPE_STR " without losing precision: ", i.small >> 2);
-        return ret;
-    } else {
-        NUM_T ret = mpz_get_d(i.big);
-        if (!truncate) {
-            mpz_t roundtrip;
-            mpz_init_set_d(roundtrip, (double)ret);
-            if unlikely (mpz_cmp(i.big, roundtrip) != 0)
-                fail("Could not convert integer to " TYPE_STR " without losing precision: ", i);
-        }
-        return ret;
-    }
-}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int64)(Int64_t i, bool truncate) {
-    NUM_T n = (NUM_T)i;
-    if unlikely (!truncate && (Int64_t)n != i)
-        fail("Could not convert integer to " TYPE_STR " without losing precision: ", i);
-    return n;
-}
+CONSTFUNC NUM_T NAMESPACED(from_int)(Int_t i, bool truncate);
+CONSTFUNC NUM_T NAMESPACED(from_int64)(Int64_t i, bool truncate);
 MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int32)(Int32_t i) { return (NUM_T)i; }
 MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int16)(Int16_t i) { return (NUM_T)i; }
 MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int8)(Int8_t i) { return (NUM_T)i; }

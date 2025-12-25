@@ -6,12 +6,15 @@
 //
 
 #include <gc.h>
+#include <gmp.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../util.h"
 #include "datatypes.h"
+#include "fail.h"
 #include "integers.h"
 #include "text.h"
 #include "types.h"
@@ -55,12 +58,12 @@ public
 void NAMESPACED(serialize)(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
     (void)info, (void)pointers;
 #if INTX_C_H__INT_BITS < 32
-    if (fwrite(obj, sizeof(INT_T), 1, out) != sizeof(INT_T)) fail("Failed to write whole integer");
+    if (fwrite(obj, sizeof(INT_T), 1, out) != sizeof(INT_T)) fail_text(Text("Failed to write whole integer"));
 #else
     INT_T i = *(INT_T *)obj;
     UINT_T z = (UINT_T)((i << 1L) ^ (i >> (INTX_C_H__INT_BITS - 1L))); // Zigzag encode
     while (z >= 0x80L) {
-        if (fputc((uint8_t)(z | 0x80L), out) == EOF) fail("Failed to write full integer");
+        if (fputc((uint8_t)(z | 0x80L), out) == EOF) fail_text(Text("Failed to write full integer"));
         z >>= 7L;
     }
     fputc((uint8_t)z, out);
@@ -71,12 +74,12 @@ public
 void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info) {
     (void)info, (void)pointers;
 #if INTX_C_H__INT_BITS < 32
-    if (fread(outval, sizeof(INT_T), 1, in) != sizeof(INT_T)) fail("Failed to read full integer");
+    if (fread(outval, sizeof(INT_T), 1, in) != sizeof(INT_T)) fail_text(Text("Failed to read full integer"));
 #else
     UINT_T z = 0;
     for (size_t shift = 0;; shift += 7) {
         int i = fgetc(in);
-        if (i == EOF) fail("Failed to read whole integer");
+        if (i == EOF) fail_text(Text("Failed to read whole integer"));
         uint8_t byte = (uint8_t)i;
         z |= ((UINT_T)(byte & 0x7F)) << shift;
         if ((byte & 0x80) == 0) break;
@@ -201,6 +204,79 @@ PUREFUNC OPT_T NAMESPACED(parse)(Text_t text, OptionalInt_t base, Text_t *remain
     }
     return (OPT_T){.has_value = true, .value = NAMESPACED(from_int)(full_int, true)};
 }
+
+public
+PUREFUNC INT_T NAMESPACED(from_num64)(Num_t n, bool truncate) {
+    INT_T i = (INT_T)n;
+    if (!truncate && unlikely((Num_t)i != n))
+        fail_text(
+            Text$concat(Text("Could not convert Num to an " NAME_STR " without truncation: "), Num$value_as_text(n)));
+    return i;
+}
+
+public
+PUREFUNC INT_T NAMESPACED(from_num32)(Num32_t n, bool truncate) {
+    INT_T i = (INT_T)n;
+    if (!truncate && unlikely((Num32_t)i != n))
+        fail_text(Text$concat(Text("Could not convert Num32 to an " NAME_STR " without truncation: "),
+                              Num32$value_as_text(n)));
+    return i;
+}
+
+public
+PUREFUNC INT_T NAMESPACED(from_int)(Int_t i, bool truncate) {
+    if likely (i.small & 1L) {
+        INT_T ret = i.small >> 2L;
+#if INTX_C_H__INT_BITS < 32
+        if (!truncate && unlikely((int64_t)ret != (i.small >> 2L)))
+            fail("Integer is too big to fit in an " NAME_STR ": ", i);
+#endif
+        return ret;
+    }
+    if (!truncate && unlikely(!mpz_fits_slong_p(i.big))) fail("Integer is too big to fit in an " NAME_STR ": ", i);
+    return mpz_get_si(i.big);
+}
+
+#if INTX_C_H__INT_BITS < 64
+public
+PUREFUNC INT_T NAMESPACED(from_int64)(Int64_t i64, bool truncate) {
+    INT_T i = (INT_T)i64;
+    if (!truncate && unlikely((int64_t)i != i64)) fail("Integer is too big to fit in an " NAME_STR ": ", i64);
+    return i;
+}
+#elif INTX_C_H__INT_BITS > 64
+public
+CONSTFUNC INT_T NAMESPACED(from_int64)(Int64_t i) { return (INT_T)i; }
+#endif
+
+#if INTX_C_H__INT_BITS < 32
+public
+PUREFUNC INT_T NAMESPACED(from_int32)(Int32_t i32, bool truncate) {
+    INT_T i = (INT_T)i32;
+    if (!truncate && unlikely((int32_t)i != i32)) fail("Integer is too big to fit in an " NAME_STR ": ", i32);
+    return i;
+}
+#elif INTX_C_H__INT_BITS > 32
+public
+CONSTFUNC INT_T NAMESPACED(from_int32)(Int32_t i) { return (INT_T)i; }
+#endif
+
+#if INTX_C_H__INT_BITS < 16
+public
+PUREFUNC INT_T NAMESPACED(from_int16)(Int16_t i16, bool truncate) {
+    INT_T i = (INT_T)i16;
+    if (!truncate && unlikely((int16_t)i != i16)) fail("Integer is too big to fit in an " NAME_STR ": ", i16);
+    return i;
+}
+#elif INTX_C_H__INT_BITS > 16
+public
+CONSTFUNC INT_T NAMESPACED(from_int16)(Int16_t i) { return (INT_T)i; }
+#endif
+
+#if INTX_C_H__INT_BITS > 8
+public
+CONSTFUNC INT_T NAMESPACED(from_int8)(Int8_t i) { return (INT_T)i; }
+#endif
 
 public
 CONSTFUNC INT_T NAMESPACED(gcd)(INT_T x, INT_T y) {

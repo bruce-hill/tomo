@@ -1,6 +1,6 @@
 // Big integer type (`Int` in Tomo)
+#pragma once
 
-#include <gmp.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -10,6 +10,7 @@
 
 Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t *type);
 Text_t Int$value_as_text(Int_t i);
+int Int$print(FILE *f, Int_t i);
 PUREFUNC uint64_t Int$hash(const void *x, const TypeInfo_t *type);
 PUREFUNC int32_t Int$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y);
@@ -32,12 +33,6 @@ bool Int$get_bit(Int_t x, Int_t bit_index);
 #define BIGGEST_SMALL_INT 0x3fffffff
 #define SMALLEST_SMALL_INT -0x40000000
 
-#define mpz_init_set_int(mpz, i)                                                                                       \
-    do {                                                                                                               \
-        if likely ((i).small & 1L) mpz_init_set_si(mpz, (i).small >> 2L);                                              \
-        else mpz_init_set(mpz, (i).big);                                                                               \
-    } while (0)
-
 #define I_small(i) ((Int_t){.small = (int64_t)((uint64_t)(i) << 2L) | 1L})
 #define I(i) _Generic(i, int8_t: I_small(i), int16_t: I_small(i), default: Int$from_int64(i))
 #define I_is_zero(i) ((i).small == 1L)
@@ -57,11 +52,6 @@ Int_t Int$slow_negative(Int_t x);
 Int_t Int$slow_negated(Int_t x);
 bool Int$is_prime(Int_t x, Int_t reps);
 Int_t Int$next_prime(Int_t x);
-#if __GNU_MP_VERSION >= 6
-#if __GNU_MP_VERSION_MINOR >= 3
-OptionalInt_t Int$prev_prime(Int_t x);
-#endif
-#endif
 Int_t Int$choose(Int_t n, Int_t k);
 Int_t Int$factorial(Int_t n);
 

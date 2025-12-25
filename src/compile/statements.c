@@ -7,13 +7,13 @@
 #include "../environment.h"
 #include "../modules.h"
 #include "../naming.h"
+#include "../print.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/paths.h"
-#include "../stdlib/print.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
+#include "../util.h"
 #include "compilation.h"
 
 typedef ast_t *(*comprehension_body_t)(ast_t *, ast_t *);
