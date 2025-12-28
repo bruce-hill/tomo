@@ -710,7 +710,9 @@ env_t *namespace_env(env_t *env, const char *namespace_name) {
     return ns_env;
 }
 
-PUREFUNC binding_t *get_binding(env_t *env, const char *name) { return Table$str_get(*env->locals, name); }
+PUREFUNC binding_t *get_binding(env_t *env, const char *name) {
+    return Table$str_get(*env->locals, name);
+}
 
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name) {
     type_t *self_type = get_type(env, self);

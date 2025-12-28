@@ -138,7 +138,8 @@ static void Table$set_bucket(Table_t *t, const void *entry, int32_t index, const
         bucket->occupied = 1;
         bucket->index = index;
         bucket->next_bucket = END_OF_CHAIN;
-    } else { // Collided with the start of a chain, put the new entry in chain position #2
+    } else { // Collided with the start of a chain, put the new entry in chain
+             // position #2
         buckets[t->bucket_info->last_free] =
             (bucket_t){.occupied = 1, .index = index, .next_bucket = bucket->next_bucket};
         bucket->next_bucket = t->bucket_info->last_free;
@@ -317,7 +318,9 @@ CONSTFUNC public void *Table$entry(Table_t t, int64_t n) {
 }
 
 public
-void Table$clear(Table_t *t) { *t = EMPTY_TABLE; }
+void Table$clear(Table_t *t) {
+    *t = EMPTY_TABLE;
+}
 
 public
 Table_t Table$sorted(Table_t t, const TypeInfo_t *type) {
@@ -536,7 +539,8 @@ Table_t Table$from_entries(List_t entries, const TypeInfo_t *type) {
 // "set intersection" in formal terms
 public
 Table_t Table$intersection(Table_t a, Table_t b, const TypeInfo_t *type) {
-    // Return a table such that t[k]==a[k] for all k such that a.has(k), b.has(k), and a[k]==b[k]
+    // Return a table such that t[k]==a[k] for all k such that a.has(k), b.has(k),
+    // and a[k]==b[k]
     Table_t result = EMPTY_TABLE;
     const size_t offset = value_offset(type);
     for (Table_t *t = &a; t; t = t->fallback) {
@@ -554,8 +558,8 @@ Table_t Table$intersection(Table_t a, Table_t b, const TypeInfo_t *type) {
 // "set union" in formal terms
 public
 Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type) {
-    // return a table such that t[k]==b[k] for all k such that b.has(k), and t[k]==a[k] for all k such that a.has(k) and
-    // not b.has(k)
+    // return a table such that t[k]==b[k] for all k such that b.has(k), and
+    // t[k]==a[k] for all k such that a.has(k) and not b.has(k)
     Table_t result = EMPTY_TABLE;
     const size_t offset = value_offset(type);
     for (Table_t *t = &a; t; t = t->fallback) {
@@ -597,7 +601,8 @@ Table_t Table$difference(Table_t a, Table_t b, const TypeInfo_t *type) {
 // "without" is "set difference" in formal terms
 public
 Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type) {
-    // Return a table such that t[k]==a[k] for all k such that not b.has(k) or b[k] != a[k]
+    // Return a table such that t[k]==a[k] for all k such that not b.has(k) or
+    // b[k] != a[k]
     Table_t result = EMPTY_TABLE;
     const size_t offset = value_offset(type);
     for (Table_t *t = &a; t; t = t->fallback) {
@@ -656,12 +661,18 @@ void *Table$str_reserve(Table_t *t, const char *key, const void *value) {
 }
 
 public
-void Table$str_set(Table_t *t, const char *key, const void *value) { Table$set(t, &key, &value, &CStrToVoidStarTable); }
+void Table$str_set(Table_t *t, const char *key, const void *value) {
+    Table$set(t, &key, &value, &CStrToVoidStarTable);
+}
 
 public
-void Table$str_remove(Table_t *t, const char *key) { return Table$remove(t, &key, &CStrToVoidStarTable); }
+void Table$str_remove(Table_t *t, const char *key) {
+    return Table$remove(t, &key, &CStrToVoidStarTable);
+}
 
-CONSTFUNC public void *Table$str_entry(Table_t t, int64_t n) { return Table$entry(t, n); }
+CONSTFUNC public void *Table$str_entry(Table_t t, int64_t n) {
+    return Table$entry(t, n);
+}
 
 PUREFUNC public bool Table$is_none(const void *obj, const TypeInfo_t *info) {
     (void)info;

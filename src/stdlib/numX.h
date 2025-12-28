@@ -52,17 +52,29 @@ CONSTFUNC bool NAMESPACED(is_between)(const NUM_T x, const NUM_T low, const NUM_
 CONSTFUNC NUM_T NAMESPACED(clamped)(NUM_T x, NUM_T low, NUM_T high);
 
 #if NUMX_H__BITS == 64
-MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_num32)(float n) { return (NUM_T)n; }
+MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_num32)(float n) {
+    return (NUM_T)n;
+}
 #elif NUMX_H__BITS == 32
-MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_num64)(double n) { return (NUM_T)n; }
+MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_num64)(double n) {
+    return (NUM_T)n;
+}
 #endif
 
 CONSTFUNC NUM_T NAMESPACED(from_int)(Int_t i, bool truncate);
 CONSTFUNC NUM_T NAMESPACED(from_int64)(Int64_t i, bool truncate);
-MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int32)(Int32_t i) { return (NUM_T)i; }
-MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int16)(Int16_t i) { return (NUM_T)i; }
-MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int8)(Int8_t i) { return (NUM_T)i; }
-MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_byte)(Byte_t i) { return (NUM_T)i; }
+MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int32)(Int32_t i) {
+    return (NUM_T)i;
+}
+MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int16)(Int16_t i) {
+    return (NUM_T)i;
+}
+MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_int8)(Int8_t i) {
+    return (NUM_T)i;
+}
+MACROLIKE CONSTFUNC NUM_T NAMESPACED(from_byte)(Byte_t i) {
+    return (NUM_T)i;
+}
 
 extern const TypeInfo_t NAMESPACED(info);
 

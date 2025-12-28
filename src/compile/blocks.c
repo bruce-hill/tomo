@@ -9,7 +9,9 @@
 #include "compilation.h"
 
 public
-Text_t compile_block(env_t *env, ast_t *ast) { return Texts("{\n", compile_inline_block(env, ast), "}\n"); }
+Text_t compile_block(env_t *env, ast_t *ast) {
+    return Texts("{\n", compile_inline_block(env, ast), "}\n");
+}
 
 Text_t compile_block_expression(env_t *env, ast_t *ast) {
     ast_list_t *stmts = Match(ast, Block)->statements;

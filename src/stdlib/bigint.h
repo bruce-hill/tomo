@@ -170,10 +170,22 @@ MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
 
 // Int constructors:
 PUREFUNC Int_t Int$from_num64(double n, bool truncate);
-MACROLIKE PUREFUNC Int_t Int$from_num32(float n, bool truncate) { return Int$from_num64((double)n, truncate); }
+MACROLIKE PUREFUNC Int_t Int$from_num32(float n, bool truncate) {
+    return Int$from_num64((double)n, truncate);
+}
 PUREFUNC Int_t Int$from_int64(int64_t i);
-MACROLIKE CONSTFUNC Int_t Int$from_int32(Int32_t i) { return Int$from_int64((Int32_t)i); }
-MACROLIKE CONSTFUNC Int_t Int$from_int16(Int16_t i) { return I_small(i); }
-MACROLIKE CONSTFUNC Int_t Int$from_int8(Int8_t i) { return I_small(i); }
-MACROLIKE CONSTFUNC Int_t Int$from_byte(Byte_t b) { return I_small(b); }
-MACROLIKE CONSTFUNC Int_t Int$from_bool(Bool_t b) { return I_small(b); }
+MACROLIKE CONSTFUNC Int_t Int$from_int32(Int32_t i) {
+    return Int$from_int64((Int32_t)i);
+}
+MACROLIKE CONSTFUNC Int_t Int$from_int16(Int16_t i) {
+    return I_small(i);
+}
+MACROLIKE CONSTFUNC Int_t Int$from_int8(Int8_t i) {
+    return I_small(i);
+}
+MACROLIKE CONSTFUNC Int_t Int$from_byte(Byte_t b) {
+    return I_small(b);
+}
+MACROLIKE CONSTFUNC Int_t Int$from_bool(Bool_t b) {
+    return I_small(b);
+}

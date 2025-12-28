@@ -49,8 +49,12 @@ Closure_t NAMESPACED(onward)(INTX_T first, INTX_T step);
 PUREFUNC OPT_T NAMESPACED(parse)(Text_t text, OptionalInt_t base, Text_t *remainder);
 CONSTFUNC bool NAMESPACED(is_between)(const INTX_T x, const INTX_T low, const INTX_T high);
 CONSTFUNC INTX_T NAMESPACED(clamped)(INTX_T x, INTX_T min, INTX_T max);
-MACROLIKE CONSTFUNC INTX_T NAMESPACED(from_byte)(Byte_t b) { return (INTX_T)b; }
-MACROLIKE CONSTFUNC INTX_T NAMESPACED(from_bool)(Bool_t b) { return (INTX_T)b; }
+MACROLIKE CONSTFUNC INTX_T NAMESPACED(from_byte)(Byte_t b) {
+    return (INTX_T)b;
+}
+MACROLIKE CONSTFUNC INTX_T NAMESPACED(from_bool)(Bool_t b) {
+    return (INTX_T)b;
+}
 CONSTFUNC INTX_T NAMESPACED(gcd)(INTX_T x, INTX_T y);
 extern const INTX_T NAMESPACED(min), NAMESPACED(max);
 extern const TypeInfo_t NAMESPACED(info);
@@ -75,15 +79,25 @@ MACROLIKE INTX_T NAMESPACED(modulo)(INTX_T D, INTX_T d) {
     return r;
 }
 
-MACROLIKE INTX_T NAMESPACED(modulo1)(INTX_T D, INTX_T d) { return NAMESPACED(modulo)(D - 1, d) + 1; }
+MACROLIKE INTX_T NAMESPACED(modulo1)(INTX_T D, INTX_T d) {
+    return NAMESPACED(modulo)(D - 1, d) + 1;
+}
 
-MACROLIKE PUREFUNC INTX_T NAMESPACED(wrapping_plus)(INTX_T x, INTX_T y) { return (INTX_T)((UINTX_T)x + (UINTX_T)y); }
+MACROLIKE PUREFUNC INTX_T NAMESPACED(wrapping_plus)(INTX_T x, INTX_T y) {
+    return (INTX_T)((UINTX_T)x + (UINTX_T)y);
+}
 
-MACROLIKE PUREFUNC INTX_T NAMESPACED(wrapping_minus)(INTX_T x, INTX_T y) { return (INTX_T)((UINTX_T)x + (UINTX_T)y); }
+MACROLIKE PUREFUNC INTX_T NAMESPACED(wrapping_minus)(INTX_T x, INTX_T y) {
+    return (INTX_T)((UINTX_T)x + (UINTX_T)y);
+}
 
-MACROLIKE PUREFUNC INTX_T NAMESPACED(unsigned_left_shifted)(INTX_T x, INTX_T y) { return (INTX_T)((UINTX_T)x << y); }
+MACROLIKE PUREFUNC INTX_T NAMESPACED(unsigned_left_shifted)(INTX_T x, INTX_T y) {
+    return (INTX_T)((UINTX_T)x << y);
+}
 
-MACROLIKE PUREFUNC INTX_T NAMESPACED(unsigned_right_shifted)(INTX_T x, INTX_T y) { return (INTX_T)((UINTX_T)x >> y); }
+MACROLIKE PUREFUNC INTX_T NAMESPACED(unsigned_right_shifted)(INTX_T x, INTX_T y) {
+    return (INTX_T)((UINTX_T)x >> y);
+}
 
 void NAMESPACED(serialize)(const void *obj, FILE *out, Table_t *, const TypeInfo_t *);
 void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *, const TypeInfo_t *);

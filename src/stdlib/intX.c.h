@@ -104,7 +104,9 @@ Text_t NAMESPACED(as_text)(const void *i, bool colorize, const TypeInfo_t *info)
     return colorize ? Text$concat(Text("\033[35m"), text, Text("\033[m")) : text;
 }
 public
-Text_t NAMESPACED(value_as_text)(INT_T i) { return _int64_to_text((int64_t)i); }
+Text_t NAMESPACED(value_as_text)(INT_T i) {
+    return _int64_to_text((int64_t)i);
+}
 public
 PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
@@ -120,7 +122,9 @@ CONSTFUNC bool NAMESPACED(is_between)(const INT_T x, const INT_T low, const INT_
     return low <= x && x <= high;
 }
 public
-CONSTFUNC INT_T NAMESPACED(clamped)(INT_T x, INT_T min, INT_T max) { return x < min ? min : (x > max ? max : x); }
+CONSTFUNC INT_T NAMESPACED(clamped)(INT_T x, INT_T min, INT_T max) {
+    return x < min ? min : (x > max ? max : x);
+}
 public
 Text_t NAMESPACED(hex)(INT_T i, Int_t digits_int, bool uppercase, bool prefix) {
     Int_t as_int = Int$from_int64((int64_t)i);

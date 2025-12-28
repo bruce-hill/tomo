@@ -8,7 +8,9 @@
 #include "../types.h"
 #include "compilation.h"
 
-static Text_t quoted_str(const char *str) { return Text$quoted(Text$from_str(str), false, Text("\"")); }
+static Text_t quoted_str(const char *str) {
+    return Text$quoted(Text$from_str(str), false, Text("\""));
+}
 
 public
 bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *needed) {

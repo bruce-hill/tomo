@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
+#include <string.h> // IWYU pragma: export
 
 #include "datatypes.h"
 #include "lists.h"

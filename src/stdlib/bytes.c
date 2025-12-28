@@ -31,7 +31,9 @@ PUREFUNC public Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo
 }
 
 public
-CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high) { return low <= x && x <= high; }
+CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high) {
+    return low <= x && x <= high;
+}
 
 public
 OptionalByte_t Byte$parse(Text_t text, OptionalInt_t base, Text_t *remainder) {
@@ -68,7 +70,9 @@ public
 bool Byte$get_bit(Byte_t x, Int_t bit_index) {
     if (Int$compare_value(bit_index, I(1)) < 0) fail("Invalid bit index (expected 1 or higher): ", bit_index);
     if (Int$compare_value(bit_index, I(8)) > 0)
-        fail("Bit index is too large! There are only 8 bits in a byte, but index is: ", bit_index);
+        fail("Bit index is too large! There are only 8 bits in a byte, but index "
+             "is: ",
+             bit_index);
     return ((x & (Byte_t)(1L << (Int64$from_int(bit_index, true) - 1L))) != 0);
 }
 

@@ -99,7 +99,9 @@ Path_t Path$from_str(const char *str) {
 }
 
 public
-Path_t Path$from_text(Text_t text) { return Path$from_str(Text$as_c_string(text)); }
+Path_t Path$from_text(Text_t text) {
+    return Path$from_str(Text$as_c_string(text));
+}
 
 public
 Path_t Path$expand_home(Path_t path) {
@@ -646,7 +648,9 @@ OptionalPath_t Path$write_unique_bytes(Path_t path, List_t bytes) {
 }
 
 public
-OptionalPath_t Path$write_unique(Path_t path, Text_t text) { return Path$write_unique_bytes(path, Text$utf8(text)); }
+OptionalPath_t Path$write_unique(Path_t path, Text_t text) {
+    return Path$write_unique_bytes(path, Text$utf8(text));
+}
 
 public
 OptionalPath_t Path$parent(Path_t path) {
@@ -710,7 +714,9 @@ Path_t Path$child(Path_t path, Text_t name) {
 }
 
 public
-Path_t Path$sibling(Path_t path, Text_t name) { return Path$child(Path$parent(path), name); }
+Path_t Path$sibling(Path_t path, Text_t name) {
+    return Path$child(Path$parent(path), name);
+}
 
 public
 OptionalPath_t Path$with_extension(Path_t path, Text_t extension, bool replace) {
@@ -866,7 +872,9 @@ int Path$print(FILE *f, Path_t path) {
 }
 
 public
-const char *Path$as_c_string(Path_t path) { return String(path); }
+const char *Path$as_c_string(Path_t path) {
+    return String(path);
+}
 
 public
 Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type) {

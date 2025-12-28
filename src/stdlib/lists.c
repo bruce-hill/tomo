@@ -441,10 +441,14 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
 }
 
 public
-List_t List$from(List_t list, Int_t first) { return List$slice(list, first, I_small(-1)); }
+List_t List$from(List_t list, Int_t first) {
+    return List$slice(list, first, I_small(-1));
+}
 
 public
-List_t List$to(List_t list, Int_t last) { return List$slice(list, I_small(1), last); }
+List_t List$to(List_t list, Int_t last) {
+    return List$slice(list, I_small(1), last);
+}
 
 public
 List_t List$by(List_t list, Int_t int_stride, int64_t padded_item_size) {
@@ -555,7 +559,9 @@ bool List$has(List_t list, void *item, const TypeInfo_t *type) {
 }
 
 public
-void List$clear(List_t *list) { *list = list->atomic ? EMPTY_ATOMIC_LIST : EMPTY_LIST; }
+void List$clear(List_t *list) {
+    *list = list->atomic ? EMPTY_ATOMIC_LIST : EMPTY_LIST;
+}
 
 public
 int32_t List$compare(const void *vx, const void *vy, const TypeInfo_t *type) {

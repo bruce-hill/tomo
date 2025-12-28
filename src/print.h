@@ -83,10 +83,18 @@ int _print_double(FILE *f, double x);
 int _print_hex(FILE *f, hex_format_t hex);
 int _print_hex_double(FILE *f, hex_double_t hex);
 int _print_oct(FILE *f, oct_format_t oct);
-PRINT_FN _print_float(FILE *f, float x) { return _print_double(f, (double)x); }
-PRINT_FN _print_pointer(FILE *f, void *p) { return _print_hex(f, hex((uint64_t)p)); }
-PRINT_FN _print_bool(FILE *f, bool b) { return fputs(b ? "yes" : "no", f); }
-PRINT_FN _print_str(FILE *f, const char *s) { return fputs(s ? s : "(null)", f); }
+PRINT_FN _print_float(FILE *f, float x) {
+    return _print_double(f, (double)x);
+}
+PRINT_FN _print_pointer(FILE *f, void *p) {
+    return _print_hex(f, hex((uint64_t)p));
+}
+PRINT_FN _print_bool(FILE *f, bool b) {
+    return fputs(b ? "yes" : "no", f);
+}
+PRINT_FN _print_str(FILE *f, const char *s) {
+    return fputs(s ? s : "(null)", f);
+}
 int _print_char(FILE *f, char c);
 int _print_quoted(FILE *f, quoted_t quoted);
 PRINT_FN _print_string_slice(FILE *f, string_slice_t slice) {

@@ -68,7 +68,9 @@ PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInf
 }
 #elif NUMX_C_H__BITS == 32
 public
-PUREFUNC Text_t NAMESPACED(value_as_text)(NUM_T x) { return Num$value_as_text((double)x); }
+PUREFUNC Text_t NAMESPACED(value_as_text)(NUM_T x) {
+    return Num$value_as_text((double)x);
+}
 public
 PUREFUNC Text_t NAMESPACED(as_text)(const void *x, bool colorize, const TypeInfo_t *info) {
     (void)info;
@@ -185,7 +187,9 @@ CONSTFUNC NUM_T NAMESPACED(mod1)(NUM_T num, NUM_T modulus) {
 }
 
 public
-CONSTFUNC NUM_T NAMESPACED(mix)(NUM_T amount, NUM_T x, NUM_T y) { return (SUFFIXED(1.0) - amount) * x + amount * y; }
+CONSTFUNC NUM_T NAMESPACED(mix)(NUM_T amount, NUM_T x, NUM_T y) {
+    return (SUFFIXED(1.0) - amount) * x + amount * y;
+}
 
 public
 CONSTFUNC bool NAMESPACED(is_between)(const NUM_T x, const NUM_T low, const NUM_T high) {
@@ -222,11 +226,17 @@ CONSTFUNC bool NAMESPACED(is_none)(const void *n, const TypeInfo_t *info) {
 }
 
 public
-CONSTFUNC bool NAMESPACED(isinf)(NUM_T n) { return (fpclassify(n) == FP_INFINITE); }
+CONSTFUNC bool NAMESPACED(isinf)(NUM_T n) {
+    return (fpclassify(n) == FP_INFINITE);
+}
 public
-CONSTFUNC bool NAMESPACED(finite)(NUM_T n) { return (fpclassify(n) != FP_INFINITE); }
+CONSTFUNC bool NAMESPACED(finite)(NUM_T n) {
+    return (fpclassify(n) != FP_INFINITE);
+}
 public
-CONSTFUNC bool NAMESPACED(isnan)(NUM_T n) { return (fpclassify(n) == FP_NAN); }
+CONSTFUNC bool NAMESPACED(isnan)(NUM_T n) {
+    return (fpclassify(n) == FP_NAN);
+}
 
 public
 const TypeInfo_t NAMESPACED(info) = {

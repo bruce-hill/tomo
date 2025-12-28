@@ -33,7 +33,9 @@ static inline Text_t Text_from_str_literal(const char *str) {
     return (Text_t){.length = strlen(str), .tag = TEXT_ASCII, .ascii = str};
 }
 
-static inline Text_t Text_from_text(Text_t t) { return t; }
+static inline Text_t Text_from_text(Text_t t) {
+    return t;
+}
 
 #define convert_to_text(x)                                                                                             \
     _Generic(x,                                                                                                        \

@@ -431,7 +431,9 @@ PUREFUNC Closure_t Int$onward(Int_t first, Int_t step) {
 }
 
 public
-Int_t Int$from_str(const char *str) { return Int$parse(Text$from_str(str), NONE_INT, NULL); }
+Int_t Int$from_str(const char *str) {
+    return Int$parse(Text$from_str(str), NONE_INT, NULL);
+}
 
 public
 OptionalInt_t Int$parse(Text_t text, OptionalInt_t base, Text_t *remainder) {

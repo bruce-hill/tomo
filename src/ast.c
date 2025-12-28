@@ -85,7 +85,9 @@ static Text_t tags_to_sexp(tag_ast_t *tags);
 static Text_t optional_sexp(const char *tag, ast_t *ast);
 static Text_t optional_type_sexp(const char *tag, type_ast_t *ast);
 
-static Text_t quoted_text(const char *text) { return Text$quoted(Text$from_str(text), false, Text("\"")); }
+static Text_t quoted_text(const char *text) {
+    return Text$quoted(Text$from_str(text), false, Text("\""));
+}
 
 Text_t ast_list_to_sexp(ast_list_t *asts) {
     Text_t c = EMPTY_TEXT;
@@ -281,7 +283,9 @@ Text_t ast_to_sexp(ast_t *ast) {
     }
 }
 
-const char *ast_to_sexp_str(ast_t *ast) { return Text$as_c_string(ast_to_sexp(ast)); }
+const char *ast_to_sexp_str(ast_t *ast) {
+    return Text$as_c_string(ast_to_sexp(ast));
+}
 
 OptionalText_t ast_source(ast_t *ast) {
     if (ast == NULL || ast->start == NULL || ast->end == NULL) return NONE_TEXT;
