@@ -134,7 +134,7 @@ void *List$random(List_t list, OptionalClosure_t random_int64);
 #define List$random_value(list, random_int64, t)                                                                       \
     ({                                                                                                                 \
         List_t _list_expr = list;                                                                                      \
-        if (_list_expr.length == 0) fail("Cannot get a random value from an empty list!");                             \
+        if (_list_expr.length == 0) fail_text(Text("Cannot get a random value from an empty list!"));                  \
         *(t *)List$random(_list_expr, random_int64);                                                                   \
     })
 List_t List$sample(List_t list, Int_t n, List_t weights, Closure_t random_num, int64_t padded_item_size);
