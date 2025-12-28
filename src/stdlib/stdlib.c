@@ -159,10 +159,14 @@ void tomo_init(void) {
 }
 
 public
-_Noreturn void fail_text(Text_t message) { fail(message); }
+_Noreturn void fail_text(Text_t message) {
+    fail(message);
+}
 
 public
-Text_t builtin_last_err() { return Text$from_str(strerror(errno)); }
+Text_t builtin_last_err() {
+    return Text$from_str(strerror(errno));
+}
 
 static int _inspect_depth = 0;
 static file_t *file = NULL;
@@ -328,7 +332,9 @@ typedef struct cleanup_s {
 static cleanup_t *cleanups = NULL;
 
 public
-void tomo_at_cleanup(Closure_t fn) { cleanups = new (cleanup_t, .cleanup_fn = fn, .next = cleanups); }
+void tomo_at_cleanup(Closure_t fn) {
+    cleanups = new (cleanup_t, .cleanup_fn = fn, .next = cleanups);
+}
 
 public
 void tomo_cleanup(void) {

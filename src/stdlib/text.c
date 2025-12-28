@@ -669,10 +669,14 @@ Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int) {
 }
 
 public
-Text_t Text$from(Text_t text, Int_t first) { return Text$slice(text, first, I_small(-1)); }
+Text_t Text$from(Text_t text, Int_t first) {
+    return Text$slice(text, first, I_small(-1));
+}
 
 public
-Text_t Text$to(Text_t text, Int_t last) { return Text$slice(text, I_small(1), last); }
+Text_t Text$to(Text_t text, Int_t last) {
+    return Text$slice(text, I_small(1), last);
+}
 
 public
 Text_t Text$reversed(Text_t text) {
@@ -814,7 +818,9 @@ OptionalText_t Text$from_strn(const char *str, size_t len) {
 }
 
 public
-OptionalText_t Text$from_str(const char *str) { return str ? Text$from_strn(str, strlen(str)) : Text(""); }
+OptionalText_t Text$from_str(const char *str) {
+    return str ? Text$from_strn(str, strlen(str)) : Text("");
+}
 
 static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t *i) {
     switch (text.tag) {

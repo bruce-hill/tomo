@@ -136,7 +136,9 @@ bool type_is_a(type_t *t, type_t *req) {
     return false;
 }
 
-type_t *non_optional(type_t *t) { return t->tag == OptionalType ? Match(t, OptionalType)->type : t; }
+type_t *non_optional(type_t *t) {
+    return t->tag == OptionalType ? Match(t, OptionalType)->type : t;
+}
 
 PUREFUNC type_t *value_type(type_t *t) {
     while (t->tag == PointerType)
@@ -457,7 +459,9 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
     return false;
 }
 
-PUREFUNC bool is_int_type(type_t *t) { return t->tag == IntType || t->tag == BigIntType || t->tag == ByteType; }
+PUREFUNC bool is_int_type(type_t *t) {
+    return t->tag == IntType || t->tag == BigIntType || t->tag == ByteType;
+}
 
 PUREFUNC bool is_numeric_type(type_t *t) {
     return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == ByteType;
