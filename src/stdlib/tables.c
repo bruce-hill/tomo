@@ -317,7 +317,7 @@ CONSTFUNC public void *Table$entry(Table_t t, int64_t n) {
 }
 
 public
-void Table$clear(Table_t *t) { memset(t, 0, sizeof(Table_t)); }
+void Table$clear(Table_t *t) { *t = EMPTY_TABLE; }
 
 public
 Table_t Table$sorted(Table_t t, const TypeInfo_t *type) {
