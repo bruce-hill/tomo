@@ -1,7 +1,7 @@
 // Failure functions
 #include <errno.h>
 #include <signal.h>
-#include <stdio.h> // IWYU pragma: export
+#include <stdio.h>
 
 #include "../util.h"
 #include "fail.h"

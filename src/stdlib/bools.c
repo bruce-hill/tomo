@@ -1,6 +1,5 @@
 // Boolean methods/type info
 #include <err.h>
-#include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/param.h>
