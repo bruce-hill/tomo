@@ -336,17 +336,19 @@ typedef struct {
 static Result_t _write_bytes_to_fd(List_t bytes, bool close_file, void *userdata) {
     writer_data_t *data = userdata;
     if (bytes.length > 0) {
-        int fd = open(data->path_str, data->mode, data->permissions);
-        if (fd == -1) {
-            if (errno == EMFILE || errno == ENFILE) {
-                // If we hit file handle limits, run GC collection to try to clean up any lingering file handles that
-                // will be closed by GC finalizers.
-                GC_gcollect();
-                fd = open(data->path_str, data->mode, data->permissions);
+        if (data->fd == -1) {
+            data->fd = open(data->path_str, data->mode, data->permissions);
+            if (data->fd == -1) {
+                if (errno == EMFILE || errno == ENFILE) {
+                    // If we hit file handle limits, run GC collection to try to clean up any lingering file handles
+                    // that will be closed by GC finalizers.
+                    GC_gcollect();
+                    data->fd = open(data->path_str, data->mode, data->permissions);
+                }
+                if (data->fd == -1)
+                    return FailureResult("Could not write to file: ", data->path_str, " (", strerror(errno), ")");
             }
-            if (fd == -1) return FailureResult("Could not write to file: ", data->path_str, " (", strerror(errno), ")");
         }
-        data->fd = fd;
 
         if (bytes.stride != 1) List$compact(&bytes, 1);
         ssize_t written = write(data->fd, bytes.data, (size_t)bytes.length);
