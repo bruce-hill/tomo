@@ -97,7 +97,7 @@ endif
 EXE_FILE=tomo@$(TOMO_VERSION)
 
 COMPILER_OBJS=$(patsubst %.c,%.o,$(wildcard src/*.c src/compile/*.c src/parse/*.c src/formatter/*.c))
-STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c)) src/print.o
+STDLIB_OBJS=$(patsubst %.c,%.o,$(wildcard src/stdlib/*.c))
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm))
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
@@ -140,10 +140,7 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) build/gc/lib/libgc
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
 $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) build/gc/lib/libgc.a build/unistring/lib/libunistring.a build/gmp/lib/libgmp.a | $(BUILD_DIR)/lib
-	$(CC) -no-pie -r -flto -nostdlib \
-		src/stdlib/*.o src/print.o \
-		build/gc/lib/libgc.a build/gmp/lib/libgmp.a build/unistring/lib/libunistring.a \
-		-o libtomo.o
+	$(CC) -no-pie -r -flto -nostdlib $^ -o libtomo.o
 	ar rcs $@ libtomo.o
 
 $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)

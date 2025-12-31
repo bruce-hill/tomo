@@ -8,8 +8,8 @@
 #include <uniname.h>
 
 #include "../ast.h"
-#include "../print.h"
 #include "../stdlib/datatypes.h"
+#include "../stdlib/print.h"
 #include "../stdlib/text.h"
 #include "context.h"
 #include "errors.h"

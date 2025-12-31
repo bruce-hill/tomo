@@ -12,8 +12,8 @@
 #include <string.h>
 #include <sys/param.h>
 
-#include "../print.h"
 #include "files.h"
+#include "print.h"
 #include "util.h"
 
 static const int tabstop = 4;

@@ -9,7 +9,6 @@
 #pragma once
 
 #include <assert.h>
-#include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -18,12 +17,12 @@
 #include <sys/param.h>
 #include <unistd.h>
 
-#include "stdlib/bigint.h" // IWYU pragma: export
-#include "stdlib/datatypes.h" // IWYU pragma: export
-#include "stdlib/integers.h" // IWYU pragma: export
-#include "stdlib/mapmacro.h"
-#include "stdlib/paths.h" // IWYU pragma: export
-#include "stdlib/text.h" // IWYU pragma: export
+#include "bigint.h" // IWYU pragma: export
+#include "datatypes.h" // IWYU pragma: export
+#include "integers.h" // IWYU pragma: export
+#include "mapmacro.h"
+#include "paths.h" // IWYU pragma: export
+#include "text.h" // IWYU pragma: export
 
 // GCC lets you define macro-like functions which are always inlined and never
 // compiled using this combination of flags. See: https://gcc.gnu.org/onlinedocs/gcc/Inline.html

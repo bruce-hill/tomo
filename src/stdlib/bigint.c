@@ -10,11 +10,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../print.h"
 #include "../util.h"
 #include "datatypes.h"
 #include "integers.h"
 #include "optionals.h"
+#include "print.h"
 #include "siphash.h"
 #include "text.h"
 #include "types.h"

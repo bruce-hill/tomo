@@ -17,7 +17,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "../print.h"
 #include "../unistr-fixed.h"
 #include "../util.h"
 #include "enums.h"
@@ -25,6 +24,7 @@
 #include "lists.h"
 #include "optionals.h"
 #include "paths.h"
+#include "print.h"
 #include "structs.h"
 #include "text.h"
 #include "types.h"

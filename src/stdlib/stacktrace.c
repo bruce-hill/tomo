@@ -15,7 +15,7 @@
 #include <unistd.h>
 
 #include "../config.h"
-#include "../print.h"
+#include "print.h"
 #include "simpleparse.h"
 #include "util.h"
 

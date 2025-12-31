@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "print.h" // IWYU pragma: export
 #include "stdlib/datatypes.h"
+#include "stdlib/print.h" // IWYU pragma: export
 #include "stdlib/stdlib.h" // IWYU pragma: export
 #include "types.h"
 

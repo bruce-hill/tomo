@@ -4,9 +4,9 @@
 #include <signal.h> // IWYU pragma: export
 #include <stdio.h> // IWYU pragma: export
 
+#include "./stdlib/print.h" // IWYU pragma: export
 #include "./stdlib/stacktrace.h" // IWYU pragma: export
 #include "./stdlib/util.h" // IWYU pragma: export
-#include "print.h" // IWYU pragma: export
 #include "stdlib/stdlib.h" // IWYU pragma: export
 
 #define new(t, ...) ((t *)memcpy(GC_MALLOC(sizeof(t)), &(t){__VA_ARGS__}, sizeof(t)))

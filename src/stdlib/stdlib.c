@@ -14,12 +14,12 @@
 #include <time.h>
 
 #include "../config.h"
-#include "../print.h"
 #include "../util.h"
 #include "files.h"
 #include "metamethods.h"
 #include "optionals.h"
 #include "paths.h"
+#include "print.h"
 #include "siphash.h"
 #include "stacktrace.h"
 #include "stdlib.h"

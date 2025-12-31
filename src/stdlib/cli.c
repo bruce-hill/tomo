@@ -11,7 +11,6 @@
 #include <time.h>
 
 #include "../config.h"
-#include "../print.h"
 #include "bools.h"
 #include "bytes.h"
 #include "c_strings.h"
@@ -21,6 +20,7 @@
 #include "nums.h"
 #include "optionals.h"
 #include "paths.h"
+#include "print.h"
 #include "stdlib.h"
 #include "tables.h"
 #include "text.h"
