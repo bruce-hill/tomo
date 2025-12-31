@@ -141,10 +141,6 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) build/gc/lib/libgc
 
 $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) build/gc/lib/libgc.a build/unistring/lib/libunistring.a build/gmp/lib/libgmp.a | $(BUILD_DIR)/lib
 	$(CC) -no-pie -r -nostdlib $^ -o libtomo.o
-	strip --strip-all --strip-unneeded --remove-section=.comment \
-      --remove-section=.note --remove-section=.note.gnu.build-id \
-      --remove-section=.eh_frame --remove-section=.eh_frame_hdr \
-      --remove-section=.gnu_debuglink libtomo.o
 	ar rcs $@ libtomo.o
 	rm -f libtomo.o
 
