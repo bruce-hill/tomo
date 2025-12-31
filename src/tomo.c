@@ -81,7 +81,6 @@ static OptionalText_t show_codegen = NONE_TEXT,
                       cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs"
                                     " -ffunction-sections -fdata-sections"
                                     " -fno-signed-zeros"
-                                    " -flto=auto -fno-fat-lto-objects -Wl,-flto"
                                     " -D_XOPEN_SOURCE -D_DEFAULT_SOURCE -fPIC -ggdb"
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
                                     " -D_BSD_SOURCE"

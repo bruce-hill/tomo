@@ -83,7 +83,7 @@ O=-O3
 # Note: older versions of Make have buggy behavior with hash marks inside strings, so this ugly code is necessary:
 TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print $$2; exit}' CHANGES.md)
 GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h" 2>/dev/null || echo "unknown")
-CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
+CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) \
 	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
@@ -140,8 +140,13 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) build/gc/lib/libgc
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
 $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) build/gc/lib/libgc.a build/unistring/lib/libunistring.a build/gmp/lib/libgmp.a | $(BUILD_DIR)/lib
-	$(CC) -no-pie -r -flto -nostdlib $^ -o libtomo.o
+	$(CC) -no-pie -r -nostdlib $^ -o libtomo.o
+	strip --strip-all --strip-unneeded --remove-section=.comment \
+      --remove-section=.note --remove-section=.note.gnu.build-id \
+      --remove-section=.eh_frame --remove-section=.eh_frame_hdr \
+      --remove-section=.gnu_debuglink libtomo.o
 	ar rcs $@ libtomo.o
+	rm -f libtomo.o
 
 $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	@cat $^ > $@
