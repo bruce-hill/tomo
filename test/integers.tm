@@ -94,6 +94,7 @@ func main()
 
 	assert (3).is_between(1, 5) == yes
 	assert (3).is_between(1, 3) == yes
+	assert (3).is_between(5, 1) == yes
 	assert (3).is_between(100, 200) == no
 
 	assert (6).get_bit(1) == no

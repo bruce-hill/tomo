@@ -193,7 +193,7 @@ CONSTFUNC NUM_T NAMESPACED(mix)(NUM_T amount, NUM_T x, NUM_T y) {
 
 public
 CONSTFUNC bool NAMESPACED(is_between)(const NUM_T x, const NUM_T low, const NUM_T high) {
-    return low <= x && x <= high;
+    return (low <= x && x <= high) || (high <= x && x <= low);
 }
 public
 CONSTFUNC NUM_T NAMESPACED(clamped)(NUM_T x, NUM_T low, NUM_T high) {

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2025 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.is_between 3 2025-11-29 "Tomo man-pages"
+.TH Byte.is_between 3 2025-12-31 "Tomo man-pages"
 .SH NAME
 Byte.is_between \- test if inside a range
 .SH LIBRARY
@@ -23,15 +23,16 @@ lb lb lbx
 l l l.
 Name	Type	Description
 x	Byte	The integer to be checked. 
-low	Byte	The lower bound to check (inclusive). 
-high	Byte	The upper bound to check (inclusive). 
+low	Byte	One end of the range to check (inclusive); 
+high	Byte	The other end of the range to check (inclusive); 
 .TE
 .SH RETURN
-`yes` if `low <= x and x <= high`, otherwise `no`
+`yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 .SH EXAMPLES
 .EX
 assert Byte(7).is_between(1, 10) == yes
+assert Byte(7).is_between(10, 1) == yes
 assert Byte(7).is_between(100, 200) == no
 assert Byte(7).is_between(1, 7) == yes
 .EE

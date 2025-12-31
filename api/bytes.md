@@ -62,15 +62,16 @@ Determines if an integer is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Byte` | The integer to be checked.  | -
-low | `Byte` | The lower bound to check (inclusive).  | -
-high | `Byte` | The upper bound to check (inclusive).  | -
+low | `Byte` | One end of the range to check (inclusive);  | -
+high | `Byte` | The other end of the range to check (inclusive);  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 
 **Example:**
 ```tomo
 assert Byte(7).is_between(1, 10) == yes
+assert Byte(7).is_between(10, 1) == yes
 assert Byte(7).is_between(100, 200) == no
 assert Byte(7).is_between(1, 7) == yes
 

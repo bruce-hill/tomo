@@ -57,7 +57,7 @@ Byte.is_between:
   return:
     type: 'Bool'
     description: >
-      `yes` if `low <= x and x <= high`, otherwise `no`
+      `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
   args:
     x:
       type: 'Byte'
@@ -66,13 +66,14 @@ Byte.is_between:
     low:
       type: 'Byte'
       description: >
-        The lower bound to check (inclusive).
+        One end of the range to check (inclusive);
     high:
       type: 'Byte'
       description: >
-        The upper bound to check (inclusive).
+        The other end of the range to check (inclusive);
   example: |
     assert Byte(7).is_between(1, 10) == yes
+    assert Byte(7).is_between(10, 1) == yes
     assert Byte(7).is_between(100, 200) == no
     assert Byte(7).is_between(1, 7) == yes
 
