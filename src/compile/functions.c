@@ -633,6 +633,7 @@ static void check_unused_vars(env_t *env, arg_ast_t *args, ast_t *body) {
         // Global/file scoped vars are okay to mutate without reading
         if (get_binding(env, entry->name) != NULL) continue;
         ast_t *var = Table$str_get(assigned_vars, entry->name);
+        assert(var);
         code_err(var, "This variable was assigned to, but never read from.");
     }
 }

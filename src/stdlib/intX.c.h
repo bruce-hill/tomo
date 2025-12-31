@@ -116,7 +116,7 @@ PUREFUNC bool NAMESPACED(equal)(const void *x, const void *y, const TypeInfo_t *
 }
 public
 CONSTFUNC bool NAMESPACED(is_between)(const INT_T x, const INT_T low, const INT_T high) {
-    return low <= x && x <= high;
+    return (low <= x && x <= high) || (high <= x && x <= low);
 }
 public
 CONSTFUNC INT_T NAMESPACED(clamped)(INT_T x, INT_T min, INT_T max) {

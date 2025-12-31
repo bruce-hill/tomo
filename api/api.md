@@ -295,15 +295,16 @@ Determines if an integer is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Byte` | The integer to be checked.  | -
-low | `Byte` | The lower bound to check (inclusive).  | -
-high | `Byte` | The upper bound to check (inclusive).  | -
+low | `Byte` | One end of the range to check (inclusive);  | -
+high | `Byte` | The other end of the range to check (inclusive);  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 
 **Example:**
 ```tomo
 assert Byte(7).is_between(1, 10) == yes
+assert Byte(7).is_between(10, 1) == yes
 assert Byte(7).is_between(100, 200) == no
 assert Byte(7).is_between(1, 7) == yes
 
@@ -545,7 +546,7 @@ assert (255).hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
 ## Int.is_between
 
 ```tomo
-Int.is_between : func(x: Int, low: Int, high: Int -> Bool)
+Int.is_between : func(x: Int, a: Int, b: Int -> Bool)
 ```
 
 Determines if an integer is between two numbers (inclusive).
@@ -553,15 +554,16 @@ Determines if an integer is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Int` | The integer to be checked.  | -
-low | `Int` | The lower bound to check (inclusive).  | -
-high | `Int` | The upper bound to check (inclusive).  | -
+a | `Int` | One end of the range to check (inclusive).  | -
+b | `Int` | The other end of the range to check (inclusive).  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `a >= x and x >= b`, otherwise `no`
 
 
 **Example:**
 ```tomo
 assert (7).is_between(1, 10) == yes
+assert (7).is_between(10, 1) == yes
 assert (7).is_between(100, 200) == no
 assert (7).is_between(1, 7) == yes
 
@@ -1949,15 +1951,16 @@ Determines if a number is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Num` | The integer to be checked.  | -
-low | `Num` | The lower bound to check (inclusive).  | -
-high | `Num` | The upper bound to check (inclusive).  | -
+low | `Num` | One end of the range to check (inclusive).  | -
+high | `Num` | The other end of the range to check (inclusive).  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 
 **Example:**
 ```tomo
 assert (7.5).is_between(1, 10) == yes
+assert (7.5).is_between(10, 1) == yes
 assert (7.5).is_between(100, 200) == no
 assert (7.5).is_between(1, 7.5) == yes
 

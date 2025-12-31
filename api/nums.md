@@ -574,15 +574,16 @@ Determines if a number is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Num` | The integer to be checked.  | -
-low | `Num` | The lower bound to check (inclusive).  | -
-high | `Num` | The upper bound to check (inclusive).  | -
+low | `Num` | One end of the range to check (inclusive).  | -
+high | `Num` | The other end of the range to check (inclusive).  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 
 **Example:**
 ```tomo
 assert (7.5).is_between(1, 10) == yes
+assert (7.5).is_between(10, 1) == yes
 assert (7.5).is_between(100, 200) == no
 assert (7.5).is_between(1, 7.5) == yes
 

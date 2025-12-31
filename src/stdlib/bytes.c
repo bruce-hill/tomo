@@ -31,7 +31,7 @@ PUREFUNC public Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo
 
 public
 CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high) {
-    return low <= x && x <= high;
+    return (low <= x && x <= high) || (high <= x && x <= low);
 }
 
 public

@@ -102,7 +102,9 @@ CONSTFUNC Int_t Int$clamped(Int_t x, Int_t low, Int_t high) {
 
 public
 CONSTFUNC bool Int$is_between(const Int_t x, const Int_t low, const Int_t high) {
-    return Int$compare_value(low, x) <= 0 && Int$compare_value(x, high) <= 0;
+    int32_t low_cmp = Int$compare_value(x, low);
+    int32_t high_cmp = Int$compare_value(x, high);
+    return (low_cmp >= 0 && high_cmp <= 0) || (low_cmp <= 0 && high_cmp >= 0);
 }
 
 public
