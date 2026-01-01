@@ -526,16 +526,6 @@ void install_library(Path_t lib_dir) {
         xsystem(as_owner, "cp -r '", lib_dir, "'/* '", dest, "/'");
         xsystem(as_owner, "cp -r '", lib_dir, "'/.build '", dest, "/'");
     }
-    // If we have `debugedit` on this system, use it to remap the debugging source information
-    // to point to the installed version of the source file. Otherwise, fail silently.
-    if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_name, ".a");
-    int result = system(String(as_owner, "debugedit -b ", lib_dir, " -d '", dest,
-                               "'"
-                               " '",
-                               dest, "/lib", lib_name, ".a",
-                               "' "
-                               ">/dev/null 2>/dev/null"));
-    (void)result;
     print("Installed \033[1m", lib_dir, "\033[m to ", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", lib_name);
 }
 

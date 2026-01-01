@@ -229,11 +229,7 @@ deps: build/gc/lib/libgc.a build/unistring/lib/libgc.a build/gmp/lib/libgmp.a
 build/gc/lib/libgc.a build/unistring/lib/libgc.a build/gmp/lib/libgmp.a:
 	$(MAKE) -C vendor
 
-check-utilities: check-c-compiler
-	@which debugedit 2>/dev/null >/dev/null \
-		|| printf '\033[33;1m%s\033[m\n' "I couldn't find 'debugedit' on your system! Try installing the package 'debugedit' with your package manager. (It's not required though)"
-
-install-files: build check-utilities
+install-files: build check-c-compiler
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		echo $$PATH; \
 		printf "\033[31;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
@@ -261,4 +257,4 @@ uninstall:
 endif
 
 .SUFFIXES:
-.PHONY: all build clean install install-files uninstall test tags core-libs examples deps check-utilities check-c-compiler version
+.PHONY: all build clean install install-files uninstall test tags core-libs examples deps check-c-compiler version
