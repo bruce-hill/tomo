@@ -72,8 +72,8 @@ static bool Int$is_none(const void *i, const TypeInfo_t *info) {
 public
 PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
     if (likely(x.small & y.small & 1L)) return (x.small > y.small) - (x.small < y.small);
-    else if (x.small & 1) return -mpz_cmp_si(y.big, x.small);
-    else if (y.small & 1) return mpz_cmp_si(x.big, y.small);
+    else if (x.small & 1) return -mpz_cmp_si(y.big, (x.small >> 2));
+    else if (y.small & 1) return mpz_cmp_si(x.big, (y.small >> 2));
     else return x.big == y.big ? 0 : mpz_cmp(x.big, y.big);
 }
 
