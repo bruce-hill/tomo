@@ -1,0 +1,42 @@
+'\" t
+.\" Copyright (c) 2025 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.byte_writer 3 2025-12-22 "Tomo man-pages"
+.SH NAME
+Path.byte_writer \- create a byte-based file writer
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.byte_writer\ :\ func(path:\ Path,\ append:\ Bool\ =\ no,\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ func(bytes:[Byte],\ close:Bool=no\ ->\ Result))
+.fi
+.SH DESCRIPTION
+Returns a function that can be used to repeatedly write bytes to the same file.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the file to write to. 	-
+append	Bool	If set to \fByes\fR, writes to the file will append. If set to \fBno\fR, then the first write to the file will overwrite its contents and subsequent calls will append. 	no
+permissions	Int32	The permissions to set on the file if it is created. 	Int32(0o644)
+.TE
+.SH RETURN
+Returns a function that can repeatedly write bytes to the same file. If `close` is set to `yes`, then the file will be closed after writing. If this function is called again after closing, the file will be reopened for appending.
+
+.SH NOTES
+The file writer will keep its file descriptor open after each write (unless the `close` argument is set to `yes`). If the file writer is never closed, it will be automatically closed when the file writer is garbage collected.
+
+.SH EXAMPLES
+.EX
+write := (./file.txt).byte_writer()
+write("Hello\[rs]n".utf8())!
+write("world\[rs]n".utf8(), close=yes)!
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

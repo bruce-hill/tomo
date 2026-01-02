@@ -55,12 +55,12 @@ public
 void NAMESPACED(serialize)(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
     (void)info, (void)pointers;
 #if INTX_C_H__INT_BITS < 32
-    fwrite(obj, sizeof(INT_T), 1, out);
+    if (fwrite(obj, sizeof(INT_T), 1, out) != sizeof(INT_T)) fail("Failed to write whole integer");
 #else
     INT_T i = *(INT_T *)obj;
     UINT_T z = (UINT_T)((i << 1L) ^ (i >> (INTX_C_H__INT_BITS - 1L))); // Zigzag encode
     while (z >= 0x80L) {
-        fputc((uint8_t)(z | 0x80L), out);
+        if (fputc((uint8_t)(z | 0x80L), out) == EOF) fail("Failed to write full integer");
         z >>= 7L;
     }
     fputc((uint8_t)z, out);
@@ -71,11 +71,13 @@ public
 void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info) {
     (void)info, (void)pointers;
 #if INTX_C_H__INT_BITS < 32
-    fread(outval, sizeof(INT_T), 1, in);
+    if (fread(outval, sizeof(INT_T), 1, in) != sizeof(INT_T)) fail("Failed to read full integer");
 #else
     UINT_T z = 0;
     for (size_t shift = 0;; shift += 7) {
-        uint8_t byte = (uint8_t)fgetc(in);
+        int i = fgetc(in);
+        if (i == EOF) fail("Failed to read whole integer");
+        uint8_t byte = (uint8_t)i;
         z |= ((UINT_T)(byte & 0x7F)) << shift;
         if ((byte & 0x80) == 0) break;
     }
@@ -96,10 +98,12 @@ Text_t NAMESPACED(as_text)(const void *i, bool colorize, const TypeInfo_t *info)
     (void)info;
     if (!i) return Text(NAME_STR);
     Text_t text = _int64_to_text((int64_t)(*(INT_T *)i));
-    return colorize ? Texts(Text("\033[35m"), text, Text("\033[m")) : text;
+    return colorize ? Text$concat(Text("\033[35m"), text, Text("\033[m")) : text;
 }
 public
-Text_t NAMESPACED(value_as_text)(INT_T i) { return _int64_to_text((int64_t)i); }
+Text_t NAMESPACED(value_as_text)(INT_T i) {
+    return _int64_to_text((int64_t)i);
+}
 public
 PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
@@ -112,10 +116,12 @@ PUREFUNC bool NAMESPACED(equal)(const void *x, const void *y, const TypeInfo_t *
 }
 public
 CONSTFUNC bool NAMESPACED(is_between)(const INT_T x, const INT_T low, const INT_T high) {
-    return low <= x && x <= high;
+    return (low <= x && x <= high) || (high <= x && x <= low);
 }
 public
-CONSTFUNC INT_T NAMESPACED(clamped)(INT_T x, INT_T min, INT_T max) { return x < min ? min : (x > max ? max : x); }
+CONSTFUNC INT_T NAMESPACED(clamped)(INT_T x, INT_T min, INT_T max) {
+    return x < min ? min : (x > max ? max : x);
+}
 public
 Text_t NAMESPACED(hex)(INT_T i, Int_t digits_int, bool uppercase, bool prefix) {
     Int_t as_int = Int$from_int64((int64_t)i);

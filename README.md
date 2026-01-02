@@ -1,3 +1,5 @@
+[![Release binaries](https://github.com/bruce-hill/tomo/actions/workflows/release.yml/badge.svg)](https://github.com/bruce-hill/tomo/releases)
+
 # Tomo - Tomorrow's Language
 
 Tomo is a statically typed, safe, simple, lightweight, efficient programming
@@ -34,6 +36,24 @@ For more examples, see [learnXinY](/examples/learnxiny.tm) which as an overview
 of many language features or the other example programs/modules in
 [examples/](examples/). You can also look at the [core libraries](lib/) which
 are implemented in Tomo.
+
+## Quick Installation
+
+### Arch User Repository (AUR)
+
+```
+yay -Sy tomo-bin
+```
+
+### Install Script
+
+If you don't want to build from source but just want to install, run this script:
+
+```
+curl -o /tmp/install_tomo.sh https://raw.githubusercontent.com/bruce-hill/tomo/refs/heads/main/install_script.sh \
+  && bash /tmp/install_tomo.sh
+rm -f /tmp/install_tomo.sh
+```
 
 ## Features
 

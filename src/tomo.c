@@ -14,7 +14,6 @@
 #endif
 
 #include "ast.h"
-#include "changes.md.h"
 #include "compile/cli.h"
 #include "compile/files.h"
 #include "compile/headers.h"
@@ -70,14 +69,9 @@ static const char *paths_str(List_t paths) {
     return Text$as_c_string(result);
 }
 
-#ifdef __APPLE__
-#define SHARED_SUFFIX ".dylib"
-#else
-#define SHARED_SUFFIX ".so"
-#endif
-
 static OptionalBool_t verbose = false, quiet = false, show_version = false, show_prefix = false, clean_build = false,
-                      source_mapping = true, show_changelog = false, should_install = false;
+                      source_mapping = true, should_install = false;
+static bool is_gcc = false, is_clang = false;
 
 static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
               transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
@@ -92,8 +86,8 @@ static OptionalText_t show_codegen = NONE_TEXT,
                                     " -D_BSD_SOURCE"
 #endif
                                     " -DGC_THREADS"),
-                      ldlibs = Text("-lgc -lm -lgmp -lunistring -ltomo@" TOMO_VERSION), ldflags = Text(""),
-                      optimization = Text("2"), cc = Text(DEFAULT_C_COMPILER);
+                      ldlibs = Text("-lgc -lm -lgmp -lunistring"), ldflags = Text(""), optimization = Text("2"),
+                      cc = Text(DEFAULT_C_COMPILER);
 
 static Text_t config_summary,
     // This will be either "" or "sudo -u <user>" or "doas -u <user>"
@@ -139,6 +133,9 @@ static List_t normalize_tm_paths(List_t paths) {
 }
 
 int main(int argc, char *argv[]) {
+    GC_INIT();
+    tomo_configure();
+
 #ifdef __linux__
     // Get the file modification time of the compiler, so we
     // can recompile files after changing the compiler:
@@ -168,7 +165,7 @@ int main(int argc, char *argv[]) {
 
     if (getenv("TOMO_PATH")) TOMO_PATH = getenv("TOMO_PATH");
 
-    cflags = Texts("-I'", TOMO_PATH, "/include' -I'", TOMO_PATH, "/lib/tomo@" TOMO_VERSION "' ", cflags);
+    cflags = Texts("-I'", TOMO_PATH, "/include' -I'", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "' ", cflags);
 
     // Set up environment variables:
     const char *PATH = getenv("PATH");
@@ -187,7 +184,7 @@ int main(int argc, char *argv[]) {
     // Run a tool:
     if ((streq(argv[1], "-r") || streq(argv[1], "--run")) && argc >= 3) {
         if (strcspn(argv[2], "/;$") == strlen(argv[2])) {
-            const char *program = String("'", TOMO_PATH, "'/lib/tomo@" TOMO_VERSION "/", argv[2], "/", argv[2]);
+            const char *program = String("'", TOMO_PATH, "'/lib/tomo@", TOMO_VERSION, "/", argv[2], "/", argv[2]);
             execv(program, &argv[2]);
         }
         print_err("This is not an installed tomo program: ", argv[2]);
@@ -219,7 +216,7 @@ int main(int argc, char *argv[]) {
                          "  --source-mapping|-m <yes|no>: toggle source mapping in generated code\n"
                          "  --changelog: show the Tomo changelog\n"
                          "  --run|-r: run a program from ",
-                         TOMO_PATH, "/share/tomo@" TOMO_VERSION "/installed\n");
+                         TOMO_PATH, "/share/tomo@", TOMO_VERSION, "/installed\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     cli_arg_t tomo_args[] = {
         {"run", &run_files, List$info(&Path$info), .short_flag = 'r'}, //
@@ -240,17 +237,11 @@ int main(int argc, char *argv[]) {
         {"optimization", &optimization, &Text$info, .short_flag = 'O'}, //
         {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f'}, //
         {"source-mapping", &source_mapping, &Bool$info, .short_flag = 'm'},
-        {"changelog", &show_changelog, &Bool$info}, //
     };
 
     tomo_parse_args(argc, argv, usage, help, TOMO_VERSION, sizeof(tomo_args) / sizeof(tomo_args[0]), tomo_args);
     if (show_prefix) {
         print(TOMO_PATH);
-        return 0;
-    }
-
-    if (show_changelog) {
-        print_inline(string_slice((const char *)CHANGES_md, (size_t)CHANGES_md_len));
         return 0;
     }
 
@@ -260,18 +251,20 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    bool is_gcc = (system(String(cc, " -v 2>&1 | grep -q 'gcc version'")) == 0);
+    is_gcc = (system(String(cc, " -v 2>&1 | grep -q 'gcc version'")) == 0);
     if (is_gcc) {
         cflags = Texts(cflags, Text(" -fsanitize=signed-integer-overflow -fno-sanitize-recover"
                                     " -fno-signaling-nans -fno-trapping-math -fno-finite-math-only"));
     }
 
-    bool is_clang = (system(String(cc, " -v 2>&1 | grep -q 'clang version'")) == 0);
+    is_clang = (system(String(cc, " -v 2>&1 | grep -q 'clang version'")) == 0);
     if (is_clang) {
         cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
     }
 
-    ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags);
+    ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections");
+    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections");
+    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip");
 
 #ifdef __APPLE__
     cflags = Texts(cflags, Text(" -I/opt/homebrew/include"));
@@ -293,7 +286,7 @@ int main(int argc, char *argv[]) {
     // Uninstall libraries:
     for (int64_t i = 0; i < (int64_t)uninstall_libraries.length; i++) {
         Text_t *u = (Text_t *)(uninstall_libraries.data + i * uninstall_libraries.stride);
-        xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo@" TOMO_VERSION "/", *u, " '", TOMO_PATH, "'/bin/", *u,
+        xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo@", TOMO_VERSION, "/", *u, " '", TOMO_PATH, "'/bin/", *u,
                 " '", TOMO_PATH, "'/man/man1/", *u, ".1");
         print("Uninstalled ", *u);
     }
@@ -400,6 +393,32 @@ int main(int argc, char *argv[]) {
 
     run_files = normalize_tm_paths(run_files);
 
+    if (run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0 && parse_files.length == 0
+        && transpile_files.length == 0 && compile_objects.length == 0 && compile_executables.length == 0
+        && run_files.length == 0 && uninstall_libraries.length == 0 && libraries.length == 0) {
+        Path_t path = Path$from_str(String("~/.local/tomo/state/tomo@", TOMO_VERSION, "/run.tm"));
+        path = Path$expand_home(path);
+        Path$create_directory(Path$parent(path), 0755, true);
+        if (!Path$exists(path)) {
+            Path$write(path,
+                       Text("# This is a handy Tomo REPL-like runner\n" //
+                            "# Normally you would run `tomo ./file.tm` to run a script\n" //
+                            "# See `tomo --help` for full usage\n" //
+                            "\n" //
+                            "func main()\n" //
+                            "    # Put your code here:\n" //
+                            "    pass\n" //
+                            "\n" //
+                            "# Save and exit to run\n"),
+                       0644);
+        }
+        List$insert(&run_files, &path, I(0), sizeof(path));
+        const char *editor = getenv("EDITOR");
+        if (!editor || editor[0] == '\0') editor = "vim";
+        int status = system(String(editor, " ", path));
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) return 1;
+    }
+
     // Compile runnable files in parallel, then execute in serial:
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
         Path_t path = *(Path_t *)(run_files.data + i * run_files.stride);
@@ -484,33 +503,21 @@ void build_library(Path_t lib_dir) {
     compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
 
     Text_t lib_name = get_library_name(lib_dir);
-    Path_t shared_lib = Path$child(lib_dir, Texts(Text("lib"), lib_name, Text(SHARED_SUFFIX)));
-    if (!is_stale_for_any(shared_lib, object_files, false)) {
-        if (verbose) whisper("Unchanged: ", shared_lib);
-        return;
+    Path_t archive = Path$child(lib_dir, Texts(Text("lib"), lib_name, ".a"));
+    if (is_stale_for_any(archive, object_files, false)) {
+        FILE *prog = run_cmd("ar -rcs '", archive, "' ", paths_str(object_files));
+        if (!prog) print_err("Failed to run `ar`");
+        int status = pclose(prog);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
+        if (!quiet) print("Compiled static library:\t", Path$relative_to(archive, Path$current_dir()));
+    } else {
+        if (verbose) whisper("Unchanged: ", archive);
     }
-
-    FILE *prog = run_cmd(cc, " -O", optimization, " ", cflags, " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
-#ifdef __APPLE__
-                         " -Wl,-install_name,@rpath/'lib", lib_name, SHARED_SUFFIX,
-                         "'"
-#else
-                         " -Wl,-soname,'lib", lib_name, SHARED_SUFFIX,
-                         "'"
-#endif
-                         " -shared ",
-                         paths_str(object_files), " -o '", shared_lib, "'");
-
-    if (!prog) print_err("Failed to run C compiler: ", cc);
-    int status = pclose(prog);
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
-
-    if (!quiet) print("Compiled library:\t", Path$relative_to(shared_lib, Path$current_dir()));
 }
 
 void install_library(Path_t lib_dir) {
     Text_t lib_name = get_library_name(lib_dir);
-    Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION)), lib_name);
+    Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION)), lib_name);
     print("Installing ", lib_dir, " into ", dest);
     if (!Enum$equal(&lib_dir, &dest, &Path$info)) {
         if (verbose) whisper("Clearing out any pre-existing version of ", lib_name);
@@ -522,15 +529,15 @@ void install_library(Path_t lib_dir) {
     }
     // If we have `debugedit` on this system, use it to remap the debugging source information
     // to point to the installed version of the source file. Otherwise, fail silently.
-    if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_name, SHARED_SUFFIX);
+    if (verbose) whisper("Updating debug symbols for ", dest, "/lib", lib_name, ".a");
     int result = system(String(as_owner, "debugedit -b ", lib_dir, " -d '", dest,
                                "'"
                                " '",
-                               dest, "/lib", lib_name, SHARED_SUFFIX,
+                               dest, "/lib", lib_name, ".a",
                                "' "
                                ">/dev/null 2>/dev/null"));
     (void)result;
-    print("Installed \033[1m", lib_dir, "\033[m to ", TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", lib_name);
+    print("Installed \033[1m", lib_dir, "\033[m to ", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", lib_name);
 }
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs, compile_mode_t mode) {
@@ -692,13 +699,12 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         case USE_MODULE: {
             module_info_t mod = get_used_module_info(stmt_ast);
             const char *full_name = mod.version ? String(mod.name, "@", mod.version) : mod.name;
-            Text_t lib = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", Text$from_str(full_name),
-                               "' '", TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", Text$from_str(full_name), "/lib",
-                               Text$from_str(full_name), SHARED_SUFFIX "'");
+            Text_t lib = Texts(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(full_name), "/lib",
+                               Text$from_str(full_name), ".a");
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
-            List_t children =
-                Path$glob(Path$from_str(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", full_name, "/[!._0-9]*.tm")));
+            List_t children = Path$glob(
+                Path$from_str(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", full_name, "/[!._0-9]*.tm")));
             for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t *child = (Path_t *)(children.data + i * children.stride);
                 Table_t discarded = {.entries = EMPTY_LIST, .fallback = to_compile};
@@ -920,8 +926,36 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     Path_t runner_file = build_file(path, ".runner.c");
     Path$write(runner_file, program, 0644);
 
-    FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, " ", ldlibs, " ",
-                           list_text(extra_ldlibs), " ", paths_str(object_files), " ", runner_file, " -o ", exe_path);
+    // .a archive files need to go later in the positional order:
+    List_t archives = EMPTY_LIST;
+    for (int64_t i = 0; i < (int64_t)extra_ldlibs.length;) {
+        Text_t *lib = (Text_t *)(extra_ldlibs.data + i * extra_ldlibs.stride);
+        if (Text$ends_with(*lib, Text(".a"), NULL)) {
+            List$insert(&archives, lib, I(0), sizeof(Text_t));
+            List$remove_at(&extra_ldlibs, I(i + 1), I(1), sizeof(Text_t));
+        } else {
+            i += 1;
+        }
+    }
+
+    FILE *runner = run_cmd(
+        cc,
+        // C flags:
+        " ", cflags, " -O", optimization,
+        // Linker flags and dynamically linked shared libraries:
+        " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
+        // Object files:
+        paths_str(object_files),
+        // Input file:
+        " ", runner_file,
+        // Statically linked archive files (must come after runner):
+        // Libraries are grouped to allow for circular dependencies among
+        // the libraries that are used.
+        " ", is_gcc ? Texts("-Wl,--start-group ", list_text(archives), " -Wl,--end-group") : list_text(archives),
+        // Tomo static library:
+        " ", TOMO_PATH, "/lib/libtomo@", TOMO_VERSION, ".a",
+        // Output file:
+        " -o ", exe_path);
 
     if (show_codegen.length > 0) {
         FILE *out = run_cmd(show_codegen);

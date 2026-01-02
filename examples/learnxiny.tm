@@ -19,7 +19,7 @@ func main()
     my_num := 2.0
 
     # Strings can use interpolation with the dollar sign $:
-    say("My variable is $my_variable and this is a sum: $(1 + 2)")
+    say("My variable is $my_variable, my num is $my_num, and this is a sum: $(1 + 2)")
 
     say("
         Multiline strings begin with a " at the end of a line and continue in
@@ -115,6 +115,7 @@ func main()
 
     # Empty tables require specifying the key and value types:
     empty_table : {Text:Int}
+    assert empty_table == {}
 
     # Tables can be iterated over either by key or key,value:
     for key in table

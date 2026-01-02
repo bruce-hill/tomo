@@ -72,8 +72,8 @@ static bool Int$is_none(const void *i, const TypeInfo_t *info) {
 public
 PUREFUNC int32_t Int$compare_value(const Int_t x, const Int_t y) {
     if (likely(x.small & y.small & 1L)) return (x.small > y.small) - (x.small < y.small);
-    else if (x.small & 1) return -mpz_cmp_si(y.big, x.small);
-    else if (y.small & 1) return mpz_cmp_si(x.big, y.small);
+    else if (x.small & 1) return -mpz_cmp_si(y.big, (x.small >> 2));
+    else if (y.small & 1) return mpz_cmp_si(x.big, (y.small >> 2));
     else return x.big == y.big ? 0 : mpz_cmp(x.big, y.big);
 }
 
@@ -102,7 +102,9 @@ CONSTFUNC Int_t Int$clamped(Int_t x, Int_t low, Int_t high) {
 
 public
 CONSTFUNC bool Int$is_between(const Int_t x, const Int_t low, const Int_t high) {
-    return Int$compare_value(low, x) <= 0 && Int$compare_value(x, high) <= 0;
+    int32_t low_cmp = Int$compare_value(x, low);
+    int32_t high_cmp = Int$compare_value(x, high);
+    return (low_cmp >= 0 && high_cmp <= 0) || (low_cmp <= 0 && high_cmp >= 0);
 }
 
 public
@@ -395,7 +397,9 @@ PUREFUNC Closure_t Int$onward(Int_t first, Int_t step) {
 }
 
 public
-Int_t Int$from_str(const char *str) { return Int$parse(Text$from_str(str), NONE_INT, NULL); }
+Int_t Int$from_str(const char *str) {
+    return Int$parse(Text$from_str(str), NONE_INT, NULL);
+}
 
 public
 OptionalInt_t Int$parse(Text_t text, OptionalInt_t base, Text_t *remainder) {

@@ -65,7 +65,7 @@ Text_t Enum$as_text(const void *obj, bool colorize, const TypeInfo_t *type) {
     NamedType_t value = type->EnumInfo.tags[tag - 1];
     if (!value.type || value.type->size == 0) {
         Text_t text = Text$from_str(value.name);
-        return colorize ? Texts(Text("\x1b[1m"), text, Text("\x1b[m")) : text;
+        return colorize ? Text$concat(Text("\x1b[1m"), text, Text("\x1b[m")) : text;
     }
 
     return generic_as_text(obj + value_offset(type), colorize, value.type);

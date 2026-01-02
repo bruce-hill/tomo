@@ -15,6 +15,7 @@
 extern bool USE_COLOR;
 extern Text_t TOMO_VERSION_TEXT;
 
+void tomo_configure(void);
 void tomo_init(void);
 void tomo_at_cleanup(Closure_t fn);
 void tomo_cleanup(void);
@@ -36,7 +37,7 @@ void tomo_cleanup(void);
         exit(1);                                                                                                       \
     })
 
-#define fail_source(filename, start, end, ...)                                                                         \
+#define fail_source(filename, start, end, message)                                                                     \
     ({                                                                                                                 \
         tomo_cleanup();                                                                                                \
         fflush(stdout);                                                                                                \
@@ -45,7 +46,7 @@ void tomo_cleanup(void);
         print_stacktrace(stderr, 0);                                                                                   \
         fputs("\n", stderr);                                                                                           \
         if (USE_COLOR) fputs("\x1b[31;1m", stderr);                                                                    \
-        fprint_inline(stderr, __VA_ARGS__);                                                                            \
+        Text$print(stderr, message);                                                                                   \
         file_t *_file = (filename) ? load_file(filename) : NULL;                                                       \
         if ((filename) && _file) {                                                                                     \
             fputs("\n", stderr);                                                                                       \

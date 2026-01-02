@@ -135,7 +135,7 @@ Text_t compile_file_header(env_t *env, Path_t header_path, ast_t *ast) {
     Text_t header =
         Texts("#pragma once\n",
               env->do_source_mapping ? Texts("#line 1 ", quoted_str(ast->file->filename), "\n") : EMPTY_TEXT,
-              "#include <tomo@" TOMO_VERSION "/tomo.h>\n");
+              "#include <tomo@", TOMO_VERSION, "/tomo.h>\n");
 
     compile_typedef_info_t info = {.env = env, .header = &header, .header_path = header_path};
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn = (void *)_make_typedefs, &info});
@@ -161,7 +161,7 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
             module_info_t mod = get_used_module_info(ast);
             glob_t tm_files;
             const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
-            if (glob(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
+            if (glob(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
                      &tm_files)
                 != 0) {
                 if (!try_install_module(mod, true)) code_err(ast, "Could not find library");

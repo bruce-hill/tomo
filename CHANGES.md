@@ -1,6 +1,45 @@
 # Version History
 
-## v2025-12-06
+## v2025-12-31
+
+- Changed `is_between()` to be bidirectional so `(5).is_between(10, 1) == yes`
+
+## v2025-12-23.2
+
+- Fixes for OpenBSD and Mac.
+
+## v2025-12-23
+
+- Improved C preprocessing performance by eliminating expensive macro calls.
+
+## v2025-12-22
+
+- Use static linking instead of dynamic linking for the Tomo standard library
+  as well as for user libraries. This produces binaries that do not depend on
+  having Tomo and the library installed at runtime.
+- Added `Path.writer()` and `Path.byte_writer()` for multiple successive writes
+
+## v2025-12-21.6
+
+- Add smarter default behavior if run without any args (REPL-like script runner)
+
+## v2025-12-21.5
+
+- Various fixes for versioning and builds.
+
+## v2025-12-21.4
+
+- Version bump and deprecated `--changelog` flag
+
+## v2025-12-21.3
+
+- Version bump
+
+## v2025-12-21.2
+
+- Update build process
+
+## v2025-12-21
 
 - You can now discard empty struct values.
 - For an enum `Foo(A,B,C)`, the syntax `f!` now desugars to `f.A!` using the

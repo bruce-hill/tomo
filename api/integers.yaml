@@ -146,22 +146,23 @@ Int.is_between:
   return:
     type: 'Bool'
     description: >
-      `yes` if `low <= x and x <= high`, otherwise `no`
+      `yes` if `a <= x and x <= b` or `a >= x and x >= b`, otherwise `no`
   args:
     x:
       type: 'Int'
       description: >
         The integer to be checked.
-    low:
+    a:
       type: 'Int'
       description: >
-        The lower bound to check (inclusive).
-    high:
+        One end of the range to check (inclusive).
+    b:
       type: 'Int'
       description: >
-        The upper bound to check (inclusive).
+        The other end of the range to check (inclusive).
   example: |
     assert (7).is_between(1, 10) == yes
+    assert (7).is_between(10, 1) == yes
     assert (7).is_between(100, 200) == no
     assert (7).is_between(1, 7) == yes
 

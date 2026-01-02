@@ -225,7 +225,8 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
         module_info_t mod = get_used_module_info(use_ast);
         glob_t tm_files;
         const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
-        if (glob(String(TOMO_PATH, "/lib/tomo@" TOMO_VERSION "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL, &tm_files)
+        if (glob(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
+                 &tm_files)
             != 0) {
             if (!try_install_module(mod, true)) code_err(use_ast, "Couldn't find or install library: ", folder);
         }
@@ -1530,11 +1531,7 @@ PUREFUNC bool is_discardable(env_t *env, ast_t *ast) {
     case Metadata: return true;
     default: break;
     }
-    type_t *t = get_type(env, ast);
-    if (t->tag == StructType) {
-        return (Match(t, StructType)->fields == NULL);
-    }
-    return (t->tag == VoidType || t->tag == AbortType || t->tag == ReturnType);
+    return is_discardable_type(get_type(env, ast));
 }
 
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg) {

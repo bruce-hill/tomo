@@ -38,14 +38,14 @@ Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
     if (top_level) {
         root = ptr;
     } else if (ptr == root) {
-        Text_t text = Texts(Text$from_str(ptr_info.sigil), Text("~1"));
-        return colorize ? Texts(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
+        Text_t text = Text$concat(Text$from_str(ptr_info.sigil), Text("~1"));
+        return colorize ? Text$concat(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
     } else {
         TypeInfo_t rec_table = *Table$info(type, &Int64$info);
         int64_t *id = Table$get(pending, x, &rec_table);
         if (id) {
-            Text_t text = Texts(Text$from_str(ptr_info.sigil), Int64$value_as_text(*id));
-            return colorize ? Texts(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
+            Text_t text = Text$concat(Text$from_str(ptr_info.sigil), Int64$value_as_text(*id));
+            return colorize ? Text$concat(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
         }
         int64_t next_id = (int64_t)pending.entries.length + 2;
         Table$set(&pending, x, &next_id, &rec_table);

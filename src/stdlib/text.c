@@ -606,8 +606,8 @@ Text_t Text$middle_pad(Text_t text, Int_t width, Text_t padding, Text_t language
     if (padding.length == 0) fail("Cannot pad with an empty text!");
 
     int64_t needed = Int64$from_int(width, false) - Int64$from_int(Text$width(text, language), false);
-    return Texts(Text$repeat_to_width(padding, needed / 2, language), text,
-                 Text$repeat_to_width(padding, (needed + 1) / 2, language));
+    return Text$concat(Text$repeat_to_width(padding, needed / 2, language), text,
+                       Text$repeat_to_width(padding, (needed + 1) / 2, language));
 }
 
 public
@@ -669,10 +669,14 @@ Text_t Text$slice(Text_t text, Int_t first_int, Int_t last_int) {
 }
 
 public
-Text_t Text$from(Text_t text, Int_t first) { return Text$slice(text, first, I_small(-1)); }
+Text_t Text$from(Text_t text, Int_t first) {
+    return Text$slice(text, first, I_small(-1));
+}
 
 public
-Text_t Text$to(Text_t text, Int_t last) { return Text$slice(text, I_small(1), last); }
+Text_t Text$to(Text_t text, Int_t last) {
+    return Text$slice(text, I_small(1), last);
+}
 
 public
 Text_t Text$reversed(Text_t text) {
@@ -814,7 +818,9 @@ OptionalText_t Text$from_strn(const char *str, size_t len) {
 }
 
 public
-OptionalText_t Text$from_str(const char *str) { return str ? Text$from_strn(str, strlen(str)) : Text(""); }
+OptionalText_t Text$from_str(const char *str) {
+    return str ? Text$from_strn(str, strlen(str)) : Text("");
+}
 
 static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t *i) {
     switch (text.tag) {
@@ -1506,8 +1512,8 @@ Text_t Text$quoted(Text_t text, bool colorize, Text_t quotation_mark) {
     Text_t ret = Text$escaped(text, colorize, quotation_mark);
     if (!(Text$equal_values(quotation_mark, Text("\"")) || Text$equal_values(quotation_mark, Text("'"))
           || Text$equal_values(quotation_mark, Text("`"))))
-        ret = Texts("$", quotation_mark, ret, quotation_mark);
-    else ret = Texts(quotation_mark, ret, quotation_mark);
+        ret = Text$concat(Text("$"), quotation_mark, ret, quotation_mark);
+    else ret = Text$concat(quotation_mark, ret, quotation_mark);
     return ret;
 }
 
@@ -1803,11 +1809,11 @@ Int_t Text$memory_size(Text_t text) {
 public
 Text_t Text$layout(Text_t text) {
     switch (text.tag) {
-    case TEXT_ASCII: return Texts(Text("ASCII("), Int64$value_as_text(text.length), Text(")"));
-    case TEXT_GRAPHEMES: return Texts(Text("Graphemes("), Int64$value_as_text(text.length), Text(")"));
-    case TEXT_BLOB: return Texts(Text("Blob("), Int64$value_as_text(text.length), Text(")"));
+    case TEXT_ASCII: return Text$concat(Text("ASCII("), Int64$value_as_text(text.length), Text(")"));
+    case TEXT_GRAPHEMES: return Text$concat(Text("Graphemes("), Int64$value_as_text(text.length), Text(")"));
+    case TEXT_BLOB: return Text$concat(Text("Blob("), Int64$value_as_text(text.length), Text(")"));
     case TEXT_CONCAT:
-        return Texts(Text("Concat("), Text$layout(*text.left), Text(", "), Text$layout(*text.right), Text(")"));
+        return Text$concat(Text("Concat("), Text$layout(*text.left), Text(", "), Text$layout(*text.right), Text(")"));
     default: errx(1, "Invalid text tag: %d", text.tag);
     }
 }

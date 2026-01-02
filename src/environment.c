@@ -101,7 +101,7 @@ env_t *global_env(bool source_mapping) {
             "Byte", Type(ByteType), Text("Byte_t"), Text("Byte$info"),
             {"get_bit", "Byte$get_bit", "func(x:Byte, bit_index:Int -> Bool)"}, //
             {"hex", "Byte$hex", "func(byte:Byte, uppercase=yes, prefix=no -> Text)"}, //
-            {"is_between", "Byte$is_between", "func(x:Byte, low:Byte, high:Byte -> Bool)"}, //
+            {"is_between", "Byte$is_between", "func(x:Byte, a:Byte, b:Byte -> Bool)"}, //
             {"max", "Byte$max", "Byte"}, //
             {"min", "Byte$min", "Byte"}, //
             {"parse", "Byte$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Byte?)"}, //
@@ -118,7 +118,7 @@ env_t *global_env(bool source_mapping) {
             {"gcd", "Int$gcd", "func(x,y:Int -> Int)"}, //
             {"get_bit", "Int$get_bit", "func(x,bit_index:Int -> Bool)"}, //
             {"hex", "Int$hex", "func(i:Int, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
-            {"is_between", "Int$is_between", "func(x:Int,low:Int,high:Int -> Bool)"}, //
+            {"is_between", "Int$is_between", "func(x:Int, a:Int, b:Int -> Bool)"}, //
             {"is_prime", "Int$is_prime", "func(x:Int,reps=50 -> Bool)"}, //
             {"left_shifted", "Int$left_shifted", "func(x,y:Int -> Int)"}, //
             {"minus", "Int$minus", "func(x,y:Int -> Int)"}, //
@@ -151,7 +151,7 @@ env_t *global_env(bool source_mapping) {
             {"parse", "Int64$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int64?)"}, //
             {"get_bit", "Int64$get_bit", "func(x:Int64, bit_index:Int -> Bool)"}, //
             {"hex", "Int64$hex", "func(i:Int64, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
-            {"is_between", "Int64$is_between", "func(x:Int64,low:Int64,high:Int64 -> Bool)"}, //
+            {"is_between", "Int64$is_between", "func(x:Int64, a:Int64, b:Int64 -> Bool)"}, //
             {"max", "Int64$max", "Int64"}, //
             {"min", "Int64$min", "Int64"}, //
             {"modulo", "Int64$modulo", "func(x,y:Int64 -> Int64)"}, //
@@ -173,7 +173,7 @@ env_t *global_env(bool source_mapping) {
             {"parse", "Int32$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int32?)"}, //
             {"get_bit", "Int32$get_bit", "func(x:Int32, bit_index:Int -> Bool)"}, //
             {"hex", "Int32$hex", "func(i:Int32, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
-            {"is_between", "Int32$is_between", "func(x:Int32,low:Int32,high:Int32 -> Bool)"}, //
+            {"is_between", "Int32$is_between", "func(x:Int32, a:Int32, b:Int32 -> Bool)"}, //
             {"max", "Int32$max", "Int32"}, //
             {"min", "Int32$min", "Int32"}, //
             {"modulo", "Int32$modulo", "func(x,y:Int32 -> Int32)"}, //
@@ -195,7 +195,7 @@ env_t *global_env(bool source_mapping) {
             {"parse", "Int16$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int16?)"}, //
             {"get_bit", "Int16$get_bit", "func(x:Int16, bit_index:Int -> Bool)"}, //
             {"hex", "Int16$hex", "func(i:Int16, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
-            {"is_between", "Int16$is_between", "func(x:Int16,low:Int16,high:Int16 -> Bool)"}, //
+            {"is_between", "Int16$is_between", "func(x:Int16, a:Int16, b:Int16 -> Bool)"}, //
             {"max", "Int16$max", "Int16"}, //
             {"min", "Int16$min", "Int16"}, //
             {"modulo", "Int16$modulo", "func(x,y:Int16 -> Int16)"}, //
@@ -217,7 +217,7 @@ env_t *global_env(bool source_mapping) {
             {"parse", "Int8$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int8?)"}, //
             {"get_bit", "Int8$get_bit", "func(x:Int8, bit_index:Int -> Bool)"}, //
             {"hex", "Int8$hex", "func(i:Int8, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
-            {"is_between", "Int8$is_between", "func(x:Int8,low:Int8,high:Int8 -> Bool)"}, //
+            {"is_between", "Int8$is_between", "func(x:Int8, a:Int8, b:Int8 -> Bool)"}, //
             {"max", "Int8$max", "Int8"}, //
             {"min", "Int8$min", "Int8"}, //
             {"modulo", "Int8$modulo", "func(x,y:Int8 -> Int8)"}, //
@@ -239,7 +239,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Float64$clamped", "func(x,low,high:Float64 -> Float64)"}, //
             {"percent", "Float64$percent", "func(n:Float64,precision=0.01 -> Text)"}, //
             {"with_precision", "Float64$with_precision", "func(n:Float64,precision:Float64 -> Float64)"}, //
-            {"is_between", "Float64$is_between", "func(x:Float64,low:Float64,high:Float64 -> Bool)"}, //
+            {"is_between", "Float64$is_between", "func(x:Float64, a:Float64, b:Float64 -> Bool)"}, //
             {"isinf", "Float64$isinf", "func(n:Float64 -> Bool)"}, //
             {"isfinite", "Float64$isfinite", "func(n:Float64 -> Bool)"}, //
             {"modulo", "Float64$mod", "func(x,y:Float64 -> Float64)"}, //
@@ -269,7 +269,7 @@ env_t *global_env(bool source_mapping) {
             {"clamped", "Float32$clamped", "func(x,low,high:Float32 -> Float32)"}, //
             {"percent", "Float32$percent", "func(n:Float32,precision=Float32(.01) -> Text)"}, //
             {"with_precision", "Float32$with_precision", "func(n:Float32,precision:Float32 -> Float32)"}, //
-            {"is_between", "Float32$is_between", "func(x:Float32,low:Float32,high:Float32 -> Bool)"}, //
+            {"is_between", "Float32$is_between", "func(x:Float32, a:Float32, b:Float32 -> Bool)"}, //
             {"isinf", "Float32$isinf", "func(n:Float32 -> Bool)"}, //
             {"isfinite", "Float32$isfinite", "func(n:Float32 -> Bool)"}, //
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E), C(PI), C(PI_4), C(SQRT2),
@@ -352,6 +352,10 @@ env_t *global_env(bool source_mapping) {
             {"subdirectories", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"unique_directory", "Path$unique_directory", "func(path:Path -> Path)"}, //
             {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
+            {"writer", "Path$writer",
+             "func(path:Path, append=no, permissions=Int32(0o644) -> func(text:Text, close=no -> Result))"}, //
+            {"byte_writer", "Path$byte_writer",
+             "func(path:Path, append=no, permissions=Int32(0o644) -> func(bytes:[Byte], close=no -> Result))"}, //
             {"write_bytes", "Path$write_bytes", "func(path:Path, bytes:[Byte], permissions=Int32(0o644) -> Result)"}, //
             {"write_unique", "Path$write_unique", "func(path:Path, text:Text -> Path?)"}, //
             {"write_unique_bytes", "Path$write_unique_bytes", "func(path:Path, bytes:[Byte] -> Path?)"}),
@@ -723,7 +727,9 @@ env_t *namespace_env(env_t *env, const char *namespace_name) {
     return ns_env;
 }
 
-PUREFUNC binding_t *get_binding(env_t *env, const char *name) { return Table$str_get(*env->locals, name); }
+PUREFUNC binding_t *get_binding(env_t *env, const char *name) {
+    return Table$str_get(*env->locals, name);
+}
 
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name) {
     type_t *self_type = get_type(env, self);

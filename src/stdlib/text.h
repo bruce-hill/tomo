@@ -33,7 +33,9 @@ static inline Text_t Text_from_str_literal(const char *str) {
     return (Text_t){.length = strlen(str), .tag = TEXT_ASCII, .ascii = str};
 }
 
-static inline Text_t Text_from_text(Text_t t) { return t; }
+static inline Text_t Text_from_text(Text_t t) {
+    return t;
+}
 
 #define convert_to_text(x)                                                                                             \
     _Generic(x,                                                                                                        \
@@ -45,7 +47,8 @@ static inline Text_t Text_from_text(Text_t t) { return t; }
         int32_t: Int32$value_as_text,                                                                                  \
         int64_t: Int64$value_as_text,                                                                                  \
         double: Float64$value_as_text,                                                                                 \
-        float: Float32$value_as_text)(x)
+        float: Float32$value_as_text,                                                                                  \
+        Int_t: Int$value_as_text)(x)
 
 Text_t Text$_concat(int n, Text_t items[n]);
 #define Text$concat(...) Text$_concat(sizeof((Text_t[]){__VA_ARGS__}) / sizeof(Text_t), (Text_t[]){__VA_ARGS__})
@@ -63,8 +66,9 @@ OptionalText_t Text$cluster(Text_t text, Int_t index_int);
         Int_t index = index_expr;                                                                                      \
         OptionalText_t cluster = Text$cluster(text, index);                                                            \
         if (unlikely(cluster.tag == TEXT_NONE))                                                                        \
-            fail_source(__SOURCE_FILE__, start, end, "Invalid text index: ", index, " (text has length ",              \
-                        (int64_t)text.length, ")\n");                                                                  \
+            fail_source(__SOURCE_FILE__, start, end,                                                                   \
+                        Text$concat(Text("Invalid text index: "), convert_to_text(index), Text(" (text has length "),  \
+                                    convert_to_text((int64_t)text.length), Text(")\n")));                              \
         cluster;                                                                                                       \
     })
 OptionalText_t Text$from_str(const char *str);

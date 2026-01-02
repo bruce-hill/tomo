@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Float.is_between 3 2025-12-11 "Tomo man-pages"
+.TH Float.is_between 3 2026-01-02 "Tomo man-pages"
 .SH NAME
 Float.is_between \- check if a number is in a range
 .SH LIBRARY
@@ -23,15 +23,16 @@ lb lb lbx
 l l l.
 Name	Type	Description
 x	Float	The integer to be checked. 
-low	Float	The lower bound to check (inclusive). 
-high	Float	The upper bound to check (inclusive). 
+low	Float	One end of the range to check (inclusive). 
+high	Float	The other end of the range to check (inclusive). 
 .TE
 .SH RETURN
-`yes` if `low <= x and x <= high`, otherwise `no`
+`yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 .SH EXAMPLES
 .EX
 assert (7.5).is_between(1, 10) == yes
+assert (7.5).is_between(10, 1) == yes
 assert (7.5).is_between(100, 200) == no
 assert (7.5).is_between(1, 7.5) == yes
 .EE

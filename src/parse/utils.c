@@ -41,7 +41,9 @@ size_t some_not(const char **pos, const char *forbid) {
     return len;
 }
 
-size_t spaces(const char **pos) { return some_of(pos, " \t"); }
+size_t spaces(const char **pos) {
+    return some_of(pos, " \t");
+}
 
 void whitespace(parse_ctx_t *ctx, const char **pos) {
     while (some_of(pos, " \t\r\n") || comment(ctx, pos))
@@ -93,7 +95,9 @@ const char *get_id(const char **inout) {
     return word;
 }
 
-PUREFUNC const char *eol(const char *str) { return str + strcspn(str, "\r\n"); }
+PUREFUNC const char *eol(const char *str) {
+    return str + strcspn(str, "\r\n");
+}
 
 bool comment(parse_ctx_t *ctx, const char **pos) {
     if ((*pos)[0] == '#') {

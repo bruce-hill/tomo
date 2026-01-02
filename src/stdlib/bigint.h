@@ -198,18 +198,30 @@ MACROLIKE PUREFUNC Int_t Int$from_float64(double n, bool truncate) {
     if (!truncate && unlikely(mpz_get_d(result) != n)) fail("Could not convert to an integer without truncation: ", n);
     return Int$from_mpz(result);
 }
-MACROLIKE PUREFUNC Int_t Int$from_float32(float n, bool truncate) { return Int$from_float64((double)n, truncate); }
+MACROLIKE PUREFUNC Int_t Int$from_num32(float n, bool truncate) {
+    return Int$from_float64((double)n, truncate);
+}
 MACROLIKE Int_t Int$from_int64(int64_t i) {
     if likely (i >= SMALLEST_SMALL_INT && i <= BIGGEST_SMALL_INT) return (Int_t){.small = (i << 2L) | 1L};
     mpz_t result;
     mpz_init_set_si(result, i);
     return Int$from_mpz(result);
 }
-MACROLIKE CONSTFUNC Int_t Int$from_int32(Int32_t i) { return Int$from_int64((Int32_t)i); }
-MACROLIKE CONSTFUNC Int_t Int$from_int16(Int16_t i) { return I_small(i); }
-MACROLIKE CONSTFUNC Int_t Int$from_int8(Int8_t i) { return I_small(i); }
-MACROLIKE CONSTFUNC Int_t Int$from_byte(Byte_t b) { return I_small(b); }
-MACROLIKE CONSTFUNC Int_t Int$from_bool(Bool_t b) { return I_small(b); }
+MACROLIKE CONSTFUNC Int_t Int$from_int32(Int32_t i) {
+    return Int$from_int64((Int32_t)i);
+}
+MACROLIKE CONSTFUNC Int_t Int$from_int16(Int16_t i) {
+    return I_small(i);
+}
+MACROLIKE CONSTFUNC Int_t Int$from_int8(Int8_t i) {
+    return I_small(i);
+}
+MACROLIKE CONSTFUNC Int_t Int$from_byte(Byte_t b) {
+    return I_small(b);
+}
+MACROLIKE CONSTFUNC Int_t Int$from_bool(Bool_t b) {
+    return I_small(b);
+}
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop

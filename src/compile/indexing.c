@@ -50,7 +50,7 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
                 return Texts("({ ", compile_declaration(item_type, Text("opt")), " = ", code, "; ", "if unlikely (",
                              check_none(item_type, Text("opt")), ")\n", "#line ", line, "\n", "fail_source(",
                              quoted_str(ast->file->filename), ", ", start, ", ", end, ", ",
-                             "\"This was expected to be a value, but it's `none`\\n\");\n",
+                             "Text(\"This was expected to be a value, but it's `none`\\n\"));\n",
                              optional_into_nonnone(item_type, Text("opt")), "; })");
             }
             return code;

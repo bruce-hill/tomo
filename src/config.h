@@ -1,18 +1,11 @@
 // Configuration of values that will be baked into the executable:
 
-#ifndef TOMO_VERSION
-#define TOMO_VERSION "v???"
-#endif
-
 #ifndef GIT_VERSION
 #define GIT_VERSION "???"
 #endif
 
-#ifndef TOMO_INSTALL
-#define TOMO_INSTALL "/usr/local"
-#endif
-
 extern const char *TOMO_PATH;
+extern const char *TOMO_VERSION;
 
 #ifndef DEFAULT_C_COMPILER
 #define DEFAULT_C_COMPILER "cc"

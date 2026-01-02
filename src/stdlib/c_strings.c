@@ -70,8 +70,8 @@ const char *CString$join(const char *glue, List_t strings) {
     Text_t ret = EMPTY_TEXT;
     Text_t glue_text = Text$from_str(glue);
     for (int64_t i = 0; i < (int64_t)strings.length; i++) {
-        if (i > 0) ret = Texts(ret, glue_text);
-        ret = Texts(ret, Text$from_str(*(const char **)(strings.data + i * strings.stride)));
+        if (i > 0) ret = Text$concat(ret, glue_text);
+        ret = Text$concat(ret, Text$from_str(*(const char **)(strings.data + i * strings.stride)));
     }
     return Text$as_c_string(ret);
 }

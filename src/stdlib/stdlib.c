@@ -17,6 +17,7 @@
 #include "files.h"
 #include "metamethods.h"
 #include "optionals.h"
+#include "paths.h"
 #include "print.h"
 #include "siphash.h"
 #include "stacktrace.h"
@@ -39,11 +40,91 @@ static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
 
 public
 bool USE_COLOR;
-public
-Text_t TOMO_VERSION_TEXT = Text(TOMO_VERSION);
 
 public
-const char *TOMO_PATH = TOMO_INSTALL;
+const char *TOMO_PATH = "/usr/local";
+
+public
+const char *TOMO_VERSION = "v0";
+
+public
+Text_t TOMO_VERSION_TEXT = Text("v0");
+
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#include <dlfcn.h>
+
+static inline const char *get_library_path(void *func) {
+    static Dl_info info;
+    if (dladdr(func, &info)) {
+        return info.dli_fname; // full path of the library
+    }
+    return NULL;
+}
+
+#elif defined(_WIN32)
+#include <windows.h>
+
+static inline const char *get_library_path(void *func) {
+    static char path[MAX_PATH];
+    HMODULE hm = NULL;
+    if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                          (LPCSTR)func, &hm)) {
+        if (GetModuleFileName(hm, path, MAX_PATH)) {
+            return path;
+        }
+    }
+    return NULL;
+}
+
+#else
+#error "Unsupported platform"
+#endif
+
+char *find_in_path(const char *name) {
+    if (strchr(name, '/')) {
+        // name contains a slash → treat as path
+        char *abs = realpath(name, NULL);
+        if (abs == NULL) fail("Couldn't find real path of: ", name);
+        char *ret = String(abs);
+        free(abs);
+        return ret;
+    }
+
+    char *path_env = getenv("PATH");
+    if (!path_env) return NULL;
+
+    char *paths = strdup(path_env);
+    if (!paths) return NULL;
+
+    char *token = strtok(paths, ":");
+    while (token) {
+        char candidate[PATH_MAX];
+        snprintf(candidate, sizeof(candidate), "%s/%s", token, name);
+        if (access(candidate, X_OK) == 0) {
+            char *abs = realpath(candidate, NULL);
+            free(paths);
+            char *ret = String(abs);
+            free(abs);
+            return ret;
+        }
+        token = strtok(NULL, ":");
+    }
+
+    free(paths);
+    return NULL; // not found
+}
+
+public
+void tomo_configure(void) {
+    const char *p = get_library_path(get_library_path);
+    p = find_in_path(p);
+    Path_t path = Path$from_str(p);
+    TOMO_PATH = Path$as_c_string(Path$parent(Path$parent(path)));
+    Text_t base_name = Path$base_name(path);
+    TOMO_VERSION_TEXT = Text$without_suffix(
+        Text$without_prefix(Text$without_prefix(base_name, Text("lib")), Text("tomo@")), Text(".so"));
+    TOMO_VERSION = Text$as_c_string(TOMO_VERSION_TEXT);
+}
 
 static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
     (void)info, (void)userdata;
@@ -60,6 +141,7 @@ static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
 public
 void tomo_init(void) {
     GC_INIT();
+    tomo_configure();
     const char *color_env = getenv("COLOR");
     USE_COLOR = color_env ? strcmp(color_env, "1") == 0 : isatty(STDOUT_FILENO);
     const char *no_color_env = getenv("NO_COLOR");
@@ -77,10 +159,14 @@ void tomo_init(void) {
 }
 
 public
-_Noreturn void fail_text(Text_t message) { fail(message); }
+_Noreturn void fail_text(Text_t message) {
+    fail(message);
+}
 
 public
-Text_t builtin_last_err() { return Text$from_str(strerror(errno)); }
+Text_t builtin_last_err() {
+    return Text$from_str(strerror(errno));
+}
 
 static int _inspect_depth = 0;
 static file_t *file = NULL;
@@ -246,7 +332,9 @@ typedef struct cleanup_s {
 static cleanup_t *cleanups = NULL;
 
 public
-void tomo_at_cleanup(Closure_t fn) { cleanups = new (cleanup_t, .cleanup_fn = fn, .next = cleanups); }
+void tomo_at_cleanup(Closure_t fn) {
+    cleanups = new (cleanup_t, .cleanup_fn = fn, .next = cleanups);
+}
 
 public
 void tomo_cleanup(void) {

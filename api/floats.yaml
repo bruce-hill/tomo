@@ -401,7 +401,7 @@ Float.is_between:
   return:
     type: 'Bool'
     description: >
-      `yes` if `low <= x and x <= high`, otherwise `no`
+      `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
   args:
     x:
       type: 'Float'
@@ -410,13 +410,14 @@ Float.is_between:
     low:
       type: 'Float'
       description: >
-        The lower bound to check (inclusive).
+        One end of the range to check (inclusive).
     high:
       type: 'Float'
       description: >
-        The upper bound to check (inclusive).
+        The other end of the range to check (inclusive).
   example: |
     assert (7.5).is_between(1, 10) == yes
+    assert (7.5).is_between(10, 1) == yes
     assert (7.5).is_between(100, 200) == no
     assert (7.5).is_between(1, 7.5) == yes
 
