@@ -50,7 +50,9 @@ static int64_t approx_log10(Real_t r, int64_t decimals) {
     }
 }
 
-static Int_t Real$compute_int(Real_t r, int64_t decimals) { return pow10(r->userdata.i, decimals); }
+static Int_t Real$compute_int(Real_t r, int64_t decimals) {
+    return pow10(r->userdata.i, decimals);
+}
 
 static Int_t Real$compute_double(Real_t r, int64_t decimals) {
     // TODO: this is probably inaccurate
@@ -89,7 +91,9 @@ OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
 }
 
 public
-Real_t Real$from_float64(double n) { return new (struct Real_s, .compute = Real$compute_double, .userdata.n = n); }
+Real_t Real$from_float64(double n) {
+    return new (struct Real_s, .compute = Real$compute_double, .userdata.n = n);
+}
 
 public
 double Real$as_float64(Real_t x) {
@@ -117,7 +121,9 @@ static Int_t Real$compute_negative(Real_t r, int64_t decimals) {
 }
 
 public
-Real_t Real$negative(Real_t x) { return new (struct Real_s, .compute = Real$compute_negative, .userdata.children = x); }
+Real_t Real$negative(Real_t x) {
+    return new (struct Real_s, .compute = Real$compute_negative, .userdata.children = x);
+}
 
 static Int_t Real$compute_plus(Real_t r, int64_t decimals) {
     Int_t lhs = Real$compute(&r->userdata.children[0], decimals + 1);
@@ -223,7 +229,9 @@ static Int_t Real$compute_sqrt(Real_t r, int64_t decimals) {
 }
 
 public
-Real_t Real$sqrt(Real_t x) { return new (struct Real_s, .compute = Real$compute_sqrt, .userdata.children = x); }
+Real_t Real$sqrt(Real_t x) {
+    return new (struct Real_s, .compute = Real$compute_sqrt, .userdata.children = x);
+}
 
 public
 Text_t Real$value_as_text(Real_t x, int64_t digits) {
