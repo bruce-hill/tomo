@@ -198,7 +198,7 @@ MACROLIKE PUREFUNC Int_t Int$from_float64(double n, bool truncate) {
     if (!truncate && unlikely(mpz_get_d(result) != n)) fail("Could not convert to an integer without truncation: ", n);
     return Int$from_mpz(result);
 }
-MACROLIKE PUREFUNC Int_t Int$from_num32(float n, bool truncate) {
+MACROLIKE PUREFUNC Int_t Int$from_float32(float n, bool truncate) {
     return Int$from_float64((double)n, truncate);
 }
 MACROLIKE Int_t Int$from_int64(int64_t i) {
