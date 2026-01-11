@@ -36,6 +36,8 @@ Real_t Real$times(Real_t x, Real_t y);
 Real_t Real$divided_by(Real_t x, Real_t y);
 Real_t Real$power(Real_t base, Real_t exp);
 Real_t Real$sqrt(Real_t x);
+bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t);
+int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t);
 
 int Real$test();
 

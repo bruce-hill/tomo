@@ -216,6 +216,10 @@ Real_t Real$times(Real_t a, Real_t b) {
             if (sa->left.u64 == sb->left.u64) {
                 return sa->left;
             }
+            // Also check if arguments are equal values (not just pointers)
+            if (Real$equal(&sa->left, &sb->left, NULL)) {
+                return sa->left;
+            }
         }
     }
 
