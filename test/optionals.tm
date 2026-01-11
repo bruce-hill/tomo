@@ -43,7 +43,13 @@ func maybe_text(should_i:Bool->Text?)
     else
         return none
 
-func maybe_num(should_i:Bool->Float64?)
+func maybe_float(should_i:Bool->Float64?)
+    if should_i
+        return Float64(12.3)
+    else
+        return none
+
+func maybe_real(should_i:Bool->Real?)
     if should_i
         return 12.3
     else
@@ -157,10 +163,24 @@ func main()
 
     do
         say("...")
-        say("Nums:")
-        yep := maybe_num(yes)
+        say("Floats:")
+        yep := maybe_float(yes)
+        assert yep == Float64(12.3)
+        nope := maybe_float(no)
+        assert nope == none
+        >> if yep
+            assert yep == Float64(12.3)
+        else fail("Falsey: $yep")
+        >> if nope
+            fail("Truthy: $nope")
+        else say("Falsey: $nope")
+
+    do
+        say("...")
+        say("Reals:")
+        yep := maybe_real(yes)
         assert yep == 12.3
-        nope := maybe_num(no)
+        nope := maybe_float(no)
         assert nope == none
         >> if yep
             assert yep == 12.3
