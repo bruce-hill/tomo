@@ -71,6 +71,7 @@ Text_t compile_none(type_t *t) {
     case PointerType: return Texts("((", compile_type(t), ")NULL)");
     case ClosureType: return Text("NONE_CLOSURE");
     case FloatType: return Text("nan(\"none\")");
+    case RealType: return Text("NONE_REAL");
     case StructType: return Texts("((", compile_type(Type(OptionalType, .type = t)), "){.has_value=false})");
     case EnumType: {
         env_t *enum_env = Match(t, EnumType)->env;
@@ -91,6 +92,7 @@ Text_t check_none(type_t *t, Text_t value) {
     else if (t->tag == ClosureType) return Texts("((", value, ").fn == NULL)");
     else if (t->tag == FloatType)
         return Texts(Match(t, FloatType)->bits == TYPE_NBITS64 ? "Float64$isnan(" : "Float32$isnan(", value, ")");
+    else if (t->tag == RealType) return Texts("Real$is_none(", value, ")");
     else if (t->tag == ListType) return Texts("((", value, ").data == NULL)");
     else if (t->tag == TableType) return Texts("((", value, ").entries.data == NULL)");
     else if (t->tag == BoolType) return Texts("((", value, ") == NONE_BOOL)");

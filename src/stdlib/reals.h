@@ -3,6 +3,7 @@
 
 #include "datatypes.h"
 #include "types.h"
+#include "util.h"
 
 // NaN-boxing scheme: use quiet NaN space for pointers
 // IEEE 754: NaN = exponent all 1s, mantissa non-zero
@@ -21,6 +22,7 @@
 
 Int_t Real$as_int(Real_t x, bool truncate);
 OptionalReal_t Real$parse(Text_t text, Text_t *remainder);
+PUREFUNC bool Real$is_none(const void *vn, const TypeInfo_t *type);
 Real_t Real$abs(Real_t x);
 Real_t Real$acos(Real_t x);
 Real_t Real$asin(Real_t x);
@@ -49,6 +51,7 @@ Real_t Real$sin(Real_t x);
 Real_t Real$sqrt(Real_t x);
 Real_t Real$tan(Real_t x);
 Real_t Real$times(Real_t x, Real_t y);
+Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type);
 Text_t Real$value_as_text(Real_t x);
 bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t);
 bool Real$is_between(Real_t x, Real_t low, Real_t high);

@@ -13,7 +13,7 @@ public
 Text_t compile_assertion(env_t *env, ast_t *ast) {
     ast_t *expr = Match(ast, Assert)->expr;
     ast_t *message = Match(ast, Assert)->message;
-    const char *failure = NULL;
+    const char *failure = "vs";
     switch (expr->tag) {
     case And: {
         DeclareMatch(and_, expr, And);

@@ -700,7 +700,8 @@ OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
     return box_ptr(r, REAL_TAG_RATIONAL);
 }
 
-static bool Real$is_none(const void *vn, const TypeInfo_t *type) {
+public
+PUREFUNC bool Real$is_none(const void *vn, const TypeInfo_t *type) {
     (void)type;
     Real_t n = *(Real_t *)vn;
     return is_boxed(n) && get_tag(n) == REAL_TAG_NONE;

@@ -82,18 +82,18 @@ func main()
 	assert (0.5).mix(10., 20.) == 15.
 	
 	# Is between
-	assert (5.).is_between(1, 10)
-	assert (1.).is_between(1, 10)
-	assert (10.).is_between(1, 10)
-	assert (0.).is_between(1, 10) == no
-	assert (11.).is_between(1, 10) == no
+	assert (5.).is_between(1., 10.)
+	assert (1.).is_between(1., 10.)
+	assert (10.).is_between(1., 10.)
+	assert (0.).is_between(1., 10.) == no
+	assert (11.).is_between(1., 10.) == no
 	
 	# Clamped
-	assert (5.).clamped(1, 10) == 5
-	assert (0.).clamped(1, 10) == 1
-	assert (15.).clamped(1, 10) == 10
-	assert (1.).clamped(1, 10) == 1
-	assert (10.).clamped(1, 10) == 10
+	assert (5.).clamped(1., 10.) == 5.
+	assert (0.).clamped(1., 10.) == 1.
+	assert (15.).clamped(1., 10.) == 10.
+	assert (1.).clamped(1., 10.) == 1.
+	assert (10.).clamped(1., 10.) == 10.
 	
 	# Comparison
 	assert 3. > 2.
@@ -107,14 +107,14 @@ func main()
 	assert -(1. / 3.) == -1. / 3.
 	
 	# Power
-	assert (2.).power(3) == 8
-	assert (2.).power(0) == 1
+	assert (2.).power(3.) == 8.
+	assert (2.).power(0.) == 1.
 	
 	# Parsing
-	assert Real.parse("123") == 123
+	assert Real.parse("123") == 123.
 	assert Real.parse("1.5") == 1.5
 	assert Real.parse("0.3333333333333333") == 0.3333333333333333
-	assert Real.parse("-5") == -5
+	assert Real.parse("-5") == -5.
 	assert Real.parse("-2.5") == -2.5
 	
 	# None handling
@@ -124,12 +124,12 @@ func main()
 	assert Real.parse("") == none
 	
 	# Large integers
-	big := (9999999999999999.)
-	assert big + 1 == (10000000000000000.)
+	big := (99999999999999999999999999999999.)
+	assert big + 1. == (100000000000000000000000000000000.)
 	
 	# Mixed operations preserve exactness
 	result := 1. / 3. + 2. / 3.
-	assert result == 1
+	assert result == 1.
 	
 	# Symbolic expressions maintain structure
 	expr := sqrt2 + 1.

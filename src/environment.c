@@ -308,8 +308,8 @@ env_t *global_env(bool source_mapping) {
             {"log10", "Real$log10", "func(x:Real -> Real)"}, //
             {"minus", "Real$minus", "func(x,y:Real -> Real)"}, //
             {"mix", "Real$mix", "func(amount,x,y:Real -> Real)"}, //
-            {"mod", "Real$mod", "func(n,modulus:Real -> Real)"}, //
-            {"mod1", "Real$mod1", "func(n,modulus:Real -> Real)"}, //
+            {"modulo", "Real$mod", "func(n,modulus:Real -> Real)"}, //
+            {"modulo1", "Real$mod1", "func(n,modulus:Real -> Real)"}, //
             {"negative", "Real$negative", "func(x:Real -> Real)"}, //
             {"parse", "Real$parse", "func(text:Text, remainder:&Text?=none -> Real?)"}, //
             {"plus", "Real$plus", "func(x,y:Real -> Real)"}, //
