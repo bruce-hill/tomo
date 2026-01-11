@@ -9,6 +9,7 @@
 
 #include "bigint.h"
 #include "datatypes.h"
+#include "floats.h"
 #include "optionals.h"
 #include "reals.h"
 #include "text.h"
@@ -142,8 +143,24 @@ double Real$as_float64(Real_t n, bool truncate) {
         case SYM_SUB: return left - right;
         case SYM_MUL: return left * right;
         case SYM_DIV: return left / right;
+        case SYM_MOD: return Float64$mod(left, right);
         case SYM_SQRT: return sqrt(left);
         case SYM_POW: return pow(left, right);
+        case SYM_SIN: return sin(left);
+        case SYM_COS: return cos(left);
+        case SYM_TAN: return tan(left);
+        case SYM_ASIN: return asin(left);
+        case SYM_ACOS: return acos(left);
+        case SYM_ATAN: return atan(left);
+        case SYM_ATAN2: return atan2(left, right);
+        case SYM_EXP: return exp(left);
+        case SYM_LOG: return log(left);
+        case SYM_LOG10: return log10(left);
+        case SYM_ABS: return fabs(left);
+        case SYM_FLOOR: return floor(left);
+        case SYM_CEIL: return ceil(left);
+        case SYM_PI: return M_PI;
+        case SYM_E: return M_E;
         default: return NAN;
         }
     }
@@ -433,6 +450,44 @@ Real_t Real$power(Real_t base, Real_t exp) {
     return box_ptr(sym, REAL_TAG_SYMBOLIC);
 }
 
+// Helper function for binary operations in parentheses
+static Text_t format_binary_op(Text_t left, Text_t right, const char *op, bool colorize) {
+    const char *operator_color = colorize ? "\033[33m" : "";
+    const char *paren_color = colorize ? "\033[37m" : "";
+    const char *reset = colorize ? "\033[m" : "";
+    
+    return colorize ? Texts(paren_color, "(", reset, left, operator_color, op, reset, right, paren_color, ")", reset)
+                    : Texts("(", left, op, right, ")");
+}
+
+// Helper function for unary functions
+static Text_t format_unary_func(Text_t arg, const char *func_name, bool colorize) {
+    const char *operator_color = colorize ? "\033[33m" : "";
+    const char *paren_color = colorize ? "\033[37m" : "";
+    const char *reset = colorize ? "\033[m" : "";
+    
+    return colorize ? Texts(operator_color, func_name, paren_color, "(", reset, arg, paren_color, ")", reset)
+                    : Texts(func_name, "(", arg, ")");
+}
+
+// Helper function for binary functions
+static Text_t format_binary_func(Text_t left, Text_t right, const char *func_name, bool colorize) {
+    const char *operator_color = colorize ? "\033[33m" : "";
+    const char *paren_color = colorize ? "\033[37m" : "";
+    const char *reset = colorize ? "\033[m" : "";
+    
+    return colorize ? Texts(operator_color, func_name, paren_color, "(", reset, left, operator_color, ", ", reset, right, paren_color, ")", reset)
+                    : Texts(func_name, "(", left, ", ", right, ")");
+}
+
+// Helper function for constants
+static Text_t format_constant(const char *symbol, bool colorize) {
+    const char *number_color = colorize ? "\033[35m" : "";
+    const char *reset = colorize ? "\033[m" : "";
+    
+    return colorize ? Texts(number_color, symbol, reset) : Text$from_str(symbol);
+}
+
 public
 Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type) {
     (void)type;
@@ -443,7 +498,6 @@ Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type) {
     // ANSI color codes
     const char *number_color = colorize ? "\033[35m" : ""; // magenta for numbers
     const char *operator_color = colorize ? "\033[33m" : ""; // yellow for operators
-    const char *paren_color = colorize ? "\033[37m" : ""; // white for parens
     const char *reset = colorize ? "\033[m" : "";
 
     if (!is_boxed(num)) {
@@ -554,32 +608,29 @@ Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type) {
         Text_t right = Real$as_text(&s->right, colorize, type);
 
         switch (s->op) {
-        case SYM_ADD:
-            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " + ", reset, right, paren_color,
-                                    ")", reset)
-                            : Texts("(", left, " + ", right, ")");
-        case SYM_SUB:
-            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " - ", reset, right, paren_color,
-                                    ")", reset)
-                            : Texts("(", left, " - ", right, ")");
-        case SYM_MUL:
-            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " * ", reset, right, paren_color,
-                                    ")", reset)
-                            : Texts("(", left, " * ", right, ")");
-        case SYM_DIV:
-            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " / ", reset, right, paren_color,
-                                    ")", reset)
-                            : Texts("(", left, " / ", right, ")");
-        case SYM_SQRT:
-            return colorize ? Texts(operator_color, "sqrt", paren_color, "(", reset, left, paren_color, ")", reset)
-                            : Texts("sqrt(", left, ")");
+        case SYM_ADD: return format_binary_op(left, right, " + ", colorize);
+        case SYM_SUB: return format_binary_op(left, right, " - ", colorize);
+        case SYM_MUL: return format_binary_op(left, right, " * ", colorize);
+        case SYM_DIV: return format_binary_op(left, right, " / ", colorize);
+        case SYM_MOD: return format_binary_op(left, right, " % ", colorize);
+        case SYM_SQRT: return format_unary_func(left, "sqrt", colorize);
         case SYM_POW: return colorize ? Texts(left, operator_color, "^", reset, right) : Texts(left, "^", right);
-        case SYM_PI: return colorize ? Texts(number_color, "π", reset) : Text("π");
-        case SYM_E: return colorize ? Texts(number_color, "e", reset) : Text("e");
-        default:
-            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " ? ", reset, right, paren_color,
-                                    ")", reset)
-                            : Texts("(", left, " ? ", right, ")");
+        case SYM_SIN: return format_unary_func(left, "sin", colorize);
+        case SYM_COS: return format_unary_func(left, "cos", colorize);
+        case SYM_TAN: return format_unary_func(left, "tan", colorize);
+        case SYM_ASIN: return format_unary_func(left, "asin", colorize);
+        case SYM_ACOS: return format_unary_func(left, "acos", colorize);
+        case SYM_ATAN: return format_unary_func(left, "atan", colorize);
+        case SYM_ATAN2: return format_binary_func(left, right, "atan2", colorize);
+        case SYM_EXP: return format_unary_func(left, "exp", colorize);
+        case SYM_LOG: return format_unary_func(left, "log", colorize);
+        case SYM_LOG10: return format_unary_func(left, "log10", colorize);
+        case SYM_ABS: return format_unary_func(left, "abs", colorize);
+        case SYM_FLOOR: return format_unary_func(left, "floor", colorize);
+        case SYM_CEIL: return format_unary_func(left, "ceil", colorize);
+        case SYM_PI: return format_constant("π", colorize);
+        case SYM_E: return format_constant("e", colorize);
+        default: return format_binary_op(left, right, " ? ", colorize);
         }
     }
     default: return colorize ? Texts(operator_color, "NaN", reset) : Text("NaN");
