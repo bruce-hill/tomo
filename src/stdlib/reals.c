@@ -75,9 +75,7 @@ static inline Real_t box_ptr(void *ptr, uint64_t tag) {
 }
 
 static inline Real_t make_double(double d) {
-    Real_t n;
-    n.d = d;
-    return n;
+    return (Real_t){.d = d};
 }
 
 public
@@ -115,6 +113,22 @@ static Real_t promote_double(double d) {
     mpq_init(&r->value);
     mpq_set_d(&r->value, d);
     return box_ptr(r, REAL_TAG_RATIONAL);
+}
+
+public
+CONSTFUNC Real_t Real$from_float64(double n) {
+    return make_double(n);  // Preserve sign of zero
+}
+
+public
+Real_t Real$from_int(Int_t i) {
+    double d = Float64$from_int(i, true);
+    if (Int$equal_value(i, Int$from_float64(d, true)))
+        return make_double(d);
+
+    Int_t *b = GC_MALLOC(sizeof(Int_t));
+    *b = i;
+    return box_ptr(b, REAL_TAG_BIGINT);
 }
 
 public
@@ -455,7 +469,7 @@ static Text_t format_binary_op(Text_t left, Text_t right, const char *op, bool c
     const char *operator_color = colorize ? "\033[33m" : "";
     const char *paren_color = colorize ? "\033[37m" : "";
     const char *reset = colorize ? "\033[m" : "";
-    
+
     return colorize ? Texts(paren_color, "(", reset, left, operator_color, op, reset, right, paren_color, ")", reset)
                     : Texts("(", left, op, right, ")");
 }
@@ -465,7 +479,7 @@ static Text_t format_unary_func(Text_t arg, const char *func_name, bool colorize
     const char *operator_color = colorize ? "\033[33m" : "";
     const char *paren_color = colorize ? "\033[37m" : "";
     const char *reset = colorize ? "\033[m" : "";
-    
+
     return colorize ? Texts(operator_color, func_name, paren_color, "(", reset, arg, paren_color, ")", reset)
                     : Texts(func_name, "(", arg, ")");
 }
@@ -475,7 +489,7 @@ static Text_t format_binary_func(Text_t left, Text_t right, const char *func_nam
     const char *operator_color = colorize ? "\033[33m" : "";
     const char *paren_color = colorize ? "\033[37m" : "";
     const char *reset = colorize ? "\033[m" : "";
-    
+
     return colorize ? Texts(operator_color, func_name, paren_color, "(", reset, left, operator_color, ", ", reset, right, paren_color, ")", reset)
                     : Texts(func_name, "(", left, ", ", right, ")");
 }
@@ -484,7 +498,7 @@ static Text_t format_binary_func(Text_t left, Text_t right, const char *func_nam
 static Text_t format_constant(const char *symbol, bool colorize) {
     const char *number_color = colorize ? "\033[35m" : "";
     const char *reset = colorize ? "\033[m" : "";
-    
+
     return colorize ? Texts(number_color, symbol, reset) : Text$from_str(symbol);
 }
 
