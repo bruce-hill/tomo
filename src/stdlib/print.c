@@ -96,7 +96,9 @@ int _print_double(FILE *f, double n) {
 }
 
 public
-int _print_real(FILE *f, Real_t n) { return Text$print(f, Real$value_as_text(n, 10)); }
+int _print_real(FILE *f, Real_t n) {
+    return Text$print(f, Real$value_as_text(n));
+}
 
 public
 int _print_hex_double(FILE *f, hex_double_t hex) {

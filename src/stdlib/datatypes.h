@@ -35,20 +35,10 @@ typedef union {
 
 #define OptionalInt_t Int_t
 
-typedef struct Real_s *Real_t;
-
-struct Real_s {
-    // Compute floor(real*10^n)
-    Int_t (*compute)(Real_t, int64_t);
-    union {
-        double n;
-        Int_t i;
-        struct Real_s *children;
-    } userdata;
-    Int_t approximation;
-    bool exact : 1;
-    int64_t approximation_decimals : 63;
-};
+typedef union {
+    double d;
+    uint64_t u64;
+} Real_t;
 
 #define OptionalReal_t Real_t
 

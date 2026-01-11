@@ -1,306 +1,830 @@
+#include <fenv.h>
 #include <gc.h>
 #include <gmp.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "bigint.h"
 #include "datatypes.h"
+#include "optionals.h"
 #include "reals.h"
 #include "text.h"
 #include "types.h"
 
-struct ieee754_bits {
-    bool negative : 1;
-    uint64_t biased_exponent : 11;
-    uint64_t fraction : 53;
-};
+typedef struct {
+    __mpq_struct value;
+} rational_t;
 
-static inline Int_t pow10(Int_t x, int64_t n) {
-    if (n == 0) return x;
-    else if (n < 0) return Int$divided_by(x, Int$power(I(10), I(-n)));
-    else return Int$times(x, Int$power(I(10), I(n)));
+typedef struct {
+    double (*compute)(void *ctx, int precision);
+    void *context;
+} constructive_t;
+
+typedef enum { SYM_ADD, SYM_SUB, SYM_MUL, SYM_DIV, SYM_SQRT, SYM_POW, SYM_PI, SYM_E } sym_op_t;
+
+typedef struct symbolic {
+    sym_op_t op;
+    Real_t left;
+    Real_t right;
+} symbolic_t;
+
+// Check if num is boxed pointer
+static inline bool is_boxed(Real_t n) {
+    return (n.u64 & QNAN_MASK) == QNAN_MASK;
+}
+
+static inline uint64_t get_tag(Real_t n) {
+    return n.u64 & TAG_MASK;
+}
+
+static inline void *get_ptr(Real_t n) {
+    return (void *)(uintptr_t)(n.u64 & PTR_MASK);
+}
+
+static inline Real_t box_ptr(void *ptr, uint64_t tag) {
+    Real_t n;
+    n.u64 = QNAN_MASK | tag | ((uint64_t)(uintptr_t)ptr & PTR_MASK);
+    return n;
+}
+
+static inline Real_t make_double(double d) {
+    Real_t n;
+    n.d = d;
+    return n;
 }
 
 public
-Int_t Real$compute(Real_t r, int64_t decimals) {
-    if (r->approximation.small != 0 && r->approximation_decimals >= decimals) {
-        return r->approximation_decimals == decimals ? r->approximation
-                                                     : pow10(r->approximation, decimals - r->approximation_decimals);
+Real_t Real$from_int64(int64_t i) {
+    double d = (double)i;
+    if ((int64_t)d == i) return make_double(d);
+
+    Int_t *b = GC_MALLOC(sizeof(Int_t));
+    *b = I(i);
+    return box_ptr(b, REAL_TAG_BIGINT);
+}
+
+public
+Real_t Real$from_rational(int64_t num, int64_t den) {
+    rational_t *r = GC_MALLOC(sizeof(rational_t));
+    mpq_init(&r->value);
+    if (den == INT64_MIN) fail("Domain error");
+    if (den < 0) {
+        if (num == INT64_MIN) fail("Domain error");
+        num = -num;
+        den = -den;
+    }
+    if (den == 0) fail("Division by zero");
+    mpq_set_si(&r->value, num, (unsigned long)den);
+    mpq_canonicalize(&r->value);
+    return box_ptr(r, REAL_TAG_RATIONAL);
+}
+
+// Promote double to exact type if needed
+static Real_t promote_double(double d) {
+    if (isfinite(d) && d == floor(d) && fabs(d) < (1LL << 53)) {
+        return make_double(d);
+    }
+    rational_t *r = GC_MALLOC(sizeof(rational_t));
+    mpq_init(&r->value);
+    mpq_set_d(&r->value, d);
+    return box_ptr(r, REAL_TAG_RATIONAL);
+}
+
+public
+double Real$as_float64(Real_t n, bool truncate) {
+    if (!is_boxed(n)) return n.d;
+
+    switch (get_tag(n)) {
+    case REAL_TAG_BIGINT: {
+        Int_t *b = get_ptr(n);
+        return Float64$from_int(*b, truncate);
+    }
+    case REAL_TAG_RATIONAL: {
+        rational_t *r = get_ptr(n);
+        return mpq_get_d(&r->value);
+    }
+    case REAL_TAG_CONSTRUCTIVE: {
+        constructive_t *c = get_ptr(n);
+        return c->compute(c->context, 53);
+    }
+    case REAL_TAG_SYMBOLIC: {
+        symbolic_t *s = get_ptr(n);
+        double left = Real$as_float64(s->left, truncate);
+        double right = Real$as_float64(s->right, truncate);
+        switch (s->op) {
+        case SYM_ADD: return left + right;
+        case SYM_SUB: return left - right;
+        case SYM_MUL: return left * right;
+        case SYM_DIV: return left / right;
+        case SYM_SQRT: return sqrt(left);
+        case SYM_POW: return pow(left, right);
+        default: return NAN;
+        }
+    }
+    default: return NAN;
+    }
+}
+
+public
+Real_t Real$plus(Real_t a, Real_t b) {
+    if (!is_boxed(a) && !is_boxed(b)) {
+        feclearexcept(FE_INEXACT);
+        double result = a.d + b.d;
+        if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
+            return make_double(result);
+        }
+        a = promote_double(a.d);
+        b = promote_double(b.d);
     }
 
-    r->approximation = r->compute(r, decimals);
-    r->approximation_decimals = decimals;
-    return r->approximation;
-}
-
-static int64_t approx_log10(Real_t r, int64_t decimals) {
-    if ((r->approximation.small | 0x1) == 0x1) {
-        (void)Real$compute(r, decimals);
+    // Handle exact rational arithmetic
+    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+        rational_t *ra = get_ptr(a);
+        rational_t *rb = get_ptr(b);
+        rational_t *result = GC_MALLOC(sizeof(rational_t));
+        mpq_init(&result->value);
+        mpq_add(&result->value, &ra->value, &rb->value);
+        return box_ptr(result, REAL_TAG_RATIONAL);
     }
 
-    if ((r->approximation.small & 0x1) == 0x1) {
-        int64_t small = (r->approximation.small) >> 2;
-        if (small < 0) small = -small;
-        int64_t leading_zeroes = (int64_t)__builtin_clzl((uint64_t)labs(small));
-        return (64 - leading_zeroes) + r->approximation_decimals;
-    } else {
-        size_t digits = mpz_sizeinbase(r->approximation.big, 10);
-        return (int64_t)digits + r->approximation_decimals;
+    // Fallback: create symbolic expression
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_ADD;
+    sym->left = a;
+    sym->right = b;
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$minus(Real_t a, Real_t b) {
+    if (!is_boxed(a) && !is_boxed(b)) {
+        feclearexcept(FE_INEXACT);
+        double result = a.d - b.d;
+        if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
+            return make_double(result);
+        }
+        a = promote_double(a.d);
+        b = promote_double(b.d);
+    }
+
+    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+        rational_t *ra = get_ptr(a);
+        rational_t *rb = get_ptr(b);
+        rational_t *result = GC_MALLOC(sizeof(rational_t));
+        mpq_init(&result->value);
+        mpq_sub(&result->value, &ra->value, &rb->value);
+        return box_ptr(result, REAL_TAG_RATIONAL);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_SUB;
+    sym->left = a;
+    sym->right = b;
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$times(Real_t a, Real_t b) {
+    if (!is_boxed(a) && !is_boxed(b)) {
+        feclearexcept(FE_INEXACT);
+        double result = a.d * b.d;
+        if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
+            return make_double(result);
+        }
+        a = promote_double(a.d);
+        b = promote_double(b.d);
+    }
+
+    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+        rational_t *ra = get_ptr(a);
+        rational_t *rb = get_ptr(b);
+        rational_t *result = GC_MALLOC(sizeof(rational_t));
+        mpq_init(&result->value);
+        mpq_mul(&result->value, &ra->value, &rb->value);
+        return box_ptr(result, REAL_TAG_RATIONAL);
+    }
+
+    // Check for sqrt(x) * sqrt(x) = x
+    if (get_tag(a) == REAL_TAG_SYMBOLIC && get_tag(b) == REAL_TAG_SYMBOLIC) {
+        symbolic_t *sa = get_ptr(a);
+        symbolic_t *sb = get_ptr(b);
+        if (sa->op == SYM_SQRT && sb->op == SYM_SQRT) {
+            // Compare if same argument (simple pointer equality check)
+            if (sa->left.u64 == sb->left.u64) {
+                return sa->left;
+            }
+        }
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_MUL;
+    sym->left = a;
+    sym->right = b;
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$divided_by(Real_t a, Real_t b) {
+    if (!is_boxed(a) && !is_boxed(b)) {
+        feclearexcept(FE_INEXACT);
+        double result = a.d / b.d;
+        if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
+            return make_double(result);
+        }
+        a = promote_double(a.d);
+        b = promote_double(b.d);
+    }
+
+    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+        rational_t *ra = get_ptr(a);
+        rational_t *rb = get_ptr(b);
+        rational_t *result = GC_MALLOC(sizeof(rational_t));
+        mpq_init(&result->value);
+        mpq_div(&result->value, &ra->value, &rb->value);
+        return box_ptr(result, REAL_TAG_RATIONAL);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_DIV;
+    sym->left = a;
+    sym->right = b;
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$sqrt(Real_t a) {
+    if (!is_boxed(a)) {
+        double d = sqrt(a.d);
+        feclearexcept(FE_INEXACT);
+        double check = d * d;
+        if (!fetestexcept(FE_INEXACT) && check == a.d) {
+            return make_double(d);
+        }
+    }
+
+    // Check for perfect square in rationals
+    if (get_tag(a) == REAL_TAG_RATIONAL) {
+        rational_t *r = get_ptr(a);
+        mpz_t num_sqrt, den_sqrt;
+        mpz_init(num_sqrt);
+        mpz_init(den_sqrt);
+
+        if (mpz_perfect_square_p(mpq_numref(&r->value)) && mpz_perfect_square_p(mpq_denref(&r->value))) {
+            mpz_sqrt(num_sqrt, mpq_numref(&r->value));
+            mpz_sqrt(den_sqrt, mpq_denref(&r->value));
+
+            rational_t *result = GC_MALLOC(sizeof(rational_t));
+            mpq_init(&result->value);
+            mpq_set_num(&result->value, num_sqrt);
+            mpq_set_den(&result->value, den_sqrt);
+            mpq_canonicalize(&result->value);
+
+            mpz_clear(num_sqrt);
+            mpz_clear(den_sqrt);
+            return box_ptr(result, REAL_TAG_RATIONAL);
+        }
+        mpz_clear(num_sqrt);
+        mpz_clear(den_sqrt);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_SQRT;
+    sym->left = a;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$power(Real_t base, Real_t exp) {
+    if (!is_boxed(base) && !is_boxed(exp)) {
+        feclearexcept(FE_INEXACT);
+        double result = pow(base.d, exp.d);
+        if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
+            return make_double(result);
+        }
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_POW;
+    sym->left = base;
+    sym->right = exp;
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type) {
+    (void)type;
+    if (n == NULL) return Text("Real");
+
+    Real_t num = *(Real_t *)n;
+
+    // ANSI color codes
+    const char *number_color = colorize ? "\033[35m" : ""; // magenta for numbers
+    const char *operator_color = colorize ? "\033[33m" : ""; // yellow for operators
+    const char *paren_color = colorize ? "\033[37m" : ""; // white for parens
+    const char *reset = colorize ? "\033[m" : "";
+
+    if (!is_boxed(num)) {
+        char buf[64];
+        snprintf(buf, sizeof(buf), "%.17g", num.d);
+        return colorize ? Texts(number_color, buf, reset) : Text$from_str(buf);
+    }
+
+    switch (get_tag(num)) {
+    case REAL_TAG_BIGINT: {
+        Int_t *b = get_ptr(num);
+        Text_t int_text = Int$value_as_text(*b);
+        return colorize ? Texts(number_color, int_text, reset) : int_text;
+    }
+    case REAL_TAG_RATIONAL: {
+        rational_t *r = get_ptr(num);
+
+        // Check if denominator is 1 (integer)
+        if (mpz_cmp_ui(mpq_denref(&r->value), 1) == 0) {
+            char *str = mpz_get_str(NULL, 10, mpq_numref(&r->value));
+            Text_t result = colorize ? Texts(number_color, str, reset) : Text$from_str(str);
+            return result;
+        }
+
+        // Check if denominator is 2^a * 5^b (terminates in decimal)
+        mpz_t den_copy;
+        mpz_init_set(den_copy, mpq_denref(&r->value));
+
+        while (mpz_divisible_ui_p(den_copy, 2)) {
+            mpz_divexact_ui(den_copy, den_copy, 2);
+        }
+        while (mpz_divisible_ui_p(den_copy, 5)) {
+            mpz_divexact_ui(den_copy, den_copy, 5);
+        }
+
+        bool is_terminating_decimal = (mpz_cmp_ui(den_copy, 1) == 0);
+        mpz_clear(den_copy);
+
+        if (is_terminating_decimal) {
+            // Compute exact decimal representation
+            mpz_t num_scaled, den_temp;
+            mpz_init_set(num_scaled, mpq_numref(&r->value));
+            mpz_init_set(den_temp, mpq_denref(&r->value));
+
+            size_t decimal_places = 0;
+            while (mpz_cmp_ui(den_temp, 1) != 0) {
+                mpz_mul_ui(num_scaled, num_scaled, 10);
+                if (mpz_divisible_ui_p(den_temp, 2)) mpz_divexact_ui(den_temp, den_temp, 2);
+                else if (mpz_divisible_ui_p(den_temp, 5)) mpz_divexact_ui(den_temp, den_temp, 5);
+                else break;
+                decimal_places++;
+            }
+
+            mpz_divexact(num_scaled, num_scaled, mpq_denref(&r->value));
+
+            char *num_str = mpz_get_str(NULL, 10, num_scaled);
+            size_t len = strlen(num_str);
+            bool is_negative = (num_str[0] == '-');
+            size_t start = is_negative ? 1 : 0;
+
+            char buf[256];
+            if (len - start <= decimal_places) {
+                int leading_zeros = decimal_places - (len - start);
+                if (leading_zeros > 0) {
+                    snprintf(buf, sizeof(buf), "%s0.%0*d%s", is_negative ? "-" : "", leading_zeros, 0, num_str + start);
+                } else {
+                    snprintf(buf, sizeof(buf), "%s0.%s", is_negative ? "-" : "", num_str + start);
+                }
+            } else {
+                int int_len = len - start - decimal_places;
+                snprintf(buf, sizeof(buf), "%.*s.%s", (int)start + int_len, num_str, num_str + start + int_len);
+            }
+
+            // Strip trailing zeros after decimal point
+            size_t buflen = strlen(buf);
+            if (strchr(buf, '.')) {
+                while (buflen > 0 && buf[buflen - 1] == '0') {
+                    buf[--buflen] = '\0';
+                }
+                if (buflen > 0 && buf[buflen - 1] == '.') {
+                    buf[--buflen] = '\0';
+                }
+            }
+
+            mpz_clear(num_scaled);
+            mpz_clear(den_temp);
+
+            return colorize ? Texts(number_color, buf, reset) : Text$from_str(buf);
+        }
+
+        // Not a decimal, show as fraction
+        char *num_str = mpz_get_str(NULL, 10, mpq_numref(&r->value));
+        char *den_str = mpz_get_str(NULL, 10, mpq_denref(&r->value));
+        Text_t result = colorize ? Texts(number_color, num_str, operator_color, "/", number_color, den_str, reset)
+                                 : Texts(num_str, "/", den_str);
+        return result;
+    }
+    case REAL_TAG_CONSTRUCTIVE: {
+        constructive_t *c = get_ptr(num);
+        double approx = c->compute(c->context, 53);
+        char buf[64];
+        snprintf(buf, sizeof(buf), "~%.17g", approx);
+        return colorize ? Texts(operator_color, "~", number_color, buf + 1, reset) : Text$from_str(buf);
+    }
+    case REAL_TAG_SYMBOLIC: {
+        symbolic_t *s = get_ptr(num);
+        Text_t left = Real$as_text(&s->left, colorize, type);
+        Text_t right = Real$as_text(&s->right, colorize, type);
+
+        switch (s->op) {
+        case SYM_ADD:
+            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " + ", reset, right, paren_color,
+                                    ")", reset)
+                            : Texts("(", left, " + ", right, ")");
+        case SYM_SUB:
+            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " - ", reset, right, paren_color,
+                                    ")", reset)
+                            : Texts("(", left, " - ", right, ")");
+        case SYM_MUL:
+            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " * ", reset, right, paren_color,
+                                    ")", reset)
+                            : Texts("(", left, " * ", right, ")");
+        case SYM_DIV:
+            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " / ", reset, right, paren_color,
+                                    ")", reset)
+                            : Texts("(", left, " / ", right, ")");
+        case SYM_SQRT:
+            return colorize ? Texts(operator_color, "sqrt", paren_color, "(", reset, left, paren_color, ")", reset)
+                            : Texts("sqrt(", left, ")");
+        case SYM_POW: return colorize ? Texts(left, operator_color, "^", reset, right) : Texts(left, "^", right);
+        case SYM_PI: return colorize ? Texts(number_color, "π", reset) : Text("π");
+        case SYM_E: return colorize ? Texts(number_color, "e", reset) : Text("e");
+        default:
+            return colorize ? Texts(paren_color, "(", reset, left, operator_color, " ? ", reset, right, paren_color,
+                                    ")", reset)
+                            : Texts("(", left, " ? ", right, ")");
+        }
+    }
+    default: return colorize ? Texts(operator_color, "NaN", reset) : Text("NaN");
     }
 }
 
-static Int_t Real$compute_int(Real_t r, int64_t decimals) {
-    return pow10(r->userdata.i, decimals);
+public
+Text_t Real$value_as_text(Real_t n) {
+    return Real$as_text(&n, false, &Real$info);
 }
-
-static Int_t Real$compute_double(Real_t r, int64_t decimals) {
-    // TODO: this is probably inaccurate
-    return Int$from_float64(r->userdata.n * pow(10, (double)decimals), true);
-}
-
 public
 OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
-    Text_t decimal_onwards = EMPTY_TEXT;
-    OptionalInt_t int_component = Int$parse(text, I(10), &decimal_onwards);
-    if (int_component.small == 0) int_component = I(0);
-    Text_t fraction_text = EMPTY_TEXT;
-    if (Text$starts_with(decimal_onwards, Text("."), &fraction_text)) {
-        fraction_text = Text$replace(fraction_text, Text("_"), EMPTY_TEXT);
-        OptionalInt_t fraction;
-        if (fraction_text.length == 0) {
-            fraction = I(0);
-        } else {
-            fraction = Int$parse(fraction_text, I(10), remainder);
-            if (fraction.small == 0) return NONE_REAL;
+    const char *str = Text$as_c_string(text);
+    // Handle empty or null
+    if (!str || !*str) return NONE_REAL;
+
+    const char *p = str;
+    const char *start = p;
+
+    // Skip leading whitespace
+    while (*p == ' ' || *p == '\t')
+        p++;
+
+    // Skip optional sign
+    if (*p == '-' || *p == '+') p++;
+
+    // Must have at least one digit
+    if (!(*p >= '0' && *p <= '9')) return NONE_REAL;
+
+    // Scan digits before decimal point
+    while (*p >= '0' && *p <= '9')
+        p++;
+
+    // Check for decimal point
+    bool has_dot = (*p == '.');
+    if (has_dot) {
+        p++;
+        // Scan digits after decimal point
+        while (*p >= '0' && *p <= '9')
+            p++;
+    }
+
+    // Check for exponent (not supported yet, but detect it)
+    bool has_exp = (*p == 'e' || *p == 'E');
+    if (has_exp) return NONE_REAL; // Don't support scientific notation yet
+
+    // Now p points to first non-digit character
+    // Extract the valid number portion
+    ptrdiff_t num_len = p - start;
+    char buf[256];
+    if (num_len >= 256) return NONE_REAL;
+    strncpy(buf, start, (size_t)num_len);
+    buf[num_len] = '\0';
+
+    // If there's remaining text and no remainder pointer, fail
+    if (*p != '\0' && remainder == NULL) return NONE_REAL;
+
+    // Set remainder if provided
+    if (remainder) {
+        *remainder = Text$from_str(p);
+    }
+
+    // Now parse buf as number
+    if (!has_dot) {
+        // Integer
+        char *endptr;
+        long long val = strtoll(buf, &endptr, 10);
+        if (endptr == buf + num_len) {
+            return Real$from_int64(val);
         }
-        int64_t shift = fraction_text.length;
-        Int_t scale = Int$power(I(10), I(shift));
-        Int_t i = Int$plus(Int$times(int_component, scale), fraction);
-        Real_t ret = Real$divided_by(Real$from_int(i), Real$from_int(scale));
-        ret->approximation = i;
-        ret->approximation_decimals = shift;
-        return ret;
+
+        // Too large for int64, use GMP
+        OptionalInt_t b = Int$parse(Text$from_str(buf), NONE_INT, NULL);
+        if (b.small == 0) return NONE_REAL;
+        Int_t *bi = GC_MALLOC(sizeof(Int_t));
+        *bi = b;
+        return box_ptr(bi, REAL_TAG_BIGINT);
+    }
+
+    // Decimal - convert to rational
+    rational_t *r = GC_MALLOC(sizeof(rational_t));
+    mpq_init(&r->value);
+
+    // Count decimal places
+    const char *dot_pos = strchr(buf, '.');
+    int decimal_places = 0;
+    if (dot_pos) {
+        const char *d = dot_pos + 1;
+        while (*d >= '0' && *d <= '9') {
+            decimal_places++;
+            d++;
+        }
+    }
+
+    // Remove decimal point
+    char int_buf[256];
+    int j = 0;
+    for (int i = 0; buf[i] && j < 255; i++) {
+        if (buf[i] != '.') {
+            int_buf[j++] = buf[i];
+        }
+    }
+    int_buf[j] = '\0';
+
+    // Set numerator
+    if (mpz_set_str(mpq_numref(&r->value), int_buf, 10) != 0) {
+        mpq_clear(&r->value);
+        return NONE_REAL;
+    }
+
+    // Set denominator = 10^decimal_places
+    mpz_set_ui(mpq_denref(&r->value), 1);
+    for (int i = 0; i < decimal_places; i++) {
+        mpz_mul_ui(mpq_denref(&r->value), mpq_denref(&r->value), 10);
+    }
+
+    mpq_canonicalize(&r->value);
+    return box_ptr(r, REAL_TAG_RATIONAL);
+}
+
+static bool Real$is_none(const void *vn, const TypeInfo_t *type) {
+    (void)type;
+    Real_t n = *(Real_t *)vn;
+    return is_boxed(n) && get_tag(n) == REAL_TAG_NONE;
+}
+
+// Equality check (may be undecidable for some symbolics)
+public
+bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t) {
+    (void)t;
+    Real_t a = *(Real_t *)va;
+    Real_t b = *(Real_t *)vb;
+    if (!is_boxed(a) && !is_boxed(b)) return a.d == b.d;
+    if (is_boxed(a) != is_boxed(b)) return 0;
+
+    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+        rational_t *ra = get_ptr(a);
+        rational_t *rb = get_ptr(b);
+        return mpq_equal(&ra->value, &rb->value);
+    }
+
+    // Refine symbolics until separation or timeout
+    double da = Real$as_float64(a, true);
+    double db = Real$as_float64(b, true);
+    return fabs(da - db) < 1e-15;
+}
+
+public
+uint64_t Real$hash(const void *vr, const TypeInfo_t *type) {
+    (void)type;
+    Text_t text = Real$value_as_text(*(Real_t *)vr);
+    return Text$hash(&text, &Text$info);
+}
+
+// Comparison: -1 (less), 0 (equal), 1 (greater)
+public
+int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t) {
+    (void)t;
+    Real_t a = *(Real_t *)va;
+    Real_t b = *(Real_t *)vb;
+    if (!is_boxed(a) && !is_boxed(b)) {
+        return (a.d > b.d) - (a.d < b.d);
+    }
+
+    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+        rational_t *ra = get_ptr(a);
+        rational_t *rb = get_ptr(b);
+        return mpq_cmp(&ra->value, &rb->value);
+    }
+
+    double da = Real$as_float64(a, true);
+    double db = Real$as_float64(b, true);
+    return (da > db) - (da < db);
+}
+
+// Unary negation
+public
+Real_t Real$negative(Real_t a) {
+    if (!is_boxed(a)) return make_double(-a.d);
+
+    if (get_tag(a) == REAL_TAG_RATIONAL) {
+        rational_t *r = get_ptr(a);
+        rational_t *result = GC_MALLOC(sizeof(rational_t));
+        mpq_init(&result->value);
+        mpq_neg(&result->value, &r->value);
+        return box_ptr(result, REAL_TAG_RATIONAL);
+    }
+
+    return Real$times(make_double(-1.0), a);
+}
+
+public
+Real_t Real$rounded_to(Real_t x, Real_t round_to) {
+    // Convert to rationals for exact computation
+    rational_t *rx = GC_MALLOC(sizeof(rational_t));
+    rational_t *rr = GC_MALLOC(sizeof(rational_t));
+    mpq_init(&rx->value);
+    mpq_init(&rr->value);
+
+    // Convert x to rational
+    if (!is_boxed(x)) {
+        mpq_set_d(&rx->value, x.d);
+    } else if (get_tag(x) == REAL_TAG_RATIONAL) {
+        mpq_set(&rx->value, &((rational_t *)get_ptr(x))->value);
     } else {
-        if (decimal_onwards.length > 0) {
-            if (remainder) *remainder = decimal_onwards;
-            else return NONE_REAL;
-        }
-        return Real$from_int(int_component);
-    }
-}
-
-public
-Real_t Real$from_float64(double n) {
-    return new (struct Real_s, .compute = Real$compute_double, .userdata.n = n);
-}
-
-public
-double Real$as_float64(Real_t x) {
-    int64_t decimals = 17;
-    Int_t i = Real$compute(x, decimals);
-    mpq_t q;
-    mpz_t num;
-    mpz_init_set_int(num, i);
-    mpz_t den;
-    mpz_init_set_int(den, Int$power(I(10), I(decimals)));
-    mpq_set_num(q, num);
-    mpq_set_den(q, den);
-    return mpq_get_d(q);
-}
-
-public
-Real_t Real$from_int(Int_t i) {
-    return new (struct Real_s, .compute = Real$compute_int, .userdata.i = i, .approximation = i, .exact = 1,
-                .approximation_decimals = 0);
-}
-
-static Int_t Real$compute_negative(Real_t r, int64_t decimals) {
-    Int_t x = Real$compute(&r->userdata.children[0], decimals);
-    return Int$negative(x);
-}
-
-public
-Real_t Real$negative(Real_t x) {
-    return new (struct Real_s, .compute = Real$compute_negative, .userdata.children = x);
-}
-
-static Int_t Real$compute_plus(Real_t r, int64_t decimals) {
-    Int_t lhs = Real$compute(&r->userdata.children[0], decimals + 1);
-    Int_t rhs = Real$compute(&r->userdata.children[1], decimals + 1);
-    return Int$divided_by(Int$plus(lhs, rhs), I(10));
-}
-
-public
-Real_t Real$plus(Real_t x, Real_t y) {
-    Real_t result =
-        new (struct Real_s, .compute = Real$compute_plus, .userdata.children = GC_MALLOC(sizeof(struct Real_s[2])), );
-    result->userdata.children[0] = *x;
-    result->userdata.children[1] = *y;
-    return result;
-}
-
-static Int_t Real$compute_minus(Real_t r, int64_t decimals) {
-    Int_t lhs = Real$compute(&r->userdata.children[0], decimals + 1);
-    Int_t rhs = Real$compute(&r->userdata.children[1], decimals + 1);
-    return Int$divided_by(Int$minus(lhs, rhs), I(10));
-}
-
-public
-Real_t Real$minus(Real_t x, Real_t y) {
-    Real_t result =
-        new (struct Real_s, .compute = Real$compute_minus, .userdata.children = GC_MALLOC(sizeof(struct Real_s[2])), );
-    result->userdata.children[0] = *x;
-    result->userdata.children[1] = *y;
-    return result;
-}
-
-static Int_t Real$compute_times(Real_t r, int64_t decimals) {
-    Real_t lhs = &r->userdata.children[0];
-    Real_t rhs = &r->userdata.children[1];
-
-    int64_t half_prec = decimals / 2;
-
-    int64_t lhs_decimals = approx_log10(lhs, half_prec);
-    int64_t rhs_decimals = approx_log10(rhs, half_prec);
-
-    Real_t big, small;
-    if (lhs_decimals >= rhs_decimals) big = lhs, small = rhs;
-    else big = rhs, small = lhs;
-
-    Int_t approx_small = Real$compute(small, decimals - MAX(lhs_decimals, rhs_decimals) - 3);
-    if (approx_small.small == 0x1) return I(0);
-
-    Int_t approx_big = Real$compute(big, decimals - MIN(lhs_decimals, rhs_decimals) - 3);
-    if (approx_big.small == 0x1) return I(0);
-
-    return Int$right_shifted(Int$times(approx_big, approx_small),
-                             Int$from_int64(lhs_decimals + rhs_decimals - decimals));
-}
-
-public
-Real_t Real$times(Real_t x, Real_t y) {
-    // Simplification rules:
-    if (x->compute == Real$compute_int && y->compute == Real$compute_int) {
-        return Real$from_int(Int$times(x->userdata.i, y->userdata.i));
-    } else if (x->compute == Real$compute_times && y->compute == Real$compute_int) {
-        if (x->userdata.children[0].compute == Real$compute_int)
-            return Real$times(Real$times(&x->userdata.children[0], y), &x->userdata.children[1]);
-        else if (x->userdata.children[1].compute == Real$compute_int)
-            return Real$times(Real$times(&x->userdata.children[1], y), &x->userdata.children[0]);
+        mpq_set_d(&rx->value, Real$as_float64(x, true));
     }
 
-    Real_t result =
-        new (struct Real_s, .compute = Real$compute_times, .userdata.children = GC_MALLOC(sizeof(struct Real_s[2])));
-
-    result->userdata.children[0] = *x;
-    result->userdata.children[1] = *y;
-    return result;
-}
-
-static Int_t Real$compute_divided_by(Real_t r, int64_t decimals) {
-    int64_t den_mag = approx_log10(&r->userdata.children[1], 100);
-    Int_t num = Real$compute(&r->userdata.children[0], decimals * 2 - den_mag);
-    Int_t den = Real$compute(&r->userdata.children[1], decimals - den_mag);
-    return Int$divided_by(num, den);
-}
-
-public
-Real_t Real$divided_by(Real_t x, Real_t y) {
-    // Exact integer division:
-    if (x->compute == Real$compute_int && y->compute == Real$compute_int) {
-        Int_t int_result = Int$divided_by(x->userdata.i, y->userdata.i);
-        if (Int$equal_value(x->userdata.i, Int$times(int_result, y->userdata.i))) {
-            return Real$from_int(int_result);
-        }
-    }
-    Real_t result = new (struct Real_s, .compute = Real$compute_divided_by,
-                         .userdata.children = GC_MALLOC(sizeof(struct Real_s[2])), );
-    result->userdata.children[0] = *x;
-    result->userdata.children[1] = *y;
-    return result;
-}
-
-static Int_t Real$compute_sqrt(Real_t r, int64_t decimals) {
-    Real_t operand = r->userdata.children;
-    double d = Real$as_float64(operand);
-    // TODO: newton's method to iterate
-    return Int$from_float64(sqrt(d) * pow(10.0, (double)decimals), true);
-}
-
-public
-Real_t Real$sqrt(Real_t x) {
-    return new (struct Real_s, .compute = Real$compute_sqrt, .userdata.children = x);
-}
-
-public
-Text_t Real$value_as_text(Real_t x, int64_t digits) {
-    Int_t scaled_int = Real$compute(x, digits);
-    Text_t scaled_string = Int$value_as_text(Int$abs(scaled_int));
-    Text_t result;
-    if (digits == 0) {
-        result = scaled_string;
+    // Convert round_to to rational
+    if (!is_boxed(round_to)) {
+        mpq_set_d(&rr->value, round_to.d);
+    } else if (get_tag(round_to) == REAL_TAG_RATIONAL) {
+        mpq_set(&rr->value, &((rational_t *)get_ptr(round_to))->value);
     } else {
-        int64_t len = scaled_string.length;
-        if (len <= digits) {
-            // Add sufficient leading zeroes
-            Text_t z = Text$repeat(Text("0"), I(digits + 1 - len));
-            scaled_string = Texts(z, scaled_string);
-            len = digits + 1;
-        }
-        Text_t whole = Text$slice(scaled_string, I(1), I(len - digits));
-        Text_t fraction = Text$slice(scaled_string, I(len - digits + 1), I(-1));
-        result = Texts(whole, ".", fraction);
+        mpq_set_d(&rr->value, Real$as_float64(round_to, true));
     }
-    if (Int$compare_value(scaled_int, I(0)) < 0) {
-        result = Texts("-", result);
-    }
-    return result;
+
+    // Compute x / round_to
+    mpq_t quotient;
+    mpq_init(quotient);
+    mpq_div(quotient, &rx->value, &rr->value);
+
+    // Round to nearest integer using mpz_fdiv_qr for exact rounding
+    mpz_t rounded, remainder;
+    mpz_init(rounded);
+    mpz_init(remainder);
+
+    // Get 2 * numerator and denominator for rounding
+    mpz_t doubled_num;
+    mpz_init(doubled_num);
+    mpz_mul_ui(doubled_num, mpq_numref(quotient), 2);
+
+    // rounded = (2*num + den) / (2*den) using integer division
+    mpz_add(doubled_num, doubled_num, mpq_denref(quotient));
+    mpz_mul_ui(remainder, mpq_denref(quotient), 2);
+    mpz_fdiv_q(rounded, doubled_num, remainder);
+
+    // Multiply back: rounded * round_to
+    rational_t *result = GC_MALLOC(sizeof(rational_t));
+    mpq_init(&result->value);
+    mpq_set_z(&result->value, rounded);
+    mpq_mul(&result->value, &result->value, &rr->value);
+
+    mpq_clear(&rx->value);
+    mpq_clear(&rr->value);
+    mpq_clear(quotient);
+    mpz_clear(rounded);
+    mpz_clear(remainder);
+    mpz_clear(doubled_num);
+
+    return box_ptr(result, REAL_TAG_RATIONAL);
 }
 
-PUREFUNC
-static int32_t Real$compare(const void *x, const void *y, const TypeInfo_t *info) {
-    (void)info;
-    Int_t x_int = Real$compute(*(Real_t *)x, 100);
-    Int_t y_int = Real$compute(*(Real_t *)y, 100);
-    return Int$compare_value(x_int, y_int);
-}
+public
+int Real$test() {
+    GC_INIT();
 
-PUREFUNC
-static bool Real$equal(const void *x, const void *y, const TypeInfo_t *info) {
-    (void)info;
-    Int_t x_int = Real$compute(*(Real_t *)x, 100);
-    Int_t y_int = Real$compute(*(Real_t *)y, 100);
-    return Int$equal_value(x_int, y_int);
-}
+    printf("=== Exact Number System Tests ===\n\n");
 
-PUREFUNC
-static uint64_t Real$hash(const void *x, const TypeInfo_t *info) {
-    (void)x, (void)info;
-    fail("Hashing is not implemented for Reals");
-}
+    // Test 1: Simple double arithmetic (fast path)
+    printf("Test 1: 2.0 + 3.0\n");
+    Real_t a = make_double(2.0);
+    Real_t b = make_double(3.0);
+    Real_t result = Real$plus(a, b);
+    Text_t s = Real$value_as_text(result);
+    printf("Result: %s\n", Text$as_c_string(s));
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
 
-static Text_t Real$as_text(const void *x, bool color, const TypeInfo_t *info) {
-    (void)info;
-    if (x == NULL) return Text("Real");
-    Text_t text = Real$value_as_text(*(Real_t *)x, 10);
-    return color ? Texts("\x1b[35m", text, "\x1b[m") : text;
-}
+    // Test 2: Exact rational arithmetic
+    printf("Test 2: 1/3 + 1/6\n");
+    Real_t third = Real$from_rational(1, 3);
+    Real_t sixth = Real$from_rational(1, 6);
+    result = Real$plus(third, sixth);
+    s = Real$value_as_text(result);
+    printf("Result: %s\n", Text$as_c_string(s));
+    printf("Expected: 1/2\n");
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
 
-PUREFUNC
-static bool Real$is_none(const void *x, const TypeInfo_t *info) {
-    (void)info;
-    return *(Real_t *)x == NULL;
-}
+    // Test 3: (1/3) * 3 should give exactly 1
+    printf("Test 3: (1/3) * 3\n");
+    Real_t three = Real$from_rational(3, 1);
+    result = Real$times(third, three);
+    s = Real$value_as_text(result);
+    printf("Result: %s\n", Text$as_c_string(s));
+    printf("Expected: 1\n");
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
 
-static void Real$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
-    (void)obj, (void)out, (void)pointers, (void)info;
-    fail("Serialization of Reals is not implemented");
-}
+    // Test 4: sqrt(4) is exact
+    printf("Test 4: sqrt(4)\n");
+    Real_t four = Real$from_rational(4, 1);
+    result = Real$sqrt(four);
+    s = Real$value_as_text(result);
+    printf("Result: %s\n", Text$as_c_string(s));
+    printf("Expected: 2\n");
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
 
-static void Real$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *info) {
-    (void)in, (void)obj, (void)pointers, (void)info;
-    fail("Serialization of Reals is not implemented");
+    // Test 5: sqrt(2) * sqrt(2) stays symbolic
+    printf("Test 5: sqrt(2) * sqrt(2)\n");
+    Real_t two = Real$from_rational(2, 1);
+    Real_t sqrt2 = Real$sqrt(two);
+    result = Real$times(sqrt2, sqrt2);
+    s = Real$value_as_text(result);
+    printf("Result (symbolic): %s\n", Text$as_c_string(s));
+    printf("Approximate value: %.17g\n", Real$as_float64(result, true));
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+
+    // Test 6: Complex symbolic expression
+    printf("Test 6: (sqrt(2) + 1) * (sqrt(2) - 1)\n");
+    Real_t one = make_double(1.0);
+    Real_t sqrt2_plus_1 = Real$plus(sqrt2, one);
+    Real_t sqrt2_minus_1 = Real$minus(sqrt2, one);
+    result = Real$times(sqrt2_plus_1, sqrt2_minus_1);
+    s = Real$value_as_text(result);
+    printf("Result (symbolic): %s\n", Text$as_c_string(s));
+    printf("Approximate value: %.17g\n", Real$as_float64(result, true));
+    printf("Expected: 1 (but stays symbolic)\n");
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+
+    // Test 7: Division creating rational
+    printf("Test 7: 5 / 7\n");
+    Real_t five = Real$from_int64(5);
+    Real_t seven = Real$from_int64(7);
+    result = Real$divided_by(five, seven);
+    s = Real$value_as_text(result);
+    printf("Result: %s\n", Text$as_c_string(s));
+    printf("Expected: 5/7\n");
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+
+    // Test 8: Power that stays exact
+    printf("Test 8: 2^3\n");
+    result = Real$power(make_double(2.0), make_double(3.0));
+    s = Real$value_as_text(result);
+    printf("Result: %s\n", Text$as_c_string(s));
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+
+    // Test 9: Decimal arithmetic
+    printf("Test 8: 2^3\n");
+    result = Real$power(make_double(2.0), make_double(3.0));
+    s = Real$value_as_text(result);
+    printf("Result: %s\n", Text$as_c_string(s));
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+
+    // Test 9: Currency calculation that fails with doubles
+    printf("Test 9: 0.1 + 0.2 (classic floating point error)\n");
+    Real_t dime = Real$from_rational(1, 10);
+    Real_t two_dime = Real$from_rational(2, 10);
+    result = Real$plus(dime, two_dime);
+    s = Real$value_as_text(result);
+    printf("Result: %s\n", Text$as_c_string(s));
+    printf("Double arithmetic: %.17g\n", 0.1 + 0.2);
+    printf("Expected: 0.3\n");
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+
+    // Test 10: Rounding
+    printf("Test 10: round(sqrt(2), 0.00001)\n");
+    result = Real$rounded_to(sqrt2, Real$from_rational(1, 100000));
+    s = Real$value_as_text(result);
+    printf("Result: %s\n", Text$as_c_string(s));
+    printf("Expected: 1.41421\n");
+    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+
+    printf("=== Tests Complete ===\n");
+
+    return 0;
 }
 
 public
@@ -314,7 +838,7 @@ const TypeInfo_t Real$info = {
             .hash = Real$hash,
             .as_text = Real$as_text,
             .is_none = Real$is_none,
-            .serialize = Real$serialize,
-            .deserialize = Real$deserialize,
+            // .serialize = Real$serialize,
+            // .deserialize = Real$deserialize,
         },
 };

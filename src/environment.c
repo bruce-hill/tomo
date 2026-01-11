@@ -293,9 +293,9 @@ env_t *global_env(bool source_mapping) {
         MAKE_TYPE( //
             "Real", REAL_TYPE, Text("Real_t"), Text("Real$info"), //
             {"divided_by", "Real$divided_by", "func(x,y:Real -> Real)"}, //
-            {"inverse", "Real$inverse", "func(x:Real -> Real)"}, //
             {"minus", "Real$minus", "func(x,y:Real -> Real)"}, //
             {"negative", "Real$negative", "func(x:Real -> Real)"}, //
+            {"parse", "Real$parse", "func(text:Text, remainder:&Text?=none -> Real?)"}, //
             {"plus", "Real$plus", "func(x,y:Real -> Real)"}, //
             {"power", "Real$power", "func(base:Real,exponent:Real -> Real)"}, //
             {"sqrt", "Real$sqrt", "func(x:Real -> Real)"}, //
@@ -531,6 +531,9 @@ env_t *global_env(bool source_mapping) {
                      {"Float32$from_int64", "func(i:Int64, truncate=no -> Float32)"}, //
                      {"Float32$from_int", "func(i:Int, truncate=no -> Float32)"}, //
                      {"Float32$from_float64", "func(n:Float64 -> Float32)"});
+    ADD_CONSTRUCTORS("Real", //
+                     {"Real$from_int", "func(i:Int, truncate=no -> Real)"}, //
+                     {"Real$from_float64", "func(n:Float64 -> Real)"});
     ADD_CONSTRUCTORS("Path", //
                      {"Path$escape_text", "func(text:Text -> Path)"}, //
                      {"Path$escape_path", "func(path:Path -> Path)"}, //
