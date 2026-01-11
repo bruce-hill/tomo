@@ -300,6 +300,7 @@ env_t *global_env(bool source_mapping) {
             {"power", "Real$power", "func(base:Real,exponent:Real -> Real)"}, //
             {"sqrt", "Real$sqrt", "func(x:Real -> Real)"}, //
             {"times", "Real$times", "func(x,y:Real -> Real)"}, //
+            {"rounded_to", "Real$rounded_to", "func(x:Real, rounded_to:Real = 1.0 -> Real)"}, //
             ),
         MAKE_TYPE( //
             "CString", Type(CStringType), Text("char*"), Text("CString$info"), //

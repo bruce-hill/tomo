@@ -39,6 +39,8 @@ Real_t Real$sqrt(Real_t x);
 bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t);
 int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t);
 
+Real_t Real$rounded_to(Real_t x, Real_t round_to);
+
 int Real$test();
 
 extern const TypeInfo_t Real$info;
