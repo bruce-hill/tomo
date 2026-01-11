@@ -292,15 +292,33 @@ env_t *global_env(bool source_mapping) {
 #undef C
         MAKE_TYPE( //
             "Real", REAL_TYPE, Text("Real_t"), Text("Real$info"), //
+            {"abs", "Real$abs", "func(x:Real -> Real)"}, //
+            {"acos", "Real$acos", "func(x:Real -> Real)"}, //
+            {"asin", "Real$asin", "func(x:Real -> Real)"}, //
+            {"atan", "Real$atan", "func(x:Real -> Real)"}, //
+            {"atan2", "Real$atan2", "func(y,x:Real -> Real)"}, //
+            {"ceil", "Real$ceil", "func(x:Real -> Real)"}, //
+            {"clamped", "Real$clamped", "func(x,low,high:Real -> Real)"},
+            {"cos", "Real$cos", "func(x:Real -> Real)"}, //
             {"divided_by", "Real$divided_by", "func(x,y:Real -> Real)"}, //
+            {"exp", "Real$exp", "func(x:Real -> Real)"}, //
+            {"floor", "Real$floor", "func(x:Real -> Real)"}, //
+            {"is_between", "Real$is_between", "func(x,low,high:Real -> Bool)"}, //
+            {"log", "Real$log", "func(x:Real -> Real)"}, //
+            {"log10", "Real$log10", "func(x:Real -> Real)"}, //
             {"minus", "Real$minus", "func(x,y:Real -> Real)"}, //
+            {"mix", "Real$mix", "func(amount,x,y:Real -> Real)"}, //
+            {"mod", "Real$mod", "func(n,modulus:Real -> Real)"}, //
+            {"mod1", "Real$mod1", "func(n,modulus:Real -> Real)"}, //
             {"negative", "Real$negative", "func(x:Real -> Real)"}, //
             {"parse", "Real$parse", "func(text:Text, remainder:&Text?=none -> Real?)"}, //
             {"plus", "Real$plus", "func(x,y:Real -> Real)"}, //
             {"power", "Real$power", "func(base:Real,exponent:Real -> Real)"}, //
-            {"sqrt", "Real$sqrt", "func(x:Real -> Real)"}, //
-            {"times", "Real$times", "func(x,y:Real -> Real)"}, //
             {"rounded_to", "Real$rounded_to", "func(x:Real, rounded_to:Real = 1.0 -> Real)"}, //
+            {"sin", "Real$sin", "func(x:Real -> Real)"}, //
+            {"sqrt", "Real$sqrt", "func(x:Real -> Real)"}, //
+            {"tan", "Real$tan", "func(x:Real -> Real)"}, //
+            {"times", "Real$times", "func(x,y:Real -> Real)"}, //
             ),
         MAKE_TYPE( //
             "CString", Type(CStringType), Text("char*"), Text("CString$info"), //

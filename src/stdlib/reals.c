@@ -23,7 +23,30 @@ typedef struct {
     void *context;
 } constructive_t;
 
-typedef enum { SYM_ADD, SYM_SUB, SYM_MUL, SYM_DIV, SYM_SQRT, SYM_POW, SYM_PI, SYM_E } sym_op_t;
+typedef enum {
+    SYM_ADD,
+    SYM_SUB,
+    SYM_MUL,
+    SYM_DIV,
+    SYM_MOD,
+    SYM_SQRT,
+    SYM_POW,
+    SYM_SIN,
+    SYM_COS,
+    SYM_TAN,
+    SYM_ASIN,
+    SYM_ACOS,
+    SYM_ATAN,
+    SYM_ATAN2,
+    SYM_EXP,
+    SYM_LOG,
+    SYM_LOG10,
+    SYM_ABS,
+    SYM_FLOOR,
+    SYM_CEIL,
+    SYM_PI,
+    SYM_E
+} sym_op_t;
 
 typedef struct symbolic {
     sym_op_t op;
@@ -256,6 +279,98 @@ Real_t Real$divided_by(Real_t a, Real_t b) {
     sym->left = a;
     sym->right = b;
     return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$mod(Real_t n, Real_t modulus) {
+    // Euclidean division, see:
+    // https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
+
+    // For fast path with doubles
+    if (!is_boxed(n) && !is_boxed(modulus)) {
+        double r = remainder(n.d, modulus.d);
+        r -= (r < 0.0) * (2.0 * (modulus.d < 0.0) - 1.0) * modulus.d;
+        return make_double(r);
+    }
+
+    // For rationals, compute exactly
+    if (get_tag(n) == REAL_TAG_RATIONAL && get_tag(modulus) == REAL_TAG_RATIONAL) {
+        rational_t *rn = get_ptr(n);
+        rational_t *rm = get_ptr(modulus);
+
+        // Compute n - floor(n/modulus) * modulus
+        mpq_t quotient, floored, result;
+        mpq_init(quotient);
+        mpq_init(floored);
+        mpq_init(result);
+
+        mpq_div(quotient, &rn->value, &rm->value);
+
+        // Floor the quotient
+        mpz_t floor_z;
+        mpz_init(floor_z);
+        mpz_fdiv_q(floor_z, mpq_numref(quotient), mpq_denref(quotient));
+        mpq_set_z(floored, floor_z);
+
+        // result = n - floor * modulus
+        mpq_mul(result, floored, &rm->value);
+        mpq_sub(result, &rn->value, result);
+
+        // Apply Euclidean correction
+        if (mpq_sgn(result) < 0) {
+            if (mpq_sgn(&rm->value) < 0) {
+                mpq_sub(result, result, &rm->value);
+            } else {
+                mpq_add(result, result, &rm->value);
+            }
+        }
+
+        rational_t *res = GC_MALLOC(sizeof(rational_t));
+        mpq_init(&res->value);
+        mpq_set(&res->value, result);
+
+        mpq_clear(quotient);
+        mpq_clear(floored);
+        mpq_clear(result);
+        mpz_clear(floor_z);
+
+        return box_ptr(res, REAL_TAG_RATIONAL);
+    }
+
+    // Fallback to symbolic
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_MOD;
+    sym->left = n;
+    sym->right = modulus;
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$mod1(Real_t n, Real_t modulus) {
+    Real_t one = make_double(1.0);
+    return Real$plus(one, Real$mod(Real$minus(n, one), modulus));
+}
+
+public
+Real_t Real$mix(Real_t amount, Real_t x, Real_t y) {
+    // mix = (1 - amount) * x + amount * y
+    Real_t one = make_double(1.0);
+    Real_t one_minus_amount = Real$minus(one, amount);
+    Real_t left_term = Real$times(one_minus_amount, x);
+    Real_t right_term = Real$times(amount, y);
+    return Real$plus(left_term, right_term);
+}
+
+public
+bool Real$is_between(Real_t x, Real_t low, Real_t high) {
+    return Real$compare(&low, &x, NULL) <= 0 && Real$compare(&x, &high, NULL) <= 0;
+}
+
+public
+Real_t Real$clamped(Real_t x, Real_t low, Real_t high) {
+    if (Real$compare(&x, &low, NULL) <= 0) return low;
+    if (Real$compare(&x, &high, NULL) >= 0) return high;
+    return x;
 }
 
 public
@@ -716,6 +831,235 @@ Real_t Real$rounded_to(Real_t x, Real_t round_to) {
     mpz_clear(doubled_num);
 
     return box_ptr(result, REAL_TAG_RATIONAL);
+}
+
+// Trigonometric functions - return symbolic expressions
+public
+Real_t Real$sin(Real_t x) {
+    if (!is_boxed(x)) {
+        double result = sin(x.d);
+        // Check if result is exact (e.g., sin(0) = 0)
+        if (result == 0.0 || result == 1.0 || result == -1.0) {
+            return make_double(result);
+        }
+    }
+
+    // Create symbolic expression
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_SIN;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$cos(Real_t x) {
+    if (!is_boxed(x)) {
+        double result = cos(x.d);
+        if (result == 0.0 || result == 1.0 || result == -1.0) {
+            return make_double(result);
+        }
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_COS;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$tan(Real_t x) {
+    if (!is_boxed(x)) {
+        double result = tan(x.d);
+        if (result == 0.0) return make_double(0.0);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_TAN;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$asin(Real_t x) {
+    if (!is_boxed(x)) {
+        double result = asin(x.d);
+        if (result == 0.0) return make_double(0.0);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_ASIN;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$acos(Real_t x) {
+    if (!is_boxed(x)) {
+        double result = acos(x.d);
+        if (result == 0.0) return make_double(0.0);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_ACOS;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$atan(Real_t x) {
+    if (!is_boxed(x)) {
+        double result = atan(x.d);
+        if (result == 0.0) return make_double(0.0);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_ATAN;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$atan2(Real_t y, Real_t x) {
+    if (!is_boxed(y) && !is_boxed(x)) {
+        double result = atan2(y.d, x.d);
+        if (result == 0.0) return make_double(0.0);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_ATAN2;
+    sym->left = y;
+    sym->right = x;
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$exp(Real_t x) {
+    if (!is_boxed(x)) {
+        feclearexcept(FE_INEXACT);
+        double result = exp(x.d);
+        if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
+            return make_double(result);
+        }
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_EXP;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$log(Real_t x) {
+    if (!is_boxed(x)) {
+        feclearexcept(FE_INEXACT);
+        double result = log(x.d);
+        if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
+            return make_double(result);
+        }
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_LOG;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$log10(Real_t x) {
+    if (!is_boxed(x)) {
+        feclearexcept(FE_INEXACT);
+        double result = log10(x.d);
+        if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
+            return make_double(result);
+        }
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_LOG10;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$abs(Real_t x) {
+    if (!is_boxed(x)) {
+        return make_double(fabs(x.d));
+    }
+
+    if (get_tag(x) == REAL_TAG_RATIONAL) {
+        rational_t *r = get_ptr(x);
+        rational_t *result = GC_MALLOC(sizeof(rational_t));
+        mpq_init(&result->value);
+        mpq_abs(&result->value, &r->value);
+        return box_ptr(result, REAL_TAG_RATIONAL);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_ABS;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$floor(Real_t x) {
+    if (!is_boxed(x)) {
+        return make_double(floor(x.d));
+    }
+
+    if (get_tag(x) == REAL_TAG_RATIONAL) {
+        rational_t *r = get_ptr(x);
+        mpz_t result;
+        mpz_init(result);
+        mpz_fdiv_q(result, mpq_numref(&r->value), mpq_denref(&r->value));
+
+        rational_t *rat = GC_MALLOC(sizeof(rational_t));
+        mpq_init(&rat->value);
+        mpq_set_z(&rat->value, result);
+        mpz_clear(result);
+        return box_ptr(rat, REAL_TAG_RATIONAL);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_FLOOR;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
+}
+
+public
+Real_t Real$ceil(Real_t x) {
+    if (!is_boxed(x)) {
+        return make_double(ceil(x.d));
+    }
+
+    if (get_tag(x) == REAL_TAG_RATIONAL) {
+        rational_t *r = get_ptr(x);
+        mpz_t result;
+        mpz_init(result);
+        mpz_cdiv_q(result, mpq_numref(&r->value), mpq_denref(&r->value));
+
+        rational_t *rat = GC_MALLOC(sizeof(rational_t));
+        mpq_init(&rat->value);
+        mpq_set_z(&rat->value, result);
+        mpz_clear(result);
+        return box_ptr(rat, REAL_TAG_RATIONAL);
+    }
+
+    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
+    sym->op = SYM_CEIL;
+    sym->left = x;
+    sym->right = make_double(0);
+    return box_ptr(sym, REAL_TAG_SYMBOLIC);
 }
 
 public

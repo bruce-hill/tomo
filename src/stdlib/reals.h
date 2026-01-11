@@ -19,27 +19,41 @@
 
 #define NONE_REAL ((Real_t){.u64 = QNAN_MASK | REAL_TAG_NONE})
 
-Text_t Real$value_as_text(Real_t x);
-
+Int_t Real$as_int(Real_t x, bool truncate);
 OptionalReal_t Real$parse(Text_t text, Text_t *remainder);
-Real_t Real$from_text(Text_t text);
+Real_t Real$abs(Real_t x);
+Real_t Real$acos(Real_t x);
+Real_t Real$asin(Real_t x);
+Real_t Real$atan(Real_t x);
+Real_t Real$atan2(Real_t y, Real_t x);
+Real_t Real$ceil(Real_t x);
+Real_t Real$clamped(Real_t x, Real_t low, Real_t high);
+Real_t Real$cos(Real_t x);
+Real_t Real$divided_by(Real_t x, Real_t y);
+Real_t Real$exp(Real_t x);
+Real_t Real$floor(Real_t x);
 Real_t Real$from_float64(double n);
 Real_t Real$from_int(Int_t i);
-
-double Real$as_float64(Real_t n, bool truncate);
-Int_t Real$as_int(Real_t x, bool truncate);
-
+Real_t Real$from_text(Text_t text);
+Real_t Real$log(Real_t x);
+Real_t Real$log10(Real_t x);
+Real_t Real$minus(Real_t x, Real_t y);
+Real_t Real$mix(Real_t amount, Real_t x, Real_t y);
+Real_t Real$mod(Real_t n, Real_t modulus);
+Real_t Real$mod1(Real_t n, Real_t modulus);
 Real_t Real$negative(Real_t x);
 Real_t Real$plus(Real_t x, Real_t y);
-Real_t Real$minus(Real_t x, Real_t y);
-Real_t Real$times(Real_t x, Real_t y);
-Real_t Real$divided_by(Real_t x, Real_t y);
 Real_t Real$power(Real_t base, Real_t exp);
-Real_t Real$sqrt(Real_t x);
-bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t);
-int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t);
-
 Real_t Real$rounded_to(Real_t x, Real_t round_to);
+Real_t Real$sin(Real_t x);
+Real_t Real$sqrt(Real_t x);
+Real_t Real$tan(Real_t x);
+Real_t Real$times(Real_t x, Real_t y);
+Text_t Real$value_as_text(Real_t x);
+bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t);
+bool Real$is_between(Real_t x, Real_t low, Real_t high);
+double Real$as_float64(Real_t n, bool truncate);
+int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t);
 
 int Real$test();
 
