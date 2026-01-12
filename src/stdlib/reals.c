@@ -753,9 +753,10 @@ OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
             // n = int_part + 10^digits * fractional_part
             OptionalInt_t fractional_part = Int$parse(text, I(10), &after_decimal);
             if (fractional_part.small != 0 && !Int$is_zero(fractional_part)) {
-                ret = Real$plus(ret,
-                                Real$divided_by(Real$from_int(fractional_part),
-                                                Real$power(Real$from_float64(10.), Real$from_float64((double)digits))));
+                Real_t frac = Real$from_int(fractional_part);
+                Real_t pow10 = Real$power(Real$from_float64(10.), Real$from_float64((double)digits));
+                Real_t excess = Real$divided_by(frac, pow10);
+                ret = Int$is_negative(int_part) ? Real$minus(ret, excess) : Real$plus(ret, excess);
             }
         }
         text = after_decimal;
@@ -1112,6 +1113,7 @@ Real_t Real$abs(Real_t x) {
 public
 Real_t Real$floor(Real_t x) {
     if (!Real$is_boxed(x)) {
+        // TODO: this may be inexact in some rare cases
         return make_double(floor(x.d));
     }
 
