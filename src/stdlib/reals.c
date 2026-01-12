@@ -484,11 +484,38 @@ Real_t Real$sqrt(Real_t a) {
     return box_ptr(sym, REAL_TAG_SYMBOLIC);
 }
 
+// Because the libm implementation of pow() is often inexact for common
+// cases like `10^2` due to its implementation details, this wrapper will
+// try to find cases where it's not too hard to get exact results and do
+// that instead, falling back to inexact pow() when necessary.
+static CONSTFUNC double less_inexact_pow(double base, double exponent) {
+    if (exponent == 0.0) return 1.0;
+    if (base == 0.0) return exponent > 0.0 ? 0.0 : HUGE_VAL;
+    if (exponent == 1.0) return base;
+    if (exponent == 0.5) return sqrt(base);
+
+    // Integer or half-integer path (x^i or x^(i+.5), where i is an integer)
+    double int_part = trunc(exponent);
+    double frac_part = exponent - int_part;
+    if ((frac_part == 0.0 || frac_part == 0.5) && fabs(int_part) <= INT64_MAX) {
+        int64_t n = (int64_t)fabs(int_part);
+        double result = 1.0, b = base;
+        while (n) {
+            if (n & 1) result *= b;
+            b *= b;
+            n >>= 1;
+        }
+        if (frac_part == 0.5) result *= sqrt(base);
+        return int_part < 0.0 ? 1.0 / result : result;
+    }
+    return pow(base, exponent);
+}
+
 public
 Real_t Real$power(Real_t base, Real_t exp) {
     if (!Real$is_boxed(base) && !Real$is_boxed(exp)) {
         feclearexcept(FE_INEXACT);
-        volatile double result = pow(base.d, exp.d);
+        volatile double result = less_inexact_pow(base.d, exp.d);
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
@@ -726,8 +753,9 @@ OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
             // n = int_part + 10^digits * fractional_part
             OptionalInt_t fractional_part = Int$parse(text, I(10), &after_decimal);
             if (fractional_part.small != 0 && !Int$is_zero(fractional_part)) {
-                ret = Real$plus(
-                    ret, Real$divided_by(Real$from_int(fractional_part), Real$from_float64(pow(10., (double)digits))));
+                ret = Real$plus(ret,
+                                Real$divided_by(Real$from_int(fractional_part),
+                                                Real$power(Real$from_float64(10.), Real$from_float64((double)digits))));
             }
         }
         text = after_decimal;
@@ -740,9 +768,10 @@ OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
             // n *= 10^exp
             if (!Int$is_zero(exponent)) {
                 if (Int$is_negative(exponent)) {
-                    ret = Real$divided_by(ret, Real$from_float64(pow(10., -Float64$from_int(exponent, true))));
+                    ret = Real$divided_by(
+                        ret, Real$power(Real$from_float64(10.), Real$from_float64(-Float64$from_int(exponent, true))));
                 } else {
-                    ret = Real$times(ret, Real$from_float64(pow(10., Float64$from_int(exponent, true))));
+                    ret = Real$times(ret, Real$power(Real$from_float64(10.), Real$from_int(exponent)));
                 }
             }
             text = after_exp;
