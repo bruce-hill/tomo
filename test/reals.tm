@@ -69,7 +69,7 @@ func main()
 	# Modulo
 	assert 7. mod 3. == 1.
 	assert -7. mod 3. == 2.  # Euclidean division
-	assert 7. mod -3. == -2.
+	assert 7. mod -3. == 1.
 	assert 2.5 mod 1.0 == 0.5
 	
 	# Mod1

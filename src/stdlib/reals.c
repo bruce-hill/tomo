@@ -129,7 +129,7 @@ bool Real$get_rational(Real_t x, int64_t *num, int64_t *den) {
 
 // Promote double to exact type if needed
 static Real_t promote_double(double d) {
-    if (isfinite(d) && d == floor(d) && fabs(d) < (1LL << 53)) {
+    if (!isfinite(d)) {
         return make_double(d);
     }
     rational_t *r = GC_MALLOC(sizeof(rational_t));
@@ -213,21 +213,10 @@ Real_t Real$plus(Real_t a, Real_t b) {
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
-        a = promote_double(a.d);
-        b = promote_double(b.d);
     }
 
-    // Handle mixed rational/double cases by promoting double to rational
-    if (Real$is_boxed(a) && Real$tag(a) == REAL_TAG_RATIONAL && !Real$is_boxed(b)) {
-        if (isfinite(b.d)) {
-            b = promote_double(b.d);
-        }
-    }
-    if (!Real$is_boxed(a) && Real$is_boxed(b) && Real$tag(b) == REAL_TAG_RATIONAL) {
-        if (isfinite(a.d)) {
-            a = promote_double(a.d);
-        }
-    }
+    if (!Real$is_boxed(a)) a = promote_double(a.d);
+    if (!Real$is_boxed(b)) b = promote_double(b.d);
 
     // Handle exact rational arithmetic
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
@@ -255,9 +244,10 @@ Real_t Real$minus(Real_t a, Real_t b) {
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
-        a = promote_double(a.d);
-        b = promote_double(b.d);
     }
+
+    if (!Real$is_boxed(a)) a = promote_double(a.d);
+    if (!Real$is_boxed(b)) b = promote_double(b.d);
 
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
@@ -283,21 +273,10 @@ Real_t Real$times(Real_t a, Real_t b) {
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
-        a = promote_double(a.d);
-        b = promote_double(b.d);
     }
 
-    // Handle mixed rational/double cases by promoting double to rational
-    if (Real$is_boxed(a) && Real$tag(a) == REAL_TAG_RATIONAL && !Real$is_boxed(b)) {
-        if (isfinite(b.d)) {
-            b = promote_double(b.d);
-        }
-    }
-    if (!Real$is_boxed(a) && Real$is_boxed(b) && Real$tag(b) == REAL_TAG_RATIONAL) {
-        if (isfinite(a.d)) {
-            a = promote_double(a.d);
-        }
-    }
+    if (!Real$is_boxed(a)) a = promote_double(a.d);
+    if (!Real$is_boxed(b)) b = promote_double(b.d);
 
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
@@ -339,9 +318,10 @@ Real_t Real$divided_by(Real_t a, Real_t b) {
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
-        a = promote_double(a.d);
-        b = promote_double(b.d);
     }
+
+    if (!Real$is_boxed(a)) a = promote_double(a.d);
+    if (!Real$is_boxed(b)) b = promote_double(b.d);
 
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
@@ -844,7 +824,9 @@ PUREFUNC bool Real$is_none(const void *vn, const TypeInfo_t *type) {
 public
 bool Real$equal_values(Real_t a, Real_t b) {
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) return a.d == b.d;
-    if (Real$is_boxed(a) != Real$is_boxed(b)) return 0;
+
+    if (!Real$is_boxed(a)) a = promote_double(a.d);
+    if (!Real$is_boxed(b)) b = promote_double(b.d);
 
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
