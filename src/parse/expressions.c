@@ -165,8 +165,8 @@ ast_t *parse_var(parse_ctx_t *ctx, const char *pos) {
 ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     ast_t *term = NULL;
-    (void)(false || (term = parse_none(ctx, pos)) || (term = parse_num(ctx, pos)) // Must come before int
-           || (term = parse_int(ctx, pos)) || (term = parse_negative(ctx, pos)) // Must come after num/int
+    (void)(false || (term = parse_none(ctx, pos)) || (term = parse_int(ctx, pos)) // Must come before num
+           || (term = parse_num(ctx, pos)) || (term = parse_negative(ctx, pos)) // Must come after num/int
            || (term = parse_heap_alloc(ctx, pos)) || (term = parse_stack_reference(ctx, pos))
            || (term = parse_bool(ctx, pos)) || (term = parse_text(ctx, pos, true)) || (term = parse_path(ctx, pos))
            || (term = parse_lambda(ctx, pos)) || (term = parse_parens(ctx, pos)) || (term = parse_table(ctx, pos))

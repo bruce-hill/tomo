@@ -93,6 +93,104 @@ Text_t compile_empty(type_t *t) {
     return EMPTY_TEXT;
 }
 
+Text_t compile_real(ast_t *ast, Real_t num) {
+    if (!Real$is_boxed(num)) {
+        return Texts("Real$from_float64(", Real$value_as_text(num), ")");
+    }
+
+    switch (Real$tag(num)) {
+    case REAL_TAG_BIGINT: {
+        Int_t *b = REAL_BIGINT(num);
+        assert(b->small != 0);
+
+        mpz_t i;
+        mpz_init_set_int(i, *b);
+        char *c_literal;
+        gmp_asprintf(&c_literal, "%#Zd", i);
+
+        if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
+            return Texts("Real$from_int64(", c_literal, ")");
+        } else {
+            return Texts("Real$from_int(Int$from_str(\"", *b, "\"))");
+        }
+    }
+    case REAL_TAG_RATIONAL: {
+        rational_t *r = REAL_RATIONAL(num);
+
+        // Check if denominator is 1 (integer)
+        if (mpz_cmp_ui(mpq_denref(&r->value), 1) == 0) {
+            Int_t b = Int$from_mpz(mpq_numref(&r->value));
+            Real_t b_real;
+            b_real.bigint = &b;
+            b_real.bits |= REAL_TAG_BIGINT;
+            return compile_real(ast, b_real);
+        }
+
+        mpz_t num_copy;
+        mpz_init_set(num_copy, mpq_numref(&r->value));
+
+        mpz_t den_copy;
+        mpz_init_set(den_copy, mpq_denref(&r->value));
+
+        if (mpz_cmp_si(mpq_numref(&r->value), INT64_MAX) <= 0 && mpz_cmp_si(mpq_numref(&r->value), INT64_MIN) >= 0
+            && mpz_cmp_si(mpq_denref(&r->value), INT64_MAX) <= 0 && mpz_cmp_si(mpq_denref(&r->value), INT64_MIN) >= 0) {
+            char *num_str = mpz_get_str(NULL, 10, mpq_numref(&r->value));
+            char *den_str = mpz_get_str(NULL, 10, mpq_denref(&r->value));
+            return Texts("Real$from_rational(", num_str, ", ", den_str, ")");
+        } else {
+            Int_t numerator = Int$from_mpz(mpq_numref(&r->value));
+            Real_t num_real;
+            num_real.bigint = &numerator;
+            num_real.bits |= REAL_TAG_BIGINT;
+
+            Int_t denominator = Int$from_mpz(mpq_denref(&r->value));
+            Real_t den_real;
+            den_real.bigint = &denominator;
+            den_real.bits |= REAL_TAG_BIGINT;
+
+            return Texts("Real$divided_by(", compile_real(ast, num_real), ", ", compile_real(ast, den_real), ")");
+        }
+    }
+    case REAL_TAG_CONSTRUCTIVE: {
+        code_err(ast, "Constructive reals can't be compiled yet");
+    }
+    case REAL_TAG_SYMBOLIC: {
+        symbolic_t *s = REAL_SYMBOLIC(num);
+
+#define BINOP(name) Texts("Real$" name "(", compile_real(ast, s->left), ", ", compile_real(ast, s->right), ")")
+#define UNOP(name) Texts("Real$" name "(", compile_real(ast, s->left), ")")
+        switch (s->op) {
+        case SYM_INVALID: code_err(ast, "Invalid real number");
+        case SYM_ADD: return BINOP("plus");
+        case SYM_SUB: return BINOP("minus");
+        case SYM_MUL: return BINOP("times");
+        case SYM_DIV: return BINOP("divided_by");
+        case SYM_MOD: return BINOP("mod");
+        case SYM_SQRT: return UNOP("sqrt");
+        case SYM_POW: return BINOP("power");
+        case SYM_SIN: return UNOP("sin");
+        case SYM_COS: return UNOP("cos");
+        case SYM_TAN: return UNOP("tan");
+        case SYM_ASIN: return UNOP("asin");
+        case SYM_ACOS: return UNOP("acos");
+        case SYM_ATAN: return UNOP("atan");
+        case SYM_ATAN2: return BINOP("atan2");
+        case SYM_EXP: return UNOP("exp");
+        case SYM_LOG: return UNOP("log");
+        case SYM_LOG10: return UNOP("log10");
+        case SYM_ABS: return UNOP("abs");
+        case SYM_FLOOR: return UNOP("floor");
+        case SYM_CEIL: return UNOP("ceil");
+        case SYM_PI: return Text("Real$pi");
+        case SYM_TAU: return Text("Real$tau");
+        case SYM_E: return Text("Real$e");
+        default: code_err(ast, "Unsupported real type");
+        }
+    }
+    default: code_err(ast, "Unsupported real type");
+    }
+}
+
 Text_t compile(env_t *env, ast_t *ast) {
     switch (ast->tag) {
     case None: {
@@ -108,26 +206,7 @@ Text_t compile(env_t *env, ast_t *ast) {
         code_err(ast, "I don't know of any variable by this name");
     }
     case Integer: return compile_int(ast);
-    case Number: {
-        const char *src = String(string_slice(ast->start, (size_t)(ast->end - ast->start)));
-        Text_t corrected = Text$from_str(src);
-        corrected = Text$replace(corrected, Text("_"), EMPTY_TEXT);
-        corrected = Text$replace(corrected, Text("("), EMPTY_TEXT);
-        corrected = Text$replace(corrected, Text(")"), EMPTY_TEXT);
-        corrected = Text$replace(corrected, Text(" "), EMPTY_TEXT);
-
-        Real_t real = Real$parse(corrected, NULL);
-        if (!Real$is_boxed(real)) {
-            return Texts("Real$from_float64(", corrected, ")");
-        }
-
-        int64_t num, den;
-        if (Real$get_rational(real, &num, &den)) {
-            return Texts("Real$from_rational(", num, "LL, ", den, "LL)");
-        }
-
-        return Texts("Real$parse(Text(\"", corrected, "\"), NULL)");
-    }
+    case Number: return compile_real(ast, Match(ast, Number)->n);
     case Not: {
         ast_t *value = Match(ast, Not)->value;
         type_t *t = get_type(env, value);

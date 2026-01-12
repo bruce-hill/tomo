@@ -92,7 +92,7 @@ Text_t check_none(type_t *t, Text_t value) {
     else if (t->tag == ClosureType) return Texts("((", value, ").fn == NULL)");
     else if (t->tag == FloatType)
         return Texts(Match(t, FloatType)->bits == TYPE_NBITS64 ? "Float64$isnan(" : "Float32$isnan(", value, ")");
-    else if (t->tag == RealType) return Texts("Real$is_none(stack(", value, "), &Real$info)");
+    else if (t->tag == RealType) return Texts("((", value, ").bits == 0)");
     else if (t->tag == ListType) return Texts("((", value, ").data == NULL)");
     else if (t->tag == TableType) return Texts("((", value, ").entries.data == NULL)");
     else if (t->tag == BoolType) return Texts("((", value, ") == NONE_BOOL)");

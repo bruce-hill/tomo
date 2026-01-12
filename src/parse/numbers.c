@@ -20,74 +20,85 @@
 #include "numbers.h"
 #include "utils.h"
 
-static const double RADIANS_PER_DEGREE = 0.0174532925199432957692369076848861271344287188854172545609719144;
-
 ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    (void)match(&pos, "-");
-    if (!isdigit(*pos)) return NULL;
-    if (match(&pos, "0x")) { // Hex
-        pos += strspn(pos, "0123456789abcdefABCDEF_");
-    } else if (match(&pos, "0b")) { // Binary
-        pos += strspn(pos, "01_");
-    } else if (match(&pos, "0o")) { // Octal
-        pos += strspn(pos, "01234567_");
+    size_t len = 0;
+    if (start[len] == '-') len += 1;
+
+    if (!isdigit(start[len])) return NULL;
+
+    if (start[len] == '0') {
+        if (start[len + 1] == 'x' || start[len + 1] == 'X') { // Hex
+            len += 2;
+            len += strspn(start + len, "0123456789abcdefABCDEF_");
+        } else if (start[len + 1] == 'b' || start[len + 1] == 'B') { // Binary
+            len += 2;
+            len += strspn(start + len, "01_");
+        } else if (start[len + 1] == 'o' || start[len + 1] == 'O') { // Octal
+            len += 2;
+            len += strspn(start + len, "01234567_");
+        } else { // Decimal
+            len += strspn(start + len, "0123456789_");
+        }
     } else { // Decimal
-        pos += strspn(pos, "0123456789_");
-    }
-    char *str = GC_MALLOC_ATOMIC((size_t)(pos - start) + 1);
-    memset(str, 0, (size_t)(pos - start) + 1);
-    for (char *src = (char *)start, *dest = str; src < pos; ++src) {
-        if (*src != '_') *(dest++) = *src;
+        size_t digits = strspn(start + len, "0123456789_");
+        if (digits <= 0) {
+            return NULL;
+        }
+        len += digits;
     }
 
-    if (match(&pos, "e") || match(&pos, "f")) // floating point literal
+    // Rational literals: 1.2, 1e2, 1E2, 1%, 1deg
+    if (start[len] == '.' || start[len] == 'e' || start[len] == 'E' || start[len] == '%'
+        || strncmp(start + len, "deg", 3) == 0) {
         return NULL;
-
-    if (match(&pos, "%")) {
-        return parse_num(ctx, start);
-    } else if (match(&pos, "deg")) {
-        return parse_num(ctx, start);
     }
 
-    Text_t text = Text$from_strn(start, (size_t)(pos - start));
-    Text_t remainder;
-    OptionalInt_t i = Int$parse(text, NONE_INT, &remainder);
+    Text_t text = Text$from_strn(start, len);
+    OptionalInt_t i = Int$parse(text, NONE_INT, NULL);
     assert(i.small != 0);
-    return NewAST(ctx->file, start, pos, Integer, .i = i);
+    return NewAST(ctx->file, start, start + len, Integer, .i = i);
 }
 
 ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    bool negative = match(&pos, "-");
-    if (!isdigit(*pos) && *pos != '.') return NULL;
-    else if (*pos == '.' && !isdigit(pos[1])) return NULL;
+    if (!isdigit(start[0]) && start[0] != '.') return NULL;
+    else if (start[0] == '.' && !isdigit(start[1])) return NULL;
 
-    size_t len = strspn(pos, "0123456789_");
-    if (strncmp(pos + len, "..", 2) == 0) return NULL;
-    else if (pos[len] == '.') len += 1 + strspn(pos + len + 1, "0123456789");
-    else if (pos[len] != 'e' && pos[len] != 'f' && pos[len] != '%') return NULL;
-    if (pos[len] == 'e') {
+    size_t len = 0;
+    if (pos[len] == '-') len += 1;
+    size_t pre_digits = strspn(pos, "0123456789_"), post_digits = 0;
+    len += pre_digits;
+    if (pos[len] == '.') {
+        len += 1;
+        post_digits = strspn(pos + len, "0123456789_");
+        len += post_digits;
+    }
+
+    // No digits, no number
+    if (pre_digits <= 0 && post_digits <= 0) return NULL;
+
+    if (pos[len] == 'e' || pos[len] == 'E') {
         len += 1;
         if (pos[len] == '-') len += 1;
         len += strspn(pos + len, "0123456789_");
     }
-    char *buf = GC_MALLOC_ATOMIC(len + 1);
-    memset(buf, 0, len + 1);
-    for (char *src = (char *)pos, *dest = buf; src < pos + len; ++src) {
-        if (*src != '_') *(dest++) = *src;
-    }
-    double d = strtod(buf, NULL);
-    pos += len;
 
-    if (negative) d *= -1;
+    Text_t text = Text$from_strn(start, len);
 
-    if (match(&pos, "%")) d /= 100.;
-    else if (match(&pos, "deg")) d *= RADIANS_PER_DEGREE;
-
-    Text_t text = Text$from_strn(start, (size_t)(pos - start));
     Text_t remainder;
     OptionalReal_t real = Real$parse(text, &remainder);
     if (Real$is_none(&real, &Real$info)) return NULL;
+
+    pos += len;
+
+    if (match(&pos, "%")) {
+        // The '%' percentage suffix means "divide by 100"
+        if (!Real$is_zero(real)) real = Real$divided_by(real, Real$from_float64(100.));
+    } else if (match(&pos, "deg")) {
+        // The 'deg' suffix means convert from degrees to radians (i.e. 90deg => (90/360)*(2*pi))
+        if (!Real$is_zero(real)) real = Real$times(Real$divided_by(real, Real$from_float64(360.)), Real$tau);
+    }
+
     return NewAST(ctx->file, start, pos, Number, .n = real);
 }

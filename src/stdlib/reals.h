@@ -5,20 +5,9 @@
 #include "types.h"
 #include "util.h"
 
-// NaN-boxing scheme: use quiet NaN space for pointers
-// IEEE 754: NaN = exponent all 1s, mantissa non-zero
-// Quiet NaN: sign bit can be anything, bit 51 = 1
-#define QNAN_MASK 0x7FF8000000000000ULL
-#define TAG_MASK 0x0007000000000000ULL
-#define PTR_MASK 0x0000FFFFFFFFFFFFULL
+#define NONE_REAL ((Real_t){.bits = REAL_TAG_NONE})
 
-#define REAL_TAG_BIGINT 0x0001000000000000ULL
-#define REAL_TAG_RATIONAL 0x0002000000000000ULL
-#define REAL_TAG_CONSTRUCTIVE 0x0003000000000000ULL
-#define REAL_TAG_SYMBOLIC 0x0004000000000000ULL
-#define REAL_TAG_NONE 0x0005000000000000ULL
-
-#define NONE_REAL ((Real_t){.u64 = QNAN_MASK | REAL_TAG_NONE})
+#define Real$is_zero(r) ((r).bits == QNAN_MASK)
 
 CONSTFUNC Real_t Real$from_float64(double n);
 CONSTFUNC bool Real$is_boxed(Real_t n);
@@ -38,6 +27,7 @@ Real_t Real$divided_by(Real_t x, Real_t y);
 Real_t Real$exp(Real_t x);
 Real_t Real$floor(Real_t x);
 Real_t Real$from_int(Int_t i);
+Real_t Real$from_int64(int64_t i);
 Real_t Real$from_rational(int64_t num, int64_t den);
 Real_t Real$from_text(Text_t text);
 Real_t Real$log(Real_t x);
@@ -63,6 +53,10 @@ bool Real$is_between(Real_t x, Real_t low, Real_t high);
 double Real$as_float64(Real_t n, bool truncate);
 int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t);
 int32_t Real$compare_values(Real_t a, Real_t b);
+
+extern Real_t Real$pi;
+extern Real_t Real$tau;
+extern Real_t Real$e;
 
 int Real$test();
 

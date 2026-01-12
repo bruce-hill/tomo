@@ -126,6 +126,9 @@ func main()
 	# Large integers
 	big := (99999999999999999999999999999999.)
 	assert big + 1. == (100000000000000000000000000000000.)
+
+	# >> bigger := 1e999999999999999999999999999999999999999999
+	# assert bigger + bigger == 2.*bigger
 	
 	# Mixed operations preserve exactness
 	result := 1. / 3. + 2. / 3.

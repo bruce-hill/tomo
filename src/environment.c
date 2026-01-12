@@ -292,6 +292,9 @@ env_t *global_env(bool source_mapping) {
 #undef C
         MAKE_TYPE( //
             "Real", REAL_TYPE, Text("Real_t"), Text("Real$info"), //
+            {"E", "Real$e", "Real"}, //
+            {"Pi", "Real$pi", "Real"}, //
+            {"Tau", "Real$tau", "Real"}, //
             {"abs", "Real$abs", "func(x:Real -> Real)"}, //
             {"acos", "Real$acos", "func(x:Real -> Real)"}, //
             {"asin", "Real$asin", "func(x:Real -> Real)"}, //

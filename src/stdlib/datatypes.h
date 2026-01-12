@@ -35,10 +35,84 @@ typedef union {
 
 #define OptionalInt_t Int_t
 
+// NaN-boxing scheme: boxed values are stored as pointer with the bottom 3 bits set to a tag value.
+// This means that the GC will detect them as interior pointers to the allocated memory.
+// Unboxed values are stored as the double XORed with a quiet-NaN mask.
+// This way, `real XOR QNAN_MASK` is equal to the double value, and will be a NaN for boxed values.
+#define QNAN_MASK 0x7FF8000000000000ULL
+#define TAG_MASK 0x0000000000000007ULL
+#define PTR_MASK 0x0000FFFFFFFFFFF8ULL
+
+#define REAL_TAG_NONE 0ULL
+#define REAL_TAG_BIGINT 1ULL
+#define REAL_TAG_RATIONAL 2ULL
+#define REAL_TAG_CONSTRUCTIVE 3ULL
+#define REAL_TAG_SYMBOLIC 4ULL
+
+#define REAL_DOUBLE(r)                                                                                                 \
+    ({                                                                                                                 \
+        ((union {                                                                                                      \
+            double d;                                                                                                  \
+            uint64_t bits;                                                                                             \
+        }){.bits = (r).bits ^ QNAN_MASK})                                                                              \
+            .d;                                                                                                        \
+    })
+#define REAL_BIGINT(r) ((Int_t *)((uint64_t)(r).bigint & ~0x7ULL))
+#define REAL_RATIONAL(r) ((rational_t *)((uint64_t)(r).rational & ~0x7ULL))
+#define REAL_CONSTRUCTIVE(r) ((constructive_t *)((uint64_t)(r).constructive & ~0x7ULL))
+#define REAL_SYMBOLIC(r) ((symbolic_t *)((uint64_t)(r).symbolic & ~0x7ULL))
+
+typedef struct {
+    __mpq_struct value;
+} rational_t;
+
+typedef struct {
+    double (*compute)(void *ctx, int precision);
+    void *context;
+} constructive_t;
+
+typedef enum {
+    SYM_INVALID,
+    SYM_ADD,
+    SYM_SUB,
+    SYM_MUL,
+    SYM_DIV,
+    SYM_MOD,
+    SYM_SQRT,
+    SYM_POW,
+    SYM_SIN,
+    SYM_COS,
+    SYM_TAN,
+    SYM_ASIN,
+    SYM_ACOS,
+    SYM_ATAN,
+    SYM_ATAN2,
+    SYM_EXP,
+    SYM_LOG,
+    SYM_LOG10,
+    SYM_ABS,
+    SYM_FLOOR,
+    SYM_CEIL,
+    SYM_PI,
+    SYM_TAU,
+    SYM_E
+} sym_op_t;
+
 typedef union {
-    volatile double d;
-    volatile uint64_t u64;
+    // These are marked as volatile because we will sometimes
+    // set one flag to tinker with the others.
+    volatile struct symbolic *symbolic;
+    volatile Int_t *bigint;
+    volatile rational_t *rational;
+    volatile constructive_t *constructive;
+    volatile uint64_t bits;
 } Real_t;
+
+typedef struct symbolic {
+    sym_op_t op;
+    Real_t left;
+    Real_t right;
+} symbolic_t;
 
 #define OptionalReal_t Real_t
 
