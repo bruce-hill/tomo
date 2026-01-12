@@ -50,6 +50,8 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         switch (operand_t->tag) {
         case BigIntType:
             return Texts(ast->tag == Equals ? EMPTY_TEXT : Text("!"), "Int$equal_value(", lhs, ", ", rhs, ")");
+        case RealType:
+            return Texts(ast->tag == Equals ? EMPTY_TEXT : Text("!"), "Real$equal_values(", lhs, ", ", rhs, ")");
         case BoolType:
         case ByteType:
         case IntType:
@@ -94,6 +96,7 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         const char *op = comparison_operator(ast->tag);
         switch (operand_t->tag) {
         case BigIntType: return Texts("(Int$compare_value(", lhs, ", ", rhs, ") ", op, " 0)");
+        case RealType: return Texts("(Real$compare_values(", lhs, ", ", rhs, ") ", op, " 0)");
         case BoolType:
         case ByteType:
         case IntType:

@@ -291,7 +291,7 @@ Real_t Real$times(Real_t a, Real_t b) {
                 return sa->left;
             }
             // Also check if arguments are equal values (not just pointers)
-            if (Real$equal(&sa->left, &sb->left, NULL)) {
+            if (Real$equal_values(sa->left, sb->left)) {
                 return sa->left;
             }
         }
@@ -414,13 +414,13 @@ Real_t Real$mix(Real_t amount, Real_t x, Real_t y) {
 
 public
 bool Real$is_between(Real_t x, Real_t low, Real_t high) {
-    return Real$compare(&low, &x, NULL) <= 0 && Real$compare(&x, &high, NULL) <= 0;
+    return Real$compare_values(low, x) <= 0 && Real$compare_values(x, high) <= 0;
 }
 
 public
 Real_t Real$clamped(Real_t x, Real_t low, Real_t high) {
-    if (Real$compare(&x, &low, NULL) <= 0) return low;
-    if (Real$compare(&x, &high, NULL) >= 0) return high;
+    if (Real$compare_values(x, low) <= 0) return low;
+    if (Real$compare_values(x, high) >= 0) return high;
     return x;
 }
 
@@ -814,10 +814,7 @@ PUREFUNC bool Real$is_none(const void *vn, const TypeInfo_t *type) {
 
 // Equality check (may be undecidable for some symbolics)
 public
-bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t) {
-    (void)t;
-    Real_t a = *(Real_t *)va;
-    Real_t b = *(Real_t *)vb;
+bool Real$equal_values(Real_t a, Real_t b) {
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) return a.d == b.d;
     if (Real$is_boxed(a) != Real$is_boxed(b)) return 0;
 
@@ -834,6 +831,14 @@ bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t) {
 }
 
 public
+bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t) {
+    (void)t;
+    Real_t a = *(Real_t *)va;
+    Real_t b = *(Real_t *)vb;
+    return Real$equal_values(a, b);
+}
+
+public
 uint64_t Real$hash(const void *vr, const TypeInfo_t *type) {
     (void)type;
     Text_t text = Real$value_as_text(*(Real_t *)vr);
@@ -842,10 +847,7 @@ uint64_t Real$hash(const void *vr, const TypeInfo_t *type) {
 
 // Comparison: -1 (less), 0 (equal), 1 (greater)
 public
-int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t) {
-    (void)t;
-    Real_t a = *(Real_t *)va;
-    Real_t b = *(Real_t *)vb;
+int32_t Real$compare_values(Real_t a, Real_t b) {
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         return (a.d > b.d) - (a.d < b.d);
     }
@@ -859,6 +861,14 @@ int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t) {
     double da = Real$as_float64(a, true);
     double db = Real$as_float64(b, true);
     return (da > db) - (da < db);
+}
+
+public
+int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t) {
+    (void)t;
+    Real_t a = *(Real_t *)va;
+    Real_t b = *(Real_t *)vb;
+    return Real$compare_values(a, b);
 }
 
 // Unary negation

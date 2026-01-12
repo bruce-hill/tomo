@@ -85,6 +85,7 @@ Text_t compile_empty(type_t *t) {
     case FloatType: {
         return Match(t, FloatType)->bits == TYPE_NBITS32 ? Text("F32(0.0f)") : Text("F64(0.0)");
     }
+    case RealType: return Text("Real$from_float64(0.0)");
     case StructType: return compile_empty_struct(t);
     case EnumType: return compile_empty_enum(t);
     default: return EMPTY_TEXT;
@@ -157,7 +158,7 @@ Text_t compile(env_t *env, ast_t *ast) {
                 return Texts(b->code, "(", compile_arguments(env, ast, fn->args, new (arg_ast_t, .value = value)), ")");
         }
 
-        if (t->tag == IntType || t->tag == FloatType) return Texts("-(", compile(env, value), ")");
+        if (t->tag == IntType || t->tag == FloatType || t->tag == RealType) return Texts("-(", compile(env, value), ")");
 
         code_err(ast, "I don't know how to get the negative value of type ", type_to_text(t));
     }
@@ -213,6 +214,8 @@ Text_t compile(env_t *env, ast_t *ast) {
         if (key_t->tag == BigIntType)
             comparison =
                 Texts("(Int$compare_value(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
+        else if (key_t->tag == RealType)
+            comparison = Texts("(Real$compare_values(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
         else if (key_t->tag == IntType || key_t->tag == FloatType || key_t->tag == BoolType || key_t->tag == PointerType
                  || key_t->tag == ByteType)
             comparison = Texts("((", lhs_key, ")", (ast->tag == Min ? "<=" : ">="), "(", rhs_key, "))");

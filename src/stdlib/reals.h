@@ -57,10 +57,12 @@ Real_t Real$times(Real_t x, Real_t y);
 Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type);
 Text_t Real$value_as_text(Real_t x);
 bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t);
+bool Real$equal_values(Real_t a, Real_t b);
 bool Real$get_rational(Real_t x, int64_t *num, int64_t *den);
 bool Real$is_between(Real_t x, Real_t low, Real_t high);
 double Real$as_float64(Real_t n, bool truncate);
 int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t);
+int32_t Real$compare_values(Real_t a, Real_t b);
 
 int Real$test();
 
