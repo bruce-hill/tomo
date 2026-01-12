@@ -10,8 +10,14 @@
 #include <uniname.h>
 
 #include "../ast.h"
+#include "../stdlib/datatypes.h"
+#include "../stdlib/integers.h"
+#include "../stdlib/optionals.h"
+#include "../stdlib/reals.h"
+#include "../stdlib/text.h"
 #include "context.h"
 #include "errors.h"
+#include "numbers.h"
 #include "utils.h"
 
 static const double RADIANS_PER_DEGREE = 0.0174532925199432957692369076848861271344287188854172545609719144;
@@ -39,14 +45,16 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
         return NULL;
 
     if (match(&pos, "%")) {
-        double n = strtod(str, NULL) / 100.;
-        return NewAST(ctx->file, start, pos, Number, .n = n);
+        return parse_num(ctx, start);
     } else if (match(&pos, "deg")) {
-        double n = strtod(str, NULL) * RADIANS_PER_DEGREE;
-        return NewAST(ctx->file, start, pos, Number, .n = n);
+        return parse_num(ctx, start);
     }
 
-    return NewAST(ctx->file, start, pos, Integer, .str = str);
+    Text_t text = Text$from_strn(start, (size_t)(pos - start));
+    Text_t remainder;
+    OptionalInt_t i = Int$parse(text, NONE_INT, &remainder);
+    assert(i.small != 0);
+    return NewAST(ctx->file, start, pos, Integer, .i = i);
 }
 
 ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
@@ -77,5 +85,9 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     if (match(&pos, "%")) d /= 100.;
     else if (match(&pos, "deg")) d *= RADIANS_PER_DEGREE;
 
-    return NewAST(ctx->file, start, pos, Number, .n = d);
+    Text_t text = Text$from_strn(start, (size_t)(pos - start));
+    Text_t remainder;
+    OptionalReal_t real = Real$parse(text, &remainder);
+    if (Real$is_none(&real, &Real$info)) return NULL;
+    return NewAST(ctx->file, start, pos, Number, .n = real);
 }

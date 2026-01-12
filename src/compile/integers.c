@@ -30,17 +30,17 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
                      ", .has_value=true})");
     }
 
-    const char *literal = Match(ast, Integer)->str;
-    OptionalInt_t int_val = Int$from_str(literal);
-    if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
+    OptionalInt_t int_val = Match(ast, Integer)->i;
+
+    Text_t source = ast_source(ast);
 
     mpz_t i;
     mpz_init_set_int(i, int_val);
 
     char *c_literal;
-    if (strncmp(literal, "0x", 2) == 0 || strncmp(literal, "0X", 2) == 0 || strncmp(literal, "0b", 2) == 0) {
+    if (Text$has(source, Text("0x")) || Text$has(source, Text("0X")) || Text$has(source, Text("0b"))) {
         gmp_asprintf(&c_literal, "0x%ZX", i);
-    } else if (strncmp(literal, "0o", 2) == 0) {
+    } else if (Text$has(source, Text("0o"))) {
         gmp_asprintf(&c_literal, "%#Zo", i);
     } else {
         gmp_asprintf(&c_literal, "%#Zd", i);
@@ -82,16 +82,32 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
 
 public
 Text_t compile_int(ast_t *ast) {
-    const char *str = Match(ast, Integer)->str;
-    OptionalInt_t int_val = Int$from_str(str);
-    if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
+    Int_t int_val = Match(ast, Integer)->i;
     mpz_t i;
     mpz_init_set_int(i, int_val);
-    if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
-        return Texts("I_small(", str, ")");
-    } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
-        return Texts("Int$from_int64(", str, ")");
+
+    OptionalText_t source = ast_source(ast);
+    char *c_literal;
+    if (Text$has(source, Text("0x")) || Text$has(source, Text("0X")) || Text$has(source, Text("0b"))) {
+        gmp_asprintf(&c_literal, "0x%ZX", i);
+    } else if (Text$has(source, Text("0o"))) {
+        gmp_asprintf(&c_literal, "%#Zo", i);
     } else {
-        return Texts("Int$from_str(\"", str, "\")");
+        gmp_asprintf(&c_literal, "%#Zd", i);
+    }
+
+    // TODO: preserve base
+    if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
+        return Texts("I_small(", c_literal, ")");
+    } else if (mpz_cmp_si(i, INT64_MAX) <= 0 && mpz_cmp_si(i, INT64_MIN) >= 0) {
+        return Texts("Int$from_int64(", c_literal, ")");
+    } else if (source.tag == TEXT_NONE) {
+        return Texts("Int$from_str(\"", int_val, "\")");
+    } else {
+        source = Text$replace(source, Text("("), Text(""));
+        source = Text$replace(source, Text(")"), Text(""));
+        source = Text$replace(source, Text(" "), Text(""));
+        source = Text$replace(source, Text("_"), Text(""));
+        return Texts("Int$from_str(\"", source, "\")");
     }
 }

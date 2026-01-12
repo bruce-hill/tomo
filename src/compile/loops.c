@@ -125,7 +125,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         // Special case for Int.onward()
         arg_ast_t *args = Match(for_->iter, MethodCall)->args;
         arg_t *arg_spec =
-            new (arg_t, .name = "step", .type = INT_TYPE, .default_val = FakeAST(Integer, .str = "1"), .next = NULL);
+            new (arg_t, .name = "step", .type = INT_TYPE, .default_val = FakeAST(Integer, .i = I(1)), .next = NULL);
         Text_t step = compile_arguments(env, for_->iter, arg_spec, args);
         Text_t value = for_->vars ? compile(body_scope, for_->vars->ast) : Text("i");
         return Texts("for (Int_t ", value, " = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
@@ -232,9 +232,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
     case BigIntType: {
         Text_t n;
         if (for_->iter->tag == Integer) {
-            const char *str = Match(for_->iter, Integer)->str;
-            Int_t int_val = Int$from_str(str);
-            if (int_val.small == 0) code_err(for_->iter, "Failed to parse this integer");
+            Int_t int_val = Match(for_->iter, Integer)->i;
             mpz_t i;
             mpz_init_set_int(i, int_val);
             if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) n = Text$from_str(mpz_get_str(NULL, 10, i));

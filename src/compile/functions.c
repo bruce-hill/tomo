@@ -7,7 +7,6 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/floats.h"
 #include "../stdlib/integers.h"
-#include "../stdlib/optionals.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
@@ -82,8 +81,7 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
             if (spec_arg->type->tag == IntType && call_arg->value->tag == Integer) {
                 value = compile_int_to_type(env, call_arg->value, spec_arg->type);
             } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Integer) {
-                OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Integer)->str);
-                if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
+                Int_t int_val = Match(call_arg->value, Integer)->i;
                 if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
                     value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
                 else value = Text$from_str(String(hex_double((double)Float32$from_int(int_val, false)), "f"));
@@ -106,8 +104,7 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
                 if (spec_arg->type->tag == IntType && call_arg->value->tag == Integer) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                 } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Integer) {
-                    OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Integer)->str);
-                    if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
+                    Int_t int_val = Match(call_arg->value, Integer)->i;
                     if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
                         value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
                     else value = Text$from_str(String(hex_double((double)Float32$from_int(int_val, false)), "f"));
@@ -829,13 +826,13 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         definition = Texts(definition, wrapper);
     } else if (cache && cache->tag == Integer) {
         assert(args);
-        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Integer)->str), NONE_INT, NULL);
+        int64_t cache_size = Int64$from_int(Match(cache, Integer)->i, false);
         Text_t pop_code = EMPTY_TEXT;
-        if (cache->tag == Integer && cache_size.has_value && cache_size.value > 0) {
+        if (cache->tag == Integer && cache_size > 0) {
             // FIXME: this currently just deletes the first entry, but this
             // should be more like a least-recently-used cache eviction policy
             // or least-frequently-used
-            pop_code = Texts("if (cache.entries.length > ", cache_size.value,
+            pop_code = Texts("if (cache.entries.length > ", cache_size,
                              ") Table$remove(&cache, cache.entries.data + "
                              "cache.entries.stride*0, table_type);\n");
         }

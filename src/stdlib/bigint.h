@@ -47,7 +47,8 @@ bool Int$get_bit(Int_t x, Int_t bit_index);
 
 #define I_small(i) ((Int_t){.small = (int64_t)((uint64_t)(i) << 2L) | 1L})
 #define I(i) _Generic(i, int8_t: I_small(i), int16_t: I_small(i), default: Int$from_int64(i))
-#define I_is_zero(i) ((i).small == 1L)
+#define Int$is_zero(i) ((i).small == 1L)
+#define Int$is_small(i) (((i).small & 1L) == 1L)
 
 Int_t Int$slow_plus(Int_t x, Int_t y);
 Int_t Int$slow_minus(Int_t x, Int_t y);

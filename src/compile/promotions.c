@@ -3,6 +3,7 @@
 #include "../ast.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
+#include "../stdlib/reals.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
@@ -139,8 +140,11 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
 
     if (ast->tag == Integer && is_numeric_type(non_optional(t))) {
         return compile_int_to_type(env, ast, t);
+    } else if (ast->tag == Number && t->tag == RealType) {
+        return compile(env, ast);
     } else if (ast->tag == Number && t->tag == FloatType) {
-        double n = Match(ast, Number)->n;
+        Real_t real = Match(ast, Number)->n;
+        double n = Real$as_float64(real, true);
         switch (Match(t, FloatType)->bits) {
         case TYPE_NBITS64: return Text$from_str(String(hex_double(n)));
         case TYPE_NBITS32: return Text$from_str(String(hex_double(n), "f"));

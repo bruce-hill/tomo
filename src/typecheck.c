@@ -14,7 +14,6 @@
 #include "naming.h"
 #include "parse/files.h"
 #include "parse/types.h"
-#include "stdlib/optionals.h"
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
@@ -1652,8 +1651,7 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast) {
     case None: return true;
     case Integer: {
         DeclareMatch(info, ast, Integer);
-        Int_t int_val = Int$parse(Text$from_str(info->str), NONE_INT, NULL);
-        if (int_val.small == 0) return false; // Failed to parse
+        Int_t int_val = info->i;
         return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
     }
     case Number: {

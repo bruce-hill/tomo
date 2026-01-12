@@ -10,7 +10,6 @@
 #include "bigint.h"
 #include "datatypes.h"
 #include "floats.h"
-#include "optionals.h"
 #include "reals.h"
 #include "text.h"
 #include "types.h"
@@ -207,6 +206,9 @@ double Real$as_float64(Real_t n, bool truncate) {
 
 public
 Real_t Real$plus(Real_t a, Real_t b) {
+    if (a.u64 == 0) return b;
+    else if (b.u64 == 0) return a;
+
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
         volatile double result = a.d + b.d;
@@ -238,6 +240,9 @@ Real_t Real$plus(Real_t a, Real_t b) {
 
 public
 Real_t Real$minus(Real_t a, Real_t b) {
+    if (b.u64 == 0) return a;
+    else if (a.u64 == 0) return Real$negative(b);
+
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
         volatile double result = a.d - b.d;
@@ -267,6 +272,9 @@ Real_t Real$minus(Real_t a, Real_t b) {
 
 public
 Real_t Real$times(Real_t a, Real_t b) {
+    if (a.d == 1.0) return b;
+    if (b.d == 1.0) return a;
+
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
         volatile double result = a.d * b.d;
@@ -312,6 +320,8 @@ Real_t Real$times(Real_t a, Real_t b) {
 
 public
 Real_t Real$divided_by(Real_t a, Real_t b) {
+    if (b.d == 1.0) return a;
+
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
         volatile double result = a.d / b.d;
@@ -684,133 +694,67 @@ public
 Text_t Real$value_as_text(Real_t n) {
     return Real$as_text(&n, false, &Real$info);
 }
+
 public
 OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
-    const char *str = Text$as_c_string(text);
-    // Handle empty or null
-    if (!str || !*str) return NONE_REAL;
-
-    const char *p = str;
-    const char *start = p;
-
-    // Skip leading whitespace
-    while (*p == ' ' || *p == '\t')
-        p++;
-
-    // Skip optional sign
-    if (*p == '-' || *p == '+') p++;
-
-    // Must have at least one digit
-    if (!(*p >= '0' && *p <= '9')) return NONE_REAL;
-
-    // Scan digits before decimal point
-    while (*p >= '0' && *p <= '9')
-        p++;
-
-    // Check for decimal point
-    bool has_dot = (*p == '.');
-    if (has_dot) {
-        p++;
-        // Scan digits after decimal point
-        while (*p >= '0' && *p <= '9')
-            p++;
-    }
-
-    // Check for exponent (not supported yet, but detect it)
-    bool has_exp = (*p == 'e' || *p == 'E');
-    if (has_exp) return NONE_REAL; // Don't support scientific notation yet
-
-    // Now p points to first non-digit character
-    // Extract the valid number portion
-    ptrdiff_t num_len = p - start;
-    char buf[256];
-    if (num_len >= 256) return NONE_REAL;
-    strncpy(buf, start, (size_t)num_len);
-    buf[num_len] = '\0';
-
-    // If there's remaining text and no remainder pointer, fail
-    if (*p != '\0' && remainder == NULL) return NONE_REAL;
-
-    // Set remainder if provided
-    if (remainder) {
-        *remainder = Text$from_str(p);
-    }
-
-    // Now parse buf as number
-    if (!has_dot) {
-        // Integer
-        char *endptr;
-        long long val = strtoll(buf, &endptr, 10);
-        if (endptr == buf + num_len) {
-            return Real$from_int64(val);
-        }
-
-        // Too large for int64, use GMP
-        OptionalInt_t b = Int$parse(Text$from_str(buf), NONE_INT, NULL);
-        if (b.small == 0) return NONE_REAL;
-        Int_t *bi = GC_MALLOC(sizeof(Int_t));
-        *bi = b;
-        return box_ptr(bi, REAL_TAG_BIGINT);
-    }
-
-    // Decimal - convert to rational
-    rational_t *r = GC_MALLOC(sizeof(rational_t));
-    mpq_init(&r->value);
-
-    // Count decimal places
-    const char *dot_pos = strchr(buf, '.');
-    int decimal_places = 0;
-    if (dot_pos) {
-        const char *d = dot_pos + 1;
-        while (*d >= '0' && *d <= '9') {
-            decimal_places++;
-            d++;
+    OptionalInt_t int_part = Int$parse(text, I(10), &text);
+    if (int_part.small == 0) {
+        if (Text$starts_with(text, Text("."), NULL)) {
+            int_part = I(0);
+        } else {
+            if (remainder) *remainder = text;
+            return NONE_REAL;
         }
     }
 
-    // Remove decimal point
-    char int_buf[256];
-    int j = 0;
-    for (int i = 0; buf[i] && j < 255; i++) {
-        if (buf[i] != '.') {
-            int_buf[j++] = buf[i];
+    Real_t ret = Real$from_int(int_part);
+
+    Text_t after_decimal;
+    if (Text$starts_with(text, Text("."), &after_decimal)) {
+        text = after_decimal;
+        // Count zeroes:
+        TextIter_t state = NEW_TEXT_ITER_STATE(text);
+        int64_t i = 0, digits = 0;
+        for (; i < text.length; i++) {
+            int32_t g = Text$get_grapheme_fast(&state, i);
+            if ('0' <= g && g <= '9') digits += 1;
+            else if (g == '_') continue;
+            else break;
+        }
+
+        if (digits > 0) {
+            // n = int_part + 10^digits * fractional_part
+            OptionalInt_t fractional_part = Int$parse(text, I(10), &after_decimal);
+            if (fractional_part.small != 0 && !Int$is_zero(fractional_part)) {
+                ret = Real$plus(
+                    ret, Real$divided_by(Real$from_int(fractional_part), Real$from_float64(pow(10., (double)digits))));
+            }
+        }
+        text = after_decimal;
+    }
+
+    Text_t after_exp;
+    if (Text$starts_with(text, Text("e"), &after_exp) || Text$starts_with(text, Text("E"), &after_exp)) {
+        OptionalInt_t exponent = Int$parse(after_exp, I(10), &after_exp);
+        if (exponent.small != 0) {
+            // n *= 10^exp
+            if (!Int$is_zero(exponent)) {
+                if (Int$is_negative(exponent)) {
+                    ret = Real$divided_by(ret, Real$from_float64(pow(10., -Float64$from_int(exponent, true))));
+                } else {
+                    ret = Real$times(ret, Real$from_float64(pow(10., Float64$from_int(exponent, true))));
+                }
+            }
+            text = after_exp;
         }
     }
-    int_buf[j] = '\0';
 
-    // Set numerator
-    if (mpz_set_str(mpq_numref(&r->value), int_buf, 10) != 0) {
-        mpq_clear(&r->value);
+    if (remainder) *remainder = text;
+    else if (text.length > 0) {
         return NONE_REAL;
     }
 
-    // Set denominator = 10^decimal_places
-    mpz_set_ui(mpq_denref(&r->value), 1);
-    for (int i = 0; i < decimal_places; i++) {
-        mpz_mul_ui(mpq_denref(&r->value), mpq_denref(&r->value), 10);
-    }
-
-    mpq_canonicalize(&r->value);
-
-    // Check if this can be represented exactly as a double
-    double d = mpq_get_d(&r->value);
-    if (isfinite(d)) {
-        // Convert back to rational to check for exact representation
-        rational_t temp;
-        mpq_init(&temp.value);
-        mpq_set_d(&temp.value, d);
-
-        if (mpq_equal(&r->value, &temp.value)) {
-            // Can be represented exactly as double
-            mpq_clear(&temp.value);
-            mpq_clear(&r->value);
-            return make_double(d);
-        }
-
-        mpq_clear(&temp.value);
-    }
-
-    return box_ptr(r, REAL_TAG_RATIONAL);
+    return ret;
 }
 
 public

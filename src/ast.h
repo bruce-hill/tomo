@@ -300,10 +300,10 @@ struct ast_s {
             const char *name;
         } Var;
         struct {
-            const char *str;
+            Int_t i;
         } Integer;
         struct {
-            double n;
+            Real_t n;
         } Number;
         struct {
             Text_t text;

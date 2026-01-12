@@ -13,6 +13,7 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
 #include "../stdlib/optionals.h"
+#include "../stdlib/reals.h"
 #include "../stdlib/stdlib.h"
 #include "../stdlib/text.h"
 #include "args.h"
@@ -329,11 +330,11 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         return Match(ast, Bool)->b ? Text("yes") : Text("no");
     /*inline*/ case Integer: {
         OptionalText_t source = ast_source(ast);
-        return source.length > 0 ? source : Text$from_str(Match(ast, Integer)->str);
+        return source.length > 0 ? source : Int$value_as_text(Match(ast, Integer)->i);
     }
     /*inline*/ case Number: {
         OptionalText_t source = ast_source(ast);
-        return source.length > 0 ? source : Text$from_str(String(Match(ast, Number)->n));
+        return source.length > 0 ? source : Real$value_as_text(Match(ast, Number)->n);
     }
     /*inline*/ case Var:
         return Text$from_str(Match(ast, Var)->name);
