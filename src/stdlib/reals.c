@@ -56,11 +56,13 @@ typedef struct symbolic {
 } symbolic_t;
 
 // Check if num is boxed pointer
-static inline bool is_boxed(Real_t n) {
+public
+CONSTFUNC bool Real$is_boxed(Real_t n) {
     return (n.u64 & QNAN_MASK) == QNAN_MASK;
 }
 
-static inline uint64_t get_tag(Real_t n) {
+public
+CONSTFUNC uint64_t Real$tag(Real_t n) {
     return n.u64 & TAG_MASK;
 }
 
@@ -104,6 +106,25 @@ Real_t Real$from_rational(int64_t num, int64_t den) {
     return box_ptr(r, REAL_TAG_RATIONAL);
 }
 
+public
+bool Real$get_rational(Real_t x, int64_t *num, int64_t *den) {
+    if (!Real$is_boxed(x) || Real$tag(x) != REAL_TAG_RATIONAL) {
+        return false;
+    }
+
+    rational_t *r = get_ptr(x);
+
+    // Check if both numerator and denominator fit in int64_t
+    if (!mpz_fits_slong_p(mpq_numref(&r->value)) || !mpz_fits_slong_p(mpq_denref(&r->value))) {
+        return false;
+    }
+
+    if (num) *num = mpz_get_si(mpq_numref(&r->value));
+    if (den) *den = mpz_get_si(mpq_denref(&r->value));
+
+    return true;
+}
+
 // Promote double to exact type if needed
 static Real_t promote_double(double d) {
     if (isfinite(d) && d == floor(d) && fabs(d) < (1LL << 53)) {
@@ -117,14 +138,13 @@ static Real_t promote_double(double d) {
 
 public
 CONSTFUNC Real_t Real$from_float64(double n) {
-    return make_double(n);  // Preserve sign of zero
+    return make_double(n); // Preserve sign of zero
 }
 
 public
 Real_t Real$from_int(Int_t i) {
     double d = Float64$from_int(i, true);
-    if (Int$equal_value(i, Int$from_float64(d, true)))
-        return make_double(d);
+    if (Int$equal_value(i, Int$from_float64(d, true))) return make_double(d);
 
     Int_t *b = GC_MALLOC(sizeof(Int_t));
     *b = i;
@@ -133,9 +153,9 @@ Real_t Real$from_int(Int_t i) {
 
 public
 double Real$as_float64(Real_t n, bool truncate) {
-    if (!is_boxed(n)) return n.d;
+    if (!Real$is_boxed(n)) return n.d;
 
-    switch (get_tag(n)) {
+    switch (Real$tag(n)) {
     case REAL_TAG_BIGINT: {
         Int_t *b = get_ptr(n);
         return Float64$from_int(*b, truncate);
@@ -184,7 +204,7 @@ double Real$as_float64(Real_t n, bool truncate) {
 
 public
 Real_t Real$plus(Real_t a, Real_t b) {
-    if (!is_boxed(a) && !is_boxed(b)) {
+    if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
         double result = a.d + b.d;
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
@@ -195,7 +215,7 @@ Real_t Real$plus(Real_t a, Real_t b) {
     }
 
     // Handle exact rational arithmetic
-    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+    if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
         rational_t *rb = get_ptr(b);
         rational_t *result = GC_MALLOC(sizeof(rational_t));
@@ -214,7 +234,7 @@ Real_t Real$plus(Real_t a, Real_t b) {
 
 public
 Real_t Real$minus(Real_t a, Real_t b) {
-    if (!is_boxed(a) && !is_boxed(b)) {
+    if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
         double result = a.d - b.d;
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
@@ -224,7 +244,7 @@ Real_t Real$minus(Real_t a, Real_t b) {
         b = promote_double(b.d);
     }
 
-    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+    if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
         rational_t *rb = get_ptr(b);
         rational_t *result = GC_MALLOC(sizeof(rational_t));
@@ -242,7 +262,7 @@ Real_t Real$minus(Real_t a, Real_t b) {
 
 public
 Real_t Real$times(Real_t a, Real_t b) {
-    if (!is_boxed(a) && !is_boxed(b)) {
+    if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
         double result = a.d * b.d;
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
@@ -252,7 +272,7 @@ Real_t Real$times(Real_t a, Real_t b) {
         b = promote_double(b.d);
     }
 
-    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+    if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
         rational_t *rb = get_ptr(b);
         rational_t *result = GC_MALLOC(sizeof(rational_t));
@@ -262,7 +282,7 @@ Real_t Real$times(Real_t a, Real_t b) {
     }
 
     // Check for sqrt(x) * sqrt(x) = x
-    if (get_tag(a) == REAL_TAG_SYMBOLIC && get_tag(b) == REAL_TAG_SYMBOLIC) {
+    if (Real$tag(a) == REAL_TAG_SYMBOLIC && Real$tag(b) == REAL_TAG_SYMBOLIC) {
         symbolic_t *sa = get_ptr(a);
         symbolic_t *sb = get_ptr(b);
         if (sa->op == SYM_SQRT && sb->op == SYM_SQRT) {
@@ -286,7 +306,7 @@ Real_t Real$times(Real_t a, Real_t b) {
 
 public
 Real_t Real$divided_by(Real_t a, Real_t b) {
-    if (!is_boxed(a) && !is_boxed(b)) {
+    if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
         double result = a.d / b.d;
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
@@ -296,7 +316,7 @@ Real_t Real$divided_by(Real_t a, Real_t b) {
         b = promote_double(b.d);
     }
 
-    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+    if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
         rational_t *rb = get_ptr(b);
         rational_t *result = GC_MALLOC(sizeof(rational_t));
@@ -318,14 +338,14 @@ Real_t Real$mod(Real_t n, Real_t modulus) {
     // https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf
 
     // For fast path with doubles
-    if (!is_boxed(n) && !is_boxed(modulus)) {
+    if (!Real$is_boxed(n) && !Real$is_boxed(modulus)) {
         double r = remainder(n.d, modulus.d);
         r -= (r < 0.0) * (2.0 * (modulus.d < 0.0) - 1.0) * modulus.d;
         return make_double(r);
     }
 
     // For rationals, compute exactly
-    if (get_tag(n) == REAL_TAG_RATIONAL && get_tag(modulus) == REAL_TAG_RATIONAL) {
+    if (Real$tag(n) == REAL_TAG_RATIONAL && Real$tag(modulus) == REAL_TAG_RATIONAL) {
         rational_t *rn = get_ptr(n);
         rational_t *rm = get_ptr(modulus);
 
@@ -406,7 +426,7 @@ Real_t Real$clamped(Real_t x, Real_t low, Real_t high) {
 
 public
 Real_t Real$sqrt(Real_t a) {
-    if (!is_boxed(a)) {
+    if (!Real$is_boxed(a)) {
         double d = sqrt(a.d);
         feclearexcept(FE_INEXACT);
         double check = d * d;
@@ -416,7 +436,7 @@ Real_t Real$sqrt(Real_t a) {
     }
 
     // Check for perfect square in rationals
-    if (get_tag(a) == REAL_TAG_RATIONAL) {
+    if (Real$tag(a) == REAL_TAG_RATIONAL) {
         rational_t *r = get_ptr(a);
         mpz_t num_sqrt, den_sqrt;
         mpz_init(num_sqrt);
@@ -449,7 +469,7 @@ Real_t Real$sqrt(Real_t a) {
 
 public
 Real_t Real$power(Real_t base, Real_t exp) {
-    if (!is_boxed(base) && !is_boxed(exp)) {
+    if (!Real$is_boxed(base) && !Real$is_boxed(exp)) {
         feclearexcept(FE_INEXACT);
         double result = pow(base.d, exp.d);
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
@@ -490,7 +510,8 @@ static Text_t format_binary_func(Text_t left, Text_t right, const char *func_nam
     const char *paren_color = colorize ? "\033[37m" : "";
     const char *reset = colorize ? "\033[m" : "";
 
-    return colorize ? Texts(operator_color, func_name, paren_color, "(", reset, left, operator_color, ", ", reset, right, paren_color, ")", reset)
+    return colorize ? Texts(operator_color, func_name, paren_color, "(", reset, left, operator_color, ", ", reset,
+                            right, paren_color, ")", reset)
                     : Texts(func_name, "(", left, ", ", right, ")");
 }
 
@@ -514,13 +535,13 @@ Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type) {
     const char *operator_color = colorize ? "\033[33m" : ""; // yellow for operators
     const char *reset = colorize ? "\033[m" : "";
 
-    if (!is_boxed(num)) {
+    if (!Real$is_boxed(num)) {
         char buf[64];
         snprintf(buf, sizeof(buf), "%.17g", num.d);
         return colorize ? Texts(number_color, buf, reset) : Text$from_str(buf);
     }
 
-    switch (get_tag(num)) {
+    switch (Real$tag(num)) {
     case REAL_TAG_BIGINT: {
         Int_t *b = get_ptr(num);
         Text_t int_text = Int$value_as_text(*b);
@@ -762,6 +783,25 @@ OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
     }
 
     mpq_canonicalize(&r->value);
+
+    // Check if this can be represented exactly as a double
+    double d = mpq_get_d(&r->value);
+    if (isfinite(d)) {
+        // Convert back to rational to check for exact representation
+        rational_t temp;
+        mpq_init(&temp.value);
+        mpq_set_d(&temp.value, d);
+
+        if (mpq_equal(&r->value, &temp.value)) {
+            // Can be represented exactly as double
+            mpq_clear(&temp.value);
+            mpq_clear(&r->value);
+            return make_double(d);
+        }
+
+        mpq_clear(&temp.value);
+    }
+
     return box_ptr(r, REAL_TAG_RATIONAL);
 }
 
@@ -769,7 +809,7 @@ public
 PUREFUNC bool Real$is_none(const void *vn, const TypeInfo_t *type) {
     (void)type;
     Real_t n = *(Real_t *)vn;
-    return is_boxed(n) && get_tag(n) == REAL_TAG_NONE;
+    return Real$is_boxed(n) && Real$tag(n) == REAL_TAG_NONE;
 }
 
 // Equality check (may be undecidable for some symbolics)
@@ -778,10 +818,10 @@ bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t) {
     (void)t;
     Real_t a = *(Real_t *)va;
     Real_t b = *(Real_t *)vb;
-    if (!is_boxed(a) && !is_boxed(b)) return a.d == b.d;
-    if (is_boxed(a) != is_boxed(b)) return 0;
+    if (!Real$is_boxed(a) && !Real$is_boxed(b)) return a.d == b.d;
+    if (Real$is_boxed(a) != Real$is_boxed(b)) return 0;
 
-    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+    if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
         rational_t *rb = get_ptr(b);
         return mpq_equal(&ra->value, &rb->value);
@@ -806,11 +846,11 @@ int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t) {
     (void)t;
     Real_t a = *(Real_t *)va;
     Real_t b = *(Real_t *)vb;
-    if (!is_boxed(a) && !is_boxed(b)) {
+    if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         return (a.d > b.d) - (a.d < b.d);
     }
 
-    if (get_tag(a) == REAL_TAG_RATIONAL && get_tag(b) == REAL_TAG_RATIONAL) {
+    if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = get_ptr(a);
         rational_t *rb = get_ptr(b);
         return mpq_cmp(&ra->value, &rb->value);
@@ -824,9 +864,9 @@ int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t) {
 // Unary negation
 public
 Real_t Real$negative(Real_t a) {
-    if (!is_boxed(a)) return make_double(-a.d);
+    if (!Real$is_boxed(a)) return make_double(-a.d);
 
-    if (get_tag(a) == REAL_TAG_RATIONAL) {
+    if (Real$tag(a) == REAL_TAG_RATIONAL) {
         rational_t *r = get_ptr(a);
         rational_t *result = GC_MALLOC(sizeof(rational_t));
         mpq_init(&result->value);
@@ -846,18 +886,18 @@ Real_t Real$rounded_to(Real_t x, Real_t round_to) {
     mpq_init(&rr->value);
 
     // Convert x to rational
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         mpq_set_d(&rx->value, x.d);
-    } else if (get_tag(x) == REAL_TAG_RATIONAL) {
+    } else if (Real$tag(x) == REAL_TAG_RATIONAL) {
         mpq_set(&rx->value, &((rational_t *)get_ptr(x))->value);
     } else {
         mpq_set_d(&rx->value, Real$as_float64(x, true));
     }
 
     // Convert round_to to rational
-    if (!is_boxed(round_to)) {
+    if (!Real$is_boxed(round_to)) {
         mpq_set_d(&rr->value, round_to.d);
-    } else if (get_tag(round_to) == REAL_TAG_RATIONAL) {
+    } else if (Real$tag(round_to) == REAL_TAG_RATIONAL) {
         mpq_set(&rr->value, &((rational_t *)get_ptr(round_to))->value);
     } else {
         mpq_set_d(&rr->value, Real$as_float64(round_to, true));
@@ -902,7 +942,7 @@ Real_t Real$rounded_to(Real_t x, Real_t round_to) {
 // Trigonometric functions - return symbolic expressions
 public
 Real_t Real$sin(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         double result = sin(x.d);
         // Check if result is exact (e.g., sin(0) = 0)
         if (result == 0.0 || result == 1.0 || result == -1.0) {
@@ -920,7 +960,7 @@ Real_t Real$sin(Real_t x) {
 
 public
 Real_t Real$cos(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         double result = cos(x.d);
         if (result == 0.0 || result == 1.0 || result == -1.0) {
             return make_double(result);
@@ -936,7 +976,7 @@ Real_t Real$cos(Real_t x) {
 
 public
 Real_t Real$tan(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         double result = tan(x.d);
         if (result == 0.0) return make_double(0.0);
     }
@@ -950,7 +990,7 @@ Real_t Real$tan(Real_t x) {
 
 public
 Real_t Real$asin(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         double result = asin(x.d);
         if (result == 0.0) return make_double(0.0);
     }
@@ -964,7 +1004,7 @@ Real_t Real$asin(Real_t x) {
 
 public
 Real_t Real$acos(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         double result = acos(x.d);
         if (result == 0.0) return make_double(0.0);
     }
@@ -978,7 +1018,7 @@ Real_t Real$acos(Real_t x) {
 
 public
 Real_t Real$atan(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         double result = atan(x.d);
         if (result == 0.0) return make_double(0.0);
     }
@@ -992,7 +1032,7 @@ Real_t Real$atan(Real_t x) {
 
 public
 Real_t Real$atan2(Real_t y, Real_t x) {
-    if (!is_boxed(y) && !is_boxed(x)) {
+    if (!Real$is_boxed(y) && !Real$is_boxed(x)) {
         double result = atan2(y.d, x.d);
         if (result == 0.0) return make_double(0.0);
     }
@@ -1006,7 +1046,7 @@ Real_t Real$atan2(Real_t y, Real_t x) {
 
 public
 Real_t Real$exp(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         feclearexcept(FE_INEXACT);
         double result = exp(x.d);
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
@@ -1023,7 +1063,7 @@ Real_t Real$exp(Real_t x) {
 
 public
 Real_t Real$log(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         feclearexcept(FE_INEXACT);
         double result = log(x.d);
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
@@ -1040,7 +1080,7 @@ Real_t Real$log(Real_t x) {
 
 public
 Real_t Real$log10(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         feclearexcept(FE_INEXACT);
         double result = log10(x.d);
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
@@ -1057,11 +1097,11 @@ Real_t Real$log10(Real_t x) {
 
 public
 Real_t Real$abs(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         return make_double(fabs(x.d));
     }
 
-    if (get_tag(x) == REAL_TAG_RATIONAL) {
+    if (Real$tag(x) == REAL_TAG_RATIONAL) {
         rational_t *r = get_ptr(x);
         rational_t *result = GC_MALLOC(sizeof(rational_t));
         mpq_init(&result->value);
@@ -1078,11 +1118,11 @@ Real_t Real$abs(Real_t x) {
 
 public
 Real_t Real$floor(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         return make_double(floor(x.d));
     }
 
-    if (get_tag(x) == REAL_TAG_RATIONAL) {
+    if (Real$tag(x) == REAL_TAG_RATIONAL) {
         rational_t *r = get_ptr(x);
         mpz_t result;
         mpz_init(result);
@@ -1104,11 +1144,11 @@ Real_t Real$floor(Real_t x) {
 
 public
 Real_t Real$ceil(Real_t x) {
-    if (!is_boxed(x)) {
+    if (!Real$is_boxed(x)) {
         return make_double(ceil(x.d));
     }
 
-    if (get_tag(x) == REAL_TAG_RATIONAL) {
+    if (Real$tag(x) == REAL_TAG_RATIONAL) {
         rational_t *r = get_ptr(x);
         mpz_t result;
         mpz_init(result);
@@ -1141,7 +1181,7 @@ int Real$test() {
     Real_t result = Real$plus(a, b);
     Text_t s = Real$value_as_text(result);
     printf("Result: %s\n", Text$as_c_string(s));
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 2: Exact rational arithmetic
     printf("Test 2: 1/3 + 1/6\n");
@@ -1151,7 +1191,7 @@ int Real$test() {
     s = Real$value_as_text(result);
     printf("Result: %s\n", Text$as_c_string(s));
     printf("Expected: 1/2\n");
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 3: (1/3) * 3 should give exactly 1
     printf("Test 3: (1/3) * 3\n");
@@ -1160,7 +1200,7 @@ int Real$test() {
     s = Real$value_as_text(result);
     printf("Result: %s\n", Text$as_c_string(s));
     printf("Expected: 1\n");
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 4: sqrt(4) is exact
     printf("Test 4: sqrt(4)\n");
@@ -1169,7 +1209,7 @@ int Real$test() {
     s = Real$value_as_text(result);
     printf("Result: %s\n", Text$as_c_string(s));
     printf("Expected: 2\n");
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 5: sqrt(2) * sqrt(2) stays symbolic
     printf("Test 5: sqrt(2) * sqrt(2)\n");
@@ -1179,7 +1219,7 @@ int Real$test() {
     s = Real$value_as_text(result);
     printf("Result (symbolic): %s\n", Text$as_c_string(s));
     printf("Approximate value: %.17g\n", Real$as_float64(result, true));
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 6: Complex symbolic expression
     printf("Test 6: (sqrt(2) + 1) * (sqrt(2) - 1)\n");
@@ -1191,7 +1231,7 @@ int Real$test() {
     printf("Result (symbolic): %s\n", Text$as_c_string(s));
     printf("Approximate value: %.17g\n", Real$as_float64(result, true));
     printf("Expected: 1 (but stays symbolic)\n");
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 7: Division creating rational
     printf("Test 7: 5 / 7\n");
@@ -1201,21 +1241,21 @@ int Real$test() {
     s = Real$value_as_text(result);
     printf("Result: %s\n", Text$as_c_string(s));
     printf("Expected: 5/7\n");
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 8: Power that stays exact
     printf("Test 8: 2^3\n");
     result = Real$power(make_double(2.0), make_double(3.0));
     s = Real$value_as_text(result);
     printf("Result: %s\n", Text$as_c_string(s));
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 9: Decimal arithmetic
     printf("Test 8: 2^3\n");
     result = Real$power(make_double(2.0), make_double(3.0));
     s = Real$value_as_text(result);
     printf("Result: %s\n", Text$as_c_string(s));
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 9: Currency calculation that fails with doubles
     printf("Test 9: 0.1 + 0.2 (classic floating point error)\n");
@@ -1226,7 +1266,7 @@ int Real$test() {
     printf("Result: %s\n", Text$as_c_string(s));
     printf("Double arithmetic: %.17g\n", 0.1 + 0.2);
     printf("Expected: 0.3\n");
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     // Test 10: Rounding
     printf("Test 10: round(sqrt(2), 0.00001)\n");
@@ -1234,7 +1274,7 @@ int Real$test() {
     s = Real$value_as_text(result);
     printf("Result: %s\n", Text$as_c_string(s));
     printf("Expected: 1.41421\n");
-    printf("Is boxed: %s\n\n", is_boxed(result) ? "yes" : "no");
+    printf("Is boxed: %s\n\n", Real$is_boxed(result) ? "yes" : "no");
 
     printf("=== Tests Complete ===\n");
 

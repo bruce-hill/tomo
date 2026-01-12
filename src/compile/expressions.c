@@ -1,9 +1,9 @@
 // This file defines logic for compiling expressions
-
 #include "expressions.h"
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
+#include "../stdlib/reals.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
 #include "../typecheck.h"
@@ -108,12 +108,24 @@ Text_t compile(env_t *env, ast_t *ast) {
     }
     case Int: return compile_int(ast);
     case Num: {
-        Text_t original = Text$from_str(String(string_slice(ast->start, (size_t)(ast->end - ast->start))));
-        original = Text$replace(original, Text("_"), EMPTY_TEXT);
-        original = Text$replace(original, Text("("), EMPTY_TEXT);
-        original = Text$replace(original, Text(")"), EMPTY_TEXT);
-        original = Text$replace(original, Text(" "), EMPTY_TEXT);
-        return Texts("Real$parse(Text(\"", original, "\"), NULL)");
+        const char *src = String(string_slice(ast->start, (size_t)(ast->end - ast->start)));
+        Text_t corrected = Text$from_str(src);
+        corrected = Text$replace(corrected, Text("_"), EMPTY_TEXT);
+        corrected = Text$replace(corrected, Text("("), EMPTY_TEXT);
+        corrected = Text$replace(corrected, Text(")"), EMPTY_TEXT);
+        corrected = Text$replace(corrected, Text(" "), EMPTY_TEXT);
+
+        Real_t real = Real$parse(corrected, NULL);
+        if (!Real$is_boxed(real)) {
+            return Texts("Real$from_float64(", corrected, ")");
+        }
+
+        int64_t num, den;
+        if (Real$get_rational(real, &num, &den)) {
+            return Texts("Real$from_rational(", num, "LL, ", den, "LL)");
+        }
+
+        return Texts("Real$parse(Text(\"", corrected, "\"), NULL)");
     }
     case Not: {
         ast_t *value = Match(ast, Not)->value;

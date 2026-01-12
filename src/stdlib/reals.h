@@ -20,6 +20,9 @@
 
 #define NONE_REAL ((Real_t){.u64 = QNAN_MASK | REAL_TAG_NONE})
 
+CONSTFUNC Real_t Real$from_float64(double n);
+CONSTFUNC bool Real$is_boxed(Real_t n);
+CONSTFUNC uint64_t Real$tag(Real_t n);
 Int_t Real$as_int(Real_t x, bool truncate);
 OptionalReal_t Real$parse(Text_t text, Text_t *remainder);
 PUREFUNC bool Real$is_none(const void *vn, const TypeInfo_t *type);
@@ -34,7 +37,6 @@ Real_t Real$cos(Real_t x);
 Real_t Real$divided_by(Real_t x, Real_t y);
 Real_t Real$exp(Real_t x);
 Real_t Real$floor(Real_t x);
-CONSTFUNC Real_t Real$from_float64(double n);
 Real_t Real$from_int(Int_t i);
 Real_t Real$from_rational(int64_t num, int64_t den);
 Real_t Real$from_text(Text_t text);
@@ -55,6 +57,7 @@ Real_t Real$times(Real_t x, Real_t y);
 Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type);
 Text_t Real$value_as_text(Real_t x);
 bool Real$equal(const void *va, const void *vb, const TypeInfo_t *t);
+bool Real$get_rational(Real_t x, int64_t *num, int64_t *den);
 bool Real$is_between(Real_t x, Real_t low, Real_t high);
 double Real$as_float64(Real_t n, bool truncate);
 int32_t Real$compare(const void *va, const void *vb, const TypeInfo_t *t);
