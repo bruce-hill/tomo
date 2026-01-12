@@ -197,8 +197,8 @@ typedef enum {
     None,
     Bool,
     Var,
-    Int,
-    Num,
+    Integer,
+    Number,
     TextLiteral,
     TextJoin,
     Path,
@@ -301,10 +301,10 @@ struct ast_s {
         } Var;
         struct {
             const char *str;
-        } Int;
+        } Integer;
         struct {
             double n;
-        } Num;
+        } Number;
         struct {
             Text_t text;
         } TextLiteral;

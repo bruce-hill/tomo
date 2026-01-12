@@ -83,28 +83,28 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         EXPECT_POINTER();
         arg_t *arg_spec =
             new (arg_t, .name = "item", .type = item_t,
-                 .next = new (arg_t, .name = "at", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "0")));
+                 .next = new (arg_t, .name = "at", .type = INT_TYPE, .default_val = FakeAST(Integer, .str = "0")));
         return Texts("List$insert_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      padded_item_size, ")");
     } else if (streq(call->name, "insert_all")) {
         EXPECT_POINTER();
         arg_t *arg_spec =
             new (arg_t, .name = "items", .type = self_value_t,
-                 .next = new (arg_t, .name = "at", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "0")));
+                 .next = new (arg_t, .name = "at", .type = INT_TYPE, .default_val = FakeAST(Integer, .str = "0")));
         return Texts("List$insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      padded_item_size, ")");
     } else if (streq(call->name, "remove_at")) {
         EXPECT_POINTER();
         arg_t *arg_spec =
-            new (arg_t, .name = "index", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "-1"),
-                 .next = new (arg_t, .name = "count", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "1")));
+            new (arg_t, .name = "index", .type = INT_TYPE, .default_val = FakeAST(Integer, .str = "-1"),
+                 .next = new (arg_t, .name = "count", .type = INT_TYPE, .default_val = FakeAST(Integer, .str = "1")));
         return Texts("List$remove_at(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      padded_item_size, ")");
     } else if (streq(call->name, "remove_item")) {
         EXPECT_POINTER();
-        arg_t *arg_spec =
-            new (arg_t, .name = "item", .type = item_t,
-                 .next = new (arg_t, .name = "max_count", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "-1")));
+        arg_t *arg_spec = new (
+            arg_t, .name = "item", .type = item_t,
+            .next = new (arg_t, .name = "max_count", .type = INT_TYPE, .default_val = FakeAST(Integer, .str = "-1")));
         return Texts("List$remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      compile_type_info(self_value_t), ")");
     } else if (streq(call->name, "has")) {
@@ -115,12 +115,12 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
     } else if (streq(call->name, "sample")) {
         type_t *random_num_type = parse_type_string(env, "func(->Float64)?");
         self = compile_to_pointer_depth(env, call->self, 0, false);
-        arg_t *arg_spec =
-            new (arg_t, .name = "count", .type = INT_TYPE,
-                 .next = new (
-                     arg_t, .name = "weights", .type = Type(ListType, .item_type = Type(FloatType, .bits = TYPE_NBITS64)),
-                     .default_val = FakeAST(None),
-                     .next = new (arg_t, .name = "random", .type = random_num_type, .default_val = FakeAST(None))));
+        arg_t *arg_spec = new (
+            arg_t, .name = "count", .type = INT_TYPE,
+            .next = new (arg_t, .name = "weights",
+                         .type = Type(ListType, .item_type = Type(FloatType, .bits = TYPE_NBITS64)),
+                         .default_val = FakeAST(None),
+                         .next = new (arg_t, .name = "random", .type = random_num_type, .default_val = FakeAST(None))));
         return Texts("List$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      padded_item_size, ")");
     } else if (streq(call->name, "shuffle")) {
@@ -257,7 +257,7 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         return Texts("Table$from_entries(", self, ", Table$info(", compile_type_info(item_t), ", &Present$$info))");
     } else if (streq(call->name, "pop")) {
         EXPECT_POINTER();
-        arg_t *arg_spec = new (arg_t, .name = "index", .type = INT_TYPE, .default_val = FakeAST(Int, "-1"));
+        arg_t *arg_spec = new (arg_t, .name = "index", .type = INT_TYPE, .default_val = FakeAST(Integer, "-1"));
         Text_t index = compile_arguments(env, ast, arg_spec, call->args);
         return Texts("List$pop(", self, ", ", index, ", ", compile_type(item_t), ", _, ",
                      promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t), ")");

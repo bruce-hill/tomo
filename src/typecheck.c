@@ -691,10 +691,10 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case Bool: {
         return Type(BoolType);
     }
-    case Int: {
+    case Integer: {
         return Type(BigIntType);
     }
-    case Num: {
+    case Number: {
         return Type(RealType);
     }
     case HeapAllocate: {
@@ -1104,8 +1104,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (binop.lhs->tag == Int && is_int_type(rhs_t)) return rhs_t;
-        else if (binop.rhs->tag == Int && is_int_type(lhs_t)) return lhs_t;
+        if (binop.lhs->tag == Integer && is_int_type(rhs_t)) return rhs_t;
+        else if (binop.rhs->tag == Integer && is_int_type(lhs_t)) return lhs_t;
 
         // `opt? or (x == y)` / `(x == y) or opt?` is a boolean conditional:
         if ((lhs_t->tag == OptionalType && rhs_t->tag == BoolType)
@@ -1147,8 +1147,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (binop.lhs->tag == Int && is_int_type(rhs_t)) return rhs_t;
-        else if (binop.rhs->tag == Int && is_int_type(lhs_t)) return lhs_t;
+        if (binop.lhs->tag == Integer && is_int_type(rhs_t)) return rhs_t;
+        else if (binop.rhs->tag == Integer && is_int_type(lhs_t)) return lhs_t;
 
         // `and` between optionals/bools is a boolean expression like `if opt? and opt?:` or `if x > 0 and opt?:`
         if ((lhs_t->tag == OptionalType || lhs_t->tag == BoolType)
@@ -1177,8 +1177,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (binop.lhs->tag == Int && is_int_type(rhs_t)) return rhs_t;
-        else if (binop.rhs->tag == Int && is_int_type(lhs_t)) return lhs_t;
+        if (binop.lhs->tag == Integer && is_int_type(rhs_t)) return rhs_t;
+        else if (binop.rhs->tag == Integer && is_int_type(lhs_t)) return lhs_t;
 
         // `xor` between optionals/bools is a boolean expression like `if opt? xor opt?:` or `if x > 0 xor opt?:`
         if ((lhs_t->tag == OptionalType || lhs_t->tag == BoolType)
@@ -1214,8 +1214,9 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *rhs_t = get_type(env, binop.rhs);
         if (type_eq(lhs_t, rhs_t)) return ast->tag == Compare ? Type(IntType, .bits = TYPE_IBITS32) : Type(BoolType);
 
-        if ((binop.lhs->tag == Int && is_numeric_type(rhs_t)) || (binop.rhs->tag == Int && is_numeric_type(lhs_t))
-            || can_compile_to_type(env, binop.rhs, lhs_t) || can_compile_to_type(env, binop.lhs, rhs_t))
+        if ((binop.lhs->tag == Integer && is_numeric_type(rhs_t))
+            || (binop.rhs->tag == Integer && is_numeric_type(lhs_t)) || can_compile_to_type(env, binop.rhs, lhs_t)
+            || can_compile_to_type(env, binop.lhs, rhs_t))
             return ast->tag == Compare ? Type(IntType, .bits = TYPE_IBITS32) : Type(BoolType);
 
         code_err(ast, "I don't know how to compare ", type_to_text(lhs_t), " and ", type_to_text(rhs_t));
@@ -1241,9 +1242,9 @@ type_t *get_type(env_t *env, ast_t *ast) {
                 code_err(binop.rhs, "I only know how to do bit shifting by integer amounts, not ", type_to_text(rhs_t));
         }
 
-        if (is_numeric_type(lhs_t) && binop.rhs->tag == Int) {
+        if (is_numeric_type(lhs_t) && binop.rhs->tag == Integer) {
             return lhs_t;
-        } else if (is_numeric_type(rhs_t) && binop.lhs->tag == Int) {
+        } else if (is_numeric_type(rhs_t) && binop.lhs->tag == Integer) {
             return rhs_t;
         } else {
             switch (compare_precision(lhs_t, rhs_t)) {
@@ -1648,13 +1649,15 @@ type_t *parse_type_string(env_t *env, const char *str) {
 PUREFUNC bool is_constant(env_t *env, ast_t *ast) {
     switch (ast->tag) {
     case Bool:
-    case Num:
     case None: return true;
-    case Int: {
-        DeclareMatch(info, ast, Int);
+    case Integer: {
+        DeclareMatch(info, ast, Integer);
         Int_t int_val = Int$parse(Text$from_str(info->str), NONE_INT, NULL);
         if (int_val.small == 0) return false; // Failed to parse
         return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
+    }
+    case Number: {
+        return false;
     }
     case TextJoin: {
         DeclareMatch(text, ast, TextJoin);
@@ -1698,8 +1701,8 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (needed->tag == OptionalType && ast->tag == None) return true;
 
     env = with_enum_scope(env, needed);
-    if (is_numeric_type(needed) && ast->tag == Int) return true;
-    if (needed->tag == FloatType && ast->tag == Num) return true;
+    if (is_numeric_type(needed) && ast->tag == Integer) return true;
+    if (needed->tag == FloatType && ast->tag == Number) return true;
 
     type_t *non_optional_needed = non_optional(needed);
     if (non_optional_needed->tag == ListType && ast->tag == List) {

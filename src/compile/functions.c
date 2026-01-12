@@ -79,10 +79,10 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
                 continue;
 
             Text_t value;
-            if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
+            if (spec_arg->type->tag == IntType && call_arg->value->tag == Integer) {
                 value = compile_int_to_type(env, call_arg->value, spec_arg->type);
-            } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Int) {
-                OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
+            } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Integer) {
+                OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Integer)->str);
                 if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
                 if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
                     value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
@@ -103,10 +103,10 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
             const char *pseudoname = String(i++);
             if (!Table$str_get(used_args, pseudoname)) {
                 Text_t value;
-                if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
+                if (spec_arg->type->tag == IntType && call_arg->value->tag == Integer) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
-                } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Int) {
-                    OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
+                } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Integer) {
+                    OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Integer)->str);
                     if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
                     if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
                         value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
@@ -179,9 +179,9 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
 
         // Literal constructors for numeric types like `Byte(123)` should
         // not go through any conversion, just a cast:
-        if (is_numeric_type(t) && call->args && !call->args->next && call->args->value->tag == Int)
+        if (is_numeric_type(t) && call->args && !call->args->next && call->args->value->tag == Integer)
             return compile_to_type(env, call->args->value, t);
-        else if (t->tag == FloatType && call->args && !call->args->next && call->args->value->tag == Num)
+        else if (t->tag == FloatType && call->args && !call->args->next && call->args->value->tag == Number)
             return compile_to_type(env, call->args->value, t);
 
         binding_t *constructor =
@@ -827,11 +827,11 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
                   "return cached_result;\n"
                   "}\n");
         definition = Texts(definition, wrapper);
-    } else if (cache && cache->tag == Int) {
+    } else if (cache && cache->tag == Integer) {
         assert(args);
-        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NONE_INT, NULL);
+        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Integer)->str), NONE_INT, NULL);
         Text_t pop_code = EMPTY_TEXT;
-        if (cache->tag == Int && cache_size.has_value && cache_size.value > 0) {
+        if (cache->tag == Integer && cache_size.has_value && cache_size.value > 0) {
             // FIXME: this currently just deletes the first entry, but this
             // should be more like a least-recently-used cache eviction policy
             // or least-frequently-used

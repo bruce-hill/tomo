@@ -107,8 +107,8 @@ Text_t compile(env_t *env, ast_t *ast) {
         // return Texts("_$", Match(ast, Var)->name);
         code_err(ast, "I don't know of any variable by this name");
     }
-    case Int: return compile_int(ast);
-    case Num: {
+    case Integer: return compile_int(ast);
+    case Number: {
         const char *src = String(string_slice(ast->start, (size_t)(ast->end - ast->start)));
         Text_t corrected = Text$from_str(src);
         corrected = Text$replace(corrected, Text("_"), EMPTY_TEXT);
@@ -158,7 +158,8 @@ Text_t compile(env_t *env, ast_t *ast) {
                 return Texts(b->code, "(", compile_arguments(env, ast, fn->args, new (arg_ast_t, .value = value)), ")");
         }
 
-        if (t->tag == IntType || t->tag == FloatType || t->tag == RealType) return Texts("-(", compile(env, value), ")");
+        if (t->tag == IntType || t->tag == FloatType || t->tag == RealType)
+            return Texts("-(", compile(env, value), ")");
 
         code_err(ast, "I don't know how to get the negative value of type ", type_to_text(t));
     }
@@ -215,7 +216,8 @@ Text_t compile(env_t *env, ast_t *ast) {
             comparison =
                 Texts("(Int$compare_value(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
         else if (key_t->tag == RealType)
-            comparison = Texts("(Real$compare_values(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
+            comparison =
+                Texts("(Real$compare_values(", lhs_key, ", ", rhs_key, ")", (ast->tag == Min ? "<=" : ">="), "0)");
         else if (key_t->tag == IntType || key_t->tag == FloatType || key_t->tag == BoolType || key_t->tag == PointerType
                  || key_t->tag == ByteType)
             comparison = Texts("((", lhs_key, ")", (ast->tag == Min ? "<=" : ">="), "(", rhs_key, "))");

@@ -14,7 +14,7 @@
 
 public
 Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
-    if (ast->tag != Int) {
+    if (ast->tag != Integer) {
         Text_t code = compile(env, ast);
         type_t *actual_type = get_type(env, ast);
         if (!promote(env, ast, &code, actual_type, target))
@@ -30,7 +30,7 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
                      ", .has_value=true})");
     }
 
-    const char *literal = Match(ast, Int)->str;
+    const char *literal = Match(ast, Integer)->str;
     OptionalInt_t int_val = Int$from_str(literal);
     if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
 
@@ -82,7 +82,7 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
 
 public
 Text_t compile_int(ast_t *ast) {
-    const char *str = Match(ast, Int)->str;
+    const char *str = Match(ast, Integer)->str;
     OptionalInt_t int_val = Int$from_str(str);
     if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
     mpz_t i;

@@ -327,13 +327,13 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         return Text("none");
     /*inline*/ case Bool:
         return Match(ast, Bool)->b ? Text("yes") : Text("no");
-    /*inline*/ case Int: {
+    /*inline*/ case Integer: {
         OptionalText_t source = ast_source(ast);
-        return source.length > 0 ? source : Text$from_str(Match(ast, Int)->str);
+        return source.length > 0 ? source : Text$from_str(Match(ast, Integer)->str);
     }
-    /*inline*/ case Num: {
+    /*inline*/ case Number: {
         OptionalText_t source = ast_source(ast);
-        return source.length > 0 ? source : Text$from_str(String(Match(ast, Num)->n));
+        return source.length > 0 ? source : Text$from_str(String(Match(ast, Number)->n));
     }
     /*inline*/ case Var:
         return Text$from_str(Match(ast, Var)->name);
@@ -747,8 +747,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Skip:
     /*multiline*/ case None:
     /*multiline*/ case Bool:
-    /*multiline*/ case Int:
-    /*multiline*/ case Num:
+    /*multiline*/ case Integer:
+    /*multiline*/ case Number:
     /*multiline*/ case Var: {
         assert(inlined.tag != TEXT_NONE);
         return inlined;

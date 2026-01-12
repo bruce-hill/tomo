@@ -35,9 +35,9 @@ Text_t compile_assertion(env_t *env, ast_t *ast) {
         type_t *operand_t;
         if (type_eq(lhs_t, rhs_t)) {
             operand_t = lhs_t;
-        } else if (cmp.lhs->tag == Int && is_numeric_type(rhs_t)) {
+        } else if (cmp.lhs->tag == Integer && is_numeric_type(rhs_t)) {
             operand_t = rhs_t;
-        } else if (cmp.rhs->tag == Int && is_numeric_type(lhs_t)) {
+        } else if (cmp.rhs->tag == Integer && is_numeric_type(lhs_t)) {
             operand_t = lhs_t;
         } else if (can_compile_to_type(with_enum_scope(env, lhs_t), cmp.rhs, lhs_t)) {
             operand_t = lhs_t;

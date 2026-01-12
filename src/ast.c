@@ -178,8 +178,8 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(None, "(None)");
         T(Bool, "(Bool ", data.b ? "yes" : "no", ")");
         T(Var, "(Var ", quoted_text(data.name), ")");
-        T(Int, "(Int ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
-        T(Num, "(Num ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
+        T(Integer, "(Integer ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
+        T(Number, "(Number ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
         T(TextLiteral, Text$quoted(data.text, false, Text("\"")));
         T(TextJoin, "(Text", data.lang ? Texts(" :lang ", quoted_text(data.lang)) : EMPTY_TEXT,
           ast_list_to_sexp(data.children), ")");
@@ -294,9 +294,9 @@ OptionalText_t ast_source(ast_t *ast) {
 
 PUREFUNC bool is_idempotent(ast_t *ast) {
     switch (ast->tag) {
-    case Int:
+    case Integer:
     case Bool:
-    case Num:
+    case Number:
     case Var:
     case None:
     case TextLiteral: return true;
@@ -466,8 +466,8 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
     case None:
     case Bool:
     case Var:
-    case Int:
-    case Num:
+    case Integer:
+    case Number:
     case Path:
     case TextLiteral:
     case Metadata: return;

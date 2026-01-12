@@ -40,13 +40,13 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
 
     if (match(&pos, "%")) {
         double n = strtod(str, NULL) / 100.;
-        return NewAST(ctx->file, start, pos, Num, .n = n);
+        return NewAST(ctx->file, start, pos, Number, .n = n);
     } else if (match(&pos, "deg")) {
         double n = strtod(str, NULL) * RADIANS_PER_DEGREE;
-        return NewAST(ctx->file, start, pos, Num, .n = n);
+        return NewAST(ctx->file, start, pos, Number, .n = n);
     }
 
-    return NewAST(ctx->file, start, pos, Int, .str = str);
+    return NewAST(ctx->file, start, pos, Integer, .str = str);
 }
 
 ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
@@ -77,5 +77,5 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     if (match(&pos, "%")) d /= 100.;
     else if (match(&pos, "deg")) d *= RADIANS_PER_DEGREE;
 
-    return NewAST(ctx->file, start, pos, Num, .n = d);
+    return NewAST(ctx->file, start, pos, Number, .n = d);
 }

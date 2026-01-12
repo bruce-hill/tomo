@@ -137,10 +137,10 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
         ast = Match(ast, Block)->statements->ast;
     }
 
-    if (ast->tag == Int && is_numeric_type(non_optional(t))) {
+    if (ast->tag == Integer && is_numeric_type(non_optional(t))) {
         return compile_int_to_type(env, ast, t);
-    } else if (ast->tag == Num && t->tag == FloatType) {
-        double n = Match(ast, Num)->n;
+    } else if (ast->tag == Number && t->tag == FloatType) {
+        double n = Match(ast, Number)->n;
         switch (Match(t, FloatType)->bits) {
         case TYPE_NBITS64: return Text$from_str(String(hex_double(n)));
         case TYPE_NBITS32: return Text$from_str(String(hex_double(n), "f"));
