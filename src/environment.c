@@ -117,9 +117,9 @@ env_t *global_env(bool source_mapping) {
             {"factorial", "Int$factorial", "func(x:Int -> Int)"}, //
             {"gcd", "Int$gcd", "func(x,y:Int -> Int)"}, //
             {"get_bit", "Int$get_bit", "func(x,bit_index:Int -> Bool)"}, //
-            {"hex", "Int$hex", "func(i:Int, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
+            {"hex", "Int$hex", "func(i:Int, digits:Int=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int$is_between", "func(x:Int, a:Int, b:Int -> Bool)"}, //
-            {"is_prime", "Int$is_prime", "func(x:Int,reps=50 -> Bool)"}, //
+            {"is_prime", "Int$is_prime", "func(x:Int,reps:Int=50 -> Bool)"}, //
             {"left_shifted", "Int$left_shifted", "func(x,y:Int -> Int)"}, //
             {"minus", "Int$minus", "func(x,y:Int -> Int)"}, //
             {"modulo", "Int$modulo", "func(x,y:Int -> Int)"}, //
@@ -127,8 +127,8 @@ env_t *global_env(bool source_mapping) {
             {"negated", "Int$negated", "func(x:Int -> Int)"}, //
             {"negative", "Int$negative", "func(x:Int -> Int)"}, //
             {"next_prime", "Int$next_prime", "func(x:Int -> Int)"}, //
-            {"octal", "Int$octal", "func(i:Int, digits=0, prefix=yes -> Text)"}, //
-            {"onward", "Int$onward", "func(first:Int,step=1 -> func(->Int?))"}, //
+            {"octal", "Int$octal", "func(i:Int, digits:Int=0, prefix=yes -> Text)"}, //
+            {"onward", "Int$onward", "func(first:Int,step:Int=1 -> func(->Int?))"}, //
             {"parse", "Int$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int?)"}, //
             {"plus", "Int$plus", "func(x,y:Int -> Int)"}, //
             {"power", "Int$power", "func(base:Int,exponent:Int -> Int)"}, //
@@ -150,13 +150,13 @@ env_t *global_env(bool source_mapping) {
             {"gcd", "Int64$gcd", "func(x,y:Int64 -> Int64)"}, //
             {"parse", "Int64$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int64?)"}, //
             {"get_bit", "Int64$get_bit", "func(x:Int64, bit_index:Int -> Bool)"}, //
-            {"hex", "Int64$hex", "func(i:Int64, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
+            {"hex", "Int64$hex", "func(i:Int64, digits:Int=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int64$is_between", "func(x:Int64, a:Int64, b:Int64 -> Bool)"}, //
             {"max", "Int64$max", "Int64"}, //
             {"min", "Int64$min", "Int64"}, //
             {"modulo", "Int64$modulo", "func(x,y:Int64 -> Int64)"}, //
             {"modulo1", "Int64$modulo1", "func(x,y:Int64 -> Int64)"}, //
-            {"octal", "Int64$octal", "func(i:Int64, digits=0, prefix=yes -> Text)"}, //
+            {"octal", "Int64$octal", "func(i:Int64, digits:Int=0, prefix=yes -> Text)"}, //
             {"onward", "Int64$onward", "func(first:Int64,step=Int64(1) -> func(->Int64?))"}, //
             {"to", "Int64$to", "func(first:Int64,last:Int64,step:Int64?=none -> func(->Int64?))"}, //
             {"unsigned_left_shifted", "Int64$unsigned_left_shifted", "func(x:Int64,y:Int64 -> Int64)"}, //
@@ -172,13 +172,13 @@ env_t *global_env(bool source_mapping) {
             {"gcd", "Int32$gcd", "func(x,y:Int32 -> Int32)"}, //
             {"parse", "Int32$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int32?)"}, //
             {"get_bit", "Int32$get_bit", "func(x:Int32, bit_index:Int -> Bool)"}, //
-            {"hex", "Int32$hex", "func(i:Int32, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
+            {"hex", "Int32$hex", "func(i:Int32, digits:Int=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int32$is_between", "func(x:Int32, a:Int32, b:Int32 -> Bool)"}, //
             {"max", "Int32$max", "Int32"}, //
             {"min", "Int32$min", "Int32"}, //
             {"modulo", "Int32$modulo", "func(x,y:Int32 -> Int32)"}, //
             {"modulo1", "Int32$modulo1", "func(x,y:Int32 -> Int32)"}, //
-            {"octal", "Int32$octal", "func(i:Int32, digits=0, prefix=yes -> Text)"}, //
+            {"octal", "Int32$octal", "func(i:Int32, digits:Int=0, prefix=yes -> Text)"}, //
             {"onward", "Int32$onward", "func(first:Int32,step=Int32(1) -> func(->Int32?))"}, //
             {"to", "Int32$to", "func(first:Int32,last:Int32,step:Int32?=none -> func(->Int32?))"}, //
             {"unsigned_left_shifted", "Int32$unsigned_left_shifted", "func(x:Int32,y:Int32 -> Int32)"}, //
@@ -194,13 +194,13 @@ env_t *global_env(bool source_mapping) {
             {"gcd", "Int16$gcd", "func(x,y:Int16 -> Int16)"}, //
             {"parse", "Int16$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int16?)"}, //
             {"get_bit", "Int16$get_bit", "func(x:Int16, bit_index:Int -> Bool)"}, //
-            {"hex", "Int16$hex", "func(i:Int16, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
+            {"hex", "Int16$hex", "func(i:Int16, digits:Int=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int16$is_between", "func(x:Int16, a:Int16, b:Int16 -> Bool)"}, //
             {"max", "Int16$max", "Int16"}, //
             {"min", "Int16$min", "Int16"}, //
             {"modulo", "Int16$modulo", "func(x,y:Int16 -> Int16)"}, //
             {"modulo1", "Int16$modulo1", "func(x,y:Int16 -> Int16)"}, //
-            {"octal", "Int16$octal", "func(i:Int16, digits=0, prefix=yes -> Text)"}, //
+            {"octal", "Int16$octal", "func(i:Int16, digits:Int=0, prefix=yes -> Text)"}, //
             {"onward", "Int16$onward", "func(first:Int16,step=Int16(1) -> func(->Int16?))"}, //
             {"to", "Int16$to", "func(first:Int16,last:Int16,step:Int16?=none -> func(->Int16?))"}, //
             {"unsigned_left_shifted", "Int16$unsigned_left_shifted", "func(x:Int16,y:Int16 -> Int16)"}, //
@@ -216,13 +216,13 @@ env_t *global_env(bool source_mapping) {
             {"gcd", "Int8$gcd", "func(x,y:Int8 -> Int8)"}, //
             {"parse", "Int8$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int8?)"}, //
             {"get_bit", "Int8$get_bit", "func(x:Int8, bit_index:Int -> Bool)"}, //
-            {"hex", "Int8$hex", "func(i:Int8, digits=0, uppercase=yes, prefix=yes -> Text)"}, //
+            {"hex", "Int8$hex", "func(i:Int8, digits:Int=0, uppercase=yes, prefix=yes -> Text)"}, //
             {"is_between", "Int8$is_between", "func(x:Int8, a:Int8, b:Int8 -> Bool)"}, //
             {"max", "Int8$max", "Int8"}, //
             {"min", "Int8$min", "Int8"}, //
             {"modulo", "Int8$modulo", "func(x,y:Int8 -> Int8)"}, //
             {"modulo1", "Int8$modulo1", "func(x,y:Int8 -> Int8)"}, //
-            {"octal", "Int8$octal", "func(i:Int8, digits=0, prefix=yes -> Text)"}, //
+            {"octal", "Int8$octal", "func(i:Int8, digits:Int=0, prefix=yes -> Text)"}, //
             {"onward", "Int8$onward", "func(first:Int8,step=Int8(1) -> func(->Int8?))"}, //
             {"to", "Int8$to", "func(first:Int8,last:Int8,step:Int8?=none -> func(->Int8?))"}, //
             {"unsigned_left_shifted", "Int8$unsigned_left_shifted", "func(x:Int8,y:Int8 -> Int8)"}, //
@@ -235,9 +235,9 @@ env_t *global_env(bool source_mapping) {
 #define F2(name) {#name, #name, "func(x,y:Float64 -> Float64)"}
         MAKE_TYPE( //
             "Float64", Type(FloatType, .bits = TYPE_NBITS64), Text("Float64_t"), Text("Float64$info"),
-            {"near", "Float64$near", "func(x,y:Float64, ratio=1e-9, min_epsilon=1e-9 -> Bool)"}, //
+            {"near", "Float64$near", "func(x,y:Float64, ratio:Float64=1e-9, min_epsilon:Float64=1e-9 -> Bool)"}, //
             {"clamped", "Float64$clamped", "func(x,low,high:Float64 -> Float64)"}, //
-            {"percent", "Float64$percent", "func(n:Float64,precision=0.01 -> Text)"}, //
+            {"percent", "Float64$percent", "func(n:Float64,precision:Float64=0.01 -> Text)"}, //
             {"with_precision", "Float64$with_precision", "func(n:Float64,precision:Float64 -> Float64)"}, //
             {"is_between", "Float64$is_between", "func(x:Float64, a:Float64, b:Float64 -> Bool)"}, //
             {"isinf", "Float64$isinf", "func(n:Float64 -> Bool)"}, //
@@ -265,9 +265,9 @@ env_t *global_env(bool source_mapping) {
 #define F2(name) {#name, #name "f", "func(x,y:Float32 -> Float32)"}
         MAKE_TYPE( //
             "Float32", Type(FloatType, .bits = TYPE_NBITS32), Text("Float32_t"), Text("Float32$info"), //
-            {"near", "Float32$near", "func(x,y:Float32, ratio=Float32(1e-9), min_epsilon=Float32(1e-9) -> Bool)"}, //
+            {"near", "Float32$near", "func(x,y:Float32, ratio:Float32=1e-9, min_epsilon:Float32=1e-9 -> Bool)"}, //
             {"clamped", "Float32$clamped", "func(x,low,high:Float32 -> Float32)"}, //
-            {"percent", "Float32$percent", "func(n:Float32,precision=Float32(.01) -> Text)"}, //
+            {"percent", "Float32$percent", "func(n:Float32,precision:Float32=.01 -> Text)"}, //
             {"with_precision", "Float32$with_precision", "func(n:Float32,precision:Float32 -> Float32)"}, //
             {"is_between", "Float32$is_between", "func(x:Float32, a:Float32, b:Float32 -> Bool)"}, //
             {"isinf", "Float32$isinf", "func(n:Float32 -> Bool)"}, //
@@ -388,7 +388,7 @@ env_t *global_env(bool source_mapping) {
             {"caseless_equals", "Text$equal_ignoring_case", "func(a,b:Text, language='C' -> Bool)"}, //
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"}, //
             {"ends_with", "Text$ends_with", "func(text,suffix:Text, remainder:&Text? = none -> Bool)"}, //
-            {"find", "Text$find", "func(text,target:Text, start=1 -> Int?)"}, //
+            {"find", "Text$find", "func(text,target:Text, start:Int=1 -> Int?)"}, //
             {"from", "Text$from", "func(text:Text, first:Int -> Text)"}, //
             {"from_c_string", "Text$from_str", "func(str:CString -> Text?)"}, //
             {"from_codepoint_names", "Text$from_codepoint_names", "func(codepoint_names:[Text] -> Text?)"}, //
@@ -409,7 +409,7 @@ env_t *global_env(bool source_mapping) {
             {"replace", "Text$replace", "func(text:Text, target:Text, replacement:Text -> Text)"}, //
             {"reversed", "Text$reversed", "func(text:Text -> Text)"}, //
             {"right_pad", "Text$right_pad", "func(text:Text, count:Int, pad=' ', language='C' -> Text)"}, //
-            {"slice", "Text$slice", "func(text:Text, from=1, to=-1 -> Text)"}, //
+            {"slice", "Text$slice", "func(text:Text, from:Int=1, to:Int=-1 -> Text)"}, //
             {"split", "Text$split", "func(text:Text, delimiter='' -> [Text])"}, //
             {"split_any", "Text$split_any", "func(text:Text, delimiters=' \\t\\r\\n' -> [Text])"}, //
             {"starts_with", "Text$starts_with", "func(text,prefix:Text, remainder:&Text? = none -> Bool)"}, //
