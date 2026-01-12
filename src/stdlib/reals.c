@@ -25,6 +25,7 @@ typedef struct {
 } constructive_t;
 
 typedef enum {
+    SYM_INVALID,
     SYM_ADD,
     SYM_SUB,
     SYM_MUL,
@@ -70,7 +71,8 @@ static inline void *get_ptr(Real_t n) {
     return (void *)(uintptr_t)(n.u64 & PTR_MASK);
 }
 
-static inline Real_t box_ptr(void *ptr, uint64_t tag) {
+static inline PUREFUNC Real_t box_ptr(void *ptr, uint64_t tag) {
+    assert(((uint64_t)(uintptr_t)ptr & (~PTR_MASK)) == 0);
     Real_t n;
     n.u64 = QNAN_MASK | tag | ((uint64_t)(uintptr_t)ptr & PTR_MASK);
     return n;
@@ -173,6 +175,7 @@ double Real$as_float64(Real_t n, bool truncate) {
         double left = Real$as_float64(s->left, truncate);
         double right = Real$as_float64(s->right, truncate);
         switch (s->op) {
+        case SYM_INVALID: fail("Invalid!");
         case SYM_ADD: return left + right;
         case SYM_SUB: return left - right;
         case SYM_MUL: return left * right;
@@ -206,12 +209,24 @@ public
 Real_t Real$plus(Real_t a, Real_t b) {
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
-        double result = a.d + b.d;
+        volatile double result = a.d + b.d;
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
         a = promote_double(a.d);
         b = promote_double(b.d);
+    }
+
+    // Handle mixed rational/double cases by promoting double to rational
+    if (Real$is_boxed(a) && Real$tag(a) == REAL_TAG_RATIONAL && !Real$is_boxed(b)) {
+        if (isfinite(b.d)) {
+            b = promote_double(b.d);
+        }
+    }
+    if (!Real$is_boxed(a) && Real$is_boxed(b) && Real$tag(b) == REAL_TAG_RATIONAL) {
+        if (isfinite(a.d)) {
+            a = promote_double(a.d);
+        }
     }
 
     // Handle exact rational arithmetic
@@ -236,7 +251,7 @@ public
 Real_t Real$minus(Real_t a, Real_t b) {
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
-        double result = a.d - b.d;
+        volatile double result = a.d - b.d;
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
@@ -264,12 +279,24 @@ public
 Real_t Real$times(Real_t a, Real_t b) {
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
-        double result = a.d * b.d;
+        volatile double result = a.d * b.d;
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
         a = promote_double(a.d);
         b = promote_double(b.d);
+    }
+
+    // Handle mixed rational/double cases by promoting double to rational
+    if (Real$is_boxed(a) && Real$tag(a) == REAL_TAG_RATIONAL && !Real$is_boxed(b)) {
+        if (isfinite(b.d)) {
+            b = promote_double(b.d);
+        }
+    }
+    if (!Real$is_boxed(a) && Real$is_boxed(b) && Real$tag(b) == REAL_TAG_RATIONAL) {
+        if (isfinite(a.d)) {
+            a = promote_double(a.d);
+        }
     }
 
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
@@ -308,7 +335,7 @@ public
 Real_t Real$divided_by(Real_t a, Real_t b) {
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
-        double result = a.d / b.d;
+        volatile double result = a.d / b.d;
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
@@ -427,9 +454,9 @@ Real_t Real$clamped(Real_t x, Real_t low, Real_t high) {
 public
 Real_t Real$sqrt(Real_t a) {
     if (!Real$is_boxed(a)) {
-        double d = sqrt(a.d);
         feclearexcept(FE_INEXACT);
-        double check = d * d;
+        volatile double d = sqrt(a.d);
+        volatile double check = d * d;
         if (!fetestexcept(FE_INEXACT) && check == a.d) {
             return make_double(d);
         }
@@ -471,7 +498,7 @@ public
 Real_t Real$power(Real_t base, Real_t exp) {
     if (!Real$is_boxed(base) && !Real$is_boxed(exp)) {
         feclearexcept(FE_INEXACT);
-        double result = pow(base.d, exp.d);
+        volatile double result = pow(base.d, exp.d);
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
@@ -643,6 +670,7 @@ Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type) {
         Text_t right = Real$as_text(&s->right, colorize, type);
 
         switch (s->op) {
+        case SYM_INVALID: return Text("INVALID REAL NUMBER");
         case SYM_ADD: return format_binary_op(left, right, " + ", colorize);
         case SYM_SUB: return format_binary_op(left, right, " - ", colorize);
         case SYM_MUL: return format_binary_op(left, right, " * ", colorize);
@@ -1058,7 +1086,7 @@ public
 Real_t Real$exp(Real_t x) {
     if (!Real$is_boxed(x)) {
         feclearexcept(FE_INEXACT);
-        double result = exp(x.d);
+        volatile double result = exp(x.d);
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
@@ -1075,7 +1103,7 @@ public
 Real_t Real$log(Real_t x) {
     if (!Real$is_boxed(x)) {
         feclearexcept(FE_INEXACT);
-        double result = log(x.d);
+        volatile double result = log(x.d);
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }
@@ -1092,7 +1120,7 @@ public
 Real_t Real$log10(Real_t x) {
     if (!Real$is_boxed(x)) {
         feclearexcept(FE_INEXACT);
-        double result = log10(x.d);
+        volatile double result = log10(x.d);
         if (!fetestexcept(FE_INEXACT) && isfinite(result)) {
             return make_double(result);
         }

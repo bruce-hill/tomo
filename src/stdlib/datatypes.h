@@ -36,8 +36,8 @@ typedef union {
 #define OptionalInt_t Int_t
 
 typedef union {
-    double d;
-    uint64_t u64;
+    volatile double d;
+    volatile uint64_t u64;
 } Real_t;
 
 #define OptionalReal_t Real_t
