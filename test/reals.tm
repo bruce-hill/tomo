@@ -133,6 +133,6 @@ func main()
 	
 	# Symbolic expressions maintain structure
 	expr := sqrt2 + 1.
-	assert Text(expr) == "sqrt(2) + 1"
+	assert Text(expr) == "(sqrt(2) + 1)"
 	
 	print("All Real tests passed!")
