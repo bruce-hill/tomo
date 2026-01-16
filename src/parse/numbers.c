@@ -100,5 +100,9 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
         if (!Real$is_zero(real)) real = Real$times(Real$divided_by(real, Real$from_float64(360.)), Real$tau);
     }
 
+    if (Real$tag(real) == REAL_TAG_SYMBOLIC && REAL_SYMBOLIC(real)->op == SYM_INVALID) {
+        parser_err(ctx, start, pos, "Failed to convert this to a real number");
+    }
+
     return NewAST(ctx->file, start, pos, Number, .n = real);
 }

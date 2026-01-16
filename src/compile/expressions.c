@@ -119,10 +119,8 @@ Text_t compile_real(ast_t *ast, Real_t num) {
 
         // Check if denominator is 1 (integer)
         if (mpz_cmp_ui(mpq_denref(&r->value), 1) == 0) {
-            Int_t b = Int$from_mpz(mpq_numref(&r->value));
-            Real_t b_real;
-            b_real.bigint = &b;
-            b_real.bits |= REAL_TAG_BIGINT;
+            Int_t *b = heap(Int$from_mpz(mpq_numref(&r->value)));
+            Real_t b_real = {.bits = (uint64_t)b | REAL_TAG_BIGINT};
             return compile_real(ast, b_real);
         }
 
@@ -138,15 +136,11 @@ Text_t compile_real(ast_t *ast, Real_t num) {
             char *den_str = mpz_get_str(NULL, 10, mpq_denref(&r->value));
             return Texts("Real$from_rational(", num_str, ", ", den_str, ")");
         } else {
-            Int_t numerator = Int$from_mpz(mpq_numref(&r->value));
-            Real_t num_real;
-            num_real.bigint = &numerator;
-            num_real.bits |= REAL_TAG_BIGINT;
+            Int_t *numerator = heap(Int$from_mpz(mpq_numref(&r->value)));
+            Real_t num_real = {.bits = (uint64_t)numerator | REAL_TAG_BIGINT};
 
-            Int_t denominator = Int$from_mpz(mpq_denref(&r->value));
-            Real_t den_real;
-            den_real.bigint = &denominator;
-            den_real.bits |= REAL_TAG_BIGINT;
+            Int_t *denominator = heap(Int$from_mpz(mpq_denref(&r->value)));
+            Real_t den_real = {.bits = (uint64_t)denominator | REAL_TAG_BIGINT};
 
             return Texts("Real$divided_by(", compile_real(ast, num_real), ", ", compile_real(ast, den_real), ")");
         }

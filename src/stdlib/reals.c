@@ -33,22 +33,33 @@ static inline Real_t R(double d) {
     return (Real_t){.bits = input.bits ^ QNAN_MASK};
 }
 
+static inline Real_t mpq_to_real(__mpq_struct mpq) {
+    volatile rational_t *r = GC_MALLOC(sizeof(rational_t));
+    r->value = mpq;
+    return (Real_t){.rational = (void *)r + REAL_TAG_RATIONAL};
+}
+
+static inline Real_t _sym_to_real(symbolic_t sym) {
+    volatile symbolic_t *s = GC_MALLOC(sizeof(symbolic_t));
+    *s = sym;
+    return (Real_t){.symbolic = (void *)s + REAL_TAG_SYMBOLIC};
+}
+#define sym_to_real(...) _sym_to_real((symbolic_t){__VA_ARGS__})
+
 public
 Real_t Real$from_int64(int64_t i) {
     double d = (double)i;
     if ((int64_t)d == i) return R(d);
 
-    Int_t *b = GC_MALLOC(sizeof(Int_t));
+    volatile Int_t *b = GC_MALLOC(sizeof(Int_t));
     *b = I(i);
-    Real_t ret = {.bigint = b};
-    ret.bits |= REAL_TAG_BIGINT;
-    return ret;
+    return (Real_t){.bigint = (void *)b + REAL_TAG_BIGINT};
 }
 
 public
 Real_t Real$from_rational(int64_t num, int64_t den) {
-    rational_t *r = GC_MALLOC(sizeof(rational_t));
-    mpq_init(&r->value);
+    __mpq_struct ret;
+    mpq_init(&ret);
     if (den == INT64_MIN) fail("Domain error");
     if (den < 0) {
         if (num == INT64_MIN) fail("Domain error");
@@ -56,11 +67,9 @@ Real_t Real$from_rational(int64_t num, int64_t den) {
         den = -den;
     }
     if (den == 0) fail("Division by zero");
-    mpq_set_si(&r->value, num, (unsigned long)den);
-    mpq_canonicalize(&r->value);
-    Real_t ret = {.rational = r};
-    ret.bits |= REAL_TAG_RATIONAL;
-    return ret;
+    mpq_set_si(&ret, num, (unsigned long)den);
+    mpq_canonicalize(&ret);
+    return mpq_to_real(ret);
 }
 
 public
@@ -83,16 +92,14 @@ bool Real$get_rational(Real_t x, int64_t *num, int64_t *den) {
 }
 
 // Promote double to exact type if needed
-static Real_t Real$as_rational(double d) {
+static inline Real_t Real$as_rational(double d) {
     if (!isfinite(d)) {
         return R(d);
     }
-    rational_t *r = GC_MALLOC(sizeof(rational_t));
-    mpq_init(&r->value);
-    mpq_set_d(&r->value, d);
-    Real_t ret = {.rational = r};
-    ret.bits |= REAL_TAG_RATIONAL;
-    return ret;
+    __mpq_struct ret;
+    mpq_init(&ret);
+    mpq_set_d(&ret, d);
+    return mpq_to_real(ret);
 }
 
 public
@@ -105,11 +112,9 @@ Real_t Real$from_int(Int_t i) {
     double d = Float64$from_int(i, true);
     if (Int$equal_value(i, Int$from_float64(d, true))) return R(d);
 
-    Int_t *b = GC_MALLOC(sizeof(Int_t));
+    volatile Int_t *b = GC_MALLOC(sizeof(Int_t));
     *b = i;
-    Real_t ret = {.bigint = b};
-    ret.bits |= REAL_TAG_BIGINT;
-    return ret;
+    return (Real_t){.bigint = (void *)b + REAL_TAG_BIGINT};
 }
 
 public
@@ -168,15 +173,15 @@ double Real$as_float64(Real_t n, bool truncate) {
 
 symbolic_t pi_symbol = {.op = SYM_PI};
 public
-Real_t Real$pi = {.symbolic = (void *)&pi_symbol + (ptrdiff_t)REAL_TAG_SYMBOLIC};
+Real_t Real$pi = {.symbolic = (void *)&pi_symbol + REAL_TAG_SYMBOLIC};
 
 symbolic_t tau_symbol = {.op = SYM_TAU};
 public
-Real_t Real$tau = {.symbolic = (void *)&tau_symbol + (ptrdiff_t)REAL_TAG_SYMBOLIC};
+Real_t Real$tau = {.symbolic = (void *)&tau_symbol + REAL_TAG_SYMBOLIC};
 
 symbolic_t e_symbol = {.op = SYM_E};
 public
-Real_t Real$e = {.symbolic = (void *)&e_symbol + (ptrdiff_t)REAL_TAG_SYMBOLIC};
+Real_t Real$e = {.symbolic = (void *)&e_symbol + REAL_TAG_SYMBOLIC};
 
 public
 Real_t Real$plus(Real_t a, Real_t b) {
@@ -196,23 +201,14 @@ Real_t Real$plus(Real_t a, Real_t b) {
 
     // Handle exact rational arithmetic
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
-        rational_t *result = GC_MALLOC(sizeof(rational_t));
-        mpq_init(&result->value);
-        mpq_add(&result->value, &REAL_RATIONAL(a)->value, &REAL_RATIONAL(b)->value);
-        Real_t ret = {.rational = result};
-        ret.bits |= REAL_TAG_RATIONAL;
-        return ret;
+        __mpq_struct ret;
+        mpq_init(&ret);
+        mpq_add(&ret, &REAL_RATIONAL(a)->value, &REAL_RATIONAL(b)->value);
+        return mpq_to_real(ret);
     }
 
     // Fallback: create symbolic expression
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_ADD;
-    sym->left = a;
-    sym->right = b;
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_ADD, .left = a, .right = b);
 }
 
 public
@@ -232,22 +228,13 @@ Real_t Real$minus(Real_t a, Real_t b) {
     if (!Real$is_boxed(b)) b = Real$as_rational(REAL_DOUBLE(b));
 
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
-        rational_t *result = GC_MALLOC(sizeof(rational_t));
-        mpq_init(&result->value);
-        mpq_sub(&result->value, &REAL_RATIONAL(a)->value, &REAL_RATIONAL(b)->value);
-        Real_t ret = {.rational = result};
-        ret.bits |= REAL_TAG_RATIONAL;
-        return ret;
+        __mpq_struct ret;
+        mpq_init(&ret);
+        mpq_sub(&ret, &REAL_RATIONAL(a)->value, &REAL_RATIONAL(b)->value);
+        return mpq_to_real(ret);
     }
 
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_SUB;
-    sym->left = a;
-    sym->right = b;
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_SUB, .left = a, .right = b);
 }
 
 public
@@ -269,13 +256,10 @@ Real_t Real$times(Real_t a, Real_t b) {
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = REAL_RATIONAL(a);
         rational_t *rb = REAL_RATIONAL(b);
-        rational_t *result = GC_MALLOC(sizeof(rational_t));
-        mpq_init(&result->value);
-        mpq_mul(&result->value, &ra->value, &rb->value);
-
-        Real_t ret = {.rational = result};
-        ret.bits |= REAL_TAG_RATIONAL;
-        return ret;
+        __mpq_struct ret;
+        mpq_init(&ret);
+        mpq_mul(&ret, &ra->value, &rb->value);
+        return mpq_to_real(ret);
     }
 
     // Check for sqrt(x) * sqrt(x) = x
@@ -290,13 +274,7 @@ Real_t Real$times(Real_t a, Real_t b) {
         }
     }
 
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_MUL;
-    sym->left = a;
-    sym->right = b;
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_MUL, .left = a, .right = b);
 }
 
 public
@@ -317,23 +295,24 @@ Real_t Real$divided_by(Real_t a, Real_t b) {
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = REAL_RATIONAL(a);
         rational_t *rb = REAL_RATIONAL(b);
-        rational_t *result = GC_MALLOC(sizeof(rational_t));
-        mpq_init(&result->value);
-        mpq_div(&result->value, &ra->value, &rb->value);
-
-        Real_t ret = {.rational = result};
-        ret.bits |= REAL_TAG_RATIONAL;
-        return ret;
+        __mpq_struct ret;
+        mpq_init(&ret);
+        mpq_div(&ret, &ra->value, &rb->value);
+        return mpq_to_real(ret);
     }
 
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_DIV;
-    sym->left = a;
-    sym->right = b;
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
+    // volatile Real_t ret = sym_to_real(.op = SYM_DIV, .left = a, .right = b);
+    volatile Real_t ret = {};
+    volatile symbolic_t *s = GC_MALLOC(sizeof(symbolic_t));
+    s->op = SYM_DIV;
+    s->left = a;
+    s->right = b;
+    ret.symbolic = (void *)s + REAL_TAG_SYMBOLIC;
+    assert(REAL_SYMBOLIC(ret)->op == SYM_DIV);
+    // return (Real_t){.symbolic = (void *)s + REAL_TAG_SYMBOLIC};
+    print("sym: ", ret);
     return ret;
+    // return sym_to_real(.op = SYM_DIV, .left = a, .right = b);
 }
 
 public
@@ -380,29 +359,19 @@ Real_t Real$mod(Real_t n, Real_t modulus) {
             }
         }
 
-        rational_t *res = GC_MALLOC(sizeof(rational_t));
-        mpq_init(&res->value);
-        mpq_set(&res->value, result);
+        __mpq_struct ret;
+        mpq_init(&ret);
+        mpq_set(&ret, result);
 
         mpq_clear(quotient);
         mpq_clear(floored);
         mpq_clear(result);
         mpz_clear(floor_z);
-
-        Real_t ret = {.rational = res};
-        ret.bits |= REAL_TAG_RATIONAL;
-        return ret;
+        return mpq_to_real(ret);
     }
 
     // Fallback to symbolic
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_MOD;
-    sym->left = n;
-    sym->right = modulus;
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_MOD, .left = n, .right = modulus);
 }
 
 public
@@ -455,31 +424,21 @@ Real_t Real$sqrt(Real_t a) {
             mpz_sqrt(num_sqrt, mpq_numref(&r->value));
             mpz_sqrt(den_sqrt, mpq_denref(&r->value));
 
-            rational_t *result = GC_MALLOC(sizeof(rational_t));
-            mpq_init(&result->value);
-            mpq_set_num(&result->value, num_sqrt);
-            mpq_set_den(&result->value, den_sqrt);
-            mpq_canonicalize(&result->value);
+            __mpq_struct ret;
+            mpq_init(&ret);
+            mpq_set_num(&ret, num_sqrt);
+            mpq_set_den(&ret, den_sqrt);
+            mpq_canonicalize(&ret);
 
             mpz_clear(num_sqrt);
             mpz_clear(den_sqrt);
-
-            Real_t ret = {.rational = result};
-            ret.bits |= REAL_TAG_RATIONAL;
-            return ret;
+            return mpq_to_real(ret);
         }
         mpz_clear(num_sqrt);
         mpz_clear(den_sqrt);
     }
 
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_SQRT;
-    sym->left = a;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_SQRT, .left = a, .right = R(0));
 }
 
 // Because the libm implementation of pow() is often inexact for common
@@ -519,14 +478,7 @@ Real_t Real$power(Real_t base, Real_t exp) {
         }
     }
 
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_POW;
-    sym->left = base;
-    sym->right = exp;
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_POW, .left = base, .right = exp);
 }
 
 // Helper function for binary functions
@@ -752,7 +704,7 @@ OptionalReal_t Real$parse(Text_t text, Text_t *remainder) {
         }
 
         if (digits > 0) {
-            // n = int_part + 10^digits * fractional_part
+            // n = int_part + fractional_part / 10^digits
             OptionalInt_t fractional_part = Int$parse(text, I(10), &after_decimal);
             if (fractional_part.small != 0 && !Int$is_zero(fractional_part)) {
                 Real_t frac = Real$from_int(fractional_part);
@@ -863,13 +815,11 @@ Real_t Real$negative(Real_t a) {
     if (!Real$is_boxed(a)) return R(-REAL_DOUBLE(a));
 
     if (Real$tag(a) == REAL_TAG_RATIONAL) {
-        rational_t *r = REAL_RATIONAL(a);
-        rational_t *result = GC_MALLOC(sizeof(rational_t));
-        mpq_init(&result->value);
-        mpq_neg(&result->value, &r->value);
-        Real_t ret = {.rational = result};
-        ret.bits |= REAL_TAG_RATIONAL;
-        return ret;
+        rational_t *rat = REAL_RATIONAL(a);
+        __mpq_struct ret;
+        mpq_init(&ret);
+        mpq_neg(&ret, &rat->value);
+        return mpq_to_real(ret);
     }
 
     return Real$times(R(-1.0), a);
@@ -878,33 +828,33 @@ Real_t Real$negative(Real_t a) {
 public
 Real_t Real$rounded_to(Real_t x, Real_t round_to) {
     // Convert to rationals for exact computation
-    rational_t *rx = GC_MALLOC(sizeof(rational_t));
-    rational_t *rr = GC_MALLOC(sizeof(rational_t));
-    mpq_init(&rx->value);
-    mpq_init(&rr->value);
+    __mpq_struct rx;
+    mpq_init(&rx);
 
     // Convert x to rational
     if (!Real$is_boxed(x)) {
-        mpq_set_d(&rx->value, REAL_DOUBLE(x));
+        mpq_set_d(&rx, REAL_DOUBLE(x));
     } else if (Real$tag(x) == REAL_TAG_RATIONAL) {
-        mpq_set(&rx->value, &REAL_RATIONAL(x)->value);
+        mpq_set(&rx, &REAL_RATIONAL(x)->value);
     } else {
-        mpq_set_d(&rx->value, Real$as_float64(x, true));
+        mpq_set_d(&rx, Real$as_float64(x, true));
     }
 
+    __mpq_struct rr;
+    mpq_init(&rr);
     // Convert round_to to rational
     if (!Real$is_boxed(round_to)) {
-        mpq_set_d(&rr->value, REAL_DOUBLE(round_to));
+        mpq_set_d(&rr, REAL_DOUBLE(round_to));
     } else if (Real$tag(round_to) == REAL_TAG_RATIONAL) {
-        mpq_set(&rr->value, &REAL_RATIONAL(round_to)->value);
+        mpq_set(&rr, &REAL_RATIONAL(round_to)->value);
     } else {
-        mpq_set_d(&rr->value, Real$as_float64(round_to, true));
+        mpq_set_d(&rr, Real$as_float64(round_to, true));
     }
 
     // Compute x / round_to
     mpq_t quotient;
     mpq_init(quotient);
-    mpq_div(quotient, &rx->value, &rr->value);
+    mpq_div(quotient, &rx, &rr);
 
     // Round to nearest integer using mpz_fdiv_qr for exact rounding
     mpz_t rounded, remainder;
@@ -922,21 +872,18 @@ Real_t Real$rounded_to(Real_t x, Real_t round_to) {
     mpz_fdiv_q(rounded, doubled_num, remainder);
 
     // Multiply back: rounded * round_to
-    rational_t *result = GC_MALLOC(sizeof(rational_t));
-    mpq_init(&result->value);
-    mpq_set_z(&result->value, rounded);
-    mpq_mul(&result->value, &result->value, &rr->value);
+    __mpq_struct ret;
+    mpq_init(&ret);
+    mpq_set_z(&ret, rounded);
+    mpq_mul(&ret, &ret, &rr);
 
-    mpq_clear(&rx->value);
-    mpq_clear(&rr->value);
+    mpq_clear(&rx);
+    mpq_clear(&rr);
     mpq_clear(quotient);
     mpz_clear(rounded);
     mpz_clear(remainder);
     mpz_clear(doubled_num);
-
-    Real_t ret = {.rational = result};
-    ret.bits |= REAL_TAG_RATIONAL;
-    return ret;
+    return mpq_to_real(ret);
 }
 
 // Trigonometric functions - return symbolic expressions
@@ -949,16 +896,7 @@ Real_t Real$sin(Real_t x) {
             return R(result);
         }
     }
-
-    // Create symbolic expression
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_SIN;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_SIN, .left = x, .right = R(0));
 }
 
 public
@@ -969,15 +907,7 @@ Real_t Real$cos(Real_t x) {
             return R(result);
         }
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_COS;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_COS, .left = x, .right = R(0));
 }
 
 public
@@ -986,15 +916,7 @@ Real_t Real$tan(Real_t x) {
         double result = tan(REAL_DOUBLE(x));
         if (result == 0.0) return R(0.0);
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_TAN;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_TAN, .left = x, .right = R(0));
 }
 
 public
@@ -1003,15 +925,7 @@ Real_t Real$asin(Real_t x) {
         double result = asin(REAL_DOUBLE(x));
         if (result == 0.0) return R(0.0);
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_ASIN;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_ASIN, .left = x, .right = R(0));
 }
 
 public
@@ -1020,15 +934,7 @@ Real_t Real$acos(Real_t x) {
         double result = acos(REAL_DOUBLE(x));
         if (result == 0.0) return R(0.0);
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_ACOS;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_ACOS, .left = x, .right = R(0));
 }
 
 public
@@ -1037,15 +943,7 @@ Real_t Real$atan(Real_t x) {
         double result = atan(REAL_DOUBLE(x));
         if (result == 0.0) return R(0.0);
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_ATAN;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_ATAN, .left = x, .right = R(0));
 }
 
 public
@@ -1054,15 +952,7 @@ Real_t Real$atan2(Real_t y, Real_t x) {
         double result = atan2(REAL_DOUBLE(y), REAL_DOUBLE(x));
         if (result == 0.0) return R(0.0);
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_ATAN2;
-    sym->left = y;
-    sym->right = x;
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_ATAN2, .left = y, .right = x);
 }
 
 public
@@ -1074,15 +964,7 @@ Real_t Real$exp(Real_t x) {
             return R(result);
         }
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_EXP;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_EXP, .left = x, .right = R(0));
 }
 
 public
@@ -1094,15 +976,7 @@ Real_t Real$log(Real_t x) {
             return R(result);
         }
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_LOG;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_LOG, .left = x, .right = R(0));
 }
 
 public
@@ -1114,15 +988,7 @@ Real_t Real$log10(Real_t x) {
             return R(result);
         }
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_LOG10;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_LOG10, .left = x, .right = R(0));
 }
 
 public
@@ -1133,22 +999,12 @@ Real_t Real$abs(Real_t x) {
 
     if (Real$tag(x) == REAL_TAG_RATIONAL) {
         rational_t *r = REAL_RATIONAL(x);
-        rational_t *result = GC_MALLOC(sizeof(rational_t));
-        mpq_init(&result->value);
-        mpq_abs(&result->value, &r->value);
-        Real_t ret = {.rational = result};
-        ret.bits |= REAL_TAG_RATIONAL;
-        return ret;
+        __mpq_struct ret;
+        mpq_init(&ret);
+        mpq_abs(&ret, &r->value);
+        return mpq_to_real(ret);
     }
-
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_ABS;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_ABS, .left = x, .right = R(0));
 }
 
 public
@@ -1160,27 +1016,18 @@ Real_t Real$floor(Real_t x) {
 
     if (Real$tag(x) == REAL_TAG_RATIONAL) {
         rational_t *r = REAL_RATIONAL(x);
-        mpz_t result;
-        mpz_init(result);
-        mpz_fdiv_q(result, mpq_numref(&r->value), mpq_denref(&r->value));
+        mpz_t quotient;
+        mpz_init(quotient);
+        mpz_fdiv_q(quotient, mpq_numref(&r->value), mpq_denref(&r->value));
 
-        rational_t *rat = GC_MALLOC(sizeof(rational_t));
-        mpq_init(&rat->value);
-        mpq_set_z(&rat->value, result);
-        mpz_clear(result);
-        Real_t ret = {.rational = rat};
-        ret.bits |= REAL_TAG_RATIONAL;
-        return ret;
+        __mpq_struct ret;
+        mpq_init(&ret);
+        mpq_set_z(&ret, quotient);
+        mpz_clear(quotient);
+        return mpq_to_real(ret);
     }
 
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_FLOOR;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_FLOOR, .left = x, .right = R(0));
 }
 
 public
@@ -1191,27 +1038,18 @@ Real_t Real$ceil(Real_t x) {
 
     if (Real$tag(x) == REAL_TAG_RATIONAL) {
         rational_t *r = REAL_RATIONAL(x);
-        mpz_t result;
-        mpz_init(result);
-        mpz_cdiv_q(result, mpq_numref(&r->value), mpq_denref(&r->value));
+        mpz_t quotient;
+        mpz_init(quotient);
+        mpz_cdiv_q(quotient, mpq_numref(&r->value), mpq_denref(&r->value));
 
-        rational_t *rat = GC_MALLOC(sizeof(rational_t));
-        mpq_init(&rat->value);
-        mpq_set_z(&rat->value, result);
-        mpz_clear(result);
-        Real_t ret = {.rational = rat};
-        ret.bits |= REAL_TAG_RATIONAL;
-        return ret;
+        __mpq_struct ret;
+        mpq_init(&ret);
+        mpq_set_z(&ret, quotient);
+        mpz_clear(quotient);
+        return mpq_to_real(ret);
     }
 
-    symbolic_t *sym = GC_MALLOC(sizeof(symbolic_t));
-    sym->op = SYM_CEIL;
-    sym->left = x;
-    sym->right = R(0);
-
-    Real_t ret = {.symbolic = sym};
-    ret.bits |= REAL_TAG_SYMBOLIC;
-    return ret;
+    return sym_to_real(.op = SYM_CEIL, .left = x, .right = R(0));
 }
 
 public
