@@ -15,6 +15,7 @@ CONSTFUNC uint64_t Real$tag(Real_t n);
 Int_t Real$as_int(Real_t x, bool truncate);
 OptionalReal_t Real$parse(Text_t text, Text_t *remainder);
 PUREFUNC bool Real$is_none(const void *vn, const TypeInfo_t *type);
+Real_t Real$simplify(Real_t x);
 Real_t Real$abs(Real_t x);
 Real_t Real$acos(Real_t x);
 Real_t Real$asin(Real_t x);

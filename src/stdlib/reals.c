@@ -42,7 +42,7 @@ static inline Real_t mpq_to_real(__mpq_struct mpq) {
 static inline Real_t _sym_to_real(symbolic_t sym) {
     volatile symbolic_t *s = GC_MALLOC(sizeof(symbolic_t));
     *s = sym;
-    return (Real_t){.symbolic = (void *)s + REAL_TAG_SYMBOLIC};
+    return Real$simplify((Real_t){.symbolic = (void *)s + REAL_TAG_SYMBOLIC});
 }
 #define sym_to_real(...) _sym_to_real((symbolic_t){__VA_ARGS__})
 
@@ -70,6 +70,96 @@ Real_t Real$from_rational(int64_t num, int64_t den) {
     mpq_set_si(&ret, num, (unsigned long)den);
     mpq_canonicalize(&ret);
     return mpq_to_real(ret);
+}
+
+static CONSTFUNC bool Real$is_symbolic(Real_t x) {
+    return Real$is_boxed(x) && Real$tag(x) == REAL_TAG_SYMBOLIC;
+}
+
+static void extract_coef_base(Real_t x, Real_t *coef, Real_t *base) {
+    if (Real$is_symbolic(x)) {
+        symbolic_t *sym = REAL_SYMBOLIC(x);
+        if (sym->op == SYM_MUL) {
+            if (!Real$is_symbolic(sym->left)) {
+                *coef = sym->left;
+                *base = sym->right;
+                return;
+            } else if (!Real$is_symbolic(sym->right)) {
+                *coef = sym->right;
+                *base = sym->left;
+                return;
+            }
+        }
+    }
+    *coef = R(1);
+    *base = x;
+}
+
+public
+Real_t Real$simplify(Real_t x) {
+    if (!Real$is_boxed(x) || Real$tag(x) != REAL_TAG_SYMBOLIC) return x;
+
+    symbolic_t *sym = REAL_SYMBOLIC(x);
+    Real_t left = Real$simplify(sym->left);
+    Real_t right = Real$simplify(sym->right);
+
+    switch (sym->op) {
+    case SYM_ADD: {
+        if (Real$obviously_equal(left, R(0))) return right;
+        if (Real$obviously_equal(right, R(0))) return left;
+        if (Real$obviously_equal(left, right)) return Real$times(R(2), left);
+
+        Real_t lc, lb, rc, rb;
+        extract_coef_base(left, &lc, &lb);
+        extract_coef_base(right, &rc, &rb);
+        if (Real$obviously_equal(lb, rb)) {
+            Real_t sum = Real$plus(lc, rc);
+            if (Real$obviously_equal(sum, R(1))) return lb;
+            return Real$times(sum, lb);
+        }
+        break;
+    }
+    case SYM_SUB: {
+        if (Real$obviously_equal(left, right)) return R(0);
+        if (Real$obviously_equal(right, R(0))) return left;
+
+        Real_t lc, lb, rc, rb;
+        extract_coef_base(left, &lc, &lb);
+        extract_coef_base(right, &rc, &rb);
+        if (Real$obviously_equal(lb, rb)) {
+            Real_t sum = Real$minus(lc, rc);
+            if (Real$obviously_equal(sum, R(1))) return lb;
+            return Real$times(sum, lb);
+        }
+        break;
+    }
+    case SYM_MUL:
+        if (Real$obviously_equal(left, R(0)) || Real$obviously_equal(right, R(0))) return R(0);
+        if (Real$obviously_equal(left, R(1))) return right;
+        if (Real$obviously_equal(right, R(1))) return left;
+        break;
+    case SYM_DIV:
+        if (Real$obviously_equal(left, right)) return R(1);
+        if (Real$obviously_equal(right, R(1))) return left;
+        break;
+    case SYM_POW:
+        if (Real$obviously_equal(right, R(0))) return R(1);
+        if (Real$obviously_equal(right, R(1))) return left;
+        break;
+    case SYM_SIN:
+        if (Real$obviously_equal(left, R(0))) return R(0);
+        break;
+    case SYM_COS:
+        if (Real$obviously_equal(left, R(0))) return R(1);
+        break;
+    case SYM_TAN:
+        if (Real$obviously_equal(left, R(0))) return R(0);
+        break;
+    default: break;
+    }
+
+    if (left.bits == sym->left.bits && right.bits == sym->right.bits) return x;
+    return sym_to_real(.op = sym->op, .left = left, .right = right);
 }
 
 public
@@ -302,18 +392,11 @@ Real_t Real$divided_by(Real_t a, Real_t b) {
         return mpq_to_real(ret);
     }
 
-    // volatile Real_t ret = sym_to_real(.op = SYM_DIV, .left = a, .right = b);
-    volatile Real_t ret = {};
     volatile symbolic_t *s = GC_MALLOC(sizeof(symbolic_t));
     s->op = SYM_DIV;
     s->left = a;
     s->right = b;
-    ret.symbolic = (void *)s + REAL_TAG_SYMBOLIC;
-    assert(REAL_SYMBOLIC(ret)->op == SYM_DIV);
-    // return (Real_t){.symbolic = (void *)s + REAL_TAG_SYMBOLIC};
-    print("sym: ", ret);
-    return ret;
-    // return sym_to_real(.op = SYM_DIV, .left = a, .right = b);
+    return sym_to_real(.op = SYM_DIV, .left = a, .right = b);
 }
 
 public
@@ -616,8 +699,8 @@ Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type) {
         case SYM_INVALID: return Text("INVALID REAL NUMBER");
         case SYM_ADD: binop = " + "; break;
         case SYM_SUB: binop = " - "; break;
-        case SYM_MUL: binop = " * "; break;
-        case SYM_DIV: binop = " / "; break;
+        case SYM_MUL: binop = "*"; break;
+        case SYM_DIV: binop = "/"; break;
         case SYM_MOD: binop = " mod "; break;
         case SYM_SQRT: func = "sqrt"; break;
         case SYM_POW: binop = "^"; break;
