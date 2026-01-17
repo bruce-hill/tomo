@@ -145,6 +145,31 @@ Real_t Real$simplify(Real_t x) {
     case SYM_POW:
         if (Real$obviously_equal(right, R(0))) return R(1);
         if (Real$obviously_equal(right, R(1))) return left;
+        if (Real$obviously_equal(left, Real$e)) return sym_to_real(.op = SYM_EXP, .left = right, .right = R(0));
+        break;
+    case SYM_EXP:
+        if (Real$obviously_equal(left, R(0))) return R(1);
+        if (Real$obviously_equal(left, R(1))) return Real$e;
+        if (Real$is_symbolic(left)) {
+            symbolic_t *log = REAL_SYMBOLIC(left);
+            if (log->op == SYM_LOG) return log->left;
+        }
+        break;
+    case SYM_LOG:
+        if (Real$obviously_equal(left, R(1))) return R(0);
+        if (Real$is_symbolic(left)) {
+            symbolic_t *exp = REAL_SYMBOLIC(left);
+            if (exp->op == SYM_EXP) return exp->left;
+        }
+        break;
+    case SYM_LOG10:
+        if (Real$obviously_equal(left, R(1))) return R(0);
+        if (Real$is_symbolic(left)) {
+            symbolic_t *pow = REAL_SYMBOLIC(left);
+            if (pow->op == SYM_POW && Real$obviously_equal(pow->left, R(10))) {
+                return pow->right;
+            }
+        }
         break;
     case SYM_SIN:
         if (Real$obviously_equal(left, R(0))) return R(0);
