@@ -211,6 +211,7 @@ public
 Real_t Real$minus(Real_t a, Real_t b) {
     if (Real$is_zero(b)) return a;
     else if (Real$is_zero(a)) return Real$negative(b);
+    else if (Real$obviously_equal(a, b)) return R(0);
 
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         feclearexcept(FE_INEXACT);
@@ -269,6 +270,10 @@ Real_t Real$times(Real_t a, Real_t b) {
             }
         }
     }
+
+    // Prefer putting symbolic in RHS to make simplifying easier
+    if (Real$tag(a) == REAL_TAG_SYMBOLIC && Real$tag(b) != REAL_TAG_SYMBOLIC)
+        return sym_to_real(.op = SYM_MUL, .left = b, .right = a);
 
     return sym_to_real(.op = SYM_MUL, .left = a, .right = b);
 }
@@ -738,8 +743,34 @@ PUREFUNC bool Real$is_none(const void *vn, const TypeInfo_t *type) {
 
 // Equality check (may be undecidable for some symbolics)
 public
-bool Real$equal_values(Real_t a, Real_t b) {
+PUREFUNC bool Real$obviously_equal(Real_t a, Real_t b) {
     if (a.bits == b.bits) return true;
+    if (!Real$is_boxed(a) && !Real$is_boxed(b)) return REAL_DOUBLE(a) == REAL_DOUBLE(b);
+    if (Real$tag(a) != Real$tag(b)) return false;
+
+    switch (Real$tag(a)) {
+    case REAL_TAG_BIGINT: {
+        return Int$equal_value(*REAL_BIGINT(a), *REAL_BIGINT(b));
+    }
+    case REAL_TAG_RATIONAL: {
+        rational_t *ra = REAL_RATIONAL(a);
+        rational_t *rb = REAL_RATIONAL(b);
+        return mpq_equal(&ra->value, &rb->value);
+    }
+    case REAL_TAG_SYMBOLIC: {
+        symbolic_t *sa = REAL_SYMBOLIC(a);
+        symbolic_t *sb = REAL_SYMBOLIC(b);
+        if (sa->op != sb->op) return false;
+        return Real$obviously_equal(sa->left, sb->left) && Real$obviously_equal(sa->right, sb->right);
+    }
+    default: return false;
+    }
+}
+
+// Equality check (may be undecidable for some symbolics)
+public
+bool Real$equal_values(Real_t a, Real_t b) {
+    if (Real$obviously_equal(a, b)) return true;
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) return REAL_DOUBLE(a) == REAL_DOUBLE(b);
 
     if (!Real$is_boxed(a)) a = Real$as_rational(REAL_DOUBLE(a));
@@ -778,6 +809,8 @@ int32_t Real$compare_values(Real_t a, Real_t b) {
     if (!Real$is_boxed(a) && !Real$is_boxed(b)) {
         return (REAL_DOUBLE(a) > REAL_DOUBLE(b)) - (REAL_DOUBLE(a) < REAL_DOUBLE(b));
     }
+
+    if (Real$obviously_equal(a, b)) return 0;
 
     if (Real$tag(a) == REAL_TAG_RATIONAL && Real$tag(b) == REAL_TAG_RATIONAL) {
         rational_t *ra = REAL_RATIONAL(a);
