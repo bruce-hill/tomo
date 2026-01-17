@@ -543,7 +543,9 @@ env_t *global_env(bool source_mapping) {
                      {"Float64$from_int32", "func(i:Int32 -> Float64)"}, //
                      {"Float64$from_int64", "func(i:Int64, truncate=no -> Float64)"}, //
                      {"Float64$from_int", "func(i:Int, truncate=no -> Float64)"}, //
-                     {"Float64$from_float32", "func(n:Float32 -> Float32)"});
+                     {"Float64$from_float32", "func(n:Float32 -> Float32)"}, //
+                     {"Real$as_float64", "func(r:Real, truncate=no -> Float64)"}, //
+    );
     ADD_CONSTRUCTORS("Float32", //
                      {"Float32$from_bool", "func(b:Bool -> Float32)"}, //
                      {"Float32$from_byte", "func(b:Byte -> Float32)"}, //
