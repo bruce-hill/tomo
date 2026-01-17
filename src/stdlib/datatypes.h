@@ -46,8 +46,7 @@ typedef union {
 #define REAL_TAG_NONE 0ULL
 #define REAL_TAG_BIGINT 1ULL
 #define REAL_TAG_RATIONAL 2ULL
-#define REAL_TAG_CONSTRUCTIVE 3ULL
-#define REAL_TAG_SYMBOLIC 4ULL
+#define REAL_TAG_SYMBOLIC 3ULL
 
 #define REAL_DOUBLE(r)                                                                                                 \
     (((union {                                                                                                         \
@@ -57,17 +56,11 @@ typedef union {
          .d)
 #define REAL_BIGINT(r) ((Int_t *)((r).bits & ~0x7ULL))
 #define REAL_RATIONAL(r) ((rational_t *)((r).bits & ~0x7ULL))
-#define REAL_CONSTRUCTIVE(r) ((constructive_t *)((r).bits & ~0x7ULL))
 #define REAL_SYMBOLIC(r) ((symbolic_t *)((r).bits & ~0x7ULL))
 
 typedef struct {
     __mpq_struct value;
 } rational_t;
-
-typedef struct {
-    double (*compute)(void *ctx, int precision);
-    void *context;
-} constructive_t;
 
 typedef enum {
     SYM_INVALID,
@@ -100,7 +93,6 @@ typedef union {
     uint64_t bits;
     struct symbolic *symbolic;
     rational_t *rational;
-    constructive_t *constructive;
     Int_t *bigint;
 } Real_t;
 

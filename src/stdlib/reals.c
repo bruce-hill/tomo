@@ -131,10 +131,6 @@ double Real$as_float64(Real_t n, bool truncate) {
         rational_t *rational = REAL_RATIONAL(n);
         return mpq_get_d(&rational->value);
     }
-    case REAL_TAG_CONSTRUCTIVE: {
-        constructive_t *c = REAL_CONSTRUCTIVE(n);
-        return c->compute(c->context, 53);
-    }
     case REAL_TAG_SYMBOLIC: {
         symbolic_t *s = REAL_SYMBOLIC(n);
         double left = Real$as_float64(s->left, truncate);
@@ -606,13 +602,6 @@ Text_t Real$as_text(const void *n, bool colorize, const TypeInfo_t *type) {
         Text_t result = colorize ? Texts(number_color, num_str, operator_color, "/", number_color, den_str, reset)
                                  : Texts(num_str, "/", den_str);
         return result;
-    }
-    case REAL_TAG_CONSTRUCTIVE: {
-        constructive_t *c = REAL_CONSTRUCTIVE(num);
-        double approx = c->compute(c->context, 53);
-        char buf[64];
-        snprintf(buf, sizeof(buf), "~%.17g", approx);
-        return colorize ? Texts(operator_color, "~", number_color, buf + 1, reset) : Text$from_str(buf);
     }
     case REAL_TAG_SYMBOLIC: {
         symbolic_t *s = REAL_SYMBOLIC(num);

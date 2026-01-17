@@ -145,9 +145,6 @@ Text_t compile_real(ast_t *ast, Real_t num) {
             return Texts("Real$divided_by(", compile_real(ast, num_real), ", ", compile_real(ast, den_real), ")");
         }
     }
-    case REAL_TAG_CONSTRUCTIVE: {
-        code_err(ast, "Constructive reals can't be compiled yet");
-    }
     case REAL_TAG_SYMBOLIC: {
         symbolic_t *s = REAL_SYMBOLIC(num);
 
