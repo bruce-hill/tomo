@@ -449,7 +449,7 @@ k | `Int` | The number of things to be chosen.  | -
 
 **Example:**
 ```tomo
-assert (4).choose(2) == 6
+assert 4.choose(2) == 6
 
 ```
 ## Int.clamped
@@ -471,7 +471,7 @@ high | `Int` | The highest value the result can take.  | -
 
 **Example:**
 ```tomo
-assert (2).clamped(5, 10) == 5
+assert 2.clamped(5, 10) == 5
 
 ```
 ## Int.factorial
@@ -491,7 +491,7 @@ n | `Int` | The integer to compute the factorial of.  | -
 
 **Example:**
 ```tomo
-assert (10).factorial() == 3628800
+assert 10.factorial() == 3628800
 
 ```
 ## Int.get_bit
@@ -514,10 +514,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed).  | -
 
 **Example:**
 ```tomo
-assert (6).get_bit(1) == no
-assert (6).get_bit(2) == yes
-assert (6).get_bit(3) == yes
-assert (6).get_bit(4) == no
+assert 6.get_bit(1) == no
+assert 6.get_bit(2) == yes
+assert 6.get_bit(3) == yes
+assert 6.get_bit(4) == no
 
 ```
 ## Int.hex
@@ -540,7 +540,7 @@ prefix | `Bool` | Whether to include a "0x" prefix.  | `yes`
 
 **Example:**
 ```tomo
-assert (255).hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
+assert 255.hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
 
 ```
 ## Int.is_between
@@ -562,10 +562,10 @@ b | `Int` | The other end of the range to check (inclusive).  | -
 
 **Example:**
 ```tomo
-assert (7).is_between(1, 10) == yes
-assert (7).is_between(10, 1) == yes
-assert (7).is_between(100, 200) == no
-assert (7).is_between(1, 7) == yes
+assert 7.is_between(1, 10) == yes
+assert 7.is_between(10, 1) == yes
+assert 7.is_between(100, 200) == no
+assert 7.is_between(1, 7) == yes
 
 ```
 ## Int.is_prime
@@ -588,8 +588,8 @@ reps | `Int` | The number of repetitions for primality tests.  | `50`
 
 **Example:**
 ```tomo
-assert (7).is_prime() == yes
-assert (6).is_prime() == no
+assert 7.is_prime() == yes
+assert 6.is_prime() == no
 
 ```
 ## Int.next_prime
@@ -611,7 +611,7 @@ x | `Int` | The integer after which to find the next prime.  | -
 
 **Example:**
 ```tomo
-assert (11).next_prime() == 13
+assert 11.next_prime() == 13
 
 ```
 ## Int.octal
@@ -633,7 +633,7 @@ prefix | `Bool` | Whether to include a "0o" prefix.  | `yes`
 
 **Example:**
 ```tomo
-assert (64).octal(digits=4, prefix=yes) == "0o0100"
+assert 64.octal(digits=4, prefix=yes) == "0o0100"
 
 ```
 ## Int.onward
@@ -655,7 +655,7 @@ step | `Int` | The increment step size.  | `1`
 **Example:**
 ```tomo
 nums : &[Int] = &[]
-for i in (5).onward()
+for i in 5.onward()
 nums.insert(i)
 stop if i == 10
 assert nums[] == [5, 6, 7, 8, 9, 10]
@@ -716,7 +716,7 @@ x | `Int` | The integer before which to find the previous prime.  | -
 
 **Example:**
 ```tomo
-assert (11).prev_prime() == 7
+assert 11.prev_prime() == 7
 
 ```
 ## Int.sqrt
@@ -736,8 +736,8 @@ x | `Int` | The integer whose square root is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (16).sqrt() == 4
-assert (17).sqrt() == 4
+assert 16.sqrt() == 4
+assert 17.sqrt() == 4
 
 ```
 ## Int.to
@@ -759,16 +759,16 @@ step | `Int?` | An optional step size to use. If unspecified or `none`, the step
 
 **Example:**
 ```tomo
-iter := (2).to(5)
+iter := 2.to(5)
 assert iter() == 2
 assert iter() == 3
 assert iter() == 4
 assert iter() == 5
 assert iter() == none
 
-assert [x for x in (2).to(5)] == [2, 3, 4, 5]
-assert [x for x in (5).to(2)] == [5, 4, 3, 2]
-assert [x for x in (2).to(5, step=2)] == [2, 4]
+assert [x for x in 2.to(5)] == [2, 3, 4, 5]
+assert [x for x in 5.to(2)] == [5, 4, 3, 2]
+assert [x for x in 2.to(5, step=2)] == [2, 4]
 
 ```
 

@@ -2,7 +2,8 @@
 
 ## v2025-12-31
 
-- Changed `is_between()` to be bidirectional so `(5).is_between(10, 1) == yes`
+- Added support for `123.foo()` parsing the same as `(123).foo()`
+- Changed `is_between()` to be bidirectional so `5.is_between(10, 1) == yes`
 
 ## v2025-12-23.2
 
