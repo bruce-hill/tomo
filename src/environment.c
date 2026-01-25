@@ -521,7 +521,7 @@ env_t *global_env(bool source_mapping) {
                      {"Num32$from_int", "func(i:Int, truncate=no -> Num32)"}, //
                      {"Num32$from_num64", "func(n:Num -> Num32)"});
     ADD_CONSTRUCTORS("Path", //
-                     {"Path$escape_text", "func(text:Text -> Path)"}, //
+                     {"Path$from_text", "func(text:Text -> Path)"}, //
                      {"Path$escape_path", "func(path:Path -> Path)"}, //
                      {"Int$value_as_text", "func(i:Int -> Path)"});
     ADD_CONSTRUCTORS("CString", //
