@@ -58,8 +58,6 @@ Path_t Path$from_str(const char *str) {
     else if (streq(str, "~")) return HOME_PATH;
     else if (streq(str, ".")) return CURDIR_PATH;
 
-    if (strchr(str, ';') != NULL) fail("Path has illegal character (semicolon): ", str);
-
     Path_t result = {};
     if (str[0] == '/') {
         result.$tag = Path$tag$AbsolutePath;
