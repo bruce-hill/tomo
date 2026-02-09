@@ -941,7 +941,10 @@ Text_t compile_method_call(env_t *env, ast_t *ast) {
         type_t *fn_t = get_method_type(env, methodcall->self, methodcall->name);
         arg_ast_t *args = new (arg_ast_t, .value = methodcall->self, .next = methodcall->args);
         binding_t *b = get_namespace_binding(env, methodcall->self, methodcall->name);
-        if (!b) code_err(ast, "No such method");
+        if (!b) {
+            OptionalText_t suggestion = suggest_best_name(call->name, get_method_names(env, self_value_t));
+            code_err(ast, "No such method!", suggestion);
+        }
         return Texts(b->code, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, args), ")");
     }
     }

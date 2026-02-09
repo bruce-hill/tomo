@@ -623,7 +623,10 @@ type_t *get_function_return_type(env_t *env, ast_t *ast) {
 
 type_t *get_method_type(env_t *env, ast_t *self, const char *name) {
     binding_t *b = get_namespace_binding(env, self, name);
-    if (!b || !b->type) code_err(self, "No such method: ", type_to_text(get_type(env, self)), ".", name, "(...)");
+    if (!b || !b->type) {
+        OptionalText_t suggestion = suggest_best_name(name, get_method_names(env, get_type(env, self)));
+        code_err(self, "No such method: ", type_to_text(get_type(env, self)), ".", name, "(...)", suggestion);
+    }
     return b->type;
 }
 
@@ -864,8 +867,11 @@ type_t *get_type(env_t *env, ast_t *ast) {
             return b->type;
         }
         type_t *field_t = get_field_type(fielded_t, access->field);
-        if (!field_t)
-            code_err(ast, type_to_text(fielded_t), " objects don't have a field called '", access->field, "'");
+        if (!field_t) {
+            OptionalText_t suggestion = suggest_best_name(access->field, get_field_names(env, fielded_t));
+            code_err(ast, type_to_text(fielded_t), " objects don't have a field called '", access->field, "'",
+                     suggestion);
+        }
         return field_t;
     }
     case Index: {
@@ -966,7 +972,9 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "to")) return self_value_t;
             else if (streq(call->name, "unique"))
                 return Type(TableType, .key_type = item_type, .value_type = PRESENT_TYPE);
-            else code_err(ast, "There is no '", call->name, "' method for lists");
+
+            OptionalText_t suggestion = suggest_best_name(call->name, get_method_names(env, self_value_t));
+            code_err(ast, "There is no '", call->name, "' method for lists", suggestion);
         }
         case TableType: {
             DeclareMatch(table, self_value_t, TableType);
@@ -982,7 +990,10 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "intersection")) return self_value_t;
             else if (streq(call->name, "difference")) return self_value_t;
             else if (streq(call->name, "with")) return self_value_t;
-            code_err(ast, "There is no '", call->name, "' method for ", type_to_text(self_value_t), " tables");
+
+            OptionalText_t suggestion = suggest_best_name(call->name, get_method_names(env, self_value_t));
+            code_err(ast, "There is no '", call->name, "' method for ", type_to_text(self_value_t), " tables",
+                     suggestion);
         }
         default: {
             if (call->name[0] == '_') {
@@ -994,7 +1005,10 @@ type_t *get_type(env_t *env, ast_t *ast) {
             if (field_type && field_type->tag == ClosureType) field_type = Match(field_type, ClosureType)->fn;
             if (field_type && field_type->tag == FunctionType) return Match(field_type, FunctionType)->ret;
             type_t *fn_type_t = get_method_type(env, call->self, call->name);
-            if (!fn_type_t) code_err(ast, "No such method!");
+            if (!fn_type_t) {
+                OptionalText_t suggestion = suggest_best_name(call->name, get_method_names(env, self_value_t));
+                code_err(ast, "No such method!", suggestion);
+            }
             if (fn_type_t->tag != FunctionType) code_err(ast, "This isn't a method, it's a ", type_to_text(fn_type_t));
             DeclareMatch(fn_type, fn_type_t, FunctionType);
             return fn_type->ret;
@@ -1736,5 +1750,101 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
         return false;
     } else {
         return can_promote(actual, non_optional_needed);
+    }
+}
+
+OptionalText_t suggest_best_name(const char *wrong, List_t names) {
+    if (names.length == 0) return NONE_TEXT;
+    Text_t target = Text$from_str(wrong);
+    Text_t best = *(Text_t *)names.data;
+    Text_t lang = Text("C");
+    double best_dist = Text$distance(target, best, lang);
+    for (int64_t i = 1; i < (int64_t)names.length; i++) {
+        Text_t text = *(Text_t *)(names.data + i * names.stride);
+        double dist = Text$distance(target, text, lang);
+        if (dist < best_dist) {
+            best = text;
+            best_dist = dist;
+        }
+    }
+
+    // Too far away:
+    if (best_dist > 6.0 || best_dist > 0.75 * (double)target.length || best_dist > 0.75 * (double)best.length)
+        return NONE_TEXT;
+    return Texts("\nDid you mean '", best, "'?");
+}
+
+List_t get_field_names(env_t *env, type_t *t) {
+    t = value_type(t);
+    switch (t->tag) {
+    case PointerType: return get_field_names(env, Match(t, PointerType)->pointed);
+    case TextType: return List(Text("text"), Text("length"));
+    case StructType: {
+        DeclareMatch(struct_t, t, StructType);
+        List_t fields = EMPTY_LIST;
+        for (arg_t *field = struct_t->fields; field; field = field->next) {
+            Text_t field_text = Text$from_str(field->name);
+            List$insert(&fields, &field_text, I(0), sizeof(Text_t));
+        }
+        return fields;
+    }
+    case EnumType: {
+        DeclareMatch(e, t, EnumType);
+        List_t tags = EMPTY_LIST;
+        for (tag_t *tag = e->tags; tag; tag = tag->next) {
+            Text_t tag_text = Text$from_str(tag->name);
+            List$insert(&tags, &tag_text, I(0), sizeof(Text_t));
+        }
+        return tags;
+    }
+    case TableType: return List(Text("length"), Text("keys"), Text("values"), Text("fallback"));
+    case ListType: return List(Text("length"));
+    default: {
+        env_t *ns_env = get_namespace_by_type(env, t);
+        List_t fields = EMPTY_LIST;
+        for (int64_t i = 0; i < (int64_t)ns_env->locals->entries.length; i++) {
+            struct {
+                const char *key;
+                binding_t *value;
+            } *entry = (ns_env->locals->entries.data + i * ns_env->locals->entries.stride);
+            if (entry->value->type->tag == FunctionType || entry->value->type->tag == ClosureType) continue;
+            Text_t name = Text$from_str(entry->key);
+            List$insert(&fields, &name, I(0), sizeof(Text_t));
+        }
+        return fields;
+    }
+    }
+}
+
+List_t get_method_names(env_t *env, type_t *t) {
+    t = value_type(t);
+    switch (t->tag) {
+    case PointerType: return get_method_names(env, Match(t, PointerType)->pointed);
+    case ListType: {
+        return List(Text("binary_search"), Text("by"), Text("clear"), Text("counts"), Text("find"), Text("where"),
+                    Text("from"), Text("has"), Text("heap_pop"), Text("heap_push"), Text("heapify"), Text("insert"),
+                    Text("insert_all"), Text("pop"), Text("random"), Text("remove_at"), Text("remove_item"),
+                    Text("reversed"), Text("sample"), Text("shuffle"), Text("shuffled"), Text("slice"), Text("sort"),
+                    Text("sorted"), Text("to"), Text("unique"));
+    }
+    case TableType: {
+        return List(Text("clear"), Text("get"), Text("get_or_set"), Text("has"), Text("remove"), Text("set"),
+                    Text("sorted"), Text("with_fallback"), Text("without"), Text("intersection"), Text("difference"),
+                    Text("with"));
+    }
+    default: {
+        env_t *ns_env = get_namespace_by_type(env, t);
+        List_t methods = EMPTY_LIST;
+        for (int64_t i = 0; i < (int64_t)ns_env->locals->entries.length; i++) {
+            struct {
+                const char *key;
+                binding_t *value;
+            } *entry = (ns_env->locals->entries.data + i * ns_env->locals->entries.stride);
+            if (entry->value->type->tag != FunctionType && entry->value->type->tag != ClosureType) continue;
+            Text_t name = Text$from_str(entry->key);
+            List$insert(&methods, &name, I(0), sizeof(Text_t));
+        }
+        return methods;
+    }
     }
 }
