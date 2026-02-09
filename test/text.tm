@@ -216,3 +216,4 @@ func main()
 	assert "hello".distance("Hello") <= 1.0
 	assert "hello".distance("xello") <= 1.0
 	assert "hello".distance("ehllo") <= "hello".distance("XXllo")
+	assert "shffle".distance("shuffle") <= "shffle".distance("sample")
