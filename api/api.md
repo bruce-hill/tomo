@@ -3966,6 +3966,33 @@ assert "Amélie".codepoint_names() == [
 ]
 
 ```
+## Text.distance
+
+```tomo
+Text.distance : func(a: Text, b: Text, language: Text = "C" -> Num)
+```
+
+Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar.
+
+The exact distance algorithm is not specified and may be subject to change over time.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+a | `Text` | The first text to compare.  | -
+b | `Text` | The second text to compare.  | -
+language | `Text` | The ISO 639 language code for which character width to use.  | `"C"`
+
+**Return:** The distance between the two texts (larger means more dissimilar).
+
+
+**Example:**
+```tomo
+assert "hello".distance("hello") == 0
+texts := &["goodbye", "hello", "hallo"]
+texts.sort(func(a,b:&Text) a.distance("hello") <> b.distance("hello"))
+assert texts == ["hello", "hallo", "goodbye"]
+
+```
 ## Text.ends_with
 
 ```tomo

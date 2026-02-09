@@ -1,5 +1,9 @@
 # Version History
 
+## v2026-02-08
+
+- Added `Text.distance(a,b)` for calculating text distances.
+
 ## v2025-12-31
 
 - Added support for `123.foo()` parsing the same as `(123).foo()`

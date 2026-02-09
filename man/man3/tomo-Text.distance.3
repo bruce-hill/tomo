@@ -1,0 +1,43 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.distance 3 2026-02-08 "Tomo man-pages"
+.SH NAME
+Text.distance \- distance between two texts
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Text.distance\ :\ func(a:\ Text,\ b:\ Text,\ language:\ Text\ =\ "C"\ ->\ Num)
+.fi
+.SH DESCRIPTION
+Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+a	Text	The first text to compare. 	-
+b	Text	The second text to compare. 	-
+language	Text	The ISO 639 language code for which character width to use. 	"C"
+.TE
+.SH RETURN
+The distance between the two texts (larger means more dissimilar).
+
+.SH NOTES
+The exact distance algorithm is not specified and may be subject to change over time.
+
+.SH EXAMPLES
+.EX
+assert "hello".distance("hello") == 0
+texts := &["goodbye", "hello", "hallo"]
+texts.sort(func(a,b:&Text) a.distance("hello") <> b.distance("hello"))
+assert texts == ["hello", "hallo", "goodbye"]
+.EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

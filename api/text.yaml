@@ -225,6 +225,39 @@ Text.ends_with:
     assert "hello world".ends_with("world", &remainder) == yes
     assert remainder == "hello "
 
+Text.distance:
+  short: distance between two texts
+  description: >
+    Get an approximate distance between two texts, such that when the distance
+    is small, the texts are similar and when the distance is large, the texts
+    are dissimilar.
+  note: >
+    The exact distance algorithm is not specified and may be subject to change
+    over time.
+  return:
+    type: 'Num'
+    description: >
+      The distance between the two texts (larger means more dissimilar).
+  args:
+    a:
+      type: 'Text'
+      description: >
+        The first text to compare.
+    b:
+      type: 'Text'
+      description: >
+        The second text to compare.
+    language:
+      type: 'Text'
+      default: '"C"'
+      description: >
+        The ISO 639 language code for which character width to use.
+  example: |
+    assert "hello".distance("hello") == 0
+    texts := &["goodbye", "hello", "hallo"]
+    texts.sort(func(a,b:&Text) a.distance("hello") <> b.distance("hello"))
+    assert texts == ["hello", "hallo", "goodbye"]
+
 Text.find:
   short: find a substring
   description: >

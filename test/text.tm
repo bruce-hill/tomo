@@ -208,3 +208,11 @@ func main()
 	assert "one two".find("two") == 5
 	assert "one two".find("three") == none
     assert "one two".find("o", start=2) == 7
+
+	
+	assert "hello".distance("hello") == 0
+	assert "hello".distance("goodbye") > 2.0
+	assert "hello".distance("hola") < "hello".distance("goodbye")
+	assert "hello".distance("Hello") <= 1.0
+	assert "hello".distance("xello") <= 1.0
+	assert "hello".distance("ehllo") <= "hello".distance("XXllo")

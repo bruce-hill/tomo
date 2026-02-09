@@ -116,6 +116,7 @@ Int_t Text$width(Text_t text, Text_t language);
 Text_t Text$left_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 Text_t Text$right_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 Text_t Text$middle_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
+double Text$distance(Text_t a, Text_t b, Text_t language);
 int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);
 uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
 Int_t Text$memory_size(Text_t text);
