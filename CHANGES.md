@@ -3,6 +3,7 @@
 ## v2026-02-08
 
 - Added `Text.distance(a,b)` for calculating text distances.
+- Improved error messages for misspelled variables and field/method names.
 
 ## v2025-12-31
 

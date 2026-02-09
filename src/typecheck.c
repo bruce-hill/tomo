@@ -773,7 +773,19 @@ type_t *get_type(env_t *env, ast_t *ast) {
         DeclareMatch(var, ast, Var);
         binding_t *b = get_binding(env, var->name);
         if (b) return b->type;
-        code_err(ast, "I don't know what ", quoted(var->name), " refers to");
+        List_t candidates = EMPTY_LIST;
+        for (Table_t *scope = env->locals; scope; scope = scope->fallback) {
+            for (int64_t i = 0; i < (int64_t)scope->entries.length; i++) {
+                struct {
+                    const char *key;
+                    binding_t *value;
+                } *entry = (scope->entries.data + i * scope->entries.stride);
+                Text_t name = Text$from_str(entry->key);
+                List$insert(&candidates, &name, I(0), sizeof(Text_t));
+            }
+        }
+        OptionalText_t suggestion = suggest_best_name(var->name, candidates);
+        code_err(ast, "I don't know what ", quoted(var->name), " refers to", suggestion);
     }
     case List: {
         DeclareMatch(list, ast, List);
@@ -1769,7 +1781,7 @@ OptionalText_t suggest_best_name(const char *wrong, List_t names) {
     }
 
     // Too far away:
-    if (best_dist > 6.0 || best_dist > 0.75 * (double)target.length || best_dist > 0.75 * (double)best.length)
+    if (best_dist > 6.0 || best_dist > 0.6 * (double)target.length || best_dist > 0.6 * (double)best.length)
         return NONE_TEXT;
     return Texts("\nDid you mean '", best, "'?");
 }
