@@ -67,7 +67,7 @@ env_t *global_env(bool source_mapping) {
     (void)bind_type(env, "Int", Type(BigIntType));
     (void)bind_type(env, "Int32", Type(IntType, .bits = TYPE_IBITS32));
     (void)bind_type(env, "Memory", Type(MemoryType));
-    (void)bind_type(env, "Path", Type(PathType));
+    PATH_TYPE = bind_type(env, "Path", Type(PathType));
     RESULT_TYPE = declare_type(env, "enum Result(Success, Failure(reason:Text))");
 
     PRESENT_TYPE = declare_type(env, "struct Present()");
