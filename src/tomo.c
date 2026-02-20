@@ -479,7 +479,7 @@ Path_t get_exe_path(Path_t path) {
 
     Path_t build_dir = Path$sibling(path, Text(".build"));
     if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (!Path$is_directory(build_dir, true)) err(1, "Could not make .build directory");
+        if (!Path$is_directory(build_dir, true)) err(1, "Could not make (%s) directory", build_dir);
     }
     return Path$child(build_dir, exe_name);
 }
@@ -487,7 +487,7 @@ Path_t get_exe_path(Path_t path) {
 Path_t build_file(Path_t path, const char *extension) {
     Path_t build_dir = Path$sibling(path, Text(".build"));
     if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (!Path$is_directory(build_dir, true)) err(1, "Could not make .build directory");
+        if (!Path$is_directory(build_dir, true)) err(1, "Could not make (%s) directory", build_dir);
     }
     return Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
 }
@@ -546,8 +546,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
     for (int64_t i = 0; i < (int64_t)to_compile.length; i++) {
 
         Path_t filename = *(Path_t *)(to_compile.data + i * to_compile.stride);
-        Text_t extension = Path$extension(filename, true);
-        if (!Text$equal_values(extension, Text("tm")))
+        if (!Path$has_extension(filename, Text("tm")))
             print_err("Not a valid .tm file: \x1b[31;1m", filename, "\x1b[m");
         if (!Path$is_file(filename, true)) print_err("Couldn't find file: ", filename);
         build_file_dependency_graph(filename, &dependency_files, &to_link);

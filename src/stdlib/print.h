@@ -105,7 +105,6 @@ PRINT_FN _print_repeated_char(FILE *f, repeated_char_t repeated) {
 }
 
 extern int Text$print(FILE *stream, Text_t text);
-extern int Path$print(FILE *stream, Path_t path);
 extern int Int$print(FILE *f, Int_t i);
 #ifndef _fprint1
 #define _fprint1(f, x)                                                                                                 \
@@ -131,7 +130,6 @@ extern int Int$print(FILE *f, Int_t i);
         string_slice_t: _print_string_slice,                                                                           \
         repeated_char_t: _print_repeated_char,                                                                         \
         Text_t: Text$print,                                                                                            \
-        Path_t: Path$print,                                                                                            \
         Int_t: Int$print,                                                                                              \
         void *: _print_pointer)(f, x)
 #endif
