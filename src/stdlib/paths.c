@@ -704,10 +704,19 @@ bool Path$has_extension(Path_t path, Text_t extension) {
     const char *end = strchrnul(base, '/');
     int64_t base_len = (int64_t)(end - base);
     if (base_len <= 0) return false;
-    if (extension.length == 0) return strchr(base, '.') == NULL;
-    if (1 + 1 + extension.length > base_len) return false;
-    return base[base_len - 1 - extension.length] == '.'
-           && strncmp(base + base_len - extension.length, Text$as_c_string(extension), extension.length) == 0;
+    if (extension.length == 0) {
+        const char *dot = strrchr(base, '.');
+        return dot == NULL || dot[1] == '\0' || dot == base;
+    }
+    const char *ext = Text$as_c_string(extension);
+    if (ext[0] == '.') {
+        if (1 + extension.length > base_len) return false;
+        return strncmp(base + base_len - extension.length, ext, extension.length) == 0;
+    } else {
+        if (1 + 1 + extension.length > base_len) return false;
+        return base[base_len - 1 - extension.length] == '.'
+               && strncmp(base + base_len - extension.length, ext, extension.length) == 0;
+    }
 }
 
 public
