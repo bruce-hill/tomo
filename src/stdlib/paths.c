@@ -49,22 +49,46 @@ static void normalize_inplace(char path[PATH_MAX]) {
 
     static char buf[PATH_MAX];
     char *src = path, *dest = buf;
+
+    // Leading "/"
+    if (*src == '/') {
+        *(dest++) = *(src++);
+    }
+    *dest = '\0';
+
     for (size_t component_len; *src != '\0' && dest < &buf[PATH_MAX - 1]; src += component_len + 1) {
         component_len = strcspn(src, "/");
         if (component_len == 0) {
             ; // Skip empty "//"s:
         } else if (component_len == 1 && src[0] == '.') {
             ; // Skip "." components
-        } else if (dest > buf && component_len == 2 && src[0] == '.' && src[1] == '.') {
-            // For ".." components, delete the last component from dest
-            while (dest > buf && dest[0] != '/')
-                *(dest--) = '\0';
-            *dest = '\0';
         } else {
-            // Otherwise copy over the component and any trailing slash or NUL
-            if (src > path || path[0] == '/') *(dest++) = '/';
-            memcpy(dest, src, component_len);
-            dest += component_len;
+            // Add "/" if there's a previous non-slash
+            if (dest > buf && dest[-1] != '/') {
+                *(dest++) = '/';
+                *dest = '\0';
+            }
+            // For ".."
+            if (component_len == 2 && src[0] == '.' && src[1] == '.') {
+                // Find previous component:
+                char *prev_slash = dest - 2;
+                while (prev_slash >= buf && *prev_slash != '/')
+                    prev_slash -= 1;
+
+                // If previous component is not "..", then pop it
+                if (prev_slash > buf && *prev_slash == '/'
+                    && strncmp(prev_slash, "/../", (size_t)(dest - prev_slash)) != 0) {
+                    dest = prev_slash;
+                } else {
+                    // Otherwise we need to keep the ".."
+                    *(dest++) = '.';
+                    *(dest++) = '.';
+                }
+            } else {
+                // Otherwise copy over the component
+                memcpy(dest, src, component_len);
+                dest += component_len;
+            }
             *dest = '\0';
         }
         if (src[component_len] == '\0') break;
@@ -72,10 +96,15 @@ static void normalize_inplace(char path[PATH_MAX]) {
 
     *(dest++) = '\0';
     // Trim trailing slashes:
-    while (dest > buf && dest[-1] == '/')
-        *(--dest) = '\0';
+    // while (dest > buf && dest[-1] == '/')
+    //     *(--dest) = '\0';
 
-    strcpy(path, buf);
+    if (dest == buf) {
+        path[0] = '.';
+        path[1] = '\0';
+    } else {
+        strcpy(path, buf);
+    }
 }
 
 char *path_from_buf(char buf[PATH_MAX]) {
