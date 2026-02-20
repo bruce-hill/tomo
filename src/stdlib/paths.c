@@ -103,19 +103,7 @@ static OptionalPath_t Path$_concat2(OptionalPath_t a, OptionalPath_t b) {
     if (a == NULL || b == NULL) return NULL;
     if (path_type(b) != PATH_RELATIVE)
         fail("Cannot concatenate an absolute or home-based path onto another path: (", b, ")");
-    if (b[0] == '.') {
-        if (b[1] == '\0') return a;
-
-        // Parent: ".."
-        if (b[1] == '.') {
-            if (b[2] == '\0') return Path$parent(a);
-            else if (b[2] == '/') return Path$_concat2(Path$parent(b), b + 3);
-            b = b + 2;
-        }
-
-        if (b[1] == '/') return Path$_concat2(a, b + 2);
-    }
-
+    if (b[0] == '.' && b[1] == '\0') return a;
     static char buf[PATH_MAX];
     snprintf(buf, sizeof(buf), "%s/%s", a, b);
     return path_from_buf(buf);
