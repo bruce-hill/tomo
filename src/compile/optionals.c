@@ -85,19 +85,27 @@ Text_t check_none(type_t *t, Text_t value) {
     t = Match(t, OptionalType)->type;
     // NOTE: these use statement expressions ({...;}) because some compilers
     // complain about excessive parens around equality comparisons
-    if (t->tag == PointerType || t->tag == FunctionType || t->tag == CStringType) return Texts("(", value, " == NULL)");
-    else if (t->tag == BigIntType) return Texts("((", value, ").small == 0)");
-    else if (t->tag == ClosureType) return Texts("((", value, ").fn == NULL)");
-    else if (t->tag == NumType)
-        return Texts(Match(t, NumType)->bits == TYPE_NBITS64 ? "Num$isnan(" : "Num32$isnan(", value, ")");
-    else if (t->tag == ListType) return Texts("((", value, ").data == NULL)");
-    else if (t->tag == TableType) return Texts("((", value, ").entries.data == NULL)");
-    else if (t->tag == BoolType) return Texts("((", value, ") == NONE_BOOL)");
-    else if (t->tag == TextType) return Texts("((", value, ").tag == TEXT_NONE)");
-    else if (t->tag == IntType || t->tag == ByteType || t->tag == StructType) return Texts("!(", value, ").has_value");
-    else if (t->tag == EnumType) return Texts("((", value, ").$tag == 0)");
-    print_err("Optional check not implemented for: ", type_to_text(t));
-    return EMPTY_TEXT;
+    switch (t->tag) {
+    case PointerType:
+    case FunctionType:
+    case CStringType:
+    case PathType: return Texts("(", value, " == NULL)");
+    case BigIntType: return Texts("((", value, ").small == 0)");
+    case ClosureType: return Texts("((", value, ").fn == NULL)");
+    case NumType: return Texts(Match(t, NumType)->bits == TYPE_NBITS64 ? "Num$isnan(" : "Num32$isnan(", value, ")");
+    case ListType: return Texts("((", value, ").data == NULL)");
+    case TableType: return Texts("((", value, ").entries.data == NULL)");
+    case BoolType: return Texts("((", value, ") == NONE_BOOL)");
+    case TextType: return Texts("((", value, ").tag == TEXT_NONE)");
+    case IntType:
+    case ByteType:
+    case StructType: return Texts("!(", value, ").has_value");
+    case EnumType: return Texts("((", value, ").$tag == 0)");
+    default: {
+        print_err("Optional check not implemented for: ", type_to_text(t));
+        return EMPTY_TEXT;
+    }
+    }
 }
 
 public

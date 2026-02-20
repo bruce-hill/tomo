@@ -867,5 +867,8 @@ const TypeInfo_t Path$info = {
             .compare = CString$compare,
             .equal = CString$equal,
             .hash = CString$hash,
+            .is_none = CString$is_none,
+            .serialize = CString$serialize,
+            .deserialize = CString$deserialize,
         },
 };
