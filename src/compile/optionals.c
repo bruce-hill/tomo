@@ -48,8 +48,6 @@ Text_t compile_none(type_t *t) {
 
     if (t == NULL) compiler_err(NULL, NULL, NULL, "I can't compile a `none` value with no type");
 
-    if (t == PATH_TYPE) return Text("NONE_PATH");
-
     switch (t->tag) {
     case BigIntType: return Text("NONE_INT");
     case IntType: {
@@ -68,6 +66,7 @@ Text_t compile_none(type_t *t) {
     case TableType: return Text("NONE_TABLE");
     case TextType: return Text("NONE_TEXT");
     case CStringType: return Text("NULL");
+    case PathType: return Text("NONE_PATH");
     case PointerType: return Texts("((", compile_type(t), ")NULL)");
     case ClosureType: return Text("NONE_CLOSURE");
     case NumType: return Text("nan(\"none\")");
