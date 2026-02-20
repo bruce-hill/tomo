@@ -62,7 +62,7 @@ static void normalize_inplace(char path[PATH_MAX]) {
             *dest = '\0';
         } else {
             // Otherwise copy over the component and any trailing slash or NUL
-            *(dest++) = '/';
+            if (src > path || path[0] == '/') *(dest++) = '/';
             memcpy(dest, src, component_len);
             dest += component_len;
             *dest = '\0';
