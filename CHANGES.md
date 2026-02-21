@@ -2,6 +2,7 @@
 
 ## v2026-02-08
 
+- Changed `Path` implementation to use C-style strings instead of an `enum` with array components.
 - Added `Text.distance(a,b)` for calculating text distances.
 - Improved error messages for misspelled variables and field/method names.
 
