@@ -755,14 +755,15 @@ OptionalPath_t Path$with_extension(Path_t path, Text_t extension, bool replace) 
     if (!path || path[0] == '\0') return NULL;
 
     static char buf[PATH_MAX];
+    const char *ext = Text$as_c_string(extension);
     if (replace) {
         char *base = (char *)base_name_start(path);
         char *dot = strchrnul(base, '.');
-        if (extension.length > 0)
-            snprintf(buf, sizeof(buf), "%.*s.%s", (int)(dot - path), path, Text$as_c_string(extension));
-        else snprintf(buf, sizeof(buf), "%.*s", (int)(dot - path), path);
+        if (ext[0] == '.' || ext[0] == '\0') snprintf(buf, sizeof(buf), "%.*s%s", (int)(dot - path), path, ext);
+        else snprintf(buf, sizeof(buf), "%.*s.%s", (int)(dot - path), path, ext);
     } else {
-        snprintf(buf, sizeof(buf), "%s.%s", path, Text$as_c_string(extension));
+        if (ext[0] == '.' || ext[0] == '\0') snprintf(buf, sizeof(buf), "%s%s", path, ext);
+        else snprintf(buf, sizeof(buf), "%s.%s", path, ext);
     }
     return path_from_buf(buf);
 }

@@ -338,6 +338,7 @@ env_t *global_env(bool source_mapping) {
             {"sibling", "Path$sibling", "func(path:Path, name:Text -> Path)"}, //
             {"subdirectories", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"unique_directory", "Path$unique_directory", "func(path:Path -> Path)"}, //
+            {"with_extension", "Path$with_extension", "func(path:Path, extension:Text, replace:Bool=yes -> Path)"}, //
             {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
             {"writer", "Path$writer",
              "func(path:Path, append=no, permissions=Int32(0o644) -> func(text:Text, close=no -> Result))"}, //
