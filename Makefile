@@ -258,7 +258,8 @@ uninstall:
 		exit 0; \
 	fi; \
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"* "$(PREFIX)/include/tomo"* \
-		"$(PREFIX)/lib/libtomo@"* "$(PREFIX)/lib/tomo@"* "$(PREFIX)/share/licenses/tomo@"*; \
+		"$(PREFIX)/lib/libtomo@"* "$(PREFIX)/lib/tomo@"* "$(PREFIX)/share/licenses/tomo@"* \
+		~/.local/tomo/state/tomo@$(TOMO_VERSION); \
 
 endif
 
