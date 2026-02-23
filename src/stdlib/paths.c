@@ -174,7 +174,13 @@ Path_t Path$relative_to(Path_t path, Path_t relative_to) {
     if (path_type(path) == PATH_RELATIVE) return path;
 
     path = Path$expand_home(path);
-    relative_to = Path$expand_home(relative_to);
+
+    switch (path_type(relative_to)) {
+    case PATH_HOME: relative_to = Path$expand_home(relative_to); break;
+    case PATH_RELATIVE: relative_to = Path$resolved(relative_to, Path$current_dir()); break;
+    default: break;
+    }
+
     int64_t shared = 0;
     for (int64_t i = 0;; i++) {
         if ((path[i] == '/' || path[i] == '\0') && (relative_to[i] == '/' || relative_to[i] == '\0')) {
@@ -192,12 +198,10 @@ Path_t Path$relative_to(Path_t path, Path_t relative_to) {
 
     static char buf[PATH_MAX];
     char *dest = buf;
-    for (const char *p = relative_remainder + 1; *p; p++) {
-        if (p[-1] == '/' && p[0] != '/') {
-            *(dest++) = '.';
-            *(dest++) = '.';
-            *(dest++) = '/';
-        }
+    for (const char *p = relative_remainder; *p; p += strcspn(p, "/"), p += strspn(p, "/")) {
+        *(dest++) = '.';
+        *(dest++) = '.';
+        *(dest++) = '/';
     }
     memcpy(dest, path_remainder, strlen(path_remainder));
     dest += strlen(path_remainder);
