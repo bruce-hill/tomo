@@ -1,5 +1,7 @@
 # Tomo - Tomorrow's Language
 
+![](tomo.svg)
+
 Tomo is a statically typed, safe, simple, lightweight, efficient programming
 language that cross-compiles to C. Tomo is designed to anticipate and influence
 the language design decisions of the future.
