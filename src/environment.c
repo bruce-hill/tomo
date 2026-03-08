@@ -239,7 +239,7 @@ env_t *global_env(bool source_mapping) {
             {"with_precision", "Num$with_precision", "func(n:Num,precision:Num -> Num)"}, //
             {"is_between", "Num$is_between", "func(x:Num, a:Num, b:Num -> Bool)"}, //
             {"isinf", "Num$isinf", "func(n:Num -> Bool)"}, //
-            {"isfinite", "Num$isfinite", "func(n:Num -> Bool)"}, //
+            {"isfinite", "Num$finite", "func(n:Num -> Bool)"}, //
             {"modulo", "Num$mod", "func(x,y:Num -> Num)"}, //
             {"modulo1", "Num$mod1", "func(x,y:Num -> Num)"}, //
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E), C(PI), C(PI_4), C(SQRT2),
