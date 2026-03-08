@@ -11,6 +11,23 @@
 #include "util.h"
 
 public
+int _print_int(FILE *f, int64_t n) {
+    char buf[21] = {[20] = 0}; // Big enough for INT64_MIN + '\0'
+    char *p = &buf[19];
+    bool negative = n < 0;
+    if (negative) n = -n;
+
+    do {
+        *(p--) = '0' + (n % 10);
+        n /= 10;
+    } while (n > 0);
+
+    if (negative) *(p--) = '-';
+
+    return fwrite(p + 1, sizeof(char), (size_t)(&buf[19] - p), f);
+}
+
+public
 int _print_uint(FILE *f, uint64_t n) {
     char buf[21] = {[20] = 0}; // Big enough for UINT64_MAX + '\0'
     char *p = &buf[19];

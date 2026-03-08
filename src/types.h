@@ -50,6 +50,7 @@ struct type_s {
         NumType,
         CStringType,
         TextType,
+        PathType,
         ListType,
         TableType,
         FunctionType,
@@ -64,7 +65,7 @@ struct type_s {
 
     union {
         struct {
-        } UnknownType, AbortType, VoidType, MemoryType, BoolType;
+        } UnknownType, AbortType, VoidType, MemoryType, BoolType, PathType;
         struct {
             type_t *ret;
         } ReturnType;

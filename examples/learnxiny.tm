@@ -177,6 +177,7 @@ func main()
     demo_structs()
     demo_enums()
     demo_lambdas()
+    demo_langs()
 
 # Functions must be declared at the top level of a file and must specify the
 # types of all of their arguments and return value (if any):
@@ -308,3 +309,14 @@ func demo_lambdas()
     n = -999
     assert add_n(5) == 15
 
+# A lang lets you define a custom Text type that is unique:
+lang MyLanguage
+    # You can define conversion functions to ensure safe escaping
+    convert(text:Text -> MyLanguage)
+        return MyLanguage.from_text(text.quoted())
+
+func demo_langs()
+    name := "Norman"
+    # Safely quoted during interpolation:
+    lingo := $MyLanguage"My name is $name, how are you?"
+    say(lingo.text)

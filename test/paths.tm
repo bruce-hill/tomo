@@ -102,9 +102,3 @@ func main()
 
     say("Globbing:")
     >> (./*.tm).glob()
-
-    assert (./foo).RelativePath
-    assert (/foo).AbsolutePath
-    assert (~/foo).HomePath
-    assert (/foo/baz).components() == ["foo", "baz"]
-    assert Path.RelativePath(["foo", "baz"]) == (./foo/baz)

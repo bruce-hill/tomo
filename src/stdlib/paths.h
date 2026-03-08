@@ -11,10 +11,6 @@
 
 Path_t Path$from_str(const char *str);
 Path_t Path$from_text(Text_t text);
-int Path$print(FILE *f, Path_t path);
-// UNSAFE: this works because each type of path has a .components in the same place
-#define Path$components(path) ((path).components)
-// END UNSAFE
 const char *Path$as_c_string(Path_t path);
 #define Path(str) Path$from_str(str)
 Path_t Path$_concat(int n, Path_t items[n]);

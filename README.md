@@ -1,6 +1,6 @@
-[![Release binaries](https://github.com/bruce-hill/tomo/actions/workflows/release.yml/badge.svg)](https://github.com/bruce-hill/tomo/releases)
-
 # Tomo - Tomorrow's Language
+
+![](tomo.svg)
 
 Tomo is a statically typed, safe, simple, lightweight, efficient programming
 language that cross-compiles to C. Tomo is designed to anticipate and influence

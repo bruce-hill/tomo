@@ -13,7 +13,7 @@
 static Text_t get_flag_options(type_t *t, Text_t separator) {
     if (t->tag == BoolType) {
         return Text("yes|no");
-    } else if (t == PATH_TYPE) {
+    } else if (t->tag == PathType) {
         return Text("path");
     } else if (t->tag == EnumType) {
         Text_t options = EMPTY_TEXT;

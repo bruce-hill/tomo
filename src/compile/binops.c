@@ -228,8 +228,10 @@ Text_t compile_binary_op(env_t *env, ast_t *ast) {
                      type_to_text(rhs_t), " values");
     }
     case Concat: {
-        if (overall_t == PATH_TYPE) return Texts("Path$concat(", lhs, ", ", rhs, ")");
         switch (overall_t->tag) {
+        case PathType: {
+            return Texts("Path$concat(", lhs, ", ", rhs, ")");
+        }
         case TextType: {
             return Texts("Text$concat(", lhs, ", ", rhs, ")");
         }

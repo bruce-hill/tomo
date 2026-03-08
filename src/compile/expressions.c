@@ -56,8 +56,6 @@ Text_t compile_empty(type_t *t) {
 
     if (t->tag == OptionalType) return compile_none(t);
 
-    if (t == PATH_TYPE) return Text("NONE_PATH");
-
     switch (t->tag) {
     case BigIntType: return Text("I(0)");
     case IntType: {
@@ -76,6 +74,7 @@ Text_t compile_empty(type_t *t) {
     case TableType: return Text("EMPTY_TABLE");
     case TextType: return Text("EMPTY_TEXT");
     case CStringType: return Text("\"\"");
+    case PathType: return Text("NONE_PATH");
     case PointerType: {
         DeclareMatch(ptr, t, PointerType);
         Text_t empty_pointed = compile_empty(ptr->pointed);

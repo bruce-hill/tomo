@@ -1428,6 +1428,65 @@ Text_t Text$title(Text_t text, Text_t language) {
 }
 
 public
+double Text$distance(Text_t a, Text_t b, Text_t language) {
+    if (a.length <= 0) return (double)b.length;
+    if (b.length <= 0) return (double)a.length;
+
+    // The current implementation of text distance uses a modified form
+    // of Damerau–Levenshtein distance that gives slightly lower distances
+    // for letters with the same main grapheme and slightly lower distances
+    // for letters that are the same, but with different casing.
+    double *distances = GC_MALLOC_ATOMIC(sizeof(uint32_t) * (a.length + 1) * (b.length + 1));
+#define DIST(x, y) distances[(x) * b.length + (y)]
+    for (int64_t i = 0; i <= a.length; i++)
+        DIST(i, 0) = i;
+    for (int64_t j = 0; j <= b.length; j++)
+        DIST(0, j) = j;
+
+    TextIter_t a_state = NEW_TEXT_ITER_STATE(a);
+    TextIter_t b_state = NEW_TEXT_ITER_STATE(b);
+    const char *uc_language = Text$as_c_string(language);
+    for (int64_t i = 1; i <= a.length; i++) {
+        for (int64_t j = 1; j <= b.length; j++) {
+            int32_t ai = Text$get_grapheme_fast(&a_state, i - 1);
+            int32_t bj = Text$get_grapheme_fast(&b_state, j - 1);
+            double cost = (double)(ai != bj);
+            if (cost > 0) {
+                ucs4_t main_ai = (ai) >= 0 ? (ucs4_t)ai : synthetic_graphemes[-(ai)-1].main_codepoint;
+                ucs4_t main_bj = (bj) >= 0 ? (ucs4_t)bj : synthetic_graphemes[-(bj)-1].main_codepoint;
+                if (main_ai == main_bj) {
+                    // Same main grapheme (different modifiers)
+                    cost = 0.25;
+                } else {
+                    int cmp;
+                    (void)u32_casecmp(&main_ai, 1, &main_bj, 1, uc_language, UNINORM_NFC, &cmp);
+                    if (cmp == 0) cost = 0.5;
+                }
+            }
+
+            double insertion = 1. + DIST(i - 1, j);
+            double deletion = 1. + DIST(i, j - 1);
+            double dist = MIN(insertion, deletion);
+            double substitution = cost + DIST(i - 1, j - 1);
+            dist = MIN(dist, substitution);
+            // Check for transposition:
+            if (i >= 2 && j >= 2 && cost != 0) {
+                int32_t ai_prev = Text$get_grapheme_fast(&a_state, i - 2);
+                int32_t bi_prev = Text$get_grapheme_fast(&b_state, i - 2);
+                if (ai == bi_prev && bj == ai_prev) {
+                    double transposition = cost + DIST(i - 2, j - 2);
+                    dist = MIN(dist, transposition);
+                }
+            }
+            DIST(i, j) = dist;
+        }
+    }
+#undef DIST
+
+    return (double)distances[a.length * b.length + b.length];
+}
+
+public
 Text_t Text$escaped(Text_t text, bool colorize, Text_t extra_escapes) {
     Text_t ret = colorize ? Text("\x1b[35m") : EMPTY_TEXT;
 #define flush_unquoted()                                                                                               \

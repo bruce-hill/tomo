@@ -12,11 +12,11 @@ error() {
 
 default_prefix='/usr/local'
 if echo "$PATH" | tr ':' '\n' | grep -qx "$HOME/.local/bin"; then
-    default_prefix="~/.local"
+    default_prefix="$HOME/.local"
 fi
 
 printf '\033[1mChoose where to install Tomo (default: %s):\033[m ' "$default_prefix"
-read PREFIX
+read -r PREFIX
 if [ -z "$PREFIX" ]; then PREFIX="$default_prefix"; fi
 PREFIX="${PREFIX/#\~/$HOME}"
 
@@ -33,7 +33,7 @@ fi
 
 default_cc="cc"
 printf '\033[1mChoose which C compiler to use by default (default: %s):\033[m ' "$default_cc"
-read DEFAULT_C_COMPILER
+read -r DEFAULT_C_COMPILER
 if [ -z "$DEFAULT_C_COMPILER" ]; then DEFAULT_C_COMPILER="cc"; fi
 DEFAULT_C_COMPILER="${DEFAULT_C_COMPILER/#\~/$HOME}"
 

@@ -20,6 +20,7 @@ Text_t expr_as_text(Text_t expr, type_t *t, Text_t color) {
         // fields:
         return Texts("Bool$as_text((Bool_t[1]){", expr, "}, ", color, ", &Bool$info)");
     case CStringType: return Texts("CString$as_text(stack(", expr, "), ", color, ", &CString$info)");
+    case PathType: return Texts("Path$as_text(stack(", expr, "), ", color, ", &Path$info)");
     case BigIntType:
     case IntType:
     case ByteType:

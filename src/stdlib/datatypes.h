@@ -110,48 +110,8 @@ typedef struct Text_s {
     };
 } Text_t;
 
-typedef struct Path$AbsolutePath$$struct {
-    List_t components;
-} Path$AbsolutePath$$type;
+typedef const char *Path_t;
 
-typedef struct {
-    Path$AbsolutePath$$type value;
-    bool has_value;
-} $OptionalPath$AbsolutePath$$type;
-
-typedef struct Path$RelativePath$$struct {
-    List_t components;
-} Path$RelativePath$$type;
-
-typedef struct {
-    Path$RelativePath$$type value;
-    bool has_value;
-} $OptionalPath$RelativePath$$type;
-
-typedef struct Path$HomePath$$struct {
-    List_t components;
-} Path$HomePath$$type;
-
-typedef struct {
-    Path$HomePath$$type value;
-    bool has_value;
-} $OptionalPath$HomePath$$type;
-
-#define Path$tagged$AbsolutePath(comps) ((Path_t){.$tag = Path$tag$AbsolutePath, .AbsolutePath.components = comps})
-#define Path$tagged$RelativePath(comps) ((Path_t){.$tag = Path$tag$RelativePath, .RelativePath.components = comps})
-#define Path$tagged$HomePath(comps) ((Path_t){.$tag = Path$tag$HomePath, .HomePath.components = comps})
-
-typedef struct {
-    enum { Path$tag$none, Path$tag$AbsolutePath, Path$tag$RelativePath, Path$tag$HomePath } $tag;
-    union {
-        Path$RelativePath$$type RelativePath;
-        Path$AbsolutePath$$type AbsolutePath;
-        Path$HomePath$$type HomePath;
-        List_t components;
-    };
-} Path_t;
-
-#define $OptionalPath$$type Path_t
 #define OptionalPath_t Path_t
 
 typedef struct Result$Success$$struct {

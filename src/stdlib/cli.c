@@ -53,7 +53,7 @@ static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag
                 return true;
             }
         } else if (short_flag && arg[0] == '-' && arg[1] != '-' && strchr(arg + 1, short_flag)) {
-            char *loc = strchr(arg + 1, short_flag);
+            const char *loc = strchr(arg + 1, short_flag);
             if (loc[1] == '=') {
                 // Case: -f=yes|no|true|false|on|off|1|0
                 OptionalBool_t b = Bool$parse(Text$from_str(loc + 2), NULL);
@@ -347,7 +347,7 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                 return true;
             }
         } else if (short_flag && arg[0] == '-' && arg[1] != '-' && strchr(arg + 1, short_flag)) {
-            char *loc = strchr(arg + 1, short_flag);
+            const char *loc = strchr(arg + 1, short_flag);
             char short_str[2] = {short_flag, '\0'};
             if (loc[1] == '=') {
                 // Case: -f=...

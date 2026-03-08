@@ -1,5 +1,11 @@
 # Version History
 
+## v2026-02-08
+
+- Changed `Path` implementation to use C-style strings instead of an `enum` with array components.
+- Added `Text.distance(a,b)` for calculating text distances.
+- Improved error messages for misspelled variables and field/method names.
+
 ## v2025-12-31
 
 - Added support for `123.foo()` parsing the same as `(123).foo()`

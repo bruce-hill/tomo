@@ -67,9 +67,7 @@ env_t *global_env(bool source_mapping) {
     (void)bind_type(env, "Int", Type(BigIntType));
     (void)bind_type(env, "Int32", Type(IntType, .bits = TYPE_IBITS32));
     (void)bind_type(env, "Memory", Type(MemoryType));
-    PATH_TYPE = declare_type(
-        env,
-        "enum Path(AbsolutePath(components:[Text]), RelativePath(components:[Text]), HomePath(components:[Text]))");
+    PATH_TYPE = bind_type(env, "Path", Type(PathType));
     RESULT_TYPE = declare_type(env, "enum Result(Success, Failure(reason:Text))");
 
     PRESENT_TYPE = declare_type(env, "struct Present()");
@@ -335,6 +333,7 @@ env_t *global_env(bool source_mapping) {
             {"sibling", "Path$sibling", "func(path:Path, name:Text -> Path)"}, //
             {"subdirectories", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"unique_directory", "Path$unique_directory", "func(path:Path -> Path)"}, //
+            {"with_extension", "Path$with_extension", "func(path:Path, extension:Text, replace:Bool=yes -> Path)"}, //
             {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
             {"writer", "Path$writer",
              "func(path:Path, append=no, permissions=Int32(0o644) -> func(text:Text, close=no -> Result))"}, //
@@ -352,6 +351,7 @@ env_t *global_env(bool source_mapping) {
             {"by_split_any", "Text$by_split_any", "func(text:Text, delimiters=' \\t\\r\\n' -> func(->Text?))"}, //
             {"caseless_equals", "Text$equal_ignoring_case", "func(a,b:Text, language='C' -> Bool)"}, //
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"}, //
+            {"distance", "Text$distance", "func(a,b:Text, language='C' -> Num)"}, //
             {"ends_with", "Text$ends_with", "func(text,suffix:Text, remainder:&Text? = none -> Bool)"}, //
             {"find", "Text$find", "func(text,target:Text, start=1 -> Int?)"}, //
             {"from", "Text$from", "func(text:Text, first:Int -> Text)"}, //
@@ -671,6 +671,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t) {
     case ListType: return NULL;
     case TableType: return NULL;
     case CStringType:
+    case PathType:
     case BoolType:
     case IntType:
     case BigIntType:

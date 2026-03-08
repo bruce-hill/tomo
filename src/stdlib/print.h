@@ -130,7 +130,6 @@ PRINT_FN _print_repeated_char(FILE *f, repeated_char_t repeated) {
         string_slice_t: _print_string_slice,                                                                           \
         repeated_char_t: _print_repeated_char,                                                                         \
         Text_t: Text$print,                                                                                            \
-        Path_t: Path$print,                                                                                            \
         Int_t: Int$print,                                                                                              \
         void *: _print_pointer)(f, x)
 #endif

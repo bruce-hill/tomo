@@ -11,8 +11,6 @@
 
 public
 Text_t compile_type(type_t *t) {
-    if (t == PATH_TYPE) return Text("Path_t");
-
     switch (t->tag) {
     case ReturnType: errx(1, "Shouldn't be compiling ReturnType to a type");
     case AbortType: return Text("void");
@@ -21,6 +19,7 @@ Text_t compile_type(type_t *t) {
     case BoolType: return Text("Bool_t");
     case ByteType: return Text("Byte_t");
     case CStringType: return Text("const char*");
+    case PathType: return Text("Path_t");
     case BigIntType: return Text("Int_t");
     case IntType: return Texts("Int", (int32_t)Match(t, IntType)->bits, "_t");
     case NumType:
@@ -68,10 +67,10 @@ Text_t compile_type(type_t *t) {
         case NumType:
         case BoolType:
         case ByteType:
+        case PathType:
         case ListType:
         case TableType: return Texts("Optional", compile_type(nonnull));
         case StructType: {
-            if (nonnull == PATH_TYPE) return Text("OptionalPath_t");
             DeclareMatch(s, nonnull, StructType);
             return namespace_name(s->env, s->env->namespace->parent, Texts("$Optional", s->name, "$$type"));
         }
@@ -87,7 +86,6 @@ Text_t compile_type(type_t *t) {
 public
 Text_t compile_type_info(type_t *t) {
     if (t == NULL) compiler_err(NULL, NULL, NULL, "Attempt to compile a NULL type");
-    if (t == PATH_TYPE) return Text("&Path$info");
 
     switch (t->tag) {
     case BoolType:
@@ -96,6 +94,7 @@ Text_t compile_type_info(type_t *t) {
     case BigIntType:
     case NumType:
     case CStringType: return Texts("&", type_to_text(t), "$info");
+    case PathType: return Text("&Path$info");
     case TextType: {
         DeclareMatch(text, t, TextType);
         if (!text->lang || streq(text->lang, "Text")) return Text("&Text$info");
