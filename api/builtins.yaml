@@ -54,7 +54,7 @@ exit:
       description: >
         The status code that the program with exit with.
   example: |
-    exit(status=1, "Goodbye forever!")
+    exit("Goodbye forever!", Int32(1))
 
 at_cleanup:
   short: register a cleanup function
@@ -79,7 +79,7 @@ at_cleanup:
       Nothing.
   example: |
     at_cleanup(func()
-        (/tmp/file.txt).remove(ignore_missing=yes)
+        _ := (/tmp/file.txt).remove(ignore_missing=yes)
     )
 
 getenv:

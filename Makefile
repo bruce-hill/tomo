@@ -211,6 +211,9 @@ clean:
 api/api.md: $(API_YAML)
 	./scripts/api_gen.py $^ >$@
 
+test/api.tm: $(API_YAML) | ./scripts/api_tests.py
+	./scripts/api_tests.py $^ >$@
+
 .PHONY: api-docs
 api-docs: $(API_MD) api/api.md
 

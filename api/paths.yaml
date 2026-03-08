@@ -18,7 +18,7 @@ Path.accessed:
       description: >
         Whether to follow symbolic links.
   example: |
-    assert (./file.txt).accessed() == 1704221100
+    assert (./file.txt).accessed() == Int64(1704221100)
     assert (./not-a-file).accessed() == none
 
 Path.append:
@@ -210,7 +210,7 @@ Path.changed:
       description: >
         Whether to follow symbolic links.
   example: |
-    assert (./file.txt).changed() == 1704221100
+    assert (./file.txt).changed() == Int64(1704221100)
     assert (./not-a-file).changed() == none
 
 Path.child:
@@ -251,7 +251,7 @@ Path.children:
       description: >
         Whether to include hidden files, which start with a `.`.
   example: |
-    assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
+    assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 
 Path.create_directory:
   short: make a directory
@@ -279,7 +279,7 @@ Path.create_directory:
         don't exist, otherwise fail if the parent directory does not exist. When
         set to `yes`, this function behaves like `mkdir -p`.
   example: |
-    (./new_directory).create_directory()
+    (./new_directory).create_directory()!
 
 Path.current_dir:
   short: get current directory
@@ -377,24 +377,6 @@ Path.files:
         Whether to include hidden files.
   example: |
     assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
-
-Path.from_components:
-  short: build a path from components
-  description: >
-    Returns a path built from a list of path components.
-  return:
-    type: 'Path'
-    description: >
-      A path representing the given components.
-  args:
-    components:
-      type: '[Text]'
-      description: >
-        A list of path components.
-  example: |
-    assert Path.from_components(["/", "usr", "include"]) == (/usr/include)
-    assert Path.from_components(["foo.txt"]) == (./foo.txt)
-    assert Path.from_components(["~", ".local"]) == (~/.local)
 
 Path.glob:
   short: perform file globbing
@@ -574,7 +556,7 @@ Path.modified:
       description: >
         Whether to follow symbolic links.
   example: |
-    assert (./file.txt).modified() == 1704221100
+    assert (./file.txt).modified() == Int64(1704221100)
     assert (./not-a-file).modified() == none
 
 Path.owner:
@@ -656,8 +638,8 @@ Path.read_bytes:
       description: >
         A limit to how many bytes should be read.
   example: |
-    assert (./hello.txt).read() == [72, 101, 108, 108, 111]
-    assert (./nosuchfile.xxx).read() == none
+    assert (./hello.txt).read_bytes()! == [72, 101, 108, 108, 111]
+    assert (./nosuchfile.xxx).read_bytes() == none
 
 Path.relative_to:
   short: apply a relative path to another
@@ -698,7 +680,7 @@ Path.remove:
       description: >
         Whether to ignore errors if the file or directory does not exist.
   example: |
-    (./file.txt).remove()
+    (./file.txt).remove()!
 
 Path.resolved:
   short: resolve a path
@@ -750,7 +732,7 @@ Path.set_owner:
       description: >
         Whether to follow symbolic links.
   example: |
-    (./file.txt).set_owner(owner="root", group="wheel")
+    (./file.txt).set_owner(owner="root", group="wheel")!
 
 Path.sibling:
   short: get another path in the same directory
@@ -808,9 +790,9 @@ Path.unique_directory:
       description: >
         The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.
   example: |
-    assert created := (/tmp/my-dir.XXXXXX).unique_directory() == (/tmp/my-dir-AwoxbM/)
+    created := (/tmp/my-dir.XXXXXX).unique_directory()
     assert created.is_directory() == yes
-    created.remove()
+    created.remove()!
 
 Path.write:
   short: write to a file
@@ -836,7 +818,7 @@ Path.write:
       description: >
         The permissions to set on the file if it is created.
   example: |
-    (./file.txt).write("Hello, world!")
+    (./file.txt).write("Hello, world!")!
 
 Path.writer:
   short: create a file writer
@@ -938,7 +920,7 @@ Path.write_bytes:
       description: >
         The permissions to set on the file if it is created.
   example: |
-    (./file.txt).write_bytes([104, 105])
+    (./file.txt).write_bytes([104, 105])!
 
 Path.write_unique:
   short: write to a uniquely named file
@@ -961,10 +943,10 @@ Path.write_unique:
       description: >
         The text to write to the file.
   example: |
-    created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+    created := (./file-XXXXXX.txt).write_unique("Hello, world!")!
     assert created == (./file-27QHtq.txt)
-    assert created.read() == "Hello, world!"
-    created.remove()
+    assert created.read()! == "Hello, world!"
+    created.remove()!
 
 Path.write_unique_bytes:
   short: write bytes to a uniquely named file
@@ -987,8 +969,8 @@ Path.write_unique_bytes:
       description: >
         The bytes to write to the file.
   example: |
-    created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
+    created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])!
     assert created == (./file-27QHtq.txt)
-    assert created.read() == [1, 2, 3]
-    created.remove()
+    assert created.read_bytes()! == [1, 2, 3]
+    created.remove()!
 

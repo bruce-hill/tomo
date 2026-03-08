@@ -510,18 +510,6 @@ Int_t Int$next_prime(Int_t x) {
     return Int$from_mpz(p);
 }
 
-#if __GNU_MP_VERSION >= 6
-#if __GNU_MP_VERSION_MINOR >= 3
-public
-OptionalInt_t Int$prev_prime(Int_t x) {
-    mpz_t p;
-    mpz_init_set_int(p, x);
-    if (unlikely(mpz_prevprime(p, p) == 0)) return NONE_INT;
-    return Int$from_mpz(p);
-}
-#endif
-#endif
-
 public
 Int_t Int$choose(Int_t n, Int_t k) {
     if unlikely (Int$compare_value(n, I_small(0)) < 0) fail("Negative inputs are not supported for choose()");

@@ -58,12 +58,11 @@ Text.by_line:
         The text to be iterated over, line by line.
   example: |
     text := "
-    line one
-    line two
+        line one
+        line two
     "
-    for line in text.by_line()
-    # Prints: "line one" then "line two":
-    say(line)
+    lines := [line for line in text.by_line()]
+    assert lines == ["line one", "line two"]
 
 Text.by_split:
   short: iterate by a spliting text
@@ -92,9 +91,8 @@ Text.by_split:
     graphical clusters of the text.
   example: |
     text := "one,two,three"
-    for chunk in text.by_split(",")
-    # Prints: "one" then "two" then "three":
-    say(chunk)
+    chunks := [chunk for chunk in text.by_split(",")]
+    assert chunks == ["one", "two", "three"]
 
 Text.by_split_any:
   short: iterate by one of many splitting characters
@@ -123,9 +121,8 @@ Text.by_split_any:
     To split based on an exact delimiter, use Text.by_split().
   example: |
     text := "one,two,;,three"
-    for chunk in text.by_split_any(",;")
-    # Prints: "one" then "two" then "three":
-    say(chunk)
+    chunks := [chunk for chunk in text.by_split_any(",;")]
+    assert chunks == ["one", "two", "three"]
 
 Text.utf8:
   short: get UTF8 bytes
@@ -348,7 +345,7 @@ Text.from_utf16:
         The UTF-16 integers of the desired text.
   example: |
     assert Text.from_utf16([197, 107, 101]) == "Åke"
-    assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界".utf16()
+    assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界"
 
 Text.from_c_string:
   short: convert C-style string to text
@@ -389,7 +386,7 @@ Text.from_codepoint_names:
         "LATIN CAPITAL LETTER A WITH RING ABOVE",
         "LATIN SMALL LETTER K",
         "LATIN SMALL LETTER E",
-    ]
+    ])
     assert text == "Åke"
 
 Text.from_utf32:
@@ -868,11 +865,11 @@ Text.translate:
       description: >
         A table mapping from target text to its replacement.
   example: |
-    text := "A <tag> & an amperand".translate({
+    text := "A <tag> & an ampersand".translate({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
-        '"": "&quot",
+        '"': "&quot",
         "'": "&#39;",
     })
     assert text == "A &lt;tag&gt; &amp; an ampersand"

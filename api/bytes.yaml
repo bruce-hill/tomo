@@ -48,7 +48,7 @@ Byte.hex:
       description: >
         Whether or not to prepend a `0x` prefix.
   example: |
-    assert Byte(18).hex() == "0x12"
+    assert Byte(18).hex(prefix=yes) == "0x12"
 
 Byte.is_between:
   short: test if inside a range
@@ -90,6 +90,15 @@ Byte.parse:
       type: 'Text'
       description: >
         The text to parse.
+    base:
+      type: 'Int?'
+      default: 'none'
+      description: >
+        The numeric base to use when parsing the byte. If unspecified, the
+        byte's base will be inferred from the text prefix. After any "+" or "-"
+        sign, if the text begins with "0x", the base will be assumed to be 16,
+        "0o" will assume base 8, "0b" will assume base 2, otherwise the base
+        will be assumed to be 10.
     remainder:
       type: '&Text?'
       default: 'none'
@@ -102,7 +111,7 @@ Byte.parse:
     assert Byte.parse("123xyz") == none
 
     remainder : Text
-    assert Byte.parse("123xyz", &remainder) == Byte(123)
+    assert Byte.parse("123xyz", remainder=&remainder) == Byte(123)
     assert remainder == "xyz"
 
 Byte.to:
@@ -123,15 +132,15 @@ Byte.to:
       description: >
         The ending value of the range.
     step:
-      type: 'Byte?'
+      type: 'Int8?'
       default: 'none'
       description: >
         An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.
   example: |
     iter := Byte(2).to(4)
-    assert iter() == 2
-    assert iter() == 3
-    assert iter() == 4
+    assert iter() == Byte(2)
+    assert iter() == Byte(3)
+    assert iter() == Byte(4)
     assert iter() == none
 
     assert [x for x in Byte(2).to(5)] == [Byte(2), Byte(3), Byte(4), Byte(5)]

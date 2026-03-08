@@ -130,11 +130,6 @@ env_t *global_env(bool source_mapping) {
             {"parse", "Int$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int?)"}, //
             {"plus", "Int$plus", "func(x,y:Int -> Int)"}, //
             {"power", "Int$power", "func(base:Int,exponent:Int -> Int)"}, //
-#if __GNU_MP_VERSION >= 6
-#if __GNU_MP_VERSION_MINOR >= 3
-            {"prev_prime", "Int$prev_prime", "func(x:Int -> Int?)"}, //
-#endif
-#endif
             {"right_shifted", "Int$right_shifted", "func(x,y:Int -> Int)"}, //
             {"sqrt", "Int$sqrt", "func(x:Int -> Int?)"}, //
             {"times", "Int$times", "func(x,y:Int -> Int)"}, //
@@ -315,7 +310,6 @@ env_t *global_env(bool source_mapping) {
             {"expand_home", "Path$expand_home", "func(path:Path -> Path)"}, //
             {"extension", "Path$extension", "func(path:Path, full=yes -> Text)"}, //
             {"files", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
-            {"from_components", "Path$from_components", "func(components:[Text] -> Path)"}, //
             {"glob", "Path$glob", "func(path:Path -> [Path])"}, //
             {"group", "Path$group", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
             {"has_extension", "Path$has_extension", "func(path:Path, extension:Text -> Bool)"}, //
@@ -386,7 +380,7 @@ env_t *global_env(bool source_mapping) {
             {"title", "Text$title", "func(text:Text, language='C' -> Text)"}, //
             {"to", "Text$to", "func(text:Text, last:Int -> Text)"}, //
             {"translate", "Text$translate", "func(text:Text, translations:{Text:Text} -> Text)"}, //
-            {"trim", "Text$trim", "func(text:Text, to_trim=\" \t\r\n\", left=yes, right=yes -> Text)"}, //
+            {"trim", "Text$trim", "func(text:Text, to_trim=\" \\t\\r\\n\", left=yes, right=yes -> Text)"}, //
             {"upper", "Text$upper", "func(text:Text, language='C' -> Text)"}, //
             {"utf8", "Text$utf8", "func(text:Text -> [Byte])"}, //
             {"utf16", "Text$utf16", "func(text:Text -> [Int16])"}, //
