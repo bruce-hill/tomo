@@ -1,5 +1,5 @@
 GMP_VERSION=6.3.0
-UNISTRING_VERSION=1.4.1
+UNISTRING_VERSION=1.4.2
 GC_VERSION=8.2.8
 
 all: ../build/gc/lib/libgc.a ../build/gmp/lib/libgmp.a ../build/unistring/lib/libunistring.a
