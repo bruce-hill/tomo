@@ -335,11 +335,11 @@ void *List$random(List_t list, OptionalClosure_t random_int64) {
 public
 Table_t List$counts(List_t list, const TypeInfo_t *type) {
     Table_t counts = EMPTY_TABLE;
-    const TypeInfo_t count_type = *Table$info(type->ListInfo.item, &Int$info);
+    TypeInfo_t count_type = *Table$info(type->ListInfo.item, &Int$info);
     for (int64_t i = 0; i < (int64_t)list.length; i++) {
         void *key = list.data + i * list.stride;
-        int64_t *count = Table$get(counts, key, &count_type);
-        int64_t val = count ? *count + 1 : 1;
+        Int_t *count = Table$get(counts, key, &count_type);
+        Int_t val = count ? Int$plus(*count, I(1)) : I(1);
         Table$set(&counts, key, &val, &count_type);
     }
     return counts;
