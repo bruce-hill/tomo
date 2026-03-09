@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Int.parse 3 2025-11-30 "Tomo man-pages"
+.TH Int.parse 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Int.parse \- convert text to integer
 .SH LIBRARY
@@ -35,7 +35,7 @@ assert Int.parse("123") == 123
 assert Int.parse("0xFF") == 255
 assert Int.parse("123xyz") == none
 remainder : Text
-assert Int.parse("123xyz", &remainder) == 123
+assert Int.parse("123xyz", remainder=&remainder) == 123
 assert remainder == "xyz"
 
 # Can't parse:

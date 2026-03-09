@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.children 3 2025-11-29 "Tomo man-pages"
+.TH Path.children 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Path.children \- get children of a directory
 .SH LIBRARY
@@ -30,7 +30,7 @@ A list of paths for the children.
 
 .SH EXAMPLES
 .EX
-assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
+assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.percent 3 2025-11-29 "Tomo man-pages"
+.TH Num.percent 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Num.percent \- format as a percentage
 .SH LIBRARY
@@ -31,9 +31,9 @@ A text representation of the number as a percentage with a percent sign.
 .SH EXAMPLES
 .EX
 assert (0.5).percent() == "50%"
-assert (1./3.).percent(2) == "33.33%"
-assert (1./3.).percent(2, precision=0.0001) == "33.3333%"
-assert (1./3.).percent(2, precision=10.) == "30%"
+assert (1./3.).percent(2) == "34%"
+assert (1./3.).percent(precision=0.0001) == "33.3333%"
+assert (1./3.).percent(precision=10.) == "30%"
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

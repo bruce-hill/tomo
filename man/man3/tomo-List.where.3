@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.where 3 2025-11-29 "Tomo man-pages"
+.TH List.where 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 List.where \- find an index where a predicate matches
 .SH LIBRARY
@@ -30,8 +30,8 @@ Returns the index of the first item where the predicate is true or `none` if no 
 
 .SH EXAMPLES
 .EX
-assert [4, 5, 6].where(func(i:&Int): i.is_prime()) == 5
-assert [4, 6, 8].find(func(i:&Int): i.is_prime()) == none
+assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("A")) == 2
+assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("X")) == none
 .EE
 .SH SEE ALSO
 .BR Tomo-List (3)

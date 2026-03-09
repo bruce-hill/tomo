@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte 3 2025-11-29 "Tomo man-pages"
+.TH Byte 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Byte \- a Tomo type
 .SH LIBRARY
@@ -35,7 +35,7 @@ For more, see:
 
 
 .TP
-.BI Byte.parse\ :\ func(text:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Byte?)
+.BI Byte.parse\ :\ func(text:\ Text,\ base:\ Int?\ =\ none,\ remainder:\ &Text?\ =\ none\ ->\ Byte?)
 Parse a byte literal from text. 
 
 For more, see:
@@ -43,7 +43,7 @@ For more, see:
 
 
 .TP
-.BI Byte.to\ :\ func(first:\ Byte,\ last:\ Byte,\ step:\ Byte?\ =\ none\ ->\ func(->Byte?))
+.BI Byte.to\ :\ func(first:\ Byte,\ last:\ Byte,\ step:\ Int8?\ =\ none\ ->\ func(->Byte?))
 Returns an iterator function that iterates over the range of bytes specified. 
 
 For more, see:

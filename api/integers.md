@@ -248,8 +248,8 @@ step | `Int` | The increment step size.  | `1`
 ```tomo
 nums : &[Int] = &[]
 for i in 5.onward()
-nums.insert(i)
-stop if i == 10
+    nums.insert(i)
+    stop if i == 10
 assert nums[] == [5, 6, 7, 8, 9, 10]
 
 ```
@@ -276,7 +276,7 @@ assert Int.parse("123") == 123
 assert Int.parse("0xFF") == 255
 assert Int.parse("123xyz") == none
 remainder : Text
-assert Int.parse("123xyz", &remainder) == 123
+assert Int.parse("123xyz", remainder=&remainder) == 123
 assert remainder == "xyz"
 
 # Can't parse:
@@ -287,28 +287,6 @@ assert Int8.parse("9999999") == none
 
 # Explicitly specifying base:
 assert Int.parse("10", base=16) == 16
-
-```
-## Int.prev_prime
-
-```tomo
-Int.prev_prime : func(x: Int -> Int?)
-```
-
-Finds the previous prime number less than the given integer. If there is no previous prime number (i.e. if a number less than `2` is provided), then the function will create a runtime error.
-
-This function is _probabilistic_, but the chances of getting an incorrect answer are astronomically small (on the order of 10^(-30)). See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp) for more details.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-x | `Int` | The integer before which to find the previous prime.  | -
-
-**Return:** The previous prime number less than `x`, or `none` if `x` is less than 2.
-
-
-**Example:**
-```tomo
-assert 11.prev_prime() == 7
 
 ```
 ## Int.sqrt

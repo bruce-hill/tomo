@@ -21,7 +21,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).accessed() == 1704221100
+assert (./file.txt).accessed() == Int64(1704221100)
 assert (./not-a-file).accessed() == none
 
 ```
@@ -230,7 +230,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).changed() == 1704221100
+assert (./file.txt).changed() == Int64(1704221100)
 assert (./not-a-file).changed() == none
 
 ```
@@ -273,7 +273,7 @@ include_hidden | `` | Whether to include hidden files, which start with a `.`.  
 
 **Example:**
 ```tomo
-assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
+assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 
 ```
 ## Path.create_directory
@@ -296,7 +296,7 @@ recursive | `` | If set to `yes`, then recursively create any parent directories
 
 **Example:**
 ```tomo
-(./new_directory).create_directory()
+(./new_directory).create_directory()!
 
 ```
 ## Path.current_dir
@@ -402,28 +402,6 @@ include_hidden | `Bool` | Whether to include hidden files.  | `no`
 **Example:**
 ```tomo
 assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
-
-```
-## Path.from_components
-
-```tomo
-Path.from_components : func(components: [Text] -> Path)
-```
-
-Returns a path built from a list of path components.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-components | `[Text]` | A list of path components.  | -
-
-**Return:** A path representing the given components.
-
-
-**Example:**
-```tomo
-assert Path.from_components(["/", "usr", "include"]) == (/usr/include)
-assert Path.from_components(["foo.txt"]) == (./foo.txt)
-assert Path.from_components(["~", ".local"]) == (~/.local)
 
 ```
 ## Path.glob
@@ -628,7 +606,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).modified() == 1704221100
+assert (./file.txt).modified() == Int64(1704221100)
 assert (./not-a-file).modified() == none
 
 ```
@@ -713,8 +691,8 @@ limit | `Int?` | A limit to how many bytes should be read.  | `none`
 
 **Example:**
 ```tomo
-assert (./hello.txt).read() == [72, 101, 108, 108, 111]
-assert (./nosuchfile.xxx).read() == none
+assert (./hello.txt).read_bytes()! == [72, 101, 108, 108, 111]
+assert (./nosuchfile.xxx).read_bytes() == none
 
 ```
 ## Path.relative_to
@@ -757,7 +735,7 @@ ignore_missing | `` | Whether to ignore errors if the file or directory does not
 
 **Example:**
 ```tomo
-(./file.txt).remove()
+(./file.txt).remove()!
 
 ```
 ## Path.resolved
@@ -802,7 +780,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-(./file.txt).set_owner(owner="root", group="wheel")
+(./file.txt).set_owner(owner="root", group="wheel")!
 
 ```
 ## Path.sibling
@@ -865,9 +843,9 @@ path | `Path` | The base path for generating the unique directory. The last six 
 
 **Example:**
 ```tomo
-assert created := (/tmp/my-dir.XXXXXX).unique_directory() == (/tmp/my-dir-AwoxbM/)
+created := (/tmp/my-dir.XXXXXX).unique_directory()
 assert created.is_directory() == yes
-created.remove()
+created.remove()!
 
 ```
 ## Path.write
@@ -889,7 +867,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 
 **Example:**
 ```tomo
-(./file.txt).write("Hello, world!")
+(./file.txt).write("Hello, world!")!
 
 ```
 ## Path.write_bytes
@@ -911,7 +889,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 
 **Example:**
 ```tomo
-(./file.txt).write_bytes([104, 105])
+(./file.txt).write_bytes([104, 105])!
 
 ```
 ## Path.write_unique
@@ -932,10 +910,10 @@ text | `Text` | The text to write to the file.  | -
 
 **Example:**
 ```tomo
-created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+created := (./file-XXXXXX.txt).write_unique("Hello, world!")!
 assert created == (./file-27QHtq.txt)
-assert created.read() == "Hello, world!"
-created.remove()
+assert created.read()! == "Hello, world!"
+created.remove()!
 
 ```
 ## Path.write_unique_bytes
@@ -956,10 +934,10 @@ bytes | `[Byte]` | The bytes to write to the file.  | -
 
 **Example:**
 ```tomo
-created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
+created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])!
 assert created == (./file-27QHtq.txt)
-assert created.read() == [1, 2, 3]
-created.remove()
+assert created.read_bytes()! == [1, 2, 3]
+created.remove()!
 
 ```
 ## Path.writer

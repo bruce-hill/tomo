@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.translate 3 2025-11-29 "Tomo man-pages"
+.TH Text.translate 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Text.translate \- perform multiple replacements
 .SH LIBRARY
@@ -30,11 +30,11 @@ The text with all occurrences of the targets replaced with their corresponding r
 
 .SH EXAMPLES
 .EX
-text := "A <tag> & an amperand".translate({
+text := "A <tag> & an ampersand".translate({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
-    '"": "&quot",
+    '"': "&quot",
     "'": "&#39;",
 })
 assert text == "A &lt;tag&gt; &amp; an ampersand"

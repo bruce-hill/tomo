@@ -1,15 +1,15 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.parse 3 2025-11-29 "Tomo man-pages"
+.TH Byte.parse 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Byte.parse \- convert text to a byte
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Byte.parse\ :\ func(text:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Byte?)
+.BI Byte.parse\ :\ func(text:\ Text,\ base:\ Int?\ =\ none,\ remainder:\ &Text?\ =\ none\ ->\ Byte?)
 .fi
 .SH DESCRIPTION
 Parse a byte literal from text.
@@ -23,6 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 text	Text	The text to parse. 	-
+base	Int?	The numeric base to use when parsing the byte. If unspecified, the byte's base will be inferred from the text prefix. After any "+" or "-" sign, if the text begins with "0x", the base will be assumed to be 16, "0o" will assume base 8, "0b" will assume base 2, otherwise the base will be assumed to be 10. 	none
 remainder	&Text?	If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches. 	none
 .TE
 .SH RETURN
@@ -35,7 +36,7 @@ assert Byte.parse("asdf") == none
 assert Byte.parse("123xyz") == none
 
 remainder : Text
-assert Byte.parse("123xyz", &remainder) == Byte(123)
+assert Byte.parse("123xyz", remainder=&remainder) == Byte(123)
 assert remainder == "xyz"
 .EE
 .SH SEE ALSO

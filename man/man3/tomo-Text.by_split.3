@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.by_split 3 2025-11-29 "Tomo man-pages"
+.TH Text.by_split 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Text.by_split \- iterate by a spliting text
 .SH LIBRARY
@@ -35,9 +35,8 @@ If an empty text is given as the delimiter, then each split will be the graphica
 .SH EXAMPLES
 .EX
 text := "one,two,three"
-for chunk in text.by_split(",")
-# Prints: "one" then "two" then "three":
-say(chunk)
+chunks := [chunk for chunk in text.by_split(",")]
+assert chunks == ["one", "two", "three"]
 .EE
 .SH SEE ALSO
 .BR Tomo-Text (3)

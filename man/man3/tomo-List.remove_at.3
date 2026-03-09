@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.remove_at 3 2025-11-29 "Tomo man-pages"
+.TH List.remove_at 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 List.remove_at \- remove an item by index
 .SH LIBRARY
@@ -34,7 +34,7 @@ Since negative indices are counted from the back, the default behavior is to rem
 
 .SH EXAMPLES
 .EX
-list := [10, 20, 30, 40, 50]
+list := &[10, 20, 30, 40, 50]
 list.remove_at(2)
 assert list == [10, 30, 40, 50]
 

@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.expm1 3 2025-11-29 "Tomo man-pages"
+.TH Num.expm1 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Num.expm1 \- base-e exponential minus 1
 .SH LIBRARY
@@ -29,7 +29,7 @@ The value of $e^x - 1$.
 
 .SH EXAMPLES
 .EX
-assert (1.0).expm1() == 1.7183
+assert (1.0).expm1().near(1.7182818284590453)
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

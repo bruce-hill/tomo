@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.shuffled 3 2025-11-29 "Tomo man-pages"
+.TH List.shuffled 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 List.shuffled \- return a shuffled list
 .SH LIBRARY
@@ -30,7 +30,9 @@ A new list with shuffled elements.
 
 .SH EXAMPLES
 .EX
-assert [10, 20, 30, 40].shuffled() == [40, 10, 30, 20]
+nums := [10, 20, 30, 40]
+_ := nums.shuffled()
+# E.g. [20, 40, 10, 30]
 .EE
 .SH SEE ALSO
 .BR Tomo-List (3)

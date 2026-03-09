@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.clear 3 2025-11-29 "Tomo man-pages"
+.TH List.clear 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 List.clear \- clear a list
 .SH LIBRARY
@@ -29,7 +29,9 @@ Nothing.
 
 .SH EXAMPLES
 .EX
-my_list.clear()
+list := &[10, 20]
+list.clear()
+assert list[] == []
 .EE
 .SH SEE ALSO
 .BR Tomo-List (3)

@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.random 3 2025-11-29 "Tomo man-pages"
+.TH List.random 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 List.random \- pick a random element
 .SH LIBRARY
@@ -30,7 +30,9 @@ A random element from the list.
 
 .SH EXAMPLES
 .EX
-assert [10, 20, 30].random() == 20
+nums := [10, 20, 30]
+pick := nums.random()
+assert nums.has(pick)
 .EE
 .SH SEE ALSO
 .BR Tomo-List (3)
