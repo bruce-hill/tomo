@@ -4,6 +4,7 @@
 
 - Changed `Path` implementation to use C-style strings instead of an `enum` with array components.
 - Added `Text.distance(a,b)` for calculating text distances.
+- `List.random()` now returns an optional value, which is `none` when the list is empty, instead of failing.
 - Improved error messages for misspelled variables and field/method names.
 
 ## v2025-12-31

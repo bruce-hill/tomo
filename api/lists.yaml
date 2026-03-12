@@ -320,9 +320,9 @@ List.random:
   description: >
     Selects a random element from the list.
   return:
-    type: 'T'
+    type: 'T?'
     description: >
-      A random element from the list.
+      A random element from the list or `none` if the list is empty.
   args:
     list:
       type: '[T]'
@@ -339,6 +339,8 @@ List.random:
     nums := [10, 20, 30]
     pick := nums.random()
     assert nums.has(pick)
+    empty : [Int]
+    assert empty.random() == none
 
 List.remove_at:
   short: remove an item by index

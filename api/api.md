@@ -1061,7 +1061,7 @@ assert list[] == [10, 30]
 ## List.random
 
 ```tomo
-List.random : func(list: [T], random: func(min,max:Int64->Int64)? = none -> T)
+List.random : func(list: [T], random: func(min,max:Int64->Int64)? = none -> T?)
 ```
 
 Selects a random element from the list.
@@ -1071,7 +1071,7 @@ Argument | Type | Description | Default
 list | `[T]` | The list from which to select a random element.  | -
 random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
-**Return:** A random element from the list.
+**Return:** A random element from the list or `none` if the list is empty.
 
 
 **Example:**
@@ -1079,6 +1079,8 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 nums := [10, 20, 30]
 pick := nums.random()
 assert nums.has(pick)
+empty : [Int]
+assert empty.random() == none
 
 ```
 ## List.remove_at

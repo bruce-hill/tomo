@@ -140,7 +140,8 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         self = compile_to_pointer_depth(env, call->self, 0, false);
         arg_t *arg_spec = new (arg_t, .name = "random", .type = random_int64_type, .default_val = FakeAST(None));
         return Texts("List$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                     compile_type(item_t), ")");
+                     compile_type(item_t), ", _, ", promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t),
+                     ")");
     } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
         if (streq(call->name, "sort")) EXPECT_POINTER();
         else self = compile_to_pointer_depth(env, call->self, 0, false);
