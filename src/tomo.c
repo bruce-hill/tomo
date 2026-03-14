@@ -303,15 +303,8 @@ int main(int argc, char *argv[]) {
         // This *could* be done in parallel, but there may be some dependency issues.
         pid_t child = fork();
         if (child == 0) {
-            if (Text$equal_values(Path$extension(*lib, false), Text("ini"))) {
-                if (!install_from_modules_ini(*lib, false)) {
-                    print("Failed to install modules from file: ", *lib);
-                    _exit(1);
-                }
-            } else {
-                build_library(*lib);
-                if (should_install) install_library(*lib);
-            }
+            build_library(*lib);
+            if (should_install) install_library(*lib);
             _exit(0);
         }
         wait_for_child_success(child);
@@ -698,14 +691,13 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             break;
         }
         case USE_MODULE: {
-            module_info_t mod = get_used_module_info(stmt_ast);
-            const char *full_name = mod.version ? String(mod.name, "@", mod.version) : mod.name;
-            Text_t lib = Texts(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(full_name), "/lib",
-                               Text$from_str(full_name), ".a");
+            OptionalPath_t installed = find_installed_module(stmt_ast);
+            assert(installed);
+            Text_t name = get_library_name(installed);
+            Text_t lib = Texts(installed, "/lib", name, ".a");
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
-            List_t children = Path$glob(
-                Path$from_str(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", full_name, "/[!._0-9]*.tm")));
+            List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
             for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t *child = (Path_t *)(children.data + i * children.stride);
                 Table_t discarded = {.entries = EMPTY_LIST, .fallback = to_compile};
@@ -852,7 +844,6 @@ void transpile_code(env_t *base_env, Path_t path) {
 
     Text$print(c_file, c_code);
 
-    const char *version = get_library_version(Path$parent(path));
     binding_t *main_binding = get_binding(module_env, "main");
     if (main_binding && main_binding->type->tag == FunctionType) {
         type_t *ret = Match(main_binding->type, FunctionType)->ret;
@@ -865,7 +856,7 @@ void transpile_code(env_t *base_env, Path_t path) {
                                  namespace_name(module_env, module_env->namespace, Text("$initialize")),
                                  "();\n"
                                  "\n",
-                                 compile_cli_arg_call(module_env, ast, main_binding->code, main_binding->type, version),
+                                 compile_cli_arg_call(module_env, ast, main_binding->code, main_binding->type),
                                  "return 0;\n"
                                  "}\n"));
     }

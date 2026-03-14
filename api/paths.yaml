@@ -606,6 +606,30 @@ Path.modified:
     assert (./file.txt).modified() == Int64(1704221100)
     assert (./not-a-file).modified() == none
 
+Path.move:
+  short: move a file or directory
+  description: >
+    Moves the file or directory from one location to another.
+  return:
+    type: 'Result'
+    description: >
+      Either `Success` or `Failure(reason)`.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to move.
+    dest:
+      type: 'Path'
+      description: >
+        The destination to move the path to.
+    allow_overwriting:
+      default: 'no'
+      description: >
+        Whether to permit overwriting the destination if it is an existing file or directory.
+  example: |
+    (./file.txt).move(/tmp/renamed.txt)!
+
 Path.owner:
   short: get file owner
   description: >

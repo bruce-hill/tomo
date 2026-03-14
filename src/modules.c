@@ -1,187 +1,248 @@
 // This file defines some code for getting info about modules and installing them.
 
 #include <err.h>
+#include <openssl/evp.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/wait.h>
 
 #include "config.h"
 #include "modules.h"
-#include "stdlib/memory.h"
+#include "stdlib/optionals.h"
 #include "stdlib/paths.h"
-#include "stdlib/pointers.h"
 #include "stdlib/print.h"
 #include "stdlib/simpleparse.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
-#include "stdlib/types.h"
-#include "stdlib/util.h"
 
-#define xsystem(...)                                                                                                   \
+#define xsystem_cleanup(tmpdir, ...)                                                                                   \
     ({                                                                                                                 \
-        int _status = system(String(__VA_ARGS__));                                                                     \
-        if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0)                                                          \
+        const char *cmd = String(__VA_ARGS__);                                                                         \
+        int _status = system(cmd);                                                                                     \
+        if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0) {                                                        \
+            Path$remove(tmpdir, true);                                                                                 \
             errx(1, "Failed to run command: %s", String(__VA_ARGS__));                                                 \
+        }                                                                                                              \
     })
 
-const char *get_library_version(Path_t lib_dir) {
-    Path_t changes_file = Path$child(lib_dir, Text("CHANGES.md"));
-    OptionalText_t changes = Path$read(changes_file);
-    if (changes.length <= 0) {
-        return "v0";
+static OptionalText_t file_digest(Path_t path) {
+    FILE *f = fopen(path, "rb");
+    if (!f) return NONE_TEXT;
+
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+
+    unsigned char buf[65536];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
+        EVP_DigestUpdate(ctx, buf, n);
+    fclose(f);
+
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    unsigned int len;
+    EVP_DigestFinal_ex(ctx, hash, &len);
+    EVP_MD_CTX_free(ctx);
+
+    const char *prefix = "sha256:";
+    char *ret = GC_MALLOC_ATOMIC(strlen(prefix) + 2 * len + 1);
+    char *p = ret;
+    p = stpcpy(p, prefix);
+    for (size_t i = 0; i < len; i++) {
+        p += sprintf(p, "%02x", hash[i]);
     }
-    const char *changes_str = Text$as_c_string(Texts(Text("\n"), changes));
-    const char *version_line = strstr(changes_str, "\n## ");
-    if (version_line == NULL)
-        print_err("CHANGES.md in ", lib_dir, " does not have any valid versions starting with '## '");
-    return String(string_slice(version_line + 4, strcspn(version_line + 4, "\r\n")));
+    *p = '\0';
+    return Text$from_str(ret);
 }
 
 Text_t get_library_name(Path_t lib_dir) {
     Text_t name = Path$base_name(lib_dir);
     name = Text$without_prefix(name, Text("tomo-"));
     name = Text$without_suffix(name, Text("-tomo"));
-    Text_t suffix = Texts(Text("@"), Text$from_str(get_library_version(lib_dir)));
-    if (!Text$ends_with(name, suffix, NULL)) name = Texts(name, suffix);
     return name;
 }
 
-bool install_from_modules_ini(Path_t ini_file, bool ask_confirmation) {
-    OptionalClosure_t by_line = Path$by_line(ini_file);
-    if (by_line.fn == NULL) return false;
-    OptionalText_t (*next_line)(void *) = by_line.fn;
-    module_info_t info = {};
-    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
-        const char *line_str = Text$as_c_string(line);
-        const char *next_section = NULL;
-        if (!strparse(line_str, "[", &next_section, "]")) {
-            if (info.name) {
-                if (!try_install_module(info, ask_confirmation)) return false;
-            }
-            print("Checking module ", next_section, "...");
-            info = (module_info_t){.name = next_section};
-            continue;
-        }
-        if (!strparse(line_str, "version=", &info.version) || !strparse(line_str, "url=", &info.url)
-            || !strparse(line_str, "git=", &info.git) || !strparse(line_str, "path=", &info.path)
-            || !strparse(line_str, "revision=", &info.revision))
-            continue;
+static Text_t module_text(module_info_t mod) {
+    Text_t text = Texts("[", mod.name, "]\n");
+    for (int64_t i = 0; i < (int64_t)mod.info.entries.length; i++) {
+        struct {
+            const char *key, *value;
+        } *entry = mod.info.entries.data + i * mod.info.entries.stride;
+        text = Texts(text, entry->key, "=", entry->value, "\n");
     }
-    if (info.name) {
-        if (!try_install_module(info, ask_confirmation)) return false;
-    }
-    return true;
+    return text;
 }
 
-static void read_modules_ini(Path_t ini_file, module_info_t *info) {
-    OptionalClosure_t by_line = Path$by_line(ini_file);
-    if (by_line.fn == NULL) return;
-    OptionalText_t (*next_line)(void *) = by_line.fn;
-find_section:;
-    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
-        const char *line_str = Text$as_c_string(line);
-        if (line_str[0] == '[' && strncmp(line_str + 1, info->name, strlen(info->name)) == 0
-            && line_str[1 + strlen(info->name)] == ']')
-            break;
-    }
-    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
-        const char *line_str = Text$as_c_string(line);
-        if (line_str[0] == '[') goto find_section;
-        if (!strparse(line_str, "version=", &info->version) || !strparse(line_str, "url=", &info->url)
-            || !strparse(line_str, "git=", &info->git) || !strparse(line_str, "path=", &info->path)
-            || !strparse(line_str, "revision=", &info->revision))
-            continue;
-    }
-}
-
-module_info_t get_used_module_info(ast_t *use) {
-    static Table_t cache = EMPTY_TABLE;
-    TypeInfo_t *cache_type = Table$info(Pointer$info("@", &Memory$info), Pointer$info("@", &Memory$info));
-    module_info_t **cached = Table$get(cache, &use, cache_type);
-    if (cached) return **cached;
-    const char *name = Match(use, Use)->path;
-    module_info_t *info = new (module_info_t, .name = name);
-    Path_t tomo_default_modules =
-        Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/modules.ini"));
-    read_modules_ini(tomo_default_modules, info);
-    read_modules_ini(Path$sibling(Path$from_str(use->file->filename), Text("modules.ini")), info);
-    read_modules_ini(Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false), info);
-    Table$set(&cache, &use, &info, cache_type);
-    return *info;
-}
-
-bool try_install_module(module_info_t mod, bool ask_confirmation) {
-    Path_t dest = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/",
-                                       Text$from_str(mod.name), "@", Text$from_str(mod.version)));
-    if (Path$exists(dest)) return true;
-
-    print("No such path: ", dest);
-
-    if (mod.git) {
-        if (ask_confirmation) {
-            OptionalText_t answer =
-                ask(Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
-                          " is not installed.\nDo you want to install it from git URL ", Text$from_str(mod.git),
-                          "? [Y/n] "),
-                    true, true);
-            if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
-                return false;
+static OptionalPath_t try_install_module(module_info_t *mod, bool ask_confirmation) {
+    OptionalPath_t install_location = NULL;
+    const char *digest = Table$str_get(mod->info, "digest");
+    if (digest) {
+        install_location = Path$from_text(
+            Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(mod->name), "/", digest));
+        if (Path$exists(install_location)) {
+            return install_location;
         }
-        print("Installing ", mod.name, " from git...");
-        if (mod.revision) xsystem("git clone --depth=1 --revision ", mod.revision, " ", mod.git, " ", dest);
-        else if (mod.version) xsystem("git clone --depth=1 --branch ", mod.version, " ", mod.git, " ", dest);
-        else xsystem("git clone --depth=1 ", mod.git, " ", dest);
-        // Clean up .git/ folder after cloning:
-        xsystem("rm -rf ", dest, "/.git");
-        // Build library:
-        xsystem("tomo -L ", dest);
-        return true;
-    } else if (mod.url) {
-        if (ask_confirmation) {
-            OptionalText_t answer = ask(
-                Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
-                      " is not installed.\nDo you want to install it from URL ", Text$from_str(mod.url), "? [Y/n] "),
-                true, true);
-            if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
-                return false;
+    }
+
+    const char *uri = Table$str_get(mod->info, "path");
+    if (!uri) fail("No path for module: ", mod->name);
+
+    if (ask_confirmation) {
+        OptionalText_t answer = ask(Texts("The module ", Text$quoted(Text$from_str(mod->name), false, Text("\"")),
+                                          " is not installed.\nDo you want to install it from ",
+                                          Text$quoted(Text$from_str(uri), false, Text("\"")), "? [Y/n] "),
+                                    true, true);
+        if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y")))) {
+            print("Okay, not installing it!");
+            exit(1);
         }
+    }
 
-        print("Installing ", mod.name, " from URL...");
+    print("Installing ", Text$quoted(Text$from_str(mod->name), false, Text("\"")), " from URL...");
 
-        const char *p = strrchr(mod.url, '/');
-        if (!p) return false;
-        const char *filename = p + 1;
-        p = strchr(filename, '.');
-        if (!p) return false;
-        const char *extension = p + 1;
-        Path_t tmpdir = Path$unique_directory(Path("/tmp/tomo-module-XXXXXX"));
-        tmpdir = Path$child(tmpdir, Text$from_str(mod.name));
-        Path$create_directory(tmpdir, 0755, true);
+    Path_t tmpdir = Path$unique_directory(Path$from_text(Texts("/tmp/tomo-", mod->name, "-XXXXXX")));
 
-        xsystem("curl ", mod.url, " -o ", tmpdir);
-        Path$create_directory(dest, 0755, true);
-        if (streq(extension, ".zip")) xsystem("unzip ", tmpdir, "/", filename, " -d ", dest);
-        else if (streq(extension, ".tar.gz") || streq(extension, ".tar"))
-            xsystem("tar xf ", tmpdir, "/", filename, " -C ", dest);
-        else return false;
-        xsystem("tomo -L ", dest);
+    xsystem_cleanup(tmpdir, "curl --output-dir ", quoted(tmpdir), " -LJO ", quoted(uri));
+
+    List_t children = Path$children(tmpdir, true);
+    if (children.length != 1) {
         Path$remove(tmpdir, true);
-        return true;
-    } else if (mod.path) {
-        if (ask_confirmation) {
-            OptionalText_t answer = ask(
-                Texts("The module \"", Text$from_str(mod.name), "\" ", Text$from_str(mod.version),
-                      " is not installed.\nDo you want to install it from path ", Text$from_str(mod.path), "? [Y/n] "),
-                true, true);
-            if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y"))))
-                return false;
-        }
-
-        print("Installing ", mod.name, " from path...");
-        xsystem("ln -s ", mod.path, " ", dest);
-        xsystem("tomo -L ", dest);
-        return true;
+        fail("Failed to download module ", mod->name, " from: ", uri);
     }
 
-    return false;
+    Path_t downloaded = *(Path_t *)children.data;
+    OptionalText_t downloaded_digest = file_digest(downloaded);
+    if (downloaded_digest.tag == TEXT_NONE) {
+        Path$remove(tmpdir, true);
+        fail("Failed to compute digest for module ", mod->name);
+    }
+    if (install_location == NULL) {
+        install_location = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/",
+                                                Text$from_str(mod->name), "/", downloaded_digest));
+        if (Path$exists(install_location)) {
+            // Already installed!
+            return install_location;
+        }
+    } else {
+        if (!Text$equal_values(downloaded_digest, Text$from_str(digest))) {
+            // Digest mismatch
+            Path$remove(tmpdir, true);
+            fail("Mismatched digest sum for module ", mod->name, "! Expected ", digest, " but got ", downloaded_digest);
+        }
+    }
+
+    Result_t result = Path$create_directory(install_location, 0755, true);
+    if (result.Failure.reason.tag != TEXT_NONE) {
+        Path$remove(tmpdir, true);
+        fail("Failed to make install directory: ", result.Failure.reason);
+    }
+
+    if (Path$has_extension(downloaded, Text(".tar.gz")) || Path$has_extension(downloaded, Text(".tgz"))
+        || Path$has_extension(downloaded, Text(".tar.xz")) || Path$has_extension(downloaded, Text(".txz"))
+        || Path$has_extension(downloaded, Text(".tar"))) {
+        xsystem_cleanup(tmpdir, "tar xf ", downloaded, " -C ", install_location);
+    } else if (Path$has_extension(downloaded, Text(".zip"))) {
+        xsystem_cleanup(tmpdir, "unzip ", downloaded, " -d ", install_location);
+    } else {
+        Path$remove(tmpdir, true);
+        fail("Unsupported module filetype: ", downloaded);
+    }
+
+    List_t installed_files = Path$children(install_location, true);
+    if (installed_files.length == 1
+        && Path$is_directory(*(Path_t *)installed_files.data, false)) { // Single top-level wrapper dir
+        Path_t top_level = *(Path_t *)installed_files.data;
+        List_t contents = Path$children(top_level, true);
+        for (int64_t i = 0; i < (int64_t)contents.length; i++) {
+            Path_t p = *(Path_t *)(contents.data + i * contents.stride);
+            result = Path$move(p, Path$child(install_location, Path$base_name(p)), false);
+            if (result.Failure.reason.tag != TEXT_NONE) {
+                Path$remove(tmpdir, true);
+                fail(result.Failure.reason);
+            }
+        }
+        result = Path$remove(top_level, true);
+        if (result.Failure.reason.tag != TEXT_NONE) {
+            Path$remove(tmpdir, true);
+            fail(result.Failure.reason);
+        }
+    }
+
+    xsystem_cleanup(tmpdir, "tomo -L ", install_location);
+
+    // Always clean up tmpdir!
+    Path$remove(tmpdir, true);
+
+    return install_location;
+}
+
+static OptionalPath_t get_module_install_location(Path_t ini_file, const char *name) {
+    OptionalClosure_t by_line = Path$by_line(ini_file);
+    if (by_line.fn == NULL) return NONE_PATH;
+    OptionalText_t (*next_line)(void *) = by_line.fn;
+
+    Text_t reformatted = EMPTY_TEXT;
+    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
+        if (Text$equal_values(line, Texts("[", name, "]"))) goto found_module;
+        reformatted = Texts(reformatted, line, "\n");
+    }
+    return NONE_PATH;
+
+found_module:;
+
+    module_info_t mod = {.name = name, .info = EMPTY_TABLE};
+    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
+        const char *line_str = Text$as_c_string(line);
+        const char *key = NULL, *value = NULL;
+        if (!strparse(line_str, &key, "=", &value)) {
+            Table$str_set(&mod.info, key, value);
+        } else {
+            break;
+        }
+    }
+    bool had_digest = Table$str_get(mod.info, "digest") != NULL;
+    OptionalPath_t installed = try_install_module(&mod, true);
+    if (installed == NULL) return NULL;
+
+    // Add digest to the module.ini file if it wasn't already there
+    if (!had_digest) {
+        const char *digest = Text$as_c_string(Path$base_name(installed));
+        Table$str_set(&mod.info, "digest", Text$as_c_string(Path$base_name(installed)));
+        reformatted = Texts(reformatted, module_text(mod), "\n\n");
+        for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
+            reformatted = Texts(reformatted, line, "\n");
+        }
+        reformatted = Texts(Text$trim(reformatted, Text(" \r\n\t"), true, true), "\n");
+
+        print("Added digest for ", mod.name, ": ", digest);
+
+        Result_t result = Path$write(ini_file, reformatted, 0644);
+        if (result.Failure.reason.tag != TEXT_NONE) {
+            fail(result.Failure.reason);
+        }
+    }
+
+    return installed;
+}
+
+OptionalPath_t find_installed_module(ast_t *use) {
+    const char *name = Match(use, Use)->path;
+
+    {
+        Path_t file_module = Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false);
+        OptionalPath_t installed = get_module_install_location(file_module, name);
+        if (installed != NULL) return installed;
+    }
+
+    {
+        Path_t local_module = Path$sibling(Path$from_str(use->file->filename), Text("modules.ini"));
+        OptionalPath_t installed = get_module_install_location(local_module, name);
+        if (installed != NULL) return installed;
+    }
+
+    {
+        Path_t tomo_default_modules =
+            Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/modules.ini"));
+        OptionalPath_t installed = get_module_install_location(tomo_default_modules, name);
+        if (installed != NULL) return installed;
+    }
+
+    return NONE_PATH;
 }

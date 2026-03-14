@@ -654,6 +654,28 @@ assert (./file.txt).modified() == Int64(1704221100)
 assert (./not-a-file).modified() == none
 
 ```
+## Path.move
+
+```tomo
+Path.move : func(path: Path, dest: Path, allow_overwriting = no -> Result)
+```
+
+Moves the file or directory from one location to another.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to move.  | -
+dest | `Path` | The destination to move the path to.  | -
+allow_overwriting | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
+
+**Return:** Either `Success` or `Failure(reason)`.
+
+
+**Example:**
+```tomo
+(./file.txt).move(/tmp/renamed.txt)!
+
+```
 ## Path.owner
 
 ```tomo

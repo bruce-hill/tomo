@@ -3,7 +3,6 @@
 #include <gc.h>
 #include <glob.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
@@ -222,22 +221,16 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
         return load_module_env(env, ast);
     }
     case USE_MODULE: {
-        module_info_t mod = get_used_module_info(use_ast);
-        glob_t tm_files;
-        const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
-        if (glob(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
-                 &tm_files)
-            != 0) {
-            if (!try_install_module(mod, true)) code_err(use_ast, "Couldn't find or install library: ", folder);
-        }
-
+        OptionalPath_t installed = find_installed_module(use_ast);
+        assert(installed);
+        Text_t name = get_library_name(installed);
         env_t *module_env = fresh_scope(env);
-        Table$str_set(env->imports, mod.name, module_env);
-
-        for (size_t i = 0; i < tm_files.gl_pathc; i++) {
-            const char *filename = tm_files.gl_pathv[i];
-            ast_t *ast = parse_file(filename, NULL);
-            if (!ast) print_err("Could not compile file ", filename);
+        Table$str_set(env->imports, Text$as_c_string(name), module_env);
+        List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
+        for (int64_t i = 0; i < (int64_t)children.length; i++) {
+            Path_t child = *(Path_t *)(children.data + i * children.stride);
+            ast_t *ast = parse_file(child, NULL);
+            if (!ast) print_err("Could not compile file ", child);
             env_t *module_file_env = fresh_scope(module_env);
             module_file_env->namespace = NULL;
             env_t *subenv = load_module_env(module_file_env, ast);
@@ -249,7 +242,6 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
                 Table$str_set(module_env->locals, entry->name, entry->binding);
             }
         }
-        globfree(&tm_files);
         return module_env;
     }
     default: return NULL;
