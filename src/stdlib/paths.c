@@ -60,7 +60,7 @@ static void normalize_inplace(char path[PATH_MAX]) {
         component_len = strcspn(src, "/");
         if (component_len == 0) {
             ; // Skip empty "//"s:
-        } else if (component_len == 1 && src[0] == '.') {
+        } else if (component_len == 1 && src[0] == '.' && dest > buf) {
             ; // Skip "." components
         } else {
             // Add "/" if there's a previous non-slash
@@ -95,9 +95,6 @@ static void normalize_inplace(char path[PATH_MAX]) {
     }
 
     *(dest++) = '\0';
-    // Trim trailing slashes:
-    // while (dest > buf && dest[-1] == '/')
-    //     *(--dest) = '\0';
 
     if (dest == buf) {
         path[0] = '.';

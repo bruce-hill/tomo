@@ -102,6 +102,8 @@ rm -f /tmp/install_tomo.sh
 - [Automatic command line argument parsing with type safety](docs/command-line-parsing.md)
 - [Easy interoperability with C](docs/c-interoperability.md)
 - Built-in [data serialization and deserialization](docs/serialization.md).
+- [Paths](docs/paths.md) are a native datatype with built-in syntax and a
+  user-friendly API for filesystem operations. 
 
 ## Dependencies
 

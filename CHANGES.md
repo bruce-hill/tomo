@@ -2,6 +2,7 @@
 
 ## v2026-02-08
 
+- Path syntax no longer requires parentheses, any value starting with `.`, `/`, or `~` is treated as a path.
 - Changed `Path` implementation to use C-style strings instead of an `enum` with array components.
 - Added `Text.distance(a,b)` for calculating text distances.
 - `List.random()` now returns an optional value, which is `none` when the list is empty, instead of failing.

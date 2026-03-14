@@ -206,7 +206,8 @@ int main(int argc, char *argv[]) {
                          "  --show-codegen|-c <pager>: show generated code\n"
                          "  --compile-obj|-c: compile C code for object file\n"
                          "  --compile-exe|-e: compile to standalone executable without running\n"
-                         "  --format: print formatted code\n"
+                         "  --parse|p: print parsed code\n"
+                         "  --format|F: print formatted code\n"
                          "  --format-inplace: format the code in a file (in place)\n"
                          "  --library|-L: build a folder as a library\n"
                          "  --install|-I: install the executable or library\n"
@@ -222,6 +223,7 @@ int main(int argc, char *argv[]) {
         {"run", &run_files, List$info(&Path$info), .short_flag = 'r'}, //
         {"args", &args, List$info(&CString$info)}, //
         {"format", &format_files, List$info(&Path$info), .short_flag = 'F'}, //
+        {"parse", &parse_files, List$info(&Path$info), .short_flag = 'p'}, //
         {"format-inplace", &format_files_inplace, List$info(&Path$info)}, //
         {"transpile", &transpile_files, List$info(&Path$info), .short_flag = 't'}, //
         {"compile-obj", &compile_objects, List$info(&Path$info), .short_flag = 'c'}, //
