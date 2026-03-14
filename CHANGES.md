@@ -1,6 +1,13 @@
-# Version History
+# Changes
 
-## v2026-02-08
+## 2026-03-14
+
+- Added `Path.each_child()` and `Path.walk()` for iterating over files without
+  the need to allocate a list of every iterated file.
+- Added `Text.matches_glob(glob)` and `Path.matches_glob(glob)`
+- Overhaul to module system
+
+## 2026-02-08
 
 - Path syntax no longer requires parentheses, any value starting with `.`, `/`,
   or `~` is treated as a path.
@@ -10,51 +17,48 @@
 - `List.random()` now returns an optional value, which is `none` when the list
   is empty, instead of failing.
 - Improved error messages for misspelled variables and field/method names.
-- Added `Path.each_child()` and `Path.walk()` for iterating over files without
-  the need to allocate a list of every iterated file.
-- Added `Text.matches_glob(glob)` and `Path.matches_glob(glob)`
 
-## v2025-12-31
+## 2025-12-31
 
 - Added support for `123.foo()` parsing the same as `(123).foo()`
 - Changed `is_between()` to be bidirectional so `5.is_between(10, 1) == yes`
 
-## v2025-12-23.2
+## 2025-12-23.2
 
 - Fixes for OpenBSD and Mac.
 
-## v2025-12-23
+## 2025-12-23
 
 - Improved C preprocessing performance by eliminating expensive macro calls.
 
-## v2025-12-22
+## 2025-12-22
 
 - Use static linking instead of dynamic linking for the Tomo standard library
   as well as for user libraries. This produces binaries that do not depend on
   having Tomo and the library installed at runtime.
 - Added `Path.writer()` and `Path.byte_writer()` for multiple successive writes
 
-## v2025-12-21.6
+## 2025-12-21.6
 
 - Add smarter default behavior if run without any args (REPL-like script runner)
 
-## v2025-12-21.5
+## 2025-12-21.5
 
 - Various fixes for versioning and builds.
 
-## v2025-12-21.4
+## 2025-12-21.4
 
 - Version bump and deprecated `--changelog` flag
 
-## v2025-12-21.3
+## 2025-12-21.3
 
 - Version bump
 
-## v2025-12-21.2
+## 2025-12-21.2
 
 - Update build process
 
-## v2025-12-21
+## 2025-12-21
 
 - You can now discard empty struct values.
 - For an enum `Foo(A,B,C)`, the syntax `f!` now desugars to `f.A!` using the
@@ -77,7 +81,7 @@
 - `Path.parent()` returns `none` if path is `(/)` (file root)
 - Added check for unused variables.
 
-## v2025-11-30
+## 2025-11-30
 
 ### API changes
 
@@ -94,7 +98,7 @@
 
 - Fix for undefined behavior on enums and structs with padding.
 
-## v2025-11-29
+## 2025-11-29
 
 ### Syntax changes
 

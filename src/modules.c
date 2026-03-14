@@ -13,6 +13,15 @@
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
 
+#define xsystem(...)                                                                                                   \
+    ({                                                                                                                 \
+        const char *cmd = String(__VA_ARGS__);                                                                         \
+        int _status = system(cmd);                                                                                     \
+        if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0) {                                                        \
+            errx(1, "Failed to run command: %s", String(__VA_ARGS__));                                                 \
+        }                                                                                                              \
+    })
+
 #define xsystem_cleanup(tmpdir, ...)                                                                                   \
     ({                                                                                                                 \
         const char *cmd = String(__VA_ARGS__);                                                                         \
@@ -70,7 +79,7 @@ static Text_t module_text(module_info_t mod) {
     return text;
 }
 
-static OptionalPath_t try_install_module(module_info_t *mod, bool ask_confirmation) {
+static OptionalPath_t try_install_module(Path_t ini_file, module_info_t *mod, bool ask_confirmation) {
     OptionalPath_t install_location = NULL;
     const char *digest = Table$str_get(mod->info, "digest");
     if (digest) {
@@ -81,13 +90,24 @@ static OptionalPath_t try_install_module(module_info_t *mod, bool ask_confirmati
         }
     }
 
-    const char *uri = Table$str_get(mod->info, "path");
-    if (!uri) fail("No path for module: ", mod->name);
+    const char *path = Table$str_get(mod->info, "path");
+    if (!path) fail("No path for module: ", mod->name);
+
+    if (path[0] == '.' || path[0] == '/' || path[0] == '~') {
+        install_location = Path$from_str(path);
+        if (Path$is_directory(install_location, true)) {
+            xsystem("tomo -L ", install_location);
+            return install_location;
+        } else {
+            install_location = NULL;
+            path = String("file://", Path$resolved(path, Path$parent(ini_file)));
+        }
+    }
 
     if (ask_confirmation) {
         OptionalText_t answer = ask(Texts("The module ", Text$quoted(Text$from_str(mod->name), false, Text("\"")),
                                           " is not installed.\nDo you want to install it from ",
-                                          Text$quoted(Text$from_str(uri), false, Text("\"")), "? [Y/n] "),
+                                          Text$quoted(Text$from_str(path), false, Text("\"")), "? [Y/n] "),
                                     true, true);
         if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y")))) {
             print("Okay, not installing it!");
@@ -99,12 +119,12 @@ static OptionalPath_t try_install_module(module_info_t *mod, bool ask_confirmati
 
     Path_t tmpdir = Path$unique_directory(Path$from_text(Texts("/tmp/tomo-", mod->name, "-XXXXXX")));
 
-    xsystem_cleanup(tmpdir, "curl --output-dir ", quoted(tmpdir), " -LJO ", quoted(uri));
+    xsystem_cleanup(tmpdir, "curl --output-dir ", quoted(tmpdir), " -LJO ", quoted(path));
 
     List_t children = Path$children(tmpdir, true);
     if (children.length != 1) {
         Path$remove(tmpdir, true);
-        fail("Failed to download module ", mod->name, " from: ", uri);
+        fail("Failed to download module ", mod->name, " from: ", path);
     }
 
     Path_t downloaded = *(Path_t *)children.data;
@@ -170,6 +190,12 @@ static OptionalPath_t try_install_module(module_info_t *mod, bool ask_confirmati
     // Always clean up tmpdir!
     Path$remove(tmpdir, true);
 
+    // Add digest to the module.ini file if it wasn't already there
+    if (digest == NULL && downloaded_digest.tag != TEXT_NONE) {
+        Table$str_set(&mod->info, "digest", Text$as_c_string(downloaded_digest));
+        print("Added digest for ", mod->name, ": ", digest);
+    }
+
     return install_location;
 }
 
@@ -198,21 +224,15 @@ found_module:;
         }
     }
     bool had_digest = Table$str_get(mod.info, "digest") != NULL;
-    OptionalPath_t installed = try_install_module(&mod, true);
+    OptionalPath_t installed = try_install_module(ini_file, &mod, true);
     if (installed == NULL) return NULL;
 
-    // Add digest to the module.ini file if it wasn't already there
-    if (!had_digest) {
-        const char *digest = Text$as_c_string(Path$base_name(installed));
-        Table$str_set(&mod.info, "digest", Text$as_c_string(Path$base_name(installed)));
+    if (!had_digest && Table$str_get(mod.info, "digest") != NULL) {
         reformatted = Texts(reformatted, module_text(mod), "\n\n");
         for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
             reformatted = Texts(reformatted, line, "\n");
         }
         reformatted = Texts(Text$trim(reformatted, Text(" \r\n\t"), true, true), "\n");
-
-        print("Added digest for ", mod.name, ": ", digest);
-
         Result_t result = Path$write(ini_file, reformatted, 0644);
         if (result.Failure.reason.tag != TEXT_NONE) {
             fail(result.Failure.reason);
