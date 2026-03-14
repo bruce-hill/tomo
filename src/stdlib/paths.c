@@ -30,7 +30,8 @@
 #include "types.h"
 #include "util.h"
 
-static const Path_t HOME_PATH = (Path_t){"~"}, ROOT_PATH = (Path_t){"/"}, CURDIR_PATH = (Path_t){"."};
+static const Path_t HOME_PATH = (Path_t){"~"}, ROOT_PATH = (Path_t){"/"}, CURDIR_PATH = (Path_t){"."},
+                    PARENT_PATH = (Path_t){".."};
 
 typedef enum { PATH_ABSOLUTE, PATH_RELATIVE, PATH_HOME } pathtype_t;
 
@@ -720,6 +721,7 @@ OptionalPath_t Path$parent(Path_t path) {
         // root dir has no parent
         return NULL;
     }
+    if (streq(path, ".")) return PARENT_PATH;
     static char buf[PATH_MAX];
     snprintf(buf, sizeof(buf), "%s/..", path);
     return path_from_buf(buf);
