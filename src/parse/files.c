@@ -18,6 +18,7 @@
 #include "expressions.h"
 #include "files.h"
 #include "functions.h"
+#include "path.h"
 #include "statements.h"
 #include "text.h"
 #include "typedefs.h"

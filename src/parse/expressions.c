@@ -13,6 +13,7 @@
 #include "expressions.h"
 #include "functions.h"
 #include "numbers.h"
+#include "path.h"
 #include "suffixes.h"
 #include "text.h"
 #include "utils.h"
