@@ -79,35 +79,26 @@ static Text_t module_text(module_info_t mod) {
     return text;
 }
 
-static OptionalPath_t try_install_module(Path_t ini_file, module_info_t *mod, bool ask_confirmation) {
-    OptionalPath_t install_location = NULL;
-    const char *digest = Table$str_get(mod->info, "digest");
-    if (digest) {
-        install_location = Path$from_text(
-            Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(mod->name), "/", digest));
-        if (Path$exists(install_location)) {
-            return install_location;
+static OptionalPath_t try_install_module_from_source(Path_t ini_file, module_info_t *mod, const char *source,
+                                                     bool ask_confirmation) {
+    if (source[0] == '.' || source[0] == '/' || source[0] == '~') {
+        Path_t source_path = Path$from_str(source);
+        if (!Path$exists(source_path)) {
+            print("No such file: ", source_path);
+            return NONE_PATH;
         }
-    }
-
-    const char *path = Table$str_get(mod->info, "path");
-    if (!path) fail("No path for module: ", mod->name);
-
-    if (path[0] == '.' || path[0] == '/' || path[0] == '~') {
-        install_location = Path$from_str(path);
-        if (Path$is_directory(install_location, true)) {
-            xsystem("tomo -L ", install_location);
-            return install_location;
+        if (Path$is_directory(source_path, true)) {
+            xsystem("tomo -L ", source_path);
+            return source_path;
         } else {
-            install_location = NULL;
-            path = String("file://", Path$resolved(path, Path$parent(ini_file)));
+            source = String("file://", Path$resolved(source, Path$parent(ini_file)));
         }
     }
 
     if (ask_confirmation) {
         OptionalText_t answer = ask(Texts("The module ", Text$quoted(Text$from_str(mod->name), false, Text("\"")),
                                           " is not installed.\nDo you want to install it from ",
-                                          Text$quoted(Text$from_str(path), false, Text("\"")), "? [Y/n] "),
+                                          Text$quoted(Text$from_str(source), false, Text("\"")), "? [Y/n] "),
                                     true, true);
         if (!(answer.length == 0 || Text$equal_values(answer, Text("Y")) || Text$equal_values(answer, Text("y")))) {
             print("Okay, not installing it!");
@@ -119,12 +110,13 @@ static OptionalPath_t try_install_module(Path_t ini_file, module_info_t *mod, bo
 
     Path_t tmpdir = Path$unique_directory(Path$from_text(Texts("/tmp/tomo-", mod->name, "-XXXXXX")));
 
-    xsystem_cleanup(tmpdir, "curl --output-dir ", quoted(tmpdir), " -LJO ", quoted(path));
+    xsystem_cleanup(tmpdir, "curl --output-dir ", quoted(tmpdir), " -LJO ", quoted(source));
 
     List_t children = Path$children(tmpdir, true);
     if (children.length != 1) {
         Path$remove(tmpdir, true);
-        fail("Failed to download module ", mod->name, " from: ", path);
+        print("Failed to download file ", mod->name, " from: ", source);
+        return NONE_PATH;
     }
 
     Path_t downloaded = *(Path_t *)children.data;
@@ -133,13 +125,12 @@ static OptionalPath_t try_install_module(Path_t ini_file, module_info_t *mod, bo
         Path$remove(tmpdir, true);
         fail("Failed to compute digest for module ", mod->name);
     }
-    if (install_location == NULL) {
-        install_location = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/",
-                                                Text$from_str(mod->name), "/", downloaded_digest));
-        if (Path$exists(install_location)) {
-            // Already installed!
-            return install_location;
-        }
+
+    const char *digest = Table$str_get(mod->info, "digest");
+    if (digest == NULL) {
+        digest = Text$as_c_string(downloaded_digest);
+        Table$str_set(&mod->info, "digest", digest);
+        print("Added digest for ", mod->name, ": ", digest);
     } else {
         if (!Text$equal_values(downloaded_digest, Text$from_str(digest))) {
             // Digest mismatch
@@ -147,6 +138,9 @@ static OptionalPath_t try_install_module(Path_t ini_file, module_info_t *mod, bo
             fail("Mismatched digest sum for module ", mod->name, "! Expected ", digest, " but got ", downloaded_digest);
         }
     }
+
+    OptionalPath_t install_location = Path$from_text(
+        Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(mod->name), "/", digest));
 
     Result_t result = Path$create_directory(install_location, 0755, true);
     if (result.Failure.reason.tag != TEXT_NONE) {
@@ -197,6 +191,28 @@ static OptionalPath_t try_install_module(Path_t ini_file, module_info_t *mod, bo
     }
 
     return install_location;
+}
+
+static OptionalPath_t try_install_module(Path_t ini_file, module_info_t *mod, bool ask_confirmation) {
+    OptionalPath_t install_location = NULL;
+    const char *digest = Table$str_get(mod->info, "digest");
+    if (digest) {
+        install_location = Path$from_text(
+            Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(mod->name), "/", digest));
+        if (Path$exists(install_location)) {
+            return install_location;
+        }
+    }
+
+    const char *source = Table$str_get(mod->info, "source");
+    for (int i = 1; source; i++) {
+        install_location = try_install_module_from_source(ini_file, mod, source, ask_confirmation);
+        if (install_location != NULL) return install_location;
+        const char *new_source_key = String("source-", i + 1);
+        source = Table$str_get(mod->info, new_source_key);
+    }
+    fail("No source for module: ", mod->name);
+    return NULL;
 }
 
 static OptionalPath_t get_module_install_location(Path_t ini_file, const char *name) {
