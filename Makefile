@@ -108,7 +108,7 @@ TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
-all: config.mk check-c-compiler check-libs build
+all: config.mk check-c-compiler check-libs build test/api.tm
 	@$(ECHO) "All done!"
 
 BUILD_DIR=build/tomo@$(TOMO_VERSION)
