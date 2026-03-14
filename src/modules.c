@@ -52,7 +52,7 @@ bool install_from_modules_ini(Path_t ini_file, bool ask_confirmation) {
     OptionalText_t (*next_line)(void *) = by_line.fn;
     module_info_t info = {};
     for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
-        char *line_str = Text$as_c_string(line);
+        const char *line_str = Text$as_c_string(line);
         const char *next_section = NULL;
         if (!strparse(line_str, "[", &next_section, "]")) {
             if (info.name) {
@@ -79,13 +79,13 @@ static void read_modules_ini(Path_t ini_file, module_info_t *info) {
     OptionalText_t (*next_line)(void *) = by_line.fn;
 find_section:;
     for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
-        char *line_str = Text$as_c_string(line);
+        const char *line_str = Text$as_c_string(line);
         if (line_str[0] == '[' && strncmp(line_str + 1, info->name, strlen(info->name)) == 0
             && line_str[1 + strlen(info->name)] == ']')
             break;
     }
     for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
-        char *line_str = Text$as_c_string(line);
+        const char *line_str = Text$as_c_string(line);
         if (line_str[0] == '[') goto find_section;
         if (!strparse(line_str, "version=", &info->version) || !strparse(line_str, "url=", &info->url)
             || !strparse(line_str, "git=", &info->git) || !strparse(line_str, "path=", &info->path)

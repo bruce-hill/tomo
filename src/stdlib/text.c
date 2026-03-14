@@ -907,7 +907,8 @@ static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t 
 }
 
 public
-char *Text$as_c_string(Text_t text) {
+const char *Text$as_c_string(Text_t text) {
+    if (text.tag == TEXT_ASCII) return text.ascii;
     int64_t capacity = text.length + 1;
     char *buf = GC_MALLOC_ATOMIC((size_t)capacity);
     int64_t i = 0;

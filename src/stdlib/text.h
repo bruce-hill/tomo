@@ -98,7 +98,7 @@ List_t Text$split_any(Text_t text, Text_t delimiters);
 Closure_t Text$by_split(Text_t text, Text_t delimiter);
 Closure_t Text$by_split_any(Text_t text, Text_t delimiters);
 Text_t Text$trim(Text_t text, Text_t to_trim, bool left, bool right);
-char *Text$as_c_string(Text_t text);
+const char *Text$as_c_string(Text_t text);
 List_t Text$clusters(Text_t text);
 List_t Text$utf8(Text_t text);
 List_t Text$utf16(Text_t text);
