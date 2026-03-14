@@ -236,7 +236,9 @@ Path.child:
 Path.children:
   short: get children of a directory
   description: >
-    Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
+    Returns a list of children (files and directories) within the directory at
+    the specified path. Optionally includes hidden files. Child ordering is not
+    specified.
   return:
     type: '[Path]'
     description: >
@@ -249,7 +251,7 @@ Path.children:
     include_hidden:
       default: 'no'
       description: >
-        Whether to include hidden files, which start with a `.`.
+        Whether to include hidden files (those starting with a `.`).
   example: |
     assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 
@@ -293,6 +295,30 @@ Path.current_dir:
   args:
   example: |
     assert Path.current_dir() == (/home/user/tomo)
+
+Path.each_child:
+  short: iterate over children of a directory
+  description: >
+    Returns an iterator over the children (files and directories) within the
+    directory at the specified path. Optionally includes hidden files.
+    Iteration order is not specified.
+  return:
+    type: 'func(->Path?)?'
+    description: >
+      An iterator over the children in a directory or `none` if the path is not
+      a directory or a symlink to a directory.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the directory.
+    include_hidden:
+      default: 'no'
+      description: >
+        Whether to include hidden files (those starting with a `.`).
+  example: |
+    for child in dir.each_child()!
+        say("Child: $child")
 
 Path.exists:
   short: check if a path exists
@@ -374,7 +400,7 @@ Path.files:
       type: 'Bool'
       default: 'no'
       description: >
-        Whether to include hidden files.
+        Whether to include hidden files (those starting with a `.`).
   example: |
     assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
 
@@ -771,7 +797,7 @@ Path.subdirectories:
     include_hidden:
       default: 'no'
       description: >
-        Whether to include hidden subdirectories.
+        Whether to include hidden subdirectories (those starting with a `.`)
   example: |
     assert (./directory).subdirectories() == [(./directory/subdir1), (./directory/subdir2)]
     assert (./directory).subdirectories(include_hidden=yes) == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
@@ -793,6 +819,41 @@ Path.unique_directory:
     created := (/tmp/my-dir.XXXXXX).unique_directory()
     assert created.is_directory() == yes
     created.remove()!
+
+Path.walk:
+  short: walk a filetree
+  description: >
+    Returns an iterator that efficiently recursively walks over every file and
+    subdirectory in a given directory. The iteration order is not defined, but
+    in practice it may look a lot like a breadth-first traversal.
+  note: >
+    The path itself is always included in the iteration.
+  return:
+    type: 'func(->Path?)'
+    description: >
+      An iterator that recursively walks over every file and subdirectory.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to begin the walk.
+    include_hidden:
+      default: 'no'
+      description: >
+        Whether to include hidden files (those starting with a `.`)
+    follow_symlinks:
+      type: 'Bool'
+      default: 'no'
+      description: >
+        Whether to follow symbolic links. Caution: if set to 'yes', it is
+        possible for this iterator to get stuck in a loop, using increasingly
+        large amounts of memory.
+  example: |
+    for p in (/tmp).walk()
+        say("File or dir: $p")
+
+    # The path itself is always included:
+    assert [p for p in (./file.txt).walk()] == [(./file.txt)]
 
 Path.write:
   short: write to a file

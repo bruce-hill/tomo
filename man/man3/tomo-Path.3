@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path 3 2026-03-08 "Tomo man-pages"
+.TH Path 3 2026-03-14 "Tomo man-pages"
 .SH NAME
 Path \- a Tomo type
 .SH LIBRARY
@@ -100,7 +100,7 @@ For more, see:
 
 .TP
 .BI Path.children\ :\ func(path:\ Path,\ include_hidden\ =\ no\ ->\ [Path])
-Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. 
+Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. Child ordering is not specified. 
 
 For more, see:
 .BR Tomo-Path.children (3)
@@ -120,6 +120,14 @@ Creates a new directory at the specified path with the given permissions. If any
 
 For more, see:
 .BR Tomo-Path.current_dir (3)
+
+
+.TP
+.BI Path.each_child\ :\ func(path:\ Path,\ include_hidden\ =\ no\ ->\ func(->Path?)?)
+Returns an iterator over the children (files and directories) within the directory at the specified path. Optionally includes hidden files. Iteration order is not specified. 
+
+For more, see:
+.BR Tomo-Path.each_child (3)
 
 
 .TP
@@ -312,6 +320,14 @@ Generates a unique directory path based on the given path. Useful for creating t
 
 For more, see:
 .BR Tomo-Path.unique_directory (3)
+
+
+.TP
+.BI Path.walk\ :\ func(path:\ Path,\ include_hidden\ =\ no,\ follow_symlinks:\ Bool\ =\ no\ ->\ func(->Path?))
+Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal. 
+
+For more, see:
+.BR Tomo-Path.walk (3)
 
 
 .TP

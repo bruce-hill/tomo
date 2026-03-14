@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.children 3 2026-03-08 "Tomo man-pages"
+.TH Path.children 3 2026-03-14 "Tomo man-pages"
 .SH NAME
 Path.children \- get children of a directory
 .SH LIBRARY
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Path.children\ :\ func(path:\ Path,\ include_hidden\ =\ no\ ->\ [Path])
 .fi
 .SH DESCRIPTION
-Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
+Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. Child ordering is not specified.
 
 
 .SH ARGUMENTS
@@ -23,7 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 path	Path	The path of the directory. 	-
-include_hidden		Whether to include hidden files, which start with a \fB.\fR. 	no
+include_hidden		Whether to include hidden files (those starting with a \fB.\fR). 	no
 .TE
 .SH RETURN
 A list of paths for the children.

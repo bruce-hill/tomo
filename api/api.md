@@ -2781,12 +2781,12 @@ assert (./directory).child("file.txt") == (./directory/file.txt)
 Path.children : func(path: Path, include_hidden = no -> [Path])
 ```
 
-Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
+Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. Child ordering is not specified.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `` | Whether to include hidden files, which start with a `.`.  | `no`
+include_hidden | `` | Whether to include hidden files (those starting with a `.`).  | `no`
 
 **Return:** A list of paths for the children.
 
@@ -2834,6 +2834,28 @@ Creates a new directory at the specified path with the given permissions. If any
 **Example:**
 ```tomo
 assert Path.current_dir() == (/home/user/tomo)
+
+```
+## Path.each_child
+
+```tomo
+Path.each_child : func(path: Path, include_hidden = no -> func(->Path?)?)
+```
+
+Returns an iterator over the children (files and directories) within the directory at the specified path. Optionally includes hidden files. Iteration order is not specified.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path of the directory.  | -
+include_hidden | `` | Whether to include hidden files (those starting with a `.`).  | `no`
+
+**Return:** An iterator over the children in a directory or `none` if the path is not a directory or a symlink to a directory.
+
+
+**Example:**
+```tomo
+for child in dir.each_child()!
+    say("Child: $child")
 
 ```
 ## Path.exists
@@ -2914,7 +2936,7 @@ Returns a list of files within the directory at the specified path. Optionally i
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `Bool` | Whether to include hidden files.  | `no`
+include_hidden | `Bool` | Whether to include hidden files (those starting with a `.`).  | `no`
 
 **Return:** A list of file paths.
 
@@ -3335,7 +3357,7 @@ Returns a list of subdirectories within the directory at the specified path. Opt
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `` | Whether to include hidden subdirectories.  | `no`
+include_hidden | `` | Whether to include hidden subdirectories (those starting with a `.`)  | `no`
 
 **Return:** A list of subdirectory paths.
 
@@ -3366,6 +3388,34 @@ path | `Path` | The base path for generating the unique directory. The last six 
 created := (/tmp/my-dir.XXXXXX).unique_directory()
 assert created.is_directory() == yes
 created.remove()!
+
+```
+## Path.walk
+
+```tomo
+Path.walk : func(path: Path, include_hidden = no, follow_symlinks: Bool = no -> func(->Path?))
+```
+
+Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal.
+
+The path itself is always included in the iteration.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to begin the walk.  | -
+include_hidden | `` | Whether to include hidden files (those starting with a `.`)  | `no`
+follow_symlinks | `Bool` | Whether to follow symbolic links. Caution: if set to 'yes', it is possible for this iterator to get stuck in a loop, using increasingly large amounts of memory.  | `no`
+
+**Return:** An iterator that recursively walks over every file and subdirectory.
+
+
+**Example:**
+```tomo
+for p in (/tmp).walk()
+    say("File or dir: $p")
+
+# The path itself is always included:
+assert [p for p in (./file.txt).walk()] == [(./file.txt)]
 
 ```
 ## Path.write

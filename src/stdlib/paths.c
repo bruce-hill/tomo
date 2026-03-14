@@ -259,6 +259,14 @@ bool Path$is_symlink(Path_t path) {
 }
 
 public
+OptionalPath_t Path$link(Path_t path) {
+    static char buf[PATH_MAX];
+    ssize_t status = readlink(path, buf, sizeof(buf));
+    if (status == -1) return NONE_PATH;
+    return Path$from_str(GC_strdup(buf));
+}
+
+public
 bool Path$can_read(Path_t path) {
     path = Path$expand_home(path);
 #ifdef _GNU_SOURCE
@@ -587,8 +595,7 @@ retry:
 }
 
 static OptionalList_t _filtered_children(Path_t path, bool include_hidden, mode_t filter) {
-    path = Path$expand_home(path);
-    struct dirent *dir;
+    path = Path$resolved(path, Path$current_dir());
     List_t children = EMPTY_LIST;
     size_t path_len = strlen(path);
     DIR *d = opendir(path);
@@ -596,11 +603,12 @@ static OptionalList_t _filtered_children(Path_t path, bool include_hidden, mode_
 
     if (path[path_len - 1] == '/') --path_len;
 
-    while ((dir = readdir(d)) != NULL) {
-        if (!include_hidden && dir->d_name[0] == '.') continue;
-        if (streq(dir->d_name, ".") || streq(dir->d_name, "..")) continue;
+    struct dirent *ent;
+    while ((ent = readdir(d)) != NULL) {
+        if (!include_hidden && ent->d_name[0] == '.') continue;
+        if (streq(ent->d_name, ".") || streq(ent->d_name, "..")) continue;
 
-        const char *child_str = String(string_slice(path, path_len), "/", dir->d_name);
+        const char *child_str = String(string_slice(path, path_len), "/", ent->d_name);
         struct stat sb;
         if (stat(child_str, &sb) != 0) continue;
         if (!((sb.st_mode & S_IFMT) & filter)) continue;
@@ -625,6 +633,40 @@ OptionalList_t Path$files(Path_t path, bool include_hidden) {
 public
 OptionalList_t Path$subdirectories(Path_t path, bool include_hidden) {
     return _filtered_children(path, include_hidden, S_IFDIR);
+}
+
+typedef struct {
+    Path_t path;
+    DIR *dir;
+    bool include_hidden : 1;
+} child_info_t;
+
+static OptionalPath_t _next_child(child_info_t *info) {
+    if (!info->dir) return NONE_PATH;
+    for (struct dirent *ent; (ent = readdir(info->dir)) != NULL;) {
+        if (!info->include_hidden && ent->d_name[0] == '.') continue;
+        if (streq(ent->d_name, ".") || streq(ent->d_name, "..")) continue;
+
+        Path_t child = Path$_concat2(info->path, ent->d_name);
+        return child;
+    }
+    closedir(info->dir);
+    info->dir = NULL;
+    return NONE_PATH;
+}
+
+public
+Closure_t Path$each_child(Path_t path, bool include_hidden) {
+    path = Path$resolved(path, Path$current_dir());
+
+    DIR *d = opendir(path);
+    if (!d) return NONE_CLOSURE;
+
+    child_info_t *info = GC_malloc(sizeof(child_info_t));
+    info->path = path;
+    info->dir = d;
+    info->include_hidden = include_hidden;
+    return (Closure_t){.fn = (void *)_next_child, .userdata = info};
 }
 
 public
@@ -869,6 +911,53 @@ Path_t Path$current_dir(void) {
     static char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) == NULL) fail("Could not get current working directory");
     return Path$from_str(cwd);
+}
+
+typedef struct {
+    List_t dir_stack;
+    OptionalPath_t current;
+    DIR *dir;
+    bool include_hidden : 1, follow_symlinks : 1;
+} walk_info_t;
+
+static OptionalPath_t _walk_next_path(walk_info_t *info) {
+    while (info->dir == NULL) {
+        if (info->dir_stack.length == 0) return NONE_PATH;
+
+        Path_t p = *(Path_t *)info->dir_stack.data;
+        List$remove_at(&info->dir_stack, I(1), I(1), sizeof(Path_t));
+        info->dir = opendir(p);
+        info->current = p;
+        return p;
+    }
+
+    for (struct dirent *ent; (ent = readdir(info->dir)) != NULL;) {
+        if (!info->include_hidden && ent->d_name[0] == '.') continue;
+        if (streq(ent->d_name, ".") || streq(ent->d_name, "..")) continue;
+
+        Path_t path = Path$_concat2(info->current, Path$from_str(ent->d_name));
+        if (Path$is_directory(path, info->follow_symlinks)) {
+            List$insert(&info->dir_stack, &path, I(0), sizeof(Path_t));
+            continue;
+        }
+        return path;
+    }
+
+    closedir(info->dir);
+    info->dir = NULL;
+    return _walk_next_path(info);
+}
+
+public
+Closure_t Path$walk(Path_t dir, bool include_hidden, bool follow_symlinks) {
+    dir = Path$resolved(dir, Path$current_dir());
+    walk_info_t *info = GC_malloc(sizeof(walk_info_t));
+    info->dir_stack = List(dir);
+    info->current = dir;
+    info->dir = NULL;
+    info->include_hidden = include_hidden;
+    info->follow_symlinks = follow_symlinks;
+    return (Closure_t){.fn = (void *)_walk_next_path, .userdata = info};
 }
 
 public
