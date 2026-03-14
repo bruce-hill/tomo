@@ -562,6 +562,27 @@ Path.is_symlink:
   example: |
     assert (./link).is_symlink() == yes
 
+Path.matches_glob:
+  short: check if a path matches a glob
+  description: >
+    Return whether or not a path matches a given glob.
+  return:
+    type: 'Bool'
+    description: >
+      Whether or not the path matches the given glob.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to check.
+    glob:
+      type: 'Text'
+      description: >
+        The glob pattern to check.
+  example: |
+    assert (./file.txt).matches_glob("*.txt")
+    assert (./file.c).matches_glob("*.{c,h}")
+
 Path.modified:
   short: get file modification time
   description: >

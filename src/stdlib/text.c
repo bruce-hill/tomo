@@ -93,6 +93,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <fnmatch.h>
 #include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -1129,6 +1130,11 @@ OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start) {
         }
     }
     return NONE_INT;
+}
+
+public
+bool Text$matches_glob(Text_t text, Text_t glob) {
+    return !fnmatch(Text$as_c_string(glob), Text$as_c_string(text), 0);
 }
 
 public

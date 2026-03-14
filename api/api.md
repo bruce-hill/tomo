@@ -3130,6 +3130,28 @@ path | `Path` | The path of the file.  | -
 lines := (./file.txt).lines()!
 
 ```
+## Path.matches_glob
+
+```tomo
+Path.matches_glob : func(path: Path, glob: Text -> Bool)
+```
+
+Return whether or not a path matches a given glob.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to check.  | -
+glob | `Text` | The glob pattern to check.  | -
+
+**Return:** Whether or not the path matches the given glob.
+
+
+**Example:**
+```tomo
+assert (./file.txt).matches_glob("*.txt")
+assert (./file.c).matches_glob("*.{c,h}")
+
+```
 ## Path.modified
 
 ```tomo
@@ -4305,6 +4327,27 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 ```tomo
 assert "AMÉLIE".lower() == "amélie"
 assert "I".lower(language="tr_TR") == "ı"
+
+```
+## Text.matches_glob
+
+```tomo
+Text.matches_glob : func(path: Text, glob: Text -> Bool)
+```
+
+Return whether or not the text matches the given glob.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Text` | The text to check.  | -
+glob | `Text` | The glob pattern to check.  | -
+
+**Return:** Whether or not the text matches the given glob.
+
+
+**Example:**
+```tomo
+assert "hello world".matches_glob("h* *d")
 
 ```
 ## Text.middle_pad

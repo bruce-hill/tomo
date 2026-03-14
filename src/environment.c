@@ -320,6 +320,7 @@ env_t *global_env(bool source_mapping) {
             {"is_socket", "Path$is_socket", "func(path:Path, follow_symlinks=yes -> Bool)"}, //
             {"is_symlink", "Path$is_symlink", "func(path:Path -> Bool)"}, //
             {"lines", "Path$lines", "func(path:Path -> [Text]?)"}, //
+            {"matches_glob", "Path$matches_glob", "func(path:Path, glob:Text -> Bool)"}, //
             {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
             {"owner", "Path$owner", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
             {"parent", "Path$parent", "func(path:Path -> Path?)"}, //
@@ -368,6 +369,7 @@ env_t *global_env(bool source_mapping) {
             {"left_pad", "Text$left_pad", "func(text:Text, count:Int, pad=' ', language='C' -> Text)"}, //
             {"lines", "Text$lines", "func(text:Text -> [Text])"}, //
             {"lower", "Text$lower", "func(text:Text, language='C' -> Text)"}, //
+            {"matches_glob", "Text$matches_glob", "func(text:Text, glob:Text -> Bool)"}, //
             {"memory_size", "Text$memory_size", "func(text:Text -> Int)"}, //
             {"middle_pad", "Text$middle_pad", "func(text:Text, count:Int, pad=' ', language='C' -> Text)"}, //
             {"quoted", "Text$quoted", "func(text:Text, color=no, quotation_mark='\"' -> Text)"}, //
@@ -679,7 +681,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t) {
     case NumType:
     case ByteType: {
         binding_t *b = get_binding(env, Text$as_c_string(type_to_text(t)));
-        assert(b);
+        if (!b) compiler_err(NULL, NULL, NULL, "Couldn't get type namespace: ", Text$as_c_string(type_to_text(t)));
         return Match(b->type, TypeInfoType)->env;
     }
     case TextType: return Match(t, TextType)->env;

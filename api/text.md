@@ -505,6 +505,27 @@ assert "AMÉLIE".lower() == "amélie"
 assert "I".lower(language="tr_TR") == "ı"
 
 ```
+## Text.matches_glob
+
+```tomo
+Text.matches_glob : func(path: Text, glob: Text -> Bool)
+```
+
+Return whether or not the text matches the given glob.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Text` | The text to check.  | -
+glob | `Text` | The glob pattern to check.  | -
+
+**Return:** Whether or not the text matches the given glob.
+
+
+**Example:**
+```tomo
+assert "hello world".matches_glob("h* *d")
+
+```
 ## Text.middle_pad
 
 ```tomo

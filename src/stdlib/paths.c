@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include <ftw.h>
 #include <gc.h>
 #include <glob.h>
@@ -906,6 +907,11 @@ List_t Path$glob(Path_t path) {
         List$insert(&glob_files, &p, I(0), sizeof(Path_t));
     }
     return glob_files;
+}
+
+public
+bool Path$matches_glob(Path_t path, Text_t glob) {
+    return !fnmatch(Text$as_c_string(glob), path, FNM_PATHNAME | FNM_PERIOD);
 }
 
 public

@@ -62,6 +62,7 @@ Closure_t Path$by_line(Path_t path);
 Closure_t Path$walk(Path_t dir, bool include_hidden, bool follow_symlinks);
 OptionalList_t Path$lines(Path_t path);
 List_t Path$glob(Path_t path);
+bool Path$matches_glob(Path_t path, Text_t glob);
 
 uint64_t Path$hash(const void *obj, const TypeInfo_t *);
 int32_t Path$compare(const void *a, const void *b, const TypeInfo_t *type);

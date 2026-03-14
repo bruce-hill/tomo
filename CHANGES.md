@@ -12,6 +12,7 @@
 - Improved error messages for misspelled variables and field/method names.
 - Added `Path.each_child()` and `Path.walk()` for iterating over files without
   the need to allocate a list of every iterated file.
+- Added `Text.matches_glob(glob)` and `Path.matches_glob(glob)`
 
 ## v2025-12-31
 

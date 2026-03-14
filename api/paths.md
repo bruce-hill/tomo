@@ -610,6 +610,28 @@ path | `Path` | The path of the file.  | -
 lines := (./file.txt).lines()!
 
 ```
+## Path.matches_glob
+
+```tomo
+Path.matches_glob : func(path: Path, glob: Text -> Bool)
+```
+
+Return whether or not a path matches a given glob.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to check.  | -
+glob | `Text` | The glob pattern to check.  | -
+
+**Return:** Whether or not the path matches the given glob.
+
+
+**Example:**
+```tomo
+assert (./file.txt).matches_glob("*.txt")
+assert (./file.c).matches_glob("*.{c,h}")
+
+```
 ## Path.modified
 
 ```tomo

@@ -90,6 +90,7 @@ PUREFUNC bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainder);
 Text_t Text$without_prefix(Text_t text, Text_t prefix);
 Text_t Text$without_suffix(Text_t text, Text_t suffix);
 OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start);
+bool Text$matches_glob(Text_t text, Text_t glob);
 Text_t Text$replace(Text_t text, Text_t target, Text_t replacement);
 Text_t Text$translate(Text_t text, Table_t translations);
 PUREFUNC bool Text$has(Text_t text, Text_t target);
