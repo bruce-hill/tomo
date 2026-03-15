@@ -1077,7 +1077,7 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 **Example:**
 ```tomo
 nums := [10, 20, 30]
-pick := nums.random()
+pick := nums.random()!
 assert nums.has(pick)
 empty : [Int]
 assert empty.random() == none
@@ -2854,7 +2854,7 @@ include_hidden | `` | Whether to include hidden files (those starting with a `.`
 
 **Example:**
 ```tomo
-for child in dir.each_child()!
+for child in (/dir).each_child()
     say("Child: $child")
 
 ```
@@ -3172,6 +3172,28 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 ```tomo
 assert (./file.txt).modified() == Int64(1704221100)
 assert (./not-a-file).modified() == none
+
+```
+## Path.move
+
+```tomo
+Path.move : func(path: Path, dest: Path, allow_overwriting = no -> Result)
+```
+
+Moves the file or directory from one location to another.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to move.  | -
+dest | `Path` | The destination to move the path to.  | -
+allow_overwriting | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
+
+**Return:** Either `Success` or `Failure(reason)`.
+
+
+**Example:**
+```tomo
+(./file.txt).move(/tmp/renamed.txt)!
 
 ```
 ## Path.owner

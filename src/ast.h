@@ -451,7 +451,7 @@ struct ast_s {
         struct {
             ast_t *var;
             const char *path;
-            enum { USE_LOCAL, USE_MODULE, USE_SHARED_OBJECT, USE_HEADER, USE_C_CODE, USE_ASM } what;
+            enum { USE_LOCAL, USE_PACKAGE, USE_SHARED_OBJECT, USE_HEADER, USE_C_CODE, USE_ASM } what;
         } Use;
         struct {
             ast_list_t *chunks;

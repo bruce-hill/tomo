@@ -579,6 +579,19 @@ Result_t Path$remove(Path_t path, bool ignore_missing) {
     return SuccessResult;
 }
 
+Result_t Path$move(Path_t src, Path_t dest, bool allow_overwriting) {
+    int status = rename(src, dest);
+    if (status != 0) {
+        if (errno == EEXIST && allow_overwriting) {
+            Result_t result = Path$remove(dest, true);
+            if (result.Failure.reason.tag != TEXT_NONE) return result;
+            return Path$move(src, dest, allow_overwriting);
+        }
+        return FailureResult("Could not move file ", src, " to ", dest, " (", strerror(errno), ")");
+    }
+    return SuccessResult;
+}
+
 public
 Result_t Path$create_directory(Path_t path, int permissions, bool recursive) {
 retry:

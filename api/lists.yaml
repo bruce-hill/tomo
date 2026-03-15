@@ -337,7 +337,7 @@ List.random:
         generation)
   example: |
     nums := [10, 20, 30]
-    pick := nums.random()
+    pick := nums.random()!
     assert nums.has(pick)
     empty : [Int]
     assert empty.random() == none

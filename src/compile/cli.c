@@ -122,7 +122,7 @@ static Text_t generate_help(env_t *env, type_t *fn_type) {
 }
 
 public
-Text_t compile_cli_arg_call(env_t *env, ast_t *ast, Text_t fn_name, type_t *fn_type, const char *version) {
+Text_t compile_cli_arg_call(env_t *env, ast_t *ast, Text_t fn_name, type_t *fn_type) {
     DeclareMatch(fn_info, fn_type, FunctionType);
 
     Text_t code = EMPTY_TEXT;
@@ -143,7 +143,9 @@ Text_t compile_cli_arg_call(env_t *env, ast_t *ast, Text_t fn_name, type_t *fn_t
                      compile_empty(arg->type), ";\n");
     }
 
-    Text_t version_code = quoted_str(version);
+    OptionalText_t version = ast_metadata(ast, "VERSION");
+    if (version.tag == TEXT_NONE) version = Text("0.0.1");
+    Text_t version_code = Text$quoted(version, false, Text("\""));
     code = Texts(code, "cli_arg_t cli_args[] = {\n");
     for (arg_t *arg = fn_info->args; arg; arg = arg->next) {
         code = Texts(code, "{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", &",

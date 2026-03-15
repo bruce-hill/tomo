@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.random 3 2026-03-11 "Tomo man-pages"
+.TH List.random 3 2026-03-14 "Tomo man-pages"
 .SH NAME
 List.random \- pick a random element
 .SH LIBRARY
@@ -31,7 +31,7 @@ A random element from the list or `none` if the list is empty.
 .SH EXAMPLES
 .EX
 nums := [10, 20, 30]
-pick := nums.random()
+pick := nums.random()!
 assert nums.has(pick)
 empty : [Int]
 assert empty.random() == none

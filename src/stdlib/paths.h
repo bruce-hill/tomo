@@ -42,6 +42,7 @@ Result_t Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t group,
 OptionalText_t Path$owner(Path_t path, bool follow_symlinks);
 OptionalText_t Path$group(Path_t path, bool follow_symlinks);
 Result_t Path$remove(Path_t path, bool ignore_missing);
+Result_t Path$move(Path_t src, Path_t dest, bool allow_overwriting);
 Result_t Path$create_directory(Path_t path, int permissions, bool recursive);
 List_t Path$children(Path_t path, bool include_hidden);
 Closure_t Path$each_child(Path_t path, bool include_hidden);

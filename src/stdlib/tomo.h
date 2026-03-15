@@ -1,4 +1,4 @@
-// All of the different builtin modules can be included by including this one
+// All of the different builtin standard library can be included by including this one
 // import
 
 #pragma once

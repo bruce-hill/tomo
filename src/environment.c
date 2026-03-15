@@ -322,6 +322,7 @@ env_t *global_env(bool source_mapping) {
             {"lines", "Path$lines", "func(path:Path -> [Text]?)"}, //
             {"matches_glob", "Path$matches_glob", "func(path:Path, glob:Text -> Bool)"}, //
             {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
+            {"move", "Path$move", "func(path:Path, dest:Path, allow_overwriting=no -> Result)"}, //
             {"owner", "Path$owner", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
             {"parent", "Path$parent", "func(path:Path -> Path?)"}, //
             {"read", "Path$read", "func(path:Path -> Text?)"}, //

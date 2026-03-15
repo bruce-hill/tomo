@@ -20,8 +20,8 @@ Compile files to static object files:
 Compile files to a executables:
 : `tomo` `-e` *file1.tm* *file2.tm*...
 
-Build a library:
-: `tomo` `-L` *file1.tm* *file2.tm*...
+Build a package:
+: `tomo` `-p` *file1.tm* *file2.tm*...
 
 # DESCRIPTION
 
@@ -47,11 +47,11 @@ C code, which is then compiled using a C compiler of your choice.
 `--help`, `-h`
 : Print the usage and exit.
 
-`--library`, `-L` *folder1* *folder2*...
-: Compile the input folders to shared libraries.
+`--package`, `-p` *folder1* *folder2*...
+: Compile the input folders to shared packages.
 
 `--install`, `-I`
-: When using `-e` or `-L`, install the resulting executables or libraries.
+: When using `-e` or `-L`, install the resulting executables or packages.
 
 `--show-codegen` *<program>*, `-C` *<program>*
 : Set a program (e.g. `cat` or `bat`) to display the generated code
@@ -80,8 +80,8 @@ C code, which is then compiled using a C compiler of your choice.
 `--source-mapping=`, `-m=` **<yes|no>**
 : Toggle whether source mapping should be enabled or disabled.
 
-`--uninstall`, `-u` *lib1* *lib2*...
-: Uninstall the given libraries.
+`--uninstall`, `-u` *pkg1* *pkg2*...
+: Uninstall the given packages.
 
 `--verbose`, `-v`
 : Print extra verbose output.
