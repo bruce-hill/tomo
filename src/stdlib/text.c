@@ -1124,7 +1124,7 @@ OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start) {
     if (text.length < target.length) return NONE_INT;
     if (target.length <= 0) return I(1);
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
-    for (int64_t i = Int64$from_int(start, false) - 1; i < (int64_t)text.length - target.length + 1; i++) {
+    for (int64_t i = Int64$from_int(start, false) - 1; i < (int64_t)text.length - (int64_t)target.length + 1; i++) {
         if (_matches(&text_state, &target_state, i)) {
             return Int$from_int64(i + 1);
         }
