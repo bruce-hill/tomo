@@ -777,7 +777,9 @@ bool Path$has_extension(Path_t path, Text_t extension) {
     const char *base = base_name_start(path);
     if (!base || base[0] == '\0') return false;
     if (base[0] == '.') base += 1;
-    const char *end = strchrnul(base, '/');
+    const char *end = base;
+    while (*end && *end != '/')
+        end += 1;
     int64_t base_len = (int64_t)(end - base);
     if (base_len <= 0) return false;
     if (extension.length == 0) {
@@ -817,7 +819,9 @@ OptionalPath_t Path$with_extension(Path_t path, Text_t extension, bool replace) 
     const char *ext = Text$as_c_string(extension);
     if (replace) {
         char *base = (char *)base_name_start(path);
-        char *dot = strchrnul(base, '.');
+        char *dot = base;
+        while (*dot && *dot != '.')
+            dot += 1;
         if (ext[0] == '.' || ext[0] == '\0') snprintf(buf, sizeof(buf), "%.*s%s", (int)(dot - path), path, ext);
         else snprintf(buf, sizeof(buf), "%.*s.%s", (int)(dot - path), path, ext);
     } else {
