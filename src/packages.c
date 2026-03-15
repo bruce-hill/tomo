@@ -84,7 +84,8 @@ static Text_t package_text(pkg_info_t pkg) {
     return text;
 }
 
-static OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, Path_t downloaded, OptionalPath_t tmpdir);
+static OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source, Path_t downloaded,
+                                                    OptionalPath_t tmpdir);
 
 static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_t *pkg, const char *source,
                                                       bool ask_confirmation) {
@@ -105,7 +106,7 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
             xsystem("tomo -p ", source_path);
             return source_path;
         } else {
-            return try_install_package_from_file(pkg, Path$resolved(source, Path$parent(ini_file)), NULL);
+            return try_install_package_from_file(pkg, source, Path$resolved(source, Path$parent(ini_file)), NULL);
         }
     }
 
@@ -134,10 +135,11 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
     }
 
     Path_t downloaded = *(Path_t *)children.data;
-    return try_install_package_from_file(pkg, downloaded, tmpdir);
+    return try_install_package_from_file(pkg, source, downloaded, tmpdir);
 }
 
-OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, Path_t downloaded, OptionalPath_t tmpdir) {
+OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source, Path_t downloaded,
+                                             OptionalPath_t tmpdir) {
 
     OptionalText_t digest = file_digest(downloaded);
     if (digest.tag == TEXT_NONE) {
@@ -157,8 +159,8 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, Path_t downloaded,
         }
     }
 
-    OptionalPath_t install_location = Path$from_text(
-        Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(pkg->name), "/", digest));
+    OptionalPath_t install_location =
+        Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", digest));
 
     Result_t result = Path$create_directory(install_location, 0755, true);
     if (result.Failure.reason.tag != TEXT_NONE) {
@@ -199,6 +201,9 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, Path_t downloaded,
 
     xsystem_cleanup(tmpdir, "tomo -p ", install_location);
 
+    Path_t info = Path$child(install_location, Text("package_info.ini"));
+    Path$write(info, Texts("name=", pkg->name, "\nsource=", source, "\ndigest=", digest, "\n"), 0644);
+
     // Always clean up tmpdir!
     if (tmpdir != NULL) Path$remove(tmpdir, true);
 
@@ -215,8 +220,7 @@ static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool
     OptionalPath_t install_location = NULL;
     const char *digest = Table$str_get(pkg->info, "digest");
     if (digest) {
-        install_location = Path$from_text(
-            Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(pkg->name), "/", digest));
+        install_location = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", digest));
         if (Path$exists(install_location)) {
             return install_location;
         }
