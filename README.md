@@ -38,6 +38,13 @@ of many language features or the other example programs/packages in
 
 ## Quick Installation
 
+Quick script to install to `~/.local` on your machine:
+
+```
+curl -L https://tomo.bruce-hill.com/dist/tomo_$(uname -sm | tr ' ' '-').tar.gz \
+  | tar -xz -C ~/.local --strip-components=1
+```
+
 ### Arch User Repository (AUR)
 
 ```
