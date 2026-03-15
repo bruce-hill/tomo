@@ -3,6 +3,7 @@
 #include <err.h>
 #include <openssl/evp.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 #include "config.h"
 #include "packages.h"
