@@ -111,6 +111,10 @@ API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 all: config.mk check-c-compiler check-libs build test/api.tm
 	@$(ECHO) "All done!"
 
+dist: all
+	rm -f build/tomo@$(TOMO_VERSION)_$$(uname -sm | tr ' ' '-').tar.gz
+	tar czf build/tomo@$(TOMO_VERSION)_$$(uname -sm | tr ' ' '-').tar.gz -C build tomo@$(TOMO_VERSION)
+
 BUILD_DIR=build/tomo@$(TOMO_VERSION)
 headers := $(wildcard src/stdlib/*.h)
 build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/%.h, $(headers))
