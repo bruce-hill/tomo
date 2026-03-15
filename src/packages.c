@@ -60,8 +60,10 @@ static OptionalText_t file_digest(Path_t path) {
     char *ret = GC_MALLOC_ATOMIC(strlen(prefix) + 2 * len + 1);
     char *p = ret;
     p = stpcpy(p, prefix);
+    static const char hex[] = "0123456789abcdef";
     for (size_t i = 0; i < len; i++) {
-        p += sprintf(p, "%02x", hash[i]);
+        *p++ = hex[hash[i] >> 4];
+        *p++ = hex[hash[i] & 0xf];
     }
     *p = '\0';
     return Text$from_str(ret);
