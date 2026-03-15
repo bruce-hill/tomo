@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # This file contains auto-generated tests from the examples in api/*.yaml
 
 func main()
@@ -1853,4 +1852,3 @@ func main()
 
     if no # Test sleep
         sleep(1.5)
->>>>>>> hash-packages
