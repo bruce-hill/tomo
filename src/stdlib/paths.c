@@ -788,10 +788,10 @@ bool Path$has_extension(Path_t path, Text_t extension) {
     }
     const char *ext = Text$as_c_string(extension);
     if (ext[0] == '.') {
-        if (1 + extension.length > base_len) return false;
+        if (1 + (int64_t)extension.length > base_len) return false;
         return strncmp(base + base_len - extension.length, ext, extension.length) == 0;
     } else {
-        if (1 + 1 + extension.length > base_len) return false;
+        if (1 + 1 + (int64_t)extension.length > base_len) return false;
         return base[base_len - 1 - extension.length] == '.'
                && strncmp(base + base_len - extension.length, ext, extension.length) == 0;
     }
