@@ -405,7 +405,7 @@ int main(int argc, char *argv[]) {
                             "\n" //
                             "func main()\n" //
                             "    # Put your code here:\n" //
-                            "    pass\n" //
+                            "    say(\"Hello world!\")\n" //
                             "\n" //
                             "# Save and exit to run\n"),
                        0644);
