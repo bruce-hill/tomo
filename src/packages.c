@@ -32,7 +32,7 @@ typedef struct {
         const char *cmd = String(__VA_ARGS__);                                                                         \
         int _status = system(cmd);                                                                                     \
         if (!WIFEXITED(_status) || WEXITSTATUS(_status) != 0) {                                                        \
-            Path$remove(tmpdir, true);                                                                                 \
+            if (tmpdir) Path$remove(tmpdir, true);                                                                     \
             errx(1, "Failed to run command: %s", String(__VA_ARGS__));                                                 \
         }                                                                                                              \
     })
@@ -84,6 +84,8 @@ static Text_t package_text(pkg_info_t pkg) {
     return text;
 }
 
+static OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, Path_t downloaded, OptionalPath_t tmpdir);
+
 static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_t *pkg, const char *source,
                                                       bool ask_confirmation) {
     if (source[0] == '.' || source[0] == '/' || source[0] == '~') {
@@ -103,7 +105,7 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
             xsystem("tomo -p ", source_path);
             return source_path;
         } else {
-            source = String("file://", Path$resolved(source, Path$parent(ini_file)));
+            return try_install_package_from_file(pkg, Path$resolved(source, Path$parent(ini_file)), NULL);
         }
     }
 
@@ -132,23 +134,26 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
     }
 
     Path_t downloaded = *(Path_t *)children.data;
-    OptionalText_t downloaded_digest = file_digest(downloaded);
-    if (downloaded_digest.tag == TEXT_NONE) {
-        Path$remove(tmpdir, true);
+    return try_install_package_from_file(pkg, downloaded, tmpdir);
+}
+
+OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, Path_t downloaded, OptionalPath_t tmpdir) {
+
+    OptionalText_t digest = file_digest(downloaded);
+    if (digest.tag == TEXT_NONE) {
+        if (tmpdir != NULL) Path$remove(tmpdir, true);
         fail("Failed to compute digest for package ", pkg->name);
     }
 
-    const char *digest = Table$str_get(pkg->info, "digest");
-    if (digest == NULL) {
-        digest = Text$as_c_string(downloaded_digest);
-        Table$str_set(&pkg->info, "digest", digest);
+    const char *required_digest = Table$str_get(pkg->info, "digest");
+    if (required_digest == NULL) {
+        Table$str_set(&pkg->info, "digest", Text$as_c_string(digest));
         print("Added digest for ", pkg->name, ": ", digest);
     } else {
-        if (!Text$equal_values(downloaded_digest, Text$from_str(digest))) {
+        if (!Text$equal_values(Text$from_str(required_digest), digest)) {
             // Digest mismatch
-            Path$remove(tmpdir, true);
-            fail("Mismatched digest sum for package ", pkg->name, "! Expected ", digest, " but got ",
-                 downloaded_digest);
+            if (tmpdir != NULL) Path$remove(tmpdir, true);
+            fail("Mismatched digest sum for package ", pkg->name, "! Expected ", required_digest, " but got ", digest);
         }
     }
 
@@ -157,7 +162,7 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
 
     Result_t result = Path$create_directory(install_location, 0755, true);
     if (result.Failure.reason.tag != TEXT_NONE) {
-        Path$remove(tmpdir, true);
+        if (tmpdir != NULL) Path$remove(tmpdir, true);
         fail("Failed to make install directory: ", result.Failure.reason);
     }
 
@@ -181,13 +186,13 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
             Path_t p = *(Path_t *)(contents.data + i * contents.stride);
             result = Path$move(p, Path$child(install_location, Path$base_name(p)), false);
             if (result.Failure.reason.tag != TEXT_NONE) {
-                Path$remove(tmpdir, true);
+                if (tmpdir != NULL) Path$remove(tmpdir, true);
                 fail(result.Failure.reason);
             }
         }
         result = Path$remove(top_level, true);
         if (result.Failure.reason.tag != TEXT_NONE) {
-            Path$remove(tmpdir, true);
+            if (tmpdir != NULL) Path$remove(tmpdir, true);
             fail(result.Failure.reason);
         }
     }
@@ -195,11 +200,11 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
     xsystem_cleanup(tmpdir, "tomo -p ", install_location);
 
     // Always clean up tmpdir!
-    Path$remove(tmpdir, true);
+    if (tmpdir != NULL) Path$remove(tmpdir, true);
 
     // Add digest to the package.ini file if it wasn't already there
-    if (digest == NULL && downloaded_digest.tag != TEXT_NONE) {
-        Table$str_set(&pkg->info, "digest", Text$as_c_string(downloaded_digest));
+    if (required_digest == NULL && digest.tag != TEXT_NONE) {
+        Table$str_set(&pkg->info, "digest", Text$as_c_string(digest));
         print("Added digest for ", pkg->name, ": ", digest);
     }
 
