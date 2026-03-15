@@ -223,7 +223,7 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
     case USE_PACKAGE: {
         OptionalPath_t installed = find_installed_package(use_ast);
         assert(installed);
-        Text_t name = get_library_name(installed);
+        Text_t name = get_package_name(installed);
         env_t *module_env = fresh_scope(env);
         Table$str_set(env->imports, Text$as_c_string(name), module_env);
         List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));

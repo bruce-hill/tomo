@@ -1077,7 +1077,7 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 **Example:**
 ```tomo
 nums := [10, 20, 30]
-pick := nums.random()
+pick := nums.random()!
 assert nums.has(pick)
 empty : [Int]
 assert empty.random() == none
@@ -2854,7 +2854,7 @@ include_hidden | `` | Whether to include hidden files (those starting with a `.`
 
 **Example:**
 ```tomo
-for child in dir.each_child()!
+for child in (/dir).each_child()
     say("Child: $child")
 
 ```

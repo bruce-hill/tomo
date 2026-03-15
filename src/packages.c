@@ -66,7 +66,7 @@ static OptionalText_t file_digest(Path_t path) {
     return Text$from_str(ret);
 }
 
-Text_t get_library_name(Path_t lib_dir) {
+Text_t get_package_name(Path_t lib_dir) {
     Text_t name = Path$base_name(lib_dir);
     name = Text$without_prefix(name, Text("tomo-"));
     name = Text$without_suffix(name, Text("-tomo"));
@@ -79,7 +79,7 @@ static Text_t package_text(pkg_info_t pkg) {
         struct {
             const char *key, *value;
         } *entry = pkg.info.entries.data + i * pkg.info.entries.stride;
-        text = Texts(text, entry->key, " = ", entry->value, "\n");
+        text = Texts(text, entry->key, "=", entry->value, "\n");
     }
     return text;
 }
@@ -100,7 +100,7 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
                      "package.\nSource: ",
                      source_path);
             }
-            xsystem("tomo -L ", source_path);
+            xsystem("tomo -p ", source_path);
             return source_path;
         } else {
             source = String("file://", Path$resolved(source, Path$parent(ini_file)));
@@ -192,7 +192,7 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
         }
     }
 
-    xsystem_cleanup(tmpdir, "tomo -L ", install_location);
+    xsystem_cleanup(tmpdir, "tomo -p ", install_location);
 
     // Always clean up tmpdir!
     Path$remove(tmpdir, true);
@@ -246,7 +246,7 @@ found_package:;
     for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
         const char *line_str = Text$as_c_string(line);
         const char *key = NULL, *value = NULL;
-        if (!strparse(line_str, &key, PARSE_WHITESPACE, "=", PARSE_WHITESPACE, &value)) {
+        if (!strparse(line_str, &key, "=", &value)) {
             Table$str_set(&pkg.info, key, value);
         } else {
             break;
@@ -275,7 +275,7 @@ OptionalPath_t find_installed_package(ast_t *use) {
     const char *name = Match(use, Use)->path;
 
     {
-        Path_t file_package = Path$with_extension(Path$from_str(use->file->filename), Text(":packages.ini"), false);
+        Path_t file_package = Path$with_extension(Path$from_str(use->file->filename), Text(".packages.ini"), false);
         OptionalPath_t installed = get_package_install_location(file_package, name);
         if (installed != NULL) return installed;
     }

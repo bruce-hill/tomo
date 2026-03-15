@@ -6,5 +6,5 @@
 
 #include "ast.h"
 
-Text_t get_library_name(Path_t lib_dir);
+Text_t get_package_name(Path_t lib_dir);
 OptionalPath_t find_installed_package(ast_t *use);

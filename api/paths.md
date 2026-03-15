@@ -334,7 +334,7 @@ include_hidden | `` | Whether to include hidden files (those starting with a `.`
 
 **Example:**
 ```tomo
-for child in dir.each_child()!
+for child in (/dir).each_child()
     say("Child: $child")
 
 ```
