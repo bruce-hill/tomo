@@ -102,14 +102,14 @@ static void normalize_inplace(char path[PATH_MAX]) {
         path[0] = '.';
         path[1] = '\0';
     } else {
-        strcpy(path, buf);
+        memcpy(path, buf, strlen(buf) + 1);
     }
 }
 
 char *path_from_buf(char buf[PATH_MAX]) {
     normalize_inplace(buf);
     char *ret = GC_MALLOC_ATOMIC(strlen(buf) + 1);
-    strcpy(ret, buf);
+    memcpy(ret, buf, strlen(buf) + 1);
     return ret;
 }
 
