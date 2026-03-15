@@ -58,12 +58,11 @@ Text.by_line:
         The text to be iterated over, line by line.
   example: |
     text := "
-    line one
-    line two
+        line one
+        line two
     "
-    for line in text.by_line()
-    # Prints: "line one" then "line two":
-    say(line)
+    lines := [line for line in text.by_line()]
+    assert lines == ["line one", "line two"]
 
 Text.by_split:
   short: iterate by a spliting text
@@ -92,9 +91,8 @@ Text.by_split:
     graphical clusters of the text.
   example: |
     text := "one,two,three"
-    for chunk in text.by_split(",")
-    # Prints: "one" then "two" then "three":
-    say(chunk)
+    chunks := [chunk for chunk in text.by_split(",")]
+    assert chunks == ["one", "two", "three"]
 
 Text.by_split_any:
   short: iterate by one of many splitting characters
@@ -123,9 +121,8 @@ Text.by_split_any:
     To split based on an exact delimiter, use Text.by_split().
   example: |
     text := "one,two,;,three"
-    for chunk in text.by_split_any(",;")
-    # Prints: "one" then "two" then "three":
-    say(chunk)
+    chunks := [chunk for chunk in text.by_split_any(",;")]
+    assert chunks == ["one", "two", "three"]
 
 Text.utf8:
   short: get UTF8 bytes
@@ -225,6 +222,39 @@ Text.ends_with:
     assert "hello world".ends_with("world", &remainder) == yes
     assert remainder == "hello "
 
+Text.distance:
+  short: distance between two texts
+  description: >
+    Get an approximate distance between two texts, such that when the distance
+    is small, the texts are similar and when the distance is large, the texts
+    are dissimilar.
+  note: >
+    The exact distance algorithm is not specified and may be subject to change
+    over time.
+  return:
+    type: 'Num'
+    description: >
+      The distance between the two texts (larger means more dissimilar).
+  args:
+    a:
+      type: 'Text'
+      description: >
+        The first text to compare.
+    b:
+      type: 'Text'
+      description: >
+        The second text to compare.
+    language:
+      type: 'Text'
+      default: '"C"'
+      description: >
+        The ISO 639 language code for which character width to use.
+  example: |
+    assert "hello".distance("hello") == 0
+    texts := &["goodbye", "hello", "hallo"]
+    texts.sort(func(a,b:&Text) a.distance("hello") <> b.distance("hello"))
+    assert texts == ["hello", "hallo", "goodbye"]
+
 Text.find:
   short: find a substring
   description: >
@@ -315,7 +345,7 @@ Text.from_utf16:
         The UTF-16 integers of the desired text.
   example: |
     assert Text.from_utf16([197, 107, 101]) == "Åke"
-    assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界".utf16()
+    assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界"
 
 Text.from_c_string:
   short: convert C-style string to text
@@ -356,7 +386,7 @@ Text.from_codepoint_names:
         "LATIN CAPITAL LETTER A WITH RING ABOVE",
         "LATIN SMALL LETTER K",
         "LATIN SMALL LETTER E",
-    ]
+    ])
     assert text == "Åke"
 
 Text.from_utf32:
@@ -418,6 +448,26 @@ Text.join:
         The list of text pieces to be joined.
   example: |
     assert ", ".join(["one", "two", "three"]) == "one, two, three"
+
+Text.matches_glob:
+  short: check if text matches a glob
+  description: >
+    Return whether or not the text matches the given glob.
+  return:
+    type: 'Bool'
+    description: >
+      Whether or not the text matches the given glob.
+  args:
+    path:
+      type: 'Text'
+      description: >
+        The text to check.
+    glob:
+      type: 'Text'
+      description: >
+        The glob pattern to check.
+  example: |
+    assert "hello world".matches_glob("h* *d")
 
 Text.middle_pad:
   short: pad text, centered
@@ -835,11 +885,11 @@ Text.translate:
       description: >
         A table mapping from target text to its replacement.
   example: |
-    text := "A <tag> & an amperand".translate({
+    text := "A <tag> & an ampersand".translate({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
-        '"": "&quot",
+        '"': "&quot",
         "'": "&#39;",
     })
     assert text == "A &lt;tag&gt; &amp; an ampersand"

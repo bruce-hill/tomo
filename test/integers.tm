@@ -59,8 +59,8 @@ func main()
 			for d in interesting_denominators
 				assert (n/d)*d + (n mod d) == n
 
-	assert (0).next_prime() == 2
-	assert (7).next_prime() == 11
+	assert 0.next_prime() == 2
+	assert 7.next_prime() == 11
 	assert (and: p.is_prime() for p in [
 		2, 3, 5, 7,
 		137372146048179869781170214707,
@@ -88,18 +88,19 @@ func main()
 	assert Int64(yes) == Int64(1)
 	assert Int64(no) == Int64(0)
 
-	assert (4).choose(2) == 6
+	assert 4.choose(2) == 6
 
-	assert (4).factorial() == 24
+	assert 4.factorial() == 24
 
-	assert (3).is_between(1, 5) == yes
-	assert (3).is_between(1, 3) == yes
-	assert (3).is_between(100, 200) == no
+	assert 3.is_between(1, 5) == yes
+	assert 3.is_between(1, 3) == yes
+	assert 3.is_between(5, 1) == yes
+	assert 3.is_between(100, 200) == no
 
-	assert (6).get_bit(1) == no
-	assert (6).get_bit(2) == yes
-	assert (6).get_bit(3) == yes
-	assert (6).get_bit(4) == no
+	assert 6.get_bit(1) == no
+	assert 6.get_bit(2) == yes
+	assert 6.get_bit(3) == yes
+	assert 6.get_bit(4) == no
 
 	assert Int64(6).get_bit(1) == no
 	assert Int64(6).get_bit(2) == yes
@@ -117,7 +118,7 @@ func main()
 	assert Int.parse("-0o10") == -8
 	assert Int.parse("-0b10") == -2
 
-	for base in (2).to(36)
+	for base in 2.to(36)
 		assert Int.parse("10", base=base) == base
 	
 	assert Int.parse("111", base=1) == 3

@@ -57,6 +57,7 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
 
     size_t len = strspn(pos, "0123456789_");
     if (strncmp(pos + len, "..", 2) == 0) return NULL;
+    else if (pos[len] == '.' && is_xid_start_next(pos + len + 1)) return NULL;
     else if (pos[len] == '.') len += 1 + strspn(pos + len + 1, "0123456789");
     else if (pos[len] != 'e' && pos[len] != 'f' && pos[len] != '%') return NULL;
     if (pos[len] == 'e') {

@@ -3,20 +3,19 @@ func main()
     assert (/).exists()
     assert (~/).exists()
 
-    assert (~/Downloads/file(1).txt) == (~/Downloads/file(1).txt)
-
-    assert (/half\)paren) == (/half\)paren)
+    assert (~/Downloads/file(1).txt) == ~/Downloads/file(1).txt
+    assert (/half\)paren) == /half\)paren
 
     >> filename := "example.txt"
-    assert (~).child(filename) == (~/example.txt)
+    assert (~).child(filename) == ~/example.txt
 
     >> tmpdir := (/tmp/tomo-test-path-XXXXXX).unique_directory()
     assert (/tmp).subdirectories().has(tmpdir)
 
-    >> optional_path : Path? = (./foo)
-    assert optional_path == (./foo)
+    >> optional_path : Path? = ./foo
+    assert optional_path == ./foo
 
-    >> tmpfile := (tmpdir++(./one.txt))
+    >> tmpfile := tmpdir ++ ./one.txt
     >> tmpfile.write("Hello world")!
     >> tmpfile.append("!")!
     assert tmpfile.read() == "Hello world!"
@@ -41,9 +40,9 @@ func main()
 
     >> tmpdir.remove()!
 
-    >> p := (/foo/baz.x/qux.tar.gz)
+    >> p := /foo/baz.x/qux.tar.gz
     assert p.base_name() == "qux.tar.gz"
-    assert p.parent() == (/foo/baz.x)
+    assert p.parent() == /foo/baz.x
     assert p.extension() == "tar.gz"
     assert p.extension(full=no) == "gz"
     assert p.has_extension("gz") == yes
@@ -68,43 +67,37 @@ func main()
 
     # Concatenation tests:
     say("Basic relative path concatenation:")
-    assert (/foo) ++ (./baz) == (/foo/baz)
+    assert /foo ++ ./baz == /foo/baz
 
     say("Concatenation with a current directory (`.`):")
-    assert (/foo/bar) ++ (./.) == (/foo/bar)
+    assert /foo/bar ++ . == /foo/bar
 
     say("Trailing slash in the first path:")
-    assert (/foo/) ++ (./baz) == (/foo/baz)
+    assert /foo/ ++ ./baz == /foo/baz
 
     say("Trailing slash in the second path:")
-    assert (/foo/bar) ++ (./baz/) == (/foo/bar/baz)
+    assert /foo/bar ++ ./baz/ == /foo/bar/baz
 
     say("Removing redundant current directory (`.`):")
-    assert (/foo/bar) ++ (./baz/./qux) == (/foo/bar/baz/qux)
+    assert /foo/bar ++ ./baz/./qux == /foo/bar/baz/qux
 
     say("Removing redundant parent directory (`..`):")
-    assert (/foo/bar) ++ (./baz/qux/../quux) == (/foo/bar/baz/quux)
+    assert /foo/bar ++ ./baz/qux/../quux == /foo/bar/baz/quux
 
     say("Collapsing `..` to navigate up:")
-    assert (/foo/bar/baz) ++ (../qux) == (/foo/bar/qux)
+    assert /foo/bar/baz ++ ../qux == /foo/bar/qux
 
     say("Current directory and parent directory mixed:")
-    assert (/foo/bar) ++ (././../baz) == (/foo/baz)
+    assert /foo/bar ++ ././../baz == /foo/baz
 
     say("Path begins with a `.`:")
-    assert (/foo) ++ (./baz/../qux) == (/foo/qux)
+    assert /foo ++ ./baz/../qux == /foo/qux
 
     say("Multiple slashes:")
-    assert (/foo) ++ (./baz//qux) == (/foo/baz/qux)
+    assert /foo ++ ./baz//qux == /foo/baz/qux
 
     say("Complex path with multiple `.` and `..`:")
-    assert (/foo/bar/baz) ++ (./.././qux/./../quux) == (/foo/bar/quux)
+    assert /foo/bar/baz ++ ./.././qux/./../quux == /foo/bar/quux
 
     say("Globbing:")
     >> (./*.tm).glob()
-
-    assert (./foo).RelativePath
-    assert (/foo).AbsolutePath
-    assert (~/foo).HomePath
-    assert (/foo/baz).components() == ["foo", "baz"]
-    assert Path.RelativePath(["foo", "baz"]) == (./foo/baz)

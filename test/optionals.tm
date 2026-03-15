@@ -63,7 +63,7 @@ func maybe_c_string(should_i:Bool->CString?)
 
 func maybe_path(should_i:Bool->Path?)
     if should_i
-        return (./foo)
+        return ./foo
     else
         return none
 
@@ -224,11 +224,11 @@ func main()
         say("...")
         say("Paths:")
         yep := maybe_path(yes)
-        assert yep == (./foo)
+        assert yep == ./foo
         nope := maybe_path(no)
         assert nope == none
         >> if yep
-            assert yep == (./foo)
+            assert yep == ./foo
         else fail("Falsey: $yep")
         >> if nope
             fail("Truthy: $nope")

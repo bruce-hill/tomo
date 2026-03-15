@@ -5,8 +5,8 @@
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
-#include "../modules.h"
 #include "../naming.h"
+#include "../packages.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/paths.h"
 #include "../stdlib/text.h"
@@ -157,25 +157,17 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         Path_t source_dir = Path$parent(source_path);
         Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
         switch (use->what) {
-        case USE_MODULE: {
-            module_info_t mod = get_used_module_info(ast);
-            glob_t tm_files;
-            const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
-            if (glob(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
-                     &tm_files)
-                != 0) {
-                if (!try_install_module(mod, true)) code_err(ast, "Could not find library");
-            }
-
+        case USE_PACKAGE: {
+            OptionalPath_t installed = find_installed_package(ast);
+            assert(installed);
+            List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
             Text_t includes = EMPTY_TEXT;
-            for (size_t i = 0; i < tm_files.gl_pathc; i++) {
-                const char *filename = tm_files.gl_pathv[i];
-                Path_t tm_file = Path$from_str(filename);
+            for (int64_t i = 0; i < (int64_t)children.length; i++) {
+                Path_t tm_file = *(Path_t *)(children.data + i * children.stride);
                 Path_t lib_build_dir = Path$sibling(tm_file, Text(".build"));
                 Path_t header = Path$child(lib_build_dir, Texts(Path$base_name(tm_file), Text(".h")));
                 includes = Texts(includes, "#include \"", Path$as_c_string(header), "\"\n");
             }
-            globfree(&tm_files);
             return with_source_info(env, ast, includes);
         }
         case USE_LOCAL: {

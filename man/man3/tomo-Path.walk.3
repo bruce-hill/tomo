@@ -1,0 +1,44 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.walk 3 2026-03-14 "Tomo man-pages"
+.SH NAME
+Path.walk \- walk a filetree
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.walk\ :\ func(path:\ Path,\ include_hidden\ =\ no,\ follow_symlinks:\ Bool\ =\ no\ ->\ func(->Path?))
+.fi
+.SH DESCRIPTION
+Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path to begin the walk. 	-
+include_hidden		Whether to include hidden files (those starting with a \fB.\fR) 	no
+follow_symlinks	Bool	Whether to follow symbolic links. Caution: if set to 'yes', it is possible for this iterator to get stuck in a loop, using increasingly large amounts of memory. 	no
+.TE
+.SH RETURN
+An iterator that recursively walks over every file and subdirectory.
+
+.SH NOTES
+The path itself is always included in the iteration.
+
+.SH EXAMPLES
+.EX
+for p in (/tmp).walk()
+    say("File or dir: $p")
+
+# The path itself is always included:
+assert [p for p in (./file.txt).walk()] == [(./file.txt)]
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

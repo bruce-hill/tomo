@@ -12,11 +12,11 @@ error() {
 
 default_prefix='/usr/local'
 if echo "$PATH" | tr ':' '\n' | grep -qx "$HOME/.local/bin"; then
-    default_prefix="~/.local"
+    default_prefix="$HOME/.local"
 fi
 
 printf '\033[1mChoose where to install Tomo (default: %s):\033[m ' "$default_prefix"
-read PREFIX
+read -r PREFIX
 if [ -z "$PREFIX" ]; then PREFIX="$default_prefix"; fi
 PREFIX="${PREFIX/#\~/$HOME}"
 
@@ -33,13 +33,13 @@ fi
 
 default_cc="cc"
 printf '\033[1mChoose which C compiler to use by default (default: %s):\033[m ' "$default_cc"
-read DEFAULT_C_COMPILER
+read -r DEFAULT_C_COMPILER
 if [ -z "$DEFAULT_C_COMPILER" ]; then DEFAULT_C_COMPILER="cc"; fi
 DEFAULT_C_COMPILER="${DEFAULT_C_COMPILER/#\~/$HOME}"
 
 printf '\033[1mDo you want to build the compiler with Link Time Optimization (LTO)?\033[m\n\033[2m(This makes building the Tomo compiler slower, but makes running Tomo programs faster)\033[m\n\033[1m[y/N]\033[m '
-read USE_LTO
-if [ "$USE_LTO" = "y" -o "$USE_LTO" = "Y" ]; then
+read -r USE_LTO
+if [ "$USE_LTO" = "y" ] || [ "$USE_LTO" = "Y" ]; then
     if $DEFAULT_C_COMPILER -v 2>&1 | grep -q "gcc version"; then
         LTO="-flto=auto -fno-fat-lto-objects -Wl,-flto";
     elif $DEFAULT_C_COMPILER -v 2>&1 | grep -q "clang version"; then

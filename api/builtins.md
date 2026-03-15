@@ -53,7 +53,7 @@ fn | `func()` | A function to run at cleanup time.  | -
 **Example:**
 ```tomo
 at_cleanup(func()
-    (/tmp/file.txt).remove(ignore_missing=yes)
+    _ := (/tmp/file.txt).remove(ignore_missing=yes)
 )
 
 ```
@@ -75,7 +75,7 @@ status | `Int32` | The status code that the program with exit with.  | `Int32(1)
 
 **Example:**
 ```tomo
-exit(status=1, "Goodbye forever!")
+exit("Goodbye forever!", Int32(1))
 
 ```
 ## fail

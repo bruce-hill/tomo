@@ -83,11 +83,11 @@ O=-O3
 # Note: older versions of Make have buggy behavior with hash marks inside strings, so this ugly code is necessary:
 TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print $$2; exit}' CHANGES.md)
 GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h" 2>/dev/null || echo "unknown")
-CFLAGS=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
+CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
 	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-LDLIBS=-lgc -lm -lunistring -lgmp
+LDLIBS=-lgc -lm -lunistring -lgmp -lcrypto
 
 ifeq ($(OS),OpenBSD)
 	LDLIBS += -lexecinfo
@@ -108,7 +108,7 @@ TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
-all: config.mk check-c-compiler check-libs build
+all: config.mk check-c-compiler check-libs build test/api.tm
 	@$(ECHO) "All done!"
 
 BUILD_DIR=build/tomo@$(TOMO_VERSION)
@@ -148,14 +148,14 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) | $(BUILD_DIR)/bin
 $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib
 	ar -rcs $@ $^
 
-$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
+$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini: packages/core.ini packages/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	@cat $^ > $@
 
 $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md: LICENSE.md | $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
 	cp $< $@
 
 build: $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
-	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini \
+	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini \
 	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md $(build_headers) $(build_manpages)
 
 version:
@@ -211,6 +211,9 @@ clean:
 api/api.md: $(API_YAML)
 	./scripts/api_gen.py $^ >$@
 
+test/api.tm: $(API_YAML) | ./scripts/api_tests.py
+	./scripts/api_tests.py $^ >$@
+
 .PHONY: api-docs
 api-docs: $(API_MD) api/api.md
 
@@ -222,11 +225,11 @@ man/man1/tomo.1: docs/tomo.1.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples:
-	./local-tomo -L modules/examples.ini
+	./local-tomo -L packages/examples.ini
 	./local-tomo examples/learnxiny.tm
 
 core-libs:
-	./local-tomo -L modules/core.ini
+	./local-tomo -L packages/core.ini
 
 deps:
 	bash ./install_dependencies.sh
@@ -248,7 +251,7 @@ install-files: build check-utilities
 		$(SUDO) -u $(OWNER) $(MAKE) install-files; \
 		exit 0; \
 	fi; \
-	cp -r $(BUILD_DIR)/* $(PREFIX)/
+	cp -R $(BUILD_DIR)/* $(PREFIX)/
 
 install: install-files
 
@@ -258,7 +261,8 @@ uninstall:
 		exit 0; \
 	fi; \
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"* "$(PREFIX)/include/tomo"* \
-		"$(PREFIX)/lib/libtomo@"* "$(PREFIX)/lib/tomo@"* "$(PREFIX)/share/licenses/tomo@"*; \
+		"$(PREFIX)/lib/libtomo@"* "$(PREFIX)/lib/tomo@"* "$(PREFIX)/share/licenses/tomo@"* \
+		~/.local/tomo/state/tomo@$(TOMO_VERSION); \
 
 endif
 

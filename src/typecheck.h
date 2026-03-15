@@ -27,6 +27,9 @@ type_t *parse_type_string(env_t *env, const char *str);
 type_t *get_method_type(env_t *env, ast_t *self, const char *name);
 PUREFUNC bool is_constant(env_t *env, ast_t *ast);
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed);
+OptionalText_t suggest_best_name(const char *wrong, List_t names);
+List_t get_field_names(env_t *env, type_t *t);
+List_t get_method_names(env_t *env, type_t *t);
 
 typedef struct {
     bool promotion : 1, underscores : 1;

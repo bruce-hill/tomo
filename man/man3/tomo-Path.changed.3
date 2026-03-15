@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.changed 3 2025-11-29 "Tomo man-pages"
+.TH Path.changed 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Path.changed \- get the last changed time
 .SH LIBRARY
@@ -33,7 +33,7 @@ This is the ["ctime"](https://en.wikipedia.org/wiki/Stat_(system_call)#ctime) of
 
 .SH EXAMPLES
 .EX
-assert (./file.txt).changed() == 1704221100
+assert (./file.txt).changed() == Int64(1704221100)
 assert (./not-a-file).changed() == none
 .EE
 .SH SEE ALSO

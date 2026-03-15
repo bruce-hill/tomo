@@ -50,7 +50,7 @@ const char *TOMO_VERSION = "v0";
 public
 Text_t TOMO_VERSION_TEXT = Text("v0");
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <dlfcn.h>
 
 static inline const char *get_library_path(void *func) {
@@ -159,10 +159,14 @@ void tomo_init(void) {
 }
 
 public
-_Noreturn void fail_text(Text_t message) { fail(message); }
+_Noreturn void fail_text(Text_t message) {
+    fail(message);
+}
 
 public
-Text_t builtin_last_err() { return Text$from_str(strerror(errno)); }
+Text_t builtin_last_err() {
+    return Text$from_str(strerror(errno));
+}
 
 static int _inspect_depth = 0;
 static file_t *file = NULL;
@@ -328,7 +332,9 @@ typedef struct cleanup_s {
 static cleanup_t *cleanups = NULL;
 
 public
-void tomo_at_cleanup(Closure_t fn) { cleanups = new (cleanup_t, .cleanup_fn = fn, .next = cleanups); }
+void tomo_at_cleanup(Closure_t fn) {
+    cleanups = new (cleanup_t, .cleanup_fn = fn, .next = cleanups);
+}
 
 public
 void tomo_cleanup(void) {

@@ -152,7 +152,7 @@ x | `Num` | The number for which the arc cosine is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (0.0).acos() == 1.5708
+assert (0.0).acos().near(1.5707963267948966)
 
 ```
 ## Num.acosh
@@ -192,7 +192,7 @@ x | `Num` | The number for which the arc sine is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (0.5).asin() == 0.5236
+assert (0.5).asin().near(0.5235987755982989)
 
 ```
 ## Num.asinh
@@ -232,7 +232,7 @@ x | `Num` | The number for which the arc tangent is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).atan() == 0.7854
+assert (1.0).atan().near(0.7853981633974483)
 
 ```
 ## Num.atan2
@@ -253,7 +253,7 @@ y | `Num` | The denominator.  | -
 
 **Example:**
 ```tomo
-assert Num.atan2(1, 1) == 0.7854
+assert Num.atan2(1, 1).near(0.7853981633974483)
 
 ```
 ## Num.atanh
@@ -273,7 +273,7 @@ x | `Num` | The number for which the inverse hyperbolic tangent is to be calcula
 
 **Example:**
 ```tomo
-assert (0.5).atanh() == 0.5493
+assert (0.5).atanh().near(0.5493061443340549)
 
 ```
 ## Num.cbrt
@@ -456,7 +456,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
-assert (1.0).exp() == 2.7183
+assert (1.0).exp().near(2.718281828459045)
 
 ```
 ## Num.exp2
@@ -496,7 +496,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
-assert (1.0).expm1() == 1.7183
+assert (1.0).expm1().near(1.7182818284590453)
 
 ```
 ## Num.fdim
@@ -517,8 +517,6 @@ y | `Num` | The second number.  | -
 
 **Example:**
 ```tomo
-fd
-
 assert (5.0).fdim(3) == 2
 
 ```
@@ -574,15 +572,16 @@ Determines if a number is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Num` | The integer to be checked.  | -
-low | `Num` | The lower bound to check (inclusive).  | -
-high | `Num` | The upper bound to check (inclusive).  | -
+low | `Num` | One end of the range to check (inclusive).  | -
+high | `Num` | The other end of the range to check (inclusive).  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 
 **Example:**
 ```tomo
 assert (7.5).is_between(1, 10) == yes
+assert (7.5).is_between(10, 1) == yes
 assert (7.5).is_between(100, 200) == no
 assert (7.5).is_between(1, 7.5) == yes
 
@@ -726,7 +725,7 @@ x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).log1p() == 0.6931
+assert (1.0).log1p().near(0.6931471805599453)
 
 ```
 ## Num.log2
@@ -883,9 +882,9 @@ precision | `Num` | Round the percentage to this precision level.  | `0.01`
 **Example:**
 ```tomo
 assert (0.5).percent() == "50%"
-assert (1./3.).percent(2) == "33.33%"
-assert (1./3.).percent(2, precision=0.0001) == "33.3333%"
-assert (1./3.).percent(2, precision=10.) == "30%"
+assert (1./3.).percent(2) == "34%"
+assert (1./3.).percent(precision=0.0001) == "33.3333%"
+assert (1./3.).percent(precision=10.) == "30%"
 
 ```
 ## Num.rint
@@ -947,7 +946,7 @@ x | `Num` | The number from which to extract the significand.  | -
 
 **Example:**
 ```tomo
-assert (1234.567).significand() == 0.1234567
+assert (1234.567).significand() == 1.2056318359375
 
 ```
 ## Num.sin
@@ -1131,7 +1130,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).y0() == -0.7652
+assert (1.0).y0().near(0.08825696421567698)
 
 ```
 ## Num.y1
@@ -1151,6 +1150,6 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).y1() == 0.4401
+assert (1.0).y1().near(-0.7812128213002887)
 
 ```

@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.by_line 3 2025-11-29 "Tomo man-pages"
+.TH Text.by_line 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Text.by_line \- iterate by line
 .SH LIBRARY
@@ -33,12 +33,11 @@ This function ignores a trailing newline if there is one. If you don't want this
 .SH EXAMPLES
 .EX
 text := "
-line one
-line two
+    line one
+    line two
 "
-for line in text.by_line()
-# Prints: "line one" then "line two":
-say(line)
+lines := [line for line in text.by_line()]
+assert lines == ["line one", "line two"]
 .EE
 .SH SEE ALSO
 .BR Tomo-Text (3)

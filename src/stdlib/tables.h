@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
+#include <string.h> // IWYU pragma: export
 
 #include "datatypes.h"
 #include "lists.h"
@@ -146,16 +146,16 @@ extern const TypeInfo_t CStrToVoidStarTable;
     }
 
 #define Table$info(key_expr, value_expr)                                                                               \
-    &((TypeInfo_t){.size = sizeof(Table_t),                                                                            \
-                   .align = __alignof__(Table_t),                                                                      \
-                   .tag = TableInfo,                                                                                   \
-                   .TableInfo.key = key_expr,                                                                          \
-                   .TableInfo.value = value_expr,                                                                      \
-                   .metamethods = Table$metamethods})
+    ((TypeInfo_t[1]){{.size = sizeof(Table_t),                                                                         \
+                      .align = __alignof__(Table_t),                                                                   \
+                      .tag = TableInfo,                                                                                \
+                      .TableInfo.key = key_expr,                                                                       \
+                      .TableInfo.value = value_expr,                                                                   \
+                      .metamethods = Table$metamethods}})
 #define Set$info(item_info)                                                                                            \
-    &((TypeInfo_t){.size = sizeof(Table_t),                                                                            \
-                   .align = __alignof__(Table_t),                                                                      \
-                   .tag = TableInfo,                                                                                   \
-                   .TableInfo.key = item_info,                                                                         \
-                   .TableInfo.value = &Void$info,                                                                      \
-                   .metamethods = Table$metamethods})
+    ((TypeInfo_t[1]){{.size = sizeof(Table_t),                                                                         \
+                      .align = __alignof__(Table_t),                                                                   \
+                      .tag = TableInfo,                                                                                \
+                      .TableInfo.key = item_info,                                                                      \
+                      .TableInfo.value = &Void$info,                                                                   \
+                      .metamethods = Table$metamethods}})

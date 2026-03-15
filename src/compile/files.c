@@ -184,7 +184,13 @@ Text_t compile_file(env_t *env, ast_t *ast) {
 
             DeclareMatch(use, stmt->ast, Use);
             if (use->what == USE_C_CODE) {
-                Path_t path = Path$relative_to(Path$from_str(use->path), Path(".build"));
+                Path_t path = Path$from_str(use->path);
+                if (path[0] != '/') {
+                    // If we have `use ./foo.c`, then we need to remap it in source code to
+                    // `#include "../foo.c"`, since it will be inside the .build directory.
+                    path = Path$relative_to(Path$from_str(use->path), Path(ast->file->filename));
+                    path = Path$concat("..", path);
+                }
                 includes = Texts(includes, "#include \"", Path$as_c_string(path), "\"\n");
             }
         }

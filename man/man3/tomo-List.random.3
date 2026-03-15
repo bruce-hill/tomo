@@ -1,15 +1,15 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.random 3 2025-11-29 "Tomo man-pages"
+.TH List.random 3 2026-03-14 "Tomo man-pages"
 .SH NAME
 List.random \- pick a random element
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI List.random\ :\ func(list:\ [T],\ random:\ func(min,max:Int64->Int64)?\ =\ none\ ->\ T)
+.BI List.random\ :\ func(list:\ [T],\ random:\ func(min,max:Int64->Int64)?\ =\ none\ ->\ T?)
 .fi
 .SH DESCRIPTION
 Selects a random element from the list.
@@ -26,11 +26,15 @@ list	[T]	The list from which to select a random element. 	-
 random	func(min,max:Int64->Int64)?	If provided, this function will be used to get a random index in the list. Returned values must be between \fBmin\fR and \fBmax\fR (inclusive). (Used for deterministic pseudorandom number generation) 	none
 .TE
 .SH RETURN
-A random element from the list.
+A random element from the list or `none` if the list is empty.
 
 .SH EXAMPLES
 .EX
-assert [10, 20, 30].random() == 20
+nums := [10, 20, 30]
+pick := nums.random()!
+assert nums.has(pick)
+empty : [Int]
+assert empty.random() == none
 .EE
 .SH SEE ALSO
 .BR Tomo-List (3)

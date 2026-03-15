@@ -33,7 +33,9 @@ static inline Text_t Text_from_str_literal(const char *str) {
     return (Text_t){.length = strlen(str), .tag = TEXT_ASCII, .ascii = str};
 }
 
-static inline Text_t Text_from_text(Text_t t) { return t; }
+static inline Text_t Text_from_text(Text_t t) {
+    return t;
+}
 
 #define convert_to_text(x)                                                                                             \
     _Generic(x,                                                                                                        \
@@ -88,6 +90,7 @@ PUREFUNC bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainder);
 Text_t Text$without_prefix(Text_t text, Text_t prefix);
 Text_t Text$without_suffix(Text_t text, Text_t suffix);
 OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start);
+bool Text$matches_glob(Text_t text, Text_t glob);
 Text_t Text$replace(Text_t text, Text_t target, Text_t replacement);
 Text_t Text$translate(Text_t text, Table_t translations);
 PUREFUNC bool Text$has(Text_t text, Text_t target);
@@ -96,7 +99,7 @@ List_t Text$split_any(Text_t text, Text_t delimiters);
 Closure_t Text$by_split(Text_t text, Text_t delimiter);
 Closure_t Text$by_split_any(Text_t text, Text_t delimiters);
 Text_t Text$trim(Text_t text, Text_t to_trim, bool left, bool right);
-char *Text$as_c_string(Text_t text);
+const char *Text$as_c_string(Text_t text);
 List_t Text$clusters(Text_t text);
 List_t Text$utf8(Text_t text);
 List_t Text$utf16(Text_t text);
@@ -114,6 +117,7 @@ Int_t Text$width(Text_t text, Text_t language);
 Text_t Text$left_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 Text_t Text$right_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 Text_t Text$middle_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
+double Text$distance(Text_t a, Text_t b, Text_t language);
 int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);
 uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
 Int_t Text$memory_size(Text_t text);

@@ -112,10 +112,8 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
                              type_code, ")(last >= first ? 1 : -1) : maybe_step.value; })");
             else if (step.length == 0) step = Texts("(", type_code, ")(last >= first ? 1 : -1)");
             return Texts("for (", type_code, " first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ",
-                         value, " = first, last = ", last, ", step = ", step,
-                         "; "
-                         "step > 0 ? ",
-                         value, " <= last : ", value, " >= last; ", value,
+                         value, " = first, last = ", last, ", step = ", step, "; (", compile_type(step_type),
+                         ")step > 0 ? ", value, " <= last : ", value, " >= last; ", value,
                          " += step) {\n"
                          "\t",
                          naked_body, "}", stop);

@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.log1p 3 2025-11-29 "Tomo man-pages"
+.TH Num.log1p 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Num.log1p \- logarithm of 1 plus x
 .SH LIBRARY
@@ -29,7 +29,7 @@ The value of $\log(1 + x)$.
 
 .SH EXAMPLES
 .EX
-assert (1.0).log1p() == 0.6931
+assert (1.0).log1p().near(0.6931471805599453)
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

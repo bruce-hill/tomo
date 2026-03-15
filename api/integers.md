@@ -41,7 +41,7 @@ k | `Int` | The number of things to be chosen.  | -
 
 **Example:**
 ```tomo
-assert (4).choose(2) == 6
+assert 4.choose(2) == 6
 
 ```
 ## Int.clamped
@@ -63,7 +63,7 @@ high | `Int` | The highest value the result can take.  | -
 
 **Example:**
 ```tomo
-assert (2).clamped(5, 10) == 5
+assert 2.clamped(5, 10) == 5
 
 ```
 ## Int.factorial
@@ -83,7 +83,7 @@ n | `Int` | The integer to compute the factorial of.  | -
 
 **Example:**
 ```tomo
-assert (10).factorial() == 3628800
+assert 10.factorial() == 3628800
 
 ```
 ## Int.get_bit
@@ -106,10 +106,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed).  | -
 
 **Example:**
 ```tomo
-assert (6).get_bit(1) == no
-assert (6).get_bit(2) == yes
-assert (6).get_bit(3) == yes
-assert (6).get_bit(4) == no
+assert 6.get_bit(1) == no
+assert 6.get_bit(2) == yes
+assert 6.get_bit(3) == yes
+assert 6.get_bit(4) == no
 
 ```
 ## Int.hex
@@ -132,13 +132,13 @@ prefix | `Bool` | Whether to include a "0x" prefix.  | `yes`
 
 **Example:**
 ```tomo
-assert (255).hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
+assert 255.hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
 
 ```
 ## Int.is_between
 
 ```tomo
-Int.is_between : func(x: Int, low: Int, high: Int -> Bool)
+Int.is_between : func(x: Int, a: Int, b: Int -> Bool)
 ```
 
 Determines if an integer is between two numbers (inclusive).
@@ -146,17 +146,18 @@ Determines if an integer is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Int` | The integer to be checked.  | -
-low | `Int` | The lower bound to check (inclusive).  | -
-high | `Int` | The upper bound to check (inclusive).  | -
+a | `Int` | One end of the range to check (inclusive).  | -
+b | `Int` | The other end of the range to check (inclusive).  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `a >= x and x >= b`, otherwise `no`
 
 
 **Example:**
 ```tomo
-assert (7).is_between(1, 10) == yes
-assert (7).is_between(100, 200) == no
-assert (7).is_between(1, 7) == yes
+assert 7.is_between(1, 10) == yes
+assert 7.is_between(10, 1) == yes
+assert 7.is_between(100, 200) == no
+assert 7.is_between(1, 7) == yes
 
 ```
 ## Int.is_prime
@@ -179,8 +180,8 @@ reps | `Int` | The number of repetitions for primality tests.  | `50`
 
 **Example:**
 ```tomo
-assert (7).is_prime() == yes
-assert (6).is_prime() == no
+assert 7.is_prime() == yes
+assert 6.is_prime() == no
 
 ```
 ## Int.next_prime
@@ -202,7 +203,7 @@ x | `Int` | The integer after which to find the next prime.  | -
 
 **Example:**
 ```tomo
-assert (11).next_prime() == 13
+assert 11.next_prime() == 13
 
 ```
 ## Int.octal
@@ -224,7 +225,7 @@ prefix | `Bool` | Whether to include a "0o" prefix.  | `yes`
 
 **Example:**
 ```tomo
-assert (64).octal(digits=4, prefix=yes) == "0o0100"
+assert 64.octal(digits=4, prefix=yes) == "0o0100"
 
 ```
 ## Int.onward
@@ -246,9 +247,9 @@ step | `Int` | The increment step size.  | `1`
 **Example:**
 ```tomo
 nums : &[Int] = &[]
-for i in (5).onward()
-nums.insert(i)
-stop if i == 10
+for i in 5.onward()
+    nums.insert(i)
+    stop if i == 10
 assert nums[] == [5, 6, 7, 8, 9, 10]
 
 ```
@@ -275,7 +276,7 @@ assert Int.parse("123") == 123
 assert Int.parse("0xFF") == 255
 assert Int.parse("123xyz") == none
 remainder : Text
-assert Int.parse("123xyz", &remainder) == 123
+assert Int.parse("123xyz", remainder=&remainder) == 123
 assert remainder == "xyz"
 
 # Can't parse:
@@ -286,28 +287,6 @@ assert Int8.parse("9999999") == none
 
 # Explicitly specifying base:
 assert Int.parse("10", base=16) == 16
-
-```
-## Int.prev_prime
-
-```tomo
-Int.prev_prime : func(x: Int -> Int?)
-```
-
-Finds the previous prime number less than the given integer. If there is no previous prime number (i.e. if a number less than `2` is provided), then the function will create a runtime error.
-
-This function is _probabilistic_, but the chances of getting an incorrect answer are astronomically small (on the order of 10^(-30)). See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp) for more details.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-x | `Int` | The integer before which to find the previous prime.  | -
-
-**Return:** The previous prime number less than `x`, or `none` if `x` is less than 2.
-
-
-**Example:**
-```tomo
-assert (11).prev_prime() == 7
 
 ```
 ## Int.sqrt
@@ -327,8 +306,8 @@ x | `Int` | The integer whose square root is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (16).sqrt() == 4
-assert (17).sqrt() == 4
+assert 16.sqrt() == 4
+assert 17.sqrt() == 4
 
 ```
 ## Int.to
@@ -350,15 +329,15 @@ step | `Int?` | An optional step size to use. If unspecified or `none`, the step
 
 **Example:**
 ```tomo
-iter := (2).to(5)
+iter := 2.to(5)
 assert iter() == 2
 assert iter() == 3
 assert iter() == 4
 assert iter() == 5
 assert iter() == none
 
-assert [x for x in (2).to(5)] == [2, 3, 4, 5]
-assert [x for x in (5).to(2)] == [5, 4, 3, 2]
-assert [x for x in (2).to(5, step=2)] == [2, 4]
+assert [x for x in 2.to(5)] == [2, 3, 4, 5]
+assert [x for x in 5.to(2)] == [5, 4, 3, 2]
+assert [x for x in 2.to(5, step=2)] == [2, 4]
 
 ```

@@ -1,0 +1,19 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 570 500" width="250" height="200" fill="currentColor">
+    <clipPath id="sun-clip">
+        <path d="
+        M190,340
+        A180,180 0 1 1 430,340
+        Z" fill="#000000"></path>
+    </clipPath>
+
+    <g clip-path="url(#sun-clip)">
+        <rect x="120" y="20"  width="500" height="80" rx="0" fill="#E4572E"></rect>
+        <rect x="120" y="80" width="500" height="80" rx="0" fill="#F28C28"></rect>
+        <rect x="120" y="140" width="500" height="90" rx="0" fill="#F7C948"></rect>
+        <rect x="120" y="210" width="500" height="90" rx="0" fill="#A6B84D"></rect>
+        <rect x="120" y="280" width="500" height="90" rx="0" fill="#4C7F5D"></rect>
+    </g>
+
+    <text x="267" y="465" fill="currentColor" text-anchor="middle" font-size="180" font-weight="800" font-family="sans">Tomo</text>
+</svg>

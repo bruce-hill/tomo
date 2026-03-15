@@ -37,6 +37,7 @@ Text_t type_to_text(type_t *t) {
     case BoolType: return Text("Bool");
     case ByteType: return Text("Byte");
     case CStringType: return Text("CString");
+    case PathType: return Text("Path");
     case TextType: return Match(t, TextType)->lang ? Text$from_str(Match(t, TextType)->lang) : Text("Text");
     case BigIntType: return Text("Int");
     case IntType: return Texts("Int", (int32_t)Match(t, IntType)->bits);
@@ -136,7 +137,9 @@ bool type_is_a(type_t *t, type_t *req) {
     return false;
 }
 
-type_t *non_optional(type_t *t) { return t->tag == OptionalType ? Match(t, OptionalType)->type : t; }
+type_t *non_optional(type_t *t) {
+    return t->tag == OptionalType ? Match(t, OptionalType)->type : t;
+}
 
 PUREFUNC type_t *value_type(type_t *t) {
     while (t->tag == PointerType)
@@ -457,7 +460,9 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
     return false;
 }
 
-PUREFUNC bool is_int_type(type_t *t) { return t->tag == IntType || t->tag == BigIntType || t->tag == ByteType; }
+PUREFUNC bool is_int_type(type_t *t) {
+    return t->tag == IntType || t->tag == BigIntType || t->tag == ByteType;
+}
 
 PUREFUNC bool is_numeric_type(type_t *t) {
     return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == ByteType;
@@ -524,7 +529,6 @@ PUREFUNC size_t unpadded_struct_size(type_t *t) {
 }
 
 PUREFUNC size_t type_size(type_t *t) {
-    if (t == PATH_TYPE) return sizeof(Path_t);
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
@@ -538,6 +542,7 @@ PUREFUNC size_t type_size(type_t *t) {
     case BoolType: return sizeof(bool);
     case ByteType: return sizeof(uint8_t);
     case CStringType: return sizeof(char *);
+    case PathType: return sizeof(Path_t);
     case BigIntType: return sizeof(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {
@@ -612,7 +617,6 @@ PUREFUNC size_t type_size(type_t *t) {
 }
 
 PUREFUNC size_t type_align(type_t *t) {
-    if (t == PATH_TYPE) return __alignof__(Path_t);
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch-default"
@@ -626,6 +630,7 @@ PUREFUNC size_t type_align(type_t *t) {
     case BoolType: return __alignof__(bool);
     case ByteType: return __alignof__(uint8_t);
     case CStringType: return __alignof__(char *);
+    case PathType: return __alignof__(Path_t);
     case BigIntType: return __alignof__(Int_t);
     case IntType: {
         switch (Match(t, IntType)->bits) {

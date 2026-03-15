@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text 3 2025-11-29 "Tomo man-pages"
+.TH Text 3 2026-03-14 "Tomo man-pages"
 .SH NAME
 Text \- a Tomo type
 .SH LIBRARY
@@ -64,6 +64,14 @@ Returns a list of the names of each codepoint in the text.
 
 For more, see:
 .BR Tomo-Text.codepoint_names (3)
+
+
+.TP
+.BI Text.distance\ :\ func(a:\ Text,\ b:\ Text,\ language:\ Text\ =\ "C"\ ->\ Num)
+Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar. 
+
+For more, see:
+.BR Tomo-Text.distance (3)
 
 
 .TP
@@ -168,6 +176,14 @@ Converts all characters in the text to lowercase.
 
 For more, see:
 .BR Tomo-Text.lower (3)
+
+
+.TP
+.BI Text.matches_glob\ :\ func(path:\ Text,\ glob:\ Text\ ->\ Bool)
+Return whether or not the text matches the given glob. 
+
+For more, see:
+.BR Tomo-Text.matches_glob (3)
 
 
 .TP

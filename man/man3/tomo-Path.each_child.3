@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.each_child 3 2026-03-14 "Tomo man-pages"
+.SH NAME
+Path.each_child \- iterate over children of a directory
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.each_child\ :\ func(path:\ Path,\ include_hidden\ =\ no\ ->\ func(->Path?)?)
+.fi
+.SH DESCRIPTION
+Returns an iterator over the children (files and directories) within the directory at the specified path. Optionally includes hidden files. Iteration order is not specified.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path of the directory. 	-
+include_hidden		Whether to include hidden files (those starting with a \fB.\fR). 	no
+.TE
+.SH RETURN
+An iterator over the children in a directory or `none` if the path is not a directory or a symlink to a directory.
+
+.SH EXAMPLES
+.EX
+for child in (/dir).each_child()
+    say("Child: $child")
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

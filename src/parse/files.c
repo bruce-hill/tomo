@@ -18,6 +18,7 @@
 #include "expressions.h"
 #include "files.h"
 #include "functions.h"
+#include "path.h"
 #include "statements.h"
 #include "text.h"
 #include "typedefs.h"
@@ -179,7 +180,7 @@ ast_t *parse_use(parse_ctx_t *ctx, const char *pos) {
                || starts_with(name, "~/")) {
         what = USE_LOCAL;
     } else {
-        what = USE_MODULE;
+        what = USE_PACKAGE;
     }
     return NewAST(ctx->file, start, pos, Use, .var = var, .path = name, .what = what);
 }

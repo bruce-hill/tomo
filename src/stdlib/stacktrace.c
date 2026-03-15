@@ -80,7 +80,7 @@ static void _print_stack_frame(FILE *out, const char *cwd, const char *install_d
 
         fprint_inline(out, USE_COLOR ? "\033[1mIn \033[33m" : "In ", function_display, USE_COLOR ? "()\033[37m" : "()");
         if (install_dir[0] && strncmp(filename, install_dir, strlen(install_dir)) == 0)
-            fprint_inline(out, USE_COLOR ? " in library \033[35m" : " in library ", filename, ":", lineno);
+            fprint_inline(out, USE_COLOR ? " in package \033[35m" : " in package ", filename, ":", lineno);
         else fprint(out, USE_COLOR ? " in \033[35m" : " in ", filename, ":", lineno);
         fprint(out, USE_COLOR ? "\033[m" : "");
         fprint_context(out, filename, lineno, 3, 1);

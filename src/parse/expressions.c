@@ -13,6 +13,7 @@
 #include "expressions.h"
 #include "functions.h"
 #include "numbers.h"
+#include "path.h"
 #include "suffixes.h"
 #include "text.h"
 #include "utils.h"
@@ -195,7 +196,9 @@ ast_t *parse_term(parse_ctx_t *ctx, const char *pos) {
     return term;
 }
 
-ast_t *parse_expr(parse_ctx_t *ctx, const char *pos) { return parse_infix_expr(ctx, pos, 0); }
+ast_t *parse_expr(parse_ctx_t *ctx, const char *pos) {
+    return parse_infix_expr(ctx, pos, 0);
+}
 
 ast_t *parse_extended_expr(parse_ctx_t *ctx, const char *pos) {
     ast_t *expr = NULL;

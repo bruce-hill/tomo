@@ -53,7 +53,7 @@ fn | `func()` | A function to run at cleanup time.  | -
 **Example:**
 ```tomo
 at_cleanup(func()
-    (/tmp/file.txt).remove(ignore_missing=yes)
+    _ := (/tmp/file.txt).remove(ignore_missing=yes)
 )
 
 ```
@@ -75,7 +75,7 @@ status | `Int32` | The status code that the program with exit with.  | `Int32(1)
 
 **Example:**
 ```tomo
-exit(status=1, "Goodbye forever!")
+exit("Goodbye forever!", Int32(1))
 
 ```
 ## fail
@@ -281,7 +281,7 @@ prefix | `Bool` | Whether or not to prepend a `0x` prefix.  | `no`
 
 **Example:**
 ```tomo
-assert Byte(18).hex() == "0x12"
+assert Byte(18).hex(prefix=yes) == "0x12"
 
 ```
 ## Byte.is_between
@@ -295,15 +295,16 @@ Determines if an integer is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Byte` | The integer to be checked.  | -
-low | `Byte` | The lower bound to check (inclusive).  | -
-high | `Byte` | The upper bound to check (inclusive).  | -
+low | `Byte` | One end of the range to check (inclusive);  | -
+high | `Byte` | The other end of the range to check (inclusive);  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 
 **Example:**
 ```tomo
 assert Byte(7).is_between(1, 10) == yes
+assert Byte(7).is_between(10, 1) == yes
 assert Byte(7).is_between(100, 200) == no
 assert Byte(7).is_between(1, 7) == yes
 
@@ -311,7 +312,7 @@ assert Byte(7).is_between(1, 7) == yes
 ## Byte.parse
 
 ```tomo
-Byte.parse : func(text: Text, remainder: &Text? = none -> Byte?)
+Byte.parse : func(text: Text, base: Int? = none, remainder: &Text? = none -> Byte?)
 ```
 
 Parse a byte literal from text.
@@ -319,6 +320,7 @@ Parse a byte literal from text.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to parse.  | -
+base | `Int?` | The numeric base to use when parsing the byte. If unspecified, the byte's base will be inferred from the text prefix. After any "+" or "-" sign, if the text begins with "0x", the base will be assumed to be 16, "0o" will assume base 8, "0b" will assume base 2, otherwise the base will be assumed to be 10.  | `none`
 remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The byte parsed from the text, if successful, otherwise `none`.
@@ -331,14 +333,14 @@ assert Byte.parse("asdf") == none
 assert Byte.parse("123xyz") == none
 
 remainder : Text
-assert Byte.parse("123xyz", &remainder) == Byte(123)
+assert Byte.parse("123xyz", remainder=&remainder) == Byte(123)
 assert remainder == "xyz"
 
 ```
 ## Byte.to
 
 ```tomo
-Byte.to : func(first: Byte, last: Byte, step: Byte? = none -> func(->Byte?))
+Byte.to : func(first: Byte, last: Byte, step: Int8? = none -> func(->Byte?))
 ```
 
 Returns an iterator function that iterates over the range of bytes specified.
@@ -347,7 +349,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 first | `Byte` | The starting value of the range.  | -
 last | `Byte` | The ending value of the range.  | -
-step | `Byte?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | `none`
+step | `Int8?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | `none`
 
 **Return:** An iterator function that returns each byte in the given range (inclusive).
 
@@ -355,9 +357,9 @@ step | `Byte?` | An optional step size to use. If unspecified or `none`, the ste
 **Example:**
 ```tomo
 iter := Byte(2).to(4)
-assert iter() == 2
-assert iter() == 3
-assert iter() == 4
+assert iter() == Byte(2)
+assert iter() == Byte(3)
+assert iter() == Byte(4)
 assert iter() == none
 
 assert [x for x in Byte(2).to(5)] == [Byte(2), Byte(3), Byte(4), Byte(5)]
@@ -448,7 +450,7 @@ k | `Int` | The number of things to be chosen.  | -
 
 **Example:**
 ```tomo
-assert (4).choose(2) == 6
+assert 4.choose(2) == 6
 
 ```
 ## Int.clamped
@@ -470,7 +472,7 @@ high | `Int` | The highest value the result can take.  | -
 
 **Example:**
 ```tomo
-assert (2).clamped(5, 10) == 5
+assert 2.clamped(5, 10) == 5
 
 ```
 ## Int.factorial
@@ -490,7 +492,7 @@ n | `Int` | The integer to compute the factorial of.  | -
 
 **Example:**
 ```tomo
-assert (10).factorial() == 3628800
+assert 10.factorial() == 3628800
 
 ```
 ## Int.get_bit
@@ -513,10 +515,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed).  | -
 
 **Example:**
 ```tomo
-assert (6).get_bit(1) == no
-assert (6).get_bit(2) == yes
-assert (6).get_bit(3) == yes
-assert (6).get_bit(4) == no
+assert 6.get_bit(1) == no
+assert 6.get_bit(2) == yes
+assert 6.get_bit(3) == yes
+assert 6.get_bit(4) == no
 
 ```
 ## Int.hex
@@ -539,13 +541,13 @@ prefix | `Bool` | Whether to include a "0x" prefix.  | `yes`
 
 **Example:**
 ```tomo
-assert (255).hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
+assert 255.hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
 
 ```
 ## Int.is_between
 
 ```tomo
-Int.is_between : func(x: Int, low: Int, high: Int -> Bool)
+Int.is_between : func(x: Int, a: Int, b: Int -> Bool)
 ```
 
 Determines if an integer is between two numbers (inclusive).
@@ -553,17 +555,18 @@ Determines if an integer is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Int` | The integer to be checked.  | -
-low | `Int` | The lower bound to check (inclusive).  | -
-high | `Int` | The upper bound to check (inclusive).  | -
+a | `Int` | One end of the range to check (inclusive).  | -
+b | `Int` | The other end of the range to check (inclusive).  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `a >= x and x >= b`, otherwise `no`
 
 
 **Example:**
 ```tomo
-assert (7).is_between(1, 10) == yes
-assert (7).is_between(100, 200) == no
-assert (7).is_between(1, 7) == yes
+assert 7.is_between(1, 10) == yes
+assert 7.is_between(10, 1) == yes
+assert 7.is_between(100, 200) == no
+assert 7.is_between(1, 7) == yes
 
 ```
 ## Int.is_prime
@@ -586,8 +589,8 @@ reps | `Int` | The number of repetitions for primality tests.  | `50`
 
 **Example:**
 ```tomo
-assert (7).is_prime() == yes
-assert (6).is_prime() == no
+assert 7.is_prime() == yes
+assert 6.is_prime() == no
 
 ```
 ## Int.next_prime
@@ -609,7 +612,7 @@ x | `Int` | The integer after which to find the next prime.  | -
 
 **Example:**
 ```tomo
-assert (11).next_prime() == 13
+assert 11.next_prime() == 13
 
 ```
 ## Int.octal
@@ -631,7 +634,7 @@ prefix | `Bool` | Whether to include a "0o" prefix.  | `yes`
 
 **Example:**
 ```tomo
-assert (64).octal(digits=4, prefix=yes) == "0o0100"
+assert 64.octal(digits=4, prefix=yes) == "0o0100"
 
 ```
 ## Int.onward
@@ -653,9 +656,9 @@ step | `Int` | The increment step size.  | `1`
 **Example:**
 ```tomo
 nums : &[Int] = &[]
-for i in (5).onward()
-nums.insert(i)
-stop if i == 10
+for i in 5.onward()
+    nums.insert(i)
+    stop if i == 10
 assert nums[] == [5, 6, 7, 8, 9, 10]
 
 ```
@@ -682,7 +685,7 @@ assert Int.parse("123") == 123
 assert Int.parse("0xFF") == 255
 assert Int.parse("123xyz") == none
 remainder : Text
-assert Int.parse("123xyz", &remainder) == 123
+assert Int.parse("123xyz", remainder=&remainder) == 123
 assert remainder == "xyz"
 
 # Can't parse:
@@ -693,28 +696,6 @@ assert Int8.parse("9999999") == none
 
 # Explicitly specifying base:
 assert Int.parse("10", base=16) == 16
-
-```
-## Int.prev_prime
-
-```tomo
-Int.prev_prime : func(x: Int -> Int?)
-```
-
-Finds the previous prime number less than the given integer. If there is no previous prime number (i.e. if a number less than `2` is provided), then the function will create a runtime error.
-
-This function is _probabilistic_, but the chances of getting an incorrect answer are astronomically small (on the order of 10^(-30)). See [the GNU MP docs](https://gmplib.org/manual/Number-Theoretic-Functions#index-mpz_005fprobab_005fprime_005fp) for more details.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-x | `Int` | The integer before which to find the previous prime.  | -
-
-**Return:** The previous prime number less than `x`, or `none` if `x` is less than 2.
-
-
-**Example:**
-```tomo
-assert (11).prev_prime() == 7
 
 ```
 ## Int.sqrt
@@ -734,8 +715,8 @@ x | `Int` | The integer whose square root is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (16).sqrt() == 4
-assert (17).sqrt() == 4
+assert 16.sqrt() == 4
+assert 17.sqrt() == 4
 
 ```
 ## Int.to
@@ -757,16 +738,16 @@ step | `Int?` | An optional step size to use. If unspecified or `none`, the step
 
 **Example:**
 ```tomo
-iter := (2).to(5)
+iter := 2.to(5)
 assert iter() == 2
 assert iter() == 3
 assert iter() == 4
 assert iter() == 5
 assert iter() == none
 
-assert [x for x in (2).to(5)] == [2, 3, 4, 5]
-assert [x for x in (5).to(2)] == [5, 4, 3, 2]
-assert [x for x in (2).to(5, step=2)] == [2, 4]
+assert [x for x in 2.to(5)] == [2, 3, 4, 5]
+assert [x for x in 5.to(2)] == [5, 4, 3, 2]
+assert [x for x in 2.to(5, step=2)] == [2, 4]
 
 ```
 
@@ -832,7 +813,9 @@ list | `@[T]` | The mutable reference to the list to be cleared.  | -
 
 **Example:**
 ```tomo
-my_list.clear()
+list := &[10, 20]
+list.clear()
+assert list[] == []
 
 ```
 ## List.counts
@@ -852,7 +835,7 @@ list | `[T]` | The list to count elements in.  | -
 
 **Example:**
 ```tomo
-assert [10, 20, 30, 30, 30].counts() == {10=1, 20=1, 30=3}
+assert [10, 20, 30, 30, 30].counts() == {10:1, 20:1, 30:3}
 
 ```
 ## List.find
@@ -937,7 +920,7 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
-my_heap := [30, 10, 20]
+my_heap := &[30, 10, 20]
 my_heap.heapify()
 assert my_heap.heap_pop() == 10
 
@@ -961,7 +944,9 @@ by | `` | The comparison function used to determine order. If not specified, the
 
 **Example:**
 ```tomo
+my_heap : &[Int]
 my_heap.heap_push(10)
+assert my_heap.heap_pop() == 10
 
 ```
 ## List.heapify
@@ -982,7 +967,7 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
-my_heap := [30, 10, 20]
+my_heap := &[30, 10, 20]
 my_heap.heapify()
 
 ```
@@ -1007,7 +992,7 @@ at | `Int` | The index at which to insert the item.  | `0`
 
 **Example:**
 ```tomo
-list := [10, 20]
+list := &[10, 20]
 list.insert(30)
 assert list == [10, 20, 30]
 
@@ -1036,7 +1021,7 @@ at | `Int` | The index at which to insert the item.  | `0`
 
 **Example:**
 ```tomo
-list := [10, 20]
+list := &[10, 20]
 list.insert_all([30, 40])
 assert list == [10, 20, 30, 40]
 
@@ -1076,7 +1061,7 @@ assert list[] == [10, 30]
 ## List.random
 
 ```tomo
-List.random : func(list: [T], random: func(min,max:Int64->Int64)? = none -> T)
+List.random : func(list: [T], random: func(min,max:Int64->Int64)? = none -> T?)
 ```
 
 Selects a random element from the list.
@@ -1086,12 +1071,16 @@ Argument | Type | Description | Default
 list | `[T]` | The list from which to select a random element.  | -
 random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
-**Return:** A random element from the list.
+**Return:** A random element from the list or `none` if the list is empty.
 
 
 **Example:**
 ```tomo
-assert [10, 20, 30].random() == 20
+nums := [10, 20, 30]
+pick := nums.random()!
+assert nums.has(pick)
+empty : [Int]
+assert empty.random() == none
 
 ```
 ## List.remove_at
@@ -1115,7 +1104,7 @@ count | `Int` | The number of elements to remove.  | `1`
 
 **Example:**
 ```tomo
-list := [10, 20, 30, 40, 50]
+list := &[10, 20, 30, 40, 50]
 list.remove_at(2)
 assert list == [10, 30, 40, 50]
 
@@ -1144,7 +1133,7 @@ max_count | `Int` | The maximum number of occurrences to remove.  | `-1`
 
 **Example:**
 ```tomo
-list := [10, 20, 10, 20, 30]
+list := &[10, 20, 10, 20, 30]
 list.remove_item(10)
 assert list == [20, 20, 30]
 
@@ -1194,7 +1183,7 @@ random | `func(->Num)?` | If provided, this function will be used to get random 
 
 **Example:**
 ```tomo
-assert [10, 20, 30].sample(2, weights=[90%, 5%, 5%]) == [10, 10]
+_ := [10, 20, 30].sample(2, weights=[90%, 5%, 5%]) # E.g. [10, 10]
 
 ```
 ## List.shuffle
@@ -1215,7 +1204,9 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
-list.shuffle()
+nums := &[10, 20, 30, 40]
+nums.shuffle()
+# E.g. [20, 40, 10, 30]
 
 ```
 ## List.shuffled
@@ -1236,7 +1227,9 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
-assert [10, 20, 30, 40].shuffled() == [40, 10, 30, 20]
+nums := [10, 20, 30, 40]
+_ := nums.shuffled()
+# E.g. [20, 40, 10, 30]
 
 ```
 ## List.slice
@@ -1280,11 +1273,11 @@ by | `` | The comparison function used to determine order. If not specified, the
 
 **Example:**
 ```tomo
-list := [40, 10, -30, 20]
+list := &[40, 10, -30, 20]
 list.sort()
 assert list == [-30, 10, 20, 40]
 
-list.sort(func(a,b:&Int): a.abs() <> b.abs())
+list.sort(func(a,b:&Int) a.abs() <> b.abs())
 assert list == [10, 20, -30, 40]
 
 ```
@@ -1308,7 +1301,7 @@ by | `` | The comparison function used to determine order. If not specified, the
 ```tomo
 assert [40, 10, -30, 20].sorted() == [-30, 10, 20, 40]
 assert [40, 10, -30, 20].sorted(
-   func(a,b:&Int): a.abs() <> b.abs()
+   func(a,b:&Int) a.abs() <> b.abs()
 ) == [10, 20, -30, 40]
 
 ```
@@ -1372,8 +1365,8 @@ predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item'
 
 **Example:**
 ```tomo
-assert [4, 5, 6].where(func(i:&Int): i.is_prime()) == 5
-assert [4, 6, 8].find(func(i:&Int): i.is_prime()) == none
+assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("A")) == 2
+assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("X")) == none
 
 ```
 
@@ -1527,7 +1520,7 @@ x | `Num` | The number for which the arc cosine is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (0.0).acos() == 1.5708
+assert (0.0).acos().near(1.5707963267948966)
 
 ```
 ## Num.acosh
@@ -1567,7 +1560,7 @@ x | `Num` | The number for which the arc sine is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (0.5).asin() == 0.5236
+assert (0.5).asin().near(0.5235987755982989)
 
 ```
 ## Num.asinh
@@ -1607,7 +1600,7 @@ x | `Num` | The number for which the arc tangent is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).atan() == 0.7854
+assert (1.0).atan().near(0.7853981633974483)
 
 ```
 ## Num.atan2
@@ -1628,7 +1621,7 @@ y | `Num` | The denominator.  | -
 
 **Example:**
 ```tomo
-assert Num.atan2(1, 1) == 0.7854
+assert Num.atan2(1, 1).near(0.7853981633974483)
 
 ```
 ## Num.atanh
@@ -1648,7 +1641,7 @@ x | `Num` | The number for which the inverse hyperbolic tangent is to be calcula
 
 **Example:**
 ```tomo
-assert (0.5).atanh() == 0.5493
+assert (0.5).atanh().near(0.5493061443340549)
 
 ```
 ## Num.cbrt
@@ -1831,7 +1824,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
-assert (1.0).exp() == 2.7183
+assert (1.0).exp().near(2.718281828459045)
 
 ```
 ## Num.exp2
@@ -1871,7 +1864,7 @@ x | `Num` | The exponent.  | -
 
 **Example:**
 ```tomo
-assert (1.0).expm1() == 1.7183
+assert (1.0).expm1().near(1.7182818284590453)
 
 ```
 ## Num.fdim
@@ -1892,8 +1885,6 @@ y | `Num` | The second number.  | -
 
 **Example:**
 ```tomo
-fd
-
 assert (5.0).fdim(3) == 2
 
 ```
@@ -1949,15 +1940,16 @@ Determines if a number is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Num` | The integer to be checked.  | -
-low | `Num` | The lower bound to check (inclusive).  | -
-high | `Num` | The upper bound to check (inclusive).  | -
+low | `Num` | One end of the range to check (inclusive).  | -
+high | `Num` | The other end of the range to check (inclusive).  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 
 **Example:**
 ```tomo
 assert (7.5).is_between(1, 10) == yes
+assert (7.5).is_between(10, 1) == yes
 assert (7.5).is_between(100, 200) == no
 assert (7.5).is_between(1, 7.5) == yes
 
@@ -2101,7 +2093,7 @@ x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).log1p() == 0.6931
+assert (1.0).log1p().near(0.6931471805599453)
 
 ```
 ## Num.log2
@@ -2258,9 +2250,9 @@ precision | `Num` | Round the percentage to this precision level.  | `0.01`
 **Example:**
 ```tomo
 assert (0.5).percent() == "50%"
-assert (1./3.).percent(2) == "33.33%"
-assert (1./3.).percent(2, precision=0.0001) == "33.3333%"
-assert (1./3.).percent(2, precision=10.) == "30%"
+assert (1./3.).percent(2) == "34%"
+assert (1./3.).percent(precision=0.0001) == "33.3333%"
+assert (1./3.).percent(precision=10.) == "30%"
 
 ```
 ## Num.rint
@@ -2322,7 +2314,7 @@ x | `Num` | The number from which to extract the significand.  | -
 
 **Example:**
 ```tomo
-assert (1234.567).significand() == 0.1234567
+assert (1234.567).significand() == 1.2056318359375
 
 ```
 ## Num.sin
@@ -2506,7 +2498,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).y0() == -0.7652
+assert (1.0).y0().near(0.08825696421567698)
 
 ```
 ## Num.y1
@@ -2526,7 +2518,7 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).y1() == 0.4401
+assert (1.0).y1().near(-0.7812128213002887)
 
 ```
 
@@ -2549,7 +2541,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).accessed() == 1704221100
+assert (./file.txt).accessed() == Int64(1704221100)
 assert (./not-a-file).accessed() == none
 
 ```
@@ -2758,7 +2750,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).changed() == 1704221100
+assert (./file.txt).changed() == Int64(1704221100)
 assert (./not-a-file).changed() == none
 
 ```
@@ -2789,19 +2781,19 @@ assert (./directory).child("file.txt") == (./directory/file.txt)
 Path.children : func(path: Path, include_hidden = no -> [Path])
 ```
 
-Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
+Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. Child ordering is not specified.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `` | Whether to include hidden files, which start with a `.`.  | `no`
+include_hidden | `` | Whether to include hidden files (those starting with a `.`).  | `no`
 
 **Return:** A list of paths for the children.
 
 
 **Example:**
 ```tomo
-assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
+assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 
 ```
 ## Path.create_directory
@@ -2824,7 +2816,7 @@ recursive | `` | If set to `yes`, then recursively create any parent directories
 
 **Example:**
 ```tomo
-(./new_directory).create_directory()
+(./new_directory).create_directory()!
 
 ```
 ## Path.current_dir
@@ -2842,6 +2834,28 @@ Creates a new directory at the specified path with the given permissions. If any
 **Example:**
 ```tomo
 assert Path.current_dir() == (/home/user/tomo)
+
+```
+## Path.each_child
+
+```tomo
+Path.each_child : func(path: Path, include_hidden = no -> func(->Path?)?)
+```
+
+Returns an iterator over the children (files and directories) within the directory at the specified path. Optionally includes hidden files. Iteration order is not specified.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path of the directory.  | -
+include_hidden | `` | Whether to include hidden files (those starting with a `.`).  | `no`
+
+**Return:** An iterator over the children in a directory or `none` if the path is not a directory or a symlink to a directory.
+
+
+**Example:**
+```tomo
+for child in (/dir).each_child()
+    say("Child: $child")
 
 ```
 ## Path.exists
@@ -2922,7 +2936,7 @@ Returns a list of files within the directory at the specified path. Optionally i
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `Bool` | Whether to include hidden files.  | `no`
+include_hidden | `Bool` | Whether to include hidden files (those starting with a `.`).  | `no`
 
 **Return:** A list of file paths.
 
@@ -2930,28 +2944,6 @@ include_hidden | `Bool` | Whether to include hidden files.  | `no`
 **Example:**
 ```tomo
 assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
-
-```
-## Path.from_components
-
-```tomo
-Path.from_components : func(components: [Text] -> Path)
-```
-
-Returns a path built from a list of path components.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-components | `[Text]` | A list of path components.  | -
-
-**Return:** A path representing the given components.
-
-
-**Example:**
-```tomo
-assert Path.from_components(["/", "usr", "include"]) == (/usr/include)
-assert Path.from_components(["foo.txt"]) == (./foo.txt)
-assert Path.from_components(["~", ".local"]) == (~/.local)
 
 ```
 ## Path.glob
@@ -3138,6 +3130,28 @@ path | `Path` | The path of the file.  | -
 lines := (./file.txt).lines()!
 
 ```
+## Path.matches_glob
+
+```tomo
+Path.matches_glob : func(path: Path, glob: Text -> Bool)
+```
+
+Return whether or not a path matches a given glob.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to check.  | -
+glob | `Text` | The glob pattern to check.  | -
+
+**Return:** Whether or not the path matches the given glob.
+
+
+**Example:**
+```tomo
+assert (./file.txt).matches_glob("*.txt")
+assert (./file.c).matches_glob("*.{c,h}")
+
+```
 ## Path.modified
 
 ```tomo
@@ -3156,8 +3170,30 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).modified() == 1704221100
+assert (./file.txt).modified() == Int64(1704221100)
 assert (./not-a-file).modified() == none
+
+```
+## Path.move
+
+```tomo
+Path.move : func(path: Path, dest: Path, allow_overwriting = no -> Result)
+```
+
+Moves the file or directory from one location to another.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to move.  | -
+dest | `Path` | The destination to move the path to.  | -
+allow_overwriting | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
+
+**Return:** Either `Success` or `Failure(reason)`.
+
+
+**Example:**
+```tomo
+(./file.txt).move(/tmp/renamed.txt)!
 
 ```
 ## Path.owner
@@ -3241,8 +3277,8 @@ limit | `Int?` | A limit to how many bytes should be read.  | `none`
 
 **Example:**
 ```tomo
-assert (./hello.txt).read() == [72, 101, 108, 108, 111]
-assert (./nosuchfile.xxx).read() == none
+assert (./hello.txt).read_bytes()! == [72, 101, 108, 108, 111]
+assert (./nosuchfile.xxx).read_bytes() == none
 
 ```
 ## Path.relative_to
@@ -3285,7 +3321,7 @@ ignore_missing | `` | Whether to ignore errors if the file or directory does not
 
 **Example:**
 ```tomo
-(./file.txt).remove()
+(./file.txt).remove()!
 
 ```
 ## Path.resolved
@@ -3330,7 +3366,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-(./file.txt).set_owner(owner="root", group="wheel")
+(./file.txt).set_owner(owner="root", group="wheel")!
 
 ```
 ## Path.sibling
@@ -3365,7 +3401,7 @@ Returns a list of subdirectories within the directory at the specified path. Opt
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `` | Whether to include hidden subdirectories.  | `no`
+include_hidden | `` | Whether to include hidden subdirectories (those starting with a `.`)  | `no`
 
 **Return:** A list of subdirectory paths.
 
@@ -3393,9 +3429,37 @@ path | `Path` | The base path for generating the unique directory. The last six 
 
 **Example:**
 ```tomo
-assert created := (/tmp/my-dir.XXXXXX).unique_directory() == (/tmp/my-dir-AwoxbM/)
+created := (/tmp/my-dir.XXXXXX).unique_directory()
 assert created.is_directory() == yes
-created.remove()
+created.remove()!
+
+```
+## Path.walk
+
+```tomo
+Path.walk : func(path: Path, include_hidden = no, follow_symlinks: Bool = no -> func(->Path?))
+```
+
+Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal.
+
+The path itself is always included in the iteration.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to begin the walk.  | -
+include_hidden | `` | Whether to include hidden files (those starting with a `.`)  | `no`
+follow_symlinks | `Bool` | Whether to follow symbolic links. Caution: if set to 'yes', it is possible for this iterator to get stuck in a loop, using increasingly large amounts of memory.  | `no`
+
+**Return:** An iterator that recursively walks over every file and subdirectory.
+
+
+**Example:**
+```tomo
+for p in (/tmp).walk()
+    say("File or dir: $p")
+
+# The path itself is always included:
+assert [p for p in (./file.txt).walk()] == [(./file.txt)]
 
 ```
 ## Path.write
@@ -3417,7 +3481,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 
 **Example:**
 ```tomo
-(./file.txt).write("Hello, world!")
+(./file.txt).write("Hello, world!")!
 
 ```
 ## Path.write_bytes
@@ -3439,7 +3503,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 
 **Example:**
 ```tomo
-(./file.txt).write_bytes([104, 105])
+(./file.txt).write_bytes([104, 105])!
 
 ```
 ## Path.write_unique
@@ -3460,10 +3524,10 @@ text | `Text` | The text to write to the file.  | -
 
 **Example:**
 ```tomo
-created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+created := (./file-XXXXXX.txt).write_unique("Hello, world!")!
 assert created == (./file-27QHtq.txt)
-assert created.read() == "Hello, world!"
-created.remove()
+assert created.read()! == "Hello, world!"
+created.remove()!
 
 ```
 ## Path.write_unique_bytes
@@ -3484,10 +3548,10 @@ bytes | `[Byte]` | The bytes to write to the file.  | -
 
 **Example:**
 ```tomo
-created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
+created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])!
 assert created == (./file-27QHtq.txt)
-assert created.read() == [1, 2, 3]
-created.remove()
+assert created.read_bytes()! == [1, 2, 3]
+created.remove()!
 
 ```
 ## Path.writer
@@ -3537,7 +3601,7 @@ t | `&{K:V}` | The reference to the table.  | -
 ```tomo
 t := &{"A":1}
 t.clear()
-assert t == {}
+assert t[] == {}
 
 ```
 ## Table.difference
@@ -3558,7 +3622,7 @@ other | `{K:V}` | The other table.  | -
 
 **Example:**
 ```tomo
-t1 := {"A": 1; "B": 2, "C": 3}
+t1 := {"A": 1, "B": 2, "C": 3}
 t2 := {"B": 2, "C":30, "D": 40}
 assert t1.difference(t2) == {"A": 1, "D": 40}
 
@@ -3615,10 +3679,9 @@ default | `V` | The default value to insert and return if the key is not present
 t := &{"A": @[1, 2, 3]; default=@[]}
 t.get_or_set("A").insert(4)
 t.get_or_set("B").insert(99)
-assert t == &{"A": @[1, 2, 3, 4], "B": @[99]}
-
-assert t.get_or_set("C", @[0, 0, 0]) == @[0, 0, 0]
-assert t == &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
+assert t["A"][] == [1, 2, 3, 4]
+assert t["B"][] == [99]
+assert t.get_or_set("C", @[0, 0, 0])[] == [0, 0, 0]
 
 ```
 ## Table.has
@@ -3661,7 +3724,7 @@ other | `{K:V}` | The other table.  | -
 
 **Example:**
 ```tomo
-t1 := {"A": 1; "B": 2, "C": 3}
+t1 := {"A": 1, "B": 2, "C": 3}
 t2 := {"B": 2, "C":30, "D": 40}
 assert t1.intersection(t2) == {"B": 2}
 
@@ -3684,7 +3747,7 @@ key | `K` | The key of the key-value pair to remove.  | -
 
 **Example:**
 ```tomo
-t := {"A": 1, "B": 2}
+t := &{"A": 1, "B": 2}
 t.remove("A")
 assert t == {"B": 2}
 
@@ -3708,7 +3771,7 @@ value | `V` | The value to associate with the key.  | -
 
 **Example:**
 ```tomo
-t := {"A": 1, "B": 2}
+t := &{"A": 1, "B": 2}
 t.set("C", 3)
 assert t == {"A": 1, "B": 2, "C": 3}
 
@@ -3731,7 +3794,7 @@ other | `{K:V}` | The other table from which new key/value pairs will be added. 
 
 **Example:**
 ```tomo
-t := {"A": 1; "B": 2}
+t := {"A": 1, "B": 2}
 assert t.with({"B": 20, "C": 30}) == {"A": 1, "B": 20, "C": 30}
 
 ```
@@ -3754,10 +3817,10 @@ fallback | `{K:V}?` | The new fallback table value.  | -
 **Example:**
 ```tomo
 t := {"A": 1; fallback={"B": 2}}
-t2 = t.with_fallback({"B": 3"})
+t2 := t.with_fallback({"B": 3})
 assert t2["B"] == 3
-t3 = t.with_fallback(none)
-assert t2["B"] == none
+t3 := t.with_fallback(none)
+assert t3["B"] == none
 
 ```
 ## Table.without
@@ -3780,7 +3843,7 @@ other | `{K:V}` | The other table whose key/value pairs will be omitted.  | -
 
 **Example:**
 ```tomo
-t := {"A": 1; "B": 2, "C": 3}
+t := {"A": 1, "B": 2, "C": 3}
 assert t.without({"B": 2, "C": 30, "D": 40}) == {"A": 1, "C": 3}
 
 ```
@@ -3849,12 +3912,11 @@ text | `Text` | The text to be iterated over, line by line.  | -
 **Example:**
 ```tomo
 text := "
-line one
-line two
+    line one
+    line two
 "
-for line in text.by_line()
-# Prints: "line one" then "line two":
-say(line)
+lines := [line for line in text.by_line()]
+assert lines == ["line one", "line two"]
 
 ```
 ## Text.by_split
@@ -3879,9 +3941,8 @@ delimiter | `Text` | An exact delimiter to use for splitting the text.  | `""`
 **Example:**
 ```tomo
 text := "one,two,three"
-for chunk in text.by_split(",")
-# Prints: "one" then "two" then "three":
-say(chunk)
+chunks := [chunk for chunk in text.by_split(",")]
+assert chunks == ["one", "two", "three"]
 
 ```
 ## Text.by_split_any
@@ -3906,9 +3967,8 @@ delimiters | `Text` | Grapheme clusters to use for splitting the text.  | `" $\t
 **Example:**
 ```tomo
 text := "one,two,;,three"
-for chunk in text.by_split_any(",;")
-# Prints: "one" then "two" then "three":
-say(chunk)
+chunks := [chunk for chunk in text.by_split_any(",;")]
+assert chunks == ["one", "two", "three"]
 
 ```
 ## Text.caseless_equals
@@ -3961,6 +4021,33 @@ assert "Amélie".codepoint_names() == [
     "LATIN SMALL LETTER I",
     "LATIN SMALL LETTER E",
 ]
+
+```
+## Text.distance
+
+```tomo
+Text.distance : func(a: Text, b: Text, language: Text = "C" -> Num)
+```
+
+Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar.
+
+The exact distance algorithm is not specified and may be subject to change over time.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+a | `Text` | The first text to compare.  | -
+b | `Text` | The second text to compare.  | -
+language | `Text` | The ISO 639 language code for which character width to use.  | `"C"`
+
+**Return:** The distance between the two texts (larger means more dissimilar).
+
+
+**Example:**
+```tomo
+assert "hello".distance("hello") == 0
+texts := &["goodbye", "hello", "hallo"]
+texts.sort(func(a,b:&Text) a.distance("hello") <> b.distance("hello"))
+assert texts == ["hello", "hallo", "goodbye"]
 
 ```
 ## Text.ends_with
@@ -4080,7 +4167,7 @@ text := Text.from_codepoint_names([
     "LATIN CAPITAL LETTER A WITH RING ABOVE",
     "LATIN SMALL LETTER K",
     "LATIN SMALL LETTER E",
-]
+])
 assert text == "Åke"
 
 ```
@@ -4104,7 +4191,7 @@ bytes | `[Int16]` | The UTF-16 integers of the desired text.  | -
 **Example:**
 ```tomo
 assert Text.from_utf16([197, 107, 101]) == "Åke"
-assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界".utf16()
+assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界"
 
 ```
 ## Text.from_utf32
@@ -4262,6 +4349,27 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 ```tomo
 assert "AMÉLIE".lower() == "amélie"
 assert "I".lower(language="tr_TR") == "ı"
+
+```
+## Text.matches_glob
+
+```tomo
+Text.matches_glob : func(path: Text, glob: Text -> Bool)
+```
+
+Return whether or not the text matches the given glob.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Text` | The text to check.  | -
+glob | `Text` | The glob pattern to check.  | -
+
+**Return:** Whether or not the text matches the given glob.
+
+
+**Example:**
+```tomo
+assert "hello world".matches_glob("h* *d")
 
 ```
 ## Text.middle_pad
@@ -4563,11 +4671,11 @@ translations | `{Text:Text}` | A table mapping from target text to its replaceme
 
 **Example:**
 ```tomo
-text := "A <tag> & an amperand".translate({
+text := "A <tag> & an ampersand".translate({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
-    '"": "&quot",
+    '"': "&quot",
     "'": "&#39;",
 })
 assert text == "A &lt;tag&gt; &amp; an ampersand"

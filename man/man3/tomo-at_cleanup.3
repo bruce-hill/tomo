@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH at_cleanup 3 2025-11-29 "Tomo man-pages"
+.TH at_cleanup 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 at_cleanup \- register a cleanup function
 .SH LIBRARY
@@ -33,6 +33,6 @@ Use this API very carefully, because errors that occur during cleanup functions 
 .SH EXAMPLES
 .EX
 at_cleanup(func()
-    (/tmp/file.txt).remove(ignore_missing=yes)
+    _ := (/tmp/file.txt).remove(ignore_missing=yes)
 )
 .EE

@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.write_unique 3 2025-11-29 "Tomo man-pages"
+.TH Path.write_unique 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Path.write_unique \- write to a uniquely named file
 .SH LIBRARY
@@ -30,10 +30,10 @@ The path of the newly created unique file.
 
 .SH EXAMPLES
 .EX
-created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+created := (./file-XXXXXX.txt).write_unique("Hello, world!")!
 assert created == (./file-27QHtq.txt)
-assert created.read() == "Hello, world!"
-created.remove()
+assert created.read()! == "Hello, world!"
+created.remove()!
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

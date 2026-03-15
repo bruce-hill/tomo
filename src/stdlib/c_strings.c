@@ -47,7 +47,8 @@ PUREFUNC public bool CString$is_none(const void *c_str, const TypeInfo_t *info) 
     return *(const char **)c_str == NULL;
 }
 
-static void CString$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
+public
+void CString$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
     (void)info;
     const char *str = *(const char **)obj;
     int64_t len = (int64_t)strlen(str);
@@ -55,7 +56,8 @@ static void CString$serialize(const void *obj, FILE *out, Table_t *pointers, con
     fwrite(str, sizeof(char), (size_t)len, out);
 }
 
-static void CString$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info) {
+public
+void CString$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *info) {
     (void)info;
     int64_t len = -1;
     Int64$deserialize(in, &len, pointers, &Int64$info);

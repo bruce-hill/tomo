@@ -41,7 +41,9 @@ size_t some_not(const char **pos, const char *forbid) {
     return len;
 }
 
-size_t spaces(const char **pos) { return some_of(pos, " \t"); }
+size_t spaces(const char **pos) {
+    return some_of(pos, " \t");
+}
 
 void whitespace(parse_ctx_t *ctx, const char **pos) {
     while (some_of(pos, " \t\r\n") || comment(ctx, pos))
@@ -53,6 +55,12 @@ size_t match(const char **pos, const char *target) {
     if (strncmp(*pos, target, len) != 0) return 0;
     *pos += len;
     return len;
+}
+
+bool is_xid_start_next(const char *pos) {
+    ucs4_t point = 0;
+    u8_next(&point, (const uint8_t *)pos);
+    return uc_is_property_xid_start(point);
 }
 
 bool is_xid_continue_next(const char *pos) {
@@ -93,7 +101,9 @@ const char *get_id(const char **inout) {
     return word;
 }
 
-PUREFUNC const char *eol(const char *str) { return str + strcspn(str, "\r\n"); }
+PUREFUNC const char *eol(const char *str) {
+    return str + strcspn(str, "\r\n");
+}
 
 bool comment(parse_ctx_t *ctx, const char **pos) {
     if ((*pos)[0] == '#') {

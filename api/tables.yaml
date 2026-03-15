@@ -14,7 +14,7 @@ Table.clear:
   example: |
     t := &{"A":1}
     t.clear()
-    assert t == {}
+    assert t[] == {}
 
 Table.difference:
   short: return a table using keys not present in both tables
@@ -36,7 +36,7 @@ Table.difference:
       description: >
         The other table.
   example: |
-    t1 := {"A": 1; "B": 2, "C": 3}
+    t1 := {"A": 1, "B": 2, "C": 3}
     t2 := {"B": 2, "C":30, "D": 40}
     assert t1.difference(t2) == {"A": 1, "D": 40}
 
@@ -98,10 +98,9 @@ Table.get_or_set:
     t := &{"A": @[1, 2, 3]; default=@[]}
     t.get_or_set("A").insert(4)
     t.get_or_set("B").insert(99)
-    assert t == &{"A": @[1, 2, 3, 4], "B": @[99]}
-
-    assert t.get_or_set("C", @[0, 0, 0]) == @[0, 0, 0]
-    assert t == &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
+    assert t["A"][] == [1, 2, 3, 4]
+    assert t["B"][] == [99]
+    assert t.get_or_set("C", @[0, 0, 0])[] == [0, 0, 0]
 
 Table.has:
   short: check for a key
@@ -143,7 +142,7 @@ Table.intersection:
       description: >
         The other table.
   example: |
-    t1 := {"A": 1; "B": 2, "C": 3}
+    t1 := {"A": 1, "B": 2, "C": 3}
     t2 := {"B": 2, "C":30, "D": 40}
     assert t1.intersection(t2) == {"B": 2}
 
@@ -165,7 +164,7 @@ Table.remove:
       description: >
         The key of the key-value pair to remove.
   example: |
-    t := {"A": 1, "B": 2}
+    t := &{"A": 1, "B": 2}
     t.remove("A")
     assert t == {"B": 2}
 
@@ -191,7 +190,7 @@ Table.set:
       description: >
         The value to associate with the key.
   example: |
-    t := {"A": 1, "B": 2}
+    t := &{"A": 1, "B": 2}
     t.set("C", 3)
     assert t == {"A": 1, "B": 2, "C": 3}
 
@@ -213,7 +212,7 @@ Table.with:
       description: >
         The other table from which new key/value pairs will be added.
   example: |
-    t := {"A": 1; "B": 2}
+    t := {"A": 1, "B": 2}
     assert t.with({"B": 20, "C": 30}) == {"A": 1, "B": 20, "C": 30}
 
 Table.without:
@@ -238,7 +237,7 @@ Table.without:
       description: >
         The other table whose key/value pairs will be omitted.
   example: |
-    t := {"A": 1; "B": 2, "C": 3}
+    t := {"A": 1, "B": 2, "C": 3}
     assert t.without({"B": 2, "C": 30, "D": 40}) == {"A": 1, "C": 3}
 
 Table.with_fallback:
@@ -260,7 +259,7 @@ Table.with_fallback:
         The new fallback table value.
   example: |
     t := {"A": 1; fallback={"B": 2}}
-    t2 = t.with_fallback({"B": 3"})
+    t2 := t.with_fallback({"B": 3})
     assert t2["B"] == 3
-    t3 = t.with_fallback(none)
-    assert t2["B"] == none
+    t3 := t.with_fallback(none)
+    assert t3["B"] == none

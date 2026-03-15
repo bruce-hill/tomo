@@ -48,7 +48,7 @@ prefix | `Bool` | Whether or not to prepend a `0x` prefix.  | `no`
 
 **Example:**
 ```tomo
-assert Byte(18).hex() == "0x12"
+assert Byte(18).hex(prefix=yes) == "0x12"
 
 ```
 ## Byte.is_between
@@ -62,15 +62,16 @@ Determines if an integer is between two numbers (inclusive).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Byte` | The integer to be checked.  | -
-low | `Byte` | The lower bound to check (inclusive).  | -
-high | `Byte` | The upper bound to check (inclusive).  | -
+low | `Byte` | One end of the range to check (inclusive);  | -
+high | `Byte` | The other end of the range to check (inclusive);  | -
 
-**Return:** `yes` if `low <= x and x <= high`, otherwise `no`
+**Return:** `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
 
 **Example:**
 ```tomo
 assert Byte(7).is_between(1, 10) == yes
+assert Byte(7).is_between(10, 1) == yes
 assert Byte(7).is_between(100, 200) == no
 assert Byte(7).is_between(1, 7) == yes
 
@@ -78,7 +79,7 @@ assert Byte(7).is_between(1, 7) == yes
 ## Byte.parse
 
 ```tomo
-Byte.parse : func(text: Text, remainder: &Text? = none -> Byte?)
+Byte.parse : func(text: Text, base: Int? = none, remainder: &Text? = none -> Byte?)
 ```
 
 Parse a byte literal from text.
@@ -86,6 +87,7 @@ Parse a byte literal from text.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text to parse.  | -
+base | `Int?` | The numeric base to use when parsing the byte. If unspecified, the byte's base will be inferred from the text prefix. After any "+" or "-" sign, if the text begins with "0x", the base will be assumed to be 16, "0o" will assume base 8, "0b" will assume base 2, otherwise the base will be assumed to be 10.  | `none`
 remainder | `&Text?` | If non-none, this argument will be set to the remainder of the text after the matching part. If none, parsing will only succeed if the entire text matches.  | `none`
 
 **Return:** The byte parsed from the text, if successful, otherwise `none`.
@@ -98,14 +100,14 @@ assert Byte.parse("asdf") == none
 assert Byte.parse("123xyz") == none
 
 remainder : Text
-assert Byte.parse("123xyz", &remainder) == Byte(123)
+assert Byte.parse("123xyz", remainder=&remainder) == Byte(123)
 assert remainder == "xyz"
 
 ```
 ## Byte.to
 
 ```tomo
-Byte.to : func(first: Byte, last: Byte, step: Byte? = none -> func(->Byte?))
+Byte.to : func(first: Byte, last: Byte, step: Int8? = none -> func(->Byte?))
 ```
 
 Returns an iterator function that iterates over the range of bytes specified.
@@ -114,7 +116,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 first | `Byte` | The starting value of the range.  | -
 last | `Byte` | The ending value of the range.  | -
-step | `Byte?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | `none`
+step | `Int8?` | An optional step size to use. If unspecified or `none`, the step will be inferred to be `+1` if `last >= first`, otherwise `-1`.  | `none`
 
 **Return:** An iterator function that returns each byte in the given range (inclusive).
 
@@ -122,9 +124,9 @@ step | `Byte?` | An optional step size to use. If unspecified or `none`, the ste
 **Example:**
 ```tomo
 iter := Byte(2).to(4)
-assert iter() == 2
-assert iter() == 3
-assert iter() == 4
+assert iter() == Byte(2)
+assert iter() == Byte(3)
+assert iter() == Byte(4)
 assert iter() == none
 
 assert [x for x in Byte(2).to(5)] == [Byte(2), Byte(3), Byte(4), Byte(5)]

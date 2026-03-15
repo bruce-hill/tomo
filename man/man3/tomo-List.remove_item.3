@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.remove_item 3 2025-11-29 "Tomo man-pages"
+.TH List.remove_item 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 List.remove_item \- remove an item by value
 .SH LIBRARY
@@ -34,7 +34,7 @@ A negative `max_count` means "remove all occurrences".
 
 .SH EXAMPLES
 .EX
-list := [10, 20, 10, 20, 30]
+list := &[10, 20, 10, 20, 30]
 list.remove_item(10)
 assert list == [20, 20, 30]
 

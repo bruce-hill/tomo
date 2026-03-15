@@ -30,7 +30,9 @@ PUREFUNC public Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo
 }
 
 public
-CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high) { return low <= x && x <= high; }
+CONSTFUNC bool Byte$is_between(const Byte_t x, const Byte_t low, const Byte_t high) {
+    return (low <= x && x <= high) || (high <= x && x <= low);
+}
 
 public
 OptionalByte_t Byte$parse(Text_t text, OptionalInt_t base, Text_t *remainder) {
@@ -67,7 +69,9 @@ public
 bool Byte$get_bit(Byte_t x, Int_t bit_index) {
     if (Int$compare_value(bit_index, I(1)) < 0) fail("Invalid bit index (expected 1 or higher): ", bit_index);
     if (Int$compare_value(bit_index, I(8)) > 0)
-        fail("Bit index is too large! There are only 8 bits in a byte, but index is: ", bit_index);
+        fail("Bit index is too large! There are only 8 bits in a byte, but index "
+             "is: ",
+             bit_index);
     return ((x & (Byte_t)(1L << (Int64$from_int(bit_index, true) - 1L))) != 0);
 }
 
@@ -97,7 +101,7 @@ static OptionalByte_t _next_Byte(ByteRange_t *info) {
 }
 
 public
-CONSTFUNC Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t step) {
+Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t step) {
     ByteRange_t *range = GC_MALLOC(sizeof(ByteRange_t));
     range->current = (OptionalByte_t){.has_value = true, .value = first};
     range->last = (OptionalByte_t){.has_value = true, .value = last};

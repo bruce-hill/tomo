@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.with_fallback 3 2025-11-29 "Tomo man-pages"
+.TH Table.with_fallback 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Table.with_fallback \- return a table with a new fallback
 .SH LIBRARY
@@ -31,10 +31,10 @@ The original table with a different fallback.
 .SH EXAMPLES
 .EX
 t := {"A": 1; fallback={"B": 2}}
-t2 = t.with_fallback({"B": 3"})
+t2 := t.with_fallback({"B": 3})
 assert t2["B"] == 3
-t3 = t.with_fallback(none)
-assert t2["B"] == none
+t3 := t.with_fallback(none)
+assert t3["B"] == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Table (3)
