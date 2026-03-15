@@ -9,8 +9,8 @@
 #include "ast.h"
 #include "config.h"
 #include "environment.h"
-#include "modules.h"
 #include "naming.h"
+#include "packages.h"
 #include "parse/files.h"
 #include "parse/types.h"
 #include "stdlib/optionals.h"
@@ -220,8 +220,8 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
         if (!ast) print_err("Could not compile file ", used_path);
         return load_module_env(env, ast);
     }
-    case USE_MODULE: {
-        OptionalPath_t installed = find_installed_module(use_ast);
+    case USE_PACKAGE: {
+        OptionalPath_t installed = find_installed_package(use_ast);
         assert(installed);
         Text_t name = get_library_name(installed);
         env_t *module_env = fresh_scope(env);

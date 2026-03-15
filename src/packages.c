@@ -1,17 +1,22 @@
-// This file defines some code for getting info about modules and installing them.
+// This file defines some code for getting info about packages and installing them.
 
 #include <err.h>
 #include <openssl/evp.h>
 #include <stdlib.h>
 
 #include "config.h"
-#include "modules.h"
+#include "packages.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
 #include "stdlib/simpleparse.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
+
+typedef struct {
+    const char *name;
+    Table_t info;
+} pkg_info_t;
 
 #define xsystem(...)                                                                                                   \
     ({                                                                                                                 \
@@ -68,19 +73,19 @@ Text_t get_library_name(Path_t lib_dir) {
     return name;
 }
 
-static Text_t module_text(module_info_t mod) {
-    Text_t text = Texts("[", mod.name, "]\n");
-    for (int64_t i = 0; i < (int64_t)mod.info.entries.length; i++) {
+static Text_t package_text(pkg_info_t pkg) {
+    Text_t text = Texts("[", pkg.name, "]\n");
+    for (int64_t i = 0; i < (int64_t)pkg.info.entries.length; i++) {
         struct {
             const char *key, *value;
-        } *entry = mod.info.entries.data + i * mod.info.entries.stride;
-        text = Texts(text, entry->key, "=", entry->value, "\n");
+        } *entry = pkg.info.entries.data + i * pkg.info.entries.stride;
+        text = Texts(text, entry->key, " = ", entry->value, "\n");
     }
     return text;
 }
 
-static OptionalPath_t try_install_module_from_source(Path_t ini_file, module_info_t *mod, const char *source,
-                                                     bool ask_confirmation) {
+static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_t *pkg, const char *source,
+                                                      bool ask_confirmation) {
     if (source[0] == '.' || source[0] == '/' || source[0] == '~') {
         Path_t source_path = Path$from_str(source);
         if (!Path$exists(source_path)) {
@@ -88,6 +93,13 @@ static OptionalPath_t try_install_module_from_source(Path_t ini_file, module_inf
             return NONE_PATH;
         }
         if (Path$is_directory(source_path, true)) {
+            if (Table$str_get(pkg->info, "digest") != NULL) {
+                // TODO: add support for automatically deleting digest with confirmation
+                fail("The package source for ", pkg->name, " is a directory, but the package has a digest.",
+                     "\nSource directory packages cannot have a digest, so please delete the digest from this "
+                     "package.\nSource: ",
+                     source_path);
+            }
             xsystem("tomo -L ", source_path);
             return source_path;
         } else {
@@ -96,7 +108,7 @@ static OptionalPath_t try_install_module_from_source(Path_t ini_file, module_inf
     }
 
     if (ask_confirmation) {
-        OptionalText_t answer = ask(Texts("The module ", Text$quoted(Text$from_str(mod->name), false, Text("\"")),
+        OptionalText_t answer = ask(Texts("The package ", Text$quoted(Text$from_str(pkg->name), false, Text("\"")),
                                           " is not installed.\nDo you want to install it from ",
                                           Text$quoted(Text$from_str(source), false, Text("\"")), "? [Y/n] "),
                                     true, true);
@@ -106,16 +118,16 @@ static OptionalPath_t try_install_module_from_source(Path_t ini_file, module_inf
         }
     }
 
-    print("Installing ", Text$quoted(Text$from_str(mod->name), false, Text("\"")), " from URL...");
+    print("Installing ", Text$quoted(Text$from_str(pkg->name), false, Text("\"")), " from URL...");
 
-    Path_t tmpdir = Path$unique_directory(Path$from_text(Texts("/tmp/tomo-", mod->name, "-XXXXXX")));
+    Path_t tmpdir = Path$unique_directory(Path$from_text(Texts("/tmp/tomo-", pkg->name, "-XXXXXX")));
 
     xsystem_cleanup(tmpdir, "curl --output-dir ", quoted(tmpdir), " -LJO ", quoted(source));
 
     List_t children = Path$children(tmpdir, true);
     if (children.length != 1) {
         Path$remove(tmpdir, true);
-        print("Failed to download file ", mod->name, " from: ", source);
+        print("Failed to download file ", pkg->name, " from: ", source);
         return NONE_PATH;
     }
 
@@ -123,24 +135,25 @@ static OptionalPath_t try_install_module_from_source(Path_t ini_file, module_inf
     OptionalText_t downloaded_digest = file_digest(downloaded);
     if (downloaded_digest.tag == TEXT_NONE) {
         Path$remove(tmpdir, true);
-        fail("Failed to compute digest for module ", mod->name);
+        fail("Failed to compute digest for package ", pkg->name);
     }
 
-    const char *digest = Table$str_get(mod->info, "digest");
+    const char *digest = Table$str_get(pkg->info, "digest");
     if (digest == NULL) {
         digest = Text$as_c_string(downloaded_digest);
-        Table$str_set(&mod->info, "digest", digest);
-        print("Added digest for ", mod->name, ": ", digest);
+        Table$str_set(&pkg->info, "digest", digest);
+        print("Added digest for ", pkg->name, ": ", digest);
     } else {
         if (!Text$equal_values(downloaded_digest, Text$from_str(digest))) {
             // Digest mismatch
             Path$remove(tmpdir, true);
-            fail("Mismatched digest sum for module ", mod->name, "! Expected ", digest, " but got ", downloaded_digest);
+            fail("Mismatched digest sum for package ", pkg->name, "! Expected ", digest, " but got ",
+                 downloaded_digest);
         }
     }
 
     OptionalPath_t install_location = Path$from_text(
-        Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(mod->name), "/", digest));
+        Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(pkg->name), "/", digest));
 
     Result_t result = Path$create_directory(install_location, 0755, true);
     if (result.Failure.reason.tag != TEXT_NONE) {
@@ -156,7 +169,7 @@ static OptionalPath_t try_install_module_from_source(Path_t ini_file, module_inf
         xsystem_cleanup(tmpdir, "unzip ", downloaded, " -d ", install_location);
     } else {
         Path$remove(tmpdir, true);
-        fail("Unsupported module filetype: ", downloaded);
+        fail("Unsupported package filetype: ", downloaded);
     }
 
     List_t installed_files = Path$children(install_location, true);
@@ -184,67 +197,67 @@ static OptionalPath_t try_install_module_from_source(Path_t ini_file, module_inf
     // Always clean up tmpdir!
     Path$remove(tmpdir, true);
 
-    // Add digest to the module.ini file if it wasn't already there
+    // Add digest to the package.ini file if it wasn't already there
     if (digest == NULL && downloaded_digest.tag != TEXT_NONE) {
-        Table$str_set(&mod->info, "digest", Text$as_c_string(downloaded_digest));
-        print("Added digest for ", mod->name, ": ", digest);
+        Table$str_set(&pkg->info, "digest", Text$as_c_string(downloaded_digest));
+        print("Added digest for ", pkg->name, ": ", digest);
     }
 
     return install_location;
 }
 
-static OptionalPath_t try_install_module(Path_t ini_file, module_info_t *mod, bool ask_confirmation) {
+static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool ask_confirmation) {
     OptionalPath_t install_location = NULL;
-    const char *digest = Table$str_get(mod->info, "digest");
+    const char *digest = Table$str_get(pkg->info, "digest");
     if (digest) {
         install_location = Path$from_text(
-            Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(mod->name), "/", digest));
+            Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", Text$from_str(pkg->name), "/", digest));
         if (Path$exists(install_location)) {
             return install_location;
         }
     }
 
-    const char *source = Table$str_get(mod->info, "source");
+    const char *source = Table$str_get(pkg->info, "source");
     for (int i = 1; source; i++) {
-        install_location = try_install_module_from_source(ini_file, mod, source, ask_confirmation);
+        install_location = try_install_package_from_source(ini_file, pkg, source, ask_confirmation);
         if (install_location != NULL) return install_location;
         const char *new_source_key = String("source-", i + 1);
-        source = Table$str_get(mod->info, new_source_key);
+        source = Table$str_get(pkg->info, new_source_key);
     }
-    fail("No source for module: ", mod->name);
+    fail("No source for package: ", pkg->name);
     return NULL;
 }
 
-static OptionalPath_t get_module_install_location(Path_t ini_file, const char *name) {
+static OptionalPath_t get_package_install_location(Path_t ini_file, const char *name) {
     OptionalClosure_t by_line = Path$by_line(ini_file);
     if (by_line.fn == NULL) return NONE_PATH;
     OptionalText_t (*next_line)(void *) = by_line.fn;
 
     Text_t reformatted = EMPTY_TEXT;
     for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
-        if (Text$equal_values(line, Texts("[", name, "]"))) goto found_module;
+        if (Text$equal_values(line, Texts("[", name, "]"))) goto found_package;
         reformatted = Texts(reformatted, line, "\n");
     }
     return NONE_PATH;
 
-found_module:;
+found_package:;
 
-    module_info_t mod = {.name = name, .info = EMPTY_TABLE};
+    pkg_info_t pkg = {.name = name, .info = EMPTY_TABLE};
     for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
         const char *line_str = Text$as_c_string(line);
         const char *key = NULL, *value = NULL;
-        if (!strparse(line_str, &key, "=", &value)) {
-            Table$str_set(&mod.info, key, value);
+        if (!strparse(line_str, &key, PARSE_WHITESPACE, "=", PARSE_WHITESPACE, &value)) {
+            Table$str_set(&pkg.info, key, value);
         } else {
             break;
         }
     }
-    bool had_digest = Table$str_get(mod.info, "digest") != NULL;
-    OptionalPath_t installed = try_install_module(ini_file, &mod, true);
+    bool had_digest = Table$str_get(pkg.info, "digest") != NULL;
+    OptionalPath_t installed = try_install_package(ini_file, &pkg, true);
     if (installed == NULL) return NULL;
 
-    if (!had_digest && Table$str_get(mod.info, "digest") != NULL) {
-        reformatted = Texts(reformatted, module_text(mod), "\n\n");
+    if (!had_digest && Table$str_get(pkg.info, "digest") != NULL) {
+        reformatted = Texts(reformatted, package_text(pkg), "\n\n");
         for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
             reformatted = Texts(reformatted, line, "\n");
         }
@@ -258,25 +271,25 @@ found_module:;
     return installed;
 }
 
-OptionalPath_t find_installed_module(ast_t *use) {
+OptionalPath_t find_installed_package(ast_t *use) {
     const char *name = Match(use, Use)->path;
 
     {
-        Path_t file_module = Path$with_extension(Path$from_str(use->file->filename), Text(":modules.ini"), false);
-        OptionalPath_t installed = get_module_install_location(file_module, name);
+        Path_t file_package = Path$with_extension(Path$from_str(use->file->filename), Text(":packages.ini"), false);
+        OptionalPath_t installed = get_package_install_location(file_package, name);
         if (installed != NULL) return installed;
     }
 
     {
-        Path_t local_module = Path$sibling(Path$from_str(use->file->filename), Text("modules.ini"));
-        OptionalPath_t installed = get_module_install_location(local_module, name);
+        Path_t local_package = Path$sibling(Path$from_str(use->file->filename), Text("packages.ini"));
+        OptionalPath_t installed = get_package_install_location(local_package, name);
         if (installed != NULL) return installed;
     }
 
     {
-        Path_t tomo_default_modules =
-            Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/modules.ini"));
-        OptionalPath_t installed = get_module_install_location(tomo_default_modules, name);
+        Path_t tomo_default_packages =
+            Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/packages.ini"));
+        OptionalPath_t installed = get_package_install_location(tomo_default_packages, name);
         if (installed != NULL) return installed;
     }
 

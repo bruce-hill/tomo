@@ -5,11 +5,10 @@
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
-#include "../modules.h"
 #include "../naming.h"
+#include "../packages.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/paths.h"
-#include "../stdlib/print.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../stdlib/util.h"
@@ -193,8 +192,8 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             path = Path$resolved(path, Path$parent(in_file));
             Text_t suffix = get_id_suffix(Path$as_c_string(path));
             return with_source_info(env, ast, Texts("$initialize", suffix, "();\n"));
-        } else if (use->what == USE_MODULE) {
-            OptionalPath_t installed = find_installed_module(ast);
+        } else if (use->what == USE_PACKAGE) {
+            OptionalPath_t installed = find_installed_package(ast);
             assert(installed);
             List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
             Text_t initialization = EMPTY_TEXT;

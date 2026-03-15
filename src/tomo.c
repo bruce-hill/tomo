@@ -19,8 +19,8 @@
 #include "compile/headers.h"
 #include "config.h"
 #include "formatter/formatter.h"
-#include "modules.h"
 #include "naming.h"
+#include "packages.h"
 #include "parse/files.h"
 #include "stdlib/bools.h"
 #include "stdlib/bytes.h"
@@ -656,12 +656,12 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
     if (Table$has_value(*to_compile, path, Table$info(&Path$info, &Byte$info))) return;
 
     staleness_t staleness = {
-        .h = is_stale(build_file(path, ".h"), Path$sibling(path, Text("modules.ini")), true)
-             || is_stale(build_file(path, ".h"), build_file(path, ":modules.ini"), true)
+        .h = is_stale(build_file(path, ".h"), Path$sibling(path, Text("packages.ini")), true)
+             || is_stale(build_file(path, ".h"), build_file(path, ":packages.ini"), true)
              || is_stale(build_file(path, ".h"), path, false)
              || is_stale(build_file(path, ".h"), build_file(path, ".id"), false),
-        .c = is_stale(build_file(path, ".c"), Path$sibling(path, Text("modules.ini")), true)
-             || is_stale(build_file(path, ".c"), build_file(path, ":modules.ini"), true)
+        .c = is_stale(build_file(path, ".c"), Path$sibling(path, Text("packages.ini")), true)
+             || is_stale(build_file(path, ".c"), build_file(path, ":packages.ini"), true)
              || is_stale(build_file(path, ".c"), path, false)
              || is_stale(build_file(path, ".c"), build_file(path, ".id"), false),
     };
@@ -690,8 +690,8 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             build_file_dependency_graph(dep_tm, to_compile, to_link);
             break;
         }
-        case USE_MODULE: {
-            OptionalPath_t installed = find_installed_module(stmt_ast);
+        case USE_PACKAGE: {
+            OptionalPath_t installed = find_installed_package(stmt_ast);
             assert(installed);
             Text_t name = get_library_name(installed);
             Text_t lib = Texts(installed, "/lib", name, ".a");
@@ -901,8 +901,8 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
         && !is_stale_for_any(exe_path, object_files, false)
-        && !is_stale(exe_path, Path$sibling(path, Text("modules.ini")), true)
-        && !is_stale(exe_path, build_file(path, ":modules.ini"), true)) {
+        && !is_stale(exe_path, Path$sibling(path, Text("packages.ini")), true)
+        && !is_stale(exe_path, build_file(path, ":packages.ini"), true)) {
         if (verbose) whisper("Unchanged: ", exe_path);
         return exe_path;
     }

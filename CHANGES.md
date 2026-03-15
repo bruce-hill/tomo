@@ -5,7 +5,7 @@
 - Added `Path.each_child()` and `Path.walk()` for iterating over files without
   the need to allocate a list of every iterated file.
 - Added `Text.matches_glob(glob)` and `Path.matches_glob(glob)`
-- Overhaul to module system
+- Overhaul to package system (previously: modules)
 
 ## 2026-02-08
 
