@@ -1,5 +1,9 @@
 # Changes
 
+## 2026-03-16
+
+- Added `Path.copy_to(src, dest)`
+
 ## 2026-03-14
 
 - Added `Path.each_child()` and `Path.walk()` for iterating over files without

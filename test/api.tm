@@ -488,6 +488,9 @@ func main()
     if no # Test Path.children
         assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 
+    if no # Test Path.copy_to
+        (./file.txt).move(/tmp/renamed.txt)!
+
     if no # Test Path.create_directory
         (./new_directory).create_directory()!
 

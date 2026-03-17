@@ -16,6 +16,7 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "../unistr-fixed.h"
@@ -588,6 +589,25 @@ Result_t Path$move(Path_t src, Path_t dest, bool allow_overwriting) {
             return Path$move(src, dest, allow_overwriting);
         }
         return FailureResult("Could not move file ", src, " to ", dest, " (", strerror(errno), ")");
+    }
+    return SuccessResult;
+}
+
+Result_t Path$copy_to(Path_t src, Path_t dest, bool allow_overwriting) {
+    pid_t child = fork();
+    if (child == 0) {
+        const char *args[] = {"cp", allow_overwriting ? "-rf" : "-r", "-T", src, dest, NULL};
+        execvp("cp", (char **)args);
+        exit(0);
+    }
+    int status;
+    while (waitpid(child, &status, 0) < 0 && errno == EINTR) {
+        if (WIFEXITED(status) || WIFSIGNALED(status)) break;
+        else if (WIFSTOPPED(status)) kill(child, SIGCONT);
+    }
+
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        return FailureResult("Failed to copy ", src, " to ", dest);
     }
     return SuccessResult;
 }

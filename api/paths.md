@@ -276,6 +276,28 @@ include_hidden | `` | Whether to include hidden files (those starting with a `.`
 assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 
 ```
+## Path.copy_to
+
+```tomo
+Path.copy_to : func(path: Path, dest: Path, overwrite = no -> Result)
+```
+
+Copies the file or directory from one location to another. This is the same behavior as `cp -r -T src dest` or `cp -rf -T src dest` (if `overwrite` is enabled).
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to copy.  | -
+dest | `Path` | The destination to copy the path to.  | -
+overwrite | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
+
+**Return:** Either `Success` or `Failure(reason)`.
+
+
+**Example:**
+```tomo
+(./file.txt).move(/tmp/renamed.txt)!
+
+```
 ## Path.create_directory
 
 ```tomo
@@ -657,7 +679,7 @@ assert (./not-a-file).modified() == none
 ## Path.move
 
 ```tomo
-Path.move : func(path: Path, dest: Path, allow_overwriting = no -> Result)
+Path.move : func(path: Path, dest: Path, overwrite = no -> Result)
 ```
 
 Moves the file or directory from one location to another.
@@ -666,7 +688,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to move.  | -
 dest | `Path` | The destination to move the path to.  | -
-allow_overwriting | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
+overwrite | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
 
 **Return:** Either `Success` or `Failure(reason)`.
 

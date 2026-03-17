@@ -303,6 +303,7 @@ env_t *global_env(bool source_mapping) {
             {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"}, //
             {"components", "Path$components", "func(path:Path -> [Text])"}, //
+            {"copy_to", "Path$copy_to", "func(path:Path, dest:Path, overwrite=no -> Result)"}, //
             {"create_directory", "Path$create_directory",
              "func(path:Path, permissions=Int32(0o755), recursive=yes -> Result)"}, //
             {"current_dir", "Path$current_dir", "func(->Path)"}, //
@@ -322,7 +323,7 @@ env_t *global_env(bool source_mapping) {
             {"lines", "Path$lines", "func(path:Path -> [Text]?)"}, //
             {"matches_glob", "Path$matches_glob", "func(path:Path, glob:Text -> Bool)"}, //
             {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
-            {"move", "Path$move", "func(path:Path, dest:Path, allow_overwriting=no -> Result)"}, //
+            {"move", "Path$move", "func(path:Path, dest:Path, overwrite=no -> Result)"}, //
             {"owner", "Path$owner", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
             {"parent", "Path$parent", "func(path:Path -> Path?)"}, //
             {"read", "Path$read", "func(path:Path -> Text?)"}, //

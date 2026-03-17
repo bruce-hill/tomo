@@ -255,6 +255,32 @@ Path.children:
   example: |
     assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 
+Path.copy_to:
+  short: copy a file or directory
+  description: >
+    Copies the file or directory from one location to another. This is the same
+    behavior as `cp -r -T src dest` or `cp -rf -T src dest` (if `overwrite` is
+    enabled).
+  return:
+    type: 'Result'
+    description: >
+      Either `Success` or `Failure(reason)`.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to copy.
+    dest:
+      type: 'Path'
+      description: >
+        The destination to copy the path to.
+    overwrite:
+      default: 'no'
+      description: >
+        Whether to permit overwriting the destination if it is an existing file or directory.
+  example: |
+    (./file.txt).move(/tmp/renamed.txt)!
+
 Path.create_directory:
   short: make a directory
   description: >
@@ -623,7 +649,7 @@ Path.move:
       type: 'Path'
       description: >
         The destination to move the path to.
-    allow_overwriting:
+    overwrite:
       default: 'no'
       description: >
         Whether to permit overwriting the destination if it is an existing file or directory.

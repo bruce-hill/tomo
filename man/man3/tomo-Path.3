@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path 3 2026-03-14 "Tomo man-pages"
+.TH Path 3 2026-03-16 "Tomo man-pages"
 .SH NAME
 Path \- a Tomo type
 .SH LIBRARY
@@ -104,6 +104,14 @@ Returns a list of children (files and directories) within the directory at the s
 
 For more, see:
 .BR Tomo-Path.children (3)
+
+
+.TP
+.BI Path.copy_to\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite\ =\ no\ ->\ Result)
+Copies the file or directory from one location to another. This is the same behavior as \fBcp -r -T src dest\fR or \fBcp -rf -T src dest\fR (if \fBoverwrite\fR is enabled). 
+
+For more, see:
+.BR Tomo-Path.copy_to (3)
 
 
 .TP
@@ -243,7 +251,7 @@ For more, see:
 
 
 .TP
-.BI Path.move\ :\ func(path:\ Path,\ dest:\ Path,\ allow_overwriting\ =\ no\ ->\ Result)
+.BI Path.move\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite\ =\ no\ ->\ Result)
 Moves the file or directory from one location to another. 
 
 For more, see:
