@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.matches_glob 3 2026-03-14 "Tomo man-pages"
+.SH NAME
+Text.matches_glob \- check if text matches a glob
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Text.matches_glob\ :\ func(path:\ Text,\ glob:\ Text\ ->\ Bool)
+.fi
+.SH DESCRIPTION
+Return whether or not the text matches the given glob.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Text	The text to check. 
+glob	Text	The glob pattern to check. 
+.TE
+.SH RETURN
+Whether or not the text matches the given glob.
+
+.SH EXAMPLES
+.EX
+assert "hello world".matches_glob("h* *d")
+.EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

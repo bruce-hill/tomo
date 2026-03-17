@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.matches_glob 3 2026-03-14 "Tomo man-pages"
+.SH NAME
+Path.matches_glob \- check if a path matches a glob
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.matches_glob\ :\ func(path:\ Path,\ glob:\ Text\ ->\ Bool)
+.fi
+.SH DESCRIPTION
+Return whether or not a path matches a given glob.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path to check. 
+glob	Text	The glob pattern to check. 
+.TE
+.SH RETURN
+Whether or not the path matches the given glob.
+
+.SH EXAMPLES
+.EX
+assert (./file.txt).matches_glob("*.txt")
+assert (./file.c).matches_glob("*.{c,h}")
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

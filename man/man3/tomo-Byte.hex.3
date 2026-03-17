@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.hex 3 2025-11-29 "Tomo man-pages"
+.TH Byte.hex 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Byte.hex \- convert to hexidecimal
 .SH LIBRARY
@@ -31,7 +31,7 @@ The byte as a hexidecimal text.
 
 .SH EXAMPLES
 .EX
-assert Byte(18).hex() == "0x12"
+assert Byte(18).hex(prefix=yes) == "0x12"
 .EE
 .SH SEE ALSO
 .BR Tomo-Byte (3)

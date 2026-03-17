@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.heap_push 3 2025-11-29 "Tomo man-pages"
+.TH List.heap_push 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 List.heap_push \- heap push
 .SH LIBRARY
@@ -31,7 +31,9 @@ Nothing.
 
 .SH EXAMPLES
 .EX
+my_heap : &[Int]
 my_heap.heap_push(10)
+assert my_heap.heap_pop() == 10
 .EE
 .SH SEE ALSO
 .BR Tomo-List (3)

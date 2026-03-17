@@ -87,7 +87,7 @@ CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) \
 	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-LDLIBS=-lm
+LDLIBS=-lm -lcrypto
 
 AR_FILE=libtomo@$(TOMO_VERSION).a
 ifeq ($(OS),Darwin)
@@ -102,8 +102,12 @@ TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
-all: config.mk check-c-compiler build
+all: config.mk check-c-compiler build test/api.tm
 	@$(ECHO) "All done!"
+
+dist: all
+	rm -f build/tomo@$(TOMO_VERSION)_$$(uname -sm | tr ' ' '-').tar.gz
+	tar czf build/tomo@$(TOMO_VERSION)_$$(uname -sm | tr ' ' '-').tar.gz -C build tomo@$(TOMO_VERSION)
 
 BUILD_DIR=build/tomo@$(TOMO_VERSION)
 headers := $(wildcard src/stdlib/*.h)
@@ -144,14 +148,14 @@ $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) build/gc/lib/libgc.a build/unistring
 	ar rcs $@ libtomo.o
 	rm -f libtomo.o
 
-$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini: modules/core.ini modules/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
+$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini: packages/core.ini packages/examples.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	@cat $^ > $@
 
 $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md: LICENSE.md | $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
 	cp $< $@
 
 build: $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
-	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/modules.ini \
+	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini \
 	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md $(build_headers) $(build_manpages)
 
 version:
@@ -207,6 +211,9 @@ clean:
 api/api.md: $(API_YAML)
 	./scripts/api_gen.py $^ >$@
 
+test/api.tm: $(API_YAML) | ./scripts/api_tests.py
+	./scripts/api_tests.py $^ >$@
+
 .PHONY: api-docs
 api-docs: $(API_MD) api/api.md
 
@@ -218,11 +225,11 @@ man/man1/tomo.1: docs/tomo.1.md
 	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
 examples:
-	./local-tomo -L modules/examples.ini
+	./local-tomo -L packages/examples.ini
 	./local-tomo examples/learnxiny.tm
 
 core-libs:
-	./local-tomo -L modules/core.ini
+	./local-tomo -L packages/core.ini
 
 deps: build/gc/lib/libgc.a build/unistring/lib/libgc.a build/gmp/lib/libgmp.a
 

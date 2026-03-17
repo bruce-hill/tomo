@@ -66,12 +66,11 @@ text | `Text` | The text to be iterated over, line by line.  | -
 **Example:**
 ```tomo
 text := "
-line one
-line two
+    line one
+    line two
 "
-for line in text.by_line()
-# Prints: "line one" then "line two":
-say(line)
+lines := [line for line in text.by_line()]
+assert lines == ["line one", "line two"]
 
 ```
 ## Text.by_split
@@ -96,9 +95,8 @@ delimiter | `Text` | An exact delimiter to use for splitting the text.  | `""`
 **Example:**
 ```tomo
 text := "one,two,three"
-for chunk in text.by_split(",")
-# Prints: "one" then "two" then "three":
-say(chunk)
+chunks := [chunk for chunk in text.by_split(",")]
+assert chunks == ["one", "two", "three"]
 
 ```
 ## Text.by_split_any
@@ -123,9 +121,8 @@ delimiters | `Text` | Grapheme clusters to use for splitting the text.  | `" $\t
 **Example:**
 ```tomo
 text := "one,two,;,three"
-for chunk in text.by_split_any(",;")
-# Prints: "one" then "two" then "three":
-say(chunk)
+chunks := [chunk for chunk in text.by_split_any(",;")]
+assert chunks == ["one", "two", "three"]
 
 ```
 ## Text.caseless_equals
@@ -324,7 +321,7 @@ text := Text.from_codepoint_names([
     "LATIN CAPITAL LETTER A WITH RING ABOVE",
     "LATIN SMALL LETTER K",
     "LATIN SMALL LETTER E",
-]
+])
 assert text == "Åke"
 
 ```
@@ -348,7 +345,7 @@ bytes | `[Int16]` | The UTF-16 integers of the desired text.  | -
 **Example:**
 ```tomo
 assert Text.from_utf16([197, 107, 101]) == "Åke"
-assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界".utf16()
+assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界"
 
 ```
 ## Text.from_utf32
@@ -506,6 +503,27 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 ```tomo
 assert "AMÉLIE".lower() == "amélie"
 assert "I".lower(language="tr_TR") == "ı"
+
+```
+## Text.matches_glob
+
+```tomo
+Text.matches_glob : func(path: Text, glob: Text -> Bool)
+```
+
+Return whether or not the text matches the given glob.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Text` | The text to check.  | -
+glob | `Text` | The glob pattern to check.  | -
+
+**Return:** Whether or not the text matches the given glob.
+
+
+**Example:**
+```tomo
+assert "hello world".matches_glob("h* *d")
 
 ```
 ## Text.middle_pad
@@ -807,11 +825,11 @@ translations | `{Text:Text}` | A table mapping from target text to its replaceme
 
 **Example:**
 ```tomo
-text := "A <tag> & an amperand".translate({
+text := "A <tag> & an ampersand".translate({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
-    '"": "&quot",
+    '"': "&quot",
     "'": "&#39;",
 })
 assert text == "A &lt;tag&gt; &amp; an ampersand"

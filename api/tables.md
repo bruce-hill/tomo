@@ -22,7 +22,7 @@ t | `&{K:V}` | The reference to the table.  | -
 ```tomo
 t := &{"A":1}
 t.clear()
-assert t == {}
+assert t[] == {}
 
 ```
 ## Table.difference
@@ -43,7 +43,7 @@ other | `{K:V}` | The other table.  | -
 
 **Example:**
 ```tomo
-t1 := {"A": 1; "B": 2, "C": 3}
+t1 := {"A": 1, "B": 2, "C": 3}
 t2 := {"B": 2, "C":30, "D": 40}
 assert t1.difference(t2) == {"A": 1, "D": 40}
 
@@ -100,10 +100,9 @@ default | `V` | The default value to insert and return if the key is not present
 t := &{"A": @[1, 2, 3]; default=@[]}
 t.get_or_set("A").insert(4)
 t.get_or_set("B").insert(99)
-assert t == &{"A": @[1, 2, 3, 4], "B": @[99]}
-
-assert t.get_or_set("C", @[0, 0, 0]) == @[0, 0, 0]
-assert t == &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
+assert t["A"][] == [1, 2, 3, 4]
+assert t["B"][] == [99]
+assert t.get_or_set("C", @[0, 0, 0])[] == [0, 0, 0]
 
 ```
 ## Table.has
@@ -146,7 +145,7 @@ other | `{K:V}` | The other table.  | -
 
 **Example:**
 ```tomo
-t1 := {"A": 1; "B": 2, "C": 3}
+t1 := {"A": 1, "B": 2, "C": 3}
 t2 := {"B": 2, "C":30, "D": 40}
 assert t1.intersection(t2) == {"B": 2}
 
@@ -169,7 +168,7 @@ key | `K` | The key of the key-value pair to remove.  | -
 
 **Example:**
 ```tomo
-t := {"A": 1, "B": 2}
+t := &{"A": 1, "B": 2}
 t.remove("A")
 assert t == {"B": 2}
 
@@ -193,7 +192,7 @@ value | `V` | The value to associate with the key.  | -
 
 **Example:**
 ```tomo
-t := {"A": 1, "B": 2}
+t := &{"A": 1, "B": 2}
 t.set("C", 3)
 assert t == {"A": 1, "B": 2, "C": 3}
 
@@ -216,7 +215,7 @@ other | `{K:V}` | The other table from which new key/value pairs will be added. 
 
 **Example:**
 ```tomo
-t := {"A": 1; "B": 2}
+t := {"A": 1, "B": 2}
 assert t.with({"B": 20, "C": 30}) == {"A": 1, "B": 20, "C": 30}
 
 ```
@@ -239,10 +238,10 @@ fallback | `{K:V}?` | The new fallback table value.  | -
 **Example:**
 ```tomo
 t := {"A": 1; fallback={"B": 2}}
-t2 = t.with_fallback({"B": 3"})
+t2 := t.with_fallback({"B": 3})
 assert t2["B"] == 3
-t3 = t.with_fallback(none)
-assert t2["B"] == none
+t3 := t.with_fallback(none)
+assert t3["B"] == none
 
 ```
 ## Table.without
@@ -265,7 +264,7 @@ other | `{K:V}` | The other table whose key/value pairs will be omitted.  | -
 
 **Example:**
 ```tomo
-t := {"A": 1; "B": 2, "C": 3}
+t := {"A": 1, "B": 2, "C": 3}
 assert t.without({"B": 2, "C": 30, "D": 40}) == {"A": 1, "C": 3}
 
 ```

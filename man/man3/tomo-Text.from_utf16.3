@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.from_utf16 3 2025-11-29 "Tomo man-pages"
+.TH Text.from_utf16 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Text.from_utf16 \- convert UTF16 list to text
 .SH LIBRARY
@@ -33,7 +33,7 @@ The text will be normalized, so the resulting text's UTF16 sequence may not exac
 .SH EXAMPLES
 .EX
 assert Text.from_utf16([197, 107, 101]) == "Åke"
-assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界".utf16()
+assert Text.from_utf16([12371, 12435, 12395, 12385, 12399, 19990, 30028]) == "こんにちは世界"
 .EE
 .SH SEE ALSO
 .BR Tomo-Text (3)

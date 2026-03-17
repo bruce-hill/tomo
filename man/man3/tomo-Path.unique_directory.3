@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.unique_directory 3 2025-11-29 "Tomo man-pages"
+.TH Path.unique_directory 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Path.unique_directory \- create a directory with a unique name
 .SH LIBRARY
@@ -29,9 +29,9 @@ A unique directory path after creating the directory.
 
 .SH EXAMPLES
 .EX
-assert created := (/tmp/my-dir.XXXXXX).unique_directory() == (/tmp/my-dir-AwoxbM/)
+created := (/tmp/my-dir.XXXXXX).unique_directory()
 assert created.is_directory() == yes
-created.remove()
+created.remove()!
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

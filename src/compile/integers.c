@@ -25,9 +25,8 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
     if (non_optional(target)->tag == BigIntType) return compile(env, ast);
 
     if (target->tag == OptionalType && Match(target, OptionalType)->type) {
-        return Texts("((", compile_type(target),
-                     "){.value=", compile_int_to_type(env, ast, Match(target, OptionalType)->type),
-                     ", .has_value=true})");
+        return promote_to_optional(Match(target, OptionalType)->type,
+                                   compile_int_to_type(env, ast, Match(target, OptionalType)->type));
     }
 
     const char *literal = Match(ast, Int)->str;

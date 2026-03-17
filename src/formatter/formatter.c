@@ -369,11 +369,6 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case Use: {
         DeclareMatch(use, ast, Use);
-        // struct {
-        //     ast_t *var;
-        //     const char *path;
-        //     enum { USE_LOCAL, USE_MODULE, USE_SHARED_OBJECT, USE_HEADER, USE_C_CODE, USE_ASM } what;
-        // } Use;
         return Texts("use ", use->path);
     }
     /*inline*/ case ExplicitlyTyped:

@@ -64,7 +64,9 @@ list | `@[T]` | The mutable reference to the list to be cleared.  | -
 
 **Example:**
 ```tomo
-my_list.clear()
+list := &[10, 20]
+list.clear()
+assert list[] == []
 
 ```
 ## List.counts
@@ -84,7 +86,7 @@ list | `[T]` | The list to count elements in.  | -
 
 **Example:**
 ```tomo
-assert [10, 20, 30, 30, 30].counts() == {10=1, 20=1, 30=3}
+assert [10, 20, 30, 30, 30].counts() == {10:1, 20:1, 30:3}
 
 ```
 ## List.find
@@ -169,7 +171,7 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
-my_heap := [30, 10, 20]
+my_heap := &[30, 10, 20]
 my_heap.heapify()
 assert my_heap.heap_pop() == 10
 
@@ -193,7 +195,9 @@ by | `` | The comparison function used to determine order. If not specified, the
 
 **Example:**
 ```tomo
+my_heap : &[Int]
 my_heap.heap_push(10)
+assert my_heap.heap_pop() == 10
 
 ```
 ## List.heapify
@@ -214,7 +218,7 @@ by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If
 
 **Example:**
 ```tomo
-my_heap := [30, 10, 20]
+my_heap := &[30, 10, 20]
 my_heap.heapify()
 
 ```
@@ -239,7 +243,7 @@ at | `Int` | The index at which to insert the item.  | `0`
 
 **Example:**
 ```tomo
-list := [10, 20]
+list := &[10, 20]
 list.insert(30)
 assert list == [10, 20, 30]
 
@@ -268,7 +272,7 @@ at | `Int` | The index at which to insert the item.  | `0`
 
 **Example:**
 ```tomo
-list := [10, 20]
+list := &[10, 20]
 list.insert_all([30, 40])
 assert list == [10, 20, 30, 40]
 
@@ -308,7 +312,7 @@ assert list[] == [10, 30]
 ## List.random
 
 ```tomo
-List.random : func(list: [T], random: func(min,max:Int64->Int64)? = none -> T)
+List.random : func(list: [T], random: func(min,max:Int64->Int64)? = none -> T?)
 ```
 
 Selects a random element from the list.
@@ -318,12 +322,16 @@ Argument | Type | Description | Default
 list | `[T]` | The list from which to select a random element.  | -
 random | `func(min,max:Int64->Int64)?` | If provided, this function will be used to get a random index in the list. Returned values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
-**Return:** A random element from the list.
+**Return:** A random element from the list or `none` if the list is empty.
 
 
 **Example:**
 ```tomo
-assert [10, 20, 30].random() == 20
+nums := [10, 20, 30]
+pick := nums.random()!
+assert nums.has(pick)
+empty : [Int]
+assert empty.random() == none
 
 ```
 ## List.remove_at
@@ -347,7 +355,7 @@ count | `Int` | The number of elements to remove.  | `1`
 
 **Example:**
 ```tomo
-list := [10, 20, 30, 40, 50]
+list := &[10, 20, 30, 40, 50]
 list.remove_at(2)
 assert list == [10, 30, 40, 50]
 
@@ -376,7 +384,7 @@ max_count | `Int` | The maximum number of occurrences to remove.  | `-1`
 
 **Example:**
 ```tomo
-list := [10, 20, 10, 20, 30]
+list := &[10, 20, 10, 20, 30]
 list.remove_item(10)
 assert list == [20, 20, 30]
 
@@ -426,7 +434,7 @@ random | `func(->Num)?` | If provided, this function will be used to get random 
 
 **Example:**
 ```tomo
-assert [10, 20, 30].sample(2, weights=[90%, 5%, 5%]) == [10, 10]
+_ := [10, 20, 30].sample(2, weights=[90%, 5%, 5%]) # E.g. [10, 10]
 
 ```
 ## List.shuffle
@@ -447,7 +455,9 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
-list.shuffle()
+nums := &[10, 20, 30, 40]
+nums.shuffle()
+# E.g. [20, 40, 10, 30]
 
 ```
 ## List.shuffled
@@ -468,7 +478,9 @@ random | `func(min,max:Int64->Int64)?` | If provided, this function will be used
 
 **Example:**
 ```tomo
-assert [10, 20, 30, 40].shuffled() == [40, 10, 30, 20]
+nums := [10, 20, 30, 40]
+_ := nums.shuffled()
+# E.g. [20, 40, 10, 30]
 
 ```
 ## List.slice
@@ -512,11 +524,11 @@ by | `` | The comparison function used to determine order. If not specified, the
 
 **Example:**
 ```tomo
-list := [40, 10, -30, 20]
+list := &[40, 10, -30, 20]
 list.sort()
 assert list == [-30, 10, 20, 40]
 
-list.sort(func(a,b:&Int): a.abs() <> b.abs())
+list.sort(func(a,b:&Int) a.abs() <> b.abs())
 assert list == [10, 20, -30, 40]
 
 ```
@@ -540,7 +552,7 @@ by | `` | The comparison function used to determine order. If not specified, the
 ```tomo
 assert [40, 10, -30, 20].sorted() == [-30, 10, 20, 40]
 assert [40, 10, -30, 20].sorted(
-   func(a,b:&Int): a.abs() <> b.abs()
+   func(a,b:&Int) a.abs() <> b.abs()
 ) == [10, 20, -30, 40]
 
 ```
@@ -604,7 +616,7 @@ predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item'
 
 **Example:**
 ```tomo
-assert [4, 5, 6].where(func(i:&Int): i.is_prime()) == 5
-assert [4, 6, 8].find(func(i:&Int): i.is_prime()) == none
+assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("A")) == 2
+assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("X")) == none
 
 ```

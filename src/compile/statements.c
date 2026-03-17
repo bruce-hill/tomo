@@ -5,11 +5,10 @@
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
-#include "../modules.h"
 #include "../naming.h"
+#include "../packages.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/paths.h"
-#include "../stdlib/print.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
@@ -193,24 +192,16 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             path = Path$resolved(path, Path$parent(in_file));
             Text_t suffix = get_id_suffix(Path$as_c_string(path));
             return with_source_info(env, ast, Texts("$initialize", suffix, "();\n"));
-        } else if (use->what == USE_MODULE) {
-            module_info_t mod = get_used_module_info(ast);
-            glob_t tm_files;
-            const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
-            if (glob(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
-                     &tm_files)
-                != 0) {
-                if (!try_install_module(mod, true)) code_err(ast, "Could not find library");
-            }
-
+        } else if (use->what == USE_PACKAGE) {
+            OptionalPath_t installed = find_installed_package(ast);
+            assert(installed);
+            List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
             Text_t initialization = EMPTY_TEXT;
-
-            for (size_t i = 0; i < tm_files.gl_pathc; i++) {
-                const char *filename = tm_files.gl_pathv[i];
+            for (int64_t i = 0; i < (int64_t)children.length; i++) {
+                Path_t filename = *(Path_t *)(children.data + i * children.stride);
                 initialization = Texts(
                     initialization, with_source_info(env, ast, Texts("$initialize", get_id_suffix(filename), "();\n")));
             }
-            globfree(&tm_files);
             return initialization;
         } else {
             return EMPTY_TEXT;

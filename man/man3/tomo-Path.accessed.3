@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.accessed 3 2025-11-29 "Tomo man-pages"
+.TH Path.accessed 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Path.accessed \- access time
 .SH LIBRARY
@@ -30,7 +30,7 @@ A 64-bit unix epoch timestamp representing when the file or directory was last a
 
 .SH EXAMPLES
 .EX
-assert (./file.txt).accessed() == 1704221100
+assert (./file.txt).accessed() == Int64(1704221100)
 assert (./not-a-file).accessed() == none
 .EE
 .SH SEE ALSO

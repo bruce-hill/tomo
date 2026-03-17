@@ -42,8 +42,11 @@ Result_t Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t group,
 OptionalText_t Path$owner(Path_t path, bool follow_symlinks);
 OptionalText_t Path$group(Path_t path, bool follow_symlinks);
 Result_t Path$remove(Path_t path, bool ignore_missing);
+Result_t Path$move(Path_t src, Path_t dest, bool allow_overwriting);
+Result_t Path$copy_to(Path_t src, Path_t dest, bool allow_overwriting);
 Result_t Path$create_directory(Path_t path, int permissions, bool recursive);
 List_t Path$children(Path_t path, bool include_hidden);
+Closure_t Path$each_child(Path_t path, bool include_hidden);
 List_t Path$files(Path_t path, bool include_hidden);
 List_t Path$subdirectories(Path_t path, bool include_hidden);
 OptionalPath_t Path$unique_directory(Path_t path);
@@ -58,8 +61,10 @@ Path_t Path$sibling(Path_t path, Text_t name);
 Path_t Path$with_extension(Path_t path, Text_t extension, bool replace);
 Path_t Path$current_dir(void);
 Closure_t Path$by_line(Path_t path);
+Closure_t Path$walk(Path_t dir, bool include_hidden, bool follow_symlinks);
 OptionalList_t Path$lines(Path_t path);
 List_t Path$glob(Path_t path);
+bool Path$matches_glob(Path_t path, Text_t glob);
 
 uint64_t Path$hash(const void *obj, const TypeInfo_t *);
 int32_t Path$compare(const void *a, const void *b, const TypeInfo_t *type);

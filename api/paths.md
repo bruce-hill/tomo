@@ -21,7 +21,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).accessed() == 1704221100
+assert (./file.txt).accessed() == Int64(1704221100)
 assert (./not-a-file).accessed() == none
 
 ```
@@ -230,7 +230,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).changed() == 1704221100
+assert (./file.txt).changed() == Int64(1704221100)
 assert (./not-a-file).changed() == none
 
 ```
@@ -261,19 +261,41 @@ assert (./directory).child("file.txt") == (./directory/file.txt)
 Path.children : func(path: Path, include_hidden = no -> [Path])
 ```
 
-Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files.
+Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. Child ordering is not specified.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `` | Whether to include hidden files, which start with a `.`.  | `no`
+include_hidden | `` | Whether to include hidden files (those starting with a `.`).  | `no`
 
 **Return:** A list of paths for the children.
 
 
 **Example:**
 ```tomo
-assert (./directory).children(include_hidden=yes) == [".git", "foo.txt"]
+assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
+
+```
+## Path.copy_to
+
+```tomo
+Path.copy_to : func(path: Path, dest: Path, overwrite = no -> Result)
+```
+
+Copies the file or directory from one location to another. This is the same behavior as `cp -r -T src dest` or `cp -rf -T src dest` (if `overwrite` is enabled).
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to copy.  | -
+dest | `Path` | The destination to copy the path to.  | -
+overwrite | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
+
+**Return:** Either `Success` or `Failure(reason)`.
+
+
+**Example:**
+```tomo
+(./file.txt).move(/tmp/renamed.txt)!
 
 ```
 ## Path.create_directory
@@ -296,7 +318,7 @@ recursive | `` | If set to `yes`, then recursively create any parent directories
 
 **Example:**
 ```tomo
-(./new_directory).create_directory()
+(./new_directory).create_directory()!
 
 ```
 ## Path.current_dir
@@ -314,6 +336,28 @@ Creates a new directory at the specified path with the given permissions. If any
 **Example:**
 ```tomo
 assert Path.current_dir() == (/home/user/tomo)
+
+```
+## Path.each_child
+
+```tomo
+Path.each_child : func(path: Path, include_hidden = no -> func(->Path?)?)
+```
+
+Returns an iterator over the children (files and directories) within the directory at the specified path. Optionally includes hidden files. Iteration order is not specified.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path of the directory.  | -
+include_hidden | `` | Whether to include hidden files (those starting with a `.`).  | `no`
+
+**Return:** An iterator over the children in a directory or `none` if the path is not a directory or a symlink to a directory.
+
+
+**Example:**
+```tomo
+for child in (/dir).each_child()
+    say("Child: $child")
 
 ```
 ## Path.exists
@@ -394,7 +438,7 @@ Returns a list of files within the directory at the specified path. Optionally i
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `Bool` | Whether to include hidden files.  | `no`
+include_hidden | `Bool` | Whether to include hidden files (those starting with a `.`).  | `no`
 
 **Return:** A list of file paths.
 
@@ -402,28 +446,6 @@ include_hidden | `Bool` | Whether to include hidden files.  | `no`
 **Example:**
 ```tomo
 assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
-
-```
-## Path.from_components
-
-```tomo
-Path.from_components : func(components: [Text] -> Path)
-```
-
-Returns a path built from a list of path components.
-
-Argument | Type | Description | Default
----------|------|-------------|---------
-components | `[Text]` | A list of path components.  | -
-
-**Return:** A path representing the given components.
-
-
-**Example:**
-```tomo
-assert Path.from_components(["/", "usr", "include"]) == (/usr/include)
-assert Path.from_components(["foo.txt"]) == (./foo.txt)
-assert Path.from_components(["~", ".local"]) == (~/.local)
 
 ```
 ## Path.glob
@@ -610,6 +632,28 @@ path | `Path` | The path of the file.  | -
 lines := (./file.txt).lines()!
 
 ```
+## Path.matches_glob
+
+```tomo
+Path.matches_glob : func(path: Path, glob: Text -> Bool)
+```
+
+Return whether or not a path matches a given glob.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to check.  | -
+glob | `Text` | The glob pattern to check.  | -
+
+**Return:** Whether or not the path matches the given glob.
+
+
+**Example:**
+```tomo
+assert (./file.txt).matches_glob("*.txt")
+assert (./file.c).matches_glob("*.{c,h}")
+
+```
 ## Path.modified
 
 ```tomo
@@ -628,8 +672,30 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).modified() == 1704221100
+assert (./file.txt).modified() == Int64(1704221100)
 assert (./not-a-file).modified() == none
+
+```
+## Path.move
+
+```tomo
+Path.move : func(path: Path, dest: Path, overwrite = no -> Result)
+```
+
+Moves the file or directory from one location to another.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to move.  | -
+dest | `Path` | The destination to move the path to.  | -
+overwrite | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
+
+**Return:** Either `Success` or `Failure(reason)`.
+
+
+**Example:**
+```tomo
+(./file.txt).move(/tmp/renamed.txt)!
 
 ```
 ## Path.owner
@@ -713,8 +779,8 @@ limit | `Int?` | A limit to how many bytes should be read.  | `none`
 
 **Example:**
 ```tomo
-assert (./hello.txt).read() == [72, 101, 108, 108, 111]
-assert (./nosuchfile.xxx).read() == none
+assert (./hello.txt).read_bytes()! == [72, 101, 108, 108, 111]
+assert (./nosuchfile.xxx).read_bytes() == none
 
 ```
 ## Path.relative_to
@@ -757,7 +823,7 @@ ignore_missing | `` | Whether to ignore errors if the file or directory does not
 
 **Example:**
 ```tomo
-(./file.txt).remove()
+(./file.txt).remove()!
 
 ```
 ## Path.resolved
@@ -802,7 +868,7 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-(./file.txt).set_owner(owner="root", group="wheel")
+(./file.txt).set_owner(owner="root", group="wheel")!
 
 ```
 ## Path.sibling
@@ -837,7 +903,7 @@ Returns a list of subdirectories within the directory at the specified path. Opt
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `` | Whether to include hidden subdirectories.  | `no`
+include_hidden | `` | Whether to include hidden subdirectories (those starting with a `.`)  | `no`
 
 **Return:** A list of subdirectory paths.
 
@@ -865,9 +931,37 @@ path | `Path` | The base path for generating the unique directory. The last six 
 
 **Example:**
 ```tomo
-assert created := (/tmp/my-dir.XXXXXX).unique_directory() == (/tmp/my-dir-AwoxbM/)
+created := (/tmp/my-dir.XXXXXX).unique_directory()
 assert created.is_directory() == yes
-created.remove()
+created.remove()!
+
+```
+## Path.walk
+
+```tomo
+Path.walk : func(path: Path, include_hidden = no, follow_symlinks: Bool = no -> func(->Path?))
+```
+
+Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal.
+
+The path itself is always included in the iteration.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to begin the walk.  | -
+include_hidden | `` | Whether to include hidden files (those starting with a `.`)  | `no`
+follow_symlinks | `Bool` | Whether to follow symbolic links. Caution: if set to 'yes', it is possible for this iterator to get stuck in a loop, using increasingly large amounts of memory.  | `no`
+
+**Return:** An iterator that recursively walks over every file and subdirectory.
+
+
+**Example:**
+```tomo
+for p in (/tmp).walk()
+    say("File or dir: $p")
+
+# The path itself is always included:
+assert [p for p in (./file.txt).walk()] == [(./file.txt)]
 
 ```
 ## Path.write
@@ -889,7 +983,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 
 **Example:**
 ```tomo
-(./file.txt).write("Hello, world!")
+(./file.txt).write("Hello, world!")!
 
 ```
 ## Path.write_bytes
@@ -911,7 +1005,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 
 **Example:**
 ```tomo
-(./file.txt).write_bytes([104, 105])
+(./file.txt).write_bytes([104, 105])!
 
 ```
 ## Path.write_unique
@@ -932,10 +1026,10 @@ text | `Text` | The text to write to the file.  | -
 
 **Example:**
 ```tomo
-created := (./file-XXXXXX.txt).write_unique("Hello, world!")
+created := (./file-XXXXXX.txt).write_unique("Hello, world!")!
 assert created == (./file-27QHtq.txt)
-assert created.read() == "Hello, world!"
-created.remove()
+assert created.read()! == "Hello, world!"
+created.remove()!
 
 ```
 ## Path.write_unique_bytes
@@ -956,10 +1050,10 @@ bytes | `[Byte]` | The bytes to write to the file.  | -
 
 **Example:**
 ```tomo
-created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])
+created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])!
 assert created == (./file-27QHtq.txt)
-assert created.read() == [1, 2, 3]
-created.remove()
+assert created.read_bytes()! == [1, 2, 3]
+created.remove()!
 
 ```
 ## Path.writer

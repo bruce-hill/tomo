@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table.get_or_set 3 2025-11-29 "Tomo man-pages"
+.TH Table.get_or_set 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Table.get_or_set \- get an item or set a default if absent
 .SH LIBRARY
@@ -38,10 +38,9 @@ The default value is only evaluated if the key is missing.
 t := &{"A": @[1, 2, 3]; default=@[]}
 t.get_or_set("A").insert(4)
 t.get_or_set("B").insert(99)
-assert t == &{"A": @[1, 2, 3, 4], "B": @[99]}
-
-assert t.get_or_set("C", @[0, 0, 0]) == @[0, 0, 0]
-assert t == &{"A": @[1, 2, 3, 4], "B": @[99], "C": @[0, 0, 0]}
+assert t["A"][] == [1, 2, 3, 4]
+assert t["B"][] == [99]
+assert t.get_or_set("C", @[0, 0, 0])[] == [0, 0, 0]
 .EE
 .SH SEE ALSO
 .BR Tomo-Table (3)

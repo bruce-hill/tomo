@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.move 3 2026-03-16 "Tomo man-pages"
+.SH NAME
+Path.move \- move a file or directory
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.move\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite\ =\ no\ ->\ Result)
+.fi
+.SH DESCRIPTION
+Moves the file or directory from one location to another.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	The path to move. 	-
+dest	Path	The destination to move the path to. 	-
+overwrite		Whether to permit overwriting the destination if it is an existing file or directory. 	no
+.TE
+.SH RETURN
+Either `Success` or `Failure(reason)`.
+
+.SH EXAMPLES
+.EX
+(./file.txt).move(/tmp/renamed.txt)!
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

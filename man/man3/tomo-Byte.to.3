@@ -1,15 +1,15 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Byte.to 3 2025-11-29 "Tomo man-pages"
+.TH Byte.to 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 Byte.to \- iterate over a range of bytes
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Byte.to\ :\ func(first:\ Byte,\ last:\ Byte,\ step:\ Byte?\ =\ none\ ->\ func(->Byte?))
+.BI Byte.to\ :\ func(first:\ Byte,\ last:\ Byte,\ step:\ Int8?\ =\ none\ ->\ func(->Byte?))
 .fi
 .SH DESCRIPTION
 Returns an iterator function that iterates over the range of bytes specified.
@@ -24,7 +24,7 @@ l l l l.
 Name	Type	Description	Default
 first	Byte	The starting value of the range. 	-
 last	Byte	The ending value of the range. 	-
-step	Byte?	An optional step size to use. If unspecified or \fBnone\fR, the step will be inferred to be \fB+1\fR if \fBlast >= first\fR, otherwise \fB-1\fR. 	none
+step	Int8?	An optional step size to use. If unspecified or \fBnone\fR, the step will be inferred to be \fB+1\fR if \fBlast >= first\fR, otherwise \fB-1\fR. 	none
 .TE
 .SH RETURN
 An iterator function that returns each byte in the given range (inclusive).
@@ -32,9 +32,9 @@ An iterator function that returns each byte in the given range (inclusive).
 .SH EXAMPLES
 .EX
 iter := Byte(2).to(4)
-assert iter() == 2
-assert iter() == 3
-assert iter() == 4
+assert iter() == Byte(2)
+assert iter() == Byte(3)
+assert iter() == Byte(4)
 assert iter() == none
 
 assert [x for x in Byte(2).to(5)] == [Byte(2), Byte(3), Byte(4), Byte(5)]

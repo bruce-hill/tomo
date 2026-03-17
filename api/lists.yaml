@@ -59,7 +59,9 @@ List.clear:
       description: >
         The mutable reference to the list to be cleared.
   example: |
-    my_list.clear()
+    list := &[10, 20]
+    list.clear()
+    assert list[] == []
 
 List.counts:
   short: count occurrences
@@ -75,7 +77,7 @@ List.counts:
       description: >
         The list to count elements in.
   example: |
-    assert [10, 20, 30, 30, 30].counts() == {10=1, 20=1, 30=3}
+    assert [10, 20, 30, 30, 30].counts() == {10:1, 20:1, 30:3}
 
 List.find:
   short: find an element's index
@@ -159,7 +161,7 @@ List.heap_pop:
         The comparison function used to determine order. If not specified, the
         default comparison function for the item type will be used.
   example: |
-    my_heap := [30, 10, 20]
+    my_heap := &[30, 10, 20]
     my_heap.heapify()
     assert my_heap.heap_pop() == 10
 
@@ -187,7 +189,9 @@ List.heap_push:
         The comparison function used to determine order. If not specified, the
         default comparison function for the item type will be used.
   example: |
+    my_heap : &[Int]
     my_heap.heap_push(10)
+    assert my_heap.heap_pop() == 10
 
 List.heapify:
   short: convert a list into a heap
@@ -209,7 +213,7 @@ List.heapify:
         The comparison function used to determine order. If not specified, the
         default comparison function for the item type will be used.
   example: |
-    my_heap := [30, 10, 20]
+    my_heap := &[30, 10, 20]
     my_heap.heapify()
 
 List.insert:
@@ -238,7 +242,7 @@ List.insert:
     Since indices are 1-indexed and negative indices mean "starting from the
     back", an index of `0` means "after the last item".
   example: |
-    list := [10, 20]
+    list := &[10, 20]
     list.insert(30)
     assert list == [10, 20, 30]
 
@@ -271,7 +275,7 @@ List.insert_all:
     Since indices are 1-indexed and negative indices mean "starting from the
     back", an index of `0` means "after the last item".
   example: |
-    list := [10, 20]
+    list := &[10, 20]
     list.insert_all([30, 40])
     assert list == [10, 20, 30, 40]
 
@@ -316,9 +320,9 @@ List.random:
   description: >
     Selects a random element from the list.
   return:
-    type: 'T'
+    type: 'T?'
     description: >
-      A random element from the list.
+      A random element from the list or `none` if the list is empty.
   args:
     list:
       type: '[T]'
@@ -332,7 +336,11 @@ List.random:
         values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number
         generation)
   example: |
-    assert [10, 20, 30].random() == 20
+    nums := [10, 20, 30]
+    pick := nums.random()!
+    assert nums.has(pick)
+    empty : [Int]
+    assert empty.random() == none
 
 List.remove_at:
   short: remove an item by index
@@ -361,7 +369,7 @@ List.remove_at:
     Since negative indices are counted from the back, the default behavior is
     to remove the last item.
   example: |
-    list := [10, 20, 30, 40, 50]
+    list := &[10, 20, 30, 40, 50]
     list.remove_at(2)
     assert list == [10, 30, 40, 50]
 
@@ -393,7 +401,7 @@ List.remove_item:
   note: >
     A negative `max_count` means "remove all occurrences".
   example: |
-    list := [10, 20, 10, 20, 30]
+    list := &[10, 20, 10, 20, 30]
     list.remove_item(10)
     assert list == [20, 20, 30]
 
@@ -458,7 +466,7 @@ List.sample:
         between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic
         pseudorandom number generation)
   example: |
-    assert [10, 20, 30].sample(2, weights=[90%, 5%, 5%]) == [10, 10]
+    _ := [10, 20, 30].sample(2, weights=[90%, 5%, 5%]) # E.g. [10, 10]
 
 List.shuffle:
   short: shuffle a list in place
@@ -481,7 +489,9 @@ List.shuffle:
         values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number
         generation)
   example: |
-    list.shuffle()
+    nums := &[10, 20, 30, 40]
+    nums.shuffle()
+    # E.g. [20, 40, 10, 30]
 
 List.shuffled:
   short: return a shuffled list
@@ -504,7 +514,9 @@ List.shuffled:
         values must be between `min` and `max` (inclusive). (Used for deterministic pseudorandom number
         generation)
   example: |
-    assert [10, 20, 30, 40].shuffled() == [40, 10, 30, 20]
+    nums := [10, 20, 30, 40]
+    _ := nums.shuffled()
+    # E.g. [20, 40, 10, 30]
 
 List.slice:
   short: get a slice of a list
@@ -552,11 +564,11 @@ List.sort:
         The comparison function used to determine order. If not specified, the
         default comparison function for the item type will be used.
   example: |
-    list := [40, 10, -30, 20]
+    list := &[40, 10, -30, 20]
     list.sort()
     assert list == [-30, 10, 20, 40]
 
-    list.sort(func(a,b:&Int): a.abs() <> b.abs())
+    list.sort(func(a,b:&Int) a.abs() <> b.abs())
     assert list == [10, 20, -30, 40]
 
 List.sorted:
@@ -580,7 +592,7 @@ List.sorted:
   example: |
     assert [40, 10, -30, 20].sorted() == [-30, 10, 20, 40]
     assert [40, 10, -30, 20].sorted(
-       func(a,b:&Int): a.abs() <> b.abs()
+       func(a,b:&Int) a.abs() <> b.abs()
     ) == [10, 20, -30, 40]
 
 List.to:
@@ -640,5 +652,5 @@ List.where:
         A function that returns `yes` if the item's index should be returned or
         `no` if it should not.
   example: |
-    assert [4, 5, 6].where(func(i:&Int): i.is_prime()) == 5
-    assert [4, 6, 8].find(func(i:&Int): i.is_prime()) == none
+    assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("A")) == 2
+    assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("X")) == none

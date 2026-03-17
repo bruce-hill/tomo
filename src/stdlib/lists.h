@@ -131,11 +131,13 @@ List_t List$sorted(List_t list, Closure_t comparison, int64_t padded_item_size);
 void List$shuffle(List_t *list, OptionalClosure_t random_int64, int64_t padded_item_size);
 List_t List$shuffled(List_t list, OptionalClosure_t random_int64, int64_t padded_item_size);
 void *List$random(List_t list, OptionalClosure_t random_int64);
-#define List$random_value(list, random_int64, t)                                                                       \
+#define List$random_value(list, random_fn, t, nonnone_var, nonnone_expr, none_expr)                                    \
     ({                                                                                                                 \
         List_t _list_expr = list;                                                                                      \
-        if (_list_expr.length == 0) fail_text(Text("Cannot get a random value from an empty list!"));                  \
-        *(t *)List$random(_list_expr, random_int64);                                                                   \
+        (_list_expr.length == 0) ? none_expr : ({                                                                      \
+            t nonnone_var = *(t *)List$random(_list_expr, random_fn);                                                  \
+            nonnone_expr;                                                                                              \
+        });                                                                                                            \
     })
 List_t List$sample(List_t list, Int_t n, List_t weights, Closure_t random_num, int64_t padded_item_size);
 Table_t List$counts(List_t list, const TypeInfo_t *type);

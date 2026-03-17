@@ -33,11 +33,17 @@ Hello John Doe!!!
 ```
 
 For more examples, see [learnXinY](/examples/learnxiny.tm) which as an overview
-of many language features or the other example programs/modules in
-[examples/](examples/). You can also look at the [core libraries](lib/) which
-are implemented in Tomo.
+of many language features or the other example programs/packages in
+[examples/](examples/).
 
 ## Quick Installation
+
+Quick script to install to `~/.local` on your machine:
+
+```
+curl -L "https://tomo.bruce-hill.com/dist/tomo_$(uname -sm | tr ' ' '-').tar.gz" \
+  | tar -xz -C ~/.local --strip-components=1
+```
 
 ### Arch User Repository (AUR)
 
@@ -96,12 +102,14 @@ rm -f /tmp/install_tomo.sh
 - Built-in datastructures with a rich library of commonly used methods:
   [lists](docs/lists.md), [tables](docs/tables.md), [sets](docs/sets.md),
   [text](docs/text.md).  
-- Full-featured [libraries/modules](docs/libraries.md)
+- Full-featured [packages](docs/packages.md)
 - [Full UTF8 support](docs/text.md) for all text operations
 - Built-in debugging prints with syntax highlighting
 - [Automatic command line argument parsing with type safety](docs/command-line-parsing.md)
 - [Easy interoperability with C](docs/c-interoperability.md)
 - Built-in [data serialization and deserialization](docs/serialization.md).
+- [Paths](docs/paths.md) are a native datatype with built-in syntax and a
+  user-friendly API for filesystem operations. 
 
 ## Dependencies
 
@@ -128,7 +136,7 @@ success.
 The Tomo compiler can be compiled with either GCC or Clang by running `make`.
 The first time you build, you will need to specify the Tomo installation
 location (the place where the installer will put the `tomo` binary, the shared
-library, and the header files), the Tomo home directory (where Tomo libraries
+library, and the header files), the Tomo home directory (where Tomo packages
 will be installed), and the default C compiler for Tomo to use when compiling
 and running your programs. The answers you give will be saved in `config.mk`,
 which you can edit at any time.

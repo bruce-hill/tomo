@@ -3,15 +3,14 @@
 #include <gc.h>
 #include <glob.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
 #include "ast.h"
 #include "config.h"
 #include "environment.h"
-#include "modules.h"
 #include "naming.h"
+#include "packages.h"
 #include "parse/files.h"
 #include "parse/types.h"
 #include "stdlib/optionals.h"
@@ -221,23 +220,17 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
         if (!ast) print_err("Could not compile file ", used_path);
         return load_module_env(env, ast);
     }
-    case USE_MODULE: {
-        module_info_t mod = get_used_module_info(use_ast);
-        glob_t tm_files;
-        const char *folder = mod.version ? String(mod.name, "@", mod.version) : mod.name;
-        if (glob(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", folder, "/[!._0-9]*.tm"), GLOB_TILDE, NULL,
-                 &tm_files)
-            != 0) {
-            if (!try_install_module(mod, true)) code_err(use_ast, "Couldn't find or install library: ", folder);
-        }
-
+    case USE_PACKAGE: {
+        OptionalPath_t installed = find_installed_package(use_ast);
+        assert(installed);
+        Text_t name = get_package_name(installed);
         env_t *module_env = fresh_scope(env);
-        Table$str_set(env->imports, mod.name, module_env);
-
-        for (size_t i = 0; i < tm_files.gl_pathc; i++) {
-            const char *filename = tm_files.gl_pathv[i];
-            ast_t *ast = parse_file(filename, NULL);
-            if (!ast) print_err("Could not compile file ", filename);
+        Table$str_set(env->imports, Text$as_c_string(name), module_env);
+        List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
+        for (int64_t i = 0; i < (int64_t)children.length; i++) {
+            Path_t child = *(Path_t *)(children.data + i * children.stride);
+            ast_t *ast = parse_file(child, NULL);
+            if (!ast) print_err("Could not compile file ", child);
             env_t *module_file_env = fresh_scope(module_env);
             module_file_env->namespace = NULL;
             env_t *subenv = load_module_env(module_file_env, ast);
@@ -249,7 +242,6 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
                 Table$str_set(module_env->locals, entry->name, entry->binding);
             }
         }
-        globfree(&tm_files);
         return module_env;
     }
     default: return NULL;
@@ -971,7 +963,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "insert")) return Type(VoidType);
             else if (streq(call->name, "insert_all")) return Type(VoidType);
             else if (streq(call->name, "pop")) return Type(OptionalType, .type = item_type);
-            else if (streq(call->name, "random")) return item_type;
+            else if (streq(call->name, "random")) return Type(OptionalType, .type = item_type);
             else if (streq(call->name, "remove_at")) return Type(VoidType);
             else if (streq(call->name, "remove_item")) return Type(VoidType);
             else if (streq(call->name, "reversed")) return self_value_t;

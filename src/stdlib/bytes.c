@@ -102,7 +102,7 @@ static OptionalByte_t _next_Byte(ByteRange_t *info) {
 }
 
 public
-CONSTFUNC Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t step) {
+Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t step) {
     ByteRange_t *range = GC_MALLOC(sizeof(ByteRange_t));
     range->current = (OptionalByte_t){.has_value = true, .value = first};
     range->last = (OptionalByte_t){.has_value = true, .value = last};

@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.heap_pop 3 2025-11-29 "Tomo man-pages"
+.TH List.heap_pop 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 List.heap_pop \- heap pop
 .SH LIBRARY
@@ -30,7 +30,7 @@ The removed top element of the heap or `none` if the list is empty.
 
 .SH EXAMPLES
 .EX
-my_heap := [30, 10, 20]
+my_heap := &[30, 10, 20]
 my_heap.heapify()
 assert my_heap.heap_pop() == 10
 .EE

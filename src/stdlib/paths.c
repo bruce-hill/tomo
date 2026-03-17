@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fnmatch.h>
 #include <ftw.h>
 #include <gc.h>
 #include <glob.h>
@@ -15,6 +16,7 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "../unistr-fixed.h"
@@ -31,7 +33,8 @@
 #include "types.h"
 #include "util.h"
 
-static const Path_t HOME_PATH = (Path_t){"~"}, ROOT_PATH = (Path_t){"/"}, CURDIR_PATH = (Path_t){"."};
+static const Path_t HOME_PATH = (Path_t){"~"}, ROOT_PATH = (Path_t){"/"}, CURDIR_PATH = (Path_t){"."},
+                    PARENT_PATH = (Path_t){".."};
 
 typedef enum { PATH_ABSOLUTE, PATH_RELATIVE, PATH_HOME } pathtype_t;
 
@@ -61,7 +64,7 @@ static void normalize_inplace(char path[PATH_MAX]) {
         component_len = strcspn(src, "/");
         if (component_len == 0) {
             ; // Skip empty "//"s:
-        } else if (component_len == 1 && src[0] == '.') {
+        } else if (component_len == 1 && src[0] == '.' && dest > buf) {
             ; // Skip "." components
         } else {
             // Add "/" if there's a previous non-slash
@@ -96,22 +99,19 @@ static void normalize_inplace(char path[PATH_MAX]) {
     }
 
     *(dest++) = '\0';
-    // Trim trailing slashes:
-    // while (dest > buf && dest[-1] == '/')
-    //     *(--dest) = '\0';
 
     if (dest == buf) {
         path[0] = '.';
         path[1] = '\0';
     } else {
-        strcpy(path, buf);
+        memcpy(path, buf, strlen(buf) + 1);
     }
 }
 
 char *path_from_buf(char buf[PATH_MAX]) {
     normalize_inplace(buf);
     char *ret = GC_MALLOC_ATOMIC(strlen(buf) + 1);
-    strcpy(ret, buf);
+    memcpy(ret, buf, strlen(buf) + 1);
     return ret;
 }
 
@@ -261,6 +261,14 @@ bool Path$is_symlink(Path_t path) {
     int status = path_stat(path, false, &sb);
     if (status != 0) return false;
     return (sb.st_mode & S_IFMT) == S_IFLNK;
+}
+
+public
+OptionalPath_t Path$link(Path_t path) {
+    static char buf[PATH_MAX];
+    ssize_t status = readlink(path, buf, sizeof(buf));
+    if (status == -1) return NONE_PATH;
+    return Path$from_str(GC_strdup(buf));
 }
 
 public
@@ -574,6 +582,38 @@ Result_t Path$remove(Path_t path, bool ignore_missing) {
     return SuccessResult;
 }
 
+Result_t Path$move(Path_t src, Path_t dest, bool allow_overwriting) {
+    int status = rename(src, dest);
+    if (status != 0) {
+        if (errno == EEXIST && allow_overwriting) {
+            Result_t result = Path$remove(dest, true);
+            if (result.Failure.reason.tag != TEXT_NONE) return result;
+            return Path$move(src, dest, allow_overwriting);
+        }
+        return FailureResult("Could not move file ", src, " to ", dest, " (", strerror(errno), ")");
+    }
+    return SuccessResult;
+}
+
+Result_t Path$copy_to(Path_t src, Path_t dest, bool allow_overwriting) {
+    pid_t child = fork();
+    if (child == 0) {
+        const char *args[] = {"cp", allow_overwriting ? "-rf" : "-r", "-T", src, dest, NULL};
+        execvp("cp", (char **)args);
+        exit(0);
+    }
+    int status;
+    while (waitpid(child, &status, 0) < 0 && errno == EINTR) {
+        if (WIFEXITED(status) || WIFSIGNALED(status)) break;
+        else if (WIFSTOPPED(status)) kill(child, SIGCONT);
+    }
+
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        return FailureResult("Failed to copy ", src, " to ", dest);
+    }
+    return SuccessResult;
+}
+
 public
 Result_t Path$create_directory(Path_t path, int permissions, bool recursive) {
 retry:
@@ -592,8 +632,7 @@ retry:
 }
 
 static OptionalList_t _filtered_children(Path_t path, bool include_hidden, mode_t filter) {
-    path = Path$expand_home(path);
-    struct dirent *dir;
+    path = Path$resolved(path, Path$current_dir());
     List_t children = EMPTY_LIST;
     size_t path_len = strlen(path);
     DIR *d = opendir(path);
@@ -601,11 +640,12 @@ static OptionalList_t _filtered_children(Path_t path, bool include_hidden, mode_
 
     if (path[path_len - 1] == '/') --path_len;
 
-    while ((dir = readdir(d)) != NULL) {
-        if (!include_hidden && dir->d_name[0] == '.') continue;
-        if (streq(dir->d_name, ".") || streq(dir->d_name, "..")) continue;
+    struct dirent *ent;
+    while ((ent = readdir(d)) != NULL) {
+        if (!include_hidden && ent->d_name[0] == '.') continue;
+        if (streq(ent->d_name, ".") || streq(ent->d_name, "..")) continue;
 
-        const char *child_str = String(string_slice(path, path_len), "/", dir->d_name);
+        const char *child_str = String(string_slice(path, path_len), "/", ent->d_name);
         struct stat sb;
         if (stat(child_str, &sb) != 0) continue;
         if (!((sb.st_mode & S_IFMT) & filter)) continue;
@@ -630,6 +670,40 @@ OptionalList_t Path$files(Path_t path, bool include_hidden) {
 public
 OptionalList_t Path$subdirectories(Path_t path, bool include_hidden) {
     return _filtered_children(path, include_hidden, S_IFDIR);
+}
+
+typedef struct {
+    Path_t path;
+    DIR *dir;
+    bool include_hidden : 1;
+} child_info_t;
+
+static OptionalPath_t _next_child(child_info_t *info) {
+    if (!info->dir) return NONE_PATH;
+    for (struct dirent *ent; (ent = readdir(info->dir)) != NULL;) {
+        if (!info->include_hidden && ent->d_name[0] == '.') continue;
+        if (streq(ent->d_name, ".") || streq(ent->d_name, "..")) continue;
+
+        Path_t child = Path$_concat2(info->path, ent->d_name);
+        return child;
+    }
+    closedir(info->dir);
+    info->dir = NULL;
+    return NONE_PATH;
+}
+
+public
+Closure_t Path$each_child(Path_t path, bool include_hidden) {
+    path = Path$resolved(path, Path$current_dir());
+
+    DIR *d = opendir(path);
+    if (!d) return NONE_CLOSURE;
+
+    child_info_t *info = GC_malloc(sizeof(child_info_t));
+    info->path = path;
+    info->dir = d;
+    info->include_hidden = include_hidden;
+    return (Closure_t){.fn = (void *)_next_child, .userdata = info};
 }
 
 public
@@ -683,6 +757,7 @@ OptionalPath_t Path$parent(Path_t path) {
         // root dir has no parent
         return NULL;
     }
+    if (streq(path, ".")) return PARENT_PATH;
     static char buf[PATH_MAX];
     snprintf(buf, sizeof(buf), "%s/..", path);
     return path_from_buf(buf);
@@ -724,7 +799,9 @@ bool Path$has_extension(Path_t path, Text_t extension) {
     const char *base = base_name_start(path);
     if (!base || base[0] == '\0') return false;
     if (base[0] == '.') base += 1;
-    const char *end = strchrnul(base, '/');
+    const char *end = base;
+    while (*end && *end != '/')
+        end += 1;
     int64_t base_len = (int64_t)(end - base);
     if (base_len <= 0) return false;
     if (extension.length == 0) {
@@ -733,10 +810,10 @@ bool Path$has_extension(Path_t path, Text_t extension) {
     }
     const char *ext = Text$as_c_string(extension);
     if (ext[0] == '.') {
-        if (1 + extension.length > base_len) return false;
+        if (1 + (int64_t)extension.length > base_len) return false;
         return strncmp(base + base_len - extension.length, ext, extension.length) == 0;
     } else {
-        if (1 + 1 + extension.length > base_len) return false;
+        if (1 + 1 + (int64_t)extension.length > base_len) return false;
         return base[base_len - 1 - extension.length] == '.'
                && strncmp(base + base_len - extension.length, ext, extension.length) == 0;
     }
@@ -764,7 +841,9 @@ OptionalPath_t Path$with_extension(Path_t path, Text_t extension, bool replace) 
     const char *ext = Text$as_c_string(extension);
     if (replace) {
         char *base = (char *)base_name_start(path);
-        char *dot = strchrnul(base, '.');
+        char *dot = base;
+        while (*dot && *dot != '.')
+            dot += 1;
         if (ext[0] == '.' || ext[0] == '\0') snprintf(buf, sizeof(buf), "%.*s%s", (int)(dot - path), path, ext);
         else snprintf(buf, sizeof(buf), "%.*s.%s", (int)(dot - path), path, ext);
     } else {
@@ -870,10 +949,62 @@ List_t Path$glob(Path_t path) {
 }
 
 public
+bool Path$matches_glob(Path_t path, Text_t glob) {
+    return !fnmatch(Text$as_c_string(glob), path, FNM_PATHNAME | FNM_PERIOD);
+}
+
+public
 Path_t Path$current_dir(void) {
     static char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) == NULL) fail("Could not get current working directory");
     return Path$from_str(cwd);
+}
+
+typedef struct {
+    List_t dir_stack;
+    OptionalPath_t current;
+    DIR *dir;
+    bool include_hidden : 1, follow_symlinks : 1;
+} walk_info_t;
+
+static OptionalPath_t _walk_next_path(walk_info_t *info) {
+    while (info->dir == NULL) {
+        if (info->dir_stack.length == 0) return NONE_PATH;
+
+        Path_t p = *(Path_t *)info->dir_stack.data;
+        List$remove_at(&info->dir_stack, I(1), I(1), sizeof(Path_t));
+        info->dir = opendir(p);
+        info->current = p;
+        return p;
+    }
+
+    for (struct dirent *ent; (ent = readdir(info->dir)) != NULL;) {
+        if (!info->include_hidden && ent->d_name[0] == '.') continue;
+        if (streq(ent->d_name, ".") || streq(ent->d_name, "..")) continue;
+
+        Path_t path = Path$_concat2(info->current, Path$from_str(ent->d_name));
+        if (Path$is_directory(path, info->follow_symlinks)) {
+            List$insert(&info->dir_stack, &path, I(0), sizeof(Path_t));
+            continue;
+        }
+        return path;
+    }
+
+    closedir(info->dir);
+    info->dir = NULL;
+    return _walk_next_path(info);
+}
+
+public
+Closure_t Path$walk(Path_t dir, bool include_hidden, bool follow_symlinks) {
+    dir = Path$resolved(dir, Path$current_dir());
+    walk_info_t *info = GC_malloc(sizeof(walk_info_t));
+    info->dir_stack = List(dir);
+    info->current = dir;
+    info->dir = NULL;
+    info->include_hidden = include_hidden;
+    info->follow_symlinks = follow_symlinks;
+    return (Closure_t){.fn = (void *)_walk_next_path, .userdata = info};
 }
 
 public

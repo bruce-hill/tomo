@@ -93,6 +93,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <fnmatch.h>
 #include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -908,7 +909,8 @@ static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t 
 }
 
 public
-char *Text$as_c_string(Text_t text) {
+const char *Text$as_c_string(Text_t text) {
+    if (text.tag == TEXT_ASCII && text.ascii[text.length] == '\0') return text.ascii;
     int64_t capacity = text.length + 1;
     char *buf = GC_MALLOC_ATOMIC((size_t)capacity);
     int64_t i = 0;
@@ -1123,12 +1125,17 @@ PUREFUNC OptionalInt_t Text$find(Text_t text, Text_t target, Int_t start) {
     if (text.length < target.length) return NONE_INT;
     if (target.length <= 0) return I(1);
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), target_state = NEW_TEXT_ITER_STATE(target);
-    for (int64_t i = Int64$from_int(start, false) - 1; i < text.length - target.length + 1; i++) {
+    for (int64_t i = Int64$from_int(start, false) - 1; i < (int64_t)text.length - (int64_t)target.length + 1; i++) {
         if (_matches(&text_state, &target_state, i)) {
             return Int$from_int64(i + 1);
         }
     }
     return NONE_INT;
+}
+
+public
+bool Text$matches_glob(Text_t text, Text_t glob) {
+    return !fnmatch(Text$as_c_string(glob), Text$as_c_string(text), 0);
 }
 
 public
@@ -1438,16 +1445,16 @@ double Text$distance(Text_t a, Text_t b, Text_t language) {
     // for letters that are the same, but with different casing.
     double *distances = GC_MALLOC_ATOMIC(sizeof(uint32_t) * (a.length + 1) * (b.length + 1));
 #define DIST(x, y) distances[(x) * b.length + (y)]
-    for (int64_t i = 0; i <= a.length; i++)
+    for (int64_t i = 0; i <= (int64_t)a.length; i++)
         DIST(i, 0) = i;
-    for (int64_t j = 0; j <= b.length; j++)
+    for (int64_t j = 0; j <= (int64_t)b.length; j++)
         DIST(0, j) = j;
 
     TextIter_t a_state = NEW_TEXT_ITER_STATE(a);
     TextIter_t b_state = NEW_TEXT_ITER_STATE(b);
     const char *uc_language = Text$as_c_string(language);
-    for (int64_t i = 1; i <= a.length; i++) {
-        for (int64_t j = 1; j <= b.length; j++) {
+    for (int64_t i = 1; i <= (int64_t)a.length; i++) {
+        for (int64_t j = 1; j <= (int64_t)b.length; j++) {
             int32_t ai = Text$get_grapheme_fast(&a_state, i - 1);
             int32_t bj = Text$get_grapheme_fast(&b_state, j - 1);
             double cost = (double)(ai != bj);

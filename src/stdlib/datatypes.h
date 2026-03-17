@@ -52,6 +52,7 @@ typedef struct {
     uint32_t next_bucket;
 } bucket_t;
 
+// Maximum bucket size is determined by the maximum value for `index` in the `bucket_t` struct
 #define TABLE_MAX_BUCKETS 0x7fffffff
 #define TABLE_MAX_DATA_REFCOUNT 3
 

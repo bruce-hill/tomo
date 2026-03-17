@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.shuffle 3 2025-11-29 "Tomo man-pages"
+.TH List.shuffle 3 2026-03-08 "Tomo man-pages"
 .SH NAME
 List.shuffle \- shuffle a list in place
 .SH LIBRARY
@@ -30,7 +30,9 @@ Nothing.
 
 .SH EXAMPLES
 .EX
-list.shuffle()
+nums := &[10, 20, 30, 40]
+nums.shuffle()
+# E.g. [20, 40, 10, 30]
 .EE
 .SH SEE ALSO
 .BR Tomo-List (3)

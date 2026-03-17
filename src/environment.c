@@ -234,7 +234,7 @@ env_t *global_env(bool source_mapping) {
             {"with_precision", "Num$with_precision", "func(n:Num,precision:Num -> Num)"}, //
             {"is_between", "Num$is_between", "func(x:Num, a:Num, b:Num -> Bool)"}, //
             {"isinf", "Num$isinf", "func(n:Num -> Bool)"}, //
-            {"isfinite", "Num$isfinite", "func(n:Num -> Bool)"}, //
+            {"isfinite", "Num$finite", "func(n:Num -> Bool)"}, //
             {"modulo", "Num$mod", "func(x,y:Num -> Num)"}, //
             {"modulo1", "Num$mod1", "func(x,y:Num -> Num)"}, //
             C(2_SQRTPI), C(E), C(PI_2), C(2_PI), C(1_PI), C(LN10), C(LN2), C(LOG2E), C(PI), C(PI_4), C(SQRT2),
@@ -303,14 +303,15 @@ env_t *global_env(bool source_mapping) {
             {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"}, //
             {"components", "Path$components", "func(path:Path -> [Text])"}, //
+            {"copy_to", "Path$copy_to", "func(path:Path, dest:Path, overwrite=no -> Result)"}, //
             {"create_directory", "Path$create_directory",
              "func(path:Path, permissions=Int32(0o755), recursive=yes -> Result)"}, //
             {"current_dir", "Path$current_dir", "func(->Path)"}, //
+            {"each_child", "Path$each_child", "func(path:Path, include_hidden=no -> func(->Path?))"}, //
             {"exists", "Path$exists", "func(path:Path -> Bool)"}, //
             {"expand_home", "Path$expand_home", "func(path:Path -> Path)"}, //
             {"extension", "Path$extension", "func(path:Path, full=yes -> Text)"}, //
             {"files", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
-            {"from_components", "Path$from_components", "func(components:[Text] -> Path)"}, //
             {"glob", "Path$glob", "func(path:Path -> [Path])"}, //
             {"group", "Path$group", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
             {"has_extension", "Path$has_extension", "func(path:Path, extension:Text -> Bool)"}, //
@@ -320,7 +321,9 @@ env_t *global_env(bool source_mapping) {
             {"is_socket", "Path$is_socket", "func(path:Path, follow_symlinks=yes -> Bool)"}, //
             {"is_symlink", "Path$is_symlink", "func(path:Path -> Bool)"}, //
             {"lines", "Path$lines", "func(path:Path -> [Text]?)"}, //
+            {"matches_glob", "Path$matches_glob", "func(path:Path, glob:Text -> Bool)"}, //
             {"modified", "Path$modified", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
+            {"move", "Path$move", "func(path:Path, dest:Path, overwrite=no -> Result)"}, //
             {"owner", "Path$owner", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
             {"parent", "Path$parent", "func(path:Path -> Path?)"}, //
             {"read", "Path$read", "func(path:Path -> Text?)"}, //
@@ -333,6 +336,7 @@ env_t *global_env(bool source_mapping) {
             {"sibling", "Path$sibling", "func(path:Path, name:Text -> Path)"}, //
             {"subdirectories", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
             {"unique_directory", "Path$unique_directory", "func(path:Path -> Path)"}, //
+            {"walk", "Path$walk", "func(path:Path, include_hidden=no, follow_symlinks=no -> func(->Path?))"}, //
             {"with_extension", "Path$with_extension", "func(path:Path, extension:Text, replace:Bool=yes -> Path)"}, //
             {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
             {"writer", "Path$writer",
@@ -367,6 +371,7 @@ env_t *global_env(bool source_mapping) {
             {"left_pad", "Text$left_pad", "func(text:Text, count:Int, pad=' ', language='C' -> Text)"}, //
             {"lines", "Text$lines", "func(text:Text -> [Text])"}, //
             {"lower", "Text$lower", "func(text:Text, language='C' -> Text)"}, //
+            {"matches_glob", "Text$matches_glob", "func(text:Text, glob:Text -> Bool)"}, //
             {"memory_size", "Text$memory_size", "func(text:Text -> Int)"}, //
             {"middle_pad", "Text$middle_pad", "func(text:Text, count:Int, pad=' ', language='C' -> Text)"}, //
             {"quoted", "Text$quoted", "func(text:Text, color=no, quotation_mark='\"' -> Text)"}, //
@@ -381,7 +386,7 @@ env_t *global_env(bool source_mapping) {
             {"title", "Text$title", "func(text:Text, language='C' -> Text)"}, //
             {"to", "Text$to", "func(text:Text, last:Int -> Text)"}, //
             {"translate", "Text$translate", "func(text:Text, translations:{Text:Text} -> Text)"}, //
-            {"trim", "Text$trim", "func(text:Text, to_trim=\" \t\r\n\", left=yes, right=yes -> Text)"}, //
+            {"trim", "Text$trim", "func(text:Text, to_trim=\" \\t\\r\\n\", left=yes, right=yes -> Text)"}, //
             {"upper", "Text$upper", "func(text:Text, language='C' -> Text)"}, //
             {"utf8", "Text$utf8", "func(text:Text -> [Byte])"}, //
             {"utf16", "Text$utf16", "func(text:Text -> [Int16])"}, //
@@ -678,7 +683,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t) {
     case NumType:
     case ByteType: {
         binding_t *b = get_binding(env, Text$as_c_string(type_to_text(t)));
-        assert(b);
+        if (!b) compiler_err(NULL, NULL, NULL, "Couldn't get type namespace: ", Text$as_c_string(type_to_text(t)));
         return Match(b->type, TypeInfoType)->env;
     }
     case TextType: return Match(t, TextType)->env;
