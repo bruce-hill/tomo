@@ -549,17 +549,30 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (def->external) code = Texts(code, "; external");
         if (def->opaque) code = Texts(code, "; opaque");
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"));
+        const char *comment_pos = ast->start;
+        for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
+            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
+        }
         return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case EnumDef: {
         DeclareMatch(def, ast, EnumDef);
         Text_t code = Texts("enum ", Text$from_str(def->name), "(", format_tags(def->tags, comments, indent));
-        return Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"),
-                     format_namespace(def->namespace, comments, indent));
+        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"));
+        const char *comment_pos = ast->start;
+        for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
+            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
+        }
+        return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case LangDef: {
         DeclareMatch(def, ast, LangDef);
-        return Texts("lang ", Text$from_str(def->name), format_namespace(def->namespace, comments, indent));
+        Text_t code = Texts("lang ", Text$from_str(def->name));
+        const char *comment_pos = ast->start;
+        for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
+            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
+        }
+        return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case Defer:
         return Texts("defer ", format_namespace(Match(ast, Defer)->body, comments, indent));
