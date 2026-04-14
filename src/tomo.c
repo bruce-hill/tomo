@@ -328,7 +328,7 @@ int main(int argc, char *argv[]) {
     }
 
     format_files_inplace = normalize_tm_paths(format_files_inplace);
-    for (int64_t i = 0; i < (int64_t)format_files.length; i++) {
+    for (int64_t i = 0; i < (int64_t)format_files_inplace.length; i++) {
         Path_t path = *(Path_t *)(format_files_inplace.data + i * format_files_inplace.stride);
         Text_t formatted = format_file(Path$as_c_string(path));
         print("Formatted ", path);
