@@ -1,5 +1,9 @@
 # Changes
 
+## 2026-04-26
+
+- Change interface for `List.binary_search()` to be more flexible.
+
 ## 2026-03-16
 
 - Added `Path.copy_to(src, dest)`

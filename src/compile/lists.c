@@ -203,17 +203,10 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
     } else if (streq(call->name, "binary_search")) {
         self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
         type_t *item_ptr = Type(PointerType, .pointed = item_t, .is_stack = true);
-        type_t *fn_t = NewFunctionType(Type(IntType, .bits = TYPE_IBITS32), {.name = "x", .type = item_ptr},
-                                       {.name = "y", .type = item_ptr});
-        ast_t *default_cmp = LiteralCode(Texts("((Closure_t){.fn=generic_compare, "
-                                               ".userdata=(void*)",
-                                               compile_type_info(item_t), "})"),
-                                         .type = Type(ClosureType, .fn = fn_t));
-        arg_t *arg_spec =
-            new (arg_t, .name = "target", .type = item_t,
-                 .next = new (arg_t, .name = "by", .type = Type(ClosureType, .fn = fn_t), .default_val = default_cmp));
+        type_t *fn_t = NewFunctionType(Type(BoolType), {.name = "x", .type = item_ptr});
+        arg_t *arg_spec = new (arg_t, .name = "predicate", .type = Type(ClosureType, .fn = fn_t));
         Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
-        return Texts("List$binary_search_value(", self, ", ", arg_code, ")");
+        return Texts("List$binary_search(", self, ", ", arg_code, ")");
     } else if (streq(call->name, "clear")) {
         EXPECT_POINTER();
         (void)compile_arguments(env, ast, NULL, call->args);
