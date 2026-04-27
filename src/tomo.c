@@ -695,7 +695,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
         }
         case USE_PACKAGE: {
             OptionalPath_t installed = find_installed_package(stmt_ast);
-            assert(installed);
+            if (!installed) code_err(stmt_ast, "I don't know where to find this package.");
             Text_t name = get_package_name(installed);
             Text_t lib = Texts(installed, "/lib", name, ".a");
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
