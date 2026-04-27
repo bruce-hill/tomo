@@ -491,6 +491,10 @@ func main()
     if no # Test Path.children
         assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 
+    if no # Test Path.components
+        assert (./foo/baz.txt).components() == [".", "foo", "baz.txt"]
+        assert (/absolute/path/).components() == ["/", "absolute", "path"]
+
     if no # Test Path.copy_to
         (./file.txt).move(/tmp/renamed.txt)!
 

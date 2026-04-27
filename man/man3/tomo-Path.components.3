@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.components 3 2026-04-27 "Tomo man-pages"
+.SH NAME
+Path.components \- Get the components of a path
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.components\ :\ func(path:\ Path\ ->\ [Text])
+.fi
+.SH DESCRIPTION
+Returns a list of the file components of a path.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path of the file or directory. 
+.TE
+.SH RETURN
+Each of the file components of the path in a list. Note: for absolute paths, the first component will be "/". Trailing slashes are ignored.
+
+.SH EXAMPLES
+.EX
+assert (./foo/baz.txt).components() == [".", "foo", "baz.txt"]
+assert (/absolute/path/).components() == ["/", "absolute", "path"]
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

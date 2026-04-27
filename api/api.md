@@ -2799,6 +2799,27 @@ include_hidden | `` | Whether to include hidden files (those starting with a `.`
 assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
 
 ```
+## Path.components
+
+```tomo
+Path.components : func(path: Path -> [Text])
+```
+
+Returns a list of the file components of a path.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path of the file or directory.  | -
+
+**Return:** Each of the file components of the path in a list. Note: for absolute paths, the first component will be "/". Trailing slashes are ignored.
+
+
+**Example:**
+```tomo
+assert (./foo/baz.txt).components() == [".", "foo", "baz.txt"]
+assert (/absolute/path/).components() == ["/", "absolute", "path"]
+
+```
 ## Path.copy_to
 
 ```tomo

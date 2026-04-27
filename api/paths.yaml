@@ -116,6 +116,24 @@ Path.by_line:
     for line in (/dev/stdin).by_line()!
         say(line.upper())
 
+Path.components:
+  short: Get the components of a path
+  description: >
+    Returns a list of the file components of a path.
+  return:
+    type: '[Text]'
+    description: >
+      Each of the file components of the path in a list. Note: for absolute
+      paths, the first component will be "/". Trailing slashes are ignored.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path of the file or directory.
+  example: |
+    assert (./foo/baz.txt).components() == [".", "foo", "baz.txt"]
+    assert (/absolute/path/).components() == ["/", "absolute", "path"]
+
 Path.lines:
   short: return the lines in a file
   description: >
@@ -1105,4 +1123,3 @@ Path.write_unique_bytes:
     assert created == (./file-27QHtq.txt)
     assert created.read_bytes()! == [1, 2, 3]
     created.remove()!
-

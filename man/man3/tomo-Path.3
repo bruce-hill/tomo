@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path 3 2026-03-16 "Tomo man-pages"
+.TH Path 3 2026-04-27 "Tomo man-pages"
 .SH NAME
 Path \- a Tomo type
 .SH LIBRARY
@@ -104,6 +104,14 @@ Returns a list of children (files and directories) within the directory at the s
 
 For more, see:
 .BR Tomo-Path.children (3)
+
+
+.TP
+.BI Path.components\ :\ func(path:\ Path\ ->\ [Text])
+Returns a list of the file components of a path. 
+
+For more, see:
+.BR Tomo-Path.components (3)
 
 
 .TP
