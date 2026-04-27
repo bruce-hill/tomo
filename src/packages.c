@@ -269,7 +269,7 @@ found_package:;
     if (installed == NULL) return NULL;
 
     if (!had_digest && Table$str_get(pkg.info, "digest") != NULL) {
-        reformatted = Texts(reformatted, package_text(pkg), "\n\n");
+        reformatted = Texts(reformatted, package_text(pkg), "\n");
         for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
             reformatted = Texts(reformatted, line, "\n");
         }
