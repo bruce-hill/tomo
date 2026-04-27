@@ -42,6 +42,7 @@ typedef struct env_s {
     namespace_t *namespace;
     Text_t id_suffix;
     Table_t *imports;
+    Table_t *build_info;
     compilation_unit_t *code;
     ast_t *fn;
     loop_ctx_t *loop_ctx;

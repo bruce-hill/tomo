@@ -158,7 +158,7 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
         switch (use->what) {
         case USE_PACKAGE: {
-            OptionalPath_t installed = find_installed_package(ast);
+            OptionalPath_t installed = find_installed_package(env->build_info, ast);
             assert(installed);
             List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
             Text_t includes = EMPTY_TEXT;

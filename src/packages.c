@@ -7,6 +7,7 @@
 
 #include "config.h"
 #include "packages.h"
+#include "stdlib/datatypes.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
@@ -92,6 +93,7 @@ static OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char 
 
 static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_t *pkg, const char *source,
                                                       bool ask_confirmation) {
+    Table$str_set(&pkg->info, "source", source);
     if (source[0] == '.' || source[0] == '/' || source[0] == '~') {
         Path_t source_path = Path$from_str(source);
         if (!Path$exists(source_path)) {
@@ -240,7 +242,7 @@ static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool
     return NULL;
 }
 
-static OptionalPath_t get_package_install_location(Path_t ini_file, const char *name) {
+static OptionalPath_t get_package_install_location(Table_t *build_info, Path_t ini_file, const char *name) {
     OptionalClosure_t by_line = Path$by_line(ini_file);
     if (by_line.fn == NULL) return NONE_PATH;
     OptionalText_t (*next_line)(void *) = by_line.fn;
@@ -280,28 +282,36 @@ found_package:;
         }
     }
 
+    const char *digest = Table$str_get(pkg.info, "digest");
+    Text_t digest_key = Texts("Package digest [", name, "]");
+    Table$str_set(build_info, Text$as_c_string(digest_key), digest);
+
+    Text_t source_key = Texts("Package source [", name, "]");
+    const char *source = Table$str_get(pkg.info, "source");
+    Table$str_set(build_info, Text$as_c_string(source_key), source);
+
     return installed;
 }
 
-OptionalPath_t find_installed_package(ast_t *use) {
+OptionalPath_t find_installed_package(Table_t *build_info, ast_t *use) {
     const char *name = Match(use, Use)->path;
 
     {
         Path_t file_package = Path$with_extension(Path$from_str(use->file->filename), Text(".packages.ini"), false);
-        OptionalPath_t installed = get_package_install_location(file_package, name);
+        OptionalPath_t installed = get_package_install_location(build_info, file_package, name);
         if (installed != NULL) return installed;
     }
 
     {
         Path_t local_package = Path$sibling(Path$from_str(use->file->filename), Text("packages.ini"));
-        OptionalPath_t installed = get_package_install_location(local_package, name);
+        OptionalPath_t installed = get_package_install_location(build_info, local_package, name);
         if (installed != NULL) return installed;
     }
 
     {
         Path_t tomo_default_packages =
             Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/packages.ini"));
-        OptionalPath_t installed = get_package_install_location(tomo_default_packages, name);
+        OptionalPath_t installed = get_package_install_location(build_info, tomo_default_packages, name);
         if (installed != NULL) return installed;
     }
 

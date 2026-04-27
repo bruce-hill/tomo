@@ -221,7 +221,7 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
         return load_module_env(env, ast);
     }
     case USE_PACKAGE: {
-        OptionalPath_t installed = find_installed_package(use_ast);
+        OptionalPath_t installed = find_installed_package(env->build_info, use_ast);
         assert(installed);
         Text_t name = get_package_name(installed);
         env_t *module_env = fresh_scope(env);

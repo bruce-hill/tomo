@@ -12,6 +12,7 @@
 #if defined(__linux__)
 #include <sys/random.h>
 #endif
+#include <time.h>
 
 #include "ast.h"
 #include "compile/cli.h"
@@ -75,7 +76,8 @@ static bool is_gcc = false, is_clang = false;
 
 static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
               transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
-              run_files = EMPTY_LIST, uninstall_packages = EMPTY_LIST, packages = EMPTY_LIST, args = EMPTY_LIST;
+              run_files = EMPTY_LIST, uninstall_packages = EMPTY_LIST, packages = EMPTY_LIST, args = EMPTY_LIST,
+              show_build_info = EMPTY_LIST;
 
 static OptionalText_t show_codegen = NONE_TEXT,
                       cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs "
@@ -102,7 +104,7 @@ static void transpile_code(env_t *base_env, Path_t path);
 static void compile_object_file(Path_t path);
 static Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files,
                                  List_t extra_ldlibs);
-static void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link);
+static void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_compile, Table_t *to_link);
 static void build_package(Path_t pkg_dir);
 static void install_package(Path_t pkg_dir);
 static void compile_files(env_t *env, List_t files, List_t *object_files, List_t *ldlibs, compile_mode_t mode);
@@ -235,6 +237,7 @@ int main(int argc, char *argv[]) {
         {"quiet", &quiet, &Bool$info, .short_flag = 'q'}, //
         {"version", &show_version, &Bool$info, .short_flag = 'V'}, //
         {"show-codegen", &show_codegen, &Text$info, .short_flag = 'C'}, //
+        {"build-info", &show_build_info, List$info(&Path$info), .short_flag = 'b'},
         {"optimization", &optimization, &Text$info, .short_flag = 'O'}, //
         {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f'}, //
         {"source-mapping", &source_mapping, &Bool$info, .short_flag = 'm'},
@@ -265,10 +268,10 @@ int main(int argc, char *argv[]) {
 
     ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections");
 #ifdef __APPLE__
-    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections");
-    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip");
+    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
+    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip -Wl,--undefined=build_info");
 #else
-    ldflags = Texts(ldflags, " -Wl,--gc-sections");
+    ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
 #endif
 
 #ifdef __APPLE__
@@ -294,6 +297,14 @@ int main(int argc, char *argv[]) {
         xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo@", TOMO_VERSION, "/", *u, " '", TOMO_PATH, "'/bin/", *u,
                 " '", TOMO_PATH, "'/man/man1/", *u, ".1");
         print("Uninstalled ", *u);
+    }
+
+    // Build info:
+    for (int64_t i = 0; i < (int64_t)show_build_info.length; i++) {
+        Path_t *p = (Path_t *)(show_build_info.data + i * show_build_info.stride);
+        xsystem("strings -a '", *p, "' ",
+                "| awk '/Begin Tomo Build Info/{p=1;next} /End Tomo Build Info/{p=0} {if(p)print($0)}'");
+        exit(0);
     }
 
     // Build (and install) packages
@@ -490,6 +501,18 @@ Path_t build_file(Path_t path, const char *extension) {
     return Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
 }
 
+static Text_t get_build_info(env_t *env) {
+    Text_t version_info = Text("===== Begin Tomo Build Info =====\n");
+    for (int64_t i = 0; i < (int64_t)env->build_info->entries.length; i++) {
+        struct {
+            const char *key, *value;
+        } *entry = env->build_info->entries.data + i * env->build_info->entries.stride;
+        version_info = Texts(version_info, entry->key, ":\t", entry->value, "\n");
+    }
+    version_info = Texts(version_info, "===== End Tomo Build Info =====\n");
+    return version_info;
+}
+
 void build_package(Path_t pkg_dir) {
     pkg_dir = Path$resolved(pkg_dir, Path$current_dir());
     if (!Path$is_directory(pkg_dir, true)) print_err("Not a valid directory: ", pkg_dir);
@@ -499,6 +522,19 @@ void build_package(Path_t pkg_dir) {
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
+
+    // Store metadata about the package's build information:
+    {
+        Path_t build_info_obj = build_file("./__build_info", ".o");
+        FILE *prog = run_cmd(cc, " ", cflags, " -Wl,--undefined=package_build_info -x c -c - -o ", build_info_obj);
+        if (!prog) print_err("Failed to run C compiler: ", cc);
+        Text_t build_info = Texts("const char package_build_info[] __attribute__((used, visibility(\"default\"))) = ",
+                                  Text$quoted(get_build_info(env), false, Text("\"")), ";");
+        fputs(Text$as_c_string(build_info), prog);
+        int status = pclose(prog);
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
+        List$insert(&object_files, &build_info_obj, I(0), sizeof(Path_t));
+    }
 
     Text_t pkg_name = get_package_name(pkg_dir);
     Path_t archive = Path$child(pkg_dir, Texts(Text("lib"), pkg_name, ".a"));
@@ -547,7 +583,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (!Path$has_extension(filename, Text("tm")))
             print_err("Not a valid .tm file: \x1b[31;1m", filename, "\x1b[m");
         if (!Path$is_file(filename, true)) print_err("Couldn't find file: ", filename);
-        build_file_dependency_graph(filename, &dependency_files, &to_link);
+        build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link);
     }
 
     // Make sure all files and dependencies have a .id file:
@@ -655,7 +691,7 @@ bool is_config_outdated(Path_t path) {
     return !Text$equal_values(config, config_summary);
 }
 
-void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link) {
+void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_compile, Table_t *to_link) {
     if (Table$has_value(*to_compile, path, Table$info(&Path$info, &Byte$info))) return;
 
     staleness_t staleness = {
@@ -690,11 +726,11 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             if (is_stale(build_file(path, ".c"), dep_tm, false)) staleness.c = true;
             if (staleness.c || staleness.h) staleness.o = true;
             Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
-            build_file_dependency_graph(dep_tm, to_compile, to_link);
+            build_file_dependency_graph(build_info, dep_tm, to_compile, to_link);
             break;
         }
         case USE_PACKAGE: {
-            OptionalPath_t installed = find_installed_package(stmt_ast);
+            OptionalPath_t installed = find_installed_package(build_info, stmt_ast);
             if (!installed) code_err(stmt_ast, "I don't know where to find this package.");
             Text_t name = get_package_name(installed);
             Text_t lib = Texts(installed, "/lib", name, ".a");
@@ -704,7 +740,7 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t *child = (Path_t *)(children.data + i * children.stride);
                 Table_t discarded = {.entries = EMPTY_LIST, .fallback = to_compile};
-                build_file_dependency_graph(*child, &discarded, to_link);
+                build_file_dependency_graph(build_info, *child, &discarded, to_link);
             }
             break;
         }
@@ -917,7 +953,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
                            "\treturn parse_and_run$$",
                            main_binding->code,
                            "(argc, argv);\n"
-                           "}\n");
+                           "}\n"
+                           "const char build_info[] __attribute__((used, visibility(\"default\"))) = ",
+                           Text$quoted(get_build_info(env), false, Text("\"")), ";");
     Path_t runner_file = build_file(path, ".runner.c");
     Path$write(runner_file, program, 0644);
 
@@ -938,9 +976,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         // C flags:
         " ", cflags, " -O", optimization,
         // Linker flags and dynamically linked shared packages:
-        " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
+        " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
         // Object files:
-        paths_str(object_files),
+        " ", paths_str(object_files),
         // Input file:
         " ", runner_file,
         // Statically linked archive files (must come after runner):
