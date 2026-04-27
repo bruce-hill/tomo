@@ -3,9 +3,6 @@
 ## 2026-04-27
 
 - Add build metadata and version information, which can be retrieved with `tomo -b`.
-
-## 2026-04-26
-
 - Change interface for `List.binary_search()` to be more flexible.
 
 ## 2026-03-16
