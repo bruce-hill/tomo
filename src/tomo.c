@@ -314,7 +314,8 @@ int main(int argc, char *argv[]) {
     for (int64_t i = 0; i < (int64_t)show_build_info.length; i++) {
         Path_t *p = (Path_t *)(show_build_info.data + i * show_build_info.stride);
         xsystem("strings -a '", *p, "' ",
-                "| awk '/Begin Tomo Build Info/{p=1;next} /End Tomo Build Info/{p=0} {if(p)print($0)}'");
+                "| awk '/===== Begin Tomo Build Info =====/{p=1;next} /===== End Tomo Build Info =====/{p=0} "
+                "{if(p)print($0)}'");
         exit(0);
     }
 
