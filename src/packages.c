@@ -96,6 +96,7 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
     Table$str_set(&pkg->info, "source", source);
     if (source[0] == '.' || source[0] == '/' || source[0] == '~') {
         Path_t source_path = Path$from_str(source);
+        source_path = Path$resolved(source_path, Path$parent(ini_file));
         if (!Path$exists(source_path)) {
             print("No such file: ", source_path);
             return NONE_PATH;

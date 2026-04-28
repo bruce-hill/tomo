@@ -536,8 +536,7 @@ void build_package(Path_t pkg_dir) {
         List$insert(&object_files, &build_info_obj, I(0), sizeof(Path_t));
     }
 
-    Text_t pkg_name = get_package_name(pkg_dir);
-    Path_t archive = Path$child(pkg_dir, Texts(Text("lib"), pkg_name, ".a"));
+    Path_t archive = Path$child(pkg_dir, Text("package.a"));
     if (is_stale_for_any(archive, object_files, false)) {
         FILE *prog = run_cmd("ar -rcs '", archive, "' ", paths_str(object_files));
         if (!prog) print_err("Failed to run `ar`");
@@ -563,11 +562,11 @@ void install_package(Path_t pkg_dir) {
     }
     // If we have `debugedit` on this system, use it to remap the debugging source information
     // to point to the installed version of the source file. Otherwise, fail silently.
-    if (verbose) whisper("Updating debug symbols for ", dest, "/lib", pkg_name, ".a");
+    if (verbose) whisper("Updating debug symbols for ", dest, "/package.a");
     int result = system(String(as_owner, "debugedit -b ", pkg_dir, " -d '", dest,
                                "'"
                                " '",
-                               dest, "/lib", pkg_name, ".a",
+                               dest, "/package.a",
                                "' "
                                ">/dev/null 2>/dev/null"));
     (void)result;
@@ -732,8 +731,7 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
         case USE_PACKAGE: {
             OptionalPath_t installed = find_installed_package(build_info, stmt_ast);
             if (!installed) code_err(stmt_ast, "I don't know where to find this package.");
-            Text_t name = get_package_name(installed);
-            Text_t lib = Texts(installed, "/lib", name, ".a");
+            Text_t lib = Texts(installed, "/package.a");
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
             List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
