@@ -522,23 +522,23 @@ void build_package(Path_t pkg_dir) {
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
-
-    // Store metadata about the package's build information:
-    {
-        Path_t build_info_obj = build_file("./__build_info", ".o");
-        FILE *prog = run_cmd(cc, " ", cflags, " -Wl,--undefined=package_build_info -x c -c - -o ", build_info_obj);
-        if (!prog) print_err("Failed to run C compiler: ", cc);
-        Text_t build_info = Texts("const char package_build_info[] __attribute__((used, visibility(\"default\"))) = ",
-                                  Text$quoted(get_build_info(env), false, Text("\"")), ";");
-        fputs(Text$as_c_string(build_info), prog);
-        int status = pclose(prog);
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
-        List$insert(&object_files, &build_info_obj, I(0), sizeof(Path_t));
-    }
-
     Path_t archive = Path$child(pkg_dir, Text("package.a"));
     if (is_stale_for_any(archive, object_files, false)) {
-        FILE *prog = run_cmd("ar -rcs '", archive, "' ", paths_str(object_files));
+
+        // Store metadata about the package's build information:
+        Path_t build_info_obj = build_file("./__build_info", ".o");
+        {
+            FILE *prog = run_cmd(cc, " ", cflags, " -Wl,--undefined=package_build_info -x c -c - -o ", build_info_obj);
+            if (!prog) print_err("Failed to run C compiler: ", cc);
+            Text_t build_info =
+                Texts("const char package_build_info[] __attribute__((used, visibility(\"default\"))) = ",
+                      Text$quoted(get_build_info(env), false, Text("\"")), ";");
+            fputs(Text$as_c_string(build_info), prog);
+            int status = pclose(prog);
+            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
+        }
+
+        FILE *prog = run_cmd("ar -rcs '", archive, "' ", paths_str(object_files), " '", build_info_obj, "'");
         if (!prog) print_err("Failed to run `ar`");
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
