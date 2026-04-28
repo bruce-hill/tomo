@@ -46,6 +46,17 @@
         if (verbose) print("\033[34;1m", _cmd, "\033[m");                                                              \
         popen(_cmd, "w");                                                                                              \
     })
+#define command_output(...)                                                                                            \
+    ({                                                                                                                 \
+        const char *_cmd = String(__VA_ARGS__);                                                                        \
+        if (verbose) print("\033[34;1m", _cmd, "\033[m");                                                              \
+        FILE *_prog = popen(_cmd, "r");                                                                                \
+        char *_output = GC_MALLOC_ATOMIC(1024);                                                                        \
+        fgets(_output, 1023, _prog);                                                                                   \
+        if (_output[strlen(_output) - 1] == '\n') _output[strlen(_output) - 1] = '\0';                                 \
+        int status = pclose(_prog);                                                                                    \
+        (!WIFEXITED(status) || WEXITSTATUS(status) != 0) ? NULL : _output;                                             \
+    })
 #define xsystem(...)                                                                                                   \
     ({                                                                                                                 \
         int _status = system(String(__VA_ARGS__));                                                                     \
@@ -513,6 +524,17 @@ static Text_t get_build_info(env_t *env) {
     return version_info;
 }
 
+static void add_git_info(env_t *env, Path_t dir) {
+    const char *commit = command_output("git -C '", dir, "' rev-parse HEAD 2>/dev/null");
+    if (commit) {
+        Table$str_set(env->build_info, "Git commit", commit);
+        const char *commit_time = command_output("git -C '", dir, "' log -1 --format=%cI 2>/dev/null");
+        if (commit_time) Table$str_set(env->build_info, "Git commit time", commit_time);
+        const char *dirty = command_output("git -C '", dir, "' diff --quiet  2>/dev/null && echo false || echo true");
+        if (dirty) Table$str_set(env->build_info, "Git local changes", dirty);
+    }
+}
+
 void build_package(Path_t pkg_dir) {
     pkg_dir = Path$resolved(pkg_dir, Path$current_dir());
     if (!Path$is_directory(pkg_dir, true)) print_err("Not a valid directory: ", pkg_dir);
@@ -524,6 +546,7 @@ void build_package(Path_t pkg_dir) {
     compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
     Path_t archive = Path$child(pkg_dir, Text("package.a"));
     if (is_stale_for_any(archive, object_files, false)) {
+        add_git_info(env, pkg_dir);
 
         // Store metadata about the package's build information:
         Path_t build_info_obj = build_file("./__build_info", ".o");
@@ -943,6 +966,8 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         if (verbose) whisper("Unchanged: ", exe_path);
         return exe_path;
     }
+
+    add_git_info(env, Path$parent(path));
 
     Text_t program = Texts("extern int parse_and_run$$", main_binding->code,
                            "(int argc, char *argv[]);\n"
