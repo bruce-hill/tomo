@@ -2,11 +2,13 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <gc.h>
 #include <libgen.h>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #if defined(__linux__)
@@ -110,6 +112,7 @@ static Text_t config_summary,
 
 typedef enum { COMPILE_C_FILES, COMPILE_OBJ, COMPILE_EXE } compile_mode_t;
 
+static void print_build_info(Path_t p);
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
 static void compile_object_file(Path_t path);
@@ -312,11 +315,8 @@ int main(int argc, char *argv[]) {
 
     // Build info:
     for (int64_t i = 0; i < (int64_t)show_build_info.length; i++) {
-        Path_t *p = (Path_t *)(show_build_info.data + i * show_build_info.stride);
-        xsystem("strings -a '", *p, "' ",
-                "| awk '/===== Begin Tomo Build Info =====/{p=1;next} /===== End Tomo Build Info =====/{p=0} "
-                "{if(p)print($0)}'");
-        exit(0);
+        Path_t p = *(Path_t *)(show_build_info.data + i * show_build_info.stride);
+        print_build_info(p);
     }
 
     // Build (and install) packages
@@ -416,7 +416,8 @@ int main(int argc, char *argv[]) {
 
     if (run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0 && parse_files.length == 0
         && transpile_files.length == 0 && compile_objects.length == 0 && compile_executables.length == 0
-        && run_files.length == 0 && uninstall_packages.length == 0 && packages.length == 0) {
+        && run_files.length == 0 && uninstall_packages.length == 0 && packages.length == 0
+        && show_build_info.length == 0) {
         Path_t path = Path$from_str(String("~/.local/tomo/state/tomo@", TOMO_VERSION, "/run.tm"));
         path = Path$expand_home(path);
         Path$create_directory(Path$parent(path), 0755, true);
@@ -491,6 +492,31 @@ void wait_for_child_success(pid_t child) {
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         _exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
     }
+}
+
+void print_build_info(Path_t p) {
+    p = Path$expand_home(p);
+    char *contents = NULL;
+    struct stat sb;
+    int fd = open(p, O_RDONLY);
+    if (fd != -1 && fstat(fd, &sb) == 0) {
+        contents = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    }
+    if (contents == NULL) {
+        fprint(stderr, "Could not open file: ", p);
+        exit(1);
+    }
+    const char *contents_end = contents + sb.st_size;
+    static const char *start_header = "===== Begin Tomo Build Info =====\n";
+    static const char *end_header = "===== End Tomo Build Info =====\n";
+    for (const char *match = contents;
+         (match = memmem(match, (size_t)(contents_end - match), start_header, strlen(start_header)));) {
+        const char *info_end = memmem(match, (size_t)(contents_end - match), end_header, strlen(end_header));
+        if (info_end == NULL) break;
+        write(STDOUT_FILENO, match + strlen(start_header), (size_t)(info_end - (match + strlen(start_header))));
+        match = info_end + strlen(end_header);
+    }
+    munmap(contents, (size_t)sb.st_size);
 }
 
 Path_t get_exe_path(Path_t path) {
