@@ -868,5 +868,8 @@ Text_t format_file(const char *path) {
     code = Texts(code, fmt(ast, ctx.comments, EMPTY_TEXT));
     fmt_pos = ast->end;
     code = Text$concat(code, comment_range(&fmt_pos, file->text + file->len, EMPTY_TEXT, ctx.comments));
+    if (!Text$ends_with(code, Text("\n"), NULL)) {
+        code = Text$concat(code, Text("\n"));
+    }
     return code;
 }
