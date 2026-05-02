@@ -60,6 +60,24 @@ static bool starts_with_id(Text_t text) {
     return uc_is_property_xid_continue(*(ucs4_t *)codepoints.data);
 }
 
+static Text_t comment_range(const char **pos, const char *end, Text_t indent, Table_t comments) {
+    Text_t ret = EMPTY_TEXT;
+    const char *prev = NULL;
+    for (OptionalText_t comment; (comment = next_comment(comments, pos, end)).length > 0;) {
+        if (prev) {
+            for (const char *p = prev + 1; p < *pos; p++) {
+                if (*p == '\n') {
+                    ret = Text$concat(ret, Text("\n"));
+                    break;
+                }
+            }
+        }
+        add_line(&ret, Text$trim(comment, Text(" \t\r\n"), false, true), indent);
+        prev = *pos;
+    }
+    return ret.length > 0 ? Text$concat(ret, Text("\n")) : ret;
+}
+
 static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, Table_t comments) {
     Text_t code = opts.quote;
     for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
@@ -550,9 +568,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (def->opaque) code = Texts(code, "; opaque");
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"));
         const char *comment_pos = ast->start;
-        for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
-            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
-        }
+        code = Text$concat(code, comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments));
         return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case EnumDef: {
@@ -560,18 +576,14 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         Text_t code = Texts("enum ", Text$from_str(def->name), "(", format_tags(def->tags, comments, indent));
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"));
         const char *comment_pos = ast->start;
-        for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
-            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
-        }
+        code = Text$concat(code, comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments));
         return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case LangDef: {
         DeclareMatch(def, ast, LangDef);
         Text_t code = Texts("lang ", Text$from_str(def->name));
         const char *comment_pos = ast->start;
-        for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
-            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
-        }
+        code = Text$concat(code, comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments));
         return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case Defer:
@@ -582,10 +594,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         Text_t code = Text("[");
         const char *comment_pos = ast->start;
         for (ast_list_t *item = items; item; item = item->next) {
-            for (OptionalText_t comment;
-                 (comment = next_comment(comments, &comment_pos, item->ast->start)).length > 0;) {
-                add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
-            }
+            code = Text$concat(code,
+                               comment_range(&comment_pos, item->ast->start, Texts(indent, single_indent), comments));
             Text_t item_text = fmt(item->ast, comments, Texts(indent, single_indent));
             if (Text$ends_with(code, Text(","), NULL)) {
                 if (!Text$has(item_text, Text("\n")) && trailing_line_len(code) + 1 + item_text.length + 1 <= MAX_WIDTH)
@@ -595,9 +605,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                 add_line(&code, Texts(item_text, ","), Texts(indent, single_indent));
             }
         }
-        for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
-            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
-        }
+        code = Text$concat(code, comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments));
         return Texts(code, "\n", indent, "]");
     }
     /*multiline*/ case Table: {
@@ -606,10 +614,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         Text_t code = Texts("{");
         const char *comment_pos = ast->start;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-            for (OptionalText_t comment;
-                 (comment = next_comment(comments, &comment_pos, entry->ast->start)).length > 0;) {
-                add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
-            }
+            code = Text$concat(code,
+                               comment_range(&comment_pos, entry->ast->start, Texts(indent, single_indent), comments));
 
             Text_t entry_text = fmt(entry->ast, comments, Texts(indent, single_indent));
             if (Text$ends_with(code, Text(","), NULL)) {
@@ -623,9 +629,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
 
             add_line(&code, Texts(entry_text, ","), Texts(indent, single_indent));
         }
-        for (OptionalText_t comment; (comment = next_comment(comments, &comment_pos, ast->end)).length > 0;) {
-            add_line(&code, Text$trim(comment, Text(" \t\r\n"), false, true), Texts(indent, single_indent));
-        }
+        code = Text$concat(code, comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments));
 
         if (table->fallback)
             code = Texts(code, ";\n", indent, single_indent, "fallback=", fmt(table->fallback, comments, indent));
@@ -852,13 +856,9 @@ Text_t format_file(const char *path) {
     }
 
     const char *fmt_pos = file->text;
-    Text_t code = EMPTY_TEXT;
-    for (OptionalText_t comment; (comment = next_comment(ctx.comments, &fmt_pos, ast->start)).length > 0;) {
-        code = Texts(code, Text$trim(comment, Text(" \t\r\n"), false, true), "\n");
-    }
+    Text_t code = comment_range(&fmt_pos, ast->start, EMPTY_TEXT, ctx.comments);
     code = Texts(code, fmt(ast, ctx.comments, EMPTY_TEXT));
-    for (OptionalText_t comment; (comment = next_comment(ctx.comments, &fmt_pos, ast->start)).length > 0;) {
-        code = Texts(code, Text$trim(comment, Text(" \t\r\n"), false, true), "\n");
-    }
+    fmt_pos = ast->end;
+    code = Text$concat(code, comment_range(&fmt_pos, file->text + file->len, EMPTY_TEXT, ctx.comments));
     return code;
 }
