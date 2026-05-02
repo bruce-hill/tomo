@@ -857,6 +857,14 @@ Text_t format_file(const char *path) {
 
     const char *fmt_pos = file->text;
     Text_t code = comment_range(&fmt_pos, ast->start, EMPTY_TEXT, ctx.comments);
+    // Special case: allow blank lines between comments and code at the top of
+    // the file.
+    for (const char *p = fmt_pos + 1; p < ast->start; p++) {
+        if (*p == '\n') {
+            code = Text$concat(code, Text("\n"));
+            break;
+        }
+    }
     code = Texts(code, fmt(ast, ctx.comments, EMPTY_TEXT));
     fmt_pos = ast->end;
     code = Text$concat(code, comment_range(&fmt_pos, file->text + file->len, EMPTY_TEXT, ctx.comments));
