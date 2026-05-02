@@ -3,8 +3,10 @@
 #include "../ast.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/stdlib.h"
+#include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "args.h"
+#include "enums.h"
 #include "formatter.h"
 
 Text_t format_type(type_ast_t *type) {
@@ -36,6 +38,10 @@ Text_t format_type(type_ast_t *type) {
     }
     case OptionalTypeAST: {
         return Texts(format_type(Match(type, OptionalTypeAST)->type), "?");
+    }
+    case EnumTypeAST: {
+        DeclareMatch(e, type, EnumTypeAST);
+        return Texts("enum ", e->name, "(", format_inline_tags(e->tags, EMPTY_TABLE));
     }
     case UnknownTypeAST:
     default: fail("Invalid Type AST");
