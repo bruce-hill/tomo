@@ -42,13 +42,13 @@ public
 bool USE_COLOR;
 
 public
-const char *TOMO_PATH = "/usr/local";
+const char *TOMO_PATH = TOMO_BUILD_PREFIX;
 
 public
-const char *TOMO_VERSION = "v0";
+const char *TOMO_VERSION = TOMO_BUILD_VERSION;
 
 public
-Text_t TOMO_VERSION_TEXT = Text("v0");
+Text_t TOMO_VERSION_TEXT = Text(TOMO_BUILD_VERSION);
 
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <dlfcn.h>
@@ -114,16 +114,46 @@ char *find_in_path(const char *name) {
     return NULL; // not found
 }
 
+static const char *versioned_tomo_artifact_version(const char *base_name) {
+    size_t len = strlen(base_name);
+    static const char *suffixes[] = {".so", ".dylib", ".dll", ".a"};
+    for (size_t i = 0; i < sizeof(suffixes) / sizeof(suffixes[0]); i++) {
+        size_t suffix_len = strlen(suffixes[i]);
+        if (len >= suffix_len && strcmp(base_name + len - suffix_len, suffixes[i]) == 0) {
+            len -= suffix_len;
+            break;
+        }
+    }
+
+    const char *prefix = NULL;
+    if (strncmp(base_name, "libtomo@", strlen("libtomo@")) == 0) prefix = "libtomo@";
+    else if (strncmp(base_name, "tomo@", strlen("tomo@")) == 0) prefix = "tomo@";
+    else return NULL;
+
+    size_t prefix_len = strlen(prefix);
+    if (len <= prefix_len) return NULL;
+    return GC_strndup(base_name + prefix_len, len - prefix_len);
+}
+
 public
 void tomo_configure(void) {
+    TOMO_PATH = TOMO_BUILD_PREFIX;
+    TOMO_VERSION = TOMO_BUILD_VERSION;
+    TOMO_VERSION_TEXT = Text(TOMO_BUILD_VERSION);
+
     const char *p = get_library_path(get_library_path);
+    if (p == NULL) return;
     p = find_in_path(p);
+    if (p == NULL) return;
+
     Path_t path = Path$from_str(p);
-    TOMO_PATH = Path$as_c_string(Path$parent(Path$parent(path)));
     Text_t base_name = Path$base_name(path);
-    TOMO_VERSION_TEXT = Text$without_suffix(
-        Text$without_prefix(Text$without_prefix(base_name, Text("lib")), Text("tomo@")), Text(".so"));
-    TOMO_VERSION = Text$as_c_string(TOMO_VERSION_TEXT);
+    const char *detected_version = versioned_tomo_artifact_version(Text$as_c_string(base_name));
+    if (detected_version == NULL) return;
+
+    TOMO_PATH = Path$as_c_string(Path$parent(Path$parent(path)));
+    TOMO_VERSION = detected_version;
+    TOMO_VERSION_TEXT = Text$from_str(detected_version);
 }
 
 static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
