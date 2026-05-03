@@ -85,7 +85,8 @@ TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print
 GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h" 2>/dev/null || echo "unknown")
 CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) $(LTO) \
 	   -DSUDO='"$(SUDO)"' -DDEFAULT_C_COMPILER='"$(DEFAULT_C_COMPILER)"' \
-	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections
+	   -DGIT_VERSION='"$(GIT_VERSION)"' -DTOMO_BUILD_PREFIX='"$(PREFIX)"' \
+	   -DTOMO_BUILD_VERSION='"$(TOMO_VERSION)"' -ffunction-sections -fdata-sections
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 LDLIBS=-lgc -lm -lunistring -lgmp -lcrypto
 

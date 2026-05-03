@@ -4,6 +4,14 @@
 #define GIT_VERSION "???"
 #endif
 
+#ifndef TOMO_BUILD_PREFIX
+#define TOMO_BUILD_PREFIX "/usr/local"
+#endif
+
+#ifndef TOMO_BUILD_VERSION
+#define TOMO_BUILD_VERSION "v0"
+#endif
+
 extern const char *TOMO_PATH;
 extern const char *TOMO_VERSION;
 
