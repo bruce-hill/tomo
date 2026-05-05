@@ -69,6 +69,16 @@ ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
                 break;
             }
         }
+
+        const char *after_comments = pos;
+        while (some_of(&pos, " \t\r\n")) {
+            if (get_indent(ctx, pos) == block_indent && comment(ctx, &pos)) {
+                after_comments = pos;
+            } else {
+                break;
+            }
+        }
+        pos = after_comments;
     }
     REVERSE_LIST(statements);
     return NewAST(ctx->file, start, pos, Block, .statements = statements);

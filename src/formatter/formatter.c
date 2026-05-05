@@ -418,32 +418,47 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Block: {
         Text_t code = EMPTY_TEXT;
         const char *comment_pos = ast->start;
+        ast_list_t *prev = NULL;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
             Text_t comment_code = comment_range(&comment_pos, stmt->ast->start, indent, comments);
+            int64_t target_newlines =
+                prev == NULL ? 0
+                             : 1 + MAX(comment_code.length > 0 ? 1 : 0, suggested_blank_lines(prev->ast, stmt->ast));
+
+            int64_t newlines = 0;
+            for (int64_t i = code.length - 1; i >= 0; i--) {
+                if (Text$get_grapheme(code, i) != '\n') break;
+                newlines += 1;
+            }
+            for (; newlines < target_newlines; newlines++)
+                code = Text$concat(code, Text("\n"));
+
             if (comment_code.length > 0) {
-                if (code.length > 0) code = Text$concat(code, Text("\n\n"), indent);
-                code = Text$concat(code, comment_code);
+                if (code.length > 0 && !Text$ends_with(code, indent, NULL)) code = Text$concat(code, indent);
+                code = Text$concat(code, comment_code, Text("\n"));
             }
 
             if (stmt->ast->tag == Block) {
-                add_line(&code,
-                         Texts("do\n", indent, single_indent, fmt(stmt->ast, comments, Texts(indent, single_indent))),
-                         indent);
+                code = Text$concat(
+                    code, Texts("do\n", indent, single_indent, fmt(stmt->ast, comments, Texts(indent, single_indent))));
             } else {
-                add_line(&code, fmt(stmt->ast, comments, indent), indent);
+                if (code.length > 0 && !Text$ends_with(code, indent, NULL)) code = Text$concat(code, indent);
+                code = Text$concat(code, fmt(stmt->ast, comments, indent));
             }
             comment_pos = stmt->ast->end;
-
-            if (stmt->next) {
-                int suggested_blanks = suggested_blank_lines(stmt->ast, stmt->next->ast);
-                for (int blanks = suggested_blanks; blanks > 0; blanks--)
-                    add_line(&code, Text(""), indent);
+            const char *eol = stmt->ast->end;
+            while (eol < stmt->ast->file->text + stmt->ast->file->len && *eol != '\n')
+                eol++;
+            Text_t line_comment = comment_range(&comment_pos, eol, indent, comments);
+            if (line_comment.length > 0) {
+                code = Text$concat(code, Text(" "), line_comment);
             }
+            prev = stmt;
         }
 
         Text_t comment_code = comment_range(&comment_pos, ast->end, indent, comments);
         if (comment_code.length > 0) {
-            if (code.length > 0) code = Text$concat(code, Text("\n"));
+            if (code.length > 0) code = Text$concat(code, Text("\n\n"), indent);
             code = Text$concat(code, comment_code);
         }
         return code;
