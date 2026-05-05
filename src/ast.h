@@ -396,6 +396,7 @@ struct ast_s {
         } Repeat;
         struct {
             ast_t *condition, *body, *else_body;
+            bool postfix;
         } If;
         struct {
             ast_t *subject;

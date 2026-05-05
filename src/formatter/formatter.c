@@ -162,6 +162,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
                                   ? Texts("unless ", fmt_inline(Match(if_->condition, Not)->value, comments))
                                   : Texts("if ", fmt_inline(if_->condition, comments));
 
+        if (if_->postfix && if_->else_body == NULL) {
+            return Texts(fmt_inline(if_->body, comments), " if ", if_condition);
+        }
+
         if (if_->else_body == NULL && if_->condition->tag != Declare) {
             ast_t *stmt = unwrap_block(if_->body);
             if (!stmt) return Texts("pass ", if_condition);
@@ -471,7 +475,12 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                           ? Texts("unless ", fmt(Match(if_->condition, Not)->value, comments, indent))
                           : Texts("if ", fmt(if_->condition, comments, indent));
 
-        code = Texts(code, "\n", indent, single_indent, fmt(if_->body, comments, Texts(indent, single_indent)));
+        Text_t body = fmt(if_->body, comments, Texts(indent, single_indent));
+        if (if_->postfix && if_->else_body == NULL && !Text$has(body, Text("\n"))) {
+            return Texts(body, " ", code);
+        }
+
+        code = Texts(code, "\n", indent, single_indent, body);
         if (if_->else_body) {
             if (if_->else_body->tag != If) {
                 code = Texts(code, "\n", indent, "else\n", indent, single_indent,
