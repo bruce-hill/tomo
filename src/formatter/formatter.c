@@ -593,8 +593,12 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         Text_t code = Text("[");
         const char *comment_pos = ast->start;
         for (ast_list_t *item = items; item; item = item->next) {
-            code = Text$concat(code,
-                               comment_range(&comment_pos, item->ast->start, Texts(indent, single_indent), comments));
+            Text_t item_comments =
+                comment_range(&comment_pos, item->ast->start, Texts(indent, single_indent), comments);
+            if (item_comments.length > 0) {
+                if (item == items) code = Texts(code, "\n", indent, single_indent);
+                code = Text$concat(code, item_comments);
+            }
             Text_t item_text = fmt(item->ast, comments, Texts(indent, single_indent));
             if (Text$ends_with(code, Text(","), NULL)) {
                 if (!Text$has(item_text, Text("\n")) && trailing_line_len(code) + 1 + item_text.length + 1 <= MAX_WIDTH)
@@ -767,16 +771,13 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case FunctionCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, FunctionCall);
-        Text_t args = format_args(call->args, comments, indent);
-        return Texts(fmt(call->fn, comments, indent), "(", args,
-                     Text$has(args, Text("\n")) ? Texts("\n", indent) : EMPTY_TEXT, ")");
+        return Texts(fmt(call->fn, comments, indent), format_fncall(call->args, comments, indent));
     }
     /*multiline*/ case MethodCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, MethodCall);
-        Text_t args = format_args(call->args, comments, indent);
-        return Texts(termify(call->self, comments, indent), ".", Text$from_str(call->name), "(", args,
-                     Text$has(args, Text("\n")) ? Texts("\n", indent) : EMPTY_TEXT, ")");
+        return Texts(termify(call->self, comments, indent), ".", Text$from_str(call->name),
+                     format_fncall(call->args, comments, indent));
     }
     /*multiline*/ case DebugLog: {
         DeclareMatch(debug, ast, DebugLog);
