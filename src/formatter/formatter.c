@@ -323,13 +323,13 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case Stop: {
         const char *target = Match(ast, Stop)->target;
-        const char *keyword = Match(ast, Stop)->keyword;
-        return target ? Texts(keyword ? keyword : "stop", " ", Text$from_str(target)) : Text("stop");
+        Text_t keyword = Match(ast, Stop)->keyword ? Text$from_str(Match(ast, Stop)->keyword) : Text("stop");
+        return target ? Texts(keyword, " ", Text$from_str(target)) : keyword;
     }
     /*inline*/ case Skip: {
         const char *target = Match(ast, Skip)->target;
-        const char *keyword = Match(ast, Skip)->keyword;
-        return target ? Texts(keyword ? keyword : "skip", " ", Text$from_str(target)) : Text("skip");
+        Text_t keyword = Match(ast, Skip)->keyword ? Text$from_str(Match(ast, Skip)->keyword) : Text("skip");
+        return target ? Texts(keyword, " ", Text$from_str(target)) : keyword;
     }
     /*inline*/ case Min:
     /*inline*/ case Max: {
