@@ -748,6 +748,12 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
 
         text_opts_t opts = choose_text_options(Match(ast, TextJoin)->children);
+        if (Text$equal_values(opts.quote, Text("`"))) {
+            // Prefer double quotes over backticks for multiline strings, since
+            // we don't need to escape double quotes inside them.
+            opts.quote = Text("\"");
+            opts.unquote = Text("\"");
+        }
         Text_t ret = format_text(opts, Match(ast, TextJoin)->children, comments, indent);
         const char *lang = Match(ast, TextJoin)->lang;
         return lang ? Texts("$", Text$from_str(lang), ret) : ret;
