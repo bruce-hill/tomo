@@ -73,6 +73,7 @@ const binop_info_t binop_info[NUM_AST_TAGS] = {
     [LessThanOrEquals] = {NULL, "<="},
     [GreaterThan] = {NULL, ">"},
     [GreaterThanOrEquals] = {NULL, ">="},
+    [Compare] = {NULL, "<>"},
     [Min] = {NULL, "_min_"},
     [Max] = {NULL, "_max_"},
 };
