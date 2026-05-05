@@ -407,6 +407,7 @@ struct ast_s {
             ast_e op;
         } Reduction;
         struct {
+            const char *keyword;
             const char *target;
         } Skip, Stop;
         struct {
