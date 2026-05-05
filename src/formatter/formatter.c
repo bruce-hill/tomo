@@ -444,11 +444,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                 code = Text$concat(code, comment_code, Text("\n"));
             }
 
+            if (code.length > 0 && !Text$ends_with(code, indent, NULL)) code = Text$concat(code, indent);
             if (stmt->ast->tag == Block) {
                 code = Text$concat(
                     code, Texts("do\n", indent, single_indent, fmt(stmt->ast, comments, Texts(indent, single_indent))));
             } else {
-                if (code.length > 0 && !Text$ends_with(code, indent, NULL)) code = Text$concat(code, indent);
                 code = Text$concat(code, fmt(stmt->ast, comments, indent));
             }
             comment_pos = stmt->ast->end;
