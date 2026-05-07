@@ -2,16 +2,19 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <gc.h>
 #include <libgen.h>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #if defined(__linux__)
 #include <sys/random.h>
 #endif
+#include <time.h>
 
 #include "ast.h"
 #include "compile/cli.h"
@@ -45,6 +48,17 @@
         if (verbose) print("\033[34;1m", _cmd, "\033[m");                                                              \
         popen(_cmd, "w");                                                                                              \
     })
+#define command_output(...)                                                                                            \
+    ({                                                                                                                 \
+        const char *_cmd = String(__VA_ARGS__);                                                                        \
+        if (verbose) print("\033[34;1m", _cmd, "\033[m");                                                              \
+        FILE *_prog = popen(_cmd, "r");                                                                                \
+        char *_output = GC_MALLOC_ATOMIC(1024);                                                                        \
+        fgets(_output, 1023, _prog);                                                                                   \
+        if (_output[strlen(_output) - 1] == '\n') _output[strlen(_output) - 1] = '\0';                                 \
+        int status = pclose(_prog);                                                                                    \
+        (!WIFEXITED(status) || WEXITSTATUS(status) != 0) ? NULL : _output;                                             \
+    })
 #define xsystem(...)                                                                                                   \
     ({                                                                                                                 \
         int _status = system(String(__VA_ARGS__));                                                                     \
@@ -75,7 +89,8 @@ static bool is_gcc = false, is_clang = false;
 
 static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
               transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
-              run_files = EMPTY_LIST, uninstall_packages = EMPTY_LIST, packages = EMPTY_LIST, args = EMPTY_LIST;
+              run_files = EMPTY_LIST, uninstall_packages = EMPTY_LIST, packages = EMPTY_LIST, args = EMPTY_LIST,
+              show_build_info = EMPTY_LIST;
 
 static OptionalText_t show_codegen = NONE_TEXT,
                       cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs"
@@ -96,12 +111,13 @@ static Text_t config_summary,
 
 typedef enum { COMPILE_C_FILES, COMPILE_OBJ, COMPILE_EXE } compile_mode_t;
 
+static void print_build_info(Path_t p);
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
 static void compile_object_file(Path_t path);
 static Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files,
                                  List_t extra_ldlibs);
-static void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link);
+static void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_compile, Table_t *to_link);
 static void build_package(Path_t pkg_dir);
 static void install_package(Path_t pkg_dir);
 static void compile_files(env_t *env, List_t files, List_t *object_files, List_t *ldlibs, compile_mode_t mode);
@@ -234,6 +250,7 @@ int main(int argc, char *argv[]) {
         {"quiet", &quiet, &Bool$info, .short_flag = 'q'}, //
         {"version", &show_version, &Bool$info, .short_flag = 'V'}, //
         {"show-codegen", &show_codegen, &Text$info, .short_flag = 'C'}, //
+        {"build-info", &show_build_info, List$info(&Path$info), .short_flag = 'b'},
         {"optimization", &optimization, &Text$info, .short_flag = 'O'}, //
         {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f'}, //
         {"source-mapping", &source_mapping, &Bool$info, .short_flag = 'm'},
@@ -264,10 +281,10 @@ int main(int argc, char *argv[]) {
 
     ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections");
 #ifdef __APPLE__
-    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections");
-    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip");
+    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
+    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip -Wl,--undefined=build_info");
 #else
-    ldflags = Texts(ldflags, " -Wl,--gc-sections");
+    ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
 #endif
 
 #ifdef __APPLE__
@@ -293,6 +310,12 @@ int main(int argc, char *argv[]) {
         xsystem(as_owner, "rm -rvf '", TOMO_PATH, "'/lib/tomo@", TOMO_VERSION, "/", *u, " '", TOMO_PATH, "'/bin/", *u,
                 " '", TOMO_PATH, "'/man/man1/", *u, ".1");
         print("Uninstalled ", *u);
+    }
+
+    // Build info:
+    for (int64_t i = 0; i < (int64_t)show_build_info.length; i++) {
+        Path_t p = *(Path_t *)(show_build_info.data + i * show_build_info.stride);
+        print_build_info(p);
     }
 
     // Build (and install) packages
@@ -323,11 +346,11 @@ int main(int argc, char *argv[]) {
     for (int64_t i = 0; i < (int64_t)format_files.length; i++) {
         Path_t path = *(Path_t *)(format_files.data + i * format_files.stride);
         Text_t formatted = format_file(Path$as_c_string(path));
-        print(formatted);
+        print_inline(formatted);
     }
 
     format_files_inplace = normalize_tm_paths(format_files_inplace);
-    for (int64_t i = 0; i < (int64_t)format_files.length; i++) {
+    for (int64_t i = 0; i < (int64_t)format_files_inplace.length; i++) {
         Path_t path = *(Path_t *)(format_files_inplace.data + i * format_files_inplace.stride);
         Text_t formatted = format_file(Path$as_c_string(path));
         print("Formatted ", path);
@@ -392,7 +415,8 @@ int main(int argc, char *argv[]) {
 
     if (run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0 && parse_files.length == 0
         && transpile_files.length == 0 && compile_objects.length == 0 && compile_executables.length == 0
-        && run_files.length == 0 && uninstall_packages.length == 0 && packages.length == 0) {
+        && run_files.length == 0 && uninstall_packages.length == 0 && packages.length == 0
+        && show_build_info.length == 0) {
         Path_t path = Path$from_str(String("~/.local/tomo/state/tomo@", TOMO_VERSION, "/run.tm"));
         path = Path$expand_home(path);
         Path$create_directory(Path$parent(path), 0755, true);
@@ -469,6 +493,31 @@ void wait_for_child_success(pid_t child) {
     }
 }
 
+void print_build_info(Path_t p) {
+    p = Path$expand_home(p);
+    char *contents = NULL;
+    struct stat sb;
+    int fd = open(p, O_RDONLY);
+    if (fd != -1 && fstat(fd, &sb) == 0) {
+        contents = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    }
+    if (contents == NULL) {
+        fprint(stderr, "Could not open file: ", p);
+        exit(1);
+    }
+    const char *contents_end = contents + sb.st_size;
+    static const char *start_header = "===== Begin Tomo Build Info =====\n";
+    static const char *end_header = "===== End Tomo Build Info =====\n";
+    for (const char *match = contents;
+         (match = memmem(match, (size_t)(contents_end - match), start_header, strlen(start_header)));) {
+        const char *info_end = memmem(match, (size_t)(contents_end - match), end_header, strlen(end_header));
+        if (info_end == NULL) break;
+        write(STDOUT_FILENO, match + strlen(start_header), (size_t)(info_end - (match + strlen(start_header))));
+        match = info_end + strlen(end_header);
+    }
+    munmap(contents, (size_t)sb.st_size);
+}
+
 Path_t get_exe_path(Path_t path) {
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     OptionalText_t exe_name = ast_metadata(ast, "EXECUTABLE");
@@ -489,6 +538,29 @@ Path_t build_file(Path_t path, const char *extension) {
     return Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
 }
 
+static Text_t get_build_info(env_t *env) {
+    Text_t version_info = Text("===== Begin Tomo Build Info =====\n");
+    for (int64_t i = 0; i < (int64_t)env->build_info->entries.length; i++) {
+        struct {
+            const char *key, *value;
+        } *entry = env->build_info->entries.data + i * env->build_info->entries.stride;
+        version_info = Texts(version_info, entry->key, ":\t", entry->value, "\n");
+    }
+    version_info = Texts(version_info, "===== End Tomo Build Info =====\n");
+    return version_info;
+}
+
+static void add_git_info(env_t *env, Path_t dir) {
+    const char *commit = command_output("git -C '", dir, "' rev-parse HEAD 2>/dev/null");
+    if (commit) {
+        Table$str_set(env->build_info, "Git commit", commit);
+        const char *commit_time = command_output("git -C '", dir, "' log -1 --format=%cI 2>/dev/null");
+        if (commit_time) Table$str_set(env->build_info, "Git commit time", commit_time);
+        const char *dirty = command_output("git -C '", dir, "' diff --quiet  2>/dev/null && echo false || echo true");
+        if (dirty) Table$str_set(env->build_info, "Git local changes", dirty);
+    }
+}
+
 void build_package(Path_t pkg_dir) {
     pkg_dir = Path$resolved(pkg_dir, Path$current_dir());
     if (!Path$is_directory(pkg_dir, true)) print_err("Not a valid directory: ", pkg_dir);
@@ -498,11 +570,24 @@ void build_package(Path_t pkg_dir) {
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
-
-    Text_t pkg_name = get_package_name(pkg_dir);
-    Path_t archive = Path$child(pkg_dir, Texts(Text("lib"), pkg_name, ".a"));
+    Path_t archive = Path$child(pkg_dir, Text("package.a"));
     if (is_stale_for_any(archive, object_files, false)) {
-        FILE *prog = run_cmd("ar -rcs '", archive, "' ", paths_str(object_files));
+        add_git_info(env, pkg_dir);
+
+        // Store metadata about the package's build information:
+        Path_t build_info_obj = build_file("./__build_info", ".o");
+        {
+            FILE *prog = run_cmd(cc, " ", cflags, " -Wl,--undefined=package_build_info -x c -c - -o ", build_info_obj);
+            if (!prog) print_err("Failed to run C compiler: ", cc);
+            Text_t build_info =
+                Texts("const char package_build_info[] __attribute__((used, visibility(\"default\"))) = ",
+                      Text$quoted(get_build_info(env), false, Text("\"")), ";");
+            fputs(Text$as_c_string(build_info), prog);
+            int status = pclose(prog);
+            if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
+        }
+
+        FILE *prog = run_cmd("ar -rcs '", archive, "' ", paths_str(object_files), " '", build_info_obj, "'");
         if (!prog) print_err("Failed to run `ar`");
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
@@ -536,7 +621,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (!Path$has_extension(filename, Text("tm")))
             print_err("Not a valid .tm file: \x1b[31;1m", filename, "\x1b[m");
         if (!Path$is_file(filename, true)) print_err("Couldn't find file: ", filename);
-        build_file_dependency_graph(filename, &dependency_files, &to_link);
+        build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link);
     }
 
     // Make sure all files and dependencies have a .id file:
@@ -644,7 +729,7 @@ bool is_config_outdated(Path_t path) {
     return !Text$equal_values(config, config_summary);
 }
 
-void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_link) {
+void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_compile, Table_t *to_link) {
     if (Table$has_value(*to_compile, path, Table$info(&Path$info, &Byte$info))) return;
 
     staleness_t staleness = {
@@ -679,21 +764,20 @@ void build_file_dependency_graph(Path_t path, Table_t *to_compile, Table_t *to_l
             if (is_stale(build_file(path, ".c"), dep_tm, false)) staleness.c = true;
             if (staleness.c || staleness.h) staleness.o = true;
             Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
-            build_file_dependency_graph(dep_tm, to_compile, to_link);
+            build_file_dependency_graph(build_info, dep_tm, to_compile, to_link);
             break;
         }
         case USE_PACKAGE: {
-            OptionalPath_t installed = find_installed_package(stmt_ast);
-            assert(installed);
-            Text_t name = get_package_name(installed);
-            Text_t lib = Texts(installed, "/lib", name, ".a");
+            OptionalPath_t installed = find_installed_package(build_info, stmt_ast);
+            if (!installed) code_err(stmt_ast, "I don't know where to find this package.");
+            Text_t lib = Texts(installed, "/package.a");
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
             List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
             for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t *child = (Path_t *)(children.data + i * children.stride);
                 Table_t discarded = {.entries = EMPTY_LIST, .fallback = to_compile};
-                build_file_dependency_graph(*child, &discarded, to_link);
+                build_file_dependency_graph(build_info, *child, &discarded, to_link);
             }
             break;
         }
@@ -899,6 +983,8 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         return exe_path;
     }
 
+    add_git_info(env, Path$parent(path));
+
     Text_t program = Texts("extern int parse_and_run$$", main_binding->code,
                            "(int argc, char *argv[]);\n"
                            "__attribute__ ((noinline))\n"
@@ -906,7 +992,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
                            "\treturn parse_and_run$$",
                            main_binding->code,
                            "(argc, argv);\n"
-                           "}\n");
+                           "}\n"
+                           "const char build_info[] __attribute__((used, visibility(\"default\"))) = ",
+                           Text$quoted(get_build_info(env), false, Text("\"")), ";");
     Path_t runner_file = build_file(path, ".runner.c");
     Path$write(runner_file, program, 0644);
 
@@ -927,9 +1015,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         // C flags:
         " ", cflags, " -O", optimization,
         // Linker flags and dynamically linked shared packages:
-        " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs), " ",
+        " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
         // Object files:
-        paths_str(object_files),
+        " ", paths_str(object_files),
         // Input file:
         " ", runner_file,
         // Statically linked archive files (must come after runner):

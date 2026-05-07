@@ -162,3 +162,23 @@ link the resulting object files together.
                                    | baz.tm.h |
                                    +----------+
 ```
+
+# Build Metadata
+
+Tomo attaches build information and version data to each compiled executable and library file.
+
+Various different info lines will be added with tab-separated key/value pairs.
+Build data can be extracted from a compiled executable or library file using `tomo -b` or `tomo --build-info`.
+An example output looks like this:
+
+```
+Tomo compiler version:  2026-04-26
+Tomo compiler git:      2026-04-27_135100d6
+Binary compiled at:     2026-04-27 17:26:42 EDT
+Package digest [random]:        sha256:049864fed351c781e337a38ed527d845e29df244606b1f8a59d3766754fa7339
+Package source [random]:        https://github.com/bruce-hill/tomo-random/archive/refs/tags/v1.3.tar.gz
+Package digest [patterns]:      sha256:2551b5ecc2617d884d856764a7f4f5ba394e97aaf1412110fe63f137b510f546
+Package source [patterns]:      https://github.com/bruce-hill/tomo-patterns/archive/refs/tags/v2025-11-29.tar.gz
+```
+
+The exact format and contents of this information is not guaranteed and may be subject to change.

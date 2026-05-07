@@ -69,6 +69,16 @@ ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
                 break;
             }
         }
+
+        const char *after_comments = pos;
+        while (some_of(&pos, " \t\r\n")) {
+            if (get_indent(ctx, pos) == block_indent && comment(ctx, &pos)) {
+                after_comments = pos;
+            } else {
+                break;
+            }
+        }
+        pos = after_comments;
     }
     REVERSE_LIST(statements);
     return NewAST(ctx->file, start, pos, Block, .statements = statements);
@@ -88,24 +98,38 @@ ast_t *parse_defer(parse_ctx_t *ctx, const char *pos) {
 
 ast_t *parse_skip(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    if (!match_word(&pos, "continue") && !match_word(&pos, "skip")) return NULL;
+    const char *keyword = "skip";
+    if (match_word(&pos, "continue")) {
+        keyword = "continue";
+    } else if (match_word(&pos, "skip")) {
+        keyword = "skip";
+    } else {
+        return NULL;
+    }
     const char *target;
     if (match_word(&pos, "for")) target = "for";
     else if (match_word(&pos, "while")) target = "while";
     else target = get_id(&pos);
-    ast_t *skip = NewAST(ctx->file, start, pos, Skip, .target = target);
+    ast_t *skip = NewAST(ctx->file, start, pos, Skip, .target = target, .keyword = keyword);
     skip = parse_optional_conditional_suffix(ctx, skip);
     return skip;
 }
 
 ast_t *parse_stop(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    if (!match_word(&pos, "stop") && !match_word(&pos, "break")) return NULL;
+    const char *keyword = "stop";
+    if (match_word(&pos, "stop")) {
+        keyword = "stop";
+    } else if (match_word(&pos, "break")) {
+        keyword = "break";
+    } else {
+        return NULL;
+    }
     const char *target;
     if (match_word(&pos, "for")) target = "for";
     else if (match_word(&pos, "while")) target = "while";
     else target = get_id(&pos);
-    ast_t *stop = NewAST(ctx->file, start, pos, Stop, .target = target);
+    ast_t *stop = NewAST(ctx->file, start, pos, Stop, .target = target, .keyword = keyword);
     stop = parse_optional_conditional_suffix(ctx, stop);
     return stop;
 }

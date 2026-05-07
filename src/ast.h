@@ -396,6 +396,7 @@ struct ast_s {
         } Repeat;
         struct {
             ast_t *condition, *body, *else_body;
+            bool postfix;
         } If;
         struct {
             ast_t *subject;
@@ -407,6 +408,7 @@ struct ast_s {
             ast_e op;
         } Reduction;
         struct {
+            const char *keyword;
             const char *target;
         } Skip, Stop;
         struct {

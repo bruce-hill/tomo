@@ -3,7 +3,9 @@
 
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <time.h>
 
+#include "config.h"
 #include "environment.h"
 #include "naming.h"
 #include "parse/files.h"
@@ -61,6 +63,17 @@ env_t *global_env(bool source_mapping) {
     env->globals = new (Table_t);
     env->locals = env->globals;
     env->imports = new (Table_t);
+
+    env->build_info = new (Table_t);
+    Table$str_set(env->build_info, "Tomo compiler version", TOMO_VERSION);
+    Table$str_set(env->build_info, "Tomo compiler git", GIT_VERSION);
+
+    time_t now = time(NULL);
+    struct tm *tm = localtime(&now);
+    char *timestamp = GC_MALLOC_ATOMIC(32);
+    strftime(timestamp, 32, "%Y-%m-%d %H:%M:%S %Z", tm);
+    Table$str_set(env->build_info, "Binary compiled at", timestamp);
+
     env->do_source_mapping = source_mapping;
 
     TEXT_TYPE = bind_type(env, "Text", Type(TextType, .lang = "Text", .env = namespace_env(env, "Text")));

@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List 3 2026-03-11 "Tomo man-pages"
+.TH List 3 2026-04-26 "Tomo man-pages"
 .SH NAME
 List \- a Tomo type
 .SH LIBRARY
@@ -11,7 +11,7 @@ Tomo Standard Library
 .SH METHODS
 
 .TP
-.BI List.binary_search\ :\ func(list:\ [T],\ by:\ func(x,y:&T->Int32)\ =\ T.compare\ ->\ Int)
+.BI List.binary_search\ :\ func(list:\ [T],\ predicate:\ func(x:&T->Bool)\ ->\ Int)
 Performs a binary search on a sorted list. 
 
 For more, see:

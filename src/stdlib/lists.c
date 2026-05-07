@@ -727,17 +727,18 @@ void List$heapify(List_t *heap, Closure_t comparison, int64_t padded_item_size) 
 }
 
 public
-Int_t List$binary_search(List_t list, void *target, Closure_t comparison) {
-    typedef int32_t (*cmp_fn_t)(void *, void *, void *);
-    int64_t lo = 0, hi = (int64_t)list.length - 1;
-    while (lo <= hi) {
-        int64_t mid = (lo + hi) / 2;
-        int32_t cmp = ((cmp_fn_t)comparison.fn)(list.data + list.stride * mid, target, comparison.userdata);
-        if (cmp == 0) return I(mid + 1);
-        else if (cmp < 0) lo = mid + 1;
-        else if (cmp > 0) hi = mid - 1;
+OptionalInt_t List$binary_search(List_t list, Closure_t pred) {
+    typedef bool (*pred_fn_t)(void *, void *);
+    int64_t lo = 0, hi = (int64_t)list.length;
+    while (lo < hi) {
+        int64_t mid = lo + (hi - lo) / 2;
+        bool match = ((pred_fn_t)pred.fn)(list.data + list.stride * mid, pred.userdata);
+        if (match) hi = mid;
+        else lo = mid + 1;
     }
-    return I(lo + 1); // Return the index where the target would be inserted
+    if (lo < (int64_t)list.length && ((pred_fn_t)pred.fn)(list.data + list.stride * lo, pred.userdata))
+        return I(lo + 1);
+    return NONE_INT;
 }
 
 public

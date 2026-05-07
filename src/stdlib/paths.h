@@ -56,6 +56,7 @@ OptionalPath_t Path$parent(Path_t path);
 Text_t Path$base_name(Path_t path);
 Text_t Path$extension(Path_t path, bool full);
 bool Path$has_extension(Path_t path, Text_t extension);
+List_t Path$components(Path_t path);
 Path_t Path$child(Path_t path, Text_t name);
 Path_t Path$sibling(Path_t path, Text_t name);
 Path_t Path$with_extension(Path_t path, Text_t extension, bool replace);

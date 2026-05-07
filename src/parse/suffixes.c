@@ -84,11 +84,11 @@ ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
     const char *pos = stmt->end;
     if (match_word(&pos, "if")) {
         ast_t *condition = expect(ctx, pos - 2, &pos, parse_expr, "I expected a condition for this 'if'");
-        return NewAST(ctx->file, start, pos, If, .condition = condition, .body = stmt);
+        return NewAST(ctx->file, start, pos, If, .condition = condition, .body = stmt, .postfix = true);
     } else if (match_word(&pos, "unless")) {
         ast_t *condition = expect(ctx, pos - 2, &pos, parse_expr, "I expected a condition for this 'unless'");
         condition = WrapAST(condition, Not, condition);
-        return NewAST(ctx->file, start, pos, If, .condition = condition, .body = stmt);
+        return NewAST(ctx->file, start, pos, If, .condition = condition, .body = stmt, .postfix = true);
     } else {
         return stmt;
     }

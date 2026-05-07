@@ -178,12 +178,7 @@ void List$heap_pop(List_t *heap, Closure_t comparison, int64_t padded_item_size)
         })                                                                                                             \
                             : none_expr;                                                                               \
     })
-Int_t List$binary_search(List_t list, void *target, Closure_t comparison);
-#define List$binary_search_value(list, target, comparison)                                                             \
-    ({                                                                                                                 \
-        __typeof(target) _target = target;                                                                             \
-        List$binary_search(list, &_target, comparison);                                                                \
-    })
+OptionalInt_t List$binary_search(List_t list, Closure_t comparison);
 void List$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *type);
 void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *type);
 

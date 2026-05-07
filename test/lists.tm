@@ -124,9 +124,9 @@ func main()
 	do
 		>> nums := @[-7, -4, -1, 2, 5]
 		>> nums.sort()
-		assert [nums.binary_search(i) for i in nums[]] == [1, 2, 3, 4, 5]
+		assert [nums.binary_search(func(x:&Int) x[] >= i) for i in nums[]] == [1, 2, 3, 4, 5]
 		>> nums.sort(func(a,b:&Int) a.abs() <> b.abs())
-		assert [nums.binary_search(i, func(a,b:&Int) a.abs() <> b.abs()) for i in nums[]] == [1, 2, 3, 4, 5]
+		assert [nums.binary_search(func(x:&Int) x[].abs() >= i.abs()) for i in nums[]] == [1, 2, 3, 4, 5]
 
 	assert ["a", "b", "c"].find("b") == 2
 	assert ["a", "b", "c"].find("XXX") == none

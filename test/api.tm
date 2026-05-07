@@ -130,9 +130,12 @@ func main()
         assert [x for x in 2.to(5, step=2)] == [2, 4]
 
     do # Test List.binary_search
-        assert [1, 3, 5, 7, 9].binary_search(5) == 3
-        assert [1, 3, 5, 7, 9].binary_search(-999) == 1
-        assert [1, 3, 5, 7, 9].binary_search(999) == 6
+        # Find an item:
+        assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 30) == 3
+        # No such item:
+        assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 25) == none
+        # Find an insertion point (where an item would go to preserve sort order):
+        assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] >= 25) == 3
 
     do # Test List.by
         assert [1, 2, 3, 4, 5, 6].by(2) == [1, 3, 5]
@@ -487,6 +490,10 @@ func main()
 
     if no # Test Path.children
         assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
+
+    if no # Test Path.components
+        assert (./foo/baz.txt).components() == [".", "foo", "baz.txt"]
+        assert (/absolute/path/).components() == ["/", "absolute", "path"]
 
     if no # Test Path.copy_to
         (./file.txt).move(/tmp/renamed.txt)!

@@ -193,7 +193,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
             Text_t suffix = get_id_suffix(Path$as_c_string(path));
             return with_source_info(env, ast, Texts("$initialize", suffix, "();\n"));
         } else if (use->what == USE_PACKAGE) {
-            OptionalPath_t installed = find_installed_package(ast);
+            OptionalPath_t installed = find_installed_package(env->build_info, ast);
             assert(installed);
             List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
             Text_t initialization = EMPTY_TEXT;

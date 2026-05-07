@@ -221,7 +221,7 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
         return load_module_env(env, ast);
     }
     case USE_PACKAGE: {
-        OptionalPath_t installed = find_installed_package(use_ast);
+        OptionalPath_t installed = find_installed_package(env->build_info, use_ast);
         assert(installed);
         Text_t name = get_package_name(installed);
         env_t *module_env = fresh_scope(env);
@@ -949,7 +949,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         switch (self_value_t->tag) {
         case ListType: {
             type_t *item_type = Match(self_value_t, ListType)->item_type;
-            if (streq(call->name, "binary_search")) return INT_TYPE;
+            if (streq(call->name, "binary_search")) return Type(OptionalType, INT_TYPE);
             else if (streq(call->name, "by")) return self_value_t;
             else if (streq(call->name, "clear")) return Type(VoidType);
             else if (streq(call->name, "counts")) return Type(TableType, .key_type = item_type, .value_type = INT_TYPE);

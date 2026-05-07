@@ -44,14 +44,26 @@ OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
 Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
     OptionalText_t inline_args = format_inline_args(args, comments);
     if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return inline_args;
+
     Text_t code = EMPTY_TEXT;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
-        if (arg->name && arg->next && arg->type == arg->next->type && arg->value == arg->next->value) {
-            code = Texts(code, Text$from_str(arg->name), ",");
-        } else {
-            code = Texts(code, "\n", indent, single_indent, format_arg(arg, comments, Texts(indent, single_indent)));
-            if (args->next) code = Texts(code, ",");
+        code = Texts(code, "\n", indent, single_indent);
+        while (arg->name && arg->type && arg->next && arg->type == arg->next->type && arg->value == arg->next->value) {
+            code = Texts(code, Text$from_str(arg->name), ", ");
+            arg = arg->next;
         }
+        code = Texts(code, format_arg(arg, comments, Texts(indent, single_indent)), ",");
     }
     return code;
+}
+
+Text_t format_fncall(arg_ast_t *args, Table_t comments, Text_t indent) {
+    OptionalText_t inline_args = format_inline_args(args, comments);
+    if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return Texts("(", inline_args, ")");
+
+    if (args && args->next == NULL) {
+        return Texts("(", format_arg(args, comments, indent), ")");
+    }
+
+    return Texts("(", format_args(args, comments, indent), "\n", indent, ")");
 }

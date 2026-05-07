@@ -755,7 +755,7 @@ assert [x for x in 2.to(5, step=2)] == [2, 4]
 ## List.binary_search
 
 ```tomo
-List.binary_search : func(list: [T], by: func(x,y:&T->Int32) = T.compare -> Int)
+List.binary_search : func(list: [T], predicate: func(x:&T->Bool) -> Int)
 ```
 
 Performs a binary search on a sorted list.
@@ -763,16 +763,19 @@ Performs a binary search on a sorted list.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `[T]` | The sorted list to search.  | -
-by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
+predicate | `func(x:&T->Bool)` | The predicate to look for in the list.  | -
 
-**Return:** Assuming the input list is sorted according to the given comparison function, return the index where the given item would be inserted to maintain the sorted order. That is, if the item is found, return its index, otherwise return the place where it would be found if it were inserted and the list were sorted.
+**Return:** Find the first item in the list where the predicate function is true and return its index (or `none` if no such item exists). This assumes that the predicate function is monotonic over the list's contents. In other words, the predicate is false for the first zero or more items in the list and then true for the remainder of the list.
 
 
 **Example:**
 ```tomo
-assert [1, 3, 5, 7, 9].binary_search(5) == 3
-assert [1, 3, 5, 7, 9].binary_search(-999) == 1
-assert [1, 3, 5, 7, 9].binary_search(999) == 6
+# Find an item:
+assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 30) == 3
+# No such item:
+assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 25) == none
+# Find an insertion point (where an item would go to preserve sort order):
+assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] >= 25) == 3
 
 ```
 ## List.by
@@ -2794,6 +2797,27 @@ include_hidden | `` | Whether to include hidden files (those starting with a `.`
 **Example:**
 ```tomo
 assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
+
+```
+## Path.components
+
+```tomo
+Path.components : func(path: Path -> [Text])
+```
+
+Returns a list of the file components of a path.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path of the file or directory.  | -
+
+**Return:** Each of the file components of the path in a list. Note: for absolute paths, the first component will be "/". Trailing slashes are ignored.
+
+
+**Example:**
+```tomo
+assert (./foo/baz.txt).components() == [".", "foo", "baz.txt"]
+assert (/absolute/path/).components() == ["/", "absolute", "path"]
 
 ```
 ## Path.copy_to

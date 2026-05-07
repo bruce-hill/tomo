@@ -820,6 +820,26 @@ bool Path$has_extension(Path_t path, Text_t extension) {
 }
 
 public
+List_t Path$components(Path_t path) {
+    char buf[PATH_MAX + 1] = {};
+    size_t len = MIN(strlen(path), PATH_MAX);
+    memcpy(buf, path, len);
+    buf[len] = '\0';
+    List_t components = EMPTY_LIST;
+    if (path[0] == '/') {
+        Text_t root = Text("/");
+        List$insert(&components, &root, I(0), sizeof(root));
+    }
+    for (char *comp = buf, *next = buf; (comp = strsep(&next, "/"));) {
+        if (comp[0] != '\0') {
+            Text_t comp_text = Text$from_str(comp);
+            List$insert(&components, &comp_text, I(0), sizeof(comp_text));
+        }
+    }
+    return components;
+}
+
+public
 Path_t Path$child(Path_t path, Text_t name) {
     static char buf[PATH_MAX];
     snprintf(buf, sizeof(buf), "%s/%s", path, Text$as_c_string(name));
