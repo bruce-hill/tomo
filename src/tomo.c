@@ -281,8 +281,8 @@ int main(int argc, char *argv[]) {
 
     ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections");
 #ifdef __APPLE__
-    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
-    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip -Wl,--undefined=build_info");
+    if (is_gcc) ldflags = Texts(ldflags, " -Wl,-w,--gc-sections -Wl,-U,build_info");
+    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");
 #else
     ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
 #endif
@@ -1025,7 +1025,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         // the packages that are used.
         " ", is_gcc ? Texts("-Wl,--start-group ", list_text(archives), " -Wl,--end-group") : list_text(archives),
         // Tomo static library:
-        " -Wl,--no-whole-archive", " ", TOMO_PATH, "/lib/libtomo@", TOMO_VERSION, ".a",
+#ifndef __APPLE__
+        " -Wl,--no-whole-archive",
+#endif
+        " ", TOMO_PATH, "/lib/libtomo@", TOMO_VERSION, ".a",
         // Output file:
         " -o ", exe_path);
 
