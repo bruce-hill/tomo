@@ -282,8 +282,8 @@ int main(int argc, char *argv[]) {
 
     ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections");
 #ifdef __APPLE__
-    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
-    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip -Wl,--undefined=build_info");
+    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-U,build_info");
+    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip -Wl,-U,build_info");
 #else
     ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
 #endif
@@ -578,7 +578,11 @@ void build_package(Path_t pkg_dir) {
         // Store metadata about the package's build information:
         Path_t build_info_obj = build_file("./__build_info", ".o");
         {
+#ifdef __APPLE__
+            FILE *prog = run_cmd(cc, " ", cflags, " -Wl,-U,package_build_info -x c -c - -o ", build_info_obj);
+#else
             FILE *prog = run_cmd(cc, " ", cflags, " -Wl,--undefined=package_build_info -x c -c - -o ", build_info_obj);
+#endif
             if (!prog) print_err("Failed to run C compiler: ", cc);
             Text_t build_info =
                 Texts("const char package_build_info[] __attribute__((used, visibility(\"default\"))) = ",
