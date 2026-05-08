@@ -411,9 +411,11 @@ static Text_t concat2_assuming_safe(Text_t a, Text_t b) {
             .tag = TEXT_ASCII,
             .length = a.length + b.length,
         };
-        ret.ascii = GC_MALLOC_ATOMIC(sizeof(char[ret.length]));
-        memcpy((char *)ret.ascii, a.ascii, sizeof(char[a.length]));
-        memcpy((char *)&ret.ascii[a.length], b.ascii, sizeof(char[b.length]));
+        char *ascii = GC_MALLOC_ATOMIC(sizeof(char[ret.length + 1]));
+        memcpy(ascii, a.ascii, sizeof(char[a.length]));
+        memcpy(&ascii[a.length], b.ascii, sizeof(char[b.length]));
+        ascii[ret.length] = '\0';
+        ret.ascii = ascii;
         return ret;
     } else if (a.tag == TEXT_GRAPHEMES && b.tag == TEXT_GRAPHEMES
                && (size_t)(a.length + b.length) <= SHORT_GRAPHEMES_LENGTH) {
@@ -688,9 +690,11 @@ Text_t Text$reversed(Text_t text) {
             .tag = TEXT_ASCII,
             .length = text.length,
         };
-        ret.ascii = GC_MALLOC_ATOMIC(sizeof(char[ret.length]));
+        char *ascii = GC_MALLOC_ATOMIC(sizeof(char[ret.length + 1]));
         for (int64_t i = 0; i < (int64_t)text.length; i++)
-            ((char *)ret.ascii)[text.length - 1 - i] = text.ascii[i];
+            ascii[text.length - 1 - i] = text.ascii[i];
+        ascii[text.length] = '\0';
+        ret.ascii = ascii;
         return ret;
     }
     case TEXT_GRAPHEMES: {
@@ -775,8 +779,9 @@ OptionalText_t Text$from_strn(const char *str, size_t len) {
     }
 
     if (ascii_span == (int64_t)len) { // All ASCII
-        char *copy = GC_MALLOC_ATOMIC(len);
+        char *copy = GC_MALLOC_ATOMIC(len + 1);
         memcpy(copy, str, len);
+        copy[len] = '\0';
         return (Text_t){
             .tag = TEXT_ASCII,
             .length = ascii_span,
@@ -910,6 +915,7 @@ static void u8_buf_append(Text_t text, Byte_t **buf, int64_t *capacity, int64_t 
 
 public
 const char *Text$as_c_string(Text_t text) {
+    if (text.length == 0) return "";
     if (text.tag == TEXT_ASCII && text.ascii[text.length] == '\0') return text.ascii;
     int64_t capacity = text.length + 1;
     char *buf = GC_MALLOC_ATOMIC((size_t)capacity);
@@ -1902,7 +1908,7 @@ void Text$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *i
     if (len < 0) fail("Cannot deserialize text with a negative length!");
     char *buf = GC_MALLOC_ATOMIC((size_t)len + 1);
     if (fread(buf, sizeof(char), (size_t)len, in) != (size_t)len) fail("Not enough data in stream to deserialize");
-    buf[len + 1] = '\0';
+    buf[len] = '\0';
     *(Text_t *)out = Text$from_strn(buf, (size_t)len);
 }
 
