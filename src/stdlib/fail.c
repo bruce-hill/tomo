@@ -12,11 +12,16 @@
 #include "util.h"
 
 public
-_Noreturn void fail_text(Text_t message) { fail(message); }
+_Noreturn void fail_text(Text_t message) {
+    fail(message);
+}
 
 public
-Text_t builtin_last_err() { return Text$from_str(strerror(errno)); }
+Text_t builtin_last_err() {
+    return Text$from_str(strerror(errno));
+}
 
+public
 _Noreturn void fail_source(const char *filename, int start, int end, Text_t message) {
     tomo_cleanup();
     fflush(stdout);
