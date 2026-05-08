@@ -92,7 +92,7 @@ LDLIBS=-lm -lcrypto
 AR_FILE=libtomo@$(TOMO_VERSION).a
 ifeq ($(OS),Darwin)
 	INCLUDE_DIRS += -I/opt/homebrew/include
-	LDFLAGS += -L/opt/homebrew/lib
+	LDFLAGS += -L/opt/homebrew/lib -Wl,-w
 endif
 EXE_FILE=tomo@$(TOMO_VERSION)
 
