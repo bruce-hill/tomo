@@ -577,11 +577,7 @@ void build_package(Path_t pkg_dir) {
         // Store metadata about the package's build information:
         Path_t build_info_obj = build_file("./__build_info", ".o");
         {
-#ifdef __APPLE__
-            FILE *prog = run_cmd(cc, " ", cflags, " -Wl,-U,package_build_info -x c -c - -o ", build_info_obj);
-#else
-            FILE *prog = run_cmd(cc, " ", cflags, " -Wl,--undefined=package_build_info -x c -c - -o ", build_info_obj);
-#endif
+            FILE *prog = run_cmd(cc, " ", cflags, " -x c -c - -o ", build_info_obj);
             if (!prog) print_err("Failed to run C compiler: ", cc);
             Text_t build_info =
                 Texts("const char package_build_info[] __attribute__((used, visibility(\"default\"))) = ",
