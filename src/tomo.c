@@ -282,8 +282,8 @@ int main(int argc, char *argv[]) {
 
     ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections");
 #ifdef __APPLE__
-    if (is_gcc) ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-U,build_info");
-    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-dead_strip -Wl,-U,build_info");
+    if (is_gcc) ldflags = Texts(ldflags, " -Wl,-w,--gc-sections -Wl,-U,build_info");
+    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");
 #else
     ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
 #endif
