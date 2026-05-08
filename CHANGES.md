@@ -1,5 +1,13 @@
 # Changes
 
+## 2026-05-08
+
+- Various linker flag fixes.
+- Fixed some C string bugs.
+- Improved code autoformatter.
+- Removed usage of `strings` and `awk` in favor of inline code.
+- Improved build info.
+
 ## 2026-04-27
 
 - Add build metadata and version information, which can be retrieved with `tomo -b`.
