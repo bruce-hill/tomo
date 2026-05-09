@@ -422,22 +422,11 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             return;
         }
 
-        DeclareMatch(enum_t, subject_t, EnumType);
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
-            const char *clause_tag_name;
-            if (clause->pattern->tag == Var) clause_tag_name = Match(clause->pattern, Var)->name;
-            else if (clause->pattern->tag == FunctionCall && Match(clause->pattern, FunctionCall)->fn->tag == Var)
-                clause_tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
-            else code_err(clause->pattern, "This is not a valid pattern for a ", type_to_text(subject_t), " enum");
+            if (clause->pattern->tag != Var
+                && !(clause->pattern->tag == FunctionCall && Match(clause->pattern, FunctionCall)->fn->tag == Var))
+                code_err(clause->pattern, "This is not a valid pattern for a ", type_to_text(subject_t), " enum");
 
-            type_t *tag_type = NULL;
-            for (tag_t *tag = enum_t->tags; tag; tag = tag->next) {
-                if (streq(tag->name, clause_tag_name)) {
-                    tag_type = tag->type;
-                    break;
-                }
-            }
-            assert(tag_type);
             env_t *scope = when_clause_scope(env, subject_t, clause);
             add_closed_vars(closed_vars, enclosing_scope, scope, clause->body);
         }

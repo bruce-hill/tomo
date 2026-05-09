@@ -128,7 +128,7 @@ void tomo_configure(void) {
 }
 
 static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
-    (void)info, (void)userdata;
+    (void)sig, (void)info, (void)userdata;
     assert(sig == SIGILL);
     fflush(stdout);
     if (USE_COLOR) fputs("\x1b[31;7m ===== ILLEGAL INSTRUCTION ===== \n\n\x1b[m", stderr);
