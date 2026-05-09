@@ -296,7 +296,7 @@ static int64_t _default_random_int64(int64_t min, int64_t max, void *userdata) {
     if (min == max) return min;
     uint64_t range = (uint64_t)max - (uint64_t)min + 1;
     uint64_t min_r = -range % range;
-    uint64_t r;
+    uint64_t r = 0;
     for (;;) {
         assert(getrandom(&r, sizeof(r), 0) == sizeof(r));
         if (r >= min_r) break;

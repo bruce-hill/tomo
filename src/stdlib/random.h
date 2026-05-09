@@ -20,7 +20,7 @@ static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
 static int64_t random_range(int64_t low, int64_t high) {
     uint64_t range = (uint64_t)high - (uint64_t)low + 1;
     uint64_t min_r = -range % range;
-    uint64_t r;
+    uint64_t r = 0;
     do {
         assert(getrandom(&r, sizeof(r), 0) == sizeof(r));
     } while (r < min_r);
