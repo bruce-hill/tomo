@@ -285,7 +285,7 @@ int main(int argc, char *argv[]) {
     if (is_gcc) ldflags = Texts(ldflags, " -Wl,-w,--gc-sections -Wl,-U,build_info");
     else if (is_clang) ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");
 #else
-    ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,--undefined=build_info");
+    ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-u,build_info");
 #endif
 
 #ifdef __APPLE__
