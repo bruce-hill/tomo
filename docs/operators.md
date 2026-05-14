@@ -196,7 +196,7 @@ will be raised.
 
 #### Addition
 
-```
+```tomo
 func plus(T, T -> T)
 ```
 
@@ -205,7 +205,7 @@ method `a.plus(b)` will be invoked, which returns a new value of the same type.
 
 #### Subtraction
 
-```
+```tomo
 func minus(T, T -> T)
 ```
 
@@ -214,7 +214,7 @@ method `a.minus(b)` will be invoked, which returns a new value of the same type.
 
 #### Multiplication
 
-```
+```tomo
 func times(T, T -> T)
 func scaled_by(T, N -> T)
 ```
@@ -226,7 +226,7 @@ non-numeric and `b` is numeric, or `b.scaled_by(a)` if `b` is non-numeric and
 
 #### Division
 
-```
+```tomo
 func divided_by(T, N -> T)
 ```
 
@@ -235,7 +235,7 @@ if `a` has type `T` and `b` has a numeric type `N`.
 
 #### Exponentiation
 
-```
+```tomo
 func power(T, N -> T)
 ```
 
@@ -244,7 +244,7 @@ numeric type `N`, then the method `a.power(b)` will be invoked.
 
 #### Modulus
 
-```
+```tomo
 func mod(T, N -> T)
 func mod1(T, N -> T)
 ```
@@ -254,7 +254,7 @@ has a numeric type `N`, then the method `mod()` or `mod1()` will be invoked.
 
 #### Negative
 
-```
+```tomo
 func negative(T -> T)
 ```
 
@@ -263,7 +263,7 @@ and will return a value of the same type.
 
 #### Bit Operations
 
-```
+```tomo
 func left_shifted(T, Int -> T)
 func right_shifted(T, Int -> T)
 func unsigned_left_shifted(T, Int -> T)
@@ -284,7 +284,7 @@ method `bit_and()`, `bit_or()`, or `bit_xor()` will be invoked, assuming that
 
 #### Bitwise Negation
 
-```
+```tomo
 func negated(T -> T)
 ```
 

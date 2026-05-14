@@ -41,7 +41,7 @@ files in order:
 
 The format of a `packages.ini` file looks like this:
 
-```
+```ini
 [packagename]
 digest=sha256:2551b5ecc2617d884d856764a7f4f5ba394e97aaf1412110fe63f137b510f546
 source=https://example.com/tomo/package-v1.2.3.tar.gz
@@ -135,7 +135,7 @@ file), Tomo will use the code in that directory for the package without saving
 a digest or installing the package in `~/.local/lib/tomo@<tomo-version>`. This
 makes it possible to easily vendor a dependency (e.g. with git submodules).
 
-```
+```ini
 [mypackage]
 source = ./vendor/mypackage
 ```
@@ -153,7 +153,7 @@ Tomo's package design is deliberately version-agnostic. If you want to use a
 versioning system for distributing a package (a very reasonable goal), then
 the recommended practice is to use the source URL to convey versioning:
 
-```
+```ini
 [mylib]
 source = https://example.com/mypackage/mypackage-v1.2.3.tar.gz
 source-2 = https://mirror.example.com/mypackage/mypackage-v1.2.3.tar.gz

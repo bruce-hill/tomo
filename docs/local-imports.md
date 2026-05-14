@@ -14,7 +14,7 @@ this:
 
 To see how local imports work, let's look at a simple file:
 
-```
+```tomo
 // File: foo.tm
 my_variable := "hello"
 ```
@@ -55,7 +55,7 @@ The C file is compiled by invoking the C compiler with something like: `cc
 
 Now, what happens if we want to _use_ the compiled object file?
 
-```
+```tomo
 // File: baz.tm
 foo := use ./foo.tm
 
@@ -139,5 +139,3 @@ executable binary called `foo` like this: `cc <flags...> /tmp/program.c
 foo.tm.o baz.tm.o -o baz`
 
 Finally, the resulting binary can be executed to actually run the program!
-
-

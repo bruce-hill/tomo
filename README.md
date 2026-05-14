@@ -9,7 +9,7 @@ the language design decisions of the future.
 Please visit [tomo.bruce-hill.com](https://tomo.bruce-hill.com) for full
 documentation.
 
-```
+```tomo
 func greeting(name:Text, add_exclamation:Bool -> Text)
     message := "hello $name"
     message = " ".join([w.title() for w in message.split_any(" ")])

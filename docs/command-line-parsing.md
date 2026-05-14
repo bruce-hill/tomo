@@ -96,7 +96,7 @@ exceed the representable range for those values are considered usage errors.
 For structs, values can be passed using positional arguments for each struct
 field.
 
-```
+```tomo
 # foo.tm
 struct Pair(x,y:Int)
 
@@ -116,7 +116,7 @@ individual struct fields by named flag.
 For enums, values can be passed using the enum's tag name and each of its
 fields positionally (the same as for structs). Parsing is case-sensitive:
 
-```
+```tomo
 # foo.tm
 enum Foo(Nothing, AnInteger(i:Int), TwoThings(i:Int, text:Text))
 func main(foo:Foo)

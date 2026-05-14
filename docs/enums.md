@@ -134,7 +134,7 @@ because the file doesn't exist or if you don't have permission to delete it.
 For this common pattern, Tomo includes a `Result` enum type in the standard
 library:
 
-```
+```tomo
 enum Result(Success, Failure(reason:Text))
 ```
 

@@ -17,7 +17,7 @@ However, it's overly onerous to have to define a separate type for each
 situation where you might want to not have a value. Instead, Tomo has
 built-in support for optional types:
 
-```
+```tomo
 func maybe_takes_int(x:Int?)
     if x
         say("Got an int: $x")

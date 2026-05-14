@@ -28,7 +28,7 @@ In this example, we're representing HTML as a language and we want to avoid
 situations where a malicious user might set their username to something like
 `<script>alert('pwned')</script>`.
 
-```
+```tomo
 username := Text.read_line("Choose a username: ")
 assert username == "<script>alert('pwned')</script>"
 page := $HTML"

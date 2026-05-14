@@ -90,7 +90,7 @@ Text has a flexible syntax designed to make it easy to hold values from
 different languages without the need to have lots of escape sequences and
 without using printf-style string formatting.
 
-```
+```tomo
 // Basic text:
 str := "Hello world"
 str2 := 'Also text'
@@ -102,7 +102,7 @@ str3 := `Backticks too`
 Long text can be split across multiple lines by having two or more dots at the
 start of a new line on the same indentation level that started the text:
 
-```
+```tomo
 str := "This is a long
 ....... line that is split in code"
 ```
@@ -113,7 +113,7 @@ Multi-line text has indented (i.e. at least one tab more than the start of the
 text) text inside quotation marks. The leading and trailing newline are
 ignored:
 
-```
+```tomo
 multi_line := "
     This text has multiple lines.
     Line two.
@@ -140,7 +140,7 @@ multi_line := "
 Inside double quoted text, you can use a dollar sign (`$`) to insert an
 expression that you want converted to text. This is called text interpolation:
 
-```
+```tomo
 // Interpolation:
 my_var := 5
 str := "My var is $my_var!"
@@ -153,7 +153,7 @@ str := "Sum: $(1 + 2)"
 
 Single-quoted text does not have interpolations:
 
-```
+```tomo
 // No interpolation here:
 str := 'Sum: $(1 + 2)'
 ```
@@ -164,7 +164,7 @@ Like other languages, backslash is a special character inside of text for
 escape sequences like `\n`. However, in general it is best practice to use
 multi-line text if you need to add a newline.
 
-```
+```tomo
 str := "
     This has
     multiple lines and "quotes" too!
@@ -192,7 +192,7 @@ matching `)]}>` is found, not terminating unless the delimiters are balanced
 
 Here are some examples:
 
-```
+```tomo
 $"Equivalent to normal text with dollar interps: $(1 + 2)"
 $@"The same, but the AT symbol interpolates: @(1 + 2)"
 $$"No interpolation here, $ is just a literal character"
@@ -206,7 +206,7 @@ When text is delimited by matching pairs (`()`, `[]`, `{}`, or `<>`), they
 can only be closed by a matched closing character at the same indentation
 level, ignoring nested pairs:
 
-```
+```tomo
 $$(Inside parens, you can have (nested ()) parens no problem)
 $$"But only (), [], {}, and <> are matching pairs, you can't have nested quotes"
 $$(
@@ -221,7 +221,7 @@ $$(Multi-line text with nested (parens) and
 As a special case, when you use the same character for interpolation and text
 delimiting, no interpolations are allowed:
 
-```
+```tomo
 plain := $""This text has {no interpolations}!"
 ```
 

@@ -67,7 +67,7 @@ However, optional pointers can be used by adding a question mark to the type:
 a question mark to a pointer value so the type checker knows it's supposed to
 be optional:
 
-```
+```tomo
 optional := @[10, 20]?
 ```
 
@@ -76,7 +76,7 @@ without explicitly checking for null. To do so, use a conditional check like
 this, and everywhere inside the truthy block will allow you to use the pointer
 as a non-null pointer:
 
-```
+```tomo
 if optional
     ok := optional[]
 else
