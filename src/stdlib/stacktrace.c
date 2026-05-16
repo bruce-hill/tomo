@@ -42,9 +42,9 @@ static void fprint_context(FILE *out, const char *filename, int lineno, int cont
                 w += 1;
 
             if (USE_COLOR) {
-                fprint(out, cur_line == lineno ? "\033[31;1m>\033[m " : "  ", "\033[2m",
+                fprint(out, cur_line == lineno ? "\033[91;1m>\033[m " : "  ", "\033[2m",
                        repeated_char(' ', num_width - w), cur_line, "\033(0\x78\033(B",
-                       cur_line == lineno ? "\033[0;31;1m" : "\033[0m", line, "\033[m");
+                       cur_line == lineno ? "\033[0;91;1m" : "\033[0m", line, "\033[m");
             } else {
                 fprint(out, cur_line == lineno ? "> " : "  ", repeated_char(' ', num_width - w), cur_line, "| ", line);
             }
@@ -78,10 +78,11 @@ static void _print_stack_frame(FILE *out, const char *cwd, const char *install_d
     if (filename) {
         if (strncmp(filename, cwd, strlen(cwd)) == 0) filename += strlen(cwd);
 
-        fprint_inline(out, USE_COLOR ? "\033[1mIn \033[33m" : "In ", function_display, USE_COLOR ? "()\033[37m" : "()");
+        fprint_inline(out, USE_COLOR ? "\033[97;1mIn \033[93m" : "In ", function_display,
+                      USE_COLOR ? "()\033[97m" : "()");
         if (install_dir[0] && strncmp(filename, install_dir, strlen(install_dir)) == 0)
-            fprint_inline(out, USE_COLOR ? " in package \033[35m" : " in package ", filename, ":", lineno);
-        else fprint(out, USE_COLOR ? " in \033[35m" : " in ", filename, ":", lineno);
+            fprint_inline(out, USE_COLOR ? " in package \033[95m" : " in package ", filename, ":", lineno);
+        else fprint(out, USE_COLOR ? " in \033[95m" : " in ", filename, ":", lineno);
         fprint(out, USE_COLOR ? "\033[m" : "");
         fprint_context(out, filename, lineno, 3, 1);
     } else {

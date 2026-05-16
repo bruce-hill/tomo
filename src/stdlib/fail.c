@@ -25,16 +25,16 @@ public
 _Noreturn void fail_source(const char *filename, int start, int end, Text_t message) {
     tomo_cleanup();
     fflush(stdout);
-    if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \n\n\x1b[0;1m", stderr);
-    else fputs("==================== ERROR ====================\n\n", stderr);
+    if (USE_COLOR) fputs("\x1b[91;7;1m Runtime Error \n\n\x1b[0;1m", stderr);
+    else fputs("Runtime Error\n\n", stderr);
     print_stacktrace(stderr, 1);
     fputs("\n", stderr);
-    if (USE_COLOR) fputs("\x1b[31;1m", stderr);
+    if (USE_COLOR) fputs("\x1b[91;1m", stderr);
     Text$print(stderr, message);
     file_t *_file = (filename) ? load_file(filename) : NULL;
     if ((filename) && _file) {
         fputs("\n", stderr);
-        highlight_error(_file, _file->text + (start), _file->text + (end), "\x1b[31;1m", 1, USE_COLOR);
+        highlight_error(_file, _file->text + (start), _file->text + (end), "\x1b[91;1m", 1, USE_COLOR);
     }
     if (USE_COLOR) fputs("\x1b[m", stderr);
     fflush(stderr);

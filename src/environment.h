@@ -67,15 +67,22 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
 #define compiler_err(f, start, end, ...)                                                                               \
     ({                                                                                                                 \
         file_t *_f = f;                                                                                                \
-        if (USE_COLOR) fputs("\x1b[31;7;1m ", stderr);                                                                 \
+        if (USE_COLOR) fputs("\x1b[95;7;1m Compiler Error \x1b[m\n\x1b[97;1m", stderr);                                \
+        else fputs("Compiler Error:\n", stderr);                                                                       \
         if (_f && start && end)                                                                                        \
-            fprint_inline(stderr, _f->relative_filename, ":", get_line_number(_f, start), ".",                         \
-                          get_line_column(_f, start), ": ");                                                           \
-        fprint_inline(stderr, __VA_ARGS__);                                                                            \
-        if (USE_COLOR) fputs(" \x1b[m", stderr);                                                                       \
-        fputs("\n\n", stderr);                                                                                         \
-        if (_f && start && end) highlight_error(_f, start, end, "\x1b[31;1m", 2, USE_COLOR);                           \
-        if (getenv("TOMO_STACKTRACE")) print_stacktrace(stderr, 1);                                                    \
+            fprint_inline(stderr, "\nIn ", (USE_COLOR ? "\033[95m" : ""), _f->relative_filename, ":",                  \
+                          get_line_number(_f, start), "\n\n");                                                         \
+        if (_f && start && end) {                                                                                      \
+            highlight_error(_f, start, end, "\x1b[91;1m", 2, USE_COLOR);                                               \
+            fputs("\n", stderr);                                                                                       \
+        }                                                                                                              \
+        if (getenv("TOMO_STACKTRACE")) {                                                                               \
+            print_stacktrace(stderr, 1);                                                                               \
+            fputs("\n\n", stderr);                                                                                     \
+        }                                                                                                              \
+        if (USE_COLOR) fputs("\x1b[95;1m", stderr);                                                                    \
+        fprint(stderr, __VA_ARGS__);                                                                                   \
+        if (USE_COLOR) fputs("\x1b[m", stderr);                                                                        \
         raise(SIGABRT);                                                                                                \
         exit(1);                                                                                                       \
     })

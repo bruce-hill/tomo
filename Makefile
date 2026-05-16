@@ -163,11 +163,11 @@ version:
 
 check-c-compiler:
 	@$(DEFAULT_C_COMPILER) -v 2>/dev/null >/dev/null \
-		|| { printf '\033[31;1m%s\033[m\n' "You have set your DEFAULT_C_COMPILER to $(DEFAULT_C_COMPILER) in your config.mk, but I can't run it!"; exit 1; }
+		|| { printf '\033[91;1m%s\033[m\n' "You have set your DEFAULT_C_COMPILER to $(DEFAULT_C_COMPILER) in your config.mk, but I can't run it!"; exit 1; }
 
 # check-libs: check-c-compiler | deps
 # 	@echo 'int main() { return 0; }' | $(DEFAULT_C_COMPILER) $(LDFLAGS) -x c - $(LDLIBS) -o /dev/null 2>/dev/null >/dev/null \
-# 		|| { printf '\033[31;1m%s\033[m\n' "I expected to find the following libraries on your system, but I can't find them: $(LDLIBS)"; exit 1; }
+# 		|| { printf '\033[91;1m%s\033[m\n' "I expected to find the following libraries on your system, but I can't find them: $(LDLIBS)"; exit 1; }
 
 tags:
 	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h} src/formatter/*.{c,h}
@@ -190,14 +190,14 @@ src/stdlib/num32.o src/stdlib/num64.o: src/stdlib/numX.c.h
 
 test/results/%.tm.testresult: test/%.tm build
 	@mkdir -p test/results
-	@printf '\033[33;1;4m%s\033[m\n' $<
+	@printf '\033[93;1;4m%s\033[m\n' $<
 	@if ! COLOR=1 LC_ALL=C ./local-tomo -O 1 $< 2>&1 | tee $@; then \
 		rm -f $@; \
 		false; \
 	fi
 
 test: $(TESTS)
-	@printf '\033[32;7m ALL TESTS PASSED! \033[m\n'
+	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
 
 clean:
 	rm -rf build/tomo*/{bin,lib} $(COMPILER_OBJS) $(STDLIB_OBJS) test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
@@ -238,9 +238,9 @@ build/gc/lib/libgc.a build/unistring/lib/libgc.a build/gmp/lib/libgmp.a:
 install-files: build check-c-compiler
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		echo $$PATH; \
-		printf "\033[31;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
-		printf "\033[31;1mSpecify a different prefix with 'make PREFIX=... install'\033[m\n" >&2; \
-		printf "\033[31;1mor add the following line to your .profile:\033[m\n" >&2; \
+		printf "\033[91;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
+		printf "\033[91;1mSpecify a different prefix with 'make PREFIX=... install'\033[m\n" >&2; \
+		printf "\033[91;1mor add the following line to your .profile:\033[m\n" >&2; \
 		printf "\n\033[1mexport PATH=\"$(PREFIX):\$$PATH\"\033[m\n\n" >&2; \
 		exit 1; \
 	fi

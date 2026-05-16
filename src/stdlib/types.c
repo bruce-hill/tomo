@@ -11,7 +11,7 @@ public
 Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo_t *type) {
     if (!typeinfo) return Text("Type");
 
-    if (colorize) return Text$concat(Text("\x1b[36;1m"), Text$from_str(type->TypeInfoInfo.type_str), Text("\x1b[m"));
+    if (colorize) return Text$concat(Text("\x1b[96;1m"), Text$from_str(type->TypeInfoInfo.type_str), Text("\x1b[m"));
     else return Text$from_str(type->TypeInfoInfo.type_str);
 }
 

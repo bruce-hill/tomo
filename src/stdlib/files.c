@@ -223,7 +223,7 @@ int highlight_error(file_t *file, const char *start, const char *end, const char
         lineno_suffix = "\x1b(0\x78\x1b(B\x1b[m ";
         normal_color = "\x1b[m";
         empty_marker = "\x1b(0\x61\x1b(B";
-        printed += fprint(stderr, "\x1b[33;4;1m", file->relative_filename, "\x1b[m");
+        printed += fprint(stderr, "\x1b[93;4;1m", file->relative_filename, "\x1b[m");
     } else {
         lineno_prefix = "";
         lineno_suffix = "| ";

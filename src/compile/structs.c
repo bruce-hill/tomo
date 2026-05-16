@@ -130,8 +130,8 @@ Text_t compile_struct_literal(env_t *env, ast_t *ast, type_t *t, arg_ast_t *args
     } else if (!constructor_opts.underscores
                && is_valid_call(env, struct_->fields, args, (call_opts_t){.promotion = true, .underscores = true})) {
         code_err(ast, "This constructor is passing private fields (those starting with underscores) as positional "
-                      "arguments, which is not allowed. \n"
-                      " If you need to pass these fields, use a keyword argument.");
+                      "arguments, which is not allowed.\n"
+                      "If you need to pass these fields, use a keyword argument.");
     }
     code_err(ast, "I could not find a constructor matching these arguments for the struct ", type_to_text(t));
 }

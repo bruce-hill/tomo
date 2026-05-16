@@ -5,9 +5,9 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/optionals.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
 #include "../types.h"
+#include "../util.h"
 #include "compilation.h"
 
 static Text_t get_flag_options(type_t *t, Text_t separator) {
@@ -101,14 +101,14 @@ static Text_t generate_help(env_t *env, type_t *fn_type) {
         OptionalText_t flag = flagify(arg->name, true);
         assert(flag.tag != TEXT_NONE);
         OptionalText_t alias_flag = flagify(arg->alias, true);
-        Text_t flags = Texts("\x1b[33;1m", flag, "\x1b[m");
-        if (alias_flag.tag != TEXT_NONE) flags = Texts("\x1b[33;1m", alias_flag, "\x1b[0;2m,\x1b[m ", flags);
+        Text_t flags = Texts("\x1b[93;1m", flag, "\x1b[m");
+        if (alias_flag.tag != TEXT_NONE) flags = Texts("\x1b[93;1m", alias_flag, "\x1b[0;2m,\x1b[m ", flags);
         if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
-            flags = Texts(flags, "|\x1b[33;1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
+            flags = Texts(flags, "|\x1b[93;1m--no-", Text$without_prefix(flag, Text("--")), "\x1b[m");
         if (t->tag == BoolType || (t->tag == OptionalType && Match(t, OptionalType)->type->tag == BoolType))
             help_text = Texts(help_text, "  ", flags);
         else
-            help_text = Texts(help_text, "  ", flags, " \x1b[1;34m", get_flag_options(t, Text("\x1b[m | \x1b[1;34m")),
+            help_text = Texts(help_text, "  ", flags, " \x1b[1;94m", get_flag_options(t, Text("\x1b[m | \x1b[1;94m")),
                               "\x1b[m");
 
         if (arg->comment.length > 0) help_text = Texts(help_text, " \x1b[3m", arg->comment, "\x1b[m");

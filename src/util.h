@@ -15,10 +15,10 @@
     ({                                                                                                                 \
         tomo_cleanup();                                                                                                \
         fflush(stdout);                                                                                                \
-        if (USE_COLOR) fputs("\x1b[31;7m ==================== ERROR ==================== \033[m\n\n", stderr);         \
-        else fputs("==================== ERROR ====================\n\n", stderr);                                     \
+        if (USE_COLOR) fputs("\x1b[91;7;1m Runtime Error \033[m\n\n", stderr);                                         \
+        else fputs("Runtime Error\n\n", stderr);                                                                       \
         print_stacktrace(stderr, 1);                                                                                   \
-        if (USE_COLOR) fputs("\n\x1b[31;1m", stderr);                                                                  \
+        if (USE_COLOR) fputs("\n\x1b[91;1m", stderr);                                                                  \
         else fputs("\n", stderr);                                                                                      \
         fprint_inline(stderr, "Error: ", __VA_ARGS__);                                                                 \
         if (USE_COLOR) fputs("\x1b[m\n", stderr);                                                                      \

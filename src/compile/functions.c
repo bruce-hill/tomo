@@ -165,11 +165,12 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
                     args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
                 REVERSE_LIST(args);
                 code_err(ast,
-                         "This function's signature doesn't match this call site. \n"
-                         " The function takes these args: (",
+                         "This function's signature doesn't match this call site.\n"
+                         "\n"
+                         "The function takes these args: (",
                          arg_types_to_text(Match(fn_t, FunctionType)->args, ", "),
-                         ") \n"
-                         " But it's being called with:    (",
+                         ")\n"
+                         "But it's being called with:    (",
                          arg_types_to_text(args, ", "), ")");
             }
         }
@@ -794,7 +795,7 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
                      "This function looks like it can reach the end without "
                      "returning a ",
                      type_to_text(ret_t),
-                     " value! \n "
+                     " value!\n"
                      "If this is not the case, please add a call to "
                      "`fail(\"Unreachable\")` at the end of the function to "
                      "help the "

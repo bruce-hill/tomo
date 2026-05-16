@@ -45,13 +45,13 @@
 #define run_cmd(...)                                                                                                   \
     ({                                                                                                                 \
         const char *_cmd = String(__VA_ARGS__);                                                                        \
-        if (verbose) print("\033[34;1m", _cmd, "\033[m");                                                              \
+        if (verbose) print("\033[94;1m", _cmd, "\033[m");                                                              \
         popen(_cmd, "w");                                                                                              \
     })
 #define command_output(...)                                                                                            \
     ({                                                                                                                 \
         const char *_cmd = String(__VA_ARGS__);                                                                        \
-        if (verbose) print("\033[34;1m", _cmd, "\033[m");                                                              \
+        if (verbose) print("\033[94;1m", _cmd, "\033[m");                                                              \
         FILE *_prog = popen(_cmd, "r");                                                                                \
         char *_output = GC_MALLOC_ATOMIC(1024);                                                                        \
         fgets(_output, 1023, _prog);                                                                                   \
@@ -205,7 +205,7 @@ int main(int argc, char *argv[]) {
         print_err("This is not an installed tomo program: ", argv[2]);
     }
 
-    Text_t usage = Texts("\x1b[33;4;1mUsage:\x1b[m\n"
+    Text_t usage = Texts("\x1b[93;4;1mUsage:\x1b[m\n"
                          "\x1b[1mRun a program:\x1b[m         tomo file.tm [-- args...]\n"
                          "\x1b[1mTranspile files:\x1b[m       tomo -t file.tm\n"
                          "\x1b[1mCompile object file:\x1b[m   tomo -c file.tm\n"
@@ -619,7 +619,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
 
         Path_t filename = *(Path_t *)(to_compile.data + i * to_compile.stride);
         if (!Path$has_extension(filename, Text("tm")))
-            print_err("Not a valid .tm file: \x1b[31;1m", filename, "\x1b[m");
+            print_err("Not a valid .tm file: \x1b[91;1m", filename, "\x1b[m");
         if (!Path$is_file(filename, true)) print_err("Couldn't find file: ", filename);
         build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link);
     }

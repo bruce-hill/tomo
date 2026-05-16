@@ -148,9 +148,8 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
     } else if (ast->tag == None) {
         if (t->tag != OptionalType) code_err(ast, "This is not supposed to be an optional type");
         else if (Match(t, OptionalType)->type == NULL)
-            code_err(ast, "I don't know what kind of `none` this is supposed to "
-                          "be!\nPlease "
-                          "tell me by declaring a variable like `foo : Type = none`");
+            code_err(ast, "I don't know what kind of `none` this is supposed to be!\n"
+                          "Please tell me by declaring a variable like `foo : Type = none`");
         return compile_none(t);
     } else if (t->tag == PointerType && (ast->tag == HeapAllocate || ast->tag == StackReference)) {
         return compile_typed_allocation(env, ast, t);

@@ -1039,7 +1039,7 @@ Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type) {
     if (!obj) return Text("Path");
     Path_t *path = (Path_t *)obj;
     Text_t text = Text$from_str(*path);
-    if (color) text = Text$concat(Text("\033[32;1m"), text, Text("\033[m"));
+    if (color) text = Text$concat(Text("\033[92;1m"), text, Text("\033[m"));
     return text;
 }
 

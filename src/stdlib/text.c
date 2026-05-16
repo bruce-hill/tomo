@@ -1512,7 +1512,7 @@ Text_t Text$escaped(Text_t text, bool colorize, Text_t extra_escapes) {
 #define add_escaped(str)                                                                                               \
     ({                                                                                                                 \
         flush_unquoted();                                                                                              \
-        if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));                                            \
+        if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[94;1m"));                                            \
         ret = concat2_assuming_safe(ret, Text("\\" str));                                                              \
         if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[0;35m"));                                            \
     })
@@ -1543,7 +1543,7 @@ Text_t Text$escaped(Text_t text, bool colorize, Text_t extra_escapes) {
         case '\x1C' ... '\x1F':
         case '\x7F' ... '\x7F': {
             flush_unquoted();
-            if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));
+            if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[94;1m"));
             ret = concat2_assuming_safe(ret, Text("\\x"));
             char tmp[3] = {
                 (g / 16) > 9 ? 'a' + (g / 16) - 10 : '0' + (g / 16),
@@ -1560,7 +1560,7 @@ Text_t Text$escaped(Text_t text, bool colorize, Text_t extra_escapes) {
                 int32_t esc = Text$get_grapheme_fast(&esc_state, j);
                 if (g == esc) {
                     flush_unquoted();
-                    if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[34;1m"));
+                    if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[94;1m"));
                     ret = concat2_assuming_safe(ret, Text("\\"));
                     if (colorize) ret = concat2_assuming_safe(ret, Text("\x1b[0;35m"));
                     break;

@@ -19,13 +19,13 @@ Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
     __typeof(type->PointerInfo) ptr_info = type->PointerInfo;
     if (!x) {
         Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
-        if (colorize) return Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), typename, Text("\x1b[m"));
+        if (colorize) return Text$concat(Text("\x1b[94;1m"), Text$from_str(ptr_info.sigil), typename, Text("\x1b[m"));
         else return Text$concat(Text$from_str(ptr_info.sigil), typename);
     }
     const void *ptr = *(const void **)x;
     if (!ptr) {
         Text_t typename = generic_as_text(NULL, false, ptr_info.pointed);
-        if (colorize) return Text$concat(Text("\x1b[34;1m!"), typename, Text("\x1b[m"));
+        if (colorize) return Text$concat(Text("\x1b[94;1m!"), typename, Text("\x1b[m"));
         else return Text$concat(Text("!"), typename);
     }
 
@@ -39,13 +39,13 @@ Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
         root = ptr;
     } else if (ptr == root) {
         Text_t text = Text$concat(Text$from_str(ptr_info.sigil), Text("~1"));
-        return colorize ? Text$concat(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
+        return colorize ? Text$concat(Text("\x1b[94;1m"), text, Text("\x1b[m")) : text;
     } else {
         TypeInfo_t rec_table = *Table$info(type, &Int64$info);
         int64_t *id = Table$get(pending, x, &rec_table);
         if (id) {
             Text_t text = Text$concat(Text$from_str(ptr_info.sigil), Text("~"), Int64$value_as_text(*id));
-            return colorize ? Text$concat(Text("\x1b[34;1m"), text, Text("\x1b[m")) : text;
+            return colorize ? Text$concat(Text("\x1b[94;1m"), text, Text("\x1b[m")) : text;
         }
         int64_t next_id = (int64_t)pending.entries.length + 2;
         Table$set(&pending, x, &next_id, &rec_table);
@@ -59,7 +59,7 @@ Text_t Pointer$as_text(const void *x, bool colorize, const TypeInfo_t *type) {
     }
 
     Text_t text;
-    if (colorize) text = Text$concat(Text("\x1b[34;1m"), Text$from_str(ptr_info.sigil), Text("\x1b[m"), pointed);
+    if (colorize) text = Text$concat(Text("\x1b[94;1m"), Text$from_str(ptr_info.sigil), Text("\x1b[m"), pointed);
     else text = Text$concat(Text$from_str(ptr_info.sigil), pointed);
     return text;
 }

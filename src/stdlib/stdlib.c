@@ -131,7 +131,7 @@ static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
     (void)sig, (void)info, (void)userdata;
     assert(sig == SIGILL);
     fflush(stdout);
-    if (USE_COLOR) fputs("\x1b[31;7m ===== ILLEGAL INSTRUCTION ===== \n\n\x1b[m", stderr);
+    if (USE_COLOR) fputs("\x1b[91;7m ===== ILLEGAL INSTRUCTION ===== \n\n\x1b[m", stderr);
     else fputs("===== ILLEGAL INSTRUCTION =====\n\n", stderr);
     print_stacktrace(stderr, 3);
     fflush(stderr);
@@ -174,7 +174,7 @@ void start_inspect(const char *filename, int64_t start, int64_t end) {
 
         int64_t line_num = get_line_number(file, file->text + start);
         if (USE_COLOR) {
-            print(repeated_char(' ', 3 * _inspect_depth), "\x1b[33;1m>> \x1b[m",
+            print(repeated_char(' ', 3 * _inspect_depth), "\x1b[93;1m>> \x1b[m",
                   string_slice(file->text + start, first_line_len), "   ",
                   repeated_char(' ', MAX(0, 35 - (int64_t)first_line_len - 3 * _inspect_depth)), "\x1b[32;2m[",
                   file_base, ":", line_num, "]\x1b[m");
@@ -209,7 +209,7 @@ void end_inspect(const void *expr, const TypeInfo_t *type) {
         Text_t type_name = generic_as_text(NULL, false, type);
         for (int i = 0; i < 3 * _inspect_depth; i++)
             fputc(' ', stdout);
-        fprint(stdout, USE_COLOR ? "\x1b[33;1m=\x1b[0m " : "= ", expr_text, USE_COLOR ? " \x1b[2m: \x1b[36m" : " : ",
+        fprint(stdout, USE_COLOR ? "\x1b[93;1m=\x1b[0m " : "= ", expr_text, USE_COLOR ? " \x1b[33;2m: \x1b[36m" : " : ",
                type_name, USE_COLOR ? "\033[m" : "");
     }
 }

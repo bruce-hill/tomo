@@ -1,7 +1,7 @@
 #!/bin/sh
 
 error() {
-    printf "\033[31;1m%s\033[m\n" "$@"
+    printf "\033[91;1m%s\033[m\n" "$@"
     exit 1
 }
 

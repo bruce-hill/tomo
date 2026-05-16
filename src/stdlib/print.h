@@ -166,6 +166,6 @@ FILE *gc_memory_stream(char **buf, size_t *size);
     })
 #define print_err(...)                                                                                                 \
     ({                                                                                                                 \
-        fprint(stderr, "\033[31;1m", __VA_ARGS__, "\033[m");                                                           \
+        fprint(stderr, "\033[91;1m", __VA_ARGS__, "\033[m");                                                           \
         exit(EXIT_FAILURE);                                                                                            \
     })
