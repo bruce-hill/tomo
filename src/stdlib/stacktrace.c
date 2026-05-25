@@ -78,12 +78,12 @@ static void _print_stack_frame(FILE *out, const char *cwd, const char *install_d
     if (filename) {
         if (strncmp(filename, cwd, strlen(cwd)) == 0) filename += strlen(cwd);
 
-        fprint_inline(out, USE_COLOR ? "\033[97;1mIn \033[93m" : "In ", function_display,
-                      USE_COLOR ? "()\033[97m" : "()");
-        if (install_dir[0] && strncmp(filename, install_dir, strlen(install_dir)) == 0)
+        fprint(out, USE_COLOR ? "\033[97;1mIn \033[93m" : "In ", function_display, USE_COLOR ? "()\033[97m" : "()");
+        if (install_dir[0] && strncmp(filename, install_dir, strlen(install_dir)) == 0) {
             fprint_inline(out, USE_COLOR ? " in package \033[95m" : " in package ", filename, ":", lineno);
-        else fprint(out, USE_COLOR ? " in \033[95m" : " in ", filename, ":", lineno);
-        fprint(out, USE_COLOR ? "\033[m" : "");
+        } else {
+            fprint(out, USE_COLOR ? "\033[93;4m" : "", filename, USE_COLOR ? "\033[m" : "");
+        }
         fprint_context(out, filename, lineno, 3, 1);
     } else {
         fprint(out, "LINE: ", function);

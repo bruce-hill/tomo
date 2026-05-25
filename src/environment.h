@@ -67,21 +67,18 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
 #define compiler_err(f, start, end, ...)                                                                               \
     ({                                                                                                                 \
         file_t *_f = f;                                                                                                \
-        if (USE_COLOR) fputs("\x1b[95;7;1m Compiler Error \x1b[m\n\x1b[97;1m", stderr);                                \
-        else fputs("Compiler Error:\n", stderr);                                                                       \
-        if (_f && start && end)                                                                                        \
-            fprint_inline(stderr, "\nIn ", (USE_COLOR ? "\033[95m" : ""), _f->relative_filename, ":",                  \
-                          get_line_number(_f, start), "\n\n");                                                         \
+        if (USE_COLOR) fputs("\x1b[95;7;1m Compiler Error \x1b[m\n\n", stderr);                                        \
+        else fputs("Compiler Error:\n\n", stderr);                                                                     \
         if (_f && start && end) {                                                                                      \
-            highlight_error(_f, start, end, "\x1b[91;1m", 2, USE_COLOR);                                               \
+            highlight_error(_f, start, end, "\x1b[91;7;1m", 2, USE_COLOR);                                             \
             fputs("\n", stderr);                                                                                       \
         }                                                                                                              \
         if (getenv("TOMO_STACKTRACE")) {                                                                               \
             print_stacktrace(stderr, 1);                                                                               \
             fputs("\n\n", stderr);                                                                                     \
         }                                                                                                              \
-        if (USE_COLOR) fputs("\x1b[95;1m", stderr);                                                                    \
-        fprint(stderr, __VA_ARGS__);                                                                                   \
+        if (USE_COLOR) fputs("\x1b[91;1m", stderr);                                                                    \
+        fprint(stderr, __VA_ARGS__, "\n");                                                                             \
         if (USE_COLOR) fputs("\x1b[m", stderr);                                                                        \
         raise(SIGABRT);                                                                                                \
         exit(1);                                                                                                       \

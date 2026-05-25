@@ -17,14 +17,14 @@
 //
 #define parser_err(ctx, start, end, ...)                                                                               \
     ({                                                                                                                 \
-        if (USE_COLOR) fputs("\x1b[91;1;7m", stderr);                                                                  \
-        fprint_inline(stderr, (ctx)->file->relative_filename, ":", get_line_number((ctx)->file, (start)), ".",         \
-                      get_line_column((ctx)->file, (start)), ": ", __VA_ARGS__);                                       \
-        if (USE_COLOR) fputs(" \x1b[m", stderr);                                                                       \
-        fputs("\n\n", stderr);                                                                                         \
+        if (USE_COLOR) fputs("\x1b[96;1;7m Parser Error \x1b[m\n\n", stderr);                                          \
+        else fputs("Parser Error\n\n", stderr);                                                                        \
         highlight_error((ctx)->file, (start), (end), "\x1b[91;1;7m", 2, USE_COLOR);                                    \
         fputs("\n", stderr);                                                                                           \
         if (getenv("TOMO_STACKTRACE")) print_stacktrace(stderr, 1);                                                    \
+        if (USE_COLOR) fputs("\x1b[91;1m", stderr);                                                                    \
+        fprint(stderr, __VA_ARGS__, "\n");                                                                             \
+        if (USE_COLOR) fputs("\x1b[m", stderr);                                                                        \
         if ((ctx)->on_err) longjmp(*((ctx)->on_err), 1);                                                               \
         raise(SIGABRT);                                                                                                \
         exit(1);                                                                                                       \
