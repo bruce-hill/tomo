@@ -188,7 +188,7 @@ Text_t compile_file(env_t *env, ast_t *ast) {
                 if (path[0] != '/') {
                     // If we have `use ./foo.c`, then we need to remap it in source code to
                     // `#include "../foo.c"`, since it will be inside the .build directory.
-                    path = Path$relative_to(Path$from_str(use->path), Path(ast->file->filename));
+                    path = Path$relative_to(Path$from_str(use->path), Path$parent(Path(ast->file->filename)));
                     path = Path$concat("..", path);
                 }
                 includes = Texts(includes, "#include \"", Path$as_c_string(path), "\"\n");
