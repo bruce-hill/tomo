@@ -173,15 +173,13 @@ Path_t Path$resolved(Path_t path, Path_t relative_to) {
 
 public
 Path_t Path$relative_to(Path_t path, Path_t relative_to) {
-    if (path_type(path) == PATH_RELATIVE) return path;
-
-    path = Path$expand_home(path);
-
     switch (path_type(relative_to)) {
     case PATH_HOME: relative_to = Path$expand_home(relative_to); break;
     case PATH_RELATIVE: relative_to = Path$resolved(relative_to, Path$current_dir()); break;
     default: break;
     }
+
+    path = Path$resolved(path, Path$current_dir());
 
     int64_t shared = 0;
     for (int64_t i = 0;; i++) {
