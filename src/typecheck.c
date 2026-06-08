@@ -241,6 +241,13 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
                 } *entry = subenv->locals->entries.data + j * subenv->locals->entries.stride;
                 Table$str_set(module_env->locals, entry->name, entry->binding);
             }
+            for (int64_t j = 0; j < (int64_t)subenv->types->entries.length; j++) {
+                struct {
+                    const char *name;
+                    type_t *type;
+                } *entry = subenv->types->entries.data + j * subenv->types->entries.stride;
+                Table$str_set(module_env->types, entry->name, entry->type);
+            }
         }
         return module_env;
     }
