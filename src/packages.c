@@ -298,7 +298,7 @@ OptionalPath_t find_installed_package(Table_t *build_info, ast_t *use) {
     const char *name = Match(use, Use)->path;
 
     {
-        Path_t file_package = Path$with_extension(Path$from_str(use->file->filename), Text(".packages.ini"), false);
+        Path_t file_package = Path$from_str(String(use->file->filename, ":packages.ini"));
         OptionalPath_t installed = get_package_install_location(build_info, file_package, name);
         if (installed != NULL) return installed;
     }

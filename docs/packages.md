@@ -32,8 +32,8 @@ When you put `use foo` in a Tomo source file, Tomo needs to know where to
 find `foo`. In order to find it, Tomo will search through the following `.ini`
 files in order:
 
-1. `filename.tm.packages.ini`: A per-file package config, so `foo.tm` would
-   have `foo.tm.packages.ini`. This should only rarely be used.
+1. `filename.tm:packages.ini`: A per-file package config, so `foo.tm` would
+   have `foo.tm:packages.ini`. This should only rarely be used.
 2. `packages.ini`: A package config that is shared for every file in a
    directory.
 3. A system-wide `packages.ini` distributed with the Tomo compiler (default
