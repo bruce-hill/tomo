@@ -597,6 +597,7 @@ env_t *fresh_scope(env_t *env) {
     env_t *scope = new (env_t);
     *scope = *env;
     scope->locals = new (Table_t, .fallback = env->locals);
+    scope->types = new (Table_t, .fallback = env->types);
     return scope;
 }
 

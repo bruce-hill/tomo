@@ -511,37 +511,38 @@ void bind_statement(env_t *env, ast_t *statement) {
     case Use: {
         env_t *module_env = load_module(env, statement);
         if (!module_env) break;
-        for (Table_t *bindings = module_env->locals; bindings != module_env->globals; bindings = bindings->fallback) {
-            List_t entries = bindings->entries;
-            for (int64_t i = 0; i < (int64_t)entries.length; i++) {
-                struct {
-                    const char *name;
-                    binding_t *binding;
-                } *entry = entries.data + entries.stride * i;
-                if (entry->name[0] == '_' || streq(entry->name, "main")) continue;
-                binding_t *b = Table$str_get(*env->locals, entry->name);
-                if (!b) Table$str_set(env->locals, entry->name, entry->binding);
-                else if (b != entry->binding)
-                    code_err(statement, "This module imports a symbol called '", entry->name,
-                             "', which would clobber another variable");
-            }
-        }
-        for (int64_t i = 0; i < (int64_t)module_env->types->entries.length; i++) {
-            struct {
-                const char *name;
-                type_t *type;
-            } *entry = module_env->types->entries.data + module_env->types->entries.stride * i;
-            if (entry->name[0] == '_') continue;
-            if (Table$str_get(*env->types, entry->name)) continue;
-
-            Table$str_set(env->types, entry->name, entry->type);
-        }
-
         ast_t *var = Match(statement, Use)->var;
         if (var) {
             type_t *type = get_type(env, statement);
             assert(type);
             set_binding(env, Match(var, Var)->name, type, EMPTY_TEXT);
+        } else {
+            for (Table_t *bindings = module_env->locals; bindings != module_env->globals;
+                 bindings = bindings->fallback) {
+                List_t entries = bindings->entries;
+                for (int64_t i = 0; i < (int64_t)entries.length; i++) {
+                    struct {
+                        const char *name;
+                        binding_t *binding;
+                    } *entry = entries.data + entries.stride * i;
+                    if (entry->name[0] == '_' || streq(entry->name, "main")) continue;
+                    binding_t *b = Table$str_get(*env->locals, entry->name);
+                    if (!b) Table$str_set(env->locals, entry->name, entry->binding);
+                    else if (b != entry->binding)
+                        code_err(statement, "This module imports a symbol called '", entry->name,
+                                 "', which would clobber another variable");
+                }
+            }
+            for (int64_t i = 0; i < (int64_t)module_env->types->entries.length; i++) {
+                struct {
+                    const char *name;
+                    type_t *type;
+                } *entry = module_env->types->entries.data + module_env->types->entries.stride * i;
+                if (entry->name[0] == '_') continue;
+                if (Table$str_get(*env->types, entry->name)) continue;
+
+                Table$str_set(env->types, entry->name, entry->type);
+            }
         }
         break;
     }
