@@ -5,7 +5,6 @@
 #include "../ast.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
-#include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
@@ -96,11 +95,11 @@ Text_t compile_text_ast(env_t *env, ast_t *ast) {
         else return Texts("Text$from_str(", compile_text_literal(literal), ")");
     }
 
-    const char *lang = Match(ast, TextJoin)->lang;
+    type_ast_t *lang = Match(ast, TextJoin)->lang;
     Text_t colorize = Match(ast, TextJoin)->colorize ? Text("yes") : Text("no");
 
-    type_t *text_t = lang ? Table$str_get(*env->types, lang) : TEXT_TYPE;
-    if (!text_t || text_t->tag != TextType) code_err(ast, quoted(lang), " is not a valid text language name");
+    type_t *text_t = lang ? parse_type_ast(env, lang) : TEXT_TYPE;
+    if (!text_t || text_t->tag != TextType) code_err(ast, "This is not a valid text type");
 
     ast_list_t *chunks = Match(ast, TextJoin)->children;
     if (!chunks) {

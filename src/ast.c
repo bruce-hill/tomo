@@ -182,7 +182,7 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Int, "(Int ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
         T(Num, "(Num ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
         T(TextLiteral, Text$quoted(data.text, false, Text("\"")));
-        T(TextJoin, "(Text", data.lang ? Texts(" :lang ", quoted_text(data.lang)) : EMPTY_TEXT,
+        T(TextJoin, "(Text", data.lang ? Texts(" :lang ", type_ast_to_sexp(data.lang)) : EMPTY_TEXT,
           ast_list_to_sexp(data.children), ")");
         T(Path, "(Path ", quoted_text(data.path), ")");
         T(Declare, "(Declare ", ast_to_sexp(data.var), " ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value),

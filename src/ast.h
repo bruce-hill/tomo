@@ -309,7 +309,7 @@ struct ast_s {
             Text_t text;
         } TextLiteral;
         struct {
-            const char *lang;
+            type_ast_t *lang;
             ast_list_t *children;
             bool colorize : 1;
         } TextJoin;

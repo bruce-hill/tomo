@@ -13,7 +13,6 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
 #include "../stdlib/optionals.h"
-#include "../stdlib/stdlib.h"
 #include "../stdlib/text.h"
 #include "args.h"
 #include "enums.h"
@@ -308,8 +307,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case TextJoin: {
         text_opts_t opts = choose_text_options(Match(ast, TextJoin)->children);
         Text_t ret = must(format_inline_text(opts, Match(ast, TextJoin)->children, comments));
-        const char *lang = Match(ast, TextJoin)->lang;
-        return lang ? Texts("$", Text$from_str(lang), ret) : ret;
+        type_ast_t *lang = Match(ast, TextJoin)->lang;
+        return lang ? Texts("$", format_type(lang), ret) : ret;
     }
     /*inline*/ case InlineCCode: {
         DeclareMatch(c_code, ast, InlineCCode);
@@ -755,8 +754,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             opts.unquote = Text("\"");
         }
         Text_t ret = format_text(opts, Match(ast, TextJoin)->children, comments, indent);
-        const char *lang = Match(ast, TextJoin)->lang;
-        return lang ? Texts("$", Text$from_str(lang), ret) : ret;
+        type_ast_t *lang = Match(ast, TextJoin)->lang;
+        return lang ? Texts("$", format_type(lang), ret) : ret;
     }
     /*multiline*/ case InlineCCode: {
         DeclareMatch(c_code, ast, InlineCCode);

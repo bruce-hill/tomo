@@ -129,11 +129,10 @@ ast_t *parse_text(parse_ctx_t *ctx, const char *pos, bool allow_interps) {
     // ('"' ... '"' / "'" ... "'" / "`" ... "`")
     // "$" [name] quote-char ... close-quote
     const char *start = pos;
-    const char *lang = NULL;
+    type_ast_t *lang = NULL;
 
     if (match(&pos, "$")) {
-        lang = get_id(&pos);
-        if (lang == NULL) parser_err(ctx, start, pos, "I expected a language name after the `$`");
+        lang = expect(ctx, start, &pos, parse_type, "I couldn't parse the type for this text");
     }
 
     if (!(*pos == '"' || *pos == '\'' || *pos == '`')) return NULL;

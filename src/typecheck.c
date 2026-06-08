@@ -759,12 +759,13 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case TextLiteral: return TEXT_TYPE;
     case Path: return PATH_TYPE;
     case TextJoin: {
-        const char *lang = Match(ast, TextJoin)->lang;
+        type_ast_t *lang = Match(ast, TextJoin)->lang;
         if (lang) {
-            binding_t *b = get_binding(env, lang);
-            if (!b || b->type->tag != TypeInfoType || Match(b->type, TypeInfoType)->type->tag != TextType)
-                code_err(ast, "There is no text language called '", lang, "'");
-            return Match(b->type, TypeInfoType)->type;
+            type_t *t = parse_type_ast(env, lang);
+            if (!t || t->tag != TextType) {
+                code_err(ast, "This is not a text type");
+            }
+            return t;
         } else {
             return TEXT_TYPE;
         }
