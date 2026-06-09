@@ -41,6 +41,8 @@ bool range_has_comment(const char *start, const char *end, Table_t comments) {
 CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     if (second == NULL) return 0;
 
+    if (first->tag == DebugLog && second->tag == DebugLog) return 0;
+
     for (;;) {
         if (first->tag == Declare && Match(first, Declare)->value) {
             first = Match(first, Declare)->value;
