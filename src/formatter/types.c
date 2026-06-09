@@ -41,7 +41,11 @@ Text_t format_type(type_ast_t *type) {
     }
     case EnumTypeAST: {
         DeclareMatch(e, type, EnumTypeAST);
-        return Texts("enum ", e->name, "(", format_inline_tags(e->tags, EMPTY_TABLE));
+        if (Text$starts_with(e->name, Text("enum$"), NULL)) {
+            return Texts("enum(", format_inline_tags(e->tags, EMPTY_TABLE), ")");
+        } else {
+            return Texts("enum ", e->name, "(", format_inline_tags(e->tags, EMPTY_TABLE), ")");
+        }
     }
     case UnknownTypeAST:
     default: fail("Invalid Type AST");
