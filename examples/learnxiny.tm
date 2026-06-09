@@ -20,7 +20,6 @@ func main()
 
     # Strings can use interpolation with the dollar sign $:
     say("My variable is $my_variable, my num is $my_num, and this is a sum: $(1 + 2)")
-
     say("
         Multiline strings begin with a " at the end of a line and continue in
         an indented region below.
@@ -169,6 +168,7 @@ func main()
     my_arr.insert(1000)
     assert my_arr[] == [20, 30, 999, 1000]
     assert snapshot == [20, 30, 999]
+
     # Internally, this is implemented using copy-on-write, so it's quite
     # efficient.
 
@@ -226,7 +226,7 @@ struct Person(name:Text, age:Int)
         self.age += amount
 
     # Methods don't have to take a Person as their first argument:
-    func get_cool_name(->Text)
+    func get_cool_name(-> Text)
         return "Blade"
 
 func demo_structs()
@@ -247,33 +247,28 @@ func demo_structs()
     # automatically when you create a struct:
     bob := Person("Bob", 30)
     assert alice == bob == no
-
     assert "$alice" == 'Person(name="Alice", age=30)' == yes
-
     table := {alice: "first", bob: "second"}
     assert table[alice]! == "first"
-
 
 # Now let's look at another feature: enums. Tomo enums are tagged unions, also
 # known as "sum types". You enumerate all the different types of values
 # something could have, and it's stored internally as a small integer that
 # indicates which type it is, and any data you want to associate with it.
-enum Shape(
-    Point,
-    Circle(radius:Num),
-    Rectangle(width:Num, height:Num),
-)
+enum Shape(Point, Circle(radius:Num), Rectangle(width:Num, height:Num))
     # Just like with structs, you define methods and constants inside a level
     # of indentation:
-    func get_area(self:Shape->Num)
+    func get_area(self:Shape -> Num)
         # In order to work with an enum, it's most often handy to use a 'when'
         # statement to get the internal values:
-        when self is Point
+        when self
+        is Point
             return 0
         is Circle(r)
-            return Num.PI * r^2
+            return Num.PI*r^2
         is Rectangle(w, h)
-            return w * h
+            return w*h
+
         # 'when' statements are checked for exhaustiveness, so the compiler
         # will give an error if you forgot any cases. You can also use 'else:'
         # if you want a fallback to handle other cases.
@@ -289,20 +284,21 @@ func demo_enums()
     # Similar to structs, enums automatically define comparisons, conversion
     # to text, and hashing:
     assert my_shape == other_shape == no
-
     assert "$my_shape" == "Circle(1)" == yes
-
     assert {my_shape: "nice"} == {Shape.Circle(1): "nice"}
 
 func demo_lambdas()
     # Lambdas, or anonymous functions, can be used like this:
     add_one := func(x:Int) x + 1
+
     assert add_one(5) == 6
 
     # Lambdas can capture closure values, but only as a snapshot from when the
     # lambda was created:
     n := 10
+
     add_n := func(x:Int) x + n
+
     assert add_n(5) == 15
 
     # The lambda's closure won't change when this variable is reassigned:
@@ -312,11 +308,12 @@ func demo_lambdas()
 # A lang lets you define a custom Text type that is unique:
 lang MyLanguage
     # You can define conversion functions to ensure safe escaping
-    convert(text:Text -> MyLanguage)
+    convert (text:Text -> MyLanguage)
         return MyLanguage.from_text(text.quoted())
 
 func demo_langs()
     name := "Norman"
+
     # Safely quoted during interpolation:
     lingo := $MyLanguage"My name is $name, how are you?"
-    say(lingo.text)
+    assert lingo.text == 'My name is "Norman", how are you?'
