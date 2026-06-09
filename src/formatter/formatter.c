@@ -413,9 +413,21 @@ PUREFUNC static int64_t trailing_line_len(Text_t text) {
     return len;
 }
 
+static visit_behavior_t _find_required_multiline(ast_t *ast, void *userdata) {
+    if (ast->tag == TextJoin && memchr(ast->start, '\n', (size_t)(ast->end - ast->start))) {
+        *(bool *)userdata = true;
+        return VISIT_STOP;
+    }
+    return VISIT_PROCEED;
+}
+
 Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     OptionalText_t inlined = format_inline_code(ast, comments);
     bool inlined_fits = (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH);
+    bool requires_multiline = false;
+
+    ast_visit(ast, _find_required_multiline, &requires_multiline);
+    if (requires_multiline) inlined_fits = false;
 
     switch (ast->tag) {
     /*multiline*/ case Unknown:
@@ -744,7 +756,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         else return Texts(termify(index->indexed, comments, indent), "[]");
     }
     /*multiline*/ case TextJoin: {
-        if (inlined_fits) return inlined;
+        if (inlined_fits && !memchr(ast->start, '\n', (size_t)(ast->end - ast->start))) return inlined;
 
         text_opts_t opts = choose_text_options(Match(ast, TextJoin)->children);
         if (Text$equal_values(opts.quote, Text("`"))) {
