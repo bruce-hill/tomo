@@ -623,7 +623,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case Defer:
-        return Texts("defer ", format_namespace(Match(ast, Defer)->body, comments, indent));
+        return Texts("defer", format_namespace(Match(ast, Defer)->body, comments, indent));
     /*multiline*/ case List: {
         if (inlined_fits) return inlined;
         ast_list_t *items = Match(ast, List)->items;
