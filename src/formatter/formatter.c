@@ -718,13 +718,13 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         ast_t *value = Match(ast, Return)->value;
         return value ? Texts("return ", fmt(value, comments, indent)) : Text("return");
     }
-    /*inline*/ case Not: {
+    /*multiline*/ case Not: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, Not)->value;
         if (is_binary_operation(val)) return Texts("not ", termify(val, comments, indent));
         else return Texts("not ", fmt(val, comments, indent));
     }
-    /*inline*/ case Negative: {
+    /*multiline*/ case Negative: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, Negative)->value;
         if (is_binary_operation(val)) return Texts("-", termify(val, comments, indent));

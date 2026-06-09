@@ -10,6 +10,7 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "formatter.h"
+#include "utils.h"
 
 const Text_t single_indent = Text("    ");
 
@@ -153,7 +154,12 @@ Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
     case If:
     case When:
     case StackReference: return parenthesize(format_code(ast, comments, indent), indent);
-    default: return format_inline_code(ast, comments);
+    default: {
+        Text_t inlined = format_inline_code(ast, comments);
+        return (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH)
+                   ? inlined
+                   : parenthesize(format_code(ast, comments, indent), indent);
+    }
     }
 }
 
