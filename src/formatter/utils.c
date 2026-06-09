@@ -137,6 +137,8 @@ OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
     case Not:
     case Negative:
     case HeapAllocate:
+    case If:
+    case When:
     case StackReference: return parenthesize(format_inline_code(ast, comments), EMPTY_TEXT);
     default: return format_inline_code(ast, comments);
     }
@@ -148,6 +150,8 @@ Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
     case Not:
     case Negative:
     case HeapAllocate:
+    case If:
+    case When:
     case StackReference: return parenthesize(format_code(ast, comments, indent), indent);
     default: return format_inline_code(ast, comments);
     }

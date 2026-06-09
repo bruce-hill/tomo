@@ -382,9 +382,11 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             return Texts(lhs, " ", Text$from_str(op), " ", rhs);
         }
 
-        if (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag])
+        if ((operands.lhs->tag == If || operands.lhs->tag == When)
+            || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
             lhs = parenthesize(lhs, EMPTY_TEXT);
-        if (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag])
+        if ((operands.rhs->tag == If || operands.rhs->tag == When)
+            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
             rhs = parenthesize(rhs, EMPTY_TEXT);
 
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
@@ -850,9 +852,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             return Texts(lhs, " ", Text$from_str(op), " ", rhs);
         }
 
-        if (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag])
+        if ((operands.lhs->tag == If || operands.lhs->tag == When)
+            || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
             lhs = parenthesize(lhs, indent);
-        if (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag])
+        if ((operands.lhs->tag == If || operands.lhs->tag == When)
+            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
             rhs = parenthesize(rhs, indent);
 
         Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
