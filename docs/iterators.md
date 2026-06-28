@@ -32,13 +32,13 @@ func primes_up_to(limit:Int)
     n := 2
     return func()
         if n > limit
-            return !Int
+            return none
 
         while not n.is_prime()
             n += 1
 
         n += 1
-        return (n - 1)?
+        return n - 1
 
 assert [p for p in primes_up_to(11)] == [2, 3, 5, 7, 11]
 ```
