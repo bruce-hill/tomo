@@ -10,7 +10,7 @@ func returns_imported_type(->ImportedType)
 func main()
 	>> empty : [vectors.Vec2]
 	assert empty == []
-	assert returns_vec() == Vec2(x=1, y=2)
+	assert returns_vec() == vectors.Vec2(x=1, y=2)
 
 	>> imported : [ImportedType]
 	assert imported == []
