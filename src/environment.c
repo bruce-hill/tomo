@@ -15,6 +15,7 @@
 #include "typecheck.h"
 #include "util.h"
 
+public
 type_t *TEXT_TYPE = NULL;
 public
 type_t *PATH_TYPE = NULL;
@@ -676,6 +677,21 @@ env_t *for_scope(env_t *env, ast_t *ast) {
             const char *var = Match(for_->vars->ast, Var)->name;
             type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
             set_binding(scope, var, non_opt_type, Texts("_$", var));
+        }
+        return scope;
+    }
+    case TextType: {
+        const char *vars[2] = {};
+        int64_t num_vars = 0;
+        for (ast_list_t *var = for_->vars; var; var = var->next) {
+            if (num_vars >= 2) code_err(var->ast, "This is too many variables for this loop");
+            vars[num_vars++] = Match(var->ast, Var)->name;
+        }
+        if (num_vars == 1) {
+            set_binding(scope, vars[0], TEXT_TYPE, Texts("_$", vars[0]));
+        } else if (num_vars == 2) {
+            set_binding(scope, vars[0], INT_TYPE, Texts("_$", vars[0]));
+            set_binding(scope, vars[1], TEXT_TYPE, Texts("_$", vars[1]));
         }
         return scope;
     }

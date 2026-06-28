@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <gc.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -31,6 +32,12 @@ typedef struct {
 
 static inline Text_t Text_from_str_literal(const char *str) {
     return (Text_t){.length = strlen(str), .tag = TEXT_ASCII, .ascii = str};
+}
+
+static inline Text_t Text$from_grapheme(int32_t g) {
+    int32_t *graphemes = GC_MALLOC_ATOMIC(sizeof(int32_t[1]));
+    graphemes[0] = g;
+    return (Text_t){.length = 1, .tag = TEXT_GRAPHEMES, .depth = 0, .graphemes = graphemes};
 }
 
 static inline Text_t Text_from_text(Text_t t) {

@@ -348,6 +348,49 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
 
         return code;
     }
+    case TextType: {
+        Text_t index = EMPTY_TEXT;
+        Text_t value = EMPTY_TEXT;
+        if (for_->vars) {
+            if (for_->vars->next) {
+                if (for_->vars->next->next)
+                    code_err(for_->vars->next->next->ast, "This is too many variables for this loop");
+
+                index = compile(body_scope, for_->vars->ast);
+                value = compile(body_scope, for_->vars->next->ast);
+            } else {
+                value = compile(body_scope, for_->vars->ast);
+            }
+        }
+
+        Text_t code =
+            Texts("{\n"
+                  "TextIter_t ",
+                  value, "$state = NEW_TEXT_ITER_STATE(", compile_to_pointer_depth(env, for_->iter, 0, false), ");\n");
+
+        Text_t loop = Texts("for (int64_t ", value, "$i = 0; ", value, "$i < (int64_t)", value,
+                            "$state.stack[0].text.length; ", value, "$i += 1) {\n");
+
+        if (index.length > 0) {
+            loop = Texts("Int_t ", index, " = I(", value, "$i);\n", loop);
+        }
+
+        if (value.length > 0) {
+            loop = Texts(loop, "int32_t g = Text$get_grapheme_fast(&", value, "$state, ", value,
+                         "$i);\n"
+                         "Text_t ",
+                         value, " = Text$from_grapheme(g);\n", naked_body, "}\n");
+        } else {
+            loop = Texts(loop, naked_body, "}\n");
+        }
+
+        if (for_->empty)
+            loop = Texts("if (", value, "$state.stack[0].text.length > 0) {\n", loop, "\n} else ",
+                         compile_statement(env, for_->empty));
+
+        code = Texts(code, loop, "}\n");
+        return code;
+    }
     default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_text(iter_t));
     }
 }

@@ -35,6 +35,7 @@ func main()
 
 	amelie := "Am\{UE9}lie"
 	assert amelie.split() == ["A", "m", "é", "l", "i", "e"]
+	assert [c for c in amelie] == ["A", "m", "é", "l", "i", "e"]
 	assert amelie.utf32() == [65, 109, 233, 108, 105, 101]
 	assert amelie.utf8() == [0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65]
 	assert Text.from_utf8([0x41, 0x6D, 0xC3, 0xA9, 0x6C, 0x69, 0x65])! == "Amélie"

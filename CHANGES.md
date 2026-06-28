@@ -1,5 +1,9 @@
 # Changes
 
+## 2026-06-28
+
+- Added support for iterating over grapheme clusters in text
+
 ## 2026-05-08
 
 - Various linker flag fixes.
