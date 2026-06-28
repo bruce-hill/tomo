@@ -80,7 +80,6 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
         if (USE_COLOR) fputs("\x1b[91;1m", stderr);                                                                    \
         fprint(stderr, __VA_ARGS__, "\n");                                                                             \
         if (USE_COLOR) fputs("\x1b[m", stderr);                                                                        \
-        raise(SIGABRT);                                                                                                \
         exit(1);                                                                                                       \
     })
 binding_t *get_binding(env_t *env, const char *name);

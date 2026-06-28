@@ -26,7 +26,6 @@
         fprint(stderr, __VA_ARGS__, "\n");                                                                             \
         if (USE_COLOR) fputs("\x1b[m", stderr);                                                                        \
         if ((ctx)->on_err) longjmp(*((ctx)->on_err), 1);                                                               \
-        raise(SIGABRT);                                                                                                \
         exit(1);                                                                                                       \
     })
 
