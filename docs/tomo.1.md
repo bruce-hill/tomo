@@ -74,9 +74,6 @@ C code, which is then compiled using a C compiler of your choice.
 `--quiet`, `-q`
 : Run in quiet mode.
 
-`--run`, `-r`
-: Run an installed tomo program from `~/.local/lib/tomo_vX.Y/`.
-
 `--source-mapping=`, `-m=` **<yes|no>**
 : Toggle whether source mapping should be enabled or disabled.
 

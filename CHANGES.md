@@ -3,6 +3,7 @@
 ## 2026-06-28
 
 - Added support for iterating over grapheme clusters in text
+- Deprecated `--run`/`-r` flag
 
 ## 2026-05-08
 

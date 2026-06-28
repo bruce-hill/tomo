@@ -196,15 +196,6 @@ int main(int argc, char *argv[]) {
     const char *CPATH = getenv("CPATH");
     setenv("CPATH", CPATH ? String(TOMO_PATH, "/include:", CPATH) : String(TOMO_PATH, "/include"), 1);
 
-    // Run a tool:
-    if ((streq(argv[1], "-r") || streq(argv[1], "--run")) && argc >= 3) {
-        if (strcspn(argv[2], "/;$") == strlen(argv[2])) {
-            const char *program = String("'", TOMO_PATH, "'/lib/tomo@", TOMO_VERSION, "/", argv[2], "/", argv[2]);
-            execv(program, &argv[2]);
-        }
-        print_err("This is not an installed tomo program: ", argv[2]);
-    }
-
     Text_t usage = Texts("\x1b[93;4;1mUsage:\x1b[m\n"
                          "\x1b[1mRun a program:\x1b[m         tomo file.tm [-- args...]\n"
                          "\x1b[1mTranspile files:\x1b[m       tomo -t file.tm\n"
@@ -229,12 +220,9 @@ int main(int argc, char *argv[]) {
                          "  --optimization|-O <level>: set optimization level\n"
                          "  --force-rebuild|-f: force rebuilding\n"
                          "  --source-mapping|-m <yes|no>: toggle source mapping in generated code\n"
-                         "  --changelog: show the Tomo changelog\n"
-                         "  --run|-r: run a program from ",
-                         TOMO_PATH, "/share/tomo@", TOMO_VERSION, "/installed\n");
+                         "  --changelog: show the Tomo changelog\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     cli_arg_t tomo_args[] = {
-        {"run", &run_files, List$info(&Path$info), .short_flag = 'r'}, //
         {"args", &args, List$info(&CString$info)}, //
         {"format", &format_files, List$info(&Path$info), .short_flag = 'F'}, //
         {"parse", &parse_files, List$info(&Path$info), .short_flag = 'P'}, //
