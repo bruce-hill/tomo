@@ -417,6 +417,13 @@ int main(int argc, char *argv[]) {
         && transpile_files.length == 0 && compile_objects.length == 0 && compile_executables.length == 0
         && run_files.length == 0 && uninstall_packages.length == 0 && packages.length == 0
         && show_build_info.length == 0) {
+
+        // If not on a TTY, then just print version and exit
+        if (!isatty(STDOUT_FILENO)) {
+            print(help);
+            return 0;
+        }
+
         Path_t path = Path$from_str(String("~/.local/tomo/state/tomo@", TOMO_VERSION, "/run.tm"));
         path = Path$expand_home(path);
         Path$create_directory(Path$parent(path), 0755, true);
