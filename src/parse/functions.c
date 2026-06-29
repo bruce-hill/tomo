@@ -97,6 +97,34 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
     return args;
 }
 
+static void catch_common_errors_after_parens(parse_ctx_t *ctx, const char *start, const char *pos, type_ast_t *ret_type,
+                                             bool is_lambda) {
+    const char *closing_paren = pos - 1;
+    spaces(&pos);
+
+    if (match(&pos, ":")) {
+        const char *colon = pos - 1;
+        if (!is_lambda && ret_type == NULL && (ret_type = optional(ctx, &pos, parse_type)) != NULL)
+            parser_err(ctx, colon, pos, "Function return types go inside the function parentheses like this: ",
+                       string_slice(start, (size_t)(closing_paren - start)), " -> ",
+                       string_slice(ret_type->start, (size_t)(ret_type->end - ret_type->start)), ")");
+        else
+            parser_err(ctx, colon, pos,
+                       "There should not be a colon here, just put the function body without the colon.");
+    } else if (ret_type == NULL && match(&pos, "->")) {
+        const char *err_start = pos - 2;
+        ret_type = optional(ctx, &pos, parse_type);
+        if (ret_type) {
+            parser_err(ctx, err_start, pos, "Function return types go inside the function parentheses like this: ",
+                       string_slice(start, (size_t)(closing_paren - start)), " -> ",
+                       string_slice(ret_type->start, (size_t)(ret_type->end - ret_type->start)), ")");
+        } else {
+            parser_err(ctx, err_start, pos,
+                       "There shouldn't be a '->' here. Function return types go inside the function parentheses.");
+        }
+    }
+}
+
 ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;
@@ -128,24 +156,8 @@ ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
         }
     }
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function definition");
-    const char *closing_paren = pos - 1;
-    spaces(&pos);
 
-    if (match(&pos, ":")) {
-        const char *colon = pos - 1;
-        if (ret_type == NULL && (ret_type = optional(ctx, &pos, parse_type)) != NULL)
-            parser_err(ctx, colon, pos, "Function return types go inside the function parentheses like this: ",
-                       string_slice(start, (size_t)(closing_paren - start)), " -> ",
-                       string_slice(ret_type->start, (size_t)(ret_type->end - ret_type->start)), ")");
-        else
-            parser_err(ctx, colon, pos,
-                       "There should not be a colon here, just put the function body without the colon.");
-    } else if (ret_type == NULL && match(&pos, "->")) {
-        const char *err_start = pos - 2;
-        (void)optional(ctx, &pos, parse_type);
-        parser_err(ctx, err_start, pos,
-                   "Function return types go inside the function parentheses like this: func foo(x:Int -> Int)");
-    }
+    catch_common_errors_after_parens(ctx, start, pos, ret_type, false);
 
     ast_t *body = expect(ctx, start, &pos, parse_block, "This function needs a body block");
     return NewAST(ctx->file, start, pos, FunctionDef, .name = name, .args = args, .ret_type = ret_type, .body = body,
@@ -181,6 +193,8 @@ ast_t *parse_convert_def(parse_ctx_t *ctx, const char *pos) {
     }
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function definition");
 
+    catch_common_errors_after_parens(ctx, start, pos, ret_type, false);
+
     ast_t *body = expect(ctx, start, &pos, parse_block, "This function needs a body block");
     return NewAST(ctx->file, start, pos, ConvertDef, .args = args, .ret_type = ret_type, .body = body,
                   .cache = cache_ast, .is_inline = is_inline);
@@ -196,6 +210,7 @@ ast_t *parse_lambda(parse_ctx_t *ctx, const char *pos) {
     type_ast_t *ret = match(&pos, "->") ? optional(ctx, &pos, parse_type) : NULL;
     spaces(&pos);
     expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this anonymous function's arguments");
+    catch_common_errors_after_parens(ctx, start, pos, ret, true);
     ast_t *body = optional(ctx, &pos, parse_block);
     if (!body) body = NewAST(ctx->file, pos, pos, Block, .statements = NULL);
     return NewAST(ctx->file, start, pos, Lambda, .id = ctx->next_lambda_id++, .args = args, .ret_type = ret,

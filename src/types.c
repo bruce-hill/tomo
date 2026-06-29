@@ -113,6 +113,12 @@ PUREFUNC const char *get_type_name(type_t *t) {
     case TextType: return Match(t, TextType)->lang;
     case StructType: return Match(t, StructType)->name;
     case EnumType: return Match(t, EnumType)->name;
+    case BigIntType: return "Int";
+    case BoolType: return "Bool";
+    case VoidType: return "Void";
+    case AbortType: return "Abort";
+    case NumType:
+    case IntType: return Text$as_c_string(type_to_text(t));
     default: return NULL;
     }
 }
