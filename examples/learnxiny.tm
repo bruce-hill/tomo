@@ -205,7 +205,7 @@ func takes_many_types(
     floating_point_number:Num,
     text_aka_string:Text,
     list_of_ints:[Int],
-    table_of_text_to_bools:{Text=Bool},
+    table_of_text_to_bools:{Text:Bool},
     pointer_to_mutable_list_of_ints:@[Int],
     optional_int:Int?,
     function_from_int_to_text:func(x:Int -> Text),
