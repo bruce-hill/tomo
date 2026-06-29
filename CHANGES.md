@@ -1,5 +1,9 @@
 # Changes
 
+## 2026-06-29
+
+- Support piping programs into `tomo` like this: `echo 'func main() say("HI")' | tomo`
+
 ## 2026-06-28
 
 - Added support for iterating over grapheme clusters in text

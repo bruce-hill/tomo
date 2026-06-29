@@ -406,13 +406,32 @@ int main(int argc, char *argv[]) {
         && run_files.length == 0 && uninstall_packages.length == 0 && packages.length == 0
         && show_build_info.length == 0) {
 
+        // Piping a program into Tomo
+        if (!isatty(STDIN_FILENO)) {
+            Path_t parent = Path$expand_home(Path$from_str(String("~/.local/state/tomo/tomo@", TOMO_VERSION)));
+            Path$create_directory(parent, 0644, true);
+            Path_t path = Path$child(parent, Text("stdin.tm"));
+
+            int fd = open(path, O_CREAT | O_TRUNC | O_WRONLY, 0644);
+            if (fd < 0) {
+                fail("Could not open temporary file for writing at ", path);
+            }
+            char buf[256];
+            for (ssize_t len; (len = read(STDIN_FILENO, buf, sizeof(buf))) > 0;) {
+                write(fd, buf, (size_t)len);
+            }
+            if (close(fd) != 0) fail("Could not close file: ", path);
+            List$insert(&run_files, &path, I(0), sizeof(path));
+            goto run_files;
+        }
+
         // If not on a TTY, then just print version and exit
         if (!isatty(STDOUT_FILENO)) {
             print(help);
             return 0;
         }
 
-        Path_t path = Path$from_str(String("~/.local/tomo/state/tomo@", TOMO_VERSION, "/run.tm"));
+        Path_t path = Path$from_str(String("~/.local/state/tomo/tomo@", TOMO_VERSION, "/run.tm"));
         path = Path$expand_home(path);
         Path$create_directory(Path$parent(path), 0755, true);
         if (!Path$exists(path)) {
@@ -434,6 +453,8 @@ int main(int argc, char *argv[]) {
         int status = system(String(editor, " ", path));
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) return 1;
     }
+
+run_files:;
 
     // Compile runnable files in parallel, then execute in serial:
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
