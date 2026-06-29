@@ -92,6 +92,8 @@ ast_t *parse_pass(parse_ctx_t *ctx, const char *pos) {
 ast_t *parse_defer(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "defer")) return NULL;
+    spaces(&pos);
+    if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a block to be deferred here");
     return NewAST(ctx->file, start, pos, Defer, .body = body);
 }
@@ -147,6 +149,8 @@ ast_t *parse_do(parse_ctx_t *ctx, const char *pos) {
     // do [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "do")) return NULL;
+    spaces(&pos);
+    if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'do'");
     return NewAST(ctx->file, start, pos, Block, .statements = Match(body, Block)->statements);
 }
@@ -156,6 +160,8 @@ ast_t *parse_while(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "while")) return NULL;
     ast_t *condition = expect(ctx, start, &pos, parse_expr, "I don't see a viable condition for this 'while'");
+    spaces(&pos);
+    if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
     (void)match_word(&pos, "do"); // Optional 'do'
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'while'");
     return NewAST(ctx->file, start, pos, While, .condition = condition, .body = body);
@@ -165,6 +171,8 @@ ast_t *parse_repeat(parse_ctx_t *ctx, const char *pos) {
     // repeat [<indent>] body
     const char *start = pos;
     if (!match_word(&pos, "repeat")) return NULL;
+    spaces(&pos);
+    if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'repeat'");
     return NewAST(ctx->file, start, pos, Repeat, .body = body);
 }
@@ -184,6 +192,9 @@ ast_t *parse_if(parse_ctx_t *ctx, const char *pos) {
 
     if (unless) condition = WrapAST(condition, Not, condition);
 
+    spaces(&pos);
+    if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
+
     (void)match_word(&pos, "then"); // Optional 'then'
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'if' statement");
 
@@ -194,6 +205,7 @@ ast_t *parse_if(parse_ctx_t *ctx, const char *pos) {
     if (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "else")) {
         pos = tmp;
         spaces(&pos);
+        if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
         else_body = optional(ctx, &pos, parse_if);
         if (!else_body) else_body = expect(ctx, else_start, &pos, parse_block, "I expected a body for this 'else'");
     }
@@ -216,6 +228,7 @@ ast_t *parse_when(parse_ctx_t *ctx, const char *pos) {
     while (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "is")) {
         pos = tmp;
         spaces(&pos);
+        if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
         ast_t *pattern = expect(ctx, start, &pos, parse_expr, "I expected a pattern to match here");
         spaces(&pos);
         when_clause_t *new_clauses = new (when_clause_t, .pattern = pattern, .next = clauses);
@@ -264,6 +277,8 @@ ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
 
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
 
+    spaces(&pos);
+    if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
     (void)match_word(&pos, "do"); // Optional 'do'
 
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'for'");
@@ -273,6 +288,8 @@ ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
     ast_t *empty = NULL;
     if (match_word(&else_start, "else") && get_indent(ctx, else_start) == starting_indent) {
         pos = else_start;
+        spaces(&pos);
+        if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
         empty = expect(ctx, pos, &pos, parse_block, "I expected a body for this 'else'");
     }
     REVERSE_LIST(vars);
