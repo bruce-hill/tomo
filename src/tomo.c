@@ -979,16 +979,16 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     if (!ast) print_err("Could not parse file ", path);
     env_t *env = load_module_env(base_env, ast);
     binding_t *main_binding = get_binding(env, "main");
-    if (!main_binding || main_binding->type->tag != FunctionType)
-        print_err("No main() function has been defined for ", path, ", so it can't be run!");
-
-    Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");
-    if (clean_build || !Path$is_file(manpage_file, true) || is_stale(manpage_file, path, true)) {
-        Text_t manpage = compile_manpage(Path$base_name(exe_path), ast, Match(main_binding->type, FunctionType)->args);
-        Path$write(manpage_file, manpage, 0644);
-        if (!quiet) print("Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
-    } else {
-        if (verbose) whisper("Unchanged: ", manpage_file);
+    if (main_binding && main_binding->type->tag == FunctionType) {
+        Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");
+        if (clean_build || !Path$is_file(manpage_file, true) || is_stale(manpage_file, path, true)) {
+            Text_t manpage =
+                compile_manpage(Path$base_name(exe_path), ast, Match(main_binding->type, FunctionType)->args);
+            Path$write(manpage_file, manpage, 0644);
+            if (!quiet) print("Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
+        } else {
+            if (verbose) whisper("Unchanged: ", manpage_file);
+        }
     }
 
     if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
@@ -1001,16 +1001,31 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     add_git_info(env, Path$parent(path));
 
-    Text_t program = Texts("extern int parse_and_run$$", main_binding->code,
-                           "(int argc, char *argv[]);\n"
-                           "__attribute__ ((noinline))\n"
-                           "int main(int argc, char *argv[]) {\n"
-                           "\treturn parse_and_run$$",
-                           main_binding->code,
-                           "(argc, argv);\n"
-                           "}\n"
-                           "const char build_info[] __attribute__((used, visibility(\"default\"))) = ",
-                           Text$quoted(get_build_info(env), false, Text("\"")), ";");
+    Text_t program;
+    if (main_binding && main_binding->type->tag == FunctionType) {
+        program = Texts("extern int parse_and_run$$", main_binding->code,
+                        "(int argc, char *argv[]);\n"
+                        "__attribute__ ((noinline))\n"
+                        "int main(int argc, char *argv[]) {\n"
+                        "\treturn parse_and_run$$",
+                        main_binding->code,
+                        "(argc, argv);\n"
+                        "}\n"
+                        "const char build_info[] __attribute__((used, visibility(\"default\"))) = ",
+                        Text$quoted(get_build_info(env), false, Text("\"")), ";");
+    } else {
+        program = Texts("extern void ", namespace_name(env, env->namespace, Text("$initialize")),
+                        "(void);\n"
+                        "__attribute__ ((noinline))\n"
+                        "int main(int argc, char *argv[]) {\n",
+                        namespace_name(env, env->namespace, Text("$initialize")),
+                        "();\n"
+                        "\n",
+                        "return 0;\n"
+                        "}\n",
+                        "const char build_info[] __attribute__((used, visibility(\"default\"))) = ",
+                        Text$quoted(get_build_info(env), false, Text("\"")), ";");
+    }
     Path_t runner_file = build_file(path, ".runner.c");
     Path$write(runner_file, program, 0644);
 

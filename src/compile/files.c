@@ -52,7 +52,9 @@ void initialize_vars_and_statics(env_t *env, ast_t *ast) {
             continue;
         } else {
             Text_t code = compile_statement(env, stmt->ast);
-            if (code.length > 0) code_err(stmt->ast, "I did not expect this to generate code");
+            if (code.length > 0)
+                env->code->variable_initializers =
+                    Texts(env->code->variable_initializers, with_source_info(env, stmt->ast, code));
         }
     }
 }

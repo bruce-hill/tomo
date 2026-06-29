@@ -3,6 +3,7 @@
 ## 2026-06-29
 
 - Support piping programs into `tomo` like this: `echo 'func main() say("HI")' | tomo`
+- Bring back top-level executable code (outside of `main()` function)
 - Better parser error messages for common mistakes like extra colons
 
 ## 2026-06-28

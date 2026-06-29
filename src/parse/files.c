@@ -9,7 +9,6 @@
 #include "../ast.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/paths.h"
-#include "../stdlib/stdlib.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../util.h"
@@ -29,10 +28,10 @@
 #define PARSE_CACHE_SIZE 100
 #endif
 
-static ast_t *parse_top_declaration(parse_ctx_t *ctx, const char *pos) {
-    ast_t *declaration = parse_declaration(ctx, pos);
-    if (declaration) declaration->__data.Declare.top_level = true;
-    return declaration;
+static ast_t *parse_top_statement(parse_ctx_t *ctx, const char *pos) {
+    ast_t *stmt = parse_statement(ctx, pos);
+    if (stmt && stmt->tag == Declare) stmt->__data.Declare.top_level = true;
+    return stmt;
 }
 
 static ast_t *parse_metadata(parse_ctx_t *ctx, const char *pos) {
@@ -77,7 +76,7 @@ ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
             || (stmt = optional(ctx, &pos, parse_func_def)) || (stmt = optional(ctx, &pos, parse_enum_def))
             || (stmt = optional(ctx, &pos, parse_lang_def)) || (stmt = optional(ctx, &pos, parse_convert_def))
             || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_inline_c))
-            || (stmt = optional(ctx, &pos, parse_top_declaration))) {
+            || (stmt = optional(ctx, &pos, parse_top_statement))) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
             whitespace(ctx, &pos); // TODO: check for newline
