@@ -52,7 +52,8 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
     }
 
     // Optional -> Bool promotion
-    if (actual->tag == OptionalType && needed->tag == BoolType) {
+    // Note: we explicitly disallow `Bool?` -> `Bool` promotion, because that's a footgun
+    if (actual->tag == OptionalType && needed->tag == BoolType && Match(actual, OptionalType)->type->tag != BoolType) {
         *code = Texts("(!", check_none(actual, *code), ")");
         return true;
     }

@@ -5,8 +5,8 @@
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
+#include "../util.h"
 #include "compilation.h"
 
 public
@@ -21,6 +21,13 @@ Text_t compile_condition(env_t *env, ast_t *ast) {
     } else if (t->tag == TableType) {
         return Texts("(", compile(env, ast), ").entries.length");
     } else if (t->tag == OptionalType) {
+        if (Match(t, OptionalType)->type->tag == BoolType)
+            code_err(ast,
+                     "This is an optional Bool value.\n"
+                     "If you want to test whether it's 'none', use an explicit `",
+                     string_slice(ast->start, (size_t)(ast->end - ast->start)),
+                     " != none` check.\n"
+                     "If you want to test the boolean value, you need to force it to a non-optional value.");
         return Texts("!", check_none(t, compile(env, ast)));
     } else if (t->tag == PointerType) {
         code_err(ast, "This pointer will always be non-none, so it should not be "
