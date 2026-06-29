@@ -128,6 +128,24 @@ ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
         }
     }
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function definition");
+    const char *closing_paren = pos - 1;
+    spaces(&pos);
+
+    if (match(&pos, ":")) {
+        const char *colon = pos - 1;
+        if (ret_type == NULL && (ret_type = optional(ctx, &pos, parse_type)) != NULL)
+            parser_err(ctx, colon, pos, "Function return types go inside the function parentheses like this: ",
+                       string_slice(start, (size_t)(closing_paren - start)), " -> ",
+                       string_slice(ret_type->start, (size_t)(ret_type->end - ret_type->start)), ")");
+        else
+            parser_err(ctx, colon, pos,
+                       "There should not be a colon here, just put the function body without the colon.");
+    } else if (ret_type == NULL && match(&pos, "->")) {
+        const char *err_start = pos - 2;
+        (void)optional(ctx, &pos, parse_type);
+        parser_err(ctx, err_start, pos,
+                   "Function return types go inside the function parentheses like this: func foo(x:Int -> Int)");
+    }
 
     ast_t *body = expect(ctx, start, &pos, parse_block, "This function needs a body block");
     return NewAST(ctx->file, start, pos, FunctionDef, .name = name, .args = args, .ret_type = ret_type, .body = body,
