@@ -128,14 +128,18 @@ void tomo_configure(void) {
 }
 
 static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
-    (void)sig, (void)info, (void)userdata;
-    assert(sig == SIGILL);
-    fflush(stdout);
-    if (USE_COLOR) fputs("\x1b[91;7m ===== ILLEGAL INSTRUCTION ===== \n\n\x1b[m", stderr);
-    else fputs("===== ILLEGAL INSTRUCTION =====\n\n", stderr);
-    print_stacktrace(stderr, 3);
-    fflush(stderr);
-    raise(SIGABRT);
+    (void)info, (void)userdata;
+    if (sig == SIGILL) {
+        fflush(stdout);
+        if (USE_COLOR) fputs("\x1b[91;7m ===== ILLEGAL INSTRUCTION ===== \n\n\x1b[m", stderr);
+        else fputs("===== ILLEGAL INSTRUCTION =====\n\n", stderr);
+        print_stacktrace(stderr, 3);
+        fflush(stderr);
+        raise(SIGABRT);
+        _exit(1);
+    }
+    tomo_cleanup();
+    raise(sig);
     _exit(1);
 }
 
@@ -151,11 +155,17 @@ void tomo_init(void) {
     setlocale(LC_ALL, "");
     assert(getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0) == sizeof(TOMO_HASH_KEY));
 
+    // Register signal handler for all fatal signals:
     struct sigaction sigact;
     sigact.sa_sigaction = signal_handler;
     sigemptyset(&sigact.sa_mask);
-    sigact.sa_flags = 0;
-    sigaction(SIGILL, &sigact, (struct sigaction *)NULL);
+    sigact.sa_flags = SA_SIGINFO;
+    int fatal[] = {SIGHUP,  SIGINT,  SIGQUIT, SIGILL,  SIGTRAP, SIGABRT, SIGBUS,    SIGFPE,  SIGUSR1, SIGSEGV,
+                   SIGUSR2, SIGPIPE, SIGALRM, SIGTERM, SIGXCPU, SIGXFSZ, SIGVTALRM, SIGPROF, SIGIO,   SIGSYS};
+    for (size_t i = 0; i < sizeof(fatal) / sizeof(fatal[0]); i++) {
+        (void)sigaction(fatal[i], &sigact, NULL);
+    }
+
     atexit(tomo_cleanup);
 }
 
@@ -340,4 +350,6 @@ void tomo_cleanup(void) {
         cleanups = cleanups->next;
         run_cleanup(userdata);
     }
+    fflush(stdout);
+    fflush(stderr);
 }

@@ -1016,8 +1016,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     } else {
         program = Texts("extern void ", namespace_name(env, env->namespace, Text("$initialize")),
                         "(void);\n"
+                        "extern void tomo_init(void);\n"
                         "__attribute__ ((noinline))\n"
-                        "int main(int argc, char *argv[]) {\n",
+                        "int main(int argc, char *argv[]) {\n"
+                        "tomo_init();\n",
                         namespace_name(env, env->namespace, Text("$initialize")),
                         "();\n"
                         "\n",
