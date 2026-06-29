@@ -117,6 +117,10 @@ PUREFUNC const char *get_type_name(type_t *t) {
     case BoolType: return "Bool";
     case VoidType: return "Void";
     case AbortType: return "Abort";
+    case MemoryType: return "Memory";
+    case ByteType: return "Byte";
+    case CStringType: return "CString";
+    case PathType: return "Path";
     case NumType:
     case IntType: return Text$as_c_string(type_to_text(t));
     default: return NULL;
