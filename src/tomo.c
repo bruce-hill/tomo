@@ -223,6 +223,7 @@ int main(int argc, char *argv[]) {
                          "  --changelog: show the Tomo changelog\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     cli_arg_t tomo_args[] = {
+        {"run", &run_files, List$info(&Path$info), .short_flag = 'r'}, //
         {"args", &args, List$info(&CString$info)}, //
         {"format", &format_files, List$info(&Path$info), .short_flag = 'F'}, //
         {"parse", &parse_files, List$info(&Path$info), .short_flag = 'P'}, //
@@ -403,8 +404,7 @@ int main(int argc, char *argv[]) {
 
     if (run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0 && parse_files.length == 0
         && transpile_files.length == 0 && compile_objects.length == 0 && compile_executables.length == 0
-        && run_files.length == 0 && uninstall_packages.length == 0 && packages.length == 0
-        && show_build_info.length == 0) {
+        && uninstall_packages.length == 0 && packages.length == 0 && show_build_info.length == 0) {
 
         // Piping a program into Tomo
         if (!isatty(STDIN_FILENO)) {
