@@ -84,6 +84,11 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
 
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct");
 
+    spaces(&pos);
+    if (match(&pos, ":")) {
+        parser_err(ctx, pos - 1, pos, "There should not be a colon here.");
+    }
+
     ast_t *namespace = NULL;
     const char *ns_pos = pos;
     whitespace(ctx, &ns_pos);
@@ -142,6 +147,11 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
     whitespace(ctx, &pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this enum definition");
 
+    spaces(&pos);
+    if (match(&pos, ":")) {
+        parser_err(ctx, pos - 1, pos, "There should not be a colon here.");
+    }
+
     REVERSE_LIST(tags);
 
     if (tags == NULL) parser_err(ctx, start, pos, "This enum does not have any tags!");
@@ -168,6 +178,10 @@ ast_t *parse_lang_def(parse_ctx_t *ctx, const char *pos) {
     const char *name = get_id(&pos);
     if (!name) parser_err(ctx, start, pos, "I expected a name for this lang");
     spaces(&pos);
+
+    if (match(&pos, ":")) {
+        parser_err(ctx, pos - 1, pos, "There should not be a colon here.");
+    }
 
     ast_t *namespace = NULL;
     const char *ns_pos = pos;
