@@ -15,8 +15,15 @@ ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
     // [~./] ("\" . / [^ \r\n\t])*
     const char *start = pos;
 
+    bool inside_parens = match(&pos, "(") > 0;
+
     if (!(*pos == '~' || *pos == '.' || *pos == '/')) return NULL;
 
+    // These are some characters that might reasonably follow after a path literal in Tomo code,
+    // for example: `[./one, ./two]` (should not include ',' or ']' in the parsed literals)
+    const bool needs_escaping[128] = {[' '] = true, ['\t'] = true, ['\r'] = true, ['\n'] = true,
+                                      [','] = true, [';'] = true,  [':'] = true,  ['='] = true,
+                                      [')'] = true, ['}'] = true,  [']'] = true};
     int paren_depth = 0;
     const char *path_start = pos;
     size_t len = 1;
@@ -24,17 +31,17 @@ ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
         if (pos[len] == '\\') {
             len += 2;
             continue;
+        } else if (!inside_parens && paren_depth == 0 && needs_escaping[(int)pos[len]]) {
+            pos += len;
+            break;
         } else if (pos[len] == '(') {
             paren_depth += 1;
         } else if (pos[len] == ')') {
-            paren_depth -= 1;
-            if (paren_depth < 0) {
+            if (paren_depth <= 0) {
                 pos += len;
                 break;
             }
-        } else if ((pos[len] == ' ' || pos[len] == '\t') && paren_depth == 0) {
-            pos += len;
-            break;
+            paren_depth -= 1;
         } else if (pos[len] == '\r' || pos[len] == '\n') {
             if (paren_depth == 0) {
                 pos += len;
@@ -56,5 +63,6 @@ ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
             break;
         }
     }
+    if (inside_parens && !match(&pos, ")")) return NULL;
     return NewAST(ctx->file, start, pos, Path, .path = path);
 }
