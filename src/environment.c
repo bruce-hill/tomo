@@ -540,6 +540,9 @@ env_t *global_env(bool source_mapping) {
                      {"Int$value_as_text", "func(i:Int -> Path)"});
     ADD_CONSTRUCTORS("CString", //
                      {"Text$as_c_string", "func(text:Text -> CString)"});
+    ADD_CONSTRUCTORS("Text", //
+                     {"Text$from_str", "func(str:CString -> Text)"}, //
+                     {"Text$from_str", "func(path:Path -> Text)"});
 #undef ADD_CONSTRUCTORS
 
     set_binding(namespace_env(env, "Path"), "from_text",

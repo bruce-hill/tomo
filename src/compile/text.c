@@ -125,6 +125,8 @@ Text_t compile_text_ast(env_t *env, ast_t *ast) {
                     chunk_code = Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, args), ")");
                 } else if (type_eq(text_t, TEXT_TYPE)) {
                     if (chunk_t->tag == TextType) chunk_code = compile(env, chunk->ast);
+                    else if (chunk_t->tag == CStringType)
+                        chunk_code = Texts("Text$from_str(", compile(env, chunk->ast), ")");
                     else chunk_code = compile_text(env, chunk->ast, colorize);
                 } else {
                     code_err(chunk->ast, "I don't know how to convert ", type_to_text(chunk_t), " to ",

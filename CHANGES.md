@@ -1,5 +1,11 @@
 # Changes
 
+## 2026-07-01
+
+- Smoothed over some rough edges between CString and Text, making it easier to convert to and fro.
+  CStrings are now a lot more like Text in string interpolations, debug visualization, etc.
+- `Text(path)` now works as well.
+
 ## 2026-06-30
 
 - Tweaked parsing for path literals to avoid problems with delimiters.

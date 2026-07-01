@@ -103,6 +103,12 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
         return true;
     }
 
+    // C String to Text
+    if (actual->tag == CStringType && type_eq(needed, TEXT_TYPE)) {
+        *code = Texts("Text$from_str(", *code, ")");
+        return true;
+    }
+
     // Automatic dereferencing:
     if (actual->tag == PointerType && can_promote(Match(actual, PointerType)->pointed, needed)) {
         *code = Texts("*(", *code, ")");

@@ -389,6 +389,9 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
     // Text to C String
     if (actual->tag == TextType && !Match(actual, TextType)->lang && needed->tag == CStringType) return true;
 
+    // C String to Text
+    if (actual->tag == CStringType && needed->tag == TextType && !Match(needed, TextType)->lang) return true;
+
     // Automatic dereferencing:
     if (actual->tag == PointerType && can_promote(Match(actual, PointerType)->pointed, needed)) return true;
 
