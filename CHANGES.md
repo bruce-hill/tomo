@@ -1,10 +1,15 @@
 # Changes
 
+## 2026-06-30
+
+- Tweaked parsing for path literals to avoid problems with delimiters.
+- Optional booleans can no longer be automatically promoted to booleans (to avoid confusion).
+
 ## 2026-06-29
 
 - Support piping programs into `tomo` like this: `echo 'func main() say("HI")' | tomo`
-- Bring back top-level executable code (outside of `main()` function)
-- Better parser error messages for common mistakes like extra colons
+- Brought back top-level executable code (outside of `main()` function).
+- Improved parser error messages for common mistakes like extra colons.
 
 ## 2026-06-28
 
