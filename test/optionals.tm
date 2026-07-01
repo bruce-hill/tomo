@@ -134,12 +134,13 @@ func main()
         assert yep == no
         nope := maybe_bool(no)
         assert nope == none
-        >> if yep
-            assert yep == no
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+        # Can't coerce optional booleans to booleans:
+        # >> if yep
+        #     assert yep == no
+        # else fail("Falsey: $yep")
+        # >> if nope
+        #     fail("Truthy: $nope")
+        # else say("Falsey: $nope")
 
     do
         say("...")
