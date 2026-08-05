@@ -71,9 +71,9 @@ ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
         }
 
         const char *after_comments = pos;
-        while (some_of(&pos, " \t\r\n")) {
-            if (get_indent(ctx, pos) == block_indent && comment(ctx, &pos)) {
-                after_comments = pos;
+        while (some_of(&after_comments, " \t\r\n")) {
+            if (get_indent(ctx, after_comments) == block_indent && comment(ctx, &after_comments)) {
+                print("BINGO");
             } else {
                 break;
             }

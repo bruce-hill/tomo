@@ -142,7 +142,8 @@ PUREFUNC int64_t get_indent(parse_ctx_t *ctx, const char *pos) {
 bool indent(parse_ctx_t *ctx, const char **out) {
     const char *pos = *out;
     int64_t starting_indent = get_indent(ctx, pos);
-    whitespace(ctx, &pos);
+    while (some_of(&pos, " \t\r\n"))
+        continue;
     const char *next_line = get_line(ctx->file, get_line_number(ctx->file, pos));
     if (next_line <= *out) return false;
 

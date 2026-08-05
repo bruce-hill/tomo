@@ -477,7 +477,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
 
         Text_t comment_code = comment_range(&comment_pos, ast->end, indent, comments);
         if (comment_code.length > 0) {
-            if (code.length > 0) code = Text$concat(code, Text("\n\n"), indent);
+            if (code.length > 0) code = Text$concat(code, Text("\n"), indent);
             code = Text$concat(code, comment_code);
         }
         return code;

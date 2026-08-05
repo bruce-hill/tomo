@@ -6,6 +6,7 @@
 #include "../ast.h"
 #include "../parse/context.h"
 #include "../stdlib/datatypes.h"
+#include "../stdlib/files.h"
 #include "../stdlib/optionals.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
@@ -39,26 +40,36 @@ bool range_has_comment(const char *start, const char *end, Table_t comments) {
     return (comment.tag != TEXT_NONE);
 }
 
+PUREFUNC
+static ast_t *nl_deciding_ast(ast_t *ast) {
+    switch (ast->tag) {
+    case DebugLog: {
+        ast_list_t *values = Match(ast, DebugLog)->values;
+        while (values && values->next)
+            values = values->next;
+        return values ? values->ast : ast;
+    }
+    case Declare: return Match(ast, Declare)->value;
+    case Assign: {
+        ast_list_t *values = Match(ast, Assign)->values;
+        while (values && values->next)
+            values = values->next;
+        return values ? values->ast : ast;
+    }
+    default: return ast;
+    }
+}
+
 CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
-    if (second == NULL) return 0;
+    if (first == NULL || second == NULL) return 0;
 
-    if (first->tag == DebugLog && second->tag == DebugLog) return 0;
+    int64_t first_end_line = get_line_number(first->file, first->end);
+    int64_t second_start_line = get_line_number(second->file, second->start);
 
-    for (;;) {
-        if (first->tag == Declare && Match(first, Declare)->value) {
-            first = Match(first, Declare)->value;
-        } else if (first->tag == DebugLog) {
-            return 1;
-        } else break;
-    }
+    if (second_start_line > first_end_line + 1) return 1;
 
-    for (;;) {
-        if (second->tag == Declare && Match(second, Declare)->value) {
-            second = Match(second, Declare)->value;
-        } else if (second->tag == DebugLog) {
-            return 1;
-        } else break;
-    }
+    first = nl_deciding_ast(first);
+    second = nl_deciding_ast(second);
 
     switch (first->tag) {
     case If:
@@ -76,18 +87,6 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     case LangDef: return 1;
     case Use: {
         if (second->tag != Use) return 1;
-        break;
-    }
-    case Declare: {
-        DeclareMatch(decl, first, Declare);
-        if (decl->value) return suggested_blank_lines(decl->value, second);
-        break;
-    }
-    case Assign: {
-        DeclareMatch(assign, first, Assign);
-        for (ast_list_t *val = assign->values; val; val = val->next) {
-            if (suggested_blank_lines(val->ast, second) > 0) return 1;
-        }
         break;
     }
     default: break;
