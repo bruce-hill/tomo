@@ -543,10 +543,8 @@ PUREFUNC size_t unpadded_struct_size(type_t *t) {
 }
 
 PUREFUNC size_t type_size(type_t *t) {
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch-default"
     switch (t->tag) {
     case UnknownType:
     case AbortType:
@@ -623,18 +621,14 @@ PUREFUNC size_t type_size(type_t *t) {
     case TypeInfoType: return sizeof(TypeInfo_t);
     case ModuleType: return 0;
     }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#pragma clang diagnostic pop
     errx(1, "This should not be reachable");
     return 0;
 }
 
 PUREFUNC size_t type_align(type_t *t) {
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch-default"
     switch (t->tag) {
     case UnknownType:
     case AbortType:
@@ -700,9 +694,7 @@ PUREFUNC size_t type_align(type_t *t) {
     case TypeInfoType: return __alignof__(TypeInfo_t);
     case ModuleType: return 0;
     }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#pragma clang diagnostic pop
     errx(1, "This should not be reachable");
     return 0;
 }

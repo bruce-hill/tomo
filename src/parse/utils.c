@@ -179,10 +179,8 @@ bool newline_with_indentation(const char **out, int64_t target) {
 //
 // Convert an escape sequence like \n to a string
 //
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstack-protector"
-#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wstack-protector"
 const char *unescape(parse_ctx_t *ctx, const char **out) {
     const char **endpos = out;
     const char *escape = *out;
@@ -249,9 +247,7 @@ const char *unescape(parse_ctx_t *ctx, const char **out) {
         return GC_strndup(escape + 1, 1);
     }
 }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#pragma clang diagnostic pop
 
 bool match_separator(parse_ctx_t *ctx, const char **pos) { // Either comma or newline
     const char *p = *pos;

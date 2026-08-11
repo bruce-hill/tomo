@@ -161,10 +161,8 @@ static void hashmap_resize_buckets(Table_t *t, uint32_t new_capacity, const Type
 }
 
 // Return address of value
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstack-protector"
-#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wstack-protector"
 public
 void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeInfo_t *type) {
     assert(type->tag == TableInfo);
@@ -220,9 +218,7 @@ void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeIn
     Table$set_bucket(t, entry, entry_index, type);
     return entry + value_offset(type);
 }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#pragma clang diagnostic pop
 
 public
 void Table$set(Table_t *t, const void *key, const void *value, const TypeInfo_t *type) {

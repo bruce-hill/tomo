@@ -32,10 +32,8 @@
 
 #define Int_mpz(i) (__mpz_struct *)((i).big)
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
 public
 PUREFUNC Int_t Int$from_num64(double n, bool truncate) {
     mpz_t result;
@@ -44,9 +42,7 @@ PUREFUNC Int_t Int$from_num64(double n, bool truncate) {
     return Int$from_mpz(result);
 }
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#pragma clang diagnostic pop
 
 public
 PUREFUNC Int_t Int$from_int64(int64_t i) {

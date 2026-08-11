@@ -93,10 +93,8 @@ PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInf
 }
 #endif
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
 public
 CONSTFUNC NUM_T NAMESPACED(from_int)(Int_t i, bool truncate) {
     if likely (i.small & 0x1) {
@@ -117,9 +115,7 @@ CONSTFUNC NUM_T NAMESPACED(from_int)(Int_t i, bool truncate) {
         return ret;
     }
 }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#pragma clang diagnostic pop
 public
 CONSTFUNC NUM_T NAMESPACED(from_int64)(Int64_t i, bool truncate) {
     NUM_T n = (NUM_T)i;

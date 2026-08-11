@@ -22,10 +22,8 @@
 #include "util.h"
 
 type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch-default"
     switch (ast->tag) {
     case VarTypeAST: {
         const char *name = Match(ast, VarTypeAST)->name;
@@ -161,9 +159,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
     }
     case UnknownTypeAST: code_err(ast, "I don't know how to get this type");
     }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#pragma clang diagnostic pop
     errx(1, "Unreachable");
     return NULL;
 }
@@ -683,10 +679,8 @@ type_t *get_clause_type(env_t *env, type_t *subject_t, when_clause_t *clause) {
 
 type_t *get_type(env_t *env, ast_t *ast) {
     if (!ast) return NULL;
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch-default"
-#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch-default"
     switch (ast->tag) {
     case None: {
         return Type(OptionalType, .type = NULL);
@@ -1537,9 +1531,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case ExplicitlyTyped: return Match(ast, ExplicitlyTyped)->type;
     case Metadata: return Type(VoidType);
     }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#pragma clang diagnostic pop
     code_err(ast, "I can't figure out the type of: ", ast_to_sexp_str(ast));
     return NULL;
 }
