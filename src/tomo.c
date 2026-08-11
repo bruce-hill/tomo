@@ -252,6 +252,13 @@ int main(int argc, char *argv[]) {
     // zig's llvm-based ar, so no system binutils is needed at runtime:
     ar = Texts(Text$from_str(TOMO_PATH), "/libexec/tomo@", TOMO_VERSION, "/zig/zig ar");
 
+    // Nested tomo invocations (e.g. compiling packages) must run THIS tomo,
+    // not whatever `tomo` is on PATH (which may be an older installed
+    // version); record where we live (see tomo_exe() in packages.c):
+    Path_t self = strchr(argv[0], '/') ? Path$resolved(Path$from_str(argv[0]), Path$current_dir())
+                                       : Path$from_str(String(TOMO_PATH, "/bin/tomo"));
+    setenv("TOMO_EXE", self, 1);
+
     // Set up environment variables:
     const char *PATH = getenv("PATH");
     setenv("PATH", PATH ? String(TOMO_PATH, "/bin:", PATH) : String(TOMO_PATH, "/bin"), 1);
@@ -791,26 +798,21 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
     Table_t files = EMPTY_TABLE;
     Table_t package_dirs = EMPTY_TABLE;
     Table_t bindings = EMPTY_TABLE;
-    const char *lib_prefix = String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/store/");
     for (int64_t i = 0; i < (int64_t)dep_files.entries.length; i++) {
         struct {
             Path_t filename;
             staleness_t staleness;
         } *entry = dep_files.entries.data + i * dep_files.entries.stride;
+        // Files inside a package store (cross builds compile installed
+        // packages' sources directly) get their whole store entry embedded:
+        OptionalPath_t store_entry = package_store_entry(entry->filename);
+        if (store_entry != NULL) {
+            Table$str_set(&package_dirs, Path$as_c_string(store_entry), Path$as_c_string(store_entry));
+            continue;
+        }
         Path_t rel = Path$relative_to(entry->filename, root);
         if (strncmp(rel, "..", 2) == 0) {
-            const char *rest = strncmp(entry->filename, lib_prefix, strlen(lib_prefix)) == 0
-                                   ? strchr(entry->filename + strlen(lib_prefix), '/')
-                                   : NULL;
-            if (rest) {
-                size_t dir_len = (size_t)(rest - entry->filename);
-                char *pkg_dir = GC_MALLOC_ATOMIC(dir_len + 1);
-                memcpy(pkg_dir, entry->filename, dir_len);
-                pkg_dir[dir_len] = '\0';
-                Table$str_set(&package_dirs, pkg_dir, pkg_dir);
-            } else {
-                fprint(stderr, "Warning: not embedding source file outside the project: ", entry->filename);
-            }
+            fprint(stderr, "Warning: not embedding source file outside the project: ", entry->filename);
             continue;
         }
         Table$str_set(&files, rel, Path$as_c_string(entry->filename));
@@ -914,15 +916,17 @@ static void create_extracted_links(Path_t outdir, char *manifest) {
             const char *consumer = line, *name = tab1 + 1, *dep = tab2 + 1;
             if (*name && *dep && !strchr(consumer, '/') && !strchr(name, '/') && !strchr(dep, '/')
                 && !streq(consumer, "..") && !streq(name, "..") && !streq(dep, "..")) {
-                Path_t base =
-                    *consumer ? Path$from_str(String(Path$as_c_string(outdir), "/store/", consumer)) : outdir;
-                Path_t dep_dir = Path$from_str(String(Path$as_c_string(outdir), "/store/", dep));
-                if (Path$is_directory(base, true) && Path$is_directory(dep_dir, true)) {
-                    Path_t link_dir = Path$child(base, Text("packages"));
+                Path_t store = Path$child(Path$child(outdir, Text(".build")), Text("store"));
+                Path_t dep_dir = Path$child(store, Text$from_str(dep));
+                Path_t link_dir = *consumer
+                                      ? Path$child(Path$child(store, Text$from_str(consumer)), Text("packages"))
+                                      : Path$child(Path$child(outdir, Text(".build")), Text("packages"));
+                if (Path$is_directory(dep_dir, true)
+                    && (!*consumer || Path$is_directory(Path$parent(link_dir), true))) {
                     Result_t result = Path$create_directory(link_dir, 0755, true);
                     if (result.Failure.reason.tag == TEXT_NONE) {
                         Path_t link = Path$child(link_dir, Text$from_str(name));
-                        const char *target = *consumer ? String("../../", dep) : String("../store/", dep);
+                        const char *target = Path$relative_to(dep_dir, link_dir);
                         unlink(link);
                         if (symlink(target, link) == 0)
                             print("Linked    ", Path$relative_to(link, Path$current_dir()), " -> ", target);
@@ -978,7 +982,12 @@ void extract_embedded_source(Path_t binary) {
             mz_free(data);
             continue;
         }
-        Path_t out = Path$from_str(String(Path$as_c_string(outdir), "/", stat.m_filename));
+        // Package sources extract into a project-shaped .build/store/, so the
+        // extracted tree rebuilds as-is (offline: its store is pre-seeded):
+        const char *out_name = stat.m_filename;
+        if (strncmp(out_name, "store/", strlen("store/")) == 0)
+            out_name = String(".build/", out_name);
+        Path_t out = Path$child(outdir, Text$from_str(out_name));
         Path$create_directory(Path$parent(out), 0755, true);
         int out_fd = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0644);
         if (out_fd < 0) print_err("Could not write extracted file: ", out);
@@ -994,10 +1003,9 @@ void extract_embedded_source(Path_t binary) {
     if (links_manifest) create_extracted_links(outdir, links_manifest);
 
     if (extracted_packages)
-        print("\nNote: the sources of the packages this program uses were extracted into store/,\n"
-              "with packages/<name> links resolving each `use`. To rebuild using those copies\n"
-              "instead of fetching the pinned sources, point the packages.ini entries at them,\n"
-              "e.g.: source=./store/<digest> (and remove that package's digest= line).");
+        print("\nNote: the sources of the packages this program uses were extracted into\n"
+              ".build/store/, so this program can be rebuilt as-is, without fetching the\n"
+              "pinned package sources.");
 }
 
 // The C code embedding the source blob in a retained section on ELF targets

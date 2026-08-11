@@ -25,32 +25,63 @@ typedef struct {
     Table_t info;
 } pkg_info_t;
 
-// Installed packages are content-addressed: each one lives in
-// store/<digest>/, and the names things call them by are symlinks (see
-// create_binding_link() below).
-static Path_t package_store_location(Text_t digest) {
-    return Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/store/", digest));
+// Installed packages are content-addressed: each project keeps its own store
+// of them in .build/store/<digest>/, and the names things call them by are
+// symlinks (see create_binding_link() below).
+
+// The store entry (a .build/store/<digest>/ directory) containing the given
+// path, if any:
+OptionalPath_t package_store_entry(Path_t path) {
+    for (int depth = 0; depth < PATH_MAX; depth++) {
+        OptionalPath_t parent = Path$parent(path);
+        // Stop at the root, or once the walk escapes a relative path's start:
+        if (parent == NULL || parent[0] == '\0' || streq(parent, path) || streq(parent, ".")
+            || Text$equal_values(Path$base_name(parent), Text("..")))
+            return NONE_PATH;
+        if (Text$equal_values(Path$base_name(parent), Text("store"))
+            && Text$equal_values(Path$base_name(Path$parent(parent)), Text(".build")))
+            return path;
+        path = parent;
+    }
+    return NONE_PATH;
+}
+
+// A file inside a store entry installs *its* dependencies into the same
+// store, so the store root for a consumer is the store containing it (if any)
+// or its own directory's .build/store:
+static Path_t package_store_root(Path_t using_file) {
+    OptionalPath_t entry = package_store_entry(using_file);
+    if (entry != NULL) return Path$parent(entry);
+    return Path$sibling(using_file, Text(".build/store"));
+}
+
+// Verified downloaded package artifacts are cached globally, keyed by digest,
+// so other projects can materialize their stores without re-fetching:
+static Path_t download_cache_dir(Text_t digest) {
+    const char *cache_home = getenv("XDG_CACHE_HOME");
+    Path_t base = (cache_home && cache_home[0] == '/') ? Path$from_str(String(cache_home, "/tomo"))
+                                                       : Path$expand_home(Path$from_str("~/.cache/tomo"));
+    return Path$child(base, digest);
 }
 
 // Record which package a `use NAME` resolved to, as a "packages/NAME" symlink
-// next to the file that used it. For a consumer inside the store, the link is
+// next to the file that used it. For a consumer inside a store, the link is
 // store-relative ("../../<digest>", pointing two levels up from its packages/
-// directory into the store), so store entries stay relocatable as a unit. For
-// a program outside the store, the link farm lives in its .build directory
-// and points at the absolute installed path. Every level of the dependency
-// graph thus resolves the same way: ./packages/NAME, one level at a time.
+// directory into the store); for a program, the link farm lives in its .build
+// directory, pointing "../store/<digest>" for entries in the project's own
+// store. Either way the whole project tree is relocatable, and every level of
+// the dependency graph resolves the same way: ./packages/NAME, one level at a
+// time. Only dependencies living outside the consumer's store (e.g. local
+// directory-source packages) get absolute link targets.
 static void create_binding_link(Path_t using_file, const char *name, Path_t installed) {
     if (strchr(name, '/') != NULL) return; // Just in case: never write outside packages/
     Path_t using_dir = Path$parent(using_file);
-    const char *store_prefix = String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/store/");
-    bool consumer_in_store = strncmp(using_dir, store_prefix, strlen(store_prefix)) == 0;
-    bool dep_in_store = strncmp(installed, store_prefix, strlen(store_prefix)) == 0;
+    bool consumer_in_store = package_store_entry(using_file) != NULL;
+    bool dep_in_this_store = streq(Path$parent(installed), package_store_root(using_file));
 
     Path_t link_dir = consumer_in_store ? Path$child(using_dir, Text("packages"))
                                         : Path$child(using_dir, Text(".build/packages"));
-    const char *target = (consumer_in_store && dep_in_store)
-                             ? String("../../", installed + strlen(store_prefix))
-                             : installed;
+    const char *target = dep_in_this_store ? Path$relative_to(installed, link_dir) : installed;
 
     Result_t result = Path$create_directory(link_dir, 0755, true);
     if (result.Failure.reason.tag != TEXT_NONE) return;
@@ -74,6 +105,20 @@ static void create_binding_link(Path_t using_file, const char *name, Path_t inst
             errx(1, "Failed to run command: %s", String(__VA_ARGS__));                                                 \
         }                                                                                                              \
     })
+
+// The tomo executable to use for nested invocations: the same one that's
+// running (recorded in main()), never a possibly-older `tomo` from PATH:
+static const char *tomo_exe(void) {
+    const char *exe = getenv("TOMO_EXE");
+    return exe ? exe : "tomo";
+}
+
+// Packages install as source; make sure the compiled package.a exists too
+// (e.g. for store entries pre-seeded by `tomo --extract-source`):
+static void ensure_package_built(Path_t install_location) {
+    if (!Path$exists(Path$child(install_location, Text("package.a"))))
+        xsystem(quoted(tomo_exe()), " -p ", install_location);
+}
 
 #define xsystem_cleanup(tmpdir, ...)                                                                                   \
     ({                                                                                                                 \
@@ -130,10 +175,10 @@ static Text_t package_text(pkg_info_t pkg) {
 }
 
 static OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source, Path_t downloaded,
-                                                    OptionalPath_t tmpdir);
+                                                    OptionalPath_t tmpdir, Path_t store_root);
 
 static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_t *pkg, const char *source,
-                                                      bool ask_confirmation) {
+                                                      bool ask_confirmation, Path_t store_root) {
     Table$str_set(&pkg->info, "source", source);
     if (source[0] == '.' || source[0] == '/' || source[0] == '~') {
         Path_t source_path = Path$from_str(source);
@@ -150,10 +195,11 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
                      "package.\nSource: ",
                      source_path);
             }
-            xsystem("tomo -p ", source_path);
+            xsystem(quoted(tomo_exe()), " -p ", source_path);
             return source_path;
         } else {
-            return try_install_package_from_file(pkg, source, Path$resolved(source, Path$parent(ini_file)), NULL);
+            return try_install_package_from_file(pkg, source, Path$resolved(source, Path$parent(ini_file)), NULL,
+                                                 store_root);
         }
     }
 
@@ -182,11 +228,11 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
     }
 
     Path_t downloaded = *(Path_t *)children.data;
-    return try_install_package_from_file(pkg, source, downloaded, tmpdir);
+    return try_install_package_from_file(pkg, source, downloaded, tmpdir, store_root);
 }
 
 OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source, Path_t downloaded,
-                                             OptionalPath_t tmpdir) {
+                                             OptionalPath_t tmpdir, Path_t store_root) {
 
     OptionalText_t digest = file_digest(downloaded);
     if (digest.tag == TEXT_NONE) {
@@ -206,7 +252,16 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source
         }
     }
 
-    OptionalPath_t install_location = package_store_location(digest);
+    // Cache the verified artifact so other projects can materialize their
+    // stores without re-downloading:
+    Path_t cache_dir = download_cache_dir(digest);
+    Path_t cached = Path$child(cache_dir, Path$base_name(downloaded));
+    if (!Path$exists(cached)) {
+        Result_t cache_result = Path$create_directory(cache_dir, 0755, true);
+        if (cache_result.Failure.reason.tag == TEXT_NONE) xsystem("cp ", quoted(downloaded), " ", quoted(cached));
+    }
+
+    OptionalPath_t install_location = Path$child(store_root, digest);
 
     Result_t result = Path$create_directory(install_location, 0755, true);
     if (result.Failure.reason.tag != TEXT_NONE) {
@@ -245,7 +300,7 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source
         }
     }
 
-    xsystem_cleanup(tmpdir, "tomo -p ", install_location);
+    xsystem_cleanup(tmpdir, quoted(tomo_exe()), " -p ", install_location);
 
     Path_t info = Path$child(install_location, Text("package_info.ini"));
     Path$write(info, Texts("name=", pkg->name, "\nsource=", source, "\ndigest=", digest, "\n"), 0644);
@@ -262,19 +317,33 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source
     return install_location;
 }
 
-static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool ask_confirmation) {
+static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool ask_confirmation,
+                                          Path_t store_root) {
     OptionalPath_t install_location = NULL;
     const char *digest = Table$str_get(pkg->info, "digest");
     if (digest) {
-        install_location = package_store_location(Text$from_str(digest));
+        install_location = Path$child(store_root, Text$from_str(digest));
         if (Path$exists(install_location)) {
+            ensure_package_built(install_location);
             return install_location;
+        }
+        // A verified artifact for this digest may already be cached, in which
+        // case no download (and no confirmation) is needed:
+        Path_t cache_dir = download_cache_dir(Text$from_str(digest));
+        if (Path$is_directory(cache_dir, true)) {
+            List_t cached = Path$children(cache_dir, true);
+            if (cached.length == 1) {
+                const char *source = Table$str_get(pkg->info, "source");
+                install_location = try_install_package_from_file(pkg, source ? source : "cache",
+                                                                 *(Path_t *)cached.data, NULL, store_root);
+                if (install_location != NULL) return install_location;
+            }
         }
     }
 
     const char *source = Table$str_get(pkg->info, "source");
     for (int i = 1; source; i++) {
-        install_location = try_install_package_from_source(ini_file, pkg, source, ask_confirmation);
+        install_location = try_install_package_from_source(ini_file, pkg, source, ask_confirmation, store_root);
         if (install_location != NULL) return install_location;
         const char *new_source_key = String("source-", i + 1);
         source = Table$str_get(pkg->info, new_source_key);
@@ -283,7 +352,8 @@ static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool
     return NULL;
 }
 
-static OptionalPath_t get_package_install_location(Table_t *build_info, Path_t ini_file, const char *name) {
+static OptionalPath_t get_package_install_location(Table_t *build_info, Path_t ini_file, const char *name,
+                                                   Path_t store_root) {
     OptionalClosure_t by_line = Path$by_line(ini_file);
     if (by_line.fn == NULL) return NONE_PATH;
     OptionalText_t (*next_line)(void *) = by_line.fn;
@@ -308,7 +378,7 @@ found_package:;
         }
     }
     bool had_digest = Table$str_get(pkg.info, "digest") != NULL;
-    OptionalPath_t installed = try_install_package(ini_file, &pkg, true);
+    OptionalPath_t installed = try_install_package(ini_file, &pkg, true, store_root);
     if (installed == NULL) return NULL;
 
     if (!had_digest && Table$str_get(pkg.info, "digest") != NULL) {
@@ -337,20 +407,21 @@ found_package:;
 OptionalPath_t find_installed_package(Table_t *build_info, ast_t *use) {
     const char *name = Match(use, Use)->path;
     Path_t using_file = Path$from_str(use->file->filename);
+    Path_t store_root = package_store_root(using_file);
     OptionalPath_t installed = NONE_PATH;
 
     Path_t file_package = Path$from_str(String(use->file->filename, ":packages.ini"));
-    installed = get_package_install_location(build_info, file_package, name);
+    installed = get_package_install_location(build_info, file_package, name, store_root);
 
     if (installed == NULL) {
         Path_t local_package = Path$sibling(using_file, Text("packages.ini"));
-        installed = get_package_install_location(build_info, local_package, name);
+        installed = get_package_install_location(build_info, local_package, name, store_root);
     }
 
     if (installed == NULL) {
         Path_t tomo_default_packages =
             Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/packages.ini"));
-        installed = get_package_install_location(build_info, tomo_default_packages, name);
+        installed = get_package_install_location(build_info, tomo_default_packages, name, store_root);
     }
 
     if (installed != NULL) create_binding_link(using_file, name, installed);
