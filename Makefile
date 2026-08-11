@@ -80,7 +80,7 @@ endif
 ifneq ($(call zig_is_static,$(ZIG_PLATFORM)),)
 	STATIC_FLAG=-static
 endif
-CCONFIG=$(TARGET_FLAG) -std=c23 -fPIC \
+CCONFIG=$(TARGET_FLAG) -std=gnu23 -fPIC \
 		-fno-signed-zeros -fno-trapping-math \
 		-fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
@@ -119,17 +119,13 @@ OWNER=$(shell ls -ld '$(PREFIX)' | awk '{print $$3}')
 
 OS := $(shell uname -s)
 
-# Feature-test macro for the *target* OS (not the build host), since we may be
-# cross-compiling. _DEFAULT_SOURCE exposes the extensions musl gates (memmem,
-# dladdr, ...); macOS and the BSDs expose everything by default and need nothing.
-OSFLAGS = $(if $(filter linux,$(ZIG_OS)),-D_DEFAULT_SOURCE,)
 EXTRA=
 G=-ggdb
 O=-O3
 # Note: older versions of Make have buggy behavior with hash marks inside strings, so this ugly code is necessary:
 TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print $$2; exit}' CHANGES.md)
 GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h" 2>/dev/null || echo "unknown")
-CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) \
+CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) \
 	   -DSUDO='"$(SUDO)"' \
 	   -DZIG_TARGET='"$(ZIG_TARGET)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections \

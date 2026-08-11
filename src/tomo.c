@@ -92,12 +92,10 @@ static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, pars
               show_build_info = EMPTY_LIST;
 
 static OptionalText_t show_codegen = NONE_TEXT,
-                      cflags = Text("-Werror -fdollars-in-identifiers -std=c23 -Wno-trigraphs"
+                      cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
                                     " -ffunction-sections -fdata-sections"
                                     " -fno-signed-zeros"
-                                    // _DEFAULT_SOURCE exposes the libc extensions musl gates
-                                    // (macOS/BSD headers are default-visible and ignore it):
-                                    " -D_DEFAULT_SOURCE -fPIC -ggdb"
+                                    " -fPIC -ggdb"
                                     " -DGC_THREADS"),
                       ldlibs = Text("-lm"), ldflags = Text(""), optimization = Text("2"),
                       // The toolchain is not configurable; these are set in main() to the
