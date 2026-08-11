@@ -72,6 +72,10 @@ ZIG_PLATFORM?=$(ZIG_HOST_PLATFORM)
 ZIG_TARGET?=$(call zig_target,$(ZIG_PLATFORM))
 ZIG_OS=$(call zig_os,$(ZIG_PLATFORM))
 BUILD_BASE=build/$(ZIG_PLATFORM)
+# Static libraries + license texts produced by the vendor build (see
+# vendor/Makefile, which pins a version and SHA-256 checksum for each):
+VENDORED_LIBS=$(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a
+VENDOR_LICENSES=$(BUILD_BASE)/gc/LICENSE $(BUILD_BASE)/gmp/COPYING.LESSERv3 $(BUILD_BASE)/gmp/COPYINGv2 $(BUILD_BASE)/unistring/COPYING.LIB $(BUILD_BASE)/backtrace/LICENSE
 ifneq ($(ZIG_TARGET),)
 	TARGET_FLAG=-target $(ZIG_TARGET)
 endif
@@ -265,12 +269,27 @@ $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE: $(ZIG_STAGED) | $(
 	cp $(BUILD_BASE)/zig/LICENSE $@
 # --------------------------------------------------------------------------
 
+# Ship the license text of every vendored library too (GMP is dual-licensed,
+# LGPLv3+ or GPLv2+, so both of its texts ship):
+LICENSES_DIR = $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
+VENDOR_LICENSE_PRODUCTS = $(LICENSES_DIR)/GC-LICENSE \
+	$(LICENSES_DIR)/GMP-COPYING.LESSERv3 $(LICENSES_DIR)/GMP-COPYINGv2 \
+	$(LICENSES_DIR)/UNISTRING-COPYING.LIB $(LICENSES_DIR)/LIBBACKTRACE-LICENSE
+
+$(VENDOR_LICENSE_PRODUCTS) &: $(VENDOR_LICENSES) | $(LICENSES_DIR)
+	cp $(BUILD_BASE)/gc/LICENSE $(LICENSES_DIR)/GC-LICENSE
+	cp $(BUILD_BASE)/gmp/COPYING.LESSERv3 $(LICENSES_DIR)/GMP-COPYING.LESSERv3
+	cp $(BUILD_BASE)/gmp/COPYINGv2 $(LICENSES_DIR)/GMP-COPYINGv2
+	cp $(BUILD_BASE)/unistring/COPYING.LIB $(LICENSES_DIR)/UNISTRING-COPYING.LIB
+	cp $(BUILD_BASE)/backtrace/LICENSE $(LICENSES_DIR)/LIBBACKTRACE-LICENSE
+
 # Everything that makes up an installed Tomo tree for the current platform:
 BUILD_PRODUCTS = $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
 	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini \
 	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md $(build_headers) $(build_manpages) \
 	$(BUILD_DIR)/include/gc.h \
-	$(ZIG_BUNDLE_DIR)/zig $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE
+	$(ZIG_BUNDLE_DIR)/zig $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE \
+	$(VENDOR_LICENSE_PRODUCTS)
 
 build: $(BUILD_PRODUCTS)
 
@@ -370,13 +389,13 @@ examples:
 core-libs:
 	./local-tomo -L packages/core.ini
 
-deps: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a
+deps: $(VENDORED_LIBS) $(VENDOR_LICENSES)
 
 # "&:" (grouped targets) tells make that ONE invocation of this recipe produces
 # all of these files. With a plain multi-target rule, parallel make would run
 # the recipe once per missing file -- several concurrent `make -C vendor`
 # instances racing to extract and configure the same source trees.
-$(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a &:
+$(VENDORED_LIBS) $(VENDOR_LICENSES) &:
 	$(MAKE) -C vendor ZIG_PLATFORM='$(ZIG_PLATFORM)' ZIG_TARGET='$(ZIG_TARGET)' BUILD_BASE='$(CURDIR)/$(BUILD_BASE)'
 
 install-files: build check-zig

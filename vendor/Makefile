@@ -1,7 +1,12 @@
+# Pinned versions + SHA-256 checksums for every vendored dependency. Every
+# download is verified against its pinned checksum before use.
 GMP_VERSION=6.3.0
+GMP_SHA256=a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898
 UNISTRING_VERSION=1.4.2
+UNISTRING_SHA256=e82664b170064e62331962126b259d452d53b227bb4a93ab20040d846fec01d8
 GC_VERSION=8.2.8
-# libbacktrace has no releases; pin a specific commit (checksum-verified):
+GC_SHA256=7649020621cb26325e1fb5c8742590d92fb48ce5c259b502faf7d9fb5dabb160
+# libbacktrace has no releases; pin a specific commit:
 LIBBACKTRACE_VERSION=6f8310e238fc3ce68f42f391cbe93fd156bb2c23
 LIBBACKTRACE_SHA256=a6212badda77ece1e28ec7ed6ffebf7bd656fb481cfe5a3453e5164e4f1c28ce
 
@@ -78,8 +83,37 @@ GMP_EXTRA = $(if $(filter macos,$(TARGET_OS)),--disable-assembly gmp_cv_asm_unde
 # Per-platform extraction/build directories for the C dependencies:
 DEPS_DIR = $(BUILD_BASE)/deps
 
+# License texts for each vendored library, staged next to its build products
+# so the top-level Makefile can ship them in share/licenses/. GMP is
+# dual-licensed (LGPLv3+ or GPLv2+), so both of its texts ship; libunistring
+# (same dual license) ships only COPYING.LIB, the license text in its tarball
+# that covers the library.
+LICENSE_FILES = $(BUILD_BASE)/gc/LICENSE \
+	$(BUILD_BASE)/gmp/COPYING.LESSERv3 $(BUILD_BASE)/gmp/COPYINGv2 \
+	$(BUILD_BASE)/unistring/COPYING.LIB \
+	$(BUILD_BASE)/backtrace/LICENSE
+
 all: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/unistring/lib/libunistring.a \
-	$(BUILD_BASE)/backtrace/lib/libbacktrace.a
+	$(BUILD_BASE)/backtrace/lib/libbacktrace.a $(LICENSE_FILES)
+
+# Boehm GC ships no standalone LICENSE file; README.QUICK opens with the
+# canonical permissive license text (the same file distros install as its
+# license).
+$(BUILD_BASE)/gc/LICENSE: $(DEPS_DIR)/gc-$(GC_VERSION)/configure
+	@mkdir -p $(dir $@)
+	cp $(DEPS_DIR)/gc-$(GC_VERSION)/README.QUICK $@
+
+$(BUILD_BASE)/gmp/COPYING.LESSERv3 $(BUILD_BASE)/gmp/COPYINGv2 &: $(DEPS_DIR)/gmp-$(GMP_VERSION)/configure
+	@mkdir -p $(BUILD_BASE)/gmp
+	cp $(DEPS_DIR)/gmp-$(GMP_VERSION)/COPYING.LESSERv3 $(DEPS_DIR)/gmp-$(GMP_VERSION)/COPYINGv2 $(BUILD_BASE)/gmp/
+
+$(BUILD_BASE)/unistring/COPYING.LIB: $(DEPS_DIR)/libunistring-$(UNISTRING_VERSION)/configure
+	@mkdir -p $(dir $@)
+	cp $(DEPS_DIR)/libunistring-$(UNISTRING_VERSION)/COPYING.LIB $@
+
+$(BUILD_BASE)/backtrace/LICENSE: $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/configure
+	@mkdir -p $(dir $@)
+	cp $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/LICENSE $@
 
 # ===========================================================================
 # Zig toolchain
@@ -136,7 +170,9 @@ zig: $(BUILD_BASE)/zig/zig
 
 # Boehm-Demers-Weiser Garbage collector
 gc-$(GC_VERSION).tar.gz:
-	curl -LOJ 'https://hboehm.info/gc/gc_source/gc-$(GC_VERSION).tar.gz'
+	curl -fL -o $@.tmp 'https://hboehm.info/gc/gc_source/gc-$(GC_VERSION).tar.gz'
+	@echo '$(GC_SHA256)  $@.tmp' | sha256sum -c - || { rm -f $@.tmp; false; }
+	@mv $@.tmp $@
 
 $(DEPS_DIR)/gc-$(GC_VERSION)/configure: gc-$(GC_VERSION).tar.gz
 	mkdir -p $(DEPS_DIR)
@@ -160,7 +196,9 @@ $(BUILD_BASE)/gc/lib/libgc.a: $(DEPS_DIR)/gc-$(GC_VERSION)/Makefile
 
 # GNU Multiple Precision Arithmetic Library
 gmp-$(GMP_VERSION).tar.xz:
-	curl -LOJ 'https://gmplib.org/download/gmp/gmp-$(GMP_VERSION).tar.xz'
+	curl -fL -o $@.tmp 'https://gmplib.org/download/gmp/gmp-$(GMP_VERSION).tar.xz'
+	@echo '$(GMP_SHA256)  $@.tmp' | sha256sum -c - || { rm -f $@.tmp; false; }
+	@mv $@.tmp $@
 
 $(DEPS_DIR)/gmp-$(GMP_VERSION)/configure: gmp-$(GMP_VERSION).tar.xz
 	mkdir -p $(DEPS_DIR)
@@ -181,7 +219,9 @@ $(BUILD_BASE)/gmp/lib/libgmp.a: $(DEPS_DIR)/gmp-$(GMP_VERSION)/Makefile
 
 # Lib Unistring
 libunistring-$(UNISTRING_VERSION).tar.gz:
-	curl -LOJ 'https://ftp.gnu.org/gnu/libunistring/libunistring-$(UNISTRING_VERSION).tar.gz'
+	curl -fL -o $@.tmp 'https://ftp.gnu.org/gnu/libunistring/libunistring-$(UNISTRING_VERSION).tar.gz'
+	@echo '$(UNISTRING_SHA256)  $@.tmp' | sha256sum -c - || { rm -f $@.tmp; false; }
+	@mv $@.tmp $@
 
 # Preserve archive timestamps (no `m` flag) so the pre-generated gperf output
 # headers stay newer than their .gperf sources and aren't rebuilt (which would
