@@ -24,8 +24,8 @@ Build a package:
 Tomo is a programming language that is statically typed, compiled,
 small, and garbage\-collected, with concise syntax and built\-in support
 for high\-performance, low\-overhead datastructures.
-It compiles by first outputting C code, which is then compiled using a C
-compiler of your choice.
+It compiles by first outputting C code, which is then compiled using the
+Zig toolchain bundled with the Tomo installation.
 .SH OPTIONS
 .TP
 \f[B]\-\-changelog\f[R]
@@ -49,6 +49,10 @@ Compile the input folders to shared packages.
 \f[B]\-\-install\f[R], \f[B]\-I\f[R]
 When using \f[B]\-e\f[R] or \f[B]\-L\f[R], install the resulting
 executables or packages.
+.TP
+\f[B]\-\-install\-target\f[R]
+When using \f[B]\-\-target\f[R], download and install the target
+platform\[cq]s libraries without asking for confirmation.
 .TP
 \f[B]\-\-show\-codegen\f[R] \f[I]\f[R], \f[B]\-C\f[R] \f[I]\f[R]
 Set a program (e.g.\ \f[B]cat\f[R] or \f[B]bat\f[R]) to display the
@@ -74,6 +78,15 @@ Run in quiet mode.
 .TP
 \f[B]\-\-source\-mapping=\f[R], \f[B]\-m=\f[R] \f[B]<yes|no>\f[R]
 Toggle whether source mapping should be enabled or disabled.
+.TP
+\f[B]\-\-target\f[R] \f[I]platform\f[R]
+Cross\-compile for another platform (e.g.\ \f[B]aarch64\-macos\f[R])
+instead of this machine\[cq]s.
+The target platform\[cq]s libraries are installed on demand from its
+Tomo distribution archive.
+Cross\-compiled executables get the platform as a filename suffix
+(e.g.\ \f[B]foo.aarch64\-macos\f[R]) and cannot be run or installed on
+this machine.
 .TP
 \f[B]\-\-uninstall\f[R], \f[B]\-u\f[R] \f[I]pkg1\f[R] \f[I]pkg2\f[R]\&...
 Uninstall the given packages.

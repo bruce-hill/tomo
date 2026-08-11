@@ -14,6 +14,16 @@ extern const char *TOMO_VERSION;
 #define ZIG_TARGET ""
 #endif
 
+// The platform key this Tomo build is for (e.g. "x86_64-linux") and the
+// space-separated list of platforms Tomo distributions exist for. Used by the
+// --target flag to validate and set up cross-compilation.
+#ifndef TOMO_PLATFORM
+#define TOMO_PLATFORM ""
+#endif
+#ifndef TOMO_DIST_PLATFORMS
+#define TOMO_DIST_PLATFORMS ""
+#endif
+
 #ifndef SUDO
 #if defined(__OpenBSD__)
 #define SUDO "doas"

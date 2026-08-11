@@ -163,6 +163,33 @@ link the resulting object files together.
                                    +----------+
 ```
 
+# Cross-Compilation
+
+`tomo --target <platform>` compiles executables, objects, or packages for
+another platform (e.g. `tomo --target aarch64-macos -e foo.tm`). The bundled
+Zig toolchain can target every supported platform, so cross-compiling only
+additionally needs the *target* platform's libraries (libtomo and the vendored
+libraries/headers). Those are installed on demand into
+`$XDG_DATA_HOME/tomo/tomo@VERSION/targets/<platform>/` (defaulting to
+`~/.local/share/...`, so no root permissions are needed) by downloading the
+target platform's Tomo distribution archive and extracting its `lib/` and
+`include/` trees. If the target isn't installed yet, Tomo asks for
+confirmation before downloading (or fails when stdin isn't a terminal);
+passing `--install-target` skips the confirmation. `TOMO_DIST_URL` overrides
+the download location.
+
+Cross-compiled artifacts go into a per-target `.build/<platform>/`
+subdirectory, and executables are named with the platform as a suffix
+(`foo.aarch64-macos`), so builds for different targets never interfere with
+native builds or each other. Programs that use installed packages recompile
+those packages' modules from their installed sources for the target instead of
+linking the native `package.a`. Cross-compiled programs can't be run or
+installed on the build machine.
+
+The supported platforms are the ones distribution archives exist for:
+x86_64/aarch64/riscv64/powerpc64le/s390x Linux, x86_64/aarch64 macOS, and
+x86_64/aarch64 FreeBSD/NetBSD/OpenBSD.
+
 # Build Metadata
 
 Tomo attaches build information and version data to each compiled executable and library file.

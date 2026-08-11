@@ -164,7 +164,7 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
             Text_t includes = EMPTY_TEXT;
             for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t tm_file = *(Path_t *)(children.data + i * children.stride);
-                Path_t lib_build_dir = Path$sibling(tm_file, Text(".build"));
+                Path_t lib_build_dir = tm_build_dir(tm_file);
                 Path_t header = Path$child(lib_build_dir, Texts(Path$base_name(tm_file), Text(".h")));
                 includes = Texts(includes, "#include \"", Path$as_c_string(header), "\"\n");
             }
@@ -172,7 +172,7 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         }
         case USE_LOCAL: {
             Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
-            Path_t used_build_dir = Path$sibling(used_path, Text(".build"));
+            Path_t used_build_dir = tm_build_dir(used_path);
             Path_t used_header_path = Path$child(used_build_dir, Texts(Path$base_name(used_path), Text(".h")));
             return Texts("#include \"", Path$as_c_string(Path$relative_to(used_header_path, build_dir)), "\"\n");
         }

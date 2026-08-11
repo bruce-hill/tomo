@@ -84,7 +84,21 @@ static const char *paths_str(List_t paths) {
 }
 
 static OptionalBool_t verbose = false, quiet = false, show_version = false, show_prefix = false, clean_build = false,
-                      source_mapping = true, should_install = false;
+                      source_mapping = true, should_install = false, install_target = false;
+
+// Cross-compilation state, set up in main() when --target names a platform
+// other than the one this Tomo build is for:
+static OptionalText_t target = NONE_TEXT;
+static bool cross_compiling = false;
+// The directory holding the target platform's lib/ + include/ trees (extracted
+// from that platform's Tomo distribution archive). Lives in the user's XDG data
+// directory rather than TOMO_PATH so installing one never needs root:
+static Text_t target_root = Text("");
+// The prefix whose lib/ + include/ user programs compile and link against
+// (TOMO_PATH normally, target_root when cross-compiling):
+static Text_t lib_root = Text("");
+// Whether the platform being compiled for uses Mach-O linking (macOS):
+static bool link_macho = false;
 
 static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
               transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
@@ -130,6 +144,56 @@ static Path_t get_exe_path(Path_t path);
 typedef struct {
     bool h : 1, c : 1, o : 1;
 } staleness_t;
+
+// The OS component of a platform key like "x86_64-linux" (the part after the
+// last dash; architectures never contain dashes):
+static const char *platform_os(const char *platform) {
+    const char *dash = strrchr(platform, '-');
+    return dash ? dash + 1 : platform;
+}
+
+// The `zig cc -target` triple for a platform key: Linux targets musl; every
+// other OS's platform key is already a valid Zig target:
+static const char *platform_triple(const char *platform) {
+    if (streq(platform_os(platform), "linux")) return String(platform, "-musl");
+    return platform;
+}
+
+static bool platform_supported(const char *platform) {
+    return strstr(" " TOMO_DIST_PLATFORMS " ", String(" ", platform, " ")) != NULL;
+}
+
+// Cross-compiling needs the *target* platform's libtomo, vendored libraries,
+// and headers. They come from the target platform's Tomo distribution archive,
+// whose lib/ + include/ trees get extracted into target_root. If they're not
+// installed yet, offer to download them (or just do it if --install-target).
+static void ensure_target_installed(void) {
+    Path_t marker = Path$from_str(String(target_root, "/lib/libtomo@", TOMO_VERSION, ".a"));
+    if (Path$is_file(marker, true)) return;
+
+    const char *dist_url = getenv("TOMO_DIST_URL");
+    if (!dist_url || dist_url[0] == '\0') dist_url = "https://tomo.bruce-hill.com/dist";
+    Text_t archive_url = Texts(Text$from_str(dist_url), "/tomo@", TOMO_VERSION, "-", target, ".tar.xz");
+
+    if (!install_target) {
+        fprint(stderr, "The target platform \x1b[1m", target, "\x1b[m is not installed.");
+        if (!isatty(STDIN_FILENO))
+            print_err("Re-run with --install-target to download and install it from ", archive_url);
+        fprint_inline(stderr, "Download and install it from ", archive_url, "? [Y/n] ");
+        fflush(stderr);
+        char answer[16] = {};
+        if (!fgets(answer, sizeof(answer), stdin) || answer[0] == 'n' || answer[0] == 'N')
+            print_err("Not installing the target platform ", target);
+    }
+
+    print("Installing target platform \x1b[1m", target, "\x1b[m from ", archive_url, " ...");
+    Text_t tmp_archive = Texts(target_root, ".tar.xz.tmp");
+    xsystem("mkdir -p '", target_root, "'");
+    xsystem("curl -#fSL '", archive_url, "' -o '", tmp_archive, "'");
+    xsystem("tar -xJf '", tmp_archive, "' -C '", target_root, "' ./lib ./include");
+    xsystem("rm -f '", tmp_archive, "'");
+    print("Installed target platform \x1b[1m", target, "\x1b[m");
+}
 
 static List_t normalize_tm_paths(List_t paths) {
     List_t result = EMPTY_LIST;
@@ -184,8 +248,6 @@ int main(int argc, char *argv[]) {
     // zig's llvm-based ar, so no system binutils is needed at runtime:
     ar = Texts(Text$from_str(TOMO_PATH), "/libexec/tomo@", TOMO_VERSION, "/zig/zig ar");
 
-    cflags = Texts("-I'", TOMO_PATH, "/include' -I'", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "' ", cflags);
-
     // Set up environment variables:
     const char *PATH = getenv("PATH");
     setenv("PATH", PATH ? String(TOMO_PATH, "/bin:", PATH) : String(TOMO_PATH, "/bin"), 1);
@@ -224,6 +286,8 @@ int main(int argc, char *argv[]) {
                          "  --optimization|-O <level>: set optimization level\n"
                          "  --force-rebuild|-f: force rebuilding\n"
                          "  --source-mapping|-m <yes|no>: toggle source mapping in generated code\n"
+                         "  --target <platform>: cross-compile for another platform (e.g. aarch64-macos)\n"
+                         "  --install-target: install the --target platform's libraries without asking\n"
                          "  --changelog: show the Tomo changelog\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
     cli_arg_t tomo_args[] = {
@@ -247,6 +311,8 @@ int main(int argc, char *argv[]) {
         {"optimization", &optimization, &Text$info, .short_flag = 'O'}, //
         {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f'}, //
         {"source-mapping", &source_mapping, &Bool$info, .short_flag = 'm'},
+        {"target", &target, &Text$info}, //
+        {"install-target", &install_target, &Bool$info}, //
     };
 
     tomo_parse_args(argc, argv, usage, help, TOMO_VERSION, sizeof(tomo_args) / sizeof(tomo_args[0]), tomo_args);
@@ -264,29 +330,74 @@ int main(int argc, char *argv[]) {
     // The compiler is always the bundled `zig cc` (a clang):
     cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
 
-    // Compile and link user programs for this platform's target using the bundled
-    // zig toolchain (the same one Tomo itself was built with). ZIG_TARGET is baked
-    // in at compile time; the vendored libraries bundled into libtomo were built
-    // for this same target.
-    if (ZIG_TARGET[0] != '\0') cflags = Texts("-target ", ZIG_TARGET, " ", cflags);
+    Text_t owner = Path$owner(Path$from_str(TOMO_PATH), true);
+    Text_t user = Text$from_str(getenv("USER"));
+    if (!Text$equal_values(user, owner)) {
+        as_owner = Texts(Text(SUDO " -u "), owner, Text(" "));
+    }
+
+    // Cross-compilation via --target: compile for another platform using the
+    // bundled zig toolchain (which can target every supported platform) and the
+    // target platform's libraries (installed on demand from its distribution
+    // archive):
+    if (install_target && target.length <= 0) print_err("--install-target requires --target <platform>");
+    if (target.length > 0 && !Text$equal_values(target, Text(TOMO_PLATFORM))) {
+        if (!platform_supported(Text$as_c_string(target)))
+            print_err("Unsupported target platform: ", target, "\nSupported platforms: " TOMO_DIST_PLATFORMS);
+        cross_compiling = true;
+        build_target_platform = target;
+        // Target platforms install into the user's XDG data directory (not
+        // TOMO_PATH), so installing one never needs root permissions:
+        const char *data_home = getenv("XDG_DATA_HOME");
+        Path_t data_dir = (data_home && data_home[0] != '\0')
+                              ? Path$from_str(data_home)
+                              : Path$expand_home(Path$from_str("~/.local/share"));
+        target_root = Texts(Path$as_text(&data_dir, false, &Path$info), "/tomo/tomo@", TOMO_VERSION, "/targets/", target);
+        ensure_target_installed();
+        if (should_install) print_err("--install can't be combined with --target: the binary wouldn't run here");
+        // `tomo --target <platform> --install-target` with nothing else to do:
+        if (install_target && run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0
+            && parse_files.length == 0 && transpile_files.length == 0 && compile_objects.length == 0
+            && compile_executables.length == 0 && uninstall_packages.length == 0 && packages.length == 0
+            && show_build_info.length == 0)
+            return 0;
+    }
+
+    // Compile against the headers and libraries of the platform being compiled
+    // for: the target's when cross-compiling, this installation's otherwise.
+    lib_root = cross_compiling ? target_root : Text$from_str(TOMO_PATH);
+    cflags = Texts("-I'", lib_root, "/include' -I'", lib_root, "/lib/tomo@", TOMO_VERSION, "' ", cflags);
+    if (cross_compiling) {
+        // Point the system-header/library search env vars at the target's too:
+        setenv("C_INCLUDE_PATH", String(lib_root, "/include"), 1);
+        setenv("CPATH", String(lib_root, "/include"), 1);
+        setenv("LIBRARY_PATH", String(lib_root, "/lib"), 1);
+        cflags = Texts("-target ", platform_triple(Text$as_c_string(target)), " ", cflags);
+    } else if (ZIG_TARGET[0] != '\0') {
+        // ZIG_TARGET (this build's own target triple) is baked in at compile time:
+        cflags = Texts("-target ", ZIG_TARGET, " ", cflags);
+    }
 
     ldflags = Texts(ldflags, Text(" -ffunction-sections -fdata-sections"));
     // The stack unwinder used by libtomo's stacktrace code; zig provides it for
     // every supported target:
     ldlibs = Texts(ldlibs, Text(" -lunwind"));
-#if defined(__linux__)
+    // Link flags depend on the OS being compiled for:
+    const char *link_os = cross_compiling ? platform_os(Text$as_c_string(target)) : platform_os(TOMO_PLATFORM);
     // Linux/musl links fully statically:
-    ldflags = Texts(ldflags, Text(" -static"));
-#endif
-#ifdef __APPLE__
-    ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");
-#else
-    ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-u,build_info");
-#endif
+    if (streq(link_os, "linux")) ldflags = Texts(ldflags, Text(" -static"));
+    if (streq(link_os, "macos")) {
+        link_macho = true;
+        ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");
+    } else {
+        ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-u,build_info");
+    }
 
 #ifdef __APPLE__
-    cflags = Texts(cflags, Text(" -I/opt/homebrew/include"));
-    ldflags = Texts(ldflags, Text(" -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib"));
+    if (!cross_compiling) {
+        cflags = Texts(cflags, Text(" -I/opt/homebrew/include"));
+        ldflags = Texts(ldflags, Text(" -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib"));
+    }
 #endif
 
     if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
@@ -294,12 +405,6 @@ int main(int argc, char *argv[]) {
 
     config_summary = Texts("TOMO_VERSION=", TOMO_VERSION, "\n", "COMPILER=", cc, " ", cflags, " -O", optimization, "\n",
                            "SOURCE_MAPPING=", source_mapping ? Text("yes") : Text("no"), "\n");
-
-    Text_t owner = Path$owner(Path$from_str(TOMO_PATH), true);
-    Text_t user = Text$from_str(getenv("USER"));
-    if (!Text$equal_values(user, owner)) {
-        as_owner = Texts(Text(SUDO " -u "), owner, Text(" "));
-    }
 
     // Uninstall packages:
     for (int64_t i = 0; i < (int64_t)uninstall_packages.length; i++) {
@@ -381,8 +486,13 @@ int main(int argc, char *argv[]) {
             Path_t path = *(Path_t *)(compile_executables.data + i * compile_executables.stride);
 
             Path_t exe_path = get_exe_path(path);
-            // Put executable as a sibling to the .tm file instead of in the .build directory
-            exe_path = Path$sibling(path, Path$base_name(exe_path));
+            // Put executable as a sibling to the .tm file instead of in the .build
+            // directory. Cross-compiled executables get the target platform as a
+            // suffix (foo.aarch64-macos) so they don't collide with the native
+            // executable or each other:
+            Text_t exe_name = Path$base_name(exe_path);
+            if (cross_compiling) exe_name = Texts(exe_name, ".", target);
+            exe_path = Path$sibling(path, exe_name);
             pid_t child = fork();
             if (child == 0) {
                 env_t *env = global_env(source_mapping);
@@ -463,6 +573,10 @@ int main(int argc, char *argv[]) {
     }
 
 run_files:;
+
+    if (cross_compiling && run_files.length > 0)
+        print_err("Programs cross-compiled with --target can't run on this machine; "
+                  "use --compile-exe to build them instead");
 
     // Compile runnable files in parallel, then execute in serial:
     for (int64_t i = 0; i < (int64_t)run_files.length; i++) {
@@ -547,19 +661,13 @@ Path_t get_exe_path(Path_t path) {
     OptionalText_t exe_name = ast_metadata(ast, "EXECUTABLE");
     if (exe_name.tag == TEXT_NONE) exe_name = Path$base_name(Path$with_extension(path, Text(""), true));
 
-    Path_t build_dir = Path$sibling(path, Text(".build"));
-    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (!Path$is_directory(build_dir, true)) err(1, "Could not make (%s) directory", build_dir);
-    }
-    return Path$child(build_dir, exe_name);
+    return Path$child(tm_build_dir(path), exe_name);
 }
 
+// Cross-compiled artifacts live in a per-target subdirectory
+// (.build/<platform>/) so they never clobber native builds' artifacts:
 Path_t build_file(Path_t path, const char *extension) {
-    Path_t build_dir = Path$sibling(path, Text(".build"));
-    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (!Path$is_directory(build_dir, true)) err(1, "Could not make (%s) directory", build_dir);
-    }
-    return Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(extension)));
+    return Path$child(tm_build_dir(path), Texts(Path$base_name(path), Text$from_str(extension)));
 }
 
 static Text_t get_build_info(env_t *env) {
@@ -594,7 +702,10 @@ void build_package(Path_t pkg_dir) {
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
-    Path_t archive = Path$child(pkg_dir, Text("package.a"));
+    // Cross-compiled package archives go in the per-target .build directory so
+    // they don't clobber the native package.a:
+    Path_t archive = cross_compiling ? build_file(Path$child(pkg_dir, Text("package.a")), "")
+                                     : Path$child(pkg_dir, Text("package.a"));
     if (is_stale_for_any(archive, object_files, false)) {
         add_git_info(env, pkg_dir);
 
@@ -794,10 +905,23 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
         case USE_PACKAGE: {
             OptionalPath_t installed = find_installed_package(build_info, stmt_ast);
             if (!installed) code_err(stmt_ast, "I don't know where to find this package.");
+
+            List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
+            if (cross_compiling) {
+                // Installed package archives were compiled for the native
+                // platform, so cross builds recompile the package's modules from
+                // their installed sources (into per-target .build directories)
+                // and link those objects instead of package.a:
+                for (int64_t i = 0; i < (int64_t)children.length; i++) {
+                    Path_t *child = (Path_t *)(children.data + i * children.stride);
+                    build_file_dependency_graph(build_info, *child, to_compile, to_link);
+                }
+                break;
+            }
+
             Text_t lib = Texts(installed, "/package.a");
             Table$set(to_link, &lib, NULL, Table$info(&Text$info, &Void$info));
 
-            List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
             for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t *child = (Path_t *)(children.data + i * children.stride);
                 Table_t discarded = {.entries = EMPTY_LIST, .fallback = to_compile};
@@ -1097,11 +1221,8 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         // grouping is needed for circular dependencies among packages: zig links
         // with lld, which resolves archive members iteratively.
         " ", list_text(archives),
-    // Tomo static library:
-#ifndef __APPLE__
-        " -Wl,--no-whole-archive",
-#endif
-        " ", TOMO_PATH, "/lib/libtomo@", TOMO_VERSION, ".a",
+        // Tomo static library (Mach-O linking has no --no-whole-archive):
+        link_macho ? "" : " -Wl,--no-whole-archive", " ", lib_root, "/lib/libtomo@", TOMO_VERSION, ".a",
         // Output file:
         " -o ", exe_path);
 

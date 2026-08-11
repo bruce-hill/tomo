@@ -2,6 +2,14 @@
 
 ## 2026-08-10
 
+- New `--target <platform>` flag: cross-compile executables, objects, and
+  packages for any supported platform (e.g. `tomo --target aarch64-macos -e
+  foo.tm`). The target platform's libraries are installed on demand (with
+  confirmation, or unprompted with `--install-target`) into the XDG data
+  directory by downloading that platform's distribution archive.
+  Cross-compiled artifacts live in `.build/<platform>/` and executables are
+  suffixed with the platform name, so they never collide with native builds.
+
 - The Tomo compiler is now built as a fully static executable using `zig cc`
   with musl libc. The vendored dependencies (Boehm GC, GMP, libunistring) are
   also built statically with the same toolchain. Building now requires `zig`

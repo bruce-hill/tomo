@@ -103,14 +103,28 @@ Text_t CONSTFUNC namespace_name(env_t *env, namespace_t *ns, Text_t name) {
     return name;
 }
 
+public Text_t build_target_platform = EMPTY_TEXT;
+
+public
+Path_t tm_build_dir(Path_t tm_path) {
+    Path_t build_dir = Path$sibling(tm_path, Text(".build"));
+    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
+        if (!Path$is_directory(build_dir, true)) err(1, "Could not make .build directory");
+    }
+    if (build_target_platform.length > 0) {
+        build_dir = Path$child(build_dir, build_target_platform);
+        if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
+            if (!Path$is_directory(build_dir, true)) err(1, "Could not make .build directory");
+        }
+    }
+    return build_dir;
+}
+
 public
 Text_t get_id_suffix(const char *filename) {
     assert(filename);
     Path_t path = Path$from_str(filename);
-    Path_t build_dir = Path$sibling(path, Text(".build"));
-    if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (!Path$is_directory(build_dir, true)) err(1, "Could not make .build directory");
-    }
+    Path_t build_dir = tm_build_dir(path);
     Path_t id_file = Path$child(build_dir, Texts(Path$base_name(path), Text$from_str(".id")));
     OptionalText_t id = Path$read(id_file);
     if (id.tag == TEXT_NONE) err(1, "Could not read ID file: %s", Path$as_c_string(id_file));

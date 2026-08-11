@@ -132,6 +132,8 @@ GIT_VERSION=$(shell git log -1 --pretty=format:"%as_%h" 2>/dev/null || echo "unk
 CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) \
 	   -DSUDO='"$(SUDO)"' \
 	   -DZIG_TARGET='"$(ZIG_TARGET)"' \
+	   -DTOMO_PLATFORM='"$(ZIG_PLATFORM)"' \
+	   -DTOMO_DIST_PLATFORMS='"$(ZIG_DIST_PLATFORMS)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections \
 	   -UNDEBUG # `zig cc` defines NDEBUG at -O, but the code relies on active assert()s
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 

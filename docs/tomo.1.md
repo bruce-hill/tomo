@@ -28,7 +28,8 @@ Build a package:
 Tomo is a programming language that is statically typed, compiled, small, and
 garbage-collected, with concise syntax and built-in support for
 high-performance, low-overhead datastructures. It compiles by first outputting
-C code, which is then compiled using a C compiler of your choice.
+C code, which is then compiled using the Zig toolchain bundled with the Tomo
+installation.
 
 # OPTIONS
 
@@ -53,6 +54,10 @@ C code, which is then compiled using a C compiler of your choice.
 `--install`, `-I`
 : When using `-e` or `-L`, install the resulting executables or packages.
 
+`--install-target`
+: When using `--target`, download and install the target platform's libraries
+without asking for confirmation.
+
 `--show-codegen` *<program>*, `-C` *<program>*
 : Set a program (e.g. `cat` or `bat`) to display the generated code
 
@@ -76,6 +81,13 @@ C code, which is then compiled using a C compiler of your choice.
 
 `--source-mapping=`, `-m=` **<yes|no>**
 : Toggle whether source mapping should be enabled or disabled.
+
+`--target` *platform*
+: Cross-compile for another platform (e.g. `aarch64-macos`) instead of this
+machine's. The target platform's libraries are installed on demand from its
+Tomo distribution archive. Cross-compiled executables get the platform as a
+filename suffix (e.g. `foo.aarch64-macos`) and cannot be run or installed on
+this machine.
 
 `--uninstall`, `-u` *pkg1* *pkg2*...
 : Uninstall the given packages.
