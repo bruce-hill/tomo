@@ -89,14 +89,45 @@ all users can be confident that if they have a package whose source code has is
 also `X`, then it can be used without issues, regardless of where they got it.
 
 
+## The Package Store
+
+Installed packages are content-addressed: each project keeps its own store of
+them in `.build/store/<package-digest>/`, next to the project's source files.
+The names things call packages by are symlinks: whenever a `use name` resolves,
+Tomo records a `packages/name` binding link next to the consumer -- in the
+project's `.build/packages/` directory, pointing at `../store/<digest>`, or,
+for a package inside the store using another package, in that store entry's own
+`packages/` directory, pointing at `../../<digest>`. Every level of the
+dependency graph thus resolves the same way (`./packages/name`, one level at a
+time), the links are all relative (so a project directory is fully
+relocatable), and binding names stay scoped to their consumer: two projects (or
+two packages) can bind the same name to different versions without collision.
+
+Because the store is per-project, deleting `.build` removes everything, no
+compile ever writes outside your project directory, and upgrading Tomo never
+orphans your installed packages.
+
+To avoid re-downloading the same archives for every project, verified source
+archives are also cached globally in `$XDG_CACHE_HOME/tomo/<digest>/`
+(`~/.cache/tomo/` by default), keyed by digest. Installing a package checks the
+project store first, then the cache (re-verifying the digest), and only then
+downloads. The cache can be deleted at any time.
+
+Compiled executables embed a zip of everything needed to rebuild them: the
+program's sources, its `packages.ini` pins, license texts, and the full sources
+of every package linked in. `tomo --extract-source <program>` unpacks that into
+a `<program>-source/` directory with exactly the shape of a working project --
+including a pre-seeded `.build/store/` and its binding links -- so an extracted
+tree rebuilds as-is, offline, with no edits.
+
 ## Package Sources
 
 When you run a piece of Tomo code for the first time, Tomo will look to see if
-you have the necessary packages installed. To do so, Tomo will look for
-`~/.local/lib/tomo@<tomo-version>/<package-digest>`. If not, then Tomo will
-look for sources listed in your `packages.ini` files. Sources are enumerated
-as `source`, `source-2`, `source-3`, and so on. Each will be checked in order
-to find a valid version of the package.
+you have the necessary packages installed in the project's package store. If
+not, and no cached archive matches the pinned digest, then Tomo will look for
+sources listed in your `packages.ini` files. Sources are enumerated as
+`source`, `source-2`, `source-3`, and so on. Each will be checked in order to
+find a valid version of the package.
 
 For each source, Tomo will perform the following steps:
 
@@ -115,8 +146,9 @@ For each source, Tomo will perform the following steps:
 3. If a digest is not provided in your `packages.ini`, Tomo will compute a
    digest for the newly downloaded file and save it to your `packages.ini` file
    so that all future compilations will know what the digest must be.
-4. The source archive will be extracted to `~/.local/lib/tomo@<tomo-version>/<package-digest>`
-   and compiled with `tomo -L`.
+4. The source archive will be extracted to the project's package store
+   (`.build/store/<package-digest>`), compiled with `tomo -p`, and the verified
+   archive will be saved to the global download cache.
 
 Package sources are not tied to any single distribution channel by design. You
 can host your packages on GitHub, BitBucket, GitLab, your own personal
@@ -132,8 +164,8 @@ a source archive with the right hash.
 As a special case, Tomo also permits using local directories as sources. If a
 source is listed as a file path to a local directory (instead of an archive
 file), Tomo will use the code in that directory for the package without saving
-a digest or installing the package in `~/.local/lib/tomo@<tomo-version>`. This
-makes it possible to easily vendor a dependency (e.g. with git submodules).
+a digest or copying the package into the project's store. This makes it
+possible to easily vendor a dependency (e.g. with git submodules).
 
 ```ini
 [mypackage]
@@ -171,7 +203,7 @@ dependencies, and so on.
 
 ## Package Coresidence
 
-Because pacakges are installed to unique locations based on their source code
+Because packages are installed to unique locations based on their source code
 hashes, it is possible for your project to install different versions of the
 same package through transitive dependencies. For example, if you use package
 `foo` and package `baz` and `foo` relies on `commonlib-v1.2` while package

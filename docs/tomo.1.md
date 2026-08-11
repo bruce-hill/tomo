@@ -52,7 +52,17 @@ installation.
 : Compile the input folders to shared packages.
 
 `--install`, `-I`
-: When using `-e` or `-L`, install the resulting executables or packages.
+: When using `-e` or `-p`, install the resulting executables or packages.
+
+`--build-info`, `-b` *file1* *file2*...
+: Print the build info embedded in the given compiled files (executables or
+package archives).
+
+`--extract-source`, `-x` *program1* *program2*...
+: Extract the source files embedded in the given compiled programs, each into a
+`<program>-source/` directory. The extracted directory is a working project:
+it includes the program's sources, `packages.ini`, license texts, and a
+pre-seeded package store, so it can be rebuilt as-is without network access.
 
 `--install-target`
 : When using `--target`, download and install the target platform's libraries

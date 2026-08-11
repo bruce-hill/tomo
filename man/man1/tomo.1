@@ -47,8 +47,20 @@ Print the usage and exit.
 Compile the input folders to shared packages.
 .TP
 \f[B]\-\-install\f[R], \f[B]\-I\f[R]
-When using \f[B]\-e\f[R] or \f[B]\-L\f[R], install the resulting
+When using \f[B]\-e\f[R] or \f[B]\-p\f[R], install the resulting
 executables or packages.
+.TP
+\f[B]\-\-build\-info\f[R], \f[B]\-b\f[R] \f[I]file1\f[R] \f[I]file2\f[R]\&...
+Print the build info embedded in the given compiled files (executables
+or package archives).
+.TP
+\f[B]\-\-extract\-source\f[R], \f[B]\-x\f[R] \f[I]program1\f[R] \f[I]program2\f[R]\&...
+Extract the source files embedded in the given compiled programs, each
+into a \f[B]<program>\-source/\f[R] directory.
+The extracted directory is a working project: it includes the
+program\[cq]s sources, \f[B]packages.ini\f[R], license texts, and a
+pre\-seeded package store, so it can be rebuilt as\-is without network
+access.
 .TP
 \f[B]\-\-install\-target\f[R]
 When using \f[B]\-\-target\f[R], download and install the target
