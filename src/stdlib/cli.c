@@ -274,11 +274,11 @@ static void materialize_help_text(const char *prog, cli_spec_t *cli) {
     if (cli->usage.length == 0) {
         Text_t usage = Texts("\x1b[93;4;1mUsage:\x1b[m ", prog,
                              " [command] [flags...] [args...]\n"
-                             "\n\x1b[1mCommands:\x1b[m\n");
+                             "\n\x1b[4;1mCommands:\x1b[m\n");
         for (int i = 0; i < cli->num_commands; i++)
             usage = Texts(usage, "  \x1b[1;32m", cli->commands[i]->name, "\x1b[m: ", cli->commands[i]->summary, "\n");
         if (cli->description) usage = Texts(usage, "\n", cli->description, "\n");
-        usage = Texts(usage, "\n\x1b[1mGlobal flags\x1b[m (valid anywhere on the command line):\n");
+        usage = Texts(usage, "\n\x1b[4;1mGlobal flags\x1b[m (valid anywhere on the command line):\n");
         for (int i = 0; i < cli->global_len; i++)
             usage = Texts(usage, arg_help_line(&cli->global_spec[i]));
         cli->usage = usage;

@@ -1,11 +1,9 @@
-// `tomo build`: compile Tomo programs to standalone executables (or object
-// files with --obj)
+// `tomo build`: compile Tomo programs to standalone executables
 
 #include <stdlib.h>
 #include <unistd.h>
 
 #include "../environment.h"
-#include "../stdlib/bools.h"
 #include "../stdlib/lists.h"
 #include "../util.h"
 #include "common.h"
@@ -14,29 +12,20 @@
 
 static List_t files = EMPTY_LIST;
 static OptionalPath_t output = NULL;
-static OptionalBool_t obj = false;
 
 static cli_arg_t build_spec[] = {
     {"files", &files, List$info(&Path$info), .positional = true, .required = true, .metavar = "file.tm",
      .description = "the programs to compile"}, //
     {"output", &output, &Path$info, .short_flag = 'o',
      .description = "where to put the executable (single file only; defaults to a sibling of the .tm file)"}, //
-    {"obj", &obj, &Bool$info, .description = "compile object files instead of executables"}, //
 };
 
 static int cmd_build(cli_command_t *self, List_t extra_args) {
     (void)extra_args;
     files = normalize_tm_paths(files);
     if (files.length == 0) print_err("No files provided to build!\n", self->usage);
-    if (output != NULL && (obj || files.length != 1))
+    if (output != NULL && files.length != 1)
         print_err("--output can only be used when building a single executable");
-
-    if (obj) {
-        env_t *env = global_env(source_mapping);
-        List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
-        compile_files(env, files, &object_files, &extra_ldlibs, COMPILE_OBJ);
-        return 0;
-    }
 
     struct child_s {
         struct child_s *next;

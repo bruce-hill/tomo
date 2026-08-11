@@ -238,7 +238,6 @@ For example:
 
 ```bash
 tomo build foo.tm          # Compile a standalone executable: ./foo
-tomo build --obj foo.tm    # Compile an object file: .build/foo.tm.o
 tomo transpile foo.tm      # Transpile to C: .build/foo.tm.h .build/foo.tm.c
 ```
 
