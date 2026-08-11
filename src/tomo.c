@@ -163,11 +163,6 @@ int main(int argc, char *argv[]) {
     if (stat(compiler_path, &compiler_stat) != 0) err(1, "Could not find age of compiler");
 #endif
 
-#if defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__NetBSD__)
-    // The BSDs provide backtrace() (used by stack traces) via libexecinfo.
-    ldlibs = Texts(ldlibs, Text(" -lexecinfo"));
-#endif
-
     const char *color_env = getenv("COLOR");
     USE_COLOR = color_env ? strcmp(color_env, "1") == 0 : isatty(STDOUT_FILENO);
     const char *no_color_env = getenv("NO_COLOR");
@@ -277,11 +272,12 @@ int main(int argc, char *argv[]) {
     if (ZIG_TARGET[0] != '\0') cflags = Texts("-target ", ZIG_TARGET, " ", cflags);
 
     ldflags = Texts(ldflags, Text(" -ffunction-sections -fdata-sections"));
-#if defined(__linux__)
-    // Linux/musl: link fully statically, and provide the stack unwinder used by
-    // libtomo's stacktrace code (musl has no <execinfo.h>/backtrace()).
-    ldflags = Texts(ldflags, Text(" -static"));
+    // The stack unwinder used by libtomo's stacktrace code; zig provides it for
+    // every supported target:
     ldlibs = Texts(ldlibs, Text(" -lunwind"));
+#if defined(__linux__)
+    // Linux/musl links fully statically:
+    ldflags = Texts(ldflags, Text(" -static"));
 #endif
 #ifdef __APPLE__
     ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");

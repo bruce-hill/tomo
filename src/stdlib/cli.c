@@ -1,8 +1,5 @@
 // Comman-line argument parsing
 
-#if __has_include(<execinfo.h>)
-#include <execinfo.h>
-#endif
 #include <fcntl.h>
 #include <gc.h>
 #include <math.h>

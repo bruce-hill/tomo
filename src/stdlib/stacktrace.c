@@ -4,7 +4,7 @@
 #define _GNU_SOURCE
 #endif
 
-#include <dlfcn.h>
+#include <backtrace.h>
 #include <err.h>
 #include <gc.h>
 #include <limits.h>
@@ -13,12 +13,9 @@
 #include <string.h>
 #include <unistd.h>
 
-// glibc provides backtrace() via <execinfo.h>, but musl libc does not. When it's
-// unavailable (e.g. in a static musl build), fall back to the compiler's stack
-// unwinder, which provides the same "collect return addresses" functionality.
-#if __has_include(<execinfo.h>)
-#include <execinfo.h>
-#else
+// The raw stack addresses are collected with the compiler's stack unwinder,
+// which zig provides on every supported platform (including fully static musl
+// binaries, where libc-based alternatives like execinfo.h don't exist).
 #include <unwind.h>
 typedef struct {
     void **frames;
@@ -33,16 +30,14 @@ static _Unwind_Reason_Code unwind_callback(struct _Unwind_Context *ctx, void *ar
     return _URC_NO_REASON;
 }
 
-static int backtrace(void **buffer, int size) {
+static int collect_backtrace(void **buffer, int size) {
     unwind_state_t state = {.frames = buffer, .count = 0, .max = size};
     _Unwind_Backtrace(unwind_callback, &state);
     return state.count;
 }
-#endif
 
 #include "../config.h"
 #include "print.h"
-#include "simpleparse.h"
 #include "util.h"
 
 extern bool USE_COLOR;
@@ -116,6 +111,30 @@ static void _print_stack_frame(FILE *out, const char *cwd, const char *install_d
     }
 }
 
+enum { MAX_INLINE_FRAMES = 64 };
+typedef struct {
+    const char *functions[MAX_INLINE_FRAMES], *filenames[MAX_INLINE_FRAMES];
+    long line_nums[MAX_INLINE_FRAMES];
+    int count;
+} frame_list_t;
+
+static int bt_frame_callback(void *data, uintptr_t pc, const char *filename, int lineno, const char *function) {
+    (void)pc;
+    frame_list_t *frames = data;
+    if (frames->count >= MAX_INLINE_FRAMES) return 1;
+    // Copy the strings: libbacktrace only guarantees them until the callback returns.
+    frames->functions[frames->count] = function ? String(function) : NULL;
+    frames->filenames[frames->count] = filename ? String(filename) : NULL;
+    frames->line_nums[frames->count] = lineno;
+    frames->count += 1;
+    return 0;
+}
+
+static void bt_error_callback(void *data, const char *msg, int errnum) {
+    // Quietly leave the frame unresolved:
+    (void)data, (void)msg, (void)errnum;
+}
+
 __attribute__((noinline)) public
 void print_stacktrace(FILE *out, int offset) {
     char cwd[PATH_MAX];
@@ -127,101 +146,45 @@ void print_stacktrace(FILE *out, int offset) {
 
     const char *install_dir = String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/");
 
+    // Symbolization is done in-process with the vendored libbacktrace (reading
+    // the executable's own debug info), so no external tools are needed and it
+    // works in fully static binaries. The state is created once and reused;
+    // NULL means "the running executable".
+    static struct backtrace_state *bt_state = NULL;
+    if (bt_state == NULL) bt_state = backtrace_create_state(NULL, 0, bt_error_callback, NULL);
+
     static void *stack[1024];
-    int64_t size = (int64_t)backtrace(stack, sizeof(stack) / sizeof(stack[0]));
+    int64_t size = (int64_t)collect_backtrace(stack, sizeof(stack) / sizeof(stack[0]));
     bool main_func_onwards = false;
     for (int64_t i = size - 1; i > offset; i--) {
-        Dl_info info;
-        void *call_address = stack[i] - 1;
-        const char *file = NULL;
-        uintptr_t frame_offset = 0;
-        if (dladdr(call_address, &info) && info.dli_fname && info.dli_fname[0]) {
-            file = info.dli_fname;
-            frame_offset = (uintptr_t)call_address - (uintptr_t)info.dli_fbase;
-        }
-#ifdef __linux__
-        else {
-            // In a fully static executable there is no dynamic segment, so
-            // dladdr() can't resolve anything. Static binaries are linked
-            // non-PIE, though, so the backtrace addresses are absolute and can
-            // be looked up directly in the executable itself. The executable's
-            // path must be resolved *here*: passing "/proc/self/exe" to
-            // addr2line would make it inspect its own binary instead of ours.
-            static char self_exe[PATH_MAX];
-            if (self_exe[0] == '\0') {
-                ssize_t n = readlink("/proc/self/exe", self_exe, sizeof(self_exe) - 1);
-                if (n > 0) self_exe[n] = '\0';
-            }
-            if (self_exe[0] != '\0') {
-                file = self_exe;
-                frame_offset = (uintptr_t)call_address;
-            }
-        }
-#endif
-        if (file != NULL) {
-            // -i expands inlined call chains: with optimization, several source-
-            // level calls can collapse into one physical frame, and without -i
-            // only the innermost of them would be visible. addr2line prints the
-            // virtual frames innermost-first.
-            FILE *fp = popen(String("addr2line -f -i -e '", file, "' ", (void *)frame_offset, " 2>/dev/null"), "r");
-            if (fp) {
-                // Read all of addr2line's output, then split it into (function,
-                // file:line) line pairs, one pair per (possibly inlined) frame:
-                char *output = NULL;
-                size_t output_capacity = 0;
-                ssize_t output_len = getdelim(&output, &output_capacity, '\0', fp);
-                pclose(fp);
+        uintptr_t call_address = (uintptr_t)stack[i] - 1;
 
-                enum { MAX_INLINE_FRAMES = 64 };
-                const char *functions[MAX_INLINE_FRAMES], *filenames[MAX_INLINE_FRAMES];
-                long line_nums[MAX_INLINE_FRAMES];
-                int num_frames = 0;
-                char *p = output;
-                while (output_len > 0 && *p && num_frames < MAX_INLINE_FRAMES) {
-                    char *newline = strchr(p, '\n');
-                    if (newline == NULL) break;
-                    *newline = '\0';
-                    functions[num_frames] = p;
-                    p = newline + 1;
+        // backtrace_pcinfo() invokes the callback once per (possibly inlined)
+        // frame at this address, innermost-first -- with optimization, several
+        // source-level calls can collapse into one physical frame, and this
+        // recovers all of them.
+        frame_list_t frames = {.count = 0};
+        if (bt_state != NULL) backtrace_pcinfo(bt_state, call_address, bt_frame_callback, bt_error_callback, &frames);
 
-                    char *location = p;
-                    newline = strchr(p, '\n');
-                    if (newline != NULL) {
-                        *newline = '\0';
-                        p = newline + 1;
-                    } else {
-                        p = location + strlen(location);
-                    }
-                    // Parse the "file:line" location pair:
-                    const char *filename = NULL;
-                    long line_num = 0;
-                    if (strparse(location, &filename, ":", &line_num) != NULL) {
-                        filename = location; // unparseable (e.g. "??:0"): keep as-is
-                        line_num = 0;
-                    }
-                    filenames[num_frames] = filename;
-                    line_nums[num_frames] = line_num;
-                    num_frames += 1;
-                }
-
-                // Print outermost-first to match the overall root-to-crash order:
-                for (int j = num_frames - 1; j >= 0; j--) {
-                    // Start printing at the program's main function, skipping
-                    // libc/startup frames above it. The entry symbol is named
-                    // "main$<file id>" (or "parse_and_run$$main$<file id>" when
-                    // top-level code is wrapped), so match "main$" anywhere.
-                    if (strstr(functions[j], "main$") != NULL) main_func_onwards = true;
-                    if (main_func_onwards) {
-                        _print_stack_frame(out, cwd, install_dir, functions[j], filenames[j], line_nums[j]);
-                        if (j > 0 || i - 1 > offset) fputs("\n", out);
-                    }
-                }
-                if (output) free(output);
-            }
-        } else {
+        if (frames.count == 0) {
             if (main_func_onwards) {
                 _print_stack_frame(out, cwd, install_dir, NULL, NULL, 0);
                 if (i - 1 > offset) fputs("\n", out);
+            }
+            continue;
+        }
+
+        // Print outermost-first to match the overall root-to-crash order:
+        for (int j = frames.count - 1; j >= 0; j--) {
+            // Start printing at the program's main function, skipping
+            // libc/startup frames above it. The entry function is named
+            // "main$<file id>" (or "parse_and_run$$main$<file id>" when
+            // top-level code is wrapped), so match "main$" anywhere.
+            if (frames.functions[j] && strstr(frames.functions[j], "main$") != NULL) main_func_onwards = true;
+            if (main_func_onwards) {
+                _print_stack_frame(out, cwd, install_dir, frames.functions[j], frames.filenames[j],
+                                   frames.line_nums[j]);
+                if (j > 0 || i - 1 > offset) fputs("\n", out);
             }
         }
     }

@@ -82,7 +82,7 @@ LDFLAGS=$(STATIC_FLAG) $(TARGET_FLAG)
 # so the compiler is built against the same libraries it links against. These are
 # included with -isystem so that warnings from third-party headers (e.g. gc.h
 # testing __GLIBC__ under -Wundef) don't clutter the build.
-INCLUDE_DIRS=-isystem $(BUILD_BASE)/gc/include -isystem $(BUILD_BASE)/gmp/include -isystem $(BUILD_BASE)/unistring/include
+INCLUDE_DIRS=-isystem $(BUILD_BASE)/gc/include -isystem $(BUILD_BASE)/gmp/include -isystem $(BUILD_BASE)/unistring/include -isystem $(BUILD_BASE)/backtrace/include
 CWARN=-Wall -Wextra -Wno-format -Wno-format-security -Wshadow \
 	  -Wno-pedantic \
 	  -Wno-pointer-arith \
@@ -128,16 +128,9 @@ CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) $(OSFLAGS) \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections \
 	   -UNDEBUG # `zig cc` defines NDEBUG at -O, but the code relies on active assert()s
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
-# Per-OS stack-trace support: musl (Linux) has no <execinfo.h>, so stacktrace.c
-# falls back to the unwinder (-lunwind, bundled by zig); the BSDs provide
-# backtrace() via libexecinfo (-lexecinfo); macOS provides it in libSystem.
-LDLIBS=-lm
-ifneq ($(call zig_is_static,$(ZIG_PLATFORM)),)
-	LDLIBS += -lunwind
-endif
-ifneq ($(filter freebsd netbsd openbsd,$(ZIG_OS)),)
-	LDLIBS += -lexecinfo
-endif
+# Stack traces collect addresses with the compiler's unwinder (-lunwind, which
+# zig provides for every target) on all platforms:
+LDLIBS=-lm -lunwind
 
 AR_FILE=libtomo@$(TOMO_VERSION).a
 ifeq ($(OS),Darwin)
@@ -227,7 +220,7 @@ $(BUILD_DIR)/man/%.gz: man/% | $(BUILD_DIR)/man/man1 $(BUILD_DIR)/man/man3
 $(BUILD_DIR)/bin/tomo: $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) | $(BUILD_DIR)/bin
 	ln -sf tomo@$(TOMO_VERSION) $@
 
-$(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/unistring/lib/libunistring.a | $(BUILD_DIR)/bin deps
+$(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a | $(BUILD_DIR)/bin deps
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $(LDLIBS) $^ -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
@@ -235,7 +228,7 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) $(BUILD_BASE)/gc/l
 # relocatable object, then archive it. -no-pie is ELF-only (Linux); on Mach-O
 # (macOS) it isn't accepted, so it's applied only for static/Linux targets.
 NOPIE_FLAG=$(if $(call zig_is_static,$(ZIG_PLATFORM)),-no-pie,)
-$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a | $(BUILD_DIR)/lib
+$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a | $(BUILD_DIR)/lib
 	$(CC) $(TARGET_FLAG) $(NOPIE_FLAG) -r -nostdlib $^ -o libtomo.o
 	$(AR) rcs $@ libtomo.o
 	rm -f libtomo.o
@@ -367,9 +360,9 @@ examples:
 core-libs:
 	./local-tomo -L packages/core.ini
 
-deps: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a
+deps: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a
 
-$(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a:
+$(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a:
 	$(MAKE) -C vendor ZIG_PLATFORM='$(ZIG_PLATFORM)' ZIG_TARGET='$(ZIG_TARGET)' BUILD_BASE='$(CURDIR)/$(BUILD_BASE)'
 
 install-files: build check-zig

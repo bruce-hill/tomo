@@ -120,8 +120,11 @@ The Tomo compiler is built as a fully static executable (musl libc) using
   compile and statically link the compiler and its vendored libraries. Only the
   host's Zig is needed to build; a pinned Zig is downloaded and bundled into the
   installation for runtime use (see below).
-- [Binutils](https://www.gnu.org/software/binutils/) for `ar`/`ranlib` at build
-  time and `addr2line` for stack traces at runtime.
+- [Binutils](https://www.gnu.org/software/binutils/) at build time (autoconf
+  probes in the vendored libraries use the host `nm`). Runtime stack traces are
+  symbolized in-process by the vendored
+  [libbacktrace](https://github.com/ianlancetaylor/libbacktrace), so no
+  external tool is needed at runtime.
 - `curl` and `tar`/`xz` to download and unpack the vendored sources and Zig.
 
 The Boehm garbage collector, libunistring, and the GNU multiple precision

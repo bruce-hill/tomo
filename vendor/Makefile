@@ -1,6 +1,9 @@
 GMP_VERSION=6.3.0
 UNISTRING_VERSION=1.4.2
 GC_VERSION=8.2.8
+# libbacktrace has no releases; pin a specific commit (checksum-verified):
+LIBBACKTRACE_VERSION=6f8310e238fc3ce68f42f391cbe93fd156bb2c23
+LIBBACKTRACE_SHA256=a6212badda77ece1e28ec7ed6ffebf7bd656fb481cfe5a3453e5164e4f1c28ce
 
 # Keep the build hermetic: don't let the user's ambient include/library search
 # paths leak non-musl (e.g. system glibc) headers into the cross builds.
@@ -75,7 +78,8 @@ GMP_EXTRA = $(if $(filter macos,$(TARGET_OS)),--disable-assembly gmp_cv_asm_unde
 # Per-platform extraction/build directories for the C dependencies:
 DEPS_DIR = $(BUILD_BASE)/deps
 
-all: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/unistring/lib/libunistring.a
+all: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/unistring/lib/libunistring.a \
+	$(BUILD_BASE)/backtrace/lib/libbacktrace.a
 
 # ===========================================================================
 # Zig toolchain
@@ -198,9 +202,32 @@ $(BUILD_BASE)/unistring/lib/libunistring.a: $(DEPS_DIR)/libunistring-$(UNISTRING
 	$(MAKE) -C $(DEPS_DIR)/libunistring-$(UNISTRING_VERSION) CC="$(DEP_CC)" -j
 	$(MAKE) -C $(DEPS_DIR)/libunistring-$(UNISTRING_VERSION) CC="$(DEP_CC)" install
 
+# libbacktrace: in-process DWARF symbolization for runtime stack traces (so
+# installed programs don't need any external symbolization tool). Built without
+# its own debug info (-g0) to keep its ~80KB of code from dragging in ~400KB of
+# DWARF.
+libbacktrace-$(LIBBACKTRACE_VERSION).tar.gz:
+	curl -fL -o $@.tmp 'https://github.com/ianlancetaylor/libbacktrace/archive/$(LIBBACKTRACE_VERSION).tar.gz'
+	@echo '$(LIBBACKTRACE_SHA256)  $@.tmp' | sha256sum -c - || { rm -f $@.tmp; false; }
+	@mv $@.tmp $@
+
+$(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/configure: libbacktrace-$(LIBBACKTRACE_VERSION).tar.gz
+	mkdir -p $(DEPS_DIR)
+	tar xzfm $< -C $(DEPS_DIR)
+	@touch $@
+
+$(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/Makefile: $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/configure
+	prefix=$$(realpath $(BUILD_BASE))/backtrace; \
+	cd $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION); \
+	./configure $(CONFIGURE_FLAGS) CFLAGS="-O2 -g0 -fPIC" --prefix="$$prefix"
+
+$(BUILD_BASE)/backtrace/lib/libbacktrace.a: $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/Makefile
+	$(MAKE) -C $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION) CC="$(DEP_CC)" -j
+	$(MAKE) -C $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION) CC="$(DEP_CC)" install
+
 # Remove built artifacts for the current platform (keeps downloaded archives):
 clean:
-	rm -rf $(BUILD_BASE)/gc $(BUILD_BASE)/gmp $(BUILD_BASE)/unistring $(BUILD_BASE)/deps $(BUILD_BASE)/zig
+	rm -rf $(BUILD_BASE)/gc $(BUILD_BASE)/gmp $(BUILD_BASE)/unistring $(BUILD_BASE)/backtrace $(BUILD_BASE)/deps $(BUILD_BASE)/zig
 
 # Remove downloaded Zig archives too:
 clean-cache: clean

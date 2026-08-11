@@ -47,7 +47,7 @@ else
 fi
 
 # Tomo is built with `zig cc` and vendors GC/GMP/libunistring from source, so the
-# only build dependencies are Zig, binutils (ar/ranlib/addr2line), and curl (to
+# only build dependencies are Zig, binutils (nm, for autoconf probes), and curl (to
 # download the vendored sources and the bundled Zig). tar + xz are part of the
 # base system on all supported platforms.
 #
