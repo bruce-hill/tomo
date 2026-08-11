@@ -286,8 +286,15 @@ $(DIST_ARCHIVE): $(BUILD_PRODUCTS)
 	tar cJf $@ -C $(BUILD_DIR) .
 	@printf 'Wrote \033[1m%s\033[m\n' "$@"
 
+# A version-independent alias for the newest archive, so the quick-install URL
+# in the README (tomo@latest-<platform>.tar.xz) never needs a version bump.
+# Upload it alongside the archive it points to.
+DIST_LATEST = $(DIST_DIR)/tomo@latest-$(ZIG_PLATFORM).tar.xz
+$(DIST_LATEST): $(DIST_ARCHIVE)
+	ln -sf $(notdir $<) $@
+
 # Build the distribution archive for the current platform only:
-archive: $(DIST_ARCHIVE)
+archive: $(DIST_ARCHIVE) $(DIST_LATEST)
 
 version:
 	@echo $(TOMO_VERSION)
