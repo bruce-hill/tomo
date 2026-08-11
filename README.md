@@ -44,7 +44,7 @@ all needed libraries) and extract directly into an install prefix such as
 
 ```
 platform="$(uname -m | sed 's/^arm64$/aarch64/;s/^amd64$/x86_64/')-$(uname -s | sed 's/Darwin/macos/' | tr 'A-Z' 'a-z')"
-curl -L "https://tomo.bruce-hill.com/dist/tomo@2026-08-10-$platform.tar.xz" \
+curl -L "https://tomo.bruce-hill.com/dist/tomo@latest-$platform.tar.xz" \
   | tar -xJ -C ~/.local
 ```
 
