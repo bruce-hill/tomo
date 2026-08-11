@@ -33,10 +33,10 @@ a program piped in on standard input).
 
 # COMMANDS
 
-`run` *file.tm...* \[`--` *args...*\]
-: Compile and run the given programs (compiled in parallel, run in serial).
-Anything after `--` is passed to the programs as their own arguments. The
-command name is optional: `tomo` *file.tm* does the same thing.
+`run` *file.tm* \[`--` *args...*\]
+: Compile and run the given program. Anything after `--` is passed to the
+program as its own arguments. The command name is optional: `tomo` *file.tm*
+does the same thing.
 
 `build` \[`-o` *output*\] *file.tm*
 : Compile the given program to a standalone executable, placed as a sibling
