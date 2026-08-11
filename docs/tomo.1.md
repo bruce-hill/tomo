@@ -1,6 +1,6 @@
 % TOMO(1)
 % Bruce Hill (*bruce@bruce-hill.com*)
-% June 11, 2024
+% August 11, 2026
 
 # NAME
 
@@ -8,20 +8,16 @@ tomo - The programming language of tomorrow.
 
 # SYNOPSIS
 
+`tomo` \[*global flags*\] \[*command*\] \[*command flags*\] \[*args...*\]
+
 Run a program:
-: `tomo` *program.tm* \[\[`--`\] *args...*\]
+: `tomo` \[`run`\] *program.tm* \[`--` *args...*\]
 
-Transpile tomo files to C files:
-: `tomo` `-t` *file1.tm* *file2.tm*...
-
-Compile files to static object files:
-: `tomo` `-c` *file1.tm* *file2.tm*...
-
-Compile files to a executables:
-: `tomo` `-e` *file1.tm* *file2.tm*...
+Build an executable:
+: `tomo` `build` \[`-o` *output*\] *program.tm*
 
 Build a package:
-: `tomo` `-p` *file1.tm* *file2.tm*...
+: `tomo` `package` \[`-o` *libname.a*\] \[*dir-or-file...*\]
 
 # DESCRIPTION
 
@@ -31,73 +27,97 @@ high-performance, low-overhead datastructures. It compiles by first outputting
 C code, which is then compiled using the Zig toolchain bundled with the Tomo
 installation.
 
-# OPTIONS
+With no command, `tomo` *file.tm* runs the file (like `tomo run`), and bare
+`tomo` opens a scratch file in `$EDITOR` to edit and run (or compiles and runs
+a program piped in on standard input).
 
-`--changelog`
-: Print the compiler change log and exit.
+# COMMANDS
 
-`--transpile`, `-t` *file1.tm* *file2.tm*...
-: Transpile the given files to C.
+`run` *file.tm...* \[`--` *args...*\]
+: Compile and run the given programs (compiled in parallel, run in serial).
+Anything after `--` is passed to the programs as their own arguments. The
+command name is optional: `tomo` *file.tm* does the same thing.
 
-`--compile-exe`, `-e` *file1.tm* *file2.tm*...
-: Compile the given files to executables.
+`build` \[`--obj`\] \[`-o` *output*\] *file.tm...*
+: Compile the given programs to standalone executables, each placed as a
+sibling of its `.tm` file (or at `-o` *output*, when building a single file).
+With `--obj`, compile static object files instead.
 
-`--compile-obj`, `-c` *file1.tm* *file2.tm*...
-: Compile the given files to static objects.
+`transpile` *file.tm...*
+: Transpile the given files to C without compiling. The generated `.h`/`.c`
+files go into each file's `.build/` directory.
 
-`--help`, `-h`
-: Print the usage and exit.
+`parse` *file.tm...*
+: Print the parse tree of the given files as S-expressions.
 
-`--package`, `-p` *folder1* *folder2*...
-: Compile the input folders to shared packages.
+`fmt` \[`-i`\] *file.tm...*
+: Autoformat the given files and print them to standard output, or rewrite
+them in place with `--in-place`/`-i`.
 
-`--install`, `-I`
-: When using `-e` or `-p`, install the resulting executables or packages.
+`package` \[`-o` *libname.a*\] \[*dir-or-file...*\]
+: Build packages into static archives. With no arguments, the current
+directory is built as a package: every `.tm` file not starting with an
+underscore (or dot or digit) is compiled and archived into `package.a`.
+Directory arguments are each built the same way; `.tm` file arguments are
+compiled into a single archive. `-o` sets the archive path (single package
+only).
 
-`--build-info`, `-b` *file1* *file2*...
-: Print the build info embedded in the given compiled files (executables or
-package archives).
+`install` \[*dir-or-file...*\]
+: Install packages and programs into the Tomo installation prefix. Directory
+arguments are built as packages and installed into `lib/`; `.tm` file
+arguments are compiled to executables and installed into `bin/` (with their
+manpages). With no arguments, the current directory is installed as a package.
 
-`--extract-source`, `-x` *program1* *program2*...
-: Extract the source files embedded in the given compiled programs, each into a
-`<program>-source/` directory. The extracted directory is a working project:
-it includes the program's sources, `packages.ini`, license texts, and a
-pre-seeded package store, so it can be rebuilt as-is without network access.
+`uninstall` *name...*
+: Uninstall the given packages or programs.
 
-`--vendor` *package1* *package2*...
+`vendor` \[`-e`|`-u`\] *package...*
 : Copy the named packages' digest-verified source archives into the current
 project's `vendor/` directory and update `./packages.ini` to use the vendored
 copies as the primary sources (keeping the digest pins and demoting the
-previous sources to fallbacks).
+previous sources to fallbacks). With `--editable`/`-e`, extract each package's
+sources into `vendor/<name>/` and drop its digest pin, so the vendored copy
+can be edited freely. With `--unvendor`/`-u`, undo vendoring: restore each
+package's `./packages.ini` entry to its first non-vendored fallback source
+(or the compiler's default pin), re-install the package into the project's
+package store (re-pinning the digest if editable vendoring dropped it), and
+delete the vendored copy.
 
-`--vendor-editable` *package1* *package2*...
-: Like `--vendor`, but extract each package's sources into `vendor/<name>/`
-and drop its digest pin, so the vendored copy can be edited freely.
+`version`
+: Print the compiler version and exit (with `--verbose`/`-v`: plus the git
+revision).
 
-`--install-target`
-: When using `--target`, download and install the target platform's libraries
-without asking for confirmation.
+`info` \[`-x`\] *binary...*
+: Print the build info embedded in the given compiled files (executables or
+package archives). With `--extract-source`/`-x`, extract the source files
+embedded in each compiled program into a `<program>-source/` directory
+instead. The extracted directory is a working project: it includes the
+program's sources, `packages.ini`, license texts, and a pre-seeded package
+store, so it can be rebuilt as-is without network access.
 
-`--show-codegen` *<program>*, `-C` *<program>*
-: Set a program (e.g. `cat` or `bat`) to display the generated code
+# GLOBAL OPTIONS
 
-`--force-rebuild`, `-f`
-: Force rebuilding/recompiling.
+Global options are valid anywhere on the command line, before or after the
+command name. Command-specific flags (like `build`'s `-o`) are only valid
+after their command.
 
-`--format`, `-F` *file1.tm* *file2.tm*...
-: Autoformat the given files and print them to standard output.
+`--help`, `-h`
+: Print the usage (or a command's usage) and exit.
 
-`--format-inplace` *file1.tm* *file2.tm*...
-: Autoformat the given files in-place and overwrite the original files.
+`--verbose`, `-v`
+: Print extra verbose output.
+
+`--quiet`, `-q`
+: Run in quiet mode.
 
 `--optimization` **level**, `-O` **level**
 : Set the optimization level.
 
-`--prefix`
-: Print the Tomo installation prefix and exit.
+`--force-rebuild`, `-f`
+: Force rebuilding/recompiling.
 
-`--quiet`, `-q`
-: Run in quiet mode.
+`--show-codegen` *<program>*, `-C` *<program>*
+: Set a program (e.g. `cat` or `bat`) to display the generated code
 
 `--source-mapping=`, `-m=` **<yes|no>**
 : Toggle whether source mapping should be enabled or disabled.
@@ -112,11 +132,6 @@ Valid platforms are: `x86_64-linux`, `aarch64-linux`, `riscv64-linux`,
 `x86_64-freebsd`, `aarch64-freebsd`, `x86_64-netbsd`, `aarch64-netbsd`,
 `x86_64-openbsd`, and `aarch64-openbsd`.
 
-`--uninstall`, `-u` *pkg1* *pkg2*...
-: Uninstall the given packages.
-
-`--verbose`, `-v`
-: Print extra verbose output.
-
-`--version`
-: Print the compiler version and exit.
+`--install-target`
+: When using `--target`, download and install the target platform's libraries
+without asking for confirmation.

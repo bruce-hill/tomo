@@ -166,7 +166,7 @@ link the resulting object files together.
 # Cross-Compilation
 
 `tomo --target <platform>` compiles executables, objects, or packages for
-another platform (e.g. `tomo --target aarch64-macos -e foo.tm`). The bundled
+another platform (e.g. `tomo --target aarch64-macos build foo.tm`). The bundled
 Zig toolchain can target every supported platform, so cross-compiling only
 additionally needs the *target* platform's libraries (libtomo and the vendored
 libraries/headers). Those are installed on demand into
@@ -195,7 +195,7 @@ x86_64/aarch64 FreeBSD/NetBSD/OpenBSD.
 Tomo attaches build information and version data to each compiled executable and library file.
 
 Various different info lines will be added with tab-separated key/value pairs.
-Build data can be extracted from a compiled executable or library file using `tomo -b` or `tomo --build-info`.
+Build data can be extracted from a compiled executable or library file using `tomo info`.
 An example output looks like this:
 
 ```

@@ -1,0 +1,147 @@
+// Shared state and helpers for the tomo CLI commands
+
+#include <err.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "../ast.h"
+#include "../config.h"
+#include "../naming.h"
+#include "../parse/files.h"
+#include "../stdlib/fail.h"
+#include "../stdlib/lists.h"
+#include "common.h"
+
+OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false;
+
+OptionalText_t target = NONE_TEXT;
+
+bool cross_compiling = false;
+
+Text_t target_root = Text("");
+
+Text_t lib_root = Text("");
+
+bool link_macho = false;
+
+OptionalText_t show_codegen = NONE_TEXT,
+               cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
+                             " -ffunction-sections -fdata-sections"
+                             " -fno-signed-zeros"
+                             " -fPIC -ggdb"
+                             " -DGC_THREADS"),
+               ldlibs = Text("-lm"), ldflags = Text(""), optimization = Text("2"), cc = Text(""), ar = Text("");
+
+Text_t config_summary = Text(""), as_owner = Text("");
+
+#ifdef __linux__
+
+struct stat compiler_stat;
+#endif
+
+const char *paths_str(List_t paths) {
+    Text_t result = EMPTY_TEXT;
+    for (int64_t i = 0; i < (int64_t)paths.length; i++) {
+        if (i > 0) result = Texts(result, Text(" "));
+        result = Texts(result, Path$as_text((Path_t *)(paths.data + i * paths.stride), false, &Path$info));
+    }
+    return Text$as_c_string(result);
+}
+
+// The OS component of a platform key like "x86_64-linux" (the part after the
+// last dash; architectures never contain dashes):
+
+const char *platform_os(const char *platform) {
+    const char *dash = strrchr(platform, '-');
+    return dash ? dash + 1 : platform;
+}
+
+// The `zig cc -target` triple for a platform key: Linux targets musl; every
+// other OS's platform key is already a valid Zig target:
+
+const char *platform_triple(const char *platform) {
+    if (streq(platform_os(platform), "linux")) return String(platform, "-musl");
+    return platform;
+}
+
+bool platform_supported(const char *platform) {
+    return strstr(" " TOMO_DIST_PLATFORMS " ", String(" ", platform, " ")) != NULL;
+}
+
+// Cross-compiling needs the *target* platform's libtomo, vendored libraries,
+// and headers. They come from the target platform's Tomo distribution archive,
+// whose lib/ + include/ trees get extracted into target_root. If they're not
+// installed yet, offer to download them (or just do it if --install-target).
+
+void ensure_target_installed(void) {
+    Path_t marker = Path$from_str(String(target_root, "/lib/libtomo@", TOMO_VERSION, ".a"));
+    if (Path$is_file(marker, true)) return;
+
+    const char *dist_url = getenv("TOMO_DIST_URL");
+    if (!dist_url || dist_url[0] == '\0') dist_url = "https://tomo.bruce-hill.com/dist";
+    Text_t archive_url = Texts(Text$from_str(dist_url), "/tomo@", TOMO_VERSION, "-", target, ".tar.xz");
+
+    if (!install_target) {
+        fprint(stderr, "The target platform \x1b[1m", target, "\x1b[m is not installed.");
+        if (!isatty(STDIN_FILENO))
+            print_err("Re-run with --install-target to download and install it from ", archive_url);
+        fprint_inline(stderr, "Download and install it from ", archive_url, "? [Y/n] ");
+        fflush(stderr);
+        char answer[16] = {};
+        if (!fgets(answer, sizeof(answer), stdin) || answer[0] == 'n' || answer[0] == 'N')
+            print_err("Not installing the target platform ", target);
+    }
+
+    print("Installing target platform \x1b[1m", target, "\x1b[m from ", archive_url, " ...");
+    Text_t tmp_archive = Texts(target_root, ".tar.xz.tmp");
+    xsystem("mkdir -p '", target_root, "'");
+    xsystem("curl -#fSL '", archive_url, "' -o '", tmp_archive, "'");
+    xsystem("tar -xJf '", tmp_archive, "' -C '", target_root, "' ./lib ./include");
+    xsystem("rm -f '", tmp_archive, "'");
+    print("Installed target platform \x1b[1m", target, "\x1b[m");
+}
+
+List_t normalize_tm_paths(List_t paths) {
+    List_t result = EMPTY_LIST;
+    for (int64_t i = 0; i < (int64_t)paths.length; i++) {
+        Path_t path = *(Path_t *)(paths.data + i * paths.stride);
+        // Convert `foo` to `foo/foo.tm` and resolve path to absolute path:
+        Path_t cur_dir = Path$current_dir();
+        if (Path$is_directory(path, true)) path = Path$child(path, Texts(Path$base_name(path), Text(".tm")));
+
+        path = Path$resolved(path, cur_dir);
+        if (!Path$exists(path)) fail("path not found: ", path);
+        List$insert(&result, &path, I(0), sizeof(path));
+    }
+    return result;
+}
+
+void wait_for_child_success(pid_t child) {
+    int status;
+    while (waitpid(child, &status, 0) < 0 && errno == EINTR) {
+        if (WIFEXITED(status) || WIFSIGNALED(status)) break;
+        else if (WIFSTOPPED(status)) kill(child, SIGCONT);
+    }
+
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        _exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
+    }
+}
+
+Path_t get_exe_path(Path_t path) {
+    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+    OptionalText_t exe_name = ast_metadata(ast, "EXECUTABLE");
+    if (exe_name.tag == TEXT_NONE) exe_name = Path$base_name(Path$with_extension(path, Text(""), true));
+
+    return Path$child(tm_build_dir(path), exe_name);
+}
+
+// Cross-compiled artifacts live in a per-target subdirectory
+// (.build/<platform>/) so they never clobber native builds' artifacts:
+
+Path_t build_file(Path_t path, const char *extension) {
+    return Path$child(tm_build_dir(path), Texts(Path$base_name(path), Text$from_str(extension)));
+}

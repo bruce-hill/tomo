@@ -92,26 +92,22 @@ static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag
 }
 
 public
-void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const char *version, int spec_len,
-                     cli_arg_t spec[spec_len]) {
-    List_t args = EMPTY_LIST;
-    for (int i = 1; i < argc; i++) {
-        List$insert(&args, &argv[i], I(0), sizeof(const char *));
-    }
-
+void tomo_parse_arg_list(List_t args, cli_help_info_t info, int spec_len, cli_arg_t spec[spec_len]) {
     for (int i = 0; i < spec_len; i++) {
         spec[i].populated = pop_cli_flag(&args, spec[i].short_flag, spec[i].name, spec[i].dest, spec[i].type);
     }
 
     bool show_help = false;
-    if (pop_boolean_cli_flag(&args, 'h', "help", &show_help) && show_help) {
-        print(help);
+    if (pop_boolean_cli_flag(&args, info.help_short, "help", &show_help) && show_help) {
+        print(info.help);
         exit(0);
     }
-    bool show_version = false;
-    if (pop_boolean_cli_flag(&args, 'v', "version", &show_version) && show_version) {
-        print(version);
-        exit(0);
+    if (info.version) {
+        bool show_version = false;
+        if (pop_boolean_cli_flag(&args, info.version_short, "version", &show_version) && show_version) {
+            print(info.version);
+            exit(0);
+        }
     }
 
     List_t before_double_dash = args, after_double_dash = EMPTY_LIST;
@@ -138,13 +134,224 @@ void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const ch
     }
 
     for (int i = 0; i < spec_len; i++) {
-        if (!spec[i].populated && spec[i].required) print_err("Missing required flag: ", spec[i].name, "\n", usage);
+        if (!spec[i].populated && spec[i].required)
+            print_err("Missing required ", spec[i].positional ? "argument" : "flag", ": ", spec[i].name, "\n",
+                      info.usage);
     }
 
     List_t remaining_args = List$concat(before_double_dash, after_double_dash, sizeof(const char *));
     if (remaining_args.length > 0) {
         print_err("Unknown flag values: ", CString$join(" ", remaining_args));
     }
+}
+
+public
+void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const char *version, int spec_len,
+                     cli_arg_t spec[spec_len]) {
+    List_t args = EMPTY_LIST;
+    for (int i = 1; i < argc; i++) {
+        List$insert(&args, &argv[i], I(0), sizeof(const char *));
+    }
+    cli_help_info_t info = {.usage = usage, .help = help, .version = version, .help_short = 'h', .version_short = 'v'};
+    tomo_parse_arg_list(args, info, spec_len, spec);
+}
+
+// The value placeholder shown for a flag in usage/help text, derived from its
+// parsing type (mirroring the compiler's generated help in src/compile/cli.c):
+static Text_t flag_value_options(const char *metavar, const TypeInfo_t *type) {
+    if (metavar) return Text$from_str(metavar);
+    if (type == &Bool$info) return Text("yes|no");
+    if (type == &Path$info) return Text("path");
+    if (type == &Int$info || type == &Int64$info || type == &Int32$info || type == &Int16$info || type == &Int8$info
+        || type == &Byte$info || type == &Num$info || type == &Num32$info)
+        return Text("N");
+    if (type == &CString$info || type->tag == TextInfo) return Text("text");
+    if (type->tag == OptionalInfo) return flag_value_options(NULL, type->OptionalInfo.type);
+    if (type->tag == PointerInfo) return flag_value_options(NULL, type->PointerInfo.pointed);
+    if (type->tag == ListInfo) {
+        Text_t item = flag_value_options(NULL, type->ListInfo.item);
+        return Texts(item, "1 ", item, "2...");
+    }
+    if (type->tag == TableInfo) {
+        Text_t key = flag_value_options(NULL, type->TableInfo.key);
+        if (type->TableInfo.value->size == 0) return Texts(key, "1 ", key, "2...");
+        Text_t value = flag_value_options(NULL, type->TableInfo.value);
+        return Texts(key, "1:", value, "1 ", key, "2:", value, "2...");
+    }
+    if (type->tag == EnumInfo) {
+        Text_t options = EMPTY_TEXT;
+        for (int t = 0; t < type->EnumInfo.num_tags; t++) {
+            if (t > 0) options = Texts(options, "|");
+            options = Texts(options, type->EnumInfo.tags[t].name);
+        }
+        return options;
+    }
+    return Text("value");
+}
+
+static bool is_bool_arg(const cli_arg_t *arg) {
+    const TypeInfo_t *type = arg->type;
+    while (type->tag == OptionalInfo)
+        type = type->OptionalInfo.type;
+    return type == &Bool$info;
+}
+
+// A positional argument's display name: its metavar (or name), with "..."
+// appended for lists:
+static Text_t positional_display(const cli_arg_t *arg) {
+    Text_t name = Text$from_str(arg->metavar ? arg->metavar : arg->name);
+    if (arg->type->tag == ListInfo || arg->type->tag == TableInfo) name = Texts(name, "...");
+    return name;
+}
+
+// Generate a one-line "Usage: <prefix> [flags] positionals" from an arg spec:
+public
+Text_t tomo_generate_usage(Text_t prefix, int spec_len, cli_arg_t spec[spec_len]) {
+    Text_t usage = Texts("\x1b[93;4;1mUsage:\x1b[m ", prefix);
+    for (int i = 0; i < spec_len; i++) { // Flags first...
+        if (spec[i].positional) continue;
+        Text_t flag = Texts("\x1b[1m--", spec[i].name, "\x1b[m");
+        if (spec[i].short_flag)
+            flag = Texts(flag, "|\x1b[1m-", Text$from_strn((char[]){spec[i].short_flag}, 1), "\x1b[m");
+        if (!is_bool_arg(&spec[i])) flag = Texts(flag, " ", flag_value_options(spec[i].metavar, spec[i].type));
+        usage = Texts(usage, " ", spec[i].required ? flag : Texts("[", flag, "]"));
+    }
+    for (int i = 0; i < spec_len; i++) { // ...then positionals
+        if (!spec[i].positional) continue;
+        Text_t name = Texts("\x1b[1m", positional_display(&spec[i]), "\x1b[m");
+        usage = Texts(usage, " ", spec[i].required ? name : Texts("[", name, "]"));
+    }
+    return usage;
+}
+
+// One "  --flag|-f value  description" line of help text for an arg:
+static Text_t arg_help_line(const cli_arg_t *arg) {
+    Text_t line;
+    if (arg->positional) {
+        line = Texts("  \x1b[1m", positional_display(arg), "\x1b[m");
+    } else {
+        Text_t flags = Texts("\x1b[93;1m--", arg->name, "\x1b[m");
+        if (arg->short_flag)
+            flags = Texts("\x1b[93;1m-", Text$from_strn((char[]){arg->short_flag}, 1), "\x1b[0;2m,\x1b[m ", flags);
+        if (is_bool_arg(arg)) flags = Texts(flags, "|\x1b[93;1m--no-", arg->name, "\x1b[m");
+        line = Texts("  ", flags);
+        if (!is_bool_arg(arg)) line = Texts(line, " \x1b[1;94m", flag_value_options(arg->metavar, arg->type), "\x1b[m");
+    }
+    if (arg->description) line = Texts(line, " \x1b[3m", arg->description, "\x1b[m");
+    return Texts(line, "\n");
+}
+
+// Generate a command's full help text: summary, usage, description, and its
+// arguments/flags (with an automatic --help entry):
+static Text_t generate_command_help(const char *prog, cli_command_t *command) {
+    Text_t help = Texts("\x1b[1m", prog, " ", command->name, "\x1b[m");
+    if (command->summary) help = Texts(help, ": ", command->summary);
+    help = Texts(help, "\n\n", command->usage);
+    if (command->description) help = Texts(help, "\n\n", command->description);
+
+    Text_t args_text = EMPTY_TEXT, flags_text = EMPTY_TEXT;
+    for (int i = 0; i < command->spec_len; i++) {
+        if (command->spec[i].positional) args_text = Texts(args_text, arg_help_line(&command->spec[i]));
+        else flags_text = Texts(flags_text, arg_help_line(&command->spec[i]));
+    }
+    if (args_text.length > 0)
+        help = Texts(help, "\n\n\x1b[1mArguments:\x1b[m\n", Text$trim(args_text, Text("\n"), false, true));
+    if (flags_text.length > 0)
+        help = Texts(help, "\n\n\x1b[1mFlags:\x1b[m\n", Text$trim(flags_text, Text("\n"), false, true));
+    return help;
+}
+
+// Fill in any usage/help text that wasn't explicitly provided, generating it
+// from the arg specs and command list:
+static void materialize_help_text(const char *prog, cli_spec_t *cli) {
+    for (int i = 0; i < cli->num_commands; i++) {
+        cli_command_t *command = cli->commands[i];
+        if (command->usage.length == 0)
+            command->usage = tomo_generate_usage(Texts(prog, " ", command->name), command->spec_len, command->spec);
+        if (command->help.length == 0) command->help = generate_command_help(prog, command);
+    }
+
+    if (cli->usage.length == 0) {
+        Text_t usage = Texts("\x1b[93;4;1mUsage:\x1b[m ", prog,
+                             " [command] [flags...] [args...]\n"
+                             "\n\x1b[1mCommands:\x1b[m\n");
+        for (int i = 0; i < cli->num_commands; i++)
+            usage = Texts(usage, "  \x1b[1;32m", cli->commands[i]->name, "\x1b[m: ", cli->commands[i]->summary, "\n");
+        if (cli->description) usage = Texts(usage, "\n", cli->description, "\n");
+        usage = Texts(usage, "\n\x1b[1mGlobal flags\x1b[m (valid anywhere on the command line):\n");
+        for (int i = 0; i < cli->global_len; i++)
+            usage = Texts(usage, arg_help_line(&cli->global_spec[i]));
+        cli->usage = usage;
+    }
+    if (cli->help.length == 0) {
+        Text_t help = Texts("\x1b[1m", prog, "\x1b[m");
+        if (cli->summary) help = Texts(help, ": ", cli->summary);
+        cli->help = Texts(help, "\n\n", cli->usage);
+    }
+}
+
+static cli_command_t *find_command(cli_spec_t *cli, const char *name) {
+    for (int i = 0; i < cli->num_commands; i++) {
+        if (streq(name, cli->commands[i]->name)) return cli->commands[i];
+    }
+    return NULL;
+}
+
+public
+int tomo_dispatch_command(int argc, char *argv[], cli_spec_t *cli) {
+    materialize_help_text(cli->name ? cli->name : argv[0], cli);
+
+    List_t args = EMPTY_LIST;
+    for (int i = 1; i < argc; i++) {
+        List$insert(&args, &argv[i], I(0), sizeof(const char *));
+    }
+
+    // Split at the first bare "--": everything after it is passed through to
+    // the handler raw (e.g. the arguments for the program `run` executes):
+    List_t head = args, extra_args = EMPTY_LIST;
+    for (int64_t i = 0; i < (int64_t)args.length; i++) {
+        const char *arg = *(const char **)(args.data + i * args.stride);
+        if (streq(arg, "--")) {
+            head = List$slice(args, I(1), I(i));
+            extra_args = List$slice(args, I(i + 2), I(-1));
+            break;
+        }
+    }
+
+    // Global flags are valid anywhere on the command line (before or after
+    // the command name), so they all get popped before dispatching. This is
+    // why command-specific flag names must not collide with global ones: the
+    // global pop would steal them.
+    for (int i = 0; i < cli->global_len; i++) {
+        cli_arg_t *flag = &cli->global_spec[i];
+        flag->populated = pop_cli_flag(&head, flag->short_flag, flag->name, flag->dest, flag->type);
+    }
+
+    const char *cmd_name = head.length > 0 ? *(const char **)head.data : NULL;
+    cli_command_t *command = cmd_name ? find_command(cli, cmd_name) : NULL;
+
+    bool show_help = false;
+    if (pop_boolean_cli_flag(&head, 'h', "help", &show_help) && show_help) {
+        print(command ? command->help : cli->help);
+        exit(0);
+    }
+    if (cli->version) {
+        bool show_version = false;
+        if (pop_boolean_cli_flag(&head, 0, "version", &show_version) && show_version) {
+            print(cli->version);
+            exit(0);
+        }
+    }
+
+    if (cli->after_globals) cli->after_globals();
+
+    if (command) {
+        List$remove_at(&head, I(1), I(1), sizeof(const char *)); // drop the command name itself
+        cli_help_info_t info = {.usage = command->usage, .help = command->help, .help_short = 'h'};
+        tomo_parse_arg_list(head, info, command->spec_len, command->spec);
+        return command->handler(command, extra_args);
+    }
+    return cli->fallback(head, extra_args);
 }
 
 static List_t parse_arg_list(List_t args, const char *flag, void *dest, const TypeInfo_t *type, bool allow_dashes) {

@@ -13,7 +13,7 @@ This folder contains some example programs and libraries.
 
 ## Example Libraries
 
-Libraries can be installed with `tomo -IL ./library-folder`
+Libraries can be installed with `tomo install ./library-folder`
 
 - [colorful](https://github.com/bruce-hill/tomo-colorful): A DSL useful for rendering terminal colors.
 - [coroutines](https://github.com/bruce-hill/tomo-coroutines): A library for stackful coroutines similar to Lua's. (Note: only works on x86_64)

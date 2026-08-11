@@ -161,7 +161,7 @@ EXE_FILE=tomo@$(TOMO_VERSION)
 # independent and incremental: switching ZIG_PLATFORM never invalidates (or
 # clobbers) another platform's objects.
 OBJ_DIR=$(BUILD_BASE)/obj
-COMPILER_OBJS=$(patsubst %.c,$(OBJ_DIR)/%.o,$(wildcard src/*.c src/compile/*.c src/parse/*.c src/formatter/*.c))
+COMPILER_OBJS=$(patsubst %.c,$(OBJ_DIR)/%.o,$(wildcard src/*.c src/cmd/*.c src/compile/*.c src/parse/*.c src/formatter/*.c))
 STDLIB_OBJS=$(patsubst %.c,$(OBJ_DIR)/%.o,$(wildcard src/stdlib/*.c)) $(OBJ_DIR)/versions.o
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm))
 API_YAML=$(wildcard api/*.yaml)
@@ -394,7 +394,7 @@ check-zig:
 		|| { printf '\033[91;1m%s\033[m\n' "I can't run '$(CC)'! Tomo is built with Zig; please install it (https://ziglang.org/download/) and make sure 'zig' is on your PATH."; exit 1; }
 
 tags:
-	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h} src/formatter/*.{c,h}
+	ctags src/*.{c,h} src/cmd/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h} src/formatter/*.{c,h}
 
 $(OBJ_DIR)/%.o: %.c config.mk | deps
 	@mkdir -p $(dir $@)

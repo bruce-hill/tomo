@@ -16,7 +16,7 @@ This program will automatically support command line argument parsing
 for the arguments to `main()`:
 
 ```bash
-$ tomo -e greet.tm
+$ tomo build greet.tm
 Compiled executable: greet
 
 $ ./greet
@@ -49,7 +49,7 @@ arguments.
 ## Running Programs Directly
 
 If you want to run a program directly (instead of compiling to an executable
-with `tomo -e`), you can run the program with `tomo program.tm -- [program
+with `tomo build`), you can run the program with `tomo program.tm -- [program
 arguments...]`. The `--` is required to separate the arguments passed to the
 Tomo compiler from those being passed to your program. For example, `tomo
 greet.tm -- --help` will pass the argument `--help` to your program, whereas
@@ -150,10 +150,7 @@ func main(args:[Text])
 $ tomo many-texts.tm
 >> [] : [Text]
 
-$ tomo many-texts.tm one two three
->> ["one", "two", "three"] : [Text]
-
-$ tomo many-texts.tm --args=one,two,three
+$ tomo many-texts.tm -- one two three
 >> ["one", "two", "three"] : [Text]
 
 $ tomo many-texts.tm -- one --not-a-flag 'a space'
@@ -180,7 +177,7 @@ func main(output|o:Path? = none, verbose|v:Bool = no)
     ...
 ```
 ```bash
-$ tomo -e program.tm && ./program -vo outfile.txt`
+$ tomo build program.tm && ./program -vo outfile.txt`
 ```
 
 ## Help and Manpages
@@ -201,7 +198,7 @@ func main(
 ```
 
 ```bash
-$ tomo -e myprogram.tm
+$ tomo build myprogram.tm
 $ ./myprogram --help
 # Usage: ./myprogram [--help] [--frob|--no-frob]
 #

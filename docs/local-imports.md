@@ -19,7 +19,7 @@ To see how local imports work, let's look at a simple file:
 my_variable := "hello"
 ```
 
-When this file is compiled to a static object file by `tomo -c foo.tm`, it
+When this file is compiled to a static object file by `tomo build --obj foo.tm`, it
 produces the following C header file and C source file:
 
 ```c

@@ -27,7 +27,7 @@ $ tomo hello.tm -- world
 Hello World
 $ tomo hello.tm -- --name=åke
 Hello Åke
-$ tomo -e hello.tm
+$ tomo build hello.tm
 $ ./hello "john doe" --shout
 Hello John Doe!!!
 ```
@@ -212,14 +212,14 @@ tomo foo.tm
 To compile a Tomo file into an object file:
 
 ```bash
-tomo -c foo.tm
+tomo build --obj foo.tm
 # Output: .build/foo.tm.o
 ```
 
 To transpile a Tomo file into a C header and source file:
 
 ```bash
-tomo -t foo.tm
+tomo transpile foo.tm
 # Outputs: .build/foo.tm.h .build/foo.tm.c
 ```
 

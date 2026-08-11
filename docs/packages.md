@@ -124,7 +124,7 @@ package from the download cache without any network access -- and the
 
 Compiled executables embed a zip of everything needed to rebuild them: the
 program's sources, its `packages.ini` pins, license texts, and the full sources
-of every package linked in. `tomo --extract-source <program>` unpacks that into
+of every package linked in. `tomo info -x <program>` unpacks that into
 a `<program>-source/` directory with exactly the shape of a working project --
 including a pre-seeded `.build/store/` and its binding links -- so an extracted
 tree rebuilds as-is, offline, with no edits.
@@ -156,7 +156,7 @@ For each source, Tomo will perform the following steps:
    digest for the newly downloaded file and save it to your `packages.ini` file
    so that all future compilations will know what the digest must be.
 4. The source archive will be extracted to the project's package store
-   (`.build/store/<package-digest>`), compiled with `tomo -p`, and the verified
+   (`.build/store/<package-digest>`), compiled with `tomo package`, and the verified
    archive will be saved to the global download cache.
 
 Package sources are not tied to any single distribution channel by design. You
@@ -170,7 +170,7 @@ a source archive with the right hash.
 
 ### Vendoring Packages
 
-`tomo --vendor <name>` copies a pinned package's digest-verified source
+`tomo vendor <name>` copies a pinned package's digest-verified source
 archive from the download cache into your project's `vendor/` directory and
 rewrites the package's `./packages.ini` entry to use it as the primary source
 (demoting the previous sources to fallbacks, and keeping the digest pin, which
@@ -188,7 +188,7 @@ build with no network access, still fully digest-verified. If the package
 isn't pinned in `./packages.ini` yet, its entry is copied in from the
 compiler's default pins.
 
-`tomo --vendor-editable <name>` instead extracts the package's sources into
+`tomo vendor --editable <name>` instead extracts the package's sources into
 `vendor/<name>/` and points the entry at that directory, dropping the digest
 pin (directory sources aren't digested). Use this when you need to patch a
 dependency: edits to the vendored sources are picked up on the next build.

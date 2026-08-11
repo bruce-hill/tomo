@@ -128,7 +128,7 @@ static const char *tomo_exe(void) {
 // (e.g. for store entries pre-seeded by `tomo --extract-source`):
 static void ensure_package_built(Path_t install_location) {
     if (!Path$exists(Path$child(install_location, Text("package.a"))))
-        xsystem(quoted(tomo_exe()), " -p ", install_location);
+        xsystem(quoted(tomo_exe()), " package ", install_location);
 }
 
 #define xsystem_cleanup(tmpdir, ...)                                                                                   \
@@ -206,7 +206,7 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
                      "package.\nSource: ",
                      source_path);
             }
-            xsystem(quoted(tomo_exe()), " -p ", source_path);
+            xsystem(quoted(tomo_exe()), " package ", source_path);
             return source_path;
         } else {
             return try_install_package_from_file(pkg, source, Path$resolved(source, Path$parent(ini_file)), NULL,
@@ -311,7 +311,7 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source
         }
     }
 
-    xsystem_cleanup(tmpdir, quoted(tomo_exe()), " -p ", install_location);
+    xsystem_cleanup(tmpdir, quoted(tomo_exe()), " package ", install_location);
 
     Path_t info = Path$child(install_location, Text("package_info.ini"));
     Path$write(info, Texts("name=", pkg->name, "\nsource=", source, "\ndigest=", digest, "\n"), 0644);
@@ -674,4 +674,123 @@ void vendor_package(const char *name, bool editable) {
             if (removed.Failure.reason.tag == TEXT_NONE) print("Removed the now-unused store entry: ", old_entry);
         }
     }
+}
+
+// Whether a packages.ini source string points into the project's ./vendor/
+// directory:
+static bool is_vendored_source(const char *source) {
+    return source && (starts_with(source, "./vendor/") || starts_with(source, "vendor/"));
+}
+
+// Whether any package entry in the ini file (other than `except_name`) still
+// references `source` as one of its sources:
+static bool source_still_referenced(Path_t ini_file, const char *except_name, const char *source) {
+    List_t sections = ini_section_names(ini_file);
+    for (int64_t i = 0; i < (int64_t)sections.length; i++) {
+        const char *section = *(const char **)(sections.data + i * sections.stride);
+        if (streq(section, except_name)) continue;
+        pkg_info_t pkg = {.name = section, .info = EMPTY_TABLE};
+        if (!parse_package_entry(ini_file, section, &pkg)) continue;
+        for (int j = 1;; j++) {
+            const char *key = j == 1 ? "source" : String("source-", j);
+            const char *value = Table$str_get(pkg.info, key);
+            if (value == NULL) break;
+            if (streq(value, source)) return true;
+        }
+    }
+    return false;
+}
+
+// The inverse of vendor_package(): restore the named package's ./packages.ini
+// entry to a non-vendored source (the first fallback source, or the compiler's
+// default pin), re-install it into the project's .build/store/ (re-pinning the
+// digest if editable vendoring dropped it), and delete the vendored copy.
+void unvendor_package(const char *name) {
+    Path_t cwd = Path$current_dir();
+    Path_t ini = Path$child(cwd, Text("packages.ini"));
+    pkg_info_t pkg = {.name = name, .info = EMPTY_TABLE};
+    if (!parse_package_entry(ini, name, &pkg)) fail("There is no [", name, "] package entry in ", ini);
+
+    const char *vendored_source = Table$str_get(pkg.info, "source");
+    if (!is_vendored_source(vendored_source)) fail("The package ", name, " is not vendored (source is ",
+                                                   vendored_source ? vendored_source : "missing", ")");
+    Path_t vendored = Path$resolved(Path$from_str(vendored_source), cwd);
+    bool editable = Path$is_directory(vendored, true);
+
+    // Find the source to restore: the first non-vendored fallback source (the
+    // rest stay as fallbacks), or failing that, the compiler's default pin:
+    const char *digest = editable ? NULL : Table$str_get(pkg.info, "digest");
+    const char *restored_source = NULL;
+    List_t remaining_fallbacks = EMPTY_LIST;
+    for (int i = 2;; i++) {
+        const char *old = Table$str_get(pkg.info, String("source-", i));
+        if (old == NULL) break;
+        if (is_vendored_source(old)) continue; // Never restore to another vendored copy
+        if (restored_source == NULL) restored_source = old;
+        else List$insert(&remaining_fallbacks, &old, I(0), sizeof(const char *));
+    }
+    if (restored_source == NULL) {
+        Path_t defaults = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/packages.ini"));
+        pkg_info_t default_pkg = {.name = name, .info = EMPTY_TABLE};
+        if (!parse_package_entry(defaults, name, &default_pkg))
+            fail("The package ", name, " has no fallback source to restore, and no [", name, "] entry in ", defaults);
+        restored_source = Table$str_get(default_pkg.info, "source");
+        if (restored_source == NULL) fail("The package ", name, " has no fallback source to restore");
+        if (digest == NULL) digest = Table$str_get(default_pkg.info, "digest");
+    }
+
+    // Rebuild the entry: digest (if still known), the restored source, the
+    // remaining fallbacks, then any other keys:
+    pkg_info_t updated = {.name = name, .info = EMPTY_TABLE};
+    if (digest) Table$str_set(&updated.info, "digest", digest);
+    Table$str_set(&updated.info, "source", restored_source);
+    for (int64_t i = 0; i < (int64_t)remaining_fallbacks.length; i++) {
+        const char *old = *(const char **)(remaining_fallbacks.data + i * remaining_fallbacks.stride);
+        Table$str_set(&updated.info, String("source-", i + 2), old);
+    }
+    for (int64_t i = 0; i < (int64_t)pkg.info.entries.length; i++) {
+        struct {
+            const char *key, *value;
+        } *entry = pkg.info.entries.data + i * pkg.info.entries.stride;
+        if (streq(entry->key, "digest") || strncmp(entry->key, "source", strlen("source")) == 0) continue;
+        Table$str_set(&updated.info, entry->key, entry->value);
+    }
+
+    // Reinstall from the restored source, which re-verifies (and, if editable
+    // vendoring dropped the digest pin, recomputes and re-pins) the digest:
+    Path_t store_root = Path$child(Path$child(cwd, Text(".build")), Text("store"));
+    OptionalPath_t installed = try_install_package(ini, &updated, true, store_root);
+    if (installed == NULL) fail("Could not reinstall package ", name, " from ", restored_source);
+
+    // A freshly recomputed digest lands at the end of the table; rebuild the
+    // entry with the digest first, matching how vendoring writes it:
+    if (digest == NULL && Table$str_get(updated.info, "digest") != NULL) {
+        pkg_info_t reordered = {.name = name, .info = EMPTY_TABLE};
+        Table$str_set(&reordered.info, "digest", Table$str_get(updated.info, "digest"));
+        for (int64_t i = 0; i < (int64_t)updated.info.entries.length; i++) {
+            struct {
+                const char *key, *value;
+            } *entry = updated.info.entries.data + i * updated.info.entries.stride;
+            if (!streq(entry->key, "digest")) Table$str_set(&reordered.info, entry->key, entry->value);
+        }
+        updated = reordered;
+    }
+
+    rewrite_package_entry(ini, name, updated);
+    // Point the .build/packages/<name> binding link back at the store entry:
+    create_binding_link(ini, name, installed);
+
+    // Delete the vendored copy (an extracted directory for editable vendoring,
+    // otherwise an archive file -- kept if another entry still references it):
+    if (editable || !source_still_referenced(ini, name, vendored_source)) {
+        Result_t removed = Path$remove(vendored, true);
+        if (removed.Failure.reason.tag != TEXT_NONE)
+            fprint(stderr, "Warning: could not remove the vendored copy at ", vendored);
+    }
+    // Clean up the vendor/ directory itself if nothing is left in it:
+    Path_t vendor_dir = Path$child(cwd, Text("vendor"));
+    if (Path$is_directory(vendor_dir, true) && Path$children(vendor_dir, true).length == 0)
+        Path$remove(vendor_dir, false);
+
+    print("Unvendored ", name, ": restored to \033[1m", restored_source, "\033[m");
 }
