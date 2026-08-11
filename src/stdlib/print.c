@@ -203,46 +203,12 @@ int _print_quoted(FILE *f, quoted_t quoted) {
 // growable buffer, and gc_stream_finalize() flushes it, closes the stream, and
 // returns the accumulated bytes as a GC-managed, NUL-terminated string.
 //
-// glibc and the BSDs let us hook stdio directly (fopencookie()/funopen()) so the
-// buffer can be GC memory from the start. musl libc provides neither, so there
-// we fall back to POSIX open_memstream() (which uses a malloc'd buffer) and copy
-// the result into GC memory when finalizing.
+// macOS and the BSDs let us hook stdio directly (funopen()) so the buffer can
+// be GC memory from the start. musl libc (all Linux builds) has no such hook,
+// so there we fall back to POSIX open_memstream() (which uses a malloc'd
+// buffer) and copy the result into GC memory when finalizing.
 
-#if defined(__GLIBC__) && defined(_GNU_SOURCE)
-// GLIBC has fopencookie()
-static ssize_t _gc_stream_write(void *cookie, const char *buf, size_t size) {
-    gc_stream_t *stream = (gc_stream_t *)cookie;
-    if (stream->position + size + 1 > *stream->size)
-        *stream->buffer =
-            GC_REALLOC(*stream->buffer, (*stream->size += MAX(MAX(16UL, *stream->size / 2UL), size + 1UL)));
-    memcpy(&(*stream->buffer)[stream->position], buf, size);
-    stream->position += size;
-    (*stream->buffer)[stream->position] = '\0';
-    return (ssize_t)size;
-}
-
-public
-FILE *gc_memory_stream(char **buf, size_t *size) {
-    gc_stream_t *stream = GC_MALLOC(sizeof(gc_stream_t));
-    stream->size = size;
-    stream->buffer = buf;
-    *stream->size = 16;
-    *stream->buffer = GC_MALLOC_ATOMIC(*stream->size);
-    (*stream->buffer)[0] = '\0';
-    stream->position = 0;
-    cookie_io_functions_t functions = {.write = _gc_stream_write};
-    return fopencookie(stream, "w", functions);
-}
-
-public
-char *gc_stream_finalize(FILE *stream, char **buf, size_t *size) {
-    (void)size;
-    fflush(stream);
-    char *result = *buf; // Already GC memory
-    fclose(stream);
-    return result;
-}
-#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 // BSDs have funopen() and fwopen()
 static int _gc_stream_write(void *cookie, const char *buf, int size) {
     gc_stream_t *stream = (gc_stream_t *)cookie;
