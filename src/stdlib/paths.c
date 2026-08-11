@@ -8,16 +8,6 @@
 #include <gc.h>
 #include <glob.h>
 #include <grp.h>
-
-// GLOB_BRACE ("{a,b}" expansion) and GLOB_TILDE ("~" expansion) are GNU
-// extensions that musl libc does not provide. Fall back to no-ops when they are
-// unavailable; tilde expansion is handled explicitly via Path$expand_home().
-#ifndef GLOB_BRACE
-#define GLOB_BRACE 0
-#endif
-#ifndef GLOB_TILDE
-#define GLOB_TILDE 0
-#endif
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -952,7 +942,7 @@ public
 List_t Path$glob(Path_t path) {
     path = Path$expand_home(path);
     glob_t glob_result;
-    int status = glob(Path$as_c_string(path), GLOB_BRACE | GLOB_TILDE, NULL, &glob_result);
+    int status = glob(Path$as_c_string(path), 0, NULL, &glob_result);
     if (status != 0 && status != GLOB_NOMATCH) fail("Failed to perform globbing");
 
     List_t glob_files = EMPTY_LIST;

@@ -1,4 +1,4 @@
-// Comman-line argument parsing
+// Command-line argument parsing
 
 #include <fcntl.h>
 #include <gc.h>

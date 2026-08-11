@@ -9,11 +9,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <unwind.h>
+
+#include "../config.h"
+#include "print.h"
+#include "util.h"
+
+extern bool USE_COLOR;
 
 // The raw stack addresses are collected with the compiler's stack unwinder,
 // which zig provides on every supported platform (including fully static musl
 // binaries, where libc-based alternatives like execinfo.h don't exist).
-#include <unwind.h>
 typedef struct {
     void **frames;
     int count, max;
@@ -32,12 +38,6 @@ static int collect_backtrace(void **buffer, int size) {
     _Unwind_Backtrace(unwind_callback, &state);
     return state.count;
 }
-
-#include "../config.h"
-#include "print.h"
-#include "util.h"
-
-extern bool USE_COLOR;
 
 static void fprint_context(FILE *out, const char *filename, int lineno, int context_before, int context_after) {
     FILE *f = fopen(filename, "r");

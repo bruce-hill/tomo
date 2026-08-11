@@ -7,6 +7,9 @@
 #include "stdlib/paths.h"
 #include "stdlib/text.h"
 
+public
+Text_t build_target_platform = EMPTY_TEXT;
+
 static const char *c_keywords[] = {
     // Maintain sorted order:
     "_Alignas",
@@ -102,8 +105,6 @@ Text_t CONSTFUNC namespace_name(env_t *env, namespace_t *ns, Text_t name) {
     if (env->id_suffix.length > 0) name = Texts(name, env->id_suffix);
     return name;
 }
-
-public Text_t build_target_platform = EMPTY_TEXT;
 
 public
 Path_t tm_build_dir(Path_t tm_path) {

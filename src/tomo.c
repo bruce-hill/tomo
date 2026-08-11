@@ -114,7 +114,7 @@ static OptionalText_t show_codegen = NONE_TEXT,
                       ldlibs = Text("-lm"), ldflags = Text(""), optimization = Text("2"),
                       // The toolchain is not configurable; these are set in main() to the
                       // `zig cc`/`zig ar` bundled inside the Tomo installation:
-                      cc = Text(""), ar = Text("");
+    cc = Text(""), ar = Text("");
 
 static Text_t config_summary,
     // This will be either "" or "sudo -u <user>" or "doas -u <user>"
@@ -350,10 +350,10 @@ int main(int argc, char *argv[]) {
         // Target platforms install into the user's XDG data directory (not
         // TOMO_PATH), so installing one never needs root permissions:
         const char *data_home = getenv("XDG_DATA_HOME");
-        Path_t data_dir = (data_home && data_home[0] != '\0')
-                              ? Path$from_str(data_home)
-                              : Path$expand_home(Path$from_str("~/.local/share"));
-        target_root = Texts(Path$as_text(&data_dir, false, &Path$info), "/tomo/tomo@", TOMO_VERSION, "/targets/", target);
+        Path_t data_dir = (data_home && data_home[0] != '\0') ? Path$from_str(data_home)
+                                                              : Path$expand_home(Path$from_str("~/.local/share"));
+        target_root =
+            Texts(Path$as_text(&data_dir, false, &Path$info), "/tomo/tomo@", TOMO_VERSION, "/targets/", target);
         ensure_target_installed();
         if (should_install) print_err("--install can't be combined with --target: the binary wouldn't run here");
         // `tomo --target <platform> --install-target` with nothing else to do:
@@ -1208,7 +1208,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         }
     }
 
-    FILE *runner = run_cmd(
+    FILE *runner = run_cmd( // Invoke C compiler
         cc,
         // C flags:
         " ", cflags, " -O", optimization,

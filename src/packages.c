@@ -59,7 +59,6 @@ static OptionalText_t file_digest(Path_t path) {
     char *ret = GC_MALLOC_ATOMIC(strlen(prefix) + SHA256_HEX_SIZE + 1);
     char *p = ret;
     p = stpcpy(p, prefix);
-    // Not mempcpy(): that's a glibc extension and is absent on macOS.
     memcpy(p, hash, SHA256_HEX_SIZE);
     p += SHA256_HEX_SIZE;
     *p = '\0';
