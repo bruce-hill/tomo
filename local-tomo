@@ -1,6 +1,16 @@
 #!/bin/sh
 version=$(awk '/^## / {print $2; exit}' CHANGES.md)
-platform="$(uname -m)-linux"
+# Normalize uname's spellings to Zig platform keys (Darwin/arm64/amd64 etc.):
+case "$(uname -s)" in
+    Darwin) os=macos ;;
+    *) os=$(uname -s | tr '[:upper:]' '[:lower:]') ;;
+esac
+case "$(uname -m)" in
+    arm64) arch=aarch64 ;;
+    amd64) arch=x86_64 ;;
+    *) arch=$(uname -m) ;;
+esac
+platform="$arch-$os"
 if ! [ -e "./build/$platform/tomo@$version/bin/tomo" ]; then
     make -j
 fi

@@ -77,6 +77,20 @@ ZIG_BSD_PLATFORMS = x86_64-freebsd aarch64-freebsd \
 # The default `make dist` matrix:
 ZIG_DIST_PLATFORMS = $(ZIG_LINUX_PLATFORMS) $(ZIG_MACOS_PLATFORMS) $(ZIG_BSD_PLATFORMS)
 
+# --- The host's platform key ------------------------------------------------
+# uname spellings differ from Zig's: macOS reports "Darwin"/"arm64" and the
+# BSDs report "amd64", so both components need normalizing.
+host_os_map_Linux = linux
+host_os_map_Darwin = macos
+host_os_map_FreeBSD = freebsd
+host_os_map_NetBSD = netbsd
+host_os_map_OpenBSD = openbsd
+host_arch_map_arm64 = aarch64
+host_arch_map_amd64 = x86_64
+host_uname_os := $(shell uname -s)
+host_uname_arch := $(shell uname -m)
+ZIG_HOST_PLATFORM := $(or $(host_arch_map_$(host_uname_arch)),$(host_uname_arch))-$(or $(host_os_map_$(host_uname_os)),$(host_uname_os))
+
 # --- Helpers: derive the OS and arch from a platform key --------------------
 # The arch never contains a dash (x86_64, aarch64, powerpc64le, loongarch64, ...)
 # and the OS is the final "-"-separated component.

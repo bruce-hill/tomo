@@ -68,7 +68,7 @@ endif
 CC=zig cc
 AR=zig ar
 RANLIB=zig ranlib
-ZIG_PLATFORM?=$(shell uname -m)-linux
+ZIG_PLATFORM?=$(ZIG_HOST_PLATFORM)
 ZIG_TARGET?=$(call zig_target,$(ZIG_PLATFORM))
 ZIG_OS=$(call zig_os,$(ZIG_PLATFORM))
 BUILD_BASE=build/$(ZIG_PLATFORM)

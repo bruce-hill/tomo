@@ -25,7 +25,7 @@ include zig-checksums.mk
 # built/staged under BUILD_BASE (build/<platform>/), so multiple platforms can
 # coexist. CC is the *host* Zig used as the (cross-)compiler.
 # ---------------------------------------------------------------------------
-ZIG_PLATFORM ?= $(shell uname -m)-linux
+ZIG_PLATFORM ?= $(ZIG_HOST_PLATFORM)
 ZIG_TARGET ?= $(call zig_target,$(ZIG_PLATFORM))
 # The toolchain is not configurable: Tomo requires Zig. zig's llvm ar/ranlib are
 # used because they understand every target object format (incl. Mach-O), unlike
