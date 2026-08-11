@@ -42,9 +42,10 @@ does the same thing.
 : Compile the given program to a standalone executable, placed as a sibling
 of the `.tm` file (or at `-o` *output*).
 
-`transpile` *file.tm...*
-: Transpile the given files to C without compiling. The generated `.h`/`.c`
-files go into each file's `.build/` directory.
+`transpile` *file.tm*
+: Transpile the given file to C and print the generated header and source to
+standard output, each preceded by a `// file:` line. The generated `.h`/`.c`
+files are also written into the file's `.build/` directory.
 
 `parse` *file.tm...*
 : Print the parse tree of the given files as S-expressions.

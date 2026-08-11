@@ -43,10 +43,11 @@ Compile the given program to a standalone executable, placed as a
 sibling of the \f[B].tm\f[R] file (or at \f[B]\-o\f[R]
 \f[I]output\f[R]).
 .TP
-\f[B]transpile\f[R] \f[I]file.tm\&...\f[R]
-Transpile the given files to C without compiling.
-The generated \f[B].h\f[R]/\f[B].c\f[R] files go into each file\[cq]s
-\f[B].build/\f[R] directory.
+\f[B]transpile\f[R] \f[I]file.tm\f[R]
+Transpile the given file to C and print the generated header and source
+to standard output, each preceded by a \f[B]// file:\f[R] line.
+The generated \f[B].h\f[R]/\f[B].c\f[R] files are also written into the
+file\[cq]s \f[B].build/\f[R] directory.
 .TP
 \f[B]parse\f[R] \f[I]file.tm\&...\f[R]
 Print the parse tree of the given files as S\-expressions.

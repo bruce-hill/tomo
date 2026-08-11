@@ -238,7 +238,7 @@ For example:
 
 ```bash
 tomo build foo.tm          # Compile a standalone executable: ./foo
-tomo transpile foo.tm      # Transpile to C: .build/foo.tm.h .build/foo.tm.c
+tomo transpile foo.tm      # Print the generated C header and source
 ```
 
 Global flags like `--verbose`/`-v`, `--quiet`/`-q`, and `--optimization`/`-O`
