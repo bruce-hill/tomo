@@ -5,6 +5,7 @@
 #endif
 
 #include <backtrace.h>
+#include <dlfcn.h>
 #include <err.h>
 #include <gc.h>
 #include <limits.h>
@@ -148,10 +149,24 @@ void print_stacktrace(FILE *out, int offset) {
 
     // Symbolization is done in-process with the vendored libbacktrace (reading
     // the executable's own debug info), so no external tools are needed and it
-    // works in fully static binaries. The state is created once and reused;
-    // NULL means "the running executable".
+    // works in fully static binaries. The state is created once and reused.
     static struct backtrace_state *bt_state = NULL;
-    if (bt_state == NULL) bt_state = backtrace_create_state(NULL, 0, bt_error_callback, NULL);
+    if (bt_state == NULL) {
+        const char *exe_path = NULL;
+#if !defined(__linux__)
+        // A NULL filename makes libbacktrace find the executable itself, but it
+        // has no way to do that on OpenBSD (which offers no API to query the
+        // running executable's path). These platforms link dynamically, though,
+        // so dladdr() on one of our own functions yields the executable's path;
+        // resolve it in case it's relative to the (current) working directory.
+        Dl_info info;
+        static char resolved_path[PATH_MAX];
+        if (dladdr((void *)(uintptr_t)print_stacktrace, &info) && info.dli_fname && info.dli_fname[0]
+            && realpath(info.dli_fname, resolved_path) != NULL)
+            exe_path = resolved_path;
+#endif
+        bt_state = backtrace_create_state(exe_path, 0, bt_error_callback, NULL);
+    }
 
     static void *stack[1024];
     int64_t size = (int64_t)collect_backtrace(stack, sizeof(stack) / sizeof(stack[0]));
