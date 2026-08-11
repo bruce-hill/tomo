@@ -272,7 +272,7 @@ static void materialize_help_text(const char *prog, cli_spec_t *cli) {
     }
 
     if (cli->usage.length == 0) {
-        Text_t usage = Texts("\x1b[93;4;1mUsage:\x1b[m ", prog,
+        Text_t usage = Texts("\x1b[4;1mUsage:\x1b[m\n  ", prog,
                              " [command] [flags...] [args...]\n"
                              "\n\x1b[4;1mCommands:\x1b[m\n");
         for (int i = 0; i < cli->num_commands; i++)
