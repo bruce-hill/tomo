@@ -38,12 +38,19 @@ of many language features or the other example programs/packages in
 
 ## Quick Installation
 
-Quick script to install to `~/.local` on your machine:
+Prebuilt archives are fully self-contained (they bundle the Zig toolchain and
+all needed libraries) and extract directly into an install prefix such as
+`~/.local` or `/usr/local`:
 
 ```
-curl -L "https://tomo.bruce-hill.com/dist/tomo_$(uname -sm | tr ' ' '-').tar.gz" \
-  | tar -xz -C ~/.local --strip-components=1
+platform="$(uname -m | sed 's/^arm64$/aarch64/;s/^amd64$/x86_64/')-$(uname -s | sed 's/Darwin/macos/' | tr 'A-Z' 'a-z')"
+curl -L "https://tomo.bruce-hill.com/dist/tomo@2026-08-10-$platform.tar.xz" \
+  | tar -xJ -C ~/.local
 ```
+
+Available platforms: x86_64/aarch64/riscv64/powerpc64le/s390x Linux (fully
+static), x86_64/aarch64 macOS, and x86_64/aarch64 FreeBSD, NetBSD, and
+OpenBSD.
 
 ### Arch User Repository (AUR)
 
