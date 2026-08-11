@@ -105,7 +105,8 @@ static bool link_macho = false;
 static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
               transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
               run_files = EMPTY_LIST, uninstall_packages = EMPTY_LIST, packages = EMPTY_LIST, args = EMPTY_LIST,
-              show_build_info = EMPTY_LIST, extract_source_files = EMPTY_LIST;
+              show_build_info = EMPTY_LIST, extract_source_files = EMPTY_LIST, vendor_names = EMPTY_LIST,
+              vendor_editable_names = EMPTY_LIST;
 
 static OptionalText_t show_codegen = NONE_TEXT,
                       cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
@@ -298,6 +299,8 @@ int main(int argc, char *argv[]) {
                          "  --force-rebuild|-f: force rebuilding\n"
                          "  --build-info|-b <file>: print the build info embedded in a compiled file\n"
                          "  --extract-source|-x <file>: extract the source files embedded in a compiled program\n"
+                         "  --vendor <package>: copy a package's verified source archive into ./vendor/\n"
+                         "  --vendor-editable <package>: extract a package's sources into ./vendor/ for editing\n"
                          "  --source-mapping|-m <yes|no>: toggle source mapping in generated code\n"
                          "  --target <platform>: cross-compile for another platform; one of:\n"
                          "      " TOMO_DIST_PLATFORMS "\n"
@@ -323,6 +326,8 @@ int main(int argc, char *argv[]) {
         {"show-codegen", &show_codegen, &Text$info, .short_flag = 'C'}, //
         {"build-info", &show_build_info, List$info(&Path$info), .short_flag = 'b'},
         {"extract-source", &extract_source_files, List$info(&Path$info), .short_flag = 'x'}, //
+        {"vendor", &vendor_names, List$info(&Text$info)}, //
+        {"vendor-editable", &vendor_editable_names, List$info(&Text$info)}, //
         {"optimization", &optimization, &Text$info, .short_flag = 'O'}, //
         {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f'}, //
         {"source-mapping", &source_mapping, &Bool$info, .short_flag = 'm'},
@@ -374,7 +379,8 @@ int main(int argc, char *argv[]) {
         if (install_target && run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0
             && parse_files.length == 0 && transpile_files.length == 0 && compile_objects.length == 0
             && compile_executables.length == 0 && uninstall_packages.length == 0 && packages.length == 0
-            && show_build_info.length == 0 && extract_source_files.length == 0)
+            && show_build_info.length == 0 && extract_source_files.length == 0 && vendor_names.length == 0
+            && vendor_editable_names.length == 0)
             return 0;
     }
 
@@ -444,6 +450,16 @@ int main(int argc, char *argv[]) {
         extract_embedded_source(p);
     }
 
+    // Vendor packages into ./vendor/:
+    for (int64_t i = 0; i < (int64_t)vendor_names.length; i++) {
+        Text_t *name = (Text_t *)(vendor_names.data + i * vendor_names.stride);
+        vendor_package(Text$as_c_string(*name), false);
+    }
+    for (int64_t i = 0; i < (int64_t)vendor_editable_names.length; i++) {
+        Text_t *name = (Text_t *)(vendor_editable_names.data + i * vendor_editable_names.stride);
+        vendor_package(Text$as_c_string(*name), true);
+    }
+
     // Build (and install) packages
     Path_t cwd = Path$current_dir();
     for (int64_t i = 0; i < (int64_t)packages.length; i++) {
@@ -456,6 +472,7 @@ int main(int argc, char *argv[]) {
         if (child == 0) {
             build_package(*lib);
             if (should_install) install_package(*lib);
+            fflush(NULL);
             _exit(0);
         }
         wait_for_child_success(child);
@@ -529,7 +546,8 @@ int main(int argc, char *argv[]) {
                     Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");
                     xsystem(as_owner, "cp -v '", manpage_file, "' '", TOMO_PATH, "/man/man1/'");
                 }
-                _exit(0);
+                fflush(NULL);
+            _exit(0);
             }
 
             child_processes = new (struct child_s, .next = child_processes, .pid = child);
@@ -547,7 +565,7 @@ int main(int argc, char *argv[]) {
     if (run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0 && parse_files.length == 0
         && transpile_files.length == 0 && compile_objects.length == 0 && compile_executables.length == 0
         && uninstall_packages.length == 0 && packages.length == 0 && show_build_info.length == 0
-        && extract_source_files.length == 0) {
+        && extract_source_files.length == 0 && vendor_names.length == 0 && vendor_editable_names.length == 0) {
 
         // Piping a program into Tomo
         if (!isatty(STDIN_FILENO)) {
@@ -613,6 +631,7 @@ run_files:;
             List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
             compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
             compile_executable(env, path, exe_path, object_files, extra_ldlibs);
+            fflush(NULL);
             _exit(0);
         }
 
@@ -762,6 +781,73 @@ static void add_dir_files(Table_t *files, Path_t dir, const char *prefix) {
     }
 }
 
+static bool is_store_entry_dir(Path_t dir) {
+    return Text$equal_values(Path$base_name(Path$parent(dir)), Text("store"))
+           && Text$equal_values(Path$base_name(Path$parent(Path$parent(dir))), Text(".build"));
+}
+
+// Collect the binding names and (transitively) the store-entry digests that
+// the .tm files in `dir` still depend on -- parse-only, so no installs or
+// confirmation prompts can trigger during garbage collection:
+static void collect_needed_packages(Path_t dir, Path_t store_root, Table_t *digests, Table_t *names) {
+    List_t files = Path$glob(Path$child(dir, Text("*.tm")));
+    for (int64_t i = 0; i < (int64_t)files.length; i++) {
+        Path_t file = *(Path_t *)(files.data + i * files.stride);
+        ast_t *ast = parse_file(Path$as_c_string(file), NULL);
+        if (!ast) continue;
+        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+            if (stmt->ast->tag != Use) continue;
+            DeclareMatch(use, stmt->ast, Use);
+            if (use->what != USE_PACKAGE) continue;
+            if (names) Table$str_set(names, use->path, "");
+            const char *digest = find_pinned_digest(file, use->path);
+            if (digest == NULL || Table$str_get(*digests, digest)) continue;
+            Table$str_set(digests, digest, "");
+            Path_t entry = Path$child(store_root, Text$from_str(digest));
+            if (Path$is_directory(entry, true)) collect_needed_packages(entry, store_root, digests, NULL);
+        }
+    }
+}
+
+// Garbage-collect a source directory's .build/packages binding links and
+// .build/store entries: anything no .tm file in the directory (transitively)
+// uses anymore is removed. packages.ini pins and vendored sources are never
+// touched, so a garbage-collected package reinstalls without any network
+// access if its `use` comes back.
+static void gc_package_dir(Path_t dir) {
+    Path_t store_root = Path$child(Path$child(dir, Text(".build")), Text("store"));
+    Table_t digests = EMPTY_TABLE, names = EMPTY_TABLE;
+    collect_needed_packages(dir, store_root, &digests, &names);
+
+    List_t links = Path$glob(Path$child(dir, Text(".build/packages/*")));
+    for (int64_t i = 0; i < (int64_t)links.length; i++) {
+        Path_t link = *(Path_t *)(links.data + i * links.stride);
+        if (Table$str_get(names, Text$as_c_string(Path$base_name(link)))) continue;
+        if (unlink(link) == 0 && !quiet)
+            print("Removed unused package binding: ", Path$relative_to(link, Path$current_dir()));
+    }
+    List_t entries = Path$glob(Path$child(dir, Text(".build/store/*")));
+    for (int64_t i = 0; i < (int64_t)entries.length; i++) {
+        Path_t entry = *(Path_t *)(entries.data + i * entries.stride);
+        if (Table$str_get(digests, Text$as_c_string(Path$base_name(entry)))) continue;
+        Result_t removed = Path$remove(entry, true);
+        if (removed.Failure.reason.tag == TEXT_NONE && !quiet)
+            print("Removed unused store entry: ", Path$relative_to(entry, Path$current_dir()));
+    }
+}
+
+// Where a linked package's sources go in the embedded source zip: store
+// entries go under store/<digest> (extracted into the pre-seeded
+// .build/store/), while directory-source packages inside the project (e.g.
+// vendored ones) keep their project-relative location, so the extracted
+// tree's packages.ini still resolves them. NULL for a directory-source
+// package outside the project, which has no resolvable location to embed at:
+static const char *package_zip_prefix(Path_t pkg_dir, Path_t root) {
+    if (is_store_entry_dir(pkg_dir)) return String("store/", Text$as_c_string(Path$base_name(pkg_dir)));
+    Path_t rel = Path$relative_to(Path$resolved(pkg_dir, Path$current_dir()), Path$resolved(root, Path$current_dir()));
+    return strncmp(rel, "..", 2) == 0 ? NULL : Path$as_c_string(rel);
+}
+
 // The zip entry recording which store entry each consumer's `use NAME`
 // actually bound: one "<consumer>\t<name>\t<store dir>" line per direct use,
 // where <consumer> is "" for the program's own files or the store-directory
@@ -770,8 +856,11 @@ static void add_dir_files(Table_t *files, Path_t dir, const char *prefix) {
 // packages -- the packages.ini pins may cover transitive dependencies too):
 static const char *SOURCE_LINKS_ENTRY = "packages.links";
 
-// Record the packages that `consumer_file`'s use statements directly bind:
-static void add_package_bindings(env_t *env, Table_t *bindings, Path_t consumer_file, const char *consumer) {
+// Record the packages that `consumer_file`'s use statements directly bind.
+// The bound package is identified by its zip prefix ("store/<digest>" or a
+// project-relative directory like "vendor/foo"):
+static void add_package_bindings(env_t *env, Table_t *bindings, Path_t consumer_file, const char *consumer,
+                                 Path_t root) {
     ast_t *ast = parse_file(Path$as_c_string(consumer_file), NULL);
     if (!ast) return;
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
@@ -780,8 +869,9 @@ static void add_package_bindings(env_t *env, Table_t *bindings, Path_t consumer_
         if (use->what != USE_PACKAGE) continue;
         OptionalPath_t installed = find_installed_package(env->build_info, stmt->ast);
         if (installed == NULL) continue;
-        Table$str_set(bindings, String(consumer, "\t", use->path, "\t", Text$as_c_string(Path$base_name(installed))),
-                      "");
+        const char *prefix = package_zip_prefix(installed, root);
+        if (prefix == NULL) continue; // Not embedded at a resolvable location
+        Table$str_set(bindings, String(consumer, "\t", use->path, "\t", prefix), "");
     }
 }
 
@@ -816,7 +906,7 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
             continue;
         }
         Table$str_set(&files, rel, Path$as_c_string(entry->filename));
-        add_package_bindings(env, &bindings, entry->filename, "");
+        add_package_bindings(env, &bindings, entry->filename, "", root);
         Path_t ini = Path$sibling(entry->filename, Text("packages.ini"));
         if (Path$is_file(ini, true))
             Table$str_set(&files, Path$as_c_string(Path$relative_to(ini, root)), Path$as_c_string(ini));
@@ -839,11 +929,21 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
             const char *key, *value;
         } *entry = package_dirs.entries.data + i * package_dirs.entries.stride;
         Path_t pkg_dir = Path$from_str(entry->key);
+        const char *prefix = package_zip_prefix(pkg_dir, root);
+        if (prefix == NULL) {
+            fprint(stderr, "Warning: the directory-source package ", pkg_dir,
+                   " lives outside the project, so the extracted source will not rebuild without it");
+            prefix = String("store/", Text$as_c_string(Path$base_name(pkg_dir)));
+        }
+        add_dir_files(&files, pkg_dir, prefix);
+        // Manifest links inside packages only apply to store entries;
+        // directory-source packages' own binding links live in their .build
+        // and are regenerated when the extracted tree builds:
+        if (!is_store_entry_dir(pkg_dir)) continue;
         const char *store_name = Text$as_c_string(Path$base_name(pkg_dir));
-        add_dir_files(&files, pkg_dir, String("store/", store_name));
         List_t pkg_files = Path$glob(Path$child(pkg_dir, Text("[!._0-9]*.tm")));
         for (int64_t j = 0; j < (int64_t)pkg_files.length; j++)
-            add_package_bindings(env, &bindings, *(Path_t *)(pkg_files.data + j * pkg_files.stride), store_name);
+            add_package_bindings(env, &bindings, *(Path_t *)(pkg_files.data + j * pkg_files.stride), store_name, root);
     }
 
     // Also include the license texts shipped with the Tomo install (Tomo's own
@@ -914,10 +1014,14 @@ static void create_extracted_links(Path_t outdir, char *manifest) {
         if (tab1 && tab2) {
             *tab1 = *tab2 = '\0';
             const char *consumer = line, *name = tab1 + 1, *dep = tab2 + 1;
-            if (*name && *dep && !strchr(consumer, '/') && !strchr(name, '/') && !strchr(dep, '/')
-                && !streq(consumer, "..") && !streq(name, "..") && !streq(dep, "..")) {
+            // The dep is a zip prefix: "store/<digest>" (extracted into
+            // .build/store/) or a project-relative directory like "vendor/x":
+            if (*name && *dep && !strchr(consumer, '/') && !strchr(name, '/') && dep[0] != '/'
+                && !streq(consumer, "..") && !streq(name, "..") && !strstr(dep, "..")) {
                 Path_t store = Path$child(Path$child(outdir, Text(".build")), Text("store"));
-                Path_t dep_dir = Path$child(store, Text$from_str(dep));
+                Path_t dep_dir = strncmp(dep, "store/", strlen("store/")) == 0
+                                     ? Path$child(Path$child(outdir, Text(".build")), Text$from_str(dep))
+                                     : Path$child(outdir, Text$from_str(dep));
                 Path_t link_dir = *consumer
                                       ? Path$child(Path$child(store, Text$from_str(consumer)), Text("packages"))
                                       : Path$child(Path$child(outdir, Text(".build")), Text("packages"));
@@ -1099,8 +1203,9 @@ void build_package(Path_t pkg_dir) {
     if (is_stale_for_any(archive, object_files, false)) {
         add_git_info(env, pkg_dir);
 
-        // Store metadata about the package's build information:
-        Path_t build_info_obj = build_file("./__build_info", ".o");
+        // Store metadata about the package's build information (in the
+        // package's own .build directory, not the working directory's):
+        Path_t build_info_obj = build_file(Path$child(pkg_dir, Text("__build_info")), ".o");
         {
             FILE *prog = run_cmd(cc, " ", cflags, " -x c -c - -o ", build_info_obj);
             if (!prog) print_err("Failed to run C compiler: ", cc);
@@ -1115,6 +1220,7 @@ void build_package(Path_t pkg_dir) {
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
         if (!quiet) print("Compiled static package:\t", Path$relative_to(archive, Path$current_dir()));
+        gc_package_dir(pkg_dir);
     } else {
         if (verbose) whisper("Unchanged: ", archive);
     }
@@ -1219,6 +1325,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             if (clean_build || entry->staleness.c) transpile_code(env, entry->filename);
             else if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".c"));
             if (mode != COMPILE_C_FILES) compile_object_file(entry->filename);
+            fflush(NULL);
             _exit(EXIT_SUCCESS);
         }
         child_processes = new (struct child_s, .next = child_processes, .pid = pid);
@@ -1543,8 +1650,19 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         }
     }
 
+    // Rebuilding is also needed if any linked package archive (like an
+    // edited vendored package's recompiled package.a) is newer than the
+    // executable:
+    List_t linked_archives = EMPTY_LIST;
+    for (int64_t i = 0; i < (int64_t)extra_ldlibs.length; i++) {
+        Text_t *lib = (Text_t *)(extra_ldlibs.data + i * extra_ldlibs.stride);
+        if (!Text$ends_with(*lib, Text(".a"), NULL)) continue;
+        Path_t archive_path = Path$from_text(*lib);
+        List$insert(&linked_archives, &archive_path, I(0), sizeof(Path_t));
+    }
+
     if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
-        && !is_stale_for_any(exe_path, object_files, false)
+        && !is_stale_for_any(exe_path, object_files, false) && !is_stale_for_any(exe_path, linked_archives, true)
         && !is_stale(exe_path, Path$sibling(path, Text("packages.ini")), true)
         && !is_stale(exe_path, build_file(path, ":packages.ini"), true)) {
         if (verbose) whisper("Unchanged: ", exe_path);
@@ -1652,5 +1770,6 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
 
     if (!quiet) print("Compiled executable:\t", Path$relative_to(exe_path, Path$current_dir()));
+    gc_package_dir(Path$parent(path));
     return exe_path;
 }

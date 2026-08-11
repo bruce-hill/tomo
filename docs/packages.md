@@ -159,6 +159,31 @@ or tech monopoly. If one of your sources becomes unavailable, Tomo will
 continue down the line, trying each source until it gets one that can provide
 a source archive with the right hash.
 
+### Vendoring Packages
+
+`tomo --vendor <name>` copies a pinned package's digest-verified source
+archive from the download cache into your project's `vendor/` directory and
+rewrites the package's `./packages.ini` entry to use it as the primary source
+(demoting the previous sources to fallbacks, and keeping the digest pin, which
+still verifies -- it's the same bytes):
+
+```ini
+[foo]
+digest=sha256:2551b5...
+source=./vendor/foo-v1.2.tar.gz
+source-2=https://example.com/foo-v1.2.tar.gz
+```
+
+Committing `vendor/` makes the repository self-sufficient: fresh checkouts
+build with no network access, still fully digest-verified. If the package
+isn't pinned in `./packages.ini` yet, its entry is copied in from the
+compiler's default pins.
+
+`tomo --vendor-editable <name>` instead extracts the package's sources into
+`vendor/<name>/` and points the entry at that directory, dropping the digest
+pin (directory sources aren't digested). Use this when you need to patch a
+dependency: edits to the vendored sources are picked up on the next build.
+
 ### Local Directory Packages
 
 As a special case, Tomo also permits using local directories as sources. If a

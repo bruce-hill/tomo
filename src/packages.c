@@ -81,7 +81,18 @@ static void create_binding_link(Path_t using_file, const char *name, Path_t inst
 
     Path_t link_dir = consumer_in_store ? Path$child(using_dir, Text("packages"))
                                         : Path$child(using_dir, Text(".build/packages"));
-    const char *target = dep_in_this_store ? Path$relative_to(installed, link_dir) : installed;
+    const char *target = installed;
+    if (dep_in_this_store) {
+        target = Path$relative_to(installed, link_dir);
+    } else if (!consumer_in_store) {
+        // Directory-source packages inside the project (e.g. vendored ones)
+        // also get relative links, so the project stays relocatable:
+        Path_t cwd = Path$current_dir();
+        Path_t project = Path$resolved(using_dir, cwd);
+        Path_t dep = Path$resolved(installed, cwd);
+        if (strncmp(dep, project, strlen(project)) == 0 && dep[strlen(project)] == '/')
+            target = Path$relative_to(dep, Path$resolved(link_dir, cwd));
+    }
 
     Result_t result = Path$create_directory(link_dir, 0755, true);
     if (result.Failure.reason.tag != TEXT_NONE) return;
@@ -426,4 +437,194 @@ OptionalPath_t find_installed_package(Table_t *build_info, ast_t *use) {
 
     if (installed != NULL) create_binding_link(using_file, name, installed);
     return installed;
+}
+
+static bool parse_package_entry(Path_t ini_file, const char *name, pkg_info_t *pkg);
+
+// The pinned digest for `name`, as resolved through the same packages.ini
+// chain a `use` in `using_file` would consult -- parse-only, installing
+// nothing. NULL if the package isn't pinned by digest (e.g. a
+// directory-source package) or isn't found at all:
+const char *find_pinned_digest(Path_t using_file, const char *name) {
+    Path_t candidates[] = {
+        Path$from_str(String(using_file, ":packages.ini")),
+        Path$sibling(using_file, Text("packages.ini")),
+        Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/packages.ini")),
+    };
+    for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
+        pkg_info_t pkg = {.name = name, .info = EMPTY_TABLE};
+        if (parse_package_entry(candidates[i], name, &pkg)) return Table$str_get(pkg.info, "digest");
+    }
+    return NULL;
+}
+
+// Parse [name]'s key=value entries from an ini file (without installing
+// anything). Returns whether the section was found:
+static bool parse_package_entry(Path_t ini_file, const char *name, pkg_info_t *pkg) {
+    OptionalClosure_t by_line = Path$by_line(ini_file);
+    if (by_line.fn == NULL) return false;
+    OptionalText_t (*next_line)(void *) = by_line.fn;
+    bool found = false;
+    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
+        if (!found) {
+            if (Text$equal_values(line, Texts("[", name, "]"))) found = true;
+            continue;
+        }
+        const char *key = NULL, *value = NULL;
+        if (strparse(Text$as_c_string(line), &key, "=", &value)) break; // End of section
+        Table$str_set(&pkg->info, key, value);
+    }
+    return found;
+}
+
+// Replace (or append) [name]'s entry in an ini file with the given info:
+static void rewrite_package_entry(Path_t ini_file, const char *name, pkg_info_t pkg) {
+    Text_t out = EMPTY_TEXT;
+    bool replaced = false;
+    OptionalClosure_t by_line = Path$by_line(ini_file);
+    if (by_line.fn != NULL) {
+        OptionalText_t (*next_line)(void *) = by_line.fn;
+        bool in_section = false;
+        for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
+            if (in_section) {
+                const char *key = NULL, *value = NULL;
+                if (!strparse(Text$as_c_string(line), &key, "=", &value)) continue; // Drop the old entries
+                in_section = false;
+            }
+            if (Text$equal_values(line, Texts("[", name, "]"))) {
+                out = Texts(out, package_text(pkg));
+                in_section = true, replaced = true;
+                continue;
+            }
+            out = Texts(out, line, "\n");
+        }
+    }
+    if (!replaced) {
+        if (out.length > 0) out = Texts(Text$trim(out, Text(" \r\n\t"), false, true), Text("\n\n"));
+        out = Texts(out, package_text(pkg));
+    }
+    Result_t result = Path$write(ini_file, out, 0644);
+    if (result.Failure.reason.tag != TEXT_NONE) fail(result.Failure.reason);
+}
+
+// Extract a package source archive into dest, flattening a single top-level
+// wrapper directory if there is one:
+static void extract_package_archive(Path_t archive, Path_t dest) {
+    Result_t result = Path$create_directory(dest, 0755, true);
+    if (result.Failure.reason.tag != TEXT_NONE) fail("Failed to make directory: ", result.Failure.reason);
+
+    if (Path$has_extension(archive, Text(".tar.gz")) || Path$has_extension(archive, Text(".tgz"))
+        || Path$has_extension(archive, Text(".tar.xz")) || Path$has_extension(archive, Text(".txz"))
+        || Path$has_extension(archive, Text(".tar"))) {
+        xsystem("tar xf ", quoted(archive), " -C ", quoted(dest));
+    } else if (Path$has_extension(archive, Text(".zip"))) {
+        xsystem("unzip -q ", quoted(archive), " -d ", quoted(dest));
+    } else {
+        fail("Unsupported package filetype: ", archive);
+    }
+
+    List_t extracted = Path$children(dest, true);
+    if (extracted.length == 1 && Path$is_directory(*(Path_t *)extracted.data, false)) {
+        Path_t top_level = *(Path_t *)extracted.data;
+        List_t contents = Path$children(top_level, true);
+        for (int64_t i = 0; i < (int64_t)contents.length; i++) {
+            Path_t p = *(Path_t *)(contents.data + i * contents.stride);
+            Result_t moved = Path$move(p, Path$child(dest, Path$base_name(p)), false);
+            if (moved.Failure.reason.tag != TEXT_NONE) fail(moved.Failure.reason);
+        }
+        Result_t removed = Path$remove(top_level, true);
+        if (removed.Failure.reason.tag != TEXT_NONE) fail(removed.Failure.reason);
+    }
+}
+
+// Vendor the named package into the current project's vendor/ directory,
+// updating (or creating) its ./packages.ini entry. The normal mode copies the
+// digest-verified archive and keeps the digest pin; editable mode extracts the
+// sources into a directory (dropping the digest, since directory sources
+// aren't digested) so the vendored copy can be modified freely. Previous
+// sources are demoted to fallbacks.
+void vendor_package(const char *name, bool editable) {
+    Path_t cwd = Path$current_dir();
+    Path_t ini = Path$child(cwd, Text("packages.ini"));
+    pkg_info_t pkg = {.name = name, .info = EMPTY_TABLE};
+    Path_t found_in = ini;
+    if (!parse_package_entry(ini, name, &pkg)) {
+        // Fall back to the compiler's default pins, copying the entry into
+        // the project's own packages.ini:
+        found_in = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/packages.ini"));
+        if (!parse_package_entry(found_in, name, &pkg))
+            fail("There is no [", name, "] package entry in ", ini, " or ", found_in);
+    }
+
+    const char *source = Table$str_get(pkg.info, "source");
+    if (source == NULL) fail("The package ", name, " has no source to vendor");
+    if ((source[0] == '.' || source[0] == '/' || source[0] == '~')
+        && Path$is_directory(Path$resolved(Path$from_str(source), cwd), true))
+        fail("The package ", name, " is already vendored as a directory: ", source);
+
+    // Make sure the package is installed, which computes/verifies the digest
+    // and caches the verified archive:
+    Path_t store_root = Path$child(Path$child(cwd, Text(".build")), Text("store"));
+    OptionalPath_t installed = try_install_package(found_in, &pkg, true, store_root);
+    if (installed == NULL) fail("Could not install package: ", name);
+    const char *digest = Table$str_get(pkg.info, "digest");
+    if (digest == NULL) fail("The package ", name, " has no digest to vendor by");
+
+    Path_t cache_dir = download_cache_dir(Text$from_str(digest));
+    List_t cached = Path$is_directory(cache_dir, true) ? Path$children(cache_dir, true) : EMPTY_LIST;
+    if (cached.length != 1) fail("There is no cached archive for package ", name, " (digest ", digest, ")");
+    Path_t archive = *(Path_t *)cached.data;
+
+    Result_t result = Path$create_directory(Path$child(cwd, Text("vendor")), 0755, true);
+    if (result.Failure.reason.tag != TEXT_NONE) fail("Failed to make vendor/ directory: ", result.Failure.reason);
+
+    const char *new_source;
+    Path_t link_target = installed;
+    if (editable) {
+        Path_t vendored = Path$child(Path$child(cwd, Text("vendor")), Text$from_str(name));
+        if (Path$exists(vendored)) fail("There is already a vendored copy at ", vendored);
+        extract_package_archive(archive, vendored);
+        new_source = String("./vendor/", name);
+        link_target = vendored;
+    } else {
+        Path_t vendored = Path$child(Path$child(cwd, Text("vendor")), Path$base_name(archive));
+        xsystem("cp ", quoted(archive), " ", quoted(vendored));
+        new_source = String("./vendor/", Text$as_c_string(Path$base_name(archive)));
+    }
+
+    // Rebuild the entry: digest (unless editable), the vendored source first,
+    // then the previous sources demoted to fallbacks, then any other keys:
+    pkg_info_t updated = {.name = name, .info = EMPTY_TABLE};
+    if (!editable) Table$str_set(&updated.info, "digest", digest);
+    Table$str_set(&updated.info, "source", new_source);
+    int fallback = 2;
+    for (int i = 1;; i++) {
+        const char *key = i == 1 ? "source" : String("source-", i);
+        const char *old = Table$str_get(pkg.info, key);
+        if (old == NULL) break;
+        if (!streq(old, new_source)) Table$str_set(&updated.info, String("source-", fallback++), old);
+    }
+    for (int64_t i = 0; i < (int64_t)pkg.info.entries.length; i++) {
+        struct {
+            const char *key, *value;
+        } *entry = pkg.info.entries.data + i * pkg.info.entries.stride;
+        if (streq(entry->key, "digest") || strncmp(entry->key, "source", strlen("source")) == 0) continue;
+        Table$str_set(&updated.info, entry->key, entry->value);
+    }
+    rewrite_package_entry(ini, name, updated);
+    // Record the .build/packages/<name> binding link right away (it would
+    // otherwise only appear on the next build):
+    create_binding_link(ini, name, link_target);
+    print("Vendored ", name, " to \033[1m", new_source, "\033[m", editable ? " (editable, without a digest pin)" : "");
+
+    // In editable mode the digest pin is gone, so the store entry it pointed
+    // at is no longer used; clean it up. (Non-editable vendoring keeps the
+    // digest, so its store entry stays in use.)
+    if (editable) {
+        Path_t old_entry = Path$child(store_root, Text$from_str(digest));
+        if (Path$exists(old_entry)) {
+            Result_t removed = Path$remove(old_entry, true);
+            if (removed.Failure.reason.tag == TEXT_NONE) print("Removed the now-unused store entry: ", old_entry);
+        }
+    }
 }

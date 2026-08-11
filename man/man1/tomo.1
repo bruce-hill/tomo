@@ -62,6 +62,18 @@ program\[cq]s sources, \f[B]packages.ini\f[R], license texts, and a
 pre\-seeded package store, so it can be rebuilt as\-is without network
 access.
 .TP
+\f[B]\-\-vendor\f[R] \f[I]package1\f[R] \f[I]package2\f[R]\&...
+Copy the named packages\[cq] digest\-verified source archives into the
+current project\[cq]s \f[B]vendor/\f[R] directory and update
+\f[B]./packages.ini\f[R] to use the vendored copies as the primary
+sources (keeping the digest pins and demoting the previous sources to
+fallbacks).
+.TP
+\f[B]\-\-vendor\-editable\f[R] \f[I]package1\f[R] \f[I]package2\f[R]\&...
+Like \f[B]\-\-vendor\f[R], but extract each package\[cq]s sources into
+\f[B]vendor/<name>/\f[R] and drop its digest pin, so the vendored copy
+can be edited freely.
+.TP
 \f[B]\-\-install\-target\f[R]
 When using \f[B]\-\-target\f[R], download and install the target
 platform\[cq]s libraries without asking for confirmation.

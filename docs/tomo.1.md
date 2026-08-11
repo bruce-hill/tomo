@@ -64,6 +64,16 @@ package archives).
 it includes the program's sources, `packages.ini`, license texts, and a
 pre-seeded package store, so it can be rebuilt as-is without network access.
 
+`--vendor` *package1* *package2*...
+: Copy the named packages' digest-verified source archives into the current
+project's `vendor/` directory and update `./packages.ini` to use the vendored
+copies as the primary sources (keeping the digest pins and demoting the
+previous sources to fallbacks).
+
+`--vendor-editable` *package1* *package2*...
+: Like `--vendor`, but extract each package's sources into `vendor/<name>/`
+and drop its digest pin, so the vendored copy can be edited freely.
+
 `--install-target`
 : When using `--target`, download and install the target platform's libraries
 without asking for confirmation.
