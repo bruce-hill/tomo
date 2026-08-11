@@ -101,9 +101,9 @@ static OptionalText_t show_codegen = NONE_TEXT,
 #endif
                                     " -DGC_THREADS"),
                       ldlibs = Text("-lm"), ldflags = Text(""), optimization = Text("2"),
-                      // The C compiler is not configurable; this is set in main() to the
-                      // `zig cc` bundled inside the Tomo installation:
-                      cc = Text("");
+                      // The toolchain is not configurable; these are set in main() to the
+                      // `zig cc`/`zig ar` bundled inside the Tomo installation:
+                      cc = Text(""), ar = Text("");
 
 static Text_t config_summary,
     // This will be either "" or "sudo -u <user>" or "doas -u <user>"
@@ -184,6 +184,8 @@ int main(int argc, char *argv[]) {
     // this platform, invoked with `-target <ZIG_TARGET>` (plus `-static` on
     // Linux/musl) to produce statically-linked binaries.
     cc = Texts(Text$from_str(TOMO_PATH), "/libexec/tomo@", TOMO_VERSION, "/zig/zig cc");
+    // zig's llvm-based ar, so no system binutils is needed at runtime:
+    ar = Texts(Text$from_str(TOMO_PATH), "/libexec/tomo@", TOMO_VERSION, "/zig/zig ar");
 
     cflags = Texts("-I'", TOMO_PATH, "/include' -I'", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "' ", cflags);
 
@@ -612,7 +614,7 @@ void build_package(Path_t pkg_dir) {
             if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
         }
 
-        FILE *prog = run_cmd("ar -rcs '", archive, "' ", paths_str(object_files), " '", build_info_obj, "'");
+        FILE *prog = run_cmd(ar, " rcs '", archive, "' ", paths_str(object_files), " '", build_info_obj, "'");
         if (!prog) print_err("Failed to run `ar`");
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
