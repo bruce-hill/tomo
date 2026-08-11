@@ -37,6 +37,7 @@
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
 #include "stdlib/random.h"
+#include "stdlib/simpleparse.h"
 #include "stdlib/siphash.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
@@ -738,15 +739,42 @@ static bool is_build_artifact(Text_t filename) {
 }
 
 // Recursively add every file in `dir` to the zip's name->path table under
-// `prefix`, skipping hidden files (like .build/) and compiled artifacts:
+// `prefix`, skipping hidden files (like .build/), compiled artifacts, and
+// symlinks (package binding links -- each linked package is embedded once,
+// under its own packages/ entry, via the dependency graph):
 static void add_dir_files(Table_t *files, Path_t dir, const char *prefix) {
     List_t children = Path$glob(Path$child(dir, Text("[!.]*")));
     for (int64_t i = 0; i < (int64_t)children.length; i++) {
         Path_t child = *(Path_t *)(children.data + i * children.stride);
+        struct stat child_stat;
+        if (lstat(child, &child_stat) != 0 || S_ISLNK(child_stat.st_mode)) continue;
         Text_t base = Path$base_name(child);
         const char *name = String(prefix, "/", Text$as_c_string(base));
         if (Path$is_directory(child, true)) add_dir_files(files, child, name);
         else if (!is_build_artifact(base)) Table$str_set(files, name, Path$as_c_string(child));
+    }
+}
+
+// The zip entry recording which store entry each consumer's `use NAME`
+// actually bound: one "<consumer>\t<name>\t<store dir>" line per direct use,
+// where <consumer> is "" for the program's own files or the store-directory
+// name of the package making the use. Extraction recreates the
+// packages/<name> binding links from these lines (only for actually-used
+// packages -- the packages.ini pins may cover transitive dependencies too):
+static const char *SOURCE_LINKS_ENTRY = "packages.links";
+
+// Record the packages that `consumer_file`'s use statements directly bind:
+static void add_package_bindings(env_t *env, Table_t *bindings, Path_t consumer_file, const char *consumer) {
+    ast_t *ast = parse_file(Path$as_c_string(consumer_file), NULL);
+    if (!ast) return;
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag != Use) continue;
+        DeclareMatch(use, stmt->ast, Use);
+        if (use->what != USE_PACKAGE) continue;
+        OptionalPath_t installed = find_installed_package(env->build_info, stmt->ast);
+        if (installed == NULL) continue;
+        Table$str_set(bindings, String(consumer, "\t", use->path, "\t", Text$as_c_string(Path$base_name(installed))),
+                      "");
     }
 }
 
@@ -762,7 +790,8 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
     // sources directly); their whole package is embedded below instead.
     Table_t files = EMPTY_TABLE;
     Table_t package_dirs = EMPTY_TABLE;
-    const char *lib_prefix = String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/");
+    Table_t bindings = EMPTY_TABLE;
+    const char *lib_prefix = String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/store/");
     for (int64_t i = 0; i < (int64_t)dep_files.entries.length; i++) {
         struct {
             Path_t filename;
@@ -785,6 +814,7 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
             continue;
         }
         Table$str_set(&files, rel, Path$as_c_string(entry->filename));
+        add_package_bindings(env, &bindings, entry->filename, "");
         Path_t ini = Path$sibling(entry->filename, Text("packages.ini"));
         if (Path$is_file(ini, true))
             Table$str_set(&files, Path$as_c_string(Path$relative_to(ini, root)), Path$as_c_string(ini));
@@ -799,13 +829,19 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
         Table$str_set(&package_dirs, Path$as_c_string(pkg_dir), Path$as_c_string(pkg_dir));
     }
 
-    // Embed each package's full sources (and license files) under packages/:
+    // Embed each package's full sources (and license files) under store/,
+    // mirroring the installed content-addressed layout. `tomo -x` recreates
+    // the packages/<name> binding links from the extracted packages.ini pins:
     for (int64_t i = 0; i < (int64_t)package_dirs.entries.length; i++) {
         struct {
             const char *key, *value;
         } *entry = package_dirs.entries.data + i * package_dirs.entries.stride;
         Path_t pkg_dir = Path$from_str(entry->key);
-        add_dir_files(&files, pkg_dir, String("packages/", Text$as_c_string(Path$base_name(pkg_dir))));
+        const char *store_name = Text$as_c_string(Path$base_name(pkg_dir));
+        add_dir_files(&files, pkg_dir, String("store/", store_name));
+        List_t pkg_files = Path$glob(Path$child(pkg_dir, Text("[!._0-9]*.tm")));
+        for (int64_t j = 0; j < (int64_t)pkg_files.length; j++)
+            add_package_bindings(env, &bindings, *(Path_t *)(pkg_files.data + j * pkg_files.stride), store_name);
     }
 
     // Also include the license texts shipped with the Tomo install (Tomo's own
@@ -835,6 +871,20 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
         if (!mz_zip_writer_add_mem(&zip, entries[i].name, contents, size, MZ_BEST_COMPRESSION))
             print_err("Could not add ", entries[i].name, " to the source zip for ", main_file);
     }
+    // The binding-links manifest (see SOURCE_LINKS_ENTRY):
+    Text_t links = EMPTY_TEXT;
+    for (int64_t i = 0; i < (int64_t)bindings.entries.length; i++) {
+        struct {
+            const char *key, *value;
+        } *entry = bindings.entries.data + i * bindings.entries.stride;
+        links = Texts(links, entry->key, "\n");
+    }
+    if (links.length > 0) {
+        const char *links_str = Text$as_c_string(links);
+        if (!mz_zip_writer_add_mem(&zip, SOURCE_LINKS_ENTRY, links_str, strlen(links_str), MZ_BEST_COMPRESSION))
+            print_err("Could not add ", SOURCE_LINKS_ENTRY, " to the source zip for ", main_file);
+    }
+
     void *zip_data;
     size_t zip_size;
     if (!mz_zip_writer_finalize_heap_archive(&zip, &zip_data, &zip_size))
@@ -848,6 +898,40 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
     write_all(fd, SOURCE_ZIP_FOOTER, strlen(SOURCE_ZIP_FOOTER), blob_path);
     close(fd);
     mz_free(zip_data);
+}
+
+// Recreate the packages/<name> binding links for an extracted source tree
+// from its packages.links manifest. Only links tomo itself synthesizes get
+// created (validated names, targets constrained to extracted store entries):
+static void create_extracted_links(Path_t outdir, char *manifest) {
+    for (char *line = manifest; line && *line;) {
+        char *end = strchr(line, '\n');
+        if (end) *end = '\0';
+        char *tab1 = strchr(line, '\t');
+        char *tab2 = tab1 ? strchr(tab1 + 1, '\t') : NULL;
+        if (tab1 && tab2) {
+            *tab1 = *tab2 = '\0';
+            const char *consumer = line, *name = tab1 + 1, *dep = tab2 + 1;
+            if (*name && *dep && !strchr(consumer, '/') && !strchr(name, '/') && !strchr(dep, '/')
+                && !streq(consumer, "..") && !streq(name, "..") && !streq(dep, "..")) {
+                Path_t base =
+                    *consumer ? Path$from_str(String(Path$as_c_string(outdir), "/store/", consumer)) : outdir;
+                Path_t dep_dir = Path$from_str(String(Path$as_c_string(outdir), "/store/", dep));
+                if (Path$is_directory(base, true) && Path$is_directory(dep_dir, true)) {
+                    Path_t link_dir = Path$child(base, Text("packages"));
+                    Result_t result = Path$create_directory(link_dir, 0755, true);
+                    if (result.Failure.reason.tag == TEXT_NONE) {
+                        Path_t link = Path$child(link_dir, Text$from_str(name));
+                        const char *target = *consumer ? String("../../", dep) : String("../store/", dep);
+                        unlink(link);
+                        if (symlink(target, link) == 0)
+                            print("Linked    ", Path$relative_to(link, Path$current_dir()), " -> ", target);
+                    }
+                }
+            }
+        }
+        line = end ? end + 1 : NULL;
+    }
 }
 
 // Extract the embedded source zip from a compiled binary into a
@@ -873,6 +957,7 @@ void extract_embedded_source(Path_t binary) {
         print_err("The embedded Tomo source in ", binary, " is not a valid zip file");
     Path_t outdir = Path$sibling(binary, Texts(Path$base_name(binary), Text("-source")));
     bool extracted_packages = false;
+    char *links_manifest = NULL;
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip); i++) {
         mz_zip_archive_file_stat stat;
         if (!mz_zip_reader_file_stat(&zip, i, &stat))
@@ -885,6 +970,14 @@ void extract_embedded_source(Path_t binary) {
         size_t size;
         void *data = mz_zip_reader_extract_to_heap(&zip, i, &size, 0);
         if (data == NULL) print_err("Could not extract ", stat.m_filename, " from the source zip in ", binary);
+        if (streq(stat.m_filename, SOURCE_LINKS_ENTRY)) {
+            // Not a source file: consumed below to recreate the binding links.
+            links_manifest = GC_MALLOC_ATOMIC(size + 1);
+            memcpy(links_manifest, data, size);
+            links_manifest[size] = '\0';
+            mz_free(data);
+            continue;
+        }
         Path_t out = Path$from_str(String(Path$as_c_string(outdir), "/", stat.m_filename));
         Path$create_directory(Path$parent(out), 0755, true);
         int out_fd = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0644);
@@ -893,14 +986,18 @@ void extract_embedded_source(Path_t binary) {
         close(out_fd);
         mz_free(data);
         print("Extracted ", Path$relative_to(out, Path$current_dir()));
-        if (strncmp(stat.m_filename, "packages/", strlen("packages/")) == 0) extracted_packages = true;
+        if (strncmp(stat.m_filename, "store/", strlen("store/")) == 0) extracted_packages = true;
     }
     mz_zip_reader_end(&zip);
     munmap(contents, (size_t)sb.st_size);
+
+    if (links_manifest) create_extracted_links(outdir, links_manifest);
+
     if (extracted_packages)
-        print("\nNote: the sources of the packages this program uses were extracted into packages/\n"
-              "To rebuild using those copies instead of fetching the pinned package sources,\n"
-              "point the packages.ini entries at them, e.g.: source=./packages/<name>");
+        print("\nNote: the sources of the packages this program uses were extracted into store/,\n"
+              "with packages/<name> links resolving each `use`. To rebuild using those copies\n"
+              "instead of fetching the pinned sources, point the packages.ini entries at them,\n"
+              "e.g.: source=./store/<digest> (and remove that package's digest= line).");
 }
 
 // The C code embedding the source blob in a retained section on ELF targets

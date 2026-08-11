@@ -1,8 +1,12 @@
 // This file defines some code for getting info about packages and installing them.
 
 #include <err.h>
+#include <limits.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include "config.h"
 #include "packages.h"
@@ -14,11 +18,53 @@
 #include "stdlib/simpleparse.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
+#include "stdlib/util.h"
 
 typedef struct {
     const char *name;
     Table_t info;
 } pkg_info_t;
+
+// Installed packages are content-addressed: each one lives in
+// store/<digest>/, and the names things call them by are symlinks (see
+// create_binding_link() below).
+static Path_t package_store_location(Text_t digest) {
+    return Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/store/", digest));
+}
+
+// Record which package a `use NAME` resolved to, as a "packages/NAME" symlink
+// next to the file that used it. For a consumer inside the store, the link is
+// store-relative ("../../<digest>", pointing two levels up from its packages/
+// directory into the store), so store entries stay relocatable as a unit. For
+// a program outside the store, the link farm lives in its .build directory
+// and points at the absolute installed path. Every level of the dependency
+// graph thus resolves the same way: ./packages/NAME, one level at a time.
+static void create_binding_link(Path_t using_file, const char *name, Path_t installed) {
+    if (strchr(name, '/') != NULL) return; // Just in case: never write outside packages/
+    Path_t using_dir = Path$parent(using_file);
+    const char *store_prefix = String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/store/");
+    bool consumer_in_store = strncmp(using_dir, store_prefix, strlen(store_prefix)) == 0;
+    bool dep_in_store = strncmp(installed, store_prefix, strlen(store_prefix)) == 0;
+
+    Path_t link_dir = consumer_in_store ? Path$child(using_dir, Text("packages"))
+                                        : Path$child(using_dir, Text(".build/packages"));
+    const char *target = (consumer_in_store && dep_in_store)
+                             ? String("../../", installed + strlen(store_prefix))
+                             : installed;
+
+    Result_t result = Path$create_directory(link_dir, 0755, true);
+    if (result.Failure.reason.tag != TEXT_NONE) return;
+    Path_t link = Path$child(link_dir, Text$from_str(name));
+    char existing[PATH_MAX];
+    ssize_t len = readlink(link, existing, sizeof(existing) - 1);
+    if (len >= 0) {
+        existing[len] = '\0';
+        if (streq(existing, target)) return; // Already correct
+    }
+    unlink(link);
+    if (symlink(target, link) != 0)
+        fprint(stderr, "Warning: could not create package link ", link, " -> ", target);
+}
 
 #define xsystem(...)                                                                                                   \
     ({                                                                                                                 \
@@ -160,8 +206,7 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source
         }
     }
 
-    OptionalPath_t install_location =
-        Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", digest));
+    OptionalPath_t install_location = package_store_location(digest);
 
     Result_t result = Path$create_directory(install_location, 0755, true);
     if (result.Failure.reason.tag != TEXT_NONE) {
@@ -221,7 +266,7 @@ static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool
     OptionalPath_t install_location = NULL;
     const char *digest = Table$str_get(pkg->info, "digest");
     if (digest) {
-        install_location = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/", digest));
+        install_location = package_store_location(Text$from_str(digest));
         if (Path$exists(install_location)) {
             return install_location;
         }
@@ -291,25 +336,23 @@ found_package:;
 
 OptionalPath_t find_installed_package(Table_t *build_info, ast_t *use) {
     const char *name = Match(use, Use)->path;
+    Path_t using_file = Path$from_str(use->file->filename);
+    OptionalPath_t installed = NONE_PATH;
 
-    {
-        Path_t file_package = Path$from_str(String(use->file->filename, ":packages.ini"));
-        OptionalPath_t installed = get_package_install_location(build_info, file_package, name);
-        if (installed != NULL) return installed;
+    Path_t file_package = Path$from_str(String(use->file->filename, ":packages.ini"));
+    installed = get_package_install_location(build_info, file_package, name);
+
+    if (installed == NULL) {
+        Path_t local_package = Path$sibling(using_file, Text("packages.ini"));
+        installed = get_package_install_location(build_info, local_package, name);
     }
 
-    {
-        Path_t local_package = Path$sibling(Path$from_str(use->file->filename), Text("packages.ini"));
-        OptionalPath_t installed = get_package_install_location(build_info, local_package, name);
-        if (installed != NULL) return installed;
-    }
-
-    {
+    if (installed == NULL) {
         Path_t tomo_default_packages =
             Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/packages.ini"));
-        OptionalPath_t installed = get_package_install_location(build_info, tomo_default_packages, name);
-        if (installed != NULL) return installed;
+        installed = get_package_install_location(build_info, tomo_default_packages, name);
     }
 
-    return NONE_PATH;
+    if (installed != NULL) create_binding_link(using_file, name, installed);
+    return installed;
 }
