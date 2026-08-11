@@ -40,7 +40,7 @@ unexport LD_LIBRARY_PATH
 # and silence the counting run's stderr.
 ifndef NO_PROGRESS
 ifndef ECHO
-ifeq ($(filter dist archive deps,$(MAKECMDGOALS)),)
+ifeq ($(filter dist archive deps install-targets,$(MAKECMDGOALS)),)
 T := $(shell $(MAKE) ECHO="COUNTTHIS" $(MAKECMDGOALS) --no-print-directory \
       -n 2>/dev/null | grep -c "COUNTTHIS")
 N := x
@@ -189,6 +189,22 @@ dist:
 	    printf '\033[91;1;7m Failed platforms:%s \033[m\n' "$$failed"; \
 	    exit 1; \
 	fi
+
+# Install the DIST_TARGETS platforms' libraries straight from the local build
+# trees into the XDG data directory, where `tomo --target <platform>` looks for
+# them -- so cross-compilation can be tested without any network access. The
+# host platform is skipped (native builds don't use a target pack). Limit the
+# set with e.g. `make install-targets DIST_TARGETS=aarch64-linux`.
+XDG_DATA_HOME ?= $(HOME)/.local/share
+TARGET_PACKS_DIR = $(XDG_DATA_HOME)/tomo/tomo@$(TOMO_VERSION)/targets
+install-targets:
+	@for p in $(filter-out $(ZIG_HOST_PLATFORM),$(DIST_TARGETS)); do \
+	    printf '\033[1;7m Target platform %s \033[m\n' "$$p"; \
+	    $(MAKE) --no-print-directory build ZIG_PLATFORM="$$p" NO_PROGRESS=1 || exit 1; \
+	    mkdir -p '$(TARGET_PACKS_DIR)'/$$p; \
+	    cp -R build/$$p/tomo/lib build/$$p/tomo/include '$(TARGET_PACKS_DIR)'/$$p/; \
+	    printf 'Installed \033[1m%s\033[m\n' '$(TARGET_PACKS_DIR)'/$$p; \
+	done
 
 BUILD_DIR=$(BUILD_BASE)/tomo
 headers := $(wildcard src/stdlib/*.h)
@@ -429,4 +445,4 @@ uninstall:
 endif
 
 .SUFFIXES:
-.PHONY: all build clean clean-obj dist archive install install-files uninstall test tags core-libs examples deps check-zig version
+.PHONY: all build clean clean-obj dist archive install install-files install-targets uninstall test tags core-libs examples deps check-zig version
