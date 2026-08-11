@@ -33,13 +33,20 @@ unexport LIBRARY_PATH
 unexport LD_LIBRARY_PATH
 
 # Modified progress counter based on: https://stackoverflow.com/a/35320895
+# The counter dry-runs the goal to count its steps. `make -n` still *executes*
+# recipe lines that invoke $(MAKE), so for goals built out of recursive makes
+# (dist/archive/deps) the "dry" run would recurse into vendor builds and try to
+# enter directories that don't exist yet, spraying errors -- skip those goals,
+# and silence the counting run's stderr.
 ifndef NO_PROGRESS
 ifndef ECHO
+ifeq ($(filter dist archive deps,$(MAKECMDGOALS)),)
 T := $(shell $(MAKE) ECHO="COUNTTHIS" $(MAKECMDGOALS) --no-print-directory \
-      -n | grep -c "COUNTTHIS")
+      -n 2>/dev/null | grep -c "COUNTTHIS")
 N := x
 C = $(words $N)$(eval N := x $N)
 ECHO = echo -e "[`expr $C '*' 100 / $T`%]"
+endif
 endif
 endif
 ifndef ECHO
@@ -362,7 +369,11 @@ core-libs:
 
 deps: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a
 
-$(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a:
+# "&:" (grouped targets) tells make that ONE invocation of this recipe produces
+# all of these files. With a plain multi-target rule, parallel make would run
+# the recipe once per missing file -- several concurrent `make -C vendor`
+# instances racing to extract and configure the same source trees.
+$(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a &:
 	$(MAKE) -C vendor ZIG_PLATFORM='$(ZIG_PLATFORM)' ZIG_TARGET='$(ZIG_TARGET)' BUILD_BASE='$(CURDIR)/$(BUILD_BASE)'
 
 install-files: build check-zig
