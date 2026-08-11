@@ -4,16 +4,12 @@
 
 #include <gc.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 
 #include "../stdlib/datatypes.h"
-#include "../stdlib/optionals.h"
-#include "../stdlib/paths.h"
 #include "../stdlib/print.h"
 #include "../stdlib/text.h"
-#include "../stdlib/util.h"
 
 #define run_cmd(...)                                                                                                   \
     ({                                                                                                                 \

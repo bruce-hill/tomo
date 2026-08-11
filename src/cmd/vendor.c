@@ -5,7 +5,6 @@
 #include "../stdlib/bools.h"
 #include "../stdlib/lists.h"
 #include "../stdlib/text.h"
-#include "common.h"
 #include "commands.h"
 
 static List_t names = EMPTY_LIST;

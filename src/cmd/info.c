@@ -3,7 +3,6 @@
 
 #include "../stdlib/bools.h"
 #include "../stdlib/lists.h"
-#include "common.h"
 #include "commands.h"
 #include "compilation.h"
 

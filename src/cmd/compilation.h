@@ -6,7 +6,6 @@
 
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
-#include "../stdlib/paths.h"
 
 typedef enum { COMPILE_C_FILES, COMPILE_OBJ, COMPILE_EXE } compile_mode_t;
 

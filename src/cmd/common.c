@@ -13,6 +13,7 @@
 #include "../parse/files.h"
 #include "../stdlib/fail.h"
 #include "../stdlib/lists.h"
+#include "../stdlib/optionals.h"
 #include "common.h"
 
 OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false;

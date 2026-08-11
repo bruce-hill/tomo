@@ -2,7 +2,6 @@
 // linking, and package builds
 
 #include <ctype.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <gc.h>
 #include <libgen.h>
@@ -21,23 +20,16 @@
 #include "../compile/files.h"
 #include "../compile/headers.h"
 #include "../config.h"
-#include "../formatter/formatter.h"
 #include "../naming.h"
 #include "../packages.h"
 #include "../parse/files.h"
-#include "../stdlib/bools.h"
 #include "../stdlib/bytes.h"
-#include "../stdlib/c_strings.h"
-#include "../stdlib/cli.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/enums.h"
 #include "../stdlib/lists.h"
-#include "../stdlib/optionals.h"
 #include "../stdlib/paths.h"
 #include "../stdlib/print.h"
 #include "../stdlib/random.h"
-#include "../stdlib/simpleparse.h"
-#include "../stdlib/siphash.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../types.h"
@@ -394,15 +386,14 @@ static void create_extracted_links(Path_t outdir, char *manifest) {
             const char *consumer = line, *name = tab1 + 1, *dep = tab2 + 1;
             // The dep is a zip prefix: "store/<digest>" (extracted into
             // .build/store/) or a project-relative directory like "vendor/x":
-            if (*name && *dep && !strchr(consumer, '/') && !strchr(name, '/') && dep[0] != '/'
-                && !streq(consumer, "..") && !streq(name, "..") && !strstr(dep, "..")) {
+            if (*name && *dep && !strchr(consumer, '/') && !strchr(name, '/') && dep[0] != '/' && !streq(consumer, "..")
+                && !streq(name, "..") && !strstr(dep, "..")) {
                 Path_t store = Path$child(Path$child(outdir, Text(".build")), Text("store"));
                 Path_t dep_dir = strncmp(dep, "store/", strlen("store/")) == 0
                                      ? Path$child(Path$child(outdir, Text(".build")), Text$from_str(dep))
                                      : Path$child(outdir, Text$from_str(dep));
-                Path_t link_dir = *consumer
-                                      ? Path$child(Path$child(store, Text$from_str(consumer)), Text("packages"))
-                                      : Path$child(Path$child(outdir, Text(".build")), Text("packages"));
+                Path_t link_dir = *consumer ? Path$child(Path$child(store, Text$from_str(consumer)), Text("packages"))
+                                            : Path$child(Path$child(outdir, Text(".build")), Text("packages"));
                 if (Path$is_directory(dep_dir, true)
                     && (!*consumer || Path$is_directory(Path$parent(link_dir), true))) {
                     Result_t result = Path$create_directory(link_dir, 0755, true);
@@ -434,8 +425,8 @@ void extract_embedded_source(Path_t binary) {
     const char *zip_start = memmem(contents, (size_t)sb.st_size, SOURCE_ZIP_HEADER, strlen(SOURCE_ZIP_HEADER));
     if (zip_start == NULL) print_err("No embedded Tomo source found in: ", binary);
     zip_start += strlen(SOURCE_ZIP_HEADER);
-    const char *zip_end = memmem(zip_start, (size_t)(contents + sb.st_size - zip_start), SOURCE_ZIP_FOOTER,
-                                 strlen(SOURCE_ZIP_FOOTER));
+    const char *zip_end =
+        memmem(zip_start, (size_t)(contents + sb.st_size - zip_start), SOURCE_ZIP_FOOTER, strlen(SOURCE_ZIP_FOOTER));
     if (zip_end == NULL) print_err("The embedded Tomo source in ", binary, " is truncated");
 
     mz_zip_archive zip = {};
@@ -467,8 +458,7 @@ void extract_embedded_source(Path_t binary) {
         // Package sources extract into a project-shaped .build/store/, so the
         // extracted tree rebuilds as-is (offline: its store is pre-seeded):
         const char *out_name = stat.m_filename;
-        if (strncmp(out_name, "store/", strlen("store/")) == 0)
-            out_name = String(".build/", out_name);
+        if (strncmp(out_name, "store/", strlen("store/")) == 0) out_name = String(".build/", out_name);
         Path_t out = Path$child(outdir, Text$from_str(out_name));
         Path$create_directory(Path$parent(out), 0755, true);
         int out_fd = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0644);
@@ -494,11 +484,11 @@ void extract_embedded_source(Path_t binary) {
 // (`.incbin` splices the blob file in verbatim). On Mach-O the blob is
 // embedded at link time instead, via -sectcreate (see compile_executable):
 static Text_t compile_source_asm(Path_t blob_path) {
-    Text_t asm_text = Texts(".pushsection .tomo.source,\"aR\",%progbits\n"
-                            ".globl tomo_source\ntomo_source:\n"
-                            ".incbin ",
-                            Text$quoted(Text$from_str(Path$as_c_string(blob_path)), false, Text("\"")),
-                            "\n.popsection\n");
+    Text_t asm_text =
+        Texts(".pushsection .tomo.source,\"aR\",%progbits\n"
+              ".globl tomo_source\ntomo_source:\n"
+              ".incbin ",
+              Text$quoted(Text$from_str(Path$as_c_string(blob_path)), false, Text("\"")), "\n.popsection\n");
     return Texts("__asm__(", Text$quoted(asm_text, false, Text("\"")), ");\n");
 }
 // The C code defining the build-info blob, which lives in a named section so
@@ -532,8 +522,8 @@ static Text_t compile_build_info(env_t *env, const char *symbol) {
         struct {
             const char *key, *value;
         } *entry = env->build_info->entries.data + i * env->build_info->entries.stride;
-        asm_text = Texts(asm_text, ".asciz ", Text$quoted(Texts(entry->key, ": ", entry->value), false, Text("\"")),
-                         "\n");
+        asm_text =
+            Texts(asm_text, ".asciz ", Text$quoted(Texts(entry->key, ": ", entry->value), false, Text("\"")), "\n");
     }
     asm_text = Texts(asm_text, ".asciz \"===== End Tomo Build Info =====\"\n.popsection\n");
     return Texts("__asm__(", Text$quoted(asm_text, false, Text("\"")), ");\n");
@@ -1044,30 +1034,30 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     Text_t program;
     if (main_binding && main_binding->type->tag == FunctionType) {
-        program = Texts("extern int parse_and_run$$", main_binding->code,
-                        "(int argc, char *argv[]);\n"
-                        "__attribute__ ((noinline))\n"
-                        "int main(int argc, char *argv[]) {\n"
-                        "\treturn parse_and_run$$",
-                        main_binding->code,
-                        "(argc, argv);\n"
-                        "}\n",
-                        compile_build_info(env, "build_info"),
-                        link_macho ? EMPTY_TEXT : compile_source_asm(source_blob));
+        program =
+            Texts("extern int parse_and_run$$", main_binding->code,
+                  "(int argc, char *argv[]);\n"
+                  "__attribute__ ((noinline))\n"
+                  "int main(int argc, char *argv[]) {\n"
+                  "\treturn parse_and_run$$",
+                  main_binding->code,
+                  "(argc, argv);\n"
+                  "}\n",
+                  compile_build_info(env, "build_info"), link_macho ? EMPTY_TEXT : compile_source_asm(source_blob));
     } else {
-        program = Texts("extern void ", namespace_name(env, env->namespace, Text("$initialize")),
-                        "(void);\n"
-                        "extern void tomo_init(void);\n"
-                        "__attribute__ ((noinline))\n"
-                        "int main(int argc, char *argv[]) {\n"
-                        "tomo_init();\n",
-                        namespace_name(env, env->namespace, Text("$initialize")),
-                        "();\n"
-                        "\n",
-                        "return 0;\n"
-                        "}\n",
-                        compile_build_info(env, "build_info"),
-                        link_macho ? EMPTY_TEXT : compile_source_asm(source_blob));
+        program =
+            Texts("extern void ", namespace_name(env, env->namespace, Text("$initialize")),
+                  "(void);\n"
+                  "extern void tomo_init(void);\n"
+                  "__attribute__ ((noinline))\n"
+                  "int main(int argc, char *argv[]) {\n"
+                  "tomo_init();\n",
+                  namespace_name(env, env->namespace, Text("$initialize")),
+                  "();\n"
+                  "\n",
+                  "return 0;\n"
+                  "}\n",
+                  compile_build_info(env, "build_info"), link_macho ? EMPTY_TEXT : compile_source_asm(source_blob));
     }
     Path_t runner_file = build_file(path, ".runner.c");
     Path$write(runner_file, program, 0644);
