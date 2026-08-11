@@ -980,7 +980,38 @@ void transpile_code(env_t *base_env, Path_t path) {
     if (show_codegen.length > 0) xsystem(show_codegen, " <", c_filename);
 }
 
+// The first time the bundled Zig toolchain compiles anything on a machine, it
+// builds its libc (musl, compiler-rt, etc.) from source and stores it in its
+// global cache; that one-time setup takes tens of seconds and can look like a
+// hang. Detect a missing cache (using the same resolution order as zig itself:
+// $ZIG_GLOBAL_CACHE_DIR, then $XDG_CACHE_HOME/zig, then $HOME/.cache/zig) and
+// print a notice so users know what's happening.
+static void warn_if_first_compile(void) {
+    static bool already_checked = false;
+    if (already_checked) return;
+    already_checked = true;
+
+    const char *dir = getenv("ZIG_GLOBAL_CACHE_DIR");
+    if (dir == NULL || dir[0] == '\0') {
+        const char *xdg_cache = getenv("XDG_CACHE_HOME");
+        const char *home = getenv("HOME");
+        if (xdg_cache && xdg_cache[0]) dir = String(xdg_cache, "/zig");
+        else if (home && home[0]) dir = String(home, "/.cache/zig");
+        else return;
+    }
+
+    struct stat st;
+    if (stat(dir, &st) != 0) {
+        fprint(stderr, USE_COLOR ? "\x1b[93;1m" : "",
+               "First compile on this machine: the bundled Zig toolchain is building its libc cache "
+               "(a one-time setup that takes a little while)...",
+               USE_COLOR ? "\x1b[m" : "");
+        fflush(stderr);
+    }
+}
+
 void compile_object_file(Path_t path) {
+    warn_if_first_compile();
     Path_t obj_file = build_file(path, ".o");
     Path_t c_file = build_file(path, ".c");
 
@@ -995,6 +1026,7 @@ void compile_object_file(Path_t path) {
 }
 
 Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs) {
+    warn_if_first_compile();
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast) print_err("Could not parse file ", path);
     env_t *env = load_module_env(base_env, ast);
