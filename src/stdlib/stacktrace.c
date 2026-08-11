@@ -1,9 +1,5 @@
 // This file defines some code to print stack traces.
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <backtrace.h>
 #include <dlfcn.h>
 #include <err.h>

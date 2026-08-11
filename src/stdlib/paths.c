@@ -279,34 +279,25 @@ OptionalPath_t Path$link(Path_t path) {
     return Path$from_str(GC_strdup(buf));
 }
 
+// AT_EACCESS makes these check against the process's *effective* user/group id
+// (what would actually govern an attempted access), not the real one.
+
 public
 bool Path$can_read(Path_t path) {
     path = Path$expand_home(path);
-#ifdef _GNU_SOURCE
-    return (euidaccess(path, R_OK) == 0);
-#else
-    return (access(path, R_OK) == 0);
-#endif
+    return (faccessat(AT_FDCWD, path, R_OK, AT_EACCESS) == 0);
 }
 
 public
 bool Path$can_write(Path_t path) {
     path = Path$expand_home(path);
-#ifdef _GNU_SOURCE
-    return (euidaccess(path, W_OK) == 0);
-#else
-    return (access(path, W_OK) == 0);
-#endif
+    return (faccessat(AT_FDCWD, path, W_OK, AT_EACCESS) == 0);
 }
 
 public
 bool Path$can_execute(Path_t path) {
     path = Path$expand_home(path);
-#ifdef _GNU_SOURCE
-    return (euidaccess(path, X_OK) == 0);
-#else
-    return (access(path, X_OK) == 0);
-#endif
+    return (faccessat(AT_FDCWD, path, X_OK, AT_EACCESS) == 0);
 }
 
 public

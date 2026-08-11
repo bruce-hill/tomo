@@ -120,9 +120,9 @@ OWNER=$(shell ls -ld '$(PREFIX)' | awk '{print $$3}')
 OS := $(shell uname -s)
 
 # Feature-test macros for the *target* OS (not the build host), since we may be
-# cross-compiling: Linux/glibc/musl wants _GNU_SOURCE; macOS and the BSDs want
-# _BSD_SOURCE.
-OSFLAGS = $(if $(filter linux,$(ZIG_OS)),-D_GNU_SOURCE,-D_BSD_SOURCE)
+# cross-compiling. _DEFAULT_SOURCE exposes the extensions musl gates (memmem,
+# dladdr, ...); macOS and the BSDs use _BSD_SOURCE.
+OSFLAGS = $(if $(filter linux,$(ZIG_OS)),-D_DEFAULT_SOURCE,-D_BSD_SOURCE)
 EXTRA=
 G=-ggdb
 O=-O3
