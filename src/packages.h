@@ -15,3 +15,5 @@ OptionalPath_t package_store_entry(Path_t path);
 void vendor_package(const char *name, bool editable);
 // The pinned digest for `name` per the ini chain a use in `using_file` consults (parse-only), or NULL:
 const char *find_pinned_digest(Path_t using_file, const char *name);
+// Sync packages.ini's `unused=true` markers with the binding names actually in use:
+void mark_unused_packages(Path_t ini_file, Table_t used_names);

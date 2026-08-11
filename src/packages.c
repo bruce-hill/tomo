@@ -507,6 +507,53 @@ static void rewrite_package_entry(Path_t ini_file, const char *name, pkg_info_t 
     if (result.Failure.reason.tag != TEXT_NONE) fail(result.Failure.reason);
 }
 
+// Enumerate the [section] names in an ini file:
+static List_t ini_section_names(Path_t ini_file) {
+    List_t names = EMPTY_LIST;
+    OptionalClosure_t by_line = Path$by_line(ini_file);
+    if (by_line.fn == NULL) return names;
+    OptionalText_t (*next_line)(void *) = by_line.fn;
+    for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
+        const char *str = Text$as_c_string(line);
+        size_t len = strlen(str);
+        if (len >= 2 && str[0] == '[' && str[len - 1] == ']') {
+            const char *name = Text$as_c_string(Text$from_strn(str + 1, len - 2));
+            List$insert(&names, &name, I(0), sizeof(const char *));
+        }
+    }
+    return names;
+}
+
+// Keep packages.ini's `unused=true` markers in sync with what the directory's
+// code actually uses: entries whose binding name is not in `used_names` get
+// marked, and the marker is removed from entries that are used again. The
+// marker is informational (resolution ignores unknown keys); the file is only
+// rewritten when a marker actually changes, since its modification time
+// triggers rebuilds.
+void mark_unused_packages(Path_t ini_file, Table_t used_names) {
+    List_t sections = ini_section_names(ini_file);
+    for (int64_t i = 0; i < (int64_t)sections.length; i++) {
+        const char *name = *(const char **)(sections.data + i * sections.stride);
+        pkg_info_t pkg = {.name = name, .info = EMPTY_TABLE};
+        if (!parse_package_entry(ini_file, name, &pkg)) continue;
+        bool used = Table$str_get(used_names, name) != NULL;
+        bool marked = Table$str_get(pkg.info, "unused") != NULL;
+        if (used == !marked) continue; // Already in the right state
+
+        pkg_info_t updated = {.name = name, .info = EMPTY_TABLE};
+        for (int64_t j = 0; j < (int64_t)pkg.info.entries.length; j++) {
+            struct {
+                const char *key, *value;
+            } *entry = pkg.info.entries.data + j * pkg.info.entries.stride;
+            if (!streq(entry->key, "unused")) Table$str_set(&updated.info, entry->key, entry->value);
+        }
+        if (!used) Table$str_set(&updated.info, "unused", "true");
+        rewrite_package_entry(ini_file, name, updated);
+        if (used) print("Removed the unused=true marker for ", name, " in ", ini_file);
+        else print("Marked the package ", name, " as unused=true in ", ini_file);
+    }
+}
+
 // Extract a package source archive into dest, flattening a single top-level
 // wrapper directory if there is one:
 static void extract_package_archive(Path_t archive, Path_t dest) {

@@ -113,6 +113,15 @@ archives are also cached globally in `$XDG_CACHE_HOME/tomo/<digest>/`
 project store first, then the cache (re-verifying the digest), and only then
 downloads. The cache can be deleted at any time.
 
+After each successful build, unused package state is garbage collected: any
+`.build/packages/` binding link or `.build/store/` entry that no `.tm` file in
+the directory (transitively) uses anymore is removed, and the corresponding
+`packages.ini` entry is annotated with `unused=true` (the marker is removed
+again if the package comes back into use). The pins themselves and any
+`vendor/` directories are never touched, so re-adding a `use` restores the
+package from the download cache without any network access -- and the
+`unused=true` markers make it easy to spot pins that could be deleted.
+
 Compiled executables embed a zip of everything needed to rebuild them: the
 program's sources, its `packages.ini` pins, license texts, and the full sources
 of every package linked in. `tomo --extract-source <program>` unpacks that into

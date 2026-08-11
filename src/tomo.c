@@ -815,9 +815,13 @@ static void collect_needed_packages(Path_t dir, Path_t store_root, Table_t *dige
 // touched, so a garbage-collected package reinstalls without any network
 // access if its `use` comes back.
 static void gc_package_dir(Path_t dir) {
+    // Store entries are content-addressed and must never be modified (and
+    // their dependencies live in the containing store, not their own):
+    if (is_store_entry_dir(dir)) return;
     Path_t store_root = Path$child(Path$child(dir, Text(".build")), Text("store"));
     Table_t digests = EMPTY_TABLE, names = EMPTY_TABLE;
     collect_needed_packages(dir, store_root, &digests, &names);
+    mark_unused_packages(Path$child(dir, Text("packages.ini")), names);
 
     List_t links = Path$glob(Path$child(dir, Text(".build/packages/*")));
     for (int64_t i = 0; i < (int64_t)links.length; i++) {
