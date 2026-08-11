@@ -46,10 +46,10 @@ else
     exit 1
 fi
 
-# Tomo is built with `zig cc` and vendors GC/GMP/libunistring from source, so the
-# only build dependencies are Zig, binutils (nm, for autoconf probes), and curl (to
-# download the vendored sources and the bundled Zig). tar + xz are part of the
-# base system on all supported platforms.
+# Tomo is built with `zig cc` and builds its library dependencies from vendored
+# source, so the only build dependencies are Zig, binutils (nm, for autoconf
+# probes), and curl (to download the vendored sources and the bundled Zig).
+# tar + xz are part of the base system on all supported platforms.
 #
 # NOTE: Zig must be recent enough for the pinned toolchain (see
 # vendor/zig-checksums.mk). On distributions that don't package a new enough Zig
