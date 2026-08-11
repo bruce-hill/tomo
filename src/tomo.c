@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <gc.h>
 #include <libgen.h>
+#include <miniz.h>
 #include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,7 +104,7 @@ static bool link_macho = false;
 static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
               transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
               run_files = EMPTY_LIST, uninstall_packages = EMPTY_LIST, packages = EMPTY_LIST, args = EMPTY_LIST,
-              show_build_info = EMPTY_LIST;
+              show_build_info = EMPTY_LIST, extract_source_files = EMPTY_LIST;
 
 static OptionalText_t show_codegen = NONE_TEXT,
                       cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
@@ -125,6 +126,8 @@ static Text_t config_summary,
 typedef enum { COMPILE_C_FILES, COMPILE_OBJ, COMPILE_EXE } compile_mode_t;
 
 static void print_build_info(Path_t p);
+static void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path);
+static void extract_embedded_source(Path_t binary);
 static void transpile_header(env_t *base_env, Path_t path);
 static void transpile_code(env_t *base_env, Path_t path);
 static void compile_object_file(Path_t path);
@@ -285,6 +288,8 @@ int main(int argc, char *argv[]) {
                          "  --uninstall|-u: uninstall an executable or package\n"
                          "  --optimization|-O <level>: set optimization level\n"
                          "  --force-rebuild|-f: force rebuilding\n"
+                         "  --build-info|-b <file>: print the build info embedded in a compiled file\n"
+                         "  --extract-source|-x <file>: extract the source files embedded in a compiled program\n"
                          "  --source-mapping|-m <yes|no>: toggle source mapping in generated code\n"
                          "  --target <platform>: cross-compile for another platform; one of:\n"
                          "      " TOMO_DIST_PLATFORMS "\n"
@@ -309,6 +314,7 @@ int main(int argc, char *argv[]) {
         {"version", &show_version, &Bool$info, .short_flag = 'V'}, //
         {"show-codegen", &show_codegen, &Text$info, .short_flag = 'C'}, //
         {"build-info", &show_build_info, List$info(&Path$info), .short_flag = 'b'},
+        {"extract-source", &extract_source_files, List$info(&Path$info), .short_flag = 'x'}, //
         {"optimization", &optimization, &Text$info, .short_flag = 'O'}, //
         {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f'}, //
         {"source-mapping", &source_mapping, &Bool$info, .short_flag = 'm'},
@@ -360,7 +366,7 @@ int main(int argc, char *argv[]) {
         if (install_target && run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0
             && parse_files.length == 0 && transpile_files.length == 0 && compile_objects.length == 0
             && compile_executables.length == 0 && uninstall_packages.length == 0 && packages.length == 0
-            && show_build_info.length == 0)
+            && show_build_info.length == 0 && extract_source_files.length == 0)
             return 0;
     }
 
@@ -389,9 +395,12 @@ int main(int argc, char *argv[]) {
     if (streq(link_os, "linux")) ldflags = Texts(ldflags, Text(" -static"));
     if (streq(link_os, "macos")) {
         link_macho = true;
-        ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");
+        // -u _tomo_versions forces the versions.o member (the version info in
+        // the __TEXT,__tomo_versions section) out of libtomo.a into every
+        // executable:
+        ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info -Wl,-u,_tomo_versions");
     } else {
-        ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-u,build_info");
+        ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-u,build_info -Wl,-u,tomo_versions");
     }
 
 #ifdef __APPLE__
@@ -419,6 +428,12 @@ int main(int argc, char *argv[]) {
     for (int64_t i = 0; i < (int64_t)show_build_info.length; i++) {
         Path_t p = *(Path_t *)(show_build_info.data + i * show_build_info.stride);
         print_build_info(p);
+    }
+
+    // Extract embedded source zips:
+    for (int64_t i = 0; i < (int64_t)extract_source_files.length; i++) {
+        Path_t p = *(Path_t *)(extract_source_files.data + i * extract_source_files.stride);
+        extract_embedded_source(p);
     }
 
     // Build (and install) packages
@@ -523,7 +538,8 @@ int main(int argc, char *argv[]) {
 
     if (run_files.length == 0 && format_files.length == 0 && format_files_inplace.length == 0 && parse_files.length == 0
         && transpile_files.length == 0 && compile_objects.length == 0 && compile_executables.length == 0
-        && uninstall_packages.length == 0 && packages.length == 0 && show_build_info.length == 0) {
+        && uninstall_packages.length == 0 && packages.length == 0 && show_build_info.length == 0
+        && extract_source_files.length == 0) {
 
         // Piping a program into Tomo
         if (!isatty(STDIN_FILENO)) {
@@ -632,6 +648,13 @@ void wait_for_child_success(pid_t child) {
     }
 }
 
+// The build-info blob lives in a named section (see compile_build_info()
+// below), but rather than maintaining ELF/Mach-O/archive parsers just to find
+// that section, the blob brackets itself with sentinel strings and this scans
+// the raw bytes for them -- which works uniformly on executables for any
+// platform and on `ar` archives like package.a. Entries are NUL-separated on
+// ELF (where the section is a string table) and newline-separated on Mach-O,
+// so NULs print as newlines.
 void print_build_info(Path_t p) {
     p = Path$expand_home(p);
     char *contents = NULL;
@@ -645,16 +668,190 @@ void print_build_info(Path_t p) {
         exit(1);
     }
     const char *contents_end = contents + sb.st_size;
-    static const char *start_header = "===== Begin Tomo Build Info =====\n";
-    static const char *end_header = "===== End Tomo Build Info =====\n";
+    static const char *start_header = "===== Begin Tomo Build Info =====";
+    static const char *end_header = "===== End Tomo Build Info =====";
+    bool found = false;
     for (const char *match = contents;
          (match = memmem(match, (size_t)(contents_end - match), start_header, strlen(start_header)));) {
-        const char *info_end = memmem(match, (size_t)(contents_end - match), end_header, strlen(end_header));
+        const char *info = match + strlen(start_header);
+        if (info < contents_end && (*info == '\n' || *info == '\0')) info += 1;
+        const char *info_end = memmem(info, (size_t)(contents_end - info), end_header, strlen(end_header));
         if (info_end == NULL) break;
-        write(STDOUT_FILENO, match + strlen(start_header), (size_t)(info_end - (match + strlen(start_header))));
+        for (const char *c = info; c < info_end; c++)
+            fputc(*c == '\0' ? '\n' : *c, stdout);
         match = info_end + strlen(end_header);
+        found = true;
     }
+    if (!found) fprint(stderr, "No Tomo build info found in: ", p);
     munmap(contents, (size_t)sb.st_size);
+}
+
+// --- Embedded source zips ---------------------------------------------------
+// Every compiled executable embeds a zip of the sources needed to rebuild it:
+// the program's .tm file, its transitive local imports, and each source
+// directory's packages.ini (which pins the versions of any used packages).
+// The zip is deterministic (sorted entries, no timestamps: miniz is built with
+// MINIZ_NO_TIME) and is bracketed by magic header/footer strings so it can be
+// located with a raw scan, the same way build info is. It lives in a retained
+// section (.tomo.source / __TEXT,__tomo_source), so it can also be pulled out
+// with `objcopy -O binary --only-section=.tomo.source` or `segedit`.
+static const char *SOURCE_ZIP_HEADER = "===== Begin Tomo Source Zip =====\n";
+static const char *SOURCE_ZIP_FOOTER = "\n===== End Tomo Source Zip =====\n";
+
+static char *slurp_file(Path_t path, size_t *size) {
+    int fd = open(path, O_RDONLY);
+    struct stat sb;
+    if (fd < 0) return NULL;
+    if (fstat(fd, &sb) != 0) {
+        close(fd);
+        return NULL;
+    }
+    char *buf = GC_MALLOC_ATOMIC((size_t)sb.st_size + 1);
+    for (ssize_t off = 0; off < (ssize_t)sb.st_size;) {
+        ssize_t got = read(fd, buf + off, (size_t)(sb.st_size - off));
+        if (got <= 0) {
+            close(fd);
+            return NULL;
+        }
+        off += got;
+    }
+    close(fd);
+    *size = (size_t)sb.st_size;
+    return buf;
+}
+
+static void write_all(int fd, const void *data, size_t size, Path_t path) {
+    for (size_t off = 0; off < size;) {
+        ssize_t wrote = write(fd, (const char *)data + off, size - off);
+        if (wrote <= 0) print_err("Could not write to file: ", path);
+        off += (size_t)wrote;
+    }
+}
+
+static int compare_source_entries(const void *a, const void *b) {
+    return strcmp(*(const char *const *)a, *(const char *const *)b);
+}
+
+// Write the header + source zip + footer blob for `main_file` to `blob_path`:
+void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
+    Table_t dep_files = EMPTY_TABLE, to_link = EMPTY_TABLE;
+    build_file_dependency_graph(env->build_info, main_file, &dep_files, &to_link);
+    Path_t root = Path$parent(main_file);
+
+    // Zip entry name -> source file path, deduplicated (several sources can
+    // share a directory and thus a packages.ini):
+    Table_t files = EMPTY_TABLE;
+    for (int64_t i = 0; i < (int64_t)dep_files.entries.length; i++) {
+        struct {
+            Path_t filename;
+            staleness_t staleness;
+        } *entry = dep_files.entries.data + i * dep_files.entries.stride;
+        Table$str_set(&files, Path$as_c_string(Path$relative_to(entry->filename, root)),
+                      Path$as_c_string(entry->filename));
+        Path_t ini = Path$sibling(entry->filename, Text("packages.ini"));
+        if (Path$is_file(ini, true))
+            Table$str_set(&files, Path$as_c_string(Path$relative_to(ini, root)), Path$as_c_string(ini));
+    }
+
+    // Also include the license texts shipped with the Tomo install (Tomo's own
+    // license plus every statically linked library's) under licenses/:
+    List_t licenses = Path$glob(Path$from_str(String(TOMO_PATH, "/share/licenses/tomo@", TOMO_VERSION, "/*")));
+    for (int64_t i = 0; i < (int64_t)licenses.length; i++) {
+        Path_t license = *(Path_t *)(licenses.data + i * licenses.stride);
+        Table$str_set(&files, String("licenses/", Text$as_c_string(Path$base_name(license))),
+                      Path$as_c_string(license));
+    }
+
+    // Sort by entry name so the zip is deterministic:
+    int64_t num_files = files.entries.length;
+    struct {
+        const char *name, *path;
+    } *entries = GC_MALLOC((size_t)num_files * sizeof(*entries));
+    for (int64_t i = 0; i < num_files; i++)
+        memcpy(&entries[i], files.entries.data + i * files.entries.stride, sizeof(entries[i]));
+    qsort(entries, (size_t)num_files, sizeof(*entries), compare_source_entries);
+
+    mz_zip_archive zip = {};
+    if (!mz_zip_writer_init_heap(&zip, 0, 0)) print_err("Could not create source zip for ", main_file);
+    for (int64_t i = 0; i < num_files; i++) {
+        size_t size;
+        char *contents = slurp_file(Path$from_str(entries[i].path), &size);
+        if (contents == NULL) print_err("Could not read source file: ", entries[i].path);
+        if (!mz_zip_writer_add_mem(&zip, entries[i].name, contents, size, MZ_BEST_COMPRESSION))
+            print_err("Could not add ", entries[i].name, " to the source zip for ", main_file);
+    }
+    void *zip_data;
+    size_t zip_size;
+    if (!mz_zip_writer_finalize_heap_archive(&zip, &zip_data, &zip_size))
+        print_err("Could not finalize the source zip for ", main_file);
+    mz_zip_writer_end(&zip);
+
+    int fd = open(blob_path, O_CREAT | O_TRUNC | O_WRONLY, 0644);
+    if (fd < 0) print_err("Could not write source zip: ", blob_path);
+    write_all(fd, SOURCE_ZIP_HEADER, strlen(SOURCE_ZIP_HEADER), blob_path);
+    write_all(fd, zip_data, zip_size, blob_path);
+    write_all(fd, SOURCE_ZIP_FOOTER, strlen(SOURCE_ZIP_FOOTER), blob_path);
+    close(fd);
+    mz_free(zip_data);
+}
+
+// Extract the embedded source zip from a compiled binary into a
+// "<binary name>-source" directory:
+void extract_embedded_source(Path_t binary) {
+    binary = Path$resolved(Path$expand_home(binary), Path$current_dir());
+    char *contents = NULL;
+    struct stat sb;
+    int fd = open(binary, O_RDONLY);
+    if (fd != -1 && fstat(fd, &sb) == 0) {
+        contents = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    }
+    if (contents == NULL) print_err("Could not open file: ", binary);
+    const char *zip_start = memmem(contents, (size_t)sb.st_size, SOURCE_ZIP_HEADER, strlen(SOURCE_ZIP_HEADER));
+    if (zip_start == NULL) print_err("No embedded Tomo source found in: ", binary);
+    zip_start += strlen(SOURCE_ZIP_HEADER);
+    const char *zip_end = memmem(zip_start, (size_t)(contents + sb.st_size - zip_start), SOURCE_ZIP_FOOTER,
+                                 strlen(SOURCE_ZIP_FOOTER));
+    if (zip_end == NULL) print_err("The embedded Tomo source in ", binary, " is truncated");
+
+    mz_zip_archive zip = {};
+    if (!mz_zip_reader_init_mem(&zip, zip_start, (size_t)(zip_end - zip_start), 0))
+        print_err("The embedded Tomo source in ", binary, " is not a valid zip file");
+    Path_t outdir = Path$sibling(binary, Texts(Path$base_name(binary), Text("-source")));
+    for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip); i++) {
+        mz_zip_archive_file_stat stat;
+        if (!mz_zip_reader_file_stat(&zip, i, &stat))
+            print_err("The embedded Tomo source in ", binary, " is not a valid zip file");
+        if (stat.m_is_directory) continue;
+        if (stat.m_filename[0] == '/' || strstr(stat.m_filename, "..")) {
+            fprint(stderr, "Skipping unsafe path in embedded source: ", stat.m_filename);
+            continue;
+        }
+        size_t size;
+        void *data = mz_zip_reader_extract_to_heap(&zip, i, &size, 0);
+        if (data == NULL) print_err("Could not extract ", stat.m_filename, " from the source zip in ", binary);
+        Path_t out = Path$from_str(String(Path$as_c_string(outdir), "/", stat.m_filename));
+        Path$create_directory(Path$parent(out), 0755, true);
+        int out_fd = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0644);
+        if (out_fd < 0) print_err("Could not write extracted file: ", out);
+        write_all(out_fd, data, size, out);
+        close(out_fd);
+        mz_free(data);
+        print("Extracted ", Path$relative_to(out, Path$current_dir()));
+    }
+    mz_zip_reader_end(&zip);
+    munmap(contents, (size_t)sb.st_size);
+}
+
+// The C code embedding the source blob in a retained section on ELF targets
+// (`.incbin` splices the blob file in verbatim). On Mach-O the blob is
+// embedded at link time instead, via -sectcreate (see compile_executable):
+static Text_t compile_source_asm(Path_t blob_path) {
+    Text_t asm_text = Texts(".pushsection .tomo.source,\"aR\",%progbits\n"
+                            ".globl tomo_source\ntomo_source:\n"
+                            ".incbin ",
+                            Text$quoted(Text$from_str(Path$as_c_string(blob_path)), false, Text("\"")),
+                            "\n.popsection\n");
+    return Texts("__asm__(", Text$quoted(asm_text, false, Text("\"")), ");\n");
 }
 
 Path_t get_exe_path(Path_t path) {
@@ -671,16 +868,42 @@ Path_t build_file(Path_t path, const char *extension) {
     return Path$child(tm_build_dir(path), Texts(Path$base_name(path), Text$from_str(extension)));
 }
 
-static Text_t get_build_info(env_t *env) {
-    Text_t version_info = Text("===== Begin Tomo Build Info =====\n");
+// The C code defining the build-info blob, which lives in a named section so
+// it can be retrieved with standard tools (readelf -p .tomo.build_info /
+// otool -s __TEXT __tomo_build) in addition to `tomo --build-info`'s
+// sentinel-based scan. On ELF targets the section is emitted with module-level
+// asm so it can carry the SHF_STRINGS + SHF_GNU_RETAIN flags ("aRS"): one
+// NUL-terminated string per entry, which `readelf -p` prints one line at a
+// time, retained through the linker's default --gc-sections. Mach-O has no
+// equivalent flags, so there the blob is a plain newline-separated char array.
+static Text_t compile_build_info(env_t *env, const char *symbol) {
+    if (link_macho) {
+        Text_t blob = Text("===== Begin Tomo Build Info =====\n");
+        for (int64_t i = 0; i < (int64_t)env->build_info->entries.length; i++) {
+            struct {
+                const char *key, *value;
+            } *entry = env->build_info->entries.data + i * env->build_info->entries.stride;
+            blob = Texts(blob, entry->key, ": ", entry->value, "\n");
+        }
+        blob = Texts(blob, "===== End Tomo Build Info =====\n");
+        return Texts("const char ", symbol,
+                     "[] __attribute__((used, visibility(\"default\"), section(\"__TEXT,__tomo_build\"))) = ",
+                     Text$quoted(blob, false, Text("\"")), ";\n");
+    }
+    Text_t asm_text = Texts(".pushsection .tomo.build_info,\"aRS\",%progbits\n"
+                            ".globl ",
+                            symbol, "\n", symbol,
+                            ":\n"
+                            ".asciz \"===== Begin Tomo Build Info =====\"\n");
     for (int64_t i = 0; i < (int64_t)env->build_info->entries.length; i++) {
         struct {
             const char *key, *value;
         } *entry = env->build_info->entries.data + i * env->build_info->entries.stride;
-        version_info = Texts(version_info, entry->key, ":\t", entry->value, "\n");
+        asm_text = Texts(asm_text, ".asciz ", Text$quoted(Texts(entry->key, ": ", entry->value), false, Text("\"")),
+                         "\n");
     }
-    version_info = Texts(version_info, "===== End Tomo Build Info =====\n");
-    return version_info;
+    asm_text = Texts(asm_text, ".asciz \"===== End Tomo Build Info =====\"\n.popsection\n");
+    return Texts("__asm__(", Text$quoted(asm_text, false, Text("\"")), ");\n");
 }
 
 static void add_git_info(env_t *env, Path_t dir) {
@@ -715,9 +938,7 @@ void build_package(Path_t pkg_dir) {
         {
             FILE *prog = run_cmd(cc, " ", cflags, " -x c -c - -o ", build_info_obj);
             if (!prog) print_err("Failed to run C compiler: ", cc);
-            Text_t build_info =
-                Texts("const char package_build_info[] __attribute__((used, visibility(\"default\"))) = ",
-                      Text$quoted(get_build_info(env), false, Text("\"")), ";");
+            Text_t build_info = compile_build_info(env, "package_build_info");
             fputs(Text$as_c_string(build_info), prog);
             int status = pclose(prog);
             if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
@@ -1166,6 +1387,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     add_git_info(env, Path$parent(path));
 
+    // Zip up the program's sources for embedding into the executable:
+    Path_t source_blob = build_file(path, ".source.zip");
+    write_source_blob(env, path, source_blob);
+
     Text_t program;
     if (main_binding && main_binding->type->tag == FunctionType) {
         program = Texts("extern int parse_and_run$$", main_binding->code,
@@ -1175,9 +1400,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
                         "\treturn parse_and_run$$",
                         main_binding->code,
                         "(argc, argv);\n"
-                        "}\n"
-                        "const char build_info[] __attribute__((used, visibility(\"default\"))) = ",
-                        Text$quoted(get_build_info(env), false, Text("\"")), ";");
+                        "}\n",
+                        compile_build_info(env, "build_info"),
+                        link_macho ? EMPTY_TEXT : compile_source_asm(source_blob));
     } else {
         program = Texts("extern void ", namespace_name(env, env->namespace, Text("$initialize")),
                         "(void);\n"
@@ -1190,8 +1415,8 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
                         "\n",
                         "return 0;\n"
                         "}\n",
-                        "const char build_info[] __attribute__((used, visibility(\"default\"))) = ",
-                        Text$quoted(get_build_info(env), false, Text("\"")), ";");
+                        compile_build_info(env, "build_info"),
+                        link_macho ? EMPTY_TEXT : compile_source_asm(source_blob));
     }
     Path_t runner_file = build_file(path, ".runner.c");
     Path$write(runner_file, program, 0644);
@@ -1208,12 +1433,17 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         }
     }
 
+    // On Mach-O the source blob is embedded by the linker rather than asm:
+    Text_t source_section_flag =
+        link_macho ? Texts(" '-Wl,-sectcreate,__TEXT,__tomo_source,", Text$from_str(Path$as_c_string(source_blob)), "'")
+                   : EMPTY_TEXT;
+
     FILE *runner = run_cmd( // Invoke C compiler
         cc,
         // C flags:
         " ", cflags, " -O", optimization,
         // Linker flags and dynamically linked shared packages:
-        " ", ldflags, " ", ldlibs, " ", list_text(extra_ldlibs),
+        " ", ldflags, source_section_flag, " ", ldlibs, " ", list_text(extra_ldlibs),
         // Object files:
         " ", paths_str(object_files),
         // Input file:

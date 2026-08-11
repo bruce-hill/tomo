@@ -11,6 +11,8 @@ config.mk: configure.sh
 
 # Pinned Zig version, per-platform checksums, and the platform->musl-triple map:
 include vendor/zig-checksums.mk
+# Pinned versions of the vendored libraries (embedded into compiled binaries):
+include vendor/versions.mk
 
 # Keep the build hermetic: don't let the user's ambient include/library search
 # paths leak non-musl (e.g. system glibc) headers into the zig cc builds.
@@ -68,9 +70,9 @@ BUILD_BASE=build/$(ZIG_PLATFORM)
 # Static libraries + license texts produced by the vendor build (see
 # vendor/Makefile, which pins a version and SHA-256 checksum for each). Each
 # vendored dependency "foo" installs into $(BUILD_BASE)/foo/{lib,include}:
-VENDOR_DEPS=gc gmp unistring backtrace
+VENDOR_DEPS=gc gmp unistring backtrace miniz
 VENDORED_LIBS=$(foreach d,$(VENDOR_DEPS),$(BUILD_BASE)/$(d)/lib/lib$(d).a)
-VENDOR_LICENSES=$(BUILD_BASE)/gc/LICENSE $(BUILD_BASE)/gmp/COPYING.LESSERv3 $(BUILD_BASE)/gmp/COPYINGv2 $(BUILD_BASE)/unistring/COPYING.LIB $(BUILD_BASE)/backtrace/LICENSE
+VENDOR_LICENSES=$(BUILD_BASE)/gc/LICENSE $(BUILD_BASE)/gmp/COPYING.LESSERv3 $(BUILD_BASE)/gmp/COPYINGv2 $(BUILD_BASE)/unistring/COPYING.LIB $(BUILD_BASE)/backtrace/LICENSE $(BUILD_BASE)/miniz/LICENSE
 ifneq ($(ZIG_TARGET),)
 	TARGET_FLAG=-target $(ZIG_TARGET)
 endif
@@ -129,7 +131,14 @@ CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) \
 	   -DZIG_TARGET='"$(ZIG_TARGET)"' \
 	   -DTOMO_PLATFORM='"$(ZIG_PLATFORM)"' \
 	   -DTOMO_DIST_PLATFORMS='"$(ZIG_DIST_PLATFORMS)"' \
-	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections \
+	   -DGIT_VERSION='"$(GIT_VERSION)"' \
+	   -DGC_VERSION='"$(GC_VERSION)"' -DGMP_VERSION='"$(GMP_VERSION)"' \
+	   -DUNISTRING_VERSION='"$(UNISTRING_VERSION)"' \
+	   -DLIBBACKTRACE_VERSION='"$(LIBBACKTRACE_VERSION)"' \
+	   -DMINIZ_VERSION='"$(MINIZ_VERSION)"' \
+	   -DZIG_VERSION='"$(ZIG_VERSION)"' \
+	   -DMINIZ_NO_TIME \
+	   -ffunction-sections -fdata-sections \
 	   -UNDEBUG # `zig cc` defines NDEBUG at -O, but the code relies on active assert()s
 # Emit a .d makefile fragment per object recording the headers it actually
 # includes (-MMD), with phony targets so deleted headers don't break the build
@@ -153,7 +162,7 @@ EXE_FILE=tomo@$(TOMO_VERSION)
 # clobbers) another platform's objects.
 OBJ_DIR=$(BUILD_BASE)/obj
 COMPILER_OBJS=$(patsubst %.c,$(OBJ_DIR)/%.o,$(wildcard src/*.c src/compile/*.c src/parse/*.c src/formatter/*.c))
-STDLIB_OBJS=$(patsubst %.c,$(OBJ_DIR)/%.o,$(wildcard src/stdlib/*.c))
+STDLIB_OBJS=$(patsubst %.c,$(OBJ_DIR)/%.o,$(wildcard src/stdlib/*.c)) $(OBJ_DIR)/versions.o
 TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm))
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
@@ -252,7 +261,9 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) $(VENDORED_LIBS) |
 # relocatable object, then archive it. -no-pie is ELF-only (Linux); on Mach-O
 # (macOS) it isn't accepted, so it's applied only for static/Linux targets.
 NOPIE_FLAG=$(if $(call zig_is_static,$(ZIG_PLATFORM)),-no-pie,)
-$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) $(VENDORED_LIBS) | $(BUILD_DIR)/lib
+# miniz is excluded: only the compiler itself needs it (for source-zip
+# embedding/extraction), so it stays out of user binaries.
+$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) $(filter-out %/libminiz.a,$(VENDORED_LIBS)) | $(BUILD_DIR)/lib
 	$(CC) $(TARGET_FLAG) $(NOPIE_FLAG) -r -nostdlib $^ -o libtomo.o
 	$(AR) rcs $@ libtomo.o
 	rm -f libtomo.o
@@ -260,7 +271,7 @@ $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) $(VENDORED_LIBS) | $(BUILD_DIR)/lib
 $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini: packages.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	@cp $^ $@
 
-$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md: LICENSE.md | $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
+$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE: LICENSE.md | $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
 	cp $< $@
 
 # --- Bundled Zig toolchain ------------------------------------------------
@@ -286,12 +297,42 @@ $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE: $(ZIG_STAGED) | $(
 	cp $(BUILD_BASE)/zig/LICENSE $@
 # --------------------------------------------------------------------------
 
+# Version info for everything statically linked into Tomo binaries, embedded
+# as a named section (.tomo.versions on ELF, __TEXT,__tomo_versions on Mach-O)
+# in every binary via libtomo, retrievable with standard tools:
+#   readelf -p .tomo.versions BINARY
+# (The license texts themselves travel in each binary's embedded source zip;
+# see `tomo --extract-source`.)
+ifeq ($(ZIG_OS),macos)
+VERSIONS_SRC=$(BUILD_BASE)/versions.c
+else
+VERSIONS_SRC=$(BUILD_BASE)/versions.s
+endif
+$(VERSIONS_SRC): vendor/versions.mk vendor/zig-checksums.mk scripts/embed_versions.sh
+	@mkdir -p $(BUILD_BASE)
+	@printf '%s\n' \
+	    'tomo: $(TOMO_VERSION) ($(GIT_VERSION))' \
+	    'zig: $(ZIG_VERSION)' \
+	    'gc: $(GC_VERSION)' \
+	    'gmp: $(GMP_VERSION)' \
+	    'unistring: $(UNISTRING_VERSION)' \
+	    'libbacktrace: $(LIBBACKTRACE_VERSION)' \
+	    'miniz: $(MINIZ_VERSION)' \
+	    > $(BUILD_BASE)/versions.txt
+	./scripts/embed_versions.sh $@ $(BUILD_BASE)/versions.txt
+
+$(OBJ_DIR)/versions.o: $(VERSIONS_SRC)
+	@mkdir -p $(dir $@)
+	@$(ECHO) $(CC) $(TARGET_FLAG) -c $< -o $@
+	@$(CC) $(TARGET_FLAG) -c $< -o $@
+
 # Ship the license text of every vendored library too (GMP is dual-licensed,
 # LGPLv3+ or GPLv2+, so both of its texts ship):
 LICENSES_DIR = $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
 VENDOR_LICENSE_PRODUCTS = $(LICENSES_DIR)/GC-LICENSE \
 	$(LICENSES_DIR)/GMP-COPYING.LESSERv3 $(LICENSES_DIR)/GMP-COPYINGv2 \
-	$(LICENSES_DIR)/UNISTRING-COPYING.LIB $(LICENSES_DIR)/LIBBACKTRACE-LICENSE
+	$(LICENSES_DIR)/UNISTRING-COPYING.LIB $(LICENSES_DIR)/LIBBACKTRACE-LICENSE \
+	$(LICENSES_DIR)/MINIZ-LICENSE
 
 $(VENDOR_LICENSE_PRODUCTS) &: $(VENDOR_LICENSES) | $(LICENSES_DIR)
 	cp $(BUILD_BASE)/gc/LICENSE $(LICENSES_DIR)/GC-LICENSE
@@ -299,11 +340,12 @@ $(VENDOR_LICENSE_PRODUCTS) &: $(VENDOR_LICENSES) | $(LICENSES_DIR)
 	cp $(BUILD_BASE)/gmp/COPYINGv2 $(LICENSES_DIR)/GMP-COPYINGv2
 	cp $(BUILD_BASE)/unistring/COPYING.LIB $(LICENSES_DIR)/UNISTRING-COPYING.LIB
 	cp $(BUILD_BASE)/backtrace/LICENSE $(LICENSES_DIR)/LIBBACKTRACE-LICENSE
+	cp $(BUILD_BASE)/miniz/LICENSE $(LICENSES_DIR)/MINIZ-LICENSE
 
 # Everything that makes up an installed Tomo tree for the current platform:
 BUILD_PRODUCTS = $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
 	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini \
-	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/LICENSE.md $(build_headers) $(build_manpages) \
+	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE $(build_headers) $(build_manpages) \
 	$(BUILD_DIR)/include/gc.h \
 	$(ZIG_BUNDLE_DIR)/zig $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE \
 	$(VENDOR_LICENSE_PRODUCTS)

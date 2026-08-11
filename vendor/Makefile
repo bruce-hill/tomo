@@ -1,14 +1,6 @@
-# Pinned versions + SHA-256 checksums for every vendored dependency. Every
-# download is verified against its pinned checksum before use.
-GMP_VERSION=6.3.0
-GMP_SHA256=a3c2b80201b89e68616f4ad30bc66aee4927c3ce50e33929ca819d5c43538898
-UNISTRING_VERSION=1.4.2
-UNISTRING_SHA256=e82664b170064e62331962126b259d452d53b227bb4a93ab20040d846fec01d8
-GC_VERSION=8.2.8
-GC_SHA256=7649020621cb26325e1fb5c8742590d92fb48ce5c259b502faf7d9fb5dabb160
-# libbacktrace has no releases; pin a specific commit:
-LIBBACKTRACE_VERSION=6f8310e238fc3ce68f42f391cbe93fd156bb2c23
-LIBBACKTRACE_SHA256=a6212badda77ece1e28ec7ed6ffebf7bd656fb481cfe5a3453e5164e4f1c28ce
+# Pinned versions + SHA-256 checksums for every vendored dependency (shared
+# with the top-level Makefile, which embeds the versions into binaries):
+include versions.mk
 
 # Keep the build hermetic: don't let the user's ambient include/library search
 # paths leak non-musl (e.g. system glibc) headers into the cross builds.
@@ -91,10 +83,11 @@ DEPS_DIR = $(BUILD_BASE)/deps
 LICENSE_FILES = $(BUILD_BASE)/gc/LICENSE \
 	$(BUILD_BASE)/gmp/COPYING.LESSERv3 $(BUILD_BASE)/gmp/COPYINGv2 \
 	$(BUILD_BASE)/unistring/COPYING.LIB \
-	$(BUILD_BASE)/backtrace/LICENSE
+	$(BUILD_BASE)/backtrace/LICENSE \
+	$(BUILD_BASE)/miniz/LICENSE
 
 # Each vendored dependency "foo" installs into $(BUILD_BASE)/foo/{lib,include}:
-VENDOR_DEPS = gc gmp unistring backtrace
+VENDOR_DEPS = gc gmp unistring backtrace miniz
 VENDORED_LIBS = $(foreach d,$(VENDOR_DEPS),$(BUILD_BASE)/$(d)/lib/lib$(d).a)
 
 all: $(VENDORED_LIBS) $(LICENSE_FILES)
@@ -267,6 +260,31 @@ $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/Makefile: $(DEPS_DIR)/libbacktr
 $(BUILD_BASE)/backtrace/lib/libbacktrace.a: $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/Makefile
 	$(MAKE) -C $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION) CC="$(DEP_CC)" -j
 	$(MAKE) -C $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION) CC="$(DEP_CC)" install
+
+# miniz: DEFLATE + ZIP archive reading/writing, used by the tomo compiler to
+# embed (and extract) program source zips. The release asset is the two-file
+# amalgamated distribution, so it's compiled directly -- no configure step.
+# MINIZ_NO_TIME keeps zip archives deterministic (no timestamps); the same
+# define is passed when compiling tomo so the header's ABI matches.
+miniz-$(MINIZ_VERSION).zip:
+	curl -fL -o $@.tmp 'https://github.com/richgel999/miniz/releases/download/$(MINIZ_VERSION)/miniz-$(MINIZ_VERSION).zip'
+	@echo '$(MINIZ_SHA256)  $@.tmp' | sha256sum -c - || { rm -f $@.tmp; false; }
+	@mv $@.tmp $@
+
+$(DEPS_DIR)/miniz-$(MINIZ_VERSION)/miniz.c: miniz-$(MINIZ_VERSION).zip
+	mkdir -p $(DEPS_DIR)/miniz-$(MINIZ_VERSION)
+	cd $(DEPS_DIR)/miniz-$(MINIZ_VERSION) && unzip -oq "$$(realpath -m --relative-to=. $(CURDIR)/$<)"
+	@touch $@
+
+$(BUILD_BASE)/miniz/LICENSE: $(DEPS_DIR)/miniz-$(MINIZ_VERSION)/miniz.c
+	@mkdir -p $(dir $@)
+	cp $(DEPS_DIR)/miniz-$(MINIZ_VERSION)/LICENSE $@
+
+$(BUILD_BASE)/miniz/lib/libminiz.a: $(DEPS_DIR)/miniz-$(MINIZ_VERSION)/miniz.c
+	mkdir -p $(BUILD_BASE)/miniz/lib $(BUILD_BASE)/miniz/include
+	$(DEP_CC) -O2 -fPIC -DMINIZ_NO_TIME -c $< -o $(DEPS_DIR)/miniz-$(MINIZ_VERSION)/miniz.o
+	$(AR) rcs $@ $(DEPS_DIR)/miniz-$(MINIZ_VERSION)/miniz.o
+	cp $(DEPS_DIR)/miniz-$(MINIZ_VERSION)/miniz.h $(BUILD_BASE)/miniz/include/
 
 # Remove built artifacts for the current platform (keeps downloaded archives):
 clean:

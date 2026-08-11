@@ -68,6 +68,12 @@ env_t *global_env(bool source_mapping) {
     env->build_info = new (Table_t);
     Table$str_set(env->build_info, "Tomo compiler version", TOMO_VERSION);
     Table$str_set(env->build_info, "Tomo compiler git", GIT_VERSION);
+    Table$str_set(env->build_info, "Zig version", ZIG_VERSION);
+    Table$str_set(env->build_info, "Boehm GC version", GC_VERSION);
+    Table$str_set(env->build_info, "GMP version", GMP_VERSION);
+    Table$str_set(env->build_info, "libunistring version", UNISTRING_VERSION);
+    Table$str_set(env->build_info, "libbacktrace version", LIBBACKTRACE_VERSION);
+    Table$str_set(env->build_info, "miniz version", MINIZ_VERSION);
 
     time_t now = time(NULL);
     struct tm *tm = localtime(&now);
