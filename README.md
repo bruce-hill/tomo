@@ -51,16 +51,6 @@ curl -L "https://tomo.bruce-hill.com/dist/tomo_$(uname -sm | tr ' ' '-').tar.gz"
 yay -Sy tomo-bin
 ```
 
-### Install Script
-
-If you don't want to build from source but just want to install, run this script:
-
-```
-curl -o /tmp/install_tomo.sh https://raw.githubusercontent.com/bruce-hill/tomo/refs/heads/main/install_script.sh \
-  && bash /tmp/install_tomo.sh
-rm -f /tmp/install_tomo.sh
-```
-
 ## Features
 
 ### Performance
