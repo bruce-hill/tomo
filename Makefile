@@ -53,24 +53,14 @@ endif
 #   ZIG_TARGET    the musl compile triple, e.g. "x86_64-linux-musl"
 #   BUILD_BASE    where this platform's artifacts live: build/<platform>/
 # `make dist` re-invokes the build once per platform in the distribution matrix.
-# CC is the host `zig cc` used as the (cross-)compiler. DEFAULT_C_COMPILER is
-# unused now that the installed tomo invokes its bundled zig.
-# CC is a make built-in (default "cc"), so `?=` won't override it; replace only
-# the built-in default (config.mk / command line / env still win).
-ifneq ($(filter undefined default,$(origin CC)),)
+#
+# The toolchain is not configurable: Tomo requires Zig. `zig cc` is the only
+# supported (cross-)compiler, and zig's llvm-based ar/ranlib are used because,
+# unlike the host's GNU binutils, they can create and index archives in any
+# target object format (notably Mach-O for macOS).
 CC=zig cc
-endif
-# Use zig's llvm-based ar/ranlib: unlike the host's GNU binutils they can create
-# and index archives in any target object format (notably Mach-O for macOS).
-# Set these unless the caller provided them (command line / env / config.mk). AR
-# has a make built-in default (origin "default"); RANLIB usually has none (origin
-# "undefined") -- cover both so we never pass an empty RANLIB downstream.
-ifneq ($(filter undefined default,$(origin AR)),)
 AR=zig ar
-endif
-ifneq ($(filter undefined default,$(origin RANLIB)),)
 RANLIB=zig ranlib
-endif
 ZIG_PLATFORM?=$(shell uname -m)-linux
 ZIG_TARGET?=$(call zig_target,$(ZIG_PLATFORM))
 ZIG_OS=$(call zig_os,$(ZIG_PLATFORM))
@@ -120,14 +110,6 @@ endif
 
 OWNER=$(shell ls -ld '$(PREFIX)' | awk '{print $$3}')
 
-ifeq ($(shell $(CC) -v 2>&1 | grep -c "gcc version"), 1)
-	CWARN += -Werror -Wsign-conversion -Walloc-zero -Wduplicated-branches -Wduplicated-cond -Wjump-misses-init \
-			 -Wlogical-op -Wpacked-not-aligned -Wshadow=compatible-local -Wshadow=global -Wshadow=local \
-			 -Wsuggest-attribute=const -Wsuggest-attribute=noreturn -Wsuggest-attribute=pure \
-			 -Wsync-nand -Wtrampolines -Wvector-operation-performance -Wcast-align=strict
-	CCONFIG += -fsanitize=signed-integer-overflow -fno-sanitize-recover -fno-signaling-nans -fno-finite-math-only 
-endif
-
 OS := $(shell uname -s)
 
 # Feature-test macros for the *target* OS (not the build host), since we may be
@@ -175,7 +157,7 @@ TESTS=$(patsubst test/%.tm,test/results/%.tm.testresult,$(wildcard test/[!_]*.tm
 API_YAML=$(wildcard api/*.yaml)
 API_MD=$(patsubst %.yaml,%.md,$(API_YAML))
 
-all: config.mk check-c-compiler build test/api.tm
+all: config.mk check-zig build test/api.tm
 	@$(ECHO) "All done!"
 
 # The set of platforms `make dist` builds distribution archives for. Defaults to
@@ -274,7 +256,7 @@ ZIG_BUNDLE_DIR = $(BUILD_DIR)/libexec/tomo@$(TOMO_VERSION)/zig
 
 # Download + checksum-verify + extract the pinned Zig for this platform:
 $(ZIG_STAGED):
-	$(MAKE) -C vendor zig CC='$(CC)' ZIG_PLATFORM='$(ZIG_PLATFORM)' ZIG_TARGET='$(ZIG_TARGET)' BUILD_BASE='$(CURDIR)/$(BUILD_BASE)'
+	$(MAKE) -C vendor zig ZIG_PLATFORM='$(ZIG_PLATFORM)' ZIG_TARGET='$(ZIG_TARGET)' BUILD_BASE='$(CURDIR)/$(BUILD_BASE)'
 
 # Copy the Zig toolchain (binary + lib/ + LICENSE) into the install tree:
 $(ZIG_BUNDLE_DIR)/zig: $(ZIG_STAGED)
@@ -314,13 +296,9 @@ archive: $(DIST_ARCHIVE)
 version:
 	@echo $(TOMO_VERSION)
 
-check-c-compiler:
+check-zig:
 	@$(CC) -v 2>/dev/null >/dev/null \
-		|| { printf '\033[91;1m%s\033[m\n' "You have set your build compiler (CC) to '$(CC)' in your config.mk, but I can't run it!"; exit 1; }
-
-# check-libs: check-c-compiler | deps
-# 	@echo 'int main() { return 0; }' | $(DEFAULT_C_COMPILER) $(LDFLAGS) -x c - $(LDLIBS) -o /dev/null 2>/dev/null >/dev/null \
-# 		|| { printf '\033[91;1m%s\033[m\n' "I expected to find the following libraries on your system, but I can't find them: $(LDLIBS)"; exit 1; }
+		|| { printf '\033[91;1m%s\033[m\n' "I can't run '$(CC)'! Tomo is built with Zig; please install it (https://ziglang.org/download/) and make sure 'zig' is on your PATH."; exit 1; }
 
 tags:
 	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h} src/formatter/*.{c,h}
@@ -392,9 +370,9 @@ core-libs:
 deps: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a
 
 $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a:
-	$(MAKE) -C vendor CC='$(CC)' AR='$(AR)' RANLIB='$(RANLIB)' ZIG_PLATFORM='$(ZIG_PLATFORM)' ZIG_TARGET='$(ZIG_TARGET)' BUILD_BASE='$(CURDIR)/$(BUILD_BASE)'
+	$(MAKE) -C vendor ZIG_PLATFORM='$(ZIG_PLATFORM)' ZIG_TARGET='$(ZIG_TARGET)' BUILD_BASE='$(CURDIR)/$(BUILD_BASE)'
 
-install-files: build check-c-compiler
+install-files: build check-zig
 	@if ! echo "$$PATH" | tr ':' '\n' | grep -qx "$(PREFIX)/bin"; then \
 		echo $$PATH; \
 		printf "\033[91;1mError: '$(PREFIX)/bin' is not in your \$$PATH variable!\033[m\n" >&2; \
@@ -423,4 +401,4 @@ uninstall:
 endif
 
 .SUFFIXES:
-.PHONY: all build clean clean-obj dist archive install install-files uninstall test tags core-libs examples deps check-c-compiler version
+.PHONY: all build clean clean-obj dist archive install install-files uninstall test tags core-libs examples deps check-zig version

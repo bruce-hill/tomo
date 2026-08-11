@@ -85,7 +85,6 @@ static const char *paths_str(List_t paths) {
 
 static OptionalBool_t verbose = false, quiet = false, show_version = false, show_prefix = false, clean_build = false,
                       source_mapping = true, should_install = false;
-static bool is_gcc = false, is_clang = false;
 
 static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, parse_files = EMPTY_LIST,
               transpile_files = EMPTY_LIST, compile_objects = EMPTY_LIST, compile_executables = EMPTY_LIST,
@@ -101,7 +100,10 @@ static OptionalText_t show_codegen = NONE_TEXT,
                                     " -D_BSD_SOURCE"
 #endif
                                     " -DGC_THREADS"),
-                      ldlibs = Text("-lm"), ldflags = Text(""), optimization = Text("2"), cc = Text(DEFAULT_C_COMPILER);
+                      ldlibs = Text("-lm"), ldflags = Text(""), optimization = Text("2"),
+                      // The C compiler is not configurable; this is set in main() to the
+                      // `zig cc` bundled inside the Tomo installation:
+                      cc = Text("");
 
 static Text_t config_summary,
     // This will be either "" or "sudo -u <user>" or "doas -u <user>"
@@ -265,16 +267,8 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    is_gcc = (system(String(cc, " -v 2>&1 | grep -q 'gcc version'")) == 0);
-    if (is_gcc) {
-        cflags = Texts(cflags, Text(" -fsanitize=signed-integer-overflow -fno-sanitize-recover"
-                                    " -fno-signaling-nans -fno-trapping-math -fno-finite-math-only"));
-    }
-
-    is_clang = (system(String(cc, " -v 2>&1 | grep -q 'clang version'")) == 0);
-    if (is_clang) {
-        cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
-    }
+    // The compiler is always the bundled `zig cc` (a clang):
+    cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
 
     // Compile and link user programs for this platform's target using the bundled
     // zig toolchain (the same one Tomo itself was built with). ZIG_TARGET is baked
@@ -290,8 +284,7 @@ int main(int argc, char *argv[]) {
     ldlibs = Texts(ldlibs, Text(" -lunwind"));
 #endif
 #ifdef __APPLE__
-    if (is_gcc) ldflags = Texts(ldflags, " -Wl,-w,--gc-sections -Wl,-U,build_info");
-    else if (is_clang) ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");
+    ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");
 #else
     ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-u,build_info");
 #endif
@@ -1105,10 +1098,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         " ", paths_str(object_files),
         // Input file:
         " ", runner_file,
-        // Statically linked archive files (must come after runner):
-        // Packages are grouped to allow for circular dependencies among
-        // the packages that are used.
-        " ", is_gcc ? Texts("-Wl,--start-group ", list_text(archives), " -Wl,--end-group") : list_text(archives),
+        // Statically linked archive files (must come after runner). No archive
+        // grouping is needed for circular dependencies among packages: zig links
+        // with lld, which resolves archive members iteratively.
+        " ", list_text(archives),
     // Tomo static library:
 #ifndef __APPLE__
         " -Wl,--no-whole-archive",

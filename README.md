@@ -138,9 +138,9 @@ produces are themselves fully static musl binaries.
 Tomo is built by running `make`, which builds for your current platform. The
 first time you build, you will be asked for the Tomo installation location (the
 place where the installer will put the `tomo` binary, the static library, the
-headers, and the bundled Zig toolchain) and the compiler used to build Tomo
-(default: `zig cc`). The answers are saved in `config.mk`, which you can edit at
-any time.
+headers, and the bundled Zig toolchain). The answer is saved in `config.mk`,
+which you can edit at any time. The toolchain itself is not configurable: Tomo
+is always built with `zig cc`.
 
 `make` builds the vendored dependencies, downloads and checksum-verifies the
 pinned Zig for your platform, and then builds `tomo` itself. Everything is placed

@@ -33,19 +33,14 @@ if ! command -v zig >/dev/null; then
         "Please install Zig (https://ziglang.org/download/) and make sure it's on your \$PATH."
 fi
 
-default_build_cc="zig cc"
-printf '\033[1mChoose which compiler to build Tomo with (default: %s):\033[m ' "$default_build_cc"
-read -r CC
-if [ -z "$CC" ]; then CC="$default_build_cc"; fi
-
-# Note: the build always targets the host platform (a "<arch>-linux-musl" target
-# derived automatically). Cross-platform distribution archives are produced with
-# `make dist`, which selects each target's platform itself. The installed tomo
-# compiles user programs with the Zig toolchain bundled into the installation, so
-# there is no separate runtime C compiler to configure.
+# Note: Tomo is always built with `zig cc` (the C compiler is not configurable).
+# The build targets the host platform by default; cross-platform distribution
+# archives are produced with `make dist`, which selects each target's platform
+# itself. The installed tomo compiles user programs with the Zig toolchain
+# bundled into the installation, so there is no runtime C compiler to configure
+# either.
 
 cat <<END >config.mk
 PREFIX=$PREFIX
-CC=$CC
 SUDO=$SUDO
 END

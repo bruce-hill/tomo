@@ -24,20 +24,12 @@ include zig-checksums.mk
 # ---------------------------------------------------------------------------
 ZIG_PLATFORM ?= $(shell uname -m)-linux
 ZIG_TARGET ?= $(call zig_target,$(ZIG_PLATFORM))
-# CC is a make built-in (default "cc"), so only replace the built-in default.
-ifneq ($(filter undefined default,$(origin CC)),)
+# The toolchain is not configurable: Tomo requires Zig. zig's llvm ar/ranlib are
+# used because they understand every target object format (incl. Mach-O), unlike
+# the host's GNU binutils.
 CC = zig cc
-endif
-# zig's llvm ar/ranlib understand every target object format (incl. Mach-O),
-# unlike the host's GNU binutils. Set them unless the caller provided a value
-# (AR has a built-in default; RANLIB usually has none -- cover both so we never
-# forward an empty RANLIB to the sub-builds).
-ifneq ($(filter undefined default,$(origin AR)),)
 AR = zig ar
-endif
-ifneq ($(filter undefined default,$(origin RANLIB)),)
 RANLIB = zig ranlib
-endif
 DEP_CC = $(CC) -target $(ZIG_TARGET)
 BUILD_BASE ?= ../build/$(ZIG_PLATFORM)
 
