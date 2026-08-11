@@ -1,12 +1,12 @@
 // This file defines some code for getting info about packages and installing them.
 
 #include <err.h>
-#include <openssl/evp.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 
 #include "config.h"
 #include "packages.h"
+#include "sha256.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
@@ -43,29 +43,25 @@ static OptionalText_t file_digest(Path_t path) {
     FILE *f = fopen(path, "rb");
     if (!f) return NONE_TEXT;
 
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+    sha256 ctx;
+    sha256_init(&ctx);
 
     unsigned char buf[65536];
     size_t n;
     while ((n = fread(buf, 1, sizeof(buf), f)) > 0)
-        EVP_DigestUpdate(ctx, buf, n);
+        sha256_append(&ctx, buf, n);
     fclose(f);
 
-    unsigned char hash[EVP_MAX_MD_SIZE];
-    unsigned int len;
-    EVP_DigestFinal_ex(ctx, hash, &len);
-    EVP_MD_CTX_free(ctx);
+    char hash[SHA256_HEX_SIZE];
+    sha256_finalize_hex(&ctx, hash);
 
     const char *prefix = "sha256:";
-    char *ret = GC_MALLOC_ATOMIC(strlen(prefix) + 2 * len + 1);
+    char *ret = GC_MALLOC_ATOMIC(strlen(prefix) + SHA256_HEX_SIZE + 1);
     char *p = ret;
     p = stpcpy(p, prefix);
-    static const char hex[] = "0123456789abcdef";
-    for (size_t i = 0; i < len; i++) {
-        *p++ = hex[hash[i] >> 4];
-        *p++ = hex[hash[i] & 0xf];
-    }
+    // Not mempcpy(): that's a glibc extension and is absent on macOS.
+    memcpy(p, hash, SHA256_HEX_SIZE);
+    p += SHA256_HEX_SIZE;
     *p = '\0';
     return Text$from_str(ret);
 }

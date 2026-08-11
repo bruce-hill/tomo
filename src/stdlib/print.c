@@ -199,6 +199,15 @@ int _print_quoted(FILE *f, quoted_t quoted) {
     return printed;
 }
 
+// gc_memory_stream() returns a FILE* that accumulates written data into a
+// growable buffer, and gc_stream_finalize() flushes it, closes the stream, and
+// returns the accumulated bytes as a GC-managed, NUL-terminated string.
+//
+// glibc and the BSDs let us hook stdio directly (fopencookie()/funopen()) so the
+// buffer can be GC memory from the start. musl libc provides neither, so there
+// we fall back to POSIX open_memstream() (which uses a malloc'd buffer) and copy
+// the result into GC memory when finalizing.
+
 #if defined(__GLIBC__) && defined(_GNU_SOURCE)
 // GLIBC has fopencookie()
 static ssize_t _gc_stream_write(void *cookie, const char *buf, size_t size) {
@@ -224,6 +233,15 @@ FILE *gc_memory_stream(char **buf, size_t *size) {
     cookie_io_functions_t functions = {.write = _gc_stream_write};
     return fopencookie(stream, "w", functions);
 }
+
+public
+char *gc_stream_finalize(FILE *stream, char **buf, size_t *size) {
+    (void)size;
+    fflush(stream);
+    char *result = *buf; // Already GC memory
+    fclose(stream);
+    return result;
+}
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 // BSDs have funopen() and fwopen()
 static int _gc_stream_write(void *cookie, const char *buf, int size) {
@@ -248,6 +266,33 @@ FILE *gc_memory_stream(char **buf, size_t *size) {
     stream->position = 0;
     return fwopen(stream, _gc_stream_write);
 }
+
+public
+char *gc_stream_finalize(FILE *stream, char **buf, size_t *size) {
+    (void)size;
+    fflush(stream);
+    char *result = *buf; // Already GC memory
+    fclose(stream);
+    return result;
+}
 #else
-#error "This platform doesn't support fopencookie() or funopen()!"
+// Fallback for libcs without a custom-stream hook (e.g. musl): use POSIX
+// open_memstream() into a malloc'd buffer, then copy into GC memory on finalize.
+public
+FILE *gc_memory_stream(char **buf, size_t *size) {
+    *buf = NULL;
+    *size = 0;
+    return open_memstream(buf, size);
+}
+
+public
+char *gc_stream_finalize(FILE *stream, char **buf, size_t *size) {
+    fflush(stream);
+    size_t len = *size;
+    char *result = GC_MALLOC_ATOMIC(len + 1);
+    memcpy(result, *buf, len);
+    result[len] = '\0';
+    fclose(stream); // Frees the malloc'd buffer that open_memstream allocated
+    return result;
+}
 #endif

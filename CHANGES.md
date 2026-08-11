@@ -1,5 +1,30 @@
 # Changes
 
+## 2026-08-10
+
+- The Tomo compiler is now built as a fully static executable using `zig cc`
+  with musl libc. The vendored dependencies (Boehm GC, GMP, libunistring) are
+  also built statically with the same toolchain. Building now requires `zig`
+  instead of the system C compiler and the system GC/GMP/unistring dev packages.
+- A pinned Zig toolchain is now bundled into the Tomo installation (under
+  `libexec/tomo@VERSION/zig/`), and the installed `tomo` uses it to compile
+  programs. Tomo installations are therefore self-contained: no system C
+  compiler is needed to build or run Tomo programs. Programs compiled by tomo are
+  themselves fully static musl binaries.
+- `make` builds for the current platform; `make dist` builds a distribution
+  archive (`.tar.xz`, extractable directly into an install prefix) for each
+  platform in the matrix: Linux (x86_64, aarch64, riscv64, powerpc64le, s390x),
+  macOS (x86_64, aarch64), and the BSDs (FreeBSD/NetBSD/OpenBSD, x86_64 +
+  aarch64). 32-bit targets are excluded (Tomo requires 64-bit), as is
+  loongarch64 (unsupported by the vendored Boehm GC). Linux targets
+  are fully static musl; macOS and the BSDs link libc dynamically but bundle the
+  vendored libraries statically. Cross-compiling needs only the host Zig — no
+  target SDK/sysroot. Zig archives are downloaded from ziglang.org and verified
+  against pinned SHA-256 checksums (`vendor/zig-checksums.mk`); `make -C vendor
+  download-all-zig` mirrors every platform's Zig archive.
+- Removed the OpenSSL (`-lcrypto`) dependency: package digests now use a small
+  built-in SHA-256 implementation.
+
 ## 2026-07-01
 
 - Smoothed over some rough edges between CString and Text, making it easier to convert to and fro.

@@ -6,13 +6,39 @@
 
 #include <dlfcn.h>
 #include <err.h>
-#include <execinfo.h>
 #include <gc.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+// glibc provides backtrace() via <execinfo.h>, but musl libc does not. When it's
+// unavailable (e.g. in a static musl build), fall back to the compiler's stack
+// unwinder, which provides the same "collect return addresses" functionality.
+#if __has_include(<execinfo.h>)
+#include <execinfo.h>
+#else
+#include <unwind.h>
+typedef struct {
+    void **frames;
+    int count, max;
+} unwind_state_t;
+
+static _Unwind_Reason_Code unwind_callback(struct _Unwind_Context *ctx, void *arg) {
+    unwind_state_t *state = arg;
+    if (state->count >= state->max) return _URC_END_OF_STACK;
+    uintptr_t ip = _Unwind_GetIP(ctx);
+    if (ip) state->frames[state->count++] = (void *)ip;
+    return _URC_NO_REASON;
+}
+
+static int backtrace(void **buffer, int size) {
+    unwind_state_t state = {.frames = buffer, .count = 0, .max = size};
+    _Unwind_Backtrace(unwind_callback, &state);
+    return state.count;
+}
+#endif
 
 #include "../config.h"
 #include "print.h"
@@ -103,7 +129,6 @@ void print_stacktrace(FILE *out, int offset) {
 
     static void *stack[1024];
     int64_t size = (int64_t)backtrace(stack, sizeof(stack) / sizeof(stack[0]));
-    char **strings = backtrace_symbols(stack, size);
     bool main_func_onwards = false;
     for (int64_t i = size - 1; i > offset; i--) {
         Dl_info info;
@@ -128,5 +153,4 @@ void print_stacktrace(FILE *out, int offset) {
         }
         if (main_func_onwards && i - 1 > offset) fputs("\n", out);
     }
-    free(strings);
 }

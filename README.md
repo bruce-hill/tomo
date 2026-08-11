@@ -113,39 +113,72 @@ rm -f /tmp/install_tomo.sh
 
 ## Dependencies
 
-Tomo has a very small set of dependencies:
+The Tomo compiler is built as a fully static executable (musl libc) using
+`zig cc`, so it has a very small set of build dependencies:
 
-- GCC version 12 or higher (might work on lower versions, but has not been tested)
-- The [Boehm garbage collector](https://www.hboehm.info/gc/) for runtime
-  garbage collection.
-- [libunistring](https://www.gnu.org/software/libunistring/) for unicode
-  string support (version 1.0 or higher)
-- [GNU multiple precision arithmetic library](https://gmplib.org/manual/index)
-  for arbitrary precision integer math (version 6.2.1 or higher)
-- [Binutils](https://www.gnu.org/software/binutils/) to use `addr2line` for
-  stack traces.
-- and libc/libm, which should definitely already be installed.
+- [Zig](https://ziglang.org/download/) (provides `zig cc`), which is used to
+  compile and statically link the compiler and its vendored libraries. Only the
+  host's Zig is needed to build; a pinned Zig is downloaded and bundled into the
+  installation for runtime use (see below).
+- [Binutils](https://www.gnu.org/software/binutils/) for `ar`/`ranlib` at build
+  time and `addr2line` for stack traces at runtime.
+- `curl` and `tar`/`xz` to download and unpack the vendored sources and Zig.
 
-If you're feeling incautious, you can run `make deps` or
-`./install_dependencies.sh` to install all the necessary dependencies. I can't
-guarantee this works on all platforms, but has a reasonably high chance of
-success.
+The Boehm garbage collector, libunistring, and the GNU multiple precision
+arithmetic library are vendored in `./vendor/` and built from source statically
+with the same `zig cc` toolchain, so you no longer need system-installed copies
+of those libraries to build Tomo. **The installed `tomo` compiles your programs
+using a Zig toolchain bundled inside the installation** (under
+`libexec/tomo@VERSION/zig/`), so a Tomo installation is fully self-contained: no
+system C compiler is required to build or run Tomo programs, and the programs it
+produces are themselves fully static musl binaries.
 
 ## Building
 
-The Tomo compiler can be compiled with either GCC or Clang by running `make`.
-The first time you build, you will need to specify the Tomo installation
-location (the place where the installer will put the `tomo` binary, the shared
-library, and the header files), the Tomo home directory (where Tomo packages
-will be installed), and the default C compiler for Tomo to use when compiling
-and running your programs. The answers you give will be saved in `config.mk`,
-which you can edit at any time.
+Tomo is built by running `make`, which builds for your current platform. The
+first time you build, you will be asked for the Tomo installation location (the
+place where the installer will put the `tomo` binary, the static library, the
+headers, and the bundled Zig toolchain) and the compiler used to build Tomo
+(default: `zig cc`). The answers are saved in `config.mk`, which you can edit at
+any time.
 
-Once the configuration options have been set, `make` will continue along with
-building `tomo`. The resulting compiler and shared library will be put into
-`./build/`.
+`make` builds the vendored dependencies, downloads and checksum-verifies the
+pinned Zig for your platform, and then builds `tomo` itself. Everything is placed
+under `./build/<platform>/tomo@VERSION/`. You can run `make test` to verify that
+everything works correctly.
 
-You can run `make test` to verify that everything works correctly.
+### Distribution archives
+
+`make dist` builds a self-contained distribution archive for every platform in
+the matrix (see `DIST_TARGETS` / `vendor/zig-checksums.mk`). Each archive is a
+`.tar.xz` that extracts directly into an install prefix:
+
+```
+make dist
+tar xf build/dist/tomo@VERSION-x86_64-linux.tar.xz -C /usr/local
+```
+
+Cross-platform archives are produced by cross-compiling Tomo and its vendored
+libraries with your host Zig and bundling the target platform's native Zig
+toolchain (downloaded and verified from ziglang.org). The pinned Zig version and
+its per-platform SHA-256 checksums live in `vendor/zig-checksums.mk`; run
+`make -C vendor download-all-zig` to mirror every platform's Zig archive.
+
+The default matrix covers the 64-bit targets: **Linux** (x86_64, aarch64,
+riscv64, powerpc64le, s390x), **macOS** (x86_64, aarch64), and the
+**BSDs** (FreeBSD, NetBSD, OpenBSD; x86_64 and aarch64). Linux targets are
+linked fully statically against musl libc; macOS and the BSDs cannot be
+statically linked (their libc requires dynamic linking), so those bundle the
+vendored libraries (GC/GMP/libunistring) statically but link libc dynamically.
+**Windows is excluded** because Tomo's runtime relies on POSIX facilities (fork,
+mmap, pthreads, dlfcn) it doesn't provide, and **32-bit targets are excluded**
+because Tomo requires a 64-bit platform. Cross-compiling to a target only
+requires your host Zig — no target SDK or sysroot — since Zig bundles what's
+needed to compile and link for each OS.
+
+> Note: only the Linux (x86_64/aarch64), macOS (x86_64), and FreeBSD (x86_64)
+> targets have been build-verified so far; the remaining arches use the identical
+> mechanism but should be smoke-tested on real hardware.
 
 ## Running Locally
 

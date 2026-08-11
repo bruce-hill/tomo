@@ -161,7 +161,8 @@ int main(int argc, char *argv[]) {
     if (stat(compiler_path, &compiler_stat) != 0) err(1, "Could not find age of compiler");
 #endif
 
-#ifdef __OpenBSD__
+#if defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__NetBSD__)
+    // The BSDs provide backtrace() (used by stack traces) via libexecinfo.
     ldlibs = Texts(ldlibs, Text(" -lexecinfo"));
 #endif
 
@@ -179,6 +180,13 @@ int main(int argc, char *argv[]) {
 #endif
 
     if (getenv("TOMO_PATH")) TOMO_PATH = getenv("TOMO_PATH");
+
+    // Always use the Zig toolchain bundled inside the Tomo installation as the C
+    // compiler/linker for user programs. It lives in a fixed location relative to
+    // TOMO_PATH (see the Makefile's libexec layout) and is a native build for
+    // this platform, invoked with `-target <ZIG_TARGET>` (plus `-static` on
+    // Linux/musl) to produce statically-linked binaries.
+    cc = Texts(Text$from_str(TOMO_PATH), "/libexec/tomo@", TOMO_VERSION, "/zig/zig cc");
 
     cflags = Texts("-I'", TOMO_PATH, "/include' -I'", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "' ", cflags);
 
@@ -268,7 +276,19 @@ int main(int argc, char *argv[]) {
         cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
     }
 
-    ldflags = Texts("-Wl,-rpath,'", TOMO_PATH, "/lib' ", ldflags, " -ffunction-sections -fdata-sections");
+    // Compile and link user programs for this platform's target using the bundled
+    // zig toolchain (the same one Tomo itself was built with). ZIG_TARGET is baked
+    // in at compile time; the vendored libraries bundled into libtomo were built
+    // for this same target.
+    if (ZIG_TARGET[0] != '\0') cflags = Texts("-target ", ZIG_TARGET, " ", cflags);
+
+    ldflags = Texts(ldflags, Text(" -ffunction-sections -fdata-sections"));
+#if defined(__linux__)
+    // Linux/musl: link fully statically, and provide the stack unwinder used by
+    // libtomo's stacktrace code (musl has no <execinfo.h>/backtrace()).
+    ldflags = Texts(ldflags, Text(" -static"));
+    ldlibs = Texts(ldlibs, Text(" -lunwind"));
+#endif
 #ifdef __APPLE__
     if (is_gcc) ldflags = Texts(ldflags, " -Wl,-w,--gc-sections -Wl,-U,build_info");
     else if (is_clang) ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info");

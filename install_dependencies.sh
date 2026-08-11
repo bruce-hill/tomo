@@ -46,21 +46,28 @@ else
     exit 1
 fi
 
-# Install packages
+# Tomo is built with `zig cc` and vendors GC/GMP/libunistring from source, so the
+# only build dependencies are Zig, binutils (ar/ranlib/addr2line), and curl (to
+# download the vendored sources and the bundled Zig). tar + xz are part of the
+# base system on all supported platforms.
+#
+# NOTE: Zig must be recent enough for the pinned toolchain (see
+# vendor/zig-checksums.mk). On distributions that don't package a new enough Zig
+# (notably Debian/Ubuntu apt), install it from https://ziglang.org/download/ .
 case "$PKG_MGR" in
-    apt) $SUDO apt install libgc-dev libunistring-dev binutils libgmp-dev ;;
-    dnf) $SUDO dnf install gc-devel libunistring-devel binutils gmp-devel ;;
-    pacman) $SUDO pacman -S gc libunistring binutils gmp ;;
-    yay|paru) $PKG_MGR -S gc libunistring binutils gmp ;;
-    xbps) $SUDO xbps-install -S gc libunistring binutils gmp ;;
-    pkg_add) $SUDO pkg_add boehm-gc libunistring binutils gmp ;;
-    freebsd-pkg) $SUDO pkg install boehm-gc libunistring binutils gmp ;;
-    brew) brew install bdw-gc libunistring binutils llvm gmp ;;
-    macports) $SUDO port install boehm-gc libunistring binutils gmp ;;
-    zypper) $SUDO zypper install gc-devel libunistring-devel binutils gmp-devel ;;
-    nix) nix-env -iA nixpkgs.boehmgc.dev nixpkgs.libunistring nixpkgs.binutils nixpkgs.nixpkgs.gmp ;;
-    spack) spack install boehm-gc libunistring binutils gmp ;;
-    conda) conda install boehm-gc libunistring binutils gmp ;;
+    apt) $SUDO apt install binutils curl xz-utils; echo "NOTE: install a recent 'zig' from https://ziglang.org/download/ (apt's is usually too old or missing)" ;;
+    dnf) $SUDO dnf install zig binutils curl xz ;;
+    pacman) $SUDO pacman -S zig binutils curl xz ;;
+    yay|paru) $PKG_MGR -S zig binutils curl xz ;;
+    xbps) $SUDO xbps-install -S zig binutils curl xz ;;
+    pkg_add) $SUDO pkg_add zig curl ;;
+    freebsd-pkg) $SUDO pkg install zig binutils curl ;;
+    brew) brew install zig binutils curl xz ;;
+    macports) $SUDO port install zig binutils curl xz ;;
+    zypper) $SUDO zypper install zig binutils curl xz ;;
+    nix) nix-env -iA nixpkgs.zig nixpkgs.binutils nixpkgs.curl nixpkgs.xz ;;
+    spack) spack install zig binutils curl xz ;;
+    conda) conda install -c conda-forge zig binutils curl xz ;;
     *)
         echo "Unknown package manager: $PKG_MGR" >&2
         exit 1

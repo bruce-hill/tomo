@@ -141,6 +141,7 @@ typedef struct {
 } gc_stream_t;
 
 FILE *gc_memory_stream(char **buf, size_t *size);
+char *gc_stream_finalize(FILE *stream, char **buf, size_t *size);
 
 #define _print(x) _n += _fprint1(_printing, x)
 #define _fprint(f, ...)                                                                                                \
@@ -161,8 +162,7 @@ FILE *gc_memory_stream(char **buf, size_t *size);
         FILE *_stream = gc_memory_stream(&_buf, &_size);                                                               \
         assert(_stream);                                                                                               \
         _fprint(_stream, __VA_ARGS__);                                                                                 \
-        fflush(_stream);                                                                                               \
-        _buf;                                                                                                          \
+        gc_stream_finalize(_stream, &_buf, &_size);                                                                    \
     })
 #define print_err(...)                                                                                                 \
     ({                                                                                                                 \

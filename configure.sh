@@ -25,13 +25,27 @@ else
     SUDO=sudo
 fi
 
-default_cc="cc"
-printf '\033[1mChoose which C compiler to use by default (default: %s):\033[m ' "$default_cc"
-read -r DEFAULT_C_COMPILER
-if [ -z "$DEFAULT_C_COMPILER" ]; then DEFAULT_C_COMPILER="cc"; fi
+# The Tomo compiler itself is built as a fully static executable (musl libc)
+# using `zig cc`. This makes the resulting binary portable and free of runtime
+# library dependencies.
+if ! command -v zig >/dev/null; then
+    error "Tomo is built as a static executable using 'zig cc', but I can't find 'zig' in your \$PATH." \
+        "Please install Zig (https://ziglang.org/download/) and make sure it's on your \$PATH."
+fi
+
+default_build_cc="zig cc"
+printf '\033[1mChoose which compiler to build Tomo with (default: %s):\033[m ' "$default_build_cc"
+read -r CC
+if [ -z "$CC" ]; then CC="$default_build_cc"; fi
+
+# Note: the build always targets the host platform (a "<arch>-linux-musl" target
+# derived automatically). Cross-platform distribution archives are produced with
+# `make dist`, which selects each target's platform itself. The installed tomo
+# compiles user programs with the Zig toolchain bundled into the installation, so
+# there is no separate runtime C compiler to configure.
 
 cat <<END >config.mk
 PREFIX=$PREFIX
-DEFAULT_C_COMPILER=$DEFAULT_C_COMPILER
+CC=$CC
 SUDO=$SUDO
 END

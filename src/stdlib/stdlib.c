@@ -1,9 +1,12 @@
 // Built-in functions
 
 #include <errno.h>
+#if __has_include(<execinfo.h>)
 #include <execinfo.h>
+#endif
 #include <fcntl.h>
 #include <gc.h>
+#include <limits.h>
 #include <locale.h>
 #include <math.h>
 #include <signal.h>
@@ -12,6 +15,7 @@
 #include <stdlib.h>
 #include <sys/param.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "../config.h"
 #include "../util.h"
@@ -56,9 +60,20 @@ Text_t TOMO_VERSION_TEXT = Text("v0");
 
 static inline const char *get_library_path(void *func) {
     static Dl_info info;
-    if (dladdr(func, &info)) {
+    if (dladdr(func, &info) && info.dli_fname && info.dli_fname[0]) {
         return info.dli_fname; // full path of the library
     }
+#if defined(__linux__)
+    // In a fully static binary there is no shared object for dladdr() to report,
+    // but the code that would live in libtomo is linked directly into the
+    // executable, so the executable's own path is the right thing to return.
+    static char exe_path[PATH_MAX];
+    ssize_t n = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    if (n > 0) {
+        exe_path[n] = '\0';
+        return exe_path;
+    }
+#endif
     return NULL;
 }
 
