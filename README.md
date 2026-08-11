@@ -144,7 +144,7 @@ is always built with `zig cc`.
 
 `make` builds the vendored dependencies, downloads and checksum-verifies the
 pinned Zig for your platform, and then builds `tomo` itself. Everything is placed
-under `./build/<platform>/tomo@VERSION/`. You can run `make test` to verify that
+under `./build/<platform>/tomo/`. You can run `make test` to verify that
 everything works correctly.
 
 ### Distribution archives

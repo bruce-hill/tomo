@@ -184,7 +184,7 @@ dist:
 	    exit 1; \
 	fi
 
-BUILD_DIR=$(BUILD_BASE)/tomo@$(TOMO_VERSION)
+BUILD_DIR=$(BUILD_BASE)/tomo
 headers := $(wildcard src/stdlib/*.h)
 build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/%.h, $(headers))
 

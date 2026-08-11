@@ -1,5 +1,4 @@
 #!/bin/sh
-version=$(awk '/^## / {print $2; exit}' CHANGES.md)
 # Normalize uname's spellings to Zig platform keys (Darwin/arm64/amd64 etc.):
 case "$(uname -s)" in
     Darwin) os=macos ;;
@@ -11,7 +10,7 @@ case "$(uname -m)" in
     *) arch=$(uname -m) ;;
 esac
 platform="$arch-$os"
-if ! [ -e "./build/$platform/tomo@$version/bin/tomo" ]; then
+if ! [ -e "./build/$platform/tomo/bin/tomo" ]; then
     make -j
 fi
-exec "./build/$platform/tomo@$version/bin/tomo" "$@"
+exec "./build/$platform/tomo/bin/tomo" "$@"
