@@ -92,7 +92,7 @@ static List_t format_files = EMPTY_LIST, format_files_inplace = EMPTY_LIST, pars
               show_build_info = EMPTY_LIST;
 
 static OptionalText_t show_codegen = NONE_TEXT,
-                      cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs"
+                      cflags = Text("-Werror -fdollars-in-identifiers -std=c23 -Wno-trigraphs"
                                     " -ffunction-sections -fdata-sections"
                                     " -fno-signed-zeros"
                                     // _DEFAULT_SOURCE exposes the libc extensions musl gates

@@ -80,7 +80,7 @@ endif
 ifneq ($(call zig_is_static,$(ZIG_PLATFORM)),)
 	STATIC_FLAG=-static
 endif
-CCONFIG=$(TARGET_FLAG) -std=c2x -fPIC \
+CCONFIG=$(TARGET_FLAG) -std=c23 -fPIC \
 		-fno-signed-zeros -fno-trapping-math \
 		-fvisibility=hidden -fdollars-in-identifiers \
 		-DGC_THREADS
