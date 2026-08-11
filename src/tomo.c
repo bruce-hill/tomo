@@ -95,10 +95,9 @@ static OptionalText_t show_codegen = NONE_TEXT,
                       cflags = Text("-Werror -fdollars-in-identifiers -std=c2x -Wno-trigraphs"
                                     " -ffunction-sections -fdata-sections"
                                     " -fno-signed-zeros"
-                                    " -D_XOPEN_SOURCE -D_DEFAULT_SOURCE -fPIC -ggdb"
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
-                                    " -D_BSD_SOURCE"
-#endif
+                                    // _DEFAULT_SOURCE exposes the libc extensions musl gates
+                                    // (macOS/BSD headers are default-visible and ignore it):
+                                    " -D_DEFAULT_SOURCE -fPIC -ggdb"
                                     " -DGC_THREADS"),
                       ldlibs = Text("-lm"), ldflags = Text(""), optimization = Text("2"),
                       // The toolchain is not configurable; these are set in main() to the
