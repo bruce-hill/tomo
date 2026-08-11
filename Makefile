@@ -445,9 +445,6 @@ man/man1/tomo.1: docs/tomo.1.md
 examples:
 	./local-tomo examples/learnxiny.tm
 
-core-libs:
-	./local-tomo -L packages/core.ini
-
 deps: $(VENDORED_LIBS) $(VENDOR_LICENSES)
 
 # "&:" (grouped targets) tells make that ONE invocation of this recipe produces
@@ -484,4 +481,4 @@ uninstall:
 		~/.local/tomo/state/tomo@$(TOMO_VERSION); \
 
 .SUFFIXES:
-.PHONY: all build clean clean-obj dist archive install install-files install-targets uninstall test tags core-libs examples deps check-zig version
+.PHONY: all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version
