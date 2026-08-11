@@ -219,9 +219,13 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
     case USE_PACKAGE: {
         OptionalPath_t installed = find_installed_package(env->build_info, use_ast);
         assert(installed);
-        Text_t name = get_package_name(installed);
+        // Register under the name the `use` statement refers to it by -- the
+        // same name FieldAccess looks up (ModuleType->name). The install
+        // directory's basename doesn't work as a key: digest-pinned packages
+        // install into a directory named after their digest.
+        const char *name = Match(use_ast, Use)->path;
         env_t *module_env = fresh_scope(env);
-        Table$str_set(env->imports, Text$as_c_string(name), module_env);
+        Table$str_set(env->imports, name, module_env);
         List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
         for (int64_t i = 0; i < (int64_t)children.length; i++) {
             Path_t child = *(Path_t *)(children.data + i * children.stride);
