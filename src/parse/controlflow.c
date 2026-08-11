@@ -15,9 +15,12 @@
 
 ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    spaces(&pos);
-
     ast_list_t *statements = NULL;
+    spaces(&pos);
+    if (comment(ctx, &pos)) {
+        goto try_indented;
+    }
+
     if (!indent(ctx, &pos)) {
         // Inline block
         spaces(&pos);
@@ -33,6 +36,7 @@ ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
         goto indented;
     }
 
+try_indented:;
     if (indent(ctx, &pos)) {
     indented:;
         int64_t block_indent = get_indent(ctx, pos);
@@ -73,12 +77,11 @@ ast_t *parse_block(parse_ctx_t *ctx, const char *pos) {
         const char *after_comments = pos;
         while (some_of(&after_comments, " \t\r\n")) {
             if (get_indent(ctx, after_comments) == block_indent && comment(ctx, &after_comments)) {
-                print("BINGO");
+                pos = after_comments;
             } else {
                 break;
             }
         }
-        pos = after_comments;
     }
     REVERSE_LIST(statements);
     return NewAST(ctx->file, start, pos, Block, .statements = statements);
