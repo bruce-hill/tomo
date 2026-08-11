@@ -48,14 +48,10 @@
 #define unlikely(x) (__builtin_expect(!!(x), 0))
 #endif
 
-// GCC lets you define macro-like functions which are always inlined and never
-// compiled using this combination of flags. See: https://gcc.gnu.org/onlinedocs/gcc/Inline.html
+// This combination of attributes defines macro-like functions which are always
+// inlined and never emitted as standalone compiled functions:
 #ifndef MACROLIKE
-#ifdef __TINYC__
-#define MACROLIKE static inline __attribute__((gnu_inline, always_inline))
-#else
 #define MACROLIKE extern inline __attribute__((gnu_inline, always_inline))
-#endif
 #endif
 
 #ifndef GC_MALLOC

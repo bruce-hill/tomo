@@ -88,14 +88,6 @@ void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *pointers, const Typ
 #endif
 }
 
-#ifdef __TINYC__
-#define __builtin_add_overflow(x, y, result)                                                                           \
-    ({                                                                                                                 \
-        *(result) = (x) + (y);                                                                                         \
-        false;                                                                                                         \
-    })
-#endif
-
 public
 Text_t NAMESPACED(as_text)(const void *i, bool colorize, const TypeInfo_t *info) {
     (void)info;

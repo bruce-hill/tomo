@@ -2,8 +2,7 @@
 
 In order to work with C's namespace limitations, I've designed the following
 system, which makes use of a C language extension `-fdollars-in-identifiers`
-that lets you use dollar signs in identifiers. This extension is supported by
-GCC, TinyCC, and Clang.
+that lets you use dollar signs in identifiers.
 
 ## Unique File Suffixes
 

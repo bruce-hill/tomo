@@ -76,14 +76,6 @@ bool Byte$get_bit(Byte_t x, Int_t bit_index) {
     return ((x & (Byte_t)(1L << (Int64$from_int(bit_index, true) - 1L))) != 0);
 }
 
-#ifdef __TINYC__
-#define __builtin_add_overflow(x, y, result)                                                                           \
-    ({                                                                                                                 \
-        *(result) = (x) + (y);                                                                                         \
-        false;                                                                                                         \
-    })
-#endif
-
 typedef struct {
     OptionalByte_t current, last;
     Int8_t step;
