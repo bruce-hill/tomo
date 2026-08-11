@@ -80,13 +80,19 @@ Run in quiet mode.
 Toggle whether source mapping should be enabled or disabled.
 .TP
 \f[B]\-\-target\f[R] \f[I]platform\f[R]
-Cross\-compile for another platform (e.g.\ \f[B]aarch64\-macos\f[R])
-instead of this machine\[cq]s.
+Cross\-compile for another platform instead of this machine\[cq]s.
 The target platform\[cq]s libraries are installed on demand from its
 Tomo distribution archive.
 Cross\-compiled executables get the platform as a filename suffix
 (e.g.\ \f[B]foo.aarch64\-macos\f[R]) and cannot be run or installed on
 this machine.
+Valid platforms are: \f[B]x86_64\-linux\f[R], \f[B]aarch64\-linux\f[R],
+\f[B]riscv64\-linux\f[R], \f[B]powerpc64le\-linux\f[R],
+\f[B]s390x\-linux\f[R], \f[B]x86_64\-macos\f[R],
+\f[B]aarch64\-macos\f[R], \f[B]x86_64\-freebsd\f[R],
+\f[B]aarch64\-freebsd\f[R], \f[B]x86_64\-netbsd\f[R],
+\f[B]aarch64\-netbsd\f[R], \f[B]x86_64\-openbsd\f[R], and
+\f[B]aarch64\-openbsd\f[R].
 .TP
 \f[B]\-\-uninstall\f[R], \f[B]\-u\f[R] \f[I]pkg1\f[R] \f[I]pkg2\f[R]\&...
 Uninstall the given packages.

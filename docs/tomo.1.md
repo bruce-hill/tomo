@@ -83,11 +83,14 @@ without asking for confirmation.
 : Toggle whether source mapping should be enabled or disabled.
 
 `--target` *platform*
-: Cross-compile for another platform (e.g. `aarch64-macos`) instead of this
-machine's. The target platform's libraries are installed on demand from its
-Tomo distribution archive. Cross-compiled executables get the platform as a
-filename suffix (e.g. `foo.aarch64-macos`) and cannot be run or installed on
-this machine.
+: Cross-compile for another platform instead of this machine's. The target
+platform's libraries are installed on demand from its Tomo distribution
+archive. Cross-compiled executables get the platform as a filename suffix
+(e.g. `foo.aarch64-macos`) and cannot be run or installed on this machine.
+Valid platforms are: `x86_64-linux`, `aarch64-linux`, `riscv64-linux`,
+`powerpc64le-linux`, `s390x-linux`, `x86_64-macos`, `aarch64-macos`,
+`x86_64-freebsd`, `aarch64-freebsd`, `x86_64-netbsd`, `aarch64-netbsd`,
+`x86_64-openbsd`, and `aarch64-openbsd`.
 
 `--uninstall`, `-u` *pkg1* *pkg2*...
 : Uninstall the given packages.

@@ -286,7 +286,8 @@ int main(int argc, char *argv[]) {
                          "  --optimization|-O <level>: set optimization level\n"
                          "  --force-rebuild|-f: force rebuilding\n"
                          "  --source-mapping|-m <yes|no>: toggle source mapping in generated code\n"
-                         "  --target <platform>: cross-compile for another platform (e.g. aarch64-macos)\n"
+                         "  --target <platform>: cross-compile for another platform; one of:\n"
+                         "      " TOMO_DIST_PLATFORMS "\n"
                          "  --install-target: install the --target platform's libraries without asking\n"
                          "  --changelog: show the Tomo changelog\n");
     Text_t help = Texts(Text("\x1b[1mtomo\x1b[m: a compiler for the Tomo programming language"), Text("\n\n"), usage);
