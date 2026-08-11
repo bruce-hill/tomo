@@ -203,28 +203,50 @@ Tomo programs.
 
 ## Usage
 
-To run a Tomo file directly:
+The simplest way to use Tomo is to run a file directly:
 
 ```bash
 tomo foo.tm
+# Or pass arguments to the program after "--":
+tomo foo.tm -- --some-arg 'hello'
 ```
 
-To compile a Tomo file into an object file:
+Running bare `tomo` with no arguments opens a scratch file in your `$EDITOR`
+that runs when you save and exit, and you can also pipe a program to it
+(`echo '...' | tomo`).
+
+Everything else is a subcommand, in the style of `git` or `cargo`:
+
+```
+Usage: tomo [command] [flags...] [args...]
+
+Commands:
+  run: Compile and run Tomo programs
+  build: Compile Tomo programs to standalone executables
+  transpile: Transpile Tomo files to C without compiling
+  parse: Print the parse tree of Tomo files as S-expressions
+  fmt: Format Tomo source code
+  package: Build Tomo packages into static archives
+  install: Install Tomo programs and packages into TOMO_PATH
+  uninstall: Remove installed Tomo programs and packages
+  vendor: Copy packages' verified sources into ./vendor/
+  info: Print the build info embedded in compiled binaries
+  version: Print the Tomo compiler version (with -v: plus the git revision)
+```
+
+For example:
 
 ```bash
-tomo build --obj foo.tm
-# Output: .build/foo.tm.o
+tomo build foo.tm          # Compile a standalone executable: ./foo
+tomo build --obj foo.tm    # Compile an object file: .build/foo.tm.o
+tomo transpile foo.tm      # Transpile to C: .build/foo.tm.h .build/foo.tm.c
 ```
 
-To transpile a Tomo file into a C header and source file:
-
-```bash
-tomo transpile foo.tm
-# Outputs: .build/foo.tm.h .build/foo.tm.c
-```
-
-You can see the full list of compiler options by running `man tomo` or `tomo
---help`.
+Global flags like `--verbose`/`-v`, `--quiet`/`-q`, and `--optimization`/`-O`
+can go anywhere on the command line; command-specific flags (like `build`'s
+`-o`) go after the command name. Run `tomo --help` for the full overview,
+`tomo <command> --help` for a specific command's usage, or `man tomo` for the
+manpage.
 
 
 ## License
