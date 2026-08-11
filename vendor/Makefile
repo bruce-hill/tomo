@@ -93,8 +93,11 @@ LICENSE_FILES = $(BUILD_BASE)/gc/LICENSE \
 	$(BUILD_BASE)/unistring/COPYING.LIB \
 	$(BUILD_BASE)/backtrace/LICENSE
 
-all: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/unistring/lib/libunistring.a \
-	$(BUILD_BASE)/backtrace/lib/libbacktrace.a $(LICENSE_FILES)
+# Each vendored dependency "foo" installs into $(BUILD_BASE)/foo/{lib,include}:
+VENDOR_DEPS = gc gmp unistring backtrace
+VENDORED_LIBS = $(foreach d,$(VENDOR_DEPS),$(BUILD_BASE)/$(d)/lib/lib$(d).a)
+
+all: $(VENDORED_LIBS) $(LICENSE_FILES)
 
 # Boehm GC ships no standalone LICENSE file; README.QUICK opens with the
 # canonical permissive license text (the same file distros install as its
@@ -267,7 +270,7 @@ $(BUILD_BASE)/backtrace/lib/libbacktrace.a: $(DEPS_DIR)/libbacktrace-$(LIBBACKTR
 
 # Remove built artifacts for the current platform (keeps downloaded archives):
 clean:
-	rm -rf $(BUILD_BASE)/gc $(BUILD_BASE)/gmp $(BUILD_BASE)/unistring $(BUILD_BASE)/backtrace $(BUILD_BASE)/deps $(BUILD_BASE)/zig
+	rm -rf $(foreach d,$(VENDOR_DEPS),$(BUILD_BASE)/$(d)) $(BUILD_BASE)/deps $(BUILD_BASE)/zig
 
 # Remove downloaded Zig archives too:
 clean-cache: clean

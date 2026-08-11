@@ -1,25 +1,13 @@
 SHELL=bash -o pipefail
-# Run ./configure.sh to choose installation locations:
-ifeq ($(wildcard config.mk),)
-all: config.mk
-	$(MAKE) all
-install: config.mk
-	$(MAKE) install
-install-files: config.mk
-	$(MAKE) install-files
-install-lib: config.mk
-	$(MAKE) install-lib
-test: config.mk
-	$(MAKE) test
-dist: config.mk
-	$(MAKE) dist
-archive: config.mk
-	$(MAKE) archive
+
+# config.mk records the choices made by ./configure.sh. If it's missing or older
+# than configure.sh, make runs the rule below to (re)generate it and then
+# automatically restarts itself with the fresh file included. This rule is the
+# first in the file, so the default goal must be set explicitly:
+.DEFAULT_GOAL := all
+-include config.mk
 config.mk: configure.sh
 	bash ./configure.sh
-else
-
-include config.mk
 
 # Pinned Zig version, per-platform checksums, and the platform->musl-triple map:
 include vendor/zig-checksums.mk
@@ -37,7 +25,11 @@ unexport LD_LIBRARY_PATH
 # recipe lines that invoke $(MAKE), so for goals built out of recursive makes
 # (dist/archive/deps) the "dry" run would recurse into vendor builds and try to
 # enter directories that don't exist yet, spraying errors -- skip those goals,
-# and silence the counting run's stderr.
+# and silence the counting run's stderr. Skipped before configure.sh has run:
+# the counting sub-make would otherwise try to remake config.mk (an interactive
+# prompt) inside $(shell); once config.mk is generated, make restarts and the
+# counter works normally.
+ifneq ($(wildcard config.mk),)
 ifndef NO_PROGRESS
 ifndef ECHO
 ifeq ($(filter dist archive deps install-targets,$(MAKECMDGOALS)),)
@@ -46,6 +38,7 @@ T := $(shell $(MAKE) ECHO="COUNTTHIS" $(MAKECMDGOALS) --no-print-directory \
 N := x
 C = $(words $N)$(eval N := x $N)
 ECHO = echo -e "[`expr $C '*' 100 / $T`%]"
+endif
 endif
 endif
 endif
@@ -73,8 +66,10 @@ ZIG_TARGET?=$(call zig_target,$(ZIG_PLATFORM))
 ZIG_OS=$(call zig_os,$(ZIG_PLATFORM))
 BUILD_BASE=build/$(ZIG_PLATFORM)
 # Static libraries + license texts produced by the vendor build (see
-# vendor/Makefile, which pins a version and SHA-256 checksum for each):
-VENDORED_LIBS=$(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a
+# vendor/Makefile, which pins a version and SHA-256 checksum for each). Each
+# vendored dependency "foo" installs into $(BUILD_BASE)/foo/{lib,include}:
+VENDOR_DEPS=gc gmp unistring backtrace
+VENDORED_LIBS=$(foreach d,$(VENDOR_DEPS),$(BUILD_BASE)/$(d)/lib/lib$(d).a)
 VENDOR_LICENSES=$(BUILD_BASE)/gc/LICENSE $(BUILD_BASE)/gmp/COPYING.LESSERv3 $(BUILD_BASE)/gmp/COPYINGv2 $(BUILD_BASE)/unistring/COPYING.LIB $(BUILD_BASE)/backtrace/LICENSE
 ifneq ($(ZIG_TARGET),)
 	TARGET_FLAG=-target $(ZIG_TARGET)
@@ -93,7 +88,7 @@ LDFLAGS=$(STATIC_FLAG) $(TARGET_FLAG)
 # so the compiler is built against the same libraries it links against. These are
 # included with -isystem so that warnings from third-party headers (e.g. gc.h
 # testing __GLIBC__ under -Wundef) don't clutter the build.
-INCLUDE_DIRS=-isystem $(BUILD_BASE)/gc/include -isystem $(BUILD_BASE)/gmp/include -isystem $(BUILD_BASE)/unistring/include -isystem $(BUILD_BASE)/backtrace/include
+INCLUDE_DIRS=$(foreach d,$(VENDOR_DEPS),-isystem $(BUILD_BASE)/$(d)/include)
 CWARN=-Wall -Wextra -Wno-format -Wno-format-security -Wshadow \
 	  -Wno-pedantic \
 	  -Wno-pointer-arith \
@@ -136,6 +131,10 @@ CFLAGS+=$(CCONFIG) $(INCLUDE_DIRS) $(EXTRA) $(CWARN) $(G) $(O) \
 	   -DTOMO_DIST_PLATFORMS='"$(ZIG_DIST_PLATFORMS)"' \
 	   -DGIT_VERSION='"$(GIT_VERSION)"' -ffunction-sections -fdata-sections \
 	   -UNDEBUG # `zig cc` defines NDEBUG at -O, but the code relies on active assert()s
+# Emit a .d makefile fragment per object recording the headers it actually
+# includes (-MMD), with phony targets so deleted headers don't break the build
+# (-MP). The fragments are -include'd next to the object pattern rule below.
+CFLAGS += -MMD -MP
 CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')" 
 # Stack traces collect addresses with the compiler's unwinder (-lunwind, which
 # zig provides for every target) on all platforms:
@@ -233,7 +232,7 @@ $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)%.h: src/stdlib/%.h | $(BUILD_DIR)/incl
 # alongside Tomo's own headers, so that programs compiled by tomo can find them.
 # The system copies of these are no longer used, since the vendored versions are
 # musl builds matching the static libraries linked into libtomo.
-$(BUILD_DIR)/include/gc.h: $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/unistring/lib/libunistring.a | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)
+$(BUILD_DIR)/include/gc.h: $(VENDORED_LIBS) | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)
 	cp -R $(BUILD_BASE)/gc/include/. $(BUILD_DIR)/include/
 	cp -R $(BUILD_BASE)/gmp/include/. $(BUILD_DIR)/include/
 	cp -R $(BUILD_BASE)/unistring/include/. $(BUILD_DIR)/include/
@@ -245,7 +244,7 @@ $(BUILD_DIR)/man/%.gz: man/% | $(BUILD_DIR)/man/man1 $(BUILD_DIR)/man/man3
 $(BUILD_DIR)/bin/tomo: $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) | $(BUILD_DIR)/bin
 	ln -sf tomo@$(TOMO_VERSION) $@
 
-$(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a | $(BUILD_DIR)/bin deps
+$(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) $(VENDORED_LIBS) | $(BUILD_DIR)/bin deps
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $(LDLIBS) $^ -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
@@ -253,7 +252,7 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) $(BUILD_BASE)/gc/l
 # relocatable object, then archive it. -no-pie is ELF-only (Linux); on Mach-O
 # (macOS) it isn't accepted, so it's applied only for static/Linux targets.
 NOPIE_FLAG=$(if $(call zig_is_static,$(ZIG_PLATFORM)),-no-pie,)
-$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) $(BUILD_BASE)/gc/lib/libgc.a $(BUILD_BASE)/unistring/lib/libunistring.a $(BUILD_BASE)/gmp/lib/libgmp.a $(BUILD_BASE)/backtrace/lib/libbacktrace.a | $(BUILD_DIR)/lib
+$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) $(VENDORED_LIBS) | $(BUILD_DIR)/lib
 	$(CC) $(TARGET_FLAG) $(NOPIE_FLAG) -r -nostdlib $^ -o libtomo.o
 	$(AR) rcs $@ libtomo.o
 	rm -f libtomo.o
@@ -343,22 +342,13 @@ check-zig:
 tags:
 	ctags src/*.{c,h} src/stdlib/*.{c,h} src/compile/*.{c,h} src/parse/*.{c,h} src/formatter/*.{c,h}
 
-config.mk: configure.sh
-	bash ./configure.sh
-
-$(OBJ_DIR)/%.o: %.c src/ast.h src/environment.h src/types.h config.mk | deps
+$(OBJ_DIR)/%.o: %.c config.mk | deps
 	@mkdir -p $(dir $@)
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) -c $< -o $@
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-# Integer implementations depend on the shared header:
-$(OBJ_DIR)/src/stdlib/int64.o $(OBJ_DIR)/src/stdlib/int32.o $(OBJ_DIR)/src/stdlib/int16.o $(OBJ_DIR)/src/stdlib/int8.o: src/stdlib/intX.c.h src/stdlib/intX.h
-
-# Num implementations depend on the shared header:
-$(OBJ_DIR)/src/stdlib/num32.o $(OBJ_DIR)/src/stdlib/num64.o: src/stdlib/numX.c.h
-
-%: %.tm
-	./local-tomo -e $<
+# Per-object header dependencies, generated by the compiler (see -MMD above):
+-include $(COMPILER_OBJS:.o=.d) $(STDLIB_OBJS:.o=.d)
 
 test/results/%.tm.testresult: test/%.tm build
 	@mkdir -p test/results
@@ -378,9 +368,6 @@ clean-obj:
 
 clean: clean-obj
 	rm -rf build/*/tomo@*/{bin,lib,libexec} test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
-
-%: %.md
-	pandoc --lua-filter=docs/.pandoc/bold-code.lua -s $< -t man -o $@
 
 %.md: %.yaml scripts/api_gen.py
 	./scripts/api_gen.py $< >$@
@@ -441,8 +428,6 @@ uninstall:
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"* "$(PREFIX)/include/tomo"* \
 		"$(PREFIX)/lib/libtomo@"* "$(PREFIX)/lib/tomo@"* "$(PREFIX)/share/licenses/tomo@"* \
 		~/.local/tomo/state/tomo@$(TOMO_VERSION); \
-
-endif
 
 .SUFFIXES:
 .PHONY: all build clean clean-obj dist archive install install-files install-targets uninstall test tags core-libs examples deps check-zig version
