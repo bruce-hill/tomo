@@ -121,6 +121,7 @@ void tomo_parse_arg_list(List_t args, cli_help_info_t info, int spec_len, cli_ar
     }
 
     for (int i = 0; i < spec_len && before_double_dash.length > 0; i++) {
+        if (info.strict_positionals && !spec[i].positional) continue;
         if (!spec[i].populated) {
             spec[i].populated =
                 pop_cli_positional(&before_double_dash, spec[i].name, spec[i].dest, spec[i].type, false);
@@ -128,6 +129,7 @@ void tomo_parse_arg_list(List_t args, cli_help_info_t info, int spec_len, cli_ar
     }
 
     for (int i = 0; i < spec_len && after_double_dash.length > 0; i++) {
+        if (info.strict_positionals && !spec[i].positional) continue;
         if (!spec[i].populated) {
             spec[i].populated = pop_cli_positional(&after_double_dash, spec[i].name, spec[i].dest, spec[i].type, true);
         }
@@ -347,7 +349,8 @@ int tomo_dispatch_command(int argc, char *argv[], cli_spec_t *cli) {
 
     if (command) {
         List$remove_at(&head, I(1), I(1), sizeof(const char *)); // drop the command name itself
-        cli_help_info_t info = {.usage = command->usage, .help = command->help, .help_short = 'h'};
+        cli_help_info_t info = {
+            .usage = command->usage, .help = command->help, .help_short = 'h', .strict_positionals = true};
         tomo_parse_arg_list(head, info, command->spec_len, command->spec);
         return command->handler(command, extra_args);
     }

@@ -38,9 +38,9 @@ a program piped in on standard input).
 Anything after `--` is passed to the programs as their own arguments. The
 command name is optional: `tomo` *file.tm* does the same thing.
 
-`build` \[`-o` *output*\] *file.tm...*
-: Compile the given programs to standalone executables, each placed as a
-sibling of its `.tm` file (or at `-o` *output*, when building a single file).
+`build` \[`-o` *output*\] *file.tm*
+: Compile the given program to a standalone executable, placed as a sibling
+of the `.tm` file (or at `-o` *output*).
 
 `transpile` *file.tm...*
 : Transpile the given files to C without compiling. The generated `.h`/`.c`

@@ -139,7 +139,8 @@ static int cmd_run(cli_command_t *self, List_t extra_args) {
 }
 
 int run_fallback(List_t args, List_t extra_args) {
-    cli_help_info_t info = {.usage = run_command.usage, .help = run_command.help, .help_short = 'h'};
+    cli_help_info_t info = {
+        .usage = run_command.usage, .help = run_command.help, .help_short = 'h', .strict_positionals = true};
     tomo_parse_arg_list(args, info, sizeof(run_spec) / sizeof(run_spec[0]), run_spec);
     return run_parsed_files(extra_args);
 }

@@ -23,9 +23,12 @@ typedef struct {
 // short flags (if any) the automatic --help and --version flags claim:
 typedef struct {
     Text_t usage, help;
-    const char *version; // NULL: no automatic --version flag
-    char help_short;     // short alias for --help ('h'), or 0 for none
-    char version_short;  // short alias for --version ('v'), or 0 for none
+    const char *version;     // NULL: no automatic --version flag
+    char help_short;         // short alias for --help ('h'), or 0 for none
+    char version_short;      // short alias for --version ('v'), or 0 for none
+    bool strict_positionals; // only fill positional values into .positional spec entries
+                             // (subcommand parsing); otherwise any unpopulated entry can
+                             // be filled positionally (generated programs' main())
 } cli_help_info_t;
 
 void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const char *version, int spec_len,

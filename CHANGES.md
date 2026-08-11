@@ -3,8 +3,8 @@
 ## 2026-08-10
 
 - The CLI has been restructured from mode flags into git-style subcommands:
-  `tomo run`, `tomo build` (replacing `--compile-exe`/`-e`, with `-o` to name
-  the output; `--compile-obj`/`-c` is gone), `tomo
+  `tomo run`, `tomo build` (replacing `--compile-exe`/`-e`; takes a single
+  file, with `-o` to name the output; `--compile-obj`/`-c` is gone), `tomo
   transpile`, `tomo parse`, `tomo fmt` (with `-i` replacing
   `--format-inplace`), `tomo package` (with `-o` to name the archive), `tomo
   install`/`tomo uninstall`, `tomo vendor` (with `-e` replacing
