@@ -133,24 +133,96 @@ void print_stacktrace(FILE *out, int offset) {
     for (int64_t i = size - 1; i > offset; i--) {
         Dl_info info;
         void *call_address = stack[i] - 1;
-        if (dladdr(call_address, &info) && info.dli_fname) {
-            const char *file = info.dli_fname;
-            uintptr_t frame_offset = (uintptr_t)call_address - (uintptr_t)info.dli_fbase;
-            FILE *fp = popen(String("addr2line -f -e '", file, "' ", (void *)frame_offset, " 2>/dev/null"), "r");
+        const char *file = NULL;
+        uintptr_t frame_offset = 0;
+        if (dladdr(call_address, &info) && info.dli_fname && info.dli_fname[0]) {
+            file = info.dli_fname;
+            frame_offset = (uintptr_t)call_address - (uintptr_t)info.dli_fbase;
+        }
+#ifdef __linux__
+        else {
+            // In a fully static executable there is no dynamic segment, so
+            // dladdr() can't resolve anything. Static binaries are linked
+            // non-PIE, though, so the backtrace addresses are absolute and can
+            // be looked up directly in the executable itself. The executable's
+            // path must be resolved *here*: passing "/proc/self/exe" to
+            // addr2line would make it inspect its own binary instead of ours.
+            static char self_exe[PATH_MAX];
+            if (self_exe[0] == '\0') {
+                ssize_t n = readlink("/proc/self/exe", self_exe, sizeof(self_exe) - 1);
+                if (n > 0) self_exe[n] = '\0';
+            }
+            if (self_exe[0] != '\0') {
+                file = self_exe;
+                frame_offset = (uintptr_t)call_address;
+            }
+        }
+#endif
+        if (file != NULL) {
+            // -i expands inlined call chains: with optimization, several source-
+            // level calls can collapse into one physical frame, and without -i
+            // only the innermost of them would be visible. addr2line prints the
+            // virtual frames innermost-first.
+            FILE *fp = popen(String("addr2line -f -i -e '", file, "' ", (void *)frame_offset, " 2>/dev/null"), "r");
             if (fp) {
-                const char *function = NULL, *filename = NULL;
-                long line_num = 0;
-                if (fparse(fp, &function, "\n", &filename, ":", &line_num) == NULL) {
-                    if (starts_with(function, "main$")) main_func_onwards = true;
-                    if (main_func_onwards) _print_stack_frame(out, cwd, install_dir, function, filename, line_num);
-                } else {
-                    if (main_func_onwards) _print_stack_frame(out, cwd, install_dir, NULL, NULL, line_num);
-                }
+                // Read all of addr2line's output, then split it into (function,
+                // file:line) line pairs, one pair per (possibly inlined) frame:
+                char *output = NULL;
+                size_t output_capacity = 0;
+                ssize_t output_len = getdelim(&output, &output_capacity, '\0', fp);
                 pclose(fp);
+
+                enum { MAX_INLINE_FRAMES = 64 };
+                const char *functions[MAX_INLINE_FRAMES], *filenames[MAX_INLINE_FRAMES];
+                long line_nums[MAX_INLINE_FRAMES];
+                int num_frames = 0;
+                char *p = output;
+                while (output_len > 0 && *p && num_frames < MAX_INLINE_FRAMES) {
+                    char *newline = strchr(p, '\n');
+                    if (newline == NULL) break;
+                    *newline = '\0';
+                    functions[num_frames] = p;
+                    p = newline + 1;
+
+                    char *location = p;
+                    newline = strchr(p, '\n');
+                    if (newline != NULL) {
+                        *newline = '\0';
+                        p = newline + 1;
+                    } else {
+                        p = location + strlen(location);
+                    }
+                    // Parse the "file:line" location pair:
+                    const char *filename = NULL;
+                    long line_num = 0;
+                    if (strparse(location, &filename, ":", &line_num) != NULL) {
+                        filename = location; // unparseable (e.g. "??:0"): keep as-is
+                        line_num = 0;
+                    }
+                    filenames[num_frames] = filename;
+                    line_nums[num_frames] = line_num;
+                    num_frames += 1;
+                }
+
+                // Print outermost-first to match the overall root-to-crash order:
+                for (int j = num_frames - 1; j >= 0; j--) {
+                    // Start printing at the program's main function, skipping
+                    // libc/startup frames above it. The entry symbol is named
+                    // "main$<file id>" (or "parse_and_run$$main$<file id>" when
+                    // top-level code is wrapped), so match "main$" anywhere.
+                    if (strstr(functions[j], "main$") != NULL) main_func_onwards = true;
+                    if (main_func_onwards) {
+                        _print_stack_frame(out, cwd, install_dir, functions[j], filenames[j], line_nums[j]);
+                        if (j > 0 || i - 1 > offset) fputs("\n", out);
+                    }
+                }
+                if (output) free(output);
             }
         } else {
-            if (main_func_onwards) _print_stack_frame(out, cwd, install_dir, NULL, NULL, 0);
+            if (main_func_onwards) {
+                _print_stack_frame(out, cwd, install_dir, NULL, NULL, 0);
+                if (i - 1 > offset) fputs("\n", out);
+            }
         }
-        if (main_func_onwards && i - 1 > offset) fputs("\n", out);
     }
 }
