@@ -79,10 +79,11 @@ static void normalize_inplace(char path[PATH_MAX]) {
                 while (prev_slash >= buf && *prev_slash != '/')
                     prev_slash -= 1;
 
-                // If previous component is not "..", then pop it
-                if (prev_slash > buf && *prev_slash == '/'
+                // If previous component is not "..", then pop it (keeping the
+                // root "/" when the popped component was the last one):
+                if (prev_slash >= buf && *prev_slash == '/'
                     && strncmp(prev_slash, "/../", (size_t)(dest - prev_slash)) != 0) {
-                    dest = prev_slash;
+                    dest = (prev_slash == buf) ? buf + 1 : prev_slash;
                 } else {
                     // Otherwise we need to keep the ".."
                     *(dest++) = '.';
