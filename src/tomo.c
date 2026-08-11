@@ -732,6 +732,24 @@ static int compare_source_entries(const void *a, const void *b) {
     return strcmp(*(const char *const *)a, *(const char *const *)b);
 }
 
+static bool is_build_artifact(Text_t filename) {
+    return Text$ends_with(filename, Text(".a"), NULL) || Text$ends_with(filename, Text(".o"), NULL)
+           || Text$ends_with(filename, Text(".so"), NULL) || Text$ends_with(filename, Text(".dylib"), NULL);
+}
+
+// Recursively add every file in `dir` to the zip's name->path table under
+// `prefix`, skipping hidden files (like .build/) and compiled artifacts:
+static void add_dir_files(Table_t *files, Path_t dir, const char *prefix) {
+    List_t children = Path$glob(Path$child(dir, Text("[!.]*")));
+    for (int64_t i = 0; i < (int64_t)children.length; i++) {
+        Path_t child = *(Path_t *)(children.data + i * children.stride);
+        Text_t base = Path$base_name(child);
+        const char *name = String(prefix, "/", Text$as_c_string(base));
+        if (Path$is_directory(child, true)) add_dir_files(files, child, name);
+        else if (!is_build_artifact(base)) Table$str_set(files, name, Path$as_c_string(child));
+    }
+}
+
 // Write the header + source zip + footer blob for `main_file` to `blob_path`:
 void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
     Table_t dep_files = EMPTY_TABLE, to_link = EMPTY_TABLE;
@@ -739,18 +757,55 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
     Path_t root = Path$parent(main_file);
 
     // Zip entry name -> source file path, deduplicated (several sources can
-    // share a directory and thus a packages.ini):
+    // share a directory and thus a packages.ini). Files outside the project
+    // directory are package sources (cross builds compile installed packages'
+    // sources directly); their whole package is embedded below instead.
     Table_t files = EMPTY_TABLE;
+    Table_t package_dirs = EMPTY_TABLE;
+    const char *lib_prefix = String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/");
     for (int64_t i = 0; i < (int64_t)dep_files.entries.length; i++) {
         struct {
             Path_t filename;
             staleness_t staleness;
         } *entry = dep_files.entries.data + i * dep_files.entries.stride;
-        Table$str_set(&files, Path$as_c_string(Path$relative_to(entry->filename, root)),
-                      Path$as_c_string(entry->filename));
+        Path_t rel = Path$relative_to(entry->filename, root);
+        if (strncmp(rel, "..", 2) == 0) {
+            const char *rest = strncmp(entry->filename, lib_prefix, strlen(lib_prefix)) == 0
+                                   ? strchr(entry->filename + strlen(lib_prefix), '/')
+                                   : NULL;
+            if (rest) {
+                size_t dir_len = (size_t)(rest - entry->filename);
+                char *pkg_dir = GC_MALLOC_ATOMIC(dir_len + 1);
+                memcpy(pkg_dir, entry->filename, dir_len);
+                pkg_dir[dir_len] = '\0';
+                Table$str_set(&package_dirs, pkg_dir, pkg_dir);
+            } else {
+                fprint(stderr, "Warning: not embedding source file outside the project: ", entry->filename);
+            }
+            continue;
+        }
+        Table$str_set(&files, rel, Path$as_c_string(entry->filename));
         Path_t ini = Path$sibling(entry->filename, Text("packages.ini"));
         if (Path$is_file(ini, true))
             Table$str_set(&files, Path$as_c_string(Path$relative_to(ini, root)), Path$as_c_string(ini));
+    }
+
+    // Every installed package that gets linked in (to_link holds each one's
+    // package.a, including packages used transitively by other packages):
+    for (int64_t i = 0; i < (int64_t)to_link.entries.length; i++) {
+        Text_t lib = *(Text_t *)(to_link.entries.data + i * to_link.entries.stride);
+        if (!Text$ends_with(lib, Text("/package.a"), NULL)) continue;
+        Path_t pkg_dir = Path$parent(Path$from_text(lib));
+        Table$str_set(&package_dirs, Path$as_c_string(pkg_dir), Path$as_c_string(pkg_dir));
+    }
+
+    // Embed each package's full sources (and license files) under packages/:
+    for (int64_t i = 0; i < (int64_t)package_dirs.entries.length; i++) {
+        struct {
+            const char *key, *value;
+        } *entry = package_dirs.entries.data + i * package_dirs.entries.stride;
+        Path_t pkg_dir = Path$from_str(entry->key);
+        add_dir_files(&files, pkg_dir, String("packages/", Text$as_c_string(Path$base_name(pkg_dir))));
     }
 
     // Also include the license texts shipped with the Tomo install (Tomo's own
@@ -817,6 +872,7 @@ void extract_embedded_source(Path_t binary) {
     if (!mz_zip_reader_init_mem(&zip, zip_start, (size_t)(zip_end - zip_start), 0))
         print_err("The embedded Tomo source in ", binary, " is not a valid zip file");
     Path_t outdir = Path$sibling(binary, Texts(Path$base_name(binary), Text("-source")));
+    bool extracted_packages = false;
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip); i++) {
         mz_zip_archive_file_stat stat;
         if (!mz_zip_reader_file_stat(&zip, i, &stat))
@@ -837,9 +893,14 @@ void extract_embedded_source(Path_t binary) {
         close(out_fd);
         mz_free(data);
         print("Extracted ", Path$relative_to(out, Path$current_dir()));
+        if (strncmp(stat.m_filename, "packages/", strlen("packages/")) == 0) extracted_packages = true;
     }
     mz_zip_reader_end(&zip);
     munmap(contents, (size_t)sb.st_size);
+    if (extracted_packages)
+        print("\nNote: the sources of the packages this program uses were extracted into packages/\n"
+              "To rebuild using those copies instead of fetching the pinned package sources,\n"
+              "point the packages.ini entries at them, e.g.: source=./packages/<name>");
 }
 
 // The C code embedding the source blob in a retained section on ELF targets
@@ -1421,17 +1482,34 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     Path_t runner_file = build_file(path, ".runner.c");
     Path$write(runner_file, program, 0644);
 
+    // Libraries bundled with the Tomo toolchain: every program links the full
+    // vendored archives (below), so a package's `use -lgmp` etc. must not
+    // become a -l flag -- no system copies exist (the toolchain uses its own
+    // static musl builds):
+    static const char *bundled_libs[] = {"-lgc", "-lgmp", "-lunistring", "-lbacktrace", "-lm", "-lunwind"};
+
     // .a archive files need to go later in the positional order:
     List_t archives = EMPTY_LIST;
     for (int64_t i = 0; i < (int64_t)extra_ldlibs.length;) {
         Text_t *lib = (Text_t *)(extra_ldlibs.data + i * extra_ldlibs.stride);
-        if (Text$ends_with(*lib, Text(".a"), NULL)) {
+        bool bundled = false;
+        for (size_t j = 0; j < sizeof(bundled_libs) / sizeof(bundled_libs[0]); j++)
+            bundled = bundled || Text$equal_values(*lib, Text$from_str(bundled_libs[j]));
+        if (bundled) {
+            List$remove_at(&extra_ldlibs, I(i + 1), I(1), sizeof(Text_t));
+        } else if (Text$ends_with(*lib, Text(".a"), NULL)) {
             List$insert(&archives, lib, I(0), sizeof(Text_t));
             List$remove_at(&extra_ldlibs, I(i + 1), I(1), sizeof(Text_t));
         } else {
             i += 1;
         }
     }
+
+    // The vendored static libraries that libtomo (and any package using their
+    // headers) is linked against:
+    Text_t vendor_dir = Texts(lib_root, "/lib/tomo@", TOMO_VERSION, "/vendor");
+    Text_t vendor_archives = Texts(" ", vendor_dir, "/libgc.a ", vendor_dir, "/libgmp.a ", vendor_dir,
+                                   "/libunistring.a ", vendor_dir, "/libbacktrace.a");
 
     // On Mach-O the source blob is embedded by the linker rather than asm:
     Text_t source_section_flag =
@@ -1454,6 +1532,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         " ", list_text(archives),
         // Tomo static library (Mach-O linking has no --no-whole-archive):
         link_macho ? "" : " -Wl,--no-whole-archive", " ", lib_root, "/lib/libtomo@", TOMO_VERSION, ".a",
+        vendor_archives,
         // Output file:
         " -o ", exe_path);
 

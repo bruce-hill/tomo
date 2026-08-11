@@ -257,13 +257,14 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) $(VENDORED_LIBS) |
 	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) $(LDLIBS) $^ -o $@
 	@$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
-# Combine the stdlib objects and the vendored static libraries into a single
-# relocatable object, then archive it. -no-pie is ELF-only (Linux); on Mach-O
-# (macOS) it isn't accepted, so it's applied only for static/Linux targets.
+# Combine the stdlib objects into a single relocatable object, then archive
+# it. The vendored libraries are NOT merged in: tomo links them from the
+# installed vendor/ directory (see below), so that packages using their full
+# APIs (e.g. `use -lgmp`) never collide with a partial copy. -no-pie is
+# ELF-only (Linux); on Mach-O (macOS) it isn't accepted, so it's applied only
+# for static/Linux targets.
 NOPIE_FLAG=$(if $(call zig_is_static,$(ZIG_PLATFORM)),-no-pie,)
-# miniz is excluded: only the compiler itself needs it (for source-zip
-# embedding/extraction), so it stays out of user binaries.
-$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) $(filter-out %/libminiz.a,$(VENDORED_LIBS)) | $(BUILD_DIR)/lib
+$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib
 	$(CC) $(TARGET_FLAG) $(NOPIE_FLAG) -r -nostdlib $^ -o libtomo.o
 	$(AR) rcs $@ libtomo.o
 	rm -f libtomo.o
@@ -342,13 +343,24 @@ $(VENDOR_LICENSE_PRODUCTS) &: $(VENDOR_LICENSES) | $(LICENSES_DIR)
 	cp $(BUILD_BASE)/backtrace/LICENSE $(LICENSES_DIR)/LIBBACKTRACE-LICENSE
 	cp $(BUILD_BASE)/miniz/LICENSE $(LICENSES_DIR)/MINIZ-LICENSE
 
+# Ship the vendored static libraries inside the versioned lib dir (NOT
+# directly in lib/, where they could shadow real system libraries). Every
+# tomo-compiled program links these full archives alongside libtomo.a, so the
+# linker extracts exactly the members used -- by the stdlib or by packages
+# with e.g. `use <gmp.h>`:
+VENDOR_INSTALL_DIR=$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/vendor
+VENDOR_INSTALLED_LIBS=$(foreach d,$(filter-out miniz,$(VENDOR_DEPS)),$(VENDOR_INSTALL_DIR)/lib$(d).a)
+$(VENDOR_INSTALLED_LIBS) &: $(filter-out %/libminiz.a,$(VENDORED_LIBS))
+	@mkdir -p $(VENDOR_INSTALL_DIR)
+	cp $(filter-out %/libminiz.a,$(VENDORED_LIBS)) $(VENDOR_INSTALL_DIR)/
+
 # Everything that makes up an installed Tomo tree for the current platform:
 BUILD_PRODUCTS = $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
 	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini \
 	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE $(build_headers) $(build_manpages) \
 	$(BUILD_DIR)/include/gc.h \
 	$(ZIG_BUNDLE_DIR)/zig $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE \
-	$(VENDOR_LICENSE_PRODUCTS)
+	$(VENDOR_LICENSE_PRODUCTS) $(VENDOR_INSTALLED_LIBS)
 
 build: $(BUILD_PRODUCTS)
 
