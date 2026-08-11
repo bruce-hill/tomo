@@ -22,6 +22,10 @@
   target SDK/sysroot. Zig archives are downloaded from ziglang.org and verified
   against pinned SHA-256 checksums (`vendor/zig-checksums.mk`); `make -C vendor
   download-all-zig` mirrors every platform's Zig archive.
+- Runtime stack traces are now symbolized in-process using a vendored
+  libbacktrace and collected with the compiler's unwinder on every platform, so
+  they work in fully static binaries (including inlined frames) and need no
+  external tools — the runtime dependencies on binutils are gone.
 - Removed the OpenSSL (`-lcrypto`) dependency: package digests now use a small
   built-in SHA-256 implementation.
 
