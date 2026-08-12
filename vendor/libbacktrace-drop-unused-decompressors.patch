@@ -1,0 +1,95 @@
+--- elf.c
++++ elf.c.fixed
+@@ -1355,6 +1355,7 @@
+ 
+ #endif
+ 
++#ifdef USE_ZLIB
+ /* Build a Huffman code table from an array of lengths in CODES of
+    length CODES_LEN.  The table is stored into *TABLE.  ZDEBUG_TABLE
+    is the same as for elf_zlib_inflate, used to find some work space.
+@@ -2671,6 +2672,7 @@
+     return 0;
+   return 1;
+ }
++#endif /* USE_ZLIB */
+ 
+ /* For working memory during zstd compression, we need
+    - a literal length FSE table: 512 64-bit values == 4096 bytes
+@@ -5123,12 +5125,16 @@
+ 	return 0;
+     }
+ 
++#ifdef USE_ZLIB
+   if (!elf_zlib_inflate_and_verify (compressed + 12, compressed_size - 12,
+ 				    zdebug_table, po, sz))
+     return 1;
+ 
+   *uncompressed = po;
+   *uncompressed_size = sz;
++#else
++  (void) zdebug_table;
++#endif /* !USE_ZLIB */
+ 
+   return 1;
+ }
+@@ -5181,12 +5187,14 @@
+ 
+   switch (chdr.ch_type)
+     {
++#ifdef USE_ZLIB
+     case ELFCOMPRESS_ZLIB:
+       if (!elf_zlib_inflate_and_verify (compressed + sizeof (b_elf_chdr),
+ 					compressed_size - sizeof (b_elf_chdr),
+ 					zdebug_table, po, chdr.ch_size))
+ 	goto skip;
+       break;
++#endif /* USE_ZLIB */
+ 
+     case ELFCOMPRESS_ZSTD:
+       if (!elf_zstd_decompress (compressed + sizeof (b_elf_chdr),
+@@ -5263,6 +5271,8 @@
+   return ret;
+ }
+ 
++#ifdef USE_LZMA
++
+ /* Number of LZMA states.  */
+ #define LZMA_STATES (12)
+ 
+@@ -6570,6 +6580,8 @@
+ 			      uncompressed_size);
+ }
+ 
++#endif /* USE_LZMA */
++
+ /* Add the backtrace data for one ELF file.  Returns 1 on success,
+    0 on failure (in both cases descriptor is closed) or -1 if exe
+    is non-zero and the ELF file is ET_DYN, which tells the caller that
+@@ -6625,8 +6637,10 @@
+   struct elf_view gnu_debugdata_view;
+   int gnu_debugdata_view_valid;
+   size_t gnu_debugdata_size;
++#ifdef USE_LZMA
+   unsigned char *gnu_debugdata_uncompressed;
+   size_t gnu_debugdata_uncompressed_size;
++#endif /* USE_LZMA */
+   off_t min_offset;
+   off_t max_offset;
+   off_t debug_size;
+@@ -7116,6 +7130,7 @@
+       debugaltlink_view_valid = 0;
+     }
+ 
++#ifdef USE_LZMA
+   if (gnu_debugdata_view_valid)
+     {
+       int ret;
+@@ -7141,6 +7156,7 @@
+ 	  return ret;
+ 	}
+     }
++#endif /* USE_LZMA */
+ 
+   if (opd_view_valid)
+     {

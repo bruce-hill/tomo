@@ -263,6 +263,15 @@ libbacktrace-$(LIBBACKTRACE_VERSION).tar.gz:
 $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/configure: libbacktrace-$(LIBBACKTRACE_VERSION).tar.gz
 	mkdir -p $(DEPS_DIR)
 	tar xzfm $< -C $(DEPS_DIR)
+	# elf.c's zlib and lzma decompressors only fire for legacy ".zdebug"
+	# sections, the ELFCOMPRESS_ZLIB case, and .gnu_debugdata (Fedora/Debian
+	# MiniDebugInfo) -- none of which a tomo build ever produces (debug
+	# sections are always --compress-debug-sections=zstd, and tomo never
+	# emits .gnu_debugdata). They're direct calls from elf_add(), which is
+	# always live, so --gc-sections can't drop them on its own; this patch
+	# guards them behind USE_ZLIB/USE_LZMA (deliberately left undefined
+	# below) to remove ~12KB of dead code from every tomo-built binary.
+	cd $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION) && patch -p0 -N < $(CURDIR)/libbacktrace-drop-unused-decompressors.patch
 	@touch $@
 
 $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/Makefile: $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/configure
