@@ -10,8 +10,12 @@
   `gmp.h`, libunistring's) moved from the shared `include/` into
   `include/tomo@VER/`, and `lib/libtomo@VER.a` is now `lib/tomo@VER/libtomo.a`.
   Compiled programs get `-I PREFIX/include/tomo@VER` and generated code now
-  says `#include <tomo.h>` instead of `#include <tomo@VER/tomo.h>`. `make
-  uninstall` now also removes the bundled toolchain in `libexec/tomo@VER`.
+  says `#include <tomo.h>` instead of `#include <tomo@VER/tomo.h>`. Tomo's
+  man pages now live in `man/tomo@VER/man{1,3}/` with symlinks at the
+  man-visible paths (like `bin/tomo` → `bin/tomo@VER`). `make uninstall` now
+  also removes the bundled toolchain in `libexec/tomo@VER` and the man pages
+  (both previously leaked), without touching other versions' pages or those
+  of `tomo install`ed programs.
 - The CLI has been restructured from mode flags into git-style subcommands:
   `tomo run`, `tomo build` (replacing `--compile-exe`/`-e`; takes a single
   file, with `-o` to name the output; `--compile-obj`/`-c` is gone), `tomo

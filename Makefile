@@ -226,8 +226,12 @@ headers := $(filter-out src/stdlib/tomo.h,$(wildcard src/stdlib/*.h))
 build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/%.h, $(headers)) \
 	$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo.h
 
-# generate corresponding build paths with .gz
-build_manpages := $(patsubst %,$(BUILD_DIR)/%.gz,$(wildcard man/man*/*))
+# Tomo's own man pages live in a versioned store (man/tomo@VER/man1/...), with
+# symlinks at the man-visible paths (man/man1/tomo.1.gz -> ../tomo@VER/man1/...)
+# -- the same last-install-wins scheme as the bin/tomo -> bin/tomo@VER symlink:
+manpages := $(wildcard man/man*/*)
+build_manpages := $(patsubst man/%,$(BUILD_DIR)/man/tomo@$(TOMO_VERSION)/%.gz,$(manpages)) \
+	$(patsubst man/%,$(BUILD_DIR)/man/%.gz,$(manpages))
 
 # Ensure directories exist
 dirs := $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo \
@@ -236,6 +240,8 @@ dirs := $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo \
         $(BUILD_DIR)/bin \
         $(BUILD_DIR)/man/man1 \
         $(BUILD_DIR)/man/man3 \
+        $(BUILD_DIR)/man/tomo@$(TOMO_VERSION)/man1 \
+        $(BUILD_DIR)/man/tomo@$(TOMO_VERSION)/man3 \
         $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
 
 $(dirs):
@@ -260,9 +266,13 @@ $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/gc.h: $(VENDORED_LIBS) | $(BUILD_DIR)/
 	cp -R $(BUILD_BASE)/gmp/include/. $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/
 	cp -R $(BUILD_BASE)/unistring/include/. $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/
 
-# Rule for gzipping man pages
-$(BUILD_DIR)/man/%.gz: man/% | $(BUILD_DIR)/man/man1 $(BUILD_DIR)/man/man3
+# Gzip man pages into the versioned store:
+$(BUILD_DIR)/man/tomo@$(TOMO_VERSION)/%.gz: man/% | $(BUILD_DIR)/man/tomo@$(TOMO_VERSION)/man1 $(BUILD_DIR)/man/tomo@$(TOMO_VERSION)/man3
 	gzip -c $< > $@
+
+# ...and symlink them from the paths man actually searches:
+$(BUILD_DIR)/man/%.gz: $(BUILD_DIR)/man/tomo@$(TOMO_VERSION)/%.gz | $(BUILD_DIR)/man/man1 $(BUILD_DIR)/man/man3
+	ln -sf ../tomo@$(TOMO_VERSION)/$*.gz $@
 
 $(BUILD_DIR)/bin/tomo: $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) | $(BUILD_DIR)/bin
 	ln -sf tomo@$(TOMO_VERSION) $@
@@ -492,7 +502,8 @@ uninstall:
 	fi; \
 	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo@"* "$(PREFIX)/include/tomo@"* \
 		"$(PREFIX)/lib/tomo@"* "$(PREFIX)/libexec/tomo@"* "$(PREFIX)/share/licenses/tomo@"* \
-		~/.local/tomo/state/tomo@$(TOMO_VERSION); \
+		"$(PREFIX)/man/tomo@"* ~/.local/tomo/state/tomo@$(TOMO_VERSION); \
+	find -L "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" -maxdepth 1 -type l -delete 2>/dev/null || true
 
 .SUFFIXES:
 .PHONY: all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version
