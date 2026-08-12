@@ -184,6 +184,12 @@ static void gc_package_dir(Path_t dir) {
     // Store entries are content-addressed and must never be modified (and
     // their dependencies live in the containing store, not their own):
     if (is_store_entry_dir(dir)) return;
+    // The compiler's own system-wide default pins (TOMO_PATH/lib/tomo@VERSION/
+    // packages.ini) are shared by every project that falls back to them and
+    // must never be rewritten with unused=true markers based on one
+    // directory's usage:
+    Path_t tomo_lib_dir = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION));
+    if (Enum$equal(&dir, &tomo_lib_dir, &Path$info)) return;
     Path_t store_root = Path$child(Path$child(dir, Text(".tomo")), Text("store"));
     Table_t digests = EMPTY_TABLE, names = EMPTY_TABLE;
     collect_needed_packages(dir, store_root, &digests, &names);

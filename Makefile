@@ -293,7 +293,7 @@ $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSI
 	$(AR) rcs $@ libtomo.o
 	rm -f libtomo.o
 
-$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini: packages.ini | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
+$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini: packages.ini.default | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	@cp $^ $@
 
 $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE: LICENSE.md | $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
