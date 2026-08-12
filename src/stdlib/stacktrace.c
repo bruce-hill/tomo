@@ -187,11 +187,22 @@ void print_stacktrace(FILE *out, int offset) {
 
         // Print outermost-first to match the overall root-to-crash order:
         for (int j = frames.count - 1; j >= 0; j--) {
-            // Start printing at the program's main function, skipping
-            // libc/startup frames above it. The entry function is named
-            // "main$<file id>" (or "parse_and_run$$main$<file id>" when
-            // top-level code is wrapped), so match "main$" anywhere.
-            if (frames.functions[j] && strstr(frames.functions[j], "main$") != NULL) main_func_onwards = true;
+            // Start printing at the program's own code, skipping the C
+            // main()/parse_and_run$$... plumbing above it. When the program
+            // defines its own main(), the entry function is named
+            // "main$<file id>", called as a sibling of (not nested inside)
+            // "$initialize$<file id>" from "parse_and_run$$main$<file id>",
+            // so "main$" is on the stack but "$initialize$" already returned
+            // by the time main() runs. Top-level-script programs have no
+            // "main$" anywhere -- their code runs directly inside
+            // "$initialize$<file id>", called straight from C's own (always
+            // bare, never namespaced) main(). Matching either name catches
+            // both cases while still skipping the plain "main" C wrapper
+            // frame itself.
+            if (frames.functions[j]
+                && (strstr(frames.functions[j], "main$") != NULL
+                    || strstr(frames.functions[j], "$initialize$") != NULL))
+                main_func_onwards = true;
             if (main_func_onwards) {
                 _print_stack_frame(out, cwd, install_dir, frames.functions[j], frames.filenames[j],
                                    frames.line_nums[j]);
