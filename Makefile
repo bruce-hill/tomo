@@ -305,17 +305,28 @@ $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE: LICENSE.md | $(BU
 # run Tomo programs). Zig is a native build for the target platform; on a cross
 # build for a distribution, `make dist` fetches that platform's Zig to ship.
 ZIG_STAGED = $(BUILD_BASE)/zig/zig
-ZIG_BUNDLE_DIR = $(BUILD_DIR)/libexec/tomo@$(TOMO_VERSION)/zig
+# The toolchain is shared between coresident Tomo versions: the real copy
+# lives in a store keyed by ZIG's version, and each Tomo version's
+# libexec/tomo@VER/zig is a symlink into it -- so a Tomo upgrade that keeps
+# the same zig pin adds ~10MB instead of ~400MB. `tomo uninstall-self`
+# removes stores that no remaining installation's symlink points into.
+ZIG_STORE_DIR = $(BUILD_DIR)/libexec/zig@$(ZIG_VERSION)
+ZIG_LINK = $(BUILD_DIR)/libexec/tomo@$(TOMO_VERSION)/zig
 
 # Download + checksum-verify + extract the pinned Zig for this platform:
 $(ZIG_STAGED):
 	$(MAKE) -C vendor zig ZIG_PLATFORM='$(ZIG_PLATFORM)' ZIG_TARGET='$(ZIG_TARGET)' BUILD_BASE='$(CURDIR)/$(BUILD_BASE)'
 
 # Copy the Zig toolchain (binary + lib/ + LICENSE) into the install tree:
-$(ZIG_BUNDLE_DIR)/zig: $(ZIG_STAGED)
-	rm -rf $(ZIG_BUNDLE_DIR)
-	mkdir -p $(ZIG_BUNDLE_DIR)
-	cp -R $(BUILD_BASE)/zig/. $(ZIG_BUNDLE_DIR)/
+$(ZIG_STORE_DIR)/zig: $(ZIG_STAGED)
+	rm -rf $(ZIG_STORE_DIR)
+	mkdir -p $(ZIG_STORE_DIR)
+	cp -R $(BUILD_BASE)/zig/. $(ZIG_STORE_DIR)/
+
+$(ZIG_LINK): $(ZIG_STORE_DIR)/zig
+	mkdir -p $(dir $(ZIG_LINK))
+	rm -rf $(ZIG_LINK)
+	ln -s ../zig@$(ZIG_VERSION) $@
 
 # Ship Zig's license alongside Tomo's (Zig is MIT-licensed):
 $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE: $(ZIG_STAGED) | $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
@@ -383,7 +394,7 @@ BUILD_PRODUCTS = $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
 	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini \
 	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE $(build_headers) $(build_manpages) \
 	$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/gc.h \
-	$(ZIG_BUNDLE_DIR)/zig $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE \
+	$(ZIG_STORE_DIR)/zig $(ZIG_LINK) $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE \
 	$(VENDOR_LICENSE_PRODUCTS) $(VENDOR_INSTALLED_LIBS)
 
 build: $(BUILD_PRODUCTS)

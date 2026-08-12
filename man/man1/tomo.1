@@ -81,8 +81,9 @@ Uninstall the given packages or programs.
 .TP
 \f[B]uninstall\-self\f[R] [\f[B]\-y\f[R]]
 Uninstall this Tomo installation: remove this version\[cq]s files from
-the installation prefix, along with its per\-user state and
-cross\-compilation target packs.
+the installation prefix, along with its per\-user state,
+cross\-compilation target packs, and any bundled toolchains no remaining
+installation shares.
 If other Tomo versions remain in the same prefix, the \f[B]tomo\f[R] and
 man page symlinks are repointed to the newest one; otherwise they are
 removed too.

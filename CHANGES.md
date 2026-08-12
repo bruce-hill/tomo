@@ -31,6 +31,11 @@
   unimplemented `--changelog`) have been removed, `--version`/`-V` is now
   `tomo version`, `--prefix` is gone, and program arguments are now only
   passed after `--` (the `--args` flag is gone).
+- The bundled Zig toolchain is now shared between coresident Tomo versions:
+  the real copy lives in `libexec/zig@<zig version>` and each Tomo version's
+  `libexec/tomo@VER/zig` is a symlink into it, so upgrading Tomo without a
+  zig pin change adds ~10MB instead of ~400MB. `tomo uninstall-self` removes
+  toolchain stores that no remaining installation references.
 - New `tomo uninstall-self` command: uninstalling is now the compiler's job
   instead of a `make uninstall` file list (the Makefile target now just
   delegates to it). It removes this version's files from the prefix along

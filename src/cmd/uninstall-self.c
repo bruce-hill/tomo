@@ -60,6 +60,28 @@ static void link_man_pages(const char *version, const char *section) {
     }
 }
 
+// The zig toolchain is shared between coresident Tomo versions: the real
+// copy lives in PREFIX/libexec/zig@<zig version>, refcounted by the
+// libexec/tomo@<version>/zig symlinks pointing into it. Remove any store
+// that no remaining installation references:
+static void remove_orphaned_toolchains(void) {
+    List_t stores = Path$glob(Path$from_str(String(TOMO_PATH, "/libexec/zig@*")));
+    if (stores.length == 0) return;
+    List_t links = Path$glob(Path$from_str(String(TOMO_PATH, "/libexec/tomo@*/zig")));
+    for (int64_t i = 0; i < (int64_t)stores.length; i++) {
+        Path_t *store = (Path_t *)(stores.data + i * stores.stride);
+        char real_store[PATH_MAX];
+        if (!realpath(*store, real_store)) continue;
+        bool referenced = false;
+        for (int64_t l = 0; l < (int64_t)links.length && !referenced; l++) {
+            Path_t *link = (Path_t *)(links.data + l * links.stride);
+            char real_link[PATH_MAX];
+            referenced = realpath(*link, real_link) && strcmp(real_link, real_store) == 0;
+        }
+        if (!referenced) xsystem(as_owner, "rm -rf '", *store, "'");
+    }
+}
+
 // Whether some `tomo` executable is still reachable through $PATH:
 static bool tomo_on_path(void) {
     const char *path = getenv("PATH");
@@ -101,6 +123,8 @@ static int cmd_uninstall_self(cli_command_t *self, List_t extra_args) {
     // and cross-compilation target packs):
     xsystem("rm -rf '", Path$child(xdg_tomo_dir("XDG_STATE_HOME", "~/.local/state"), Texts("tomo@", TOMO_VERSION)),
             "' '", Path$child(xdg_tomo_dir("XDG_DATA_HOME", "~/.local/share"), Texts("tomo@", TOMO_VERSION)), "'");
+
+    remove_orphaned_toolchains();
 
     // Fix up the version-independent symlinks: if another tomo@<version>
     // remains in this prefix, downgrade them to it; otherwise remove them.
