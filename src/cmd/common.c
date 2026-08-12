@@ -51,6 +51,14 @@ const char *paths_str(List_t paths) {
     return Text$as_c_string(result);
 }
 
+// An XDG base directory (e.g. XDG_CACHE_HOME, falling back to ~/.cache),
+// with "/tomo" appended:
+Path_t xdg_tomo_dir(const char *env_var, const char *fallback) {
+    const char *base = getenv(env_var);
+    return (base && base[0] == '/') ? Path$from_str(String(base, "/tomo"))
+                                    : Path$expand_home(Path$from_str(String(fallback, "/tomo")));
+}
+
 // The OS component of a platform key like "x86_64-linux" (the part after the
 // last dash; architectures never contain dashes):
 

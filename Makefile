@@ -495,15 +495,10 @@ install-files: build check-zig
 
 install: install-files
 
+# Uninstalling is the compiler's job (`tomo uninstall-self`): it knows where
+# every file of its version went and how to fix up the shared symlinks.
 uninstall:
-	if ! [ -w "$(PREFIX)" ]; then \
-		$(SUDO) -u $(OWNER) $(MAKE) uninstall; \
-		exit 0; \
-	fi; \
-	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo@"* "$(PREFIX)/include/tomo@"* \
-		"$(PREFIX)/lib/tomo@"* "$(PREFIX)/libexec/tomo@"* "$(PREFIX)/share/licenses/tomo@"* \
-		"$(PREFIX)/man/tomo@"* ~/.local/tomo/state/tomo@$(TOMO_VERSION); \
-	find -L "$(PREFIX)/man/man1" "$(PREFIX)/man/man3" -maxdepth 1 -type l -delete 2>/dev/null || true
+	"$(PREFIX)/bin/tomo@$(TOMO_VERSION)" uninstall-self
 
 .SUFFIXES:
 .PHONY: all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version

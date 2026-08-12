@@ -33,7 +33,8 @@ static int run_file(List_t extra_args) {
 
         // Piping a program into Tomo
         if (!isatty(STDIN_FILENO)) {
-            Path_t parent = Path$expand_home(Path$from_str(String("~/.local/state/tomo/tomo@", TOMO_VERSION)));
+            Path_t parent =
+                Path$child(xdg_tomo_dir("XDG_STATE_HOME", "~/.local/state"), Texts("tomo@", TOMO_VERSION));
             Path$create_directory(parent, 0755, true);
             Path_t path = Path$child(parent, Text("stdin.tm"));
 
@@ -52,8 +53,9 @@ static int run_file(List_t extra_args) {
             print(tomo_cli.help);
             return 0;
         } else {
-            Path_t path = Path$from_str(String("~/.local/state/tomo/tomo@", TOMO_VERSION, "/run.tm"));
-            path = Path$expand_home(path);
+            Path_t path = Path$child(
+                Path$child(xdg_tomo_dir("XDG_STATE_HOME", "~/.local/state"), Texts("tomo@", TOMO_VERSION)),
+                Text("run.tm"));
             Path$create_directory(Path$parent(path), 0755, true);
             if (!Path$exists(path)) {
                 Path$write(path,

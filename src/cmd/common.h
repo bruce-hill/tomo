@@ -75,6 +75,7 @@ extern struct stat compiler_stat;
 #endif
 
 const char *paths_str(List_t paths);
+Path_t xdg_tomo_dir(const char *env_var, const char *fallback);
 const char *platform_os(const char *platform);
 const char *platform_triple(const char *platform);
 bool platform_supported(const char *platform);

@@ -31,6 +31,16 @@
   unimplemented `--changelog`) have been removed, `--version`/`-V` is now
   `tomo version`, `--prefix` is gone, and program arguments are now only
   passed after `--` (the `--args` flag is gone).
+- New `tomo uninstall-self` command: uninstalling is now the compiler's job
+  instead of a `make uninstall` file list (the Makefile target now just
+  delegates to it). It removes this version's files from the prefix along
+  with its per-user state and cross-compilation target packs; if other Tomo
+  versions are coresident in the prefix, the `tomo` and man page symlinks
+  are repointed to the newest remaining one (a smooth downgrade), and they
+  are only removed when no other version remains. If no `tomo` is left
+  anywhere on `$PATH` afterwards, the download cache (`~/.cache/tomo`) is
+  cleared too. The scratch/stdin runner state now also respects
+  `$XDG_STATE_HOME`.
 - New `tomo vendor -u <package>` (`--unvendor`) flag: the inverse of
   vendoring. It restores the package's `./packages.ini` entry to its first
   non-vendored fallback source (or the compiler's default pin), re-installs

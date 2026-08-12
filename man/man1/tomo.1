@@ -79,6 +79,17 @@ With no arguments, the current directory is installed as a package.
 \f[B]uninstall\f[R] \f[I]name\&...\f[R]
 Uninstall the given packages or programs.
 .TP
+\f[B]uninstall\-self\f[R] [\f[B]\-y\f[R]]
+Uninstall this Tomo installation: remove this version\[cq]s files from
+the installation prefix, along with its per\-user state and
+cross\-compilation target packs.
+If other Tomo versions remain in the same prefix, the \f[B]tomo\f[R] and
+man page symlinks are repointed to the newest one; otherwise they are
+removed too.
+If no \f[B]tomo\f[R] remains anywhere on \f[B]$PATH\f[R] afterwards, the
+download cache (\f[B]\[ti]/.cache/tomo\f[R]) is also cleared.
+Asks for confirmation unless \f[B]\-\-yes\f[R]/\f[B]\-y\f[R] is given.
+.TP
 \f[B]vendor\f[R] [\f[B]\-e\f[R]|\f[B]\-u\f[R]] \f[I]package\&...\f[R]
 Copy the named packages\[cq] digest\-verified source archives into the
 current project\[cq]s \f[B]vendor/\f[R] directory and update

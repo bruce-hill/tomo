@@ -221,9 +221,9 @@ Everything else is a subcommand, in the style of `git` or `cargo`:
 Usage: tomo [command] [flags...] [args...]
 
 Commands:
-  run: Compile and run Tomo programs
-  build: Compile Tomo programs to standalone executables
-  transpile: Transpile Tomo files to C without compiling
+  run: Compile and run a Tomo program
+  build: Compile a Tomo program to a standalone executable
+  transpile: Transpile a Tomo file to C and print the result
   parse: Print the parse tree of Tomo files as S-expressions
   fmt: Format Tomo source code
   package: Build Tomo packages into static archives
@@ -232,6 +232,7 @@ Commands:
   vendor: Copy packages' verified sources into ./vendor/
   info: Print the build info embedded in compiled binaries
   version: Print the Tomo compiler version (with -v: plus the git revision)
+  uninstall-self: Uninstall this Tomo installation
 ```
 
 For example:

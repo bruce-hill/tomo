@@ -42,8 +42,9 @@ static cli_arg_t global_spec[] = {
 };
 
 static cli_command_t *commands[] = {
-    &run_command,     &build_command,     &transpile_command, &parse_command, &fmt_command,     &package_command,
-    &install_command, &uninstall_command, &vendor_command,    &info_command,  &version_command,
+    &run_command,       &build_command,          &transpile_command, &parse_command, &fmt_command,
+    &package_command,   &install_command,        &uninstall_command, &vendor_command, &info_command,
+    &version_command,   &uninstall_self_command,
 };
 
 // Runs after the global flags are popped, before command dispatch: sets up

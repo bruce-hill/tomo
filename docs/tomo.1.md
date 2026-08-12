@@ -74,6 +74,15 @@ manpages). With no arguments, the current directory is installed as a package.
 `uninstall` *name...*
 : Uninstall the given packages or programs.
 
+`uninstall-self` \[`-y`\]
+: Uninstall this Tomo installation: remove this version's files from the
+installation prefix, along with its per-user state and cross-compilation
+target packs. If other Tomo versions remain in the same prefix, the `tomo`
+and man page symlinks are repointed to the newest one; otherwise they are
+removed too. If no `tomo` remains anywhere on `$PATH` afterwards, the
+download cache (`~/.cache/tomo`) is also cleared. Asks for confirmation
+unless `--yes`/`-y` is given.
+
 `vendor` \[`-e`|`-u`\] *package...*
 : Copy the named packages' digest-verified source archives into the current
 project's `vendor/` directory and update `./packages.ini` to use the vendored
