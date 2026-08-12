@@ -1107,7 +1107,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         // with lld, which resolves archive members iteratively.
         " ", list_text(archives),
         // Tomo static library (Mach-O linking has no --no-whole-archive):
-        link_macho ? "" : " -Wl,--no-whole-archive", " ", lib_root, "/lib/libtomo@", TOMO_VERSION, ".a",
+        link_macho ? "" : " -Wl,--no-whole-archive", " ", lib_root, "/lib/tomo@", TOMO_VERSION, "/libtomo.a",
         vendor_archives,
         // Output file:
         " -o ", exe_path);

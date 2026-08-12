@@ -2,6 +2,16 @@
 
 ## 2026-08-10
 
+- The install layout is now fully versioned: everything under the prefix lives
+  inside a `tomo@<version>` directory per subdirectory, so multiple Tomo
+  versions can coexist cleanly. Tomo's stdlib headers moved from
+  `include/tomo@VER/*.h` to `include/tomo@VER/tomo/*.h` (with the umbrella
+  `tomo.h` at `include/tomo@VER/tomo.h`), the vendored headers (`gc.h`,
+  `gmp.h`, libunistring's) moved from the shared `include/` into
+  `include/tomo@VER/`, and `lib/libtomo@VER.a` is now `lib/tomo@VER/libtomo.a`.
+  Compiled programs get `-I PREFIX/include/tomo@VER` and generated code now
+  says `#include <tomo.h>` instead of `#include <tomo@VER/tomo.h>`. `make
+  uninstall` now also removes the bundled toolchain in `libexec/tomo@VER`.
 - The CLI has been restructured from mode flags into git-style subcommands:
   `tomo run`, `tomo build` (replacing `--compile-exe`/`-e`; takes a single
   file, with `-o` to name the output; `--compile-obj`/`-c` is gone), `tomo

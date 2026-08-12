@@ -149,7 +149,9 @@ CFLAGS_PLACEHOLDER="$$(printf '\033[2m<flags...>\033[m\n')"
 # zig provides for every target) on all platforms:
 LDLIBS=-lm -lunwind
 
-AR_FILE=libtomo@$(TOMO_VERSION).a
+# Everything installed lives inside a versioned directory (lib/tomo@VER/,
+# include/tomo@VER/, ...) so multiple Tomo versions can coexist in one prefix:
+AR_FILE=tomo@$(TOMO_VERSION)/libtomo.a
 ifeq ($(OS),Darwin)
 	INCLUDE_DIRS += -I/opt/homebrew/include
 	LDFLAGS += -L/opt/homebrew/lib -Wl,-w
@@ -215,14 +217,20 @@ install-targets:
 	done
 
 BUILD_DIR=$(BUILD_BASE)/tomo
-headers := $(wildcard src/stdlib/*.h)
-build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/%.h, $(headers))
+# Tomo's stdlib headers install under include/tomo@VER/tomo/, with the
+# umbrella tomo.h at include/tomo@VER/tomo.h -- compiled programs get
+# -I PREFIX/include/tomo@VER, so they say `#include <tomo.h>`. (The headers
+# can't live flat at the -I root: some share names with libc headers, like
+# stdlib.h, and would shadow them.)
+headers := $(filter-out src/stdlib/tomo.h,$(wildcard src/stdlib/*.h))
+build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/%.h, $(headers)) \
+	$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo.h
 
 # generate corresponding build paths with .gz
 build_manpages := $(patsubst %,$(BUILD_DIR)/%.gz,$(wildcard man/man*/*))
 
 # Ensure directories exist
-dirs := $(BUILD_DIR)/include/tomo@$(TOMO_VERSION) \
+dirs := $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo \
         $(BUILD_DIR)/lib \
         $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION) \
         $(BUILD_DIR)/bin \
@@ -234,17 +242,23 @@ $(dirs):
 	mkdir -p $@
 
 # Rule for copying headers
-$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)%.h: src/stdlib/%.h | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)
+$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/%.h: src/stdlib/%.h | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo
 	cp $< $@
+
+# The umbrella header: in the (flat) source tree it includes its siblings as
+# `#include "bools.h"`, but installed they live in the tomo/ subdirectory
+# next to it, so rewrite the quoted includes on the way in:
+$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo.h: src/stdlib/tomo.h | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo
+	sed 's|#include "|#include "tomo/|' $< > $@
 
 # Install the vendored library headers (gc.h, gmp.h, libunistring's headers)
 # alongside Tomo's own headers, so that programs compiled by tomo can find them.
 # The system copies of these are no longer used, since the vendored versions are
 # musl builds matching the static libraries linked into libtomo.
-$(BUILD_DIR)/include/gc.h: $(VENDORED_LIBS) | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)
-	cp -R $(BUILD_BASE)/gc/include/. $(BUILD_DIR)/include/
-	cp -R $(BUILD_BASE)/gmp/include/. $(BUILD_DIR)/include/
-	cp -R $(BUILD_BASE)/unistring/include/. $(BUILD_DIR)/include/
+$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/gc.h: $(VENDORED_LIBS) | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo
+	cp -R $(BUILD_BASE)/gc/include/. $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/
+	cp -R $(BUILD_BASE)/gmp/include/. $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/
+	cp -R $(BUILD_BASE)/unistring/include/. $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/
 
 # Rule for gzipping man pages
 $(BUILD_DIR)/man/%.gz: man/% | $(BUILD_DIR)/man/man1 $(BUILD_DIR)/man/man3
@@ -264,7 +278,7 @@ $(BUILD_DIR)/bin/$(EXE_FILE): $(STDLIB_OBJS) $(COMPILER_OBJS) $(VENDORED_LIBS) |
 # ELF-only (Linux); on Mach-O (macOS) it isn't accepted, so it's applied only
 # for static/Linux targets.
 NOPIE_FLAG=$(if $(call zig_is_static,$(ZIG_PLATFORM)),-no-pie,)
-$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib
+$(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	$(CC) $(TARGET_FLAG) $(NOPIE_FLAG) -r -nostdlib $^ -o libtomo.o
 	$(AR) rcs $@ libtomo.o
 	rm -f libtomo.o
@@ -358,7 +372,7 @@ $(VENDOR_INSTALLED_LIBS) &: $(filter-out %/libminiz.a,$(VENDORED_LIBS))
 BUILD_PRODUCTS = $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
 	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini \
 	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE $(build_headers) $(build_manpages) \
-	$(BUILD_DIR)/include/gc.h \
+	$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/gc.h \
 	$(ZIG_BUNDLE_DIR)/zig $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE \
 	$(VENDOR_LICENSE_PRODUCTS) $(VENDOR_INSTALLED_LIBS)
 
@@ -476,8 +490,8 @@ uninstall:
 		$(SUDO) -u $(OWNER) $(MAKE) uninstall; \
 		exit 0; \
 	fi; \
-	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo"* "$(PREFIX)/include/tomo"* \
-		"$(PREFIX)/lib/libtomo@"* "$(PREFIX)/lib/tomo@"* "$(PREFIX)/share/licenses/tomo@"* \
+	rm -rvf "$(PREFIX)/bin/tomo" "$(PREFIX)/bin/tomo@"* "$(PREFIX)/include/tomo@"* \
+		"$(PREFIX)/lib/tomo@"* "$(PREFIX)/libexec/tomo@"* "$(PREFIX)/share/licenses/tomo@"* \
 		~/.local/tomo/state/tomo@$(TOMO_VERSION); \
 
 .SUFFIXES:

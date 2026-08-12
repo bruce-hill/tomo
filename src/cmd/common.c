@@ -77,7 +77,7 @@ bool platform_supported(const char *platform) {
 // installed yet, offer to download them (or just do it if --install-target).
 
 void ensure_target_installed(void) {
-    Path_t marker = Path$from_str(String(target_root, "/lib/libtomo@", TOMO_VERSION, ".a"));
+    Path_t marker = Path$from_str(String(target_root, "/lib/tomo@", TOMO_VERSION, "/libtomo.a"));
     if (Path$is_file(marker, true)) return;
 
     const char *dist_url = getenv("TOMO_DIST_URL");

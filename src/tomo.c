@@ -81,11 +81,12 @@ static void after_globals(void) {
     // Compile against the headers and libraries of the platform being compiled
     // for: the target's when cross-compiling, this installation's otherwise.
     lib_root = cross_compiling ? target_root : Text$from_str(TOMO_PATH);
-    cflags = Texts("-I'", lib_root, "/include' -I'", lib_root, "/lib/tomo@", TOMO_VERSION, "' ", cflags);
+    cflags = Texts("-I'", lib_root, "/include/tomo@", TOMO_VERSION, "' -I'", lib_root, "/lib/tomo@", TOMO_VERSION,
+                   "' ", cflags);
     if (cross_compiling) {
         // Point the system-header/library search env vars at the target's too:
-        setenv("C_INCLUDE_PATH", String(lib_root, "/include"), 1);
-        setenv("CPATH", String(lib_root, "/include"), 1);
+        setenv("C_INCLUDE_PATH", String(lib_root, "/include/tomo@", TOMO_VERSION), 1);
+        setenv("CPATH", String(lib_root, "/include/tomo@", TOMO_VERSION), 1);
         setenv("LIBRARY_PATH", String(lib_root, "/lib"), 1);
         cflags = Texts("-target ", platform_triple(Text$as_c_string(target)), " ", cflags);
     } else if (ZIG_TARGET[0] != '\0') {
@@ -175,11 +176,11 @@ int main(int argc, char *argv[]) {
            1);
     const char *LIBRARY_PATH = getenv("LIBRARY_PATH");
     setenv("LIBRARY_PATH", LIBRARY_PATH ? String(TOMO_PATH, "/lib:", LIBRARY_PATH) : String(TOMO_PATH, "/lib"), 1);
+    const char *include_dir = String(TOMO_PATH, "/include/tomo@", TOMO_VERSION);
     const char *C_INCLUDE_PATH = getenv("C_INCLUDE_PATH");
-    setenv("C_INCLUDE_PATH",
-           C_INCLUDE_PATH ? String(TOMO_PATH, "/include:", C_INCLUDE_PATH) : String(TOMO_PATH, "/include"), 1);
+    setenv("C_INCLUDE_PATH", C_INCLUDE_PATH ? String(include_dir, ":", C_INCLUDE_PATH) : include_dir, 1);
     const char *CPATH = getenv("CPATH");
-    setenv("CPATH", CPATH ? String(TOMO_PATH, "/include:", CPATH) : String(TOMO_PATH, "/include"), 1);
+    setenv("CPATH", CPATH ? String(include_dir, ":", CPATH) : include_dir, 1);
 
     tomo_cli = (cli_spec_t){
         .name = "tomo",

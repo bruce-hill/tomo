@@ -135,7 +135,7 @@ Text_t compile_file_header(env_t *env, Path_t header_path, ast_t *ast) {
     Text_t header =
         Texts("#pragma once\n",
               env->do_source_mapping ? Texts("#line 1 ", quoted_str(ast->file->filename), "\n") : EMPTY_TEXT,
-              "#include <tomo@", TOMO_VERSION, "/tomo.h>\n");
+              "#include <tomo.h>\n");
 
     compile_typedef_info_t info = {.env = env, .header = &header, .header_path = header_path};
     visit_topologically(Match(ast, Block)->statements, (Closure_t){.fn = (void *)_make_typedefs, &info});
