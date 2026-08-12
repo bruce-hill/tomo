@@ -143,13 +143,13 @@ static int cmd_uninstall_self(cli_command_t *self, List_t extra_args) {
         print("Uninstalled \x1b[1mtomo@", TOMO_VERSION, "\x1b[m from ", TOMO_PATH);
     }
 
-    // If that was the last tomo anywhere on $PATH, the global download cache
-    // has no owner left either:
+    // If that was the last tomo anywhere on $PATH, the global cache (package
+    // downloads and the bundled zig's compile cache) has no owner left either:
     if (!tomo_on_path()) {
         Path_t cache = xdg_tomo_dir("XDG_CACHE_HOME", "~/.cache");
         if (Path$is_directory(cache, true)) {
             xsystem("rm -rf '", cache, "'");
-            whisper("Removed the download cache at ", cache, " (no tomo left on $PATH)");
+            whisper("Removed the cache at ", cache, " (no tomo left on $PATH)");
         }
     }
     return 0;
@@ -162,7 +162,8 @@ cli_command_t uninstall_self_command = {
                    "per-user state and cross-compilation target packs. If other Tomo versions\n"
                    "remain in the same prefix, the tomo and man page symlinks are repointed to\n"
                    "the newest one; otherwise they are removed too. If no tomo remains anywhere\n"
-                   "on $PATH afterwards, the download cache is also cleared.",
+                   "on $PATH afterwards, the cache (package downloads and the bundled zig's\n"
+                   "compile cache) is also cleared.",
     .spec_len = sizeof(uninstall_self_spec) / sizeof(uninstall_self_spec[0]),
     .spec = uninstall_self_spec,
     .handler = cmd_uninstall_self,

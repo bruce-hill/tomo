@@ -80,9 +80,9 @@ installation prefix, along with its per-user state, cross-compilation
 target packs, and any bundled toolchains no remaining installation shares.
 If other Tomo versions remain in the same prefix, the `tomo` and man page
 symlinks are repointed to the newest one; otherwise they are removed too.
-If no `tomo` remains anywhere on `$PATH` afterwards, the download cache
-(`~/.cache/tomo`) is also cleared. Asks for confirmation unless
-`--yes`/`-y` is given.
+If no `tomo` remains anywhere on `$PATH` afterwards, the cache
+(`~/.cache/tomo`: package downloads and the bundled Zig toolchain's compile
+cache) is also cleared. Asks for confirmation unless `--yes`/`-y` is given.
 
 `vendor` \[`-e`|`-u`\] *package...*
 : Copy the named packages' digest-verified source archives into the current

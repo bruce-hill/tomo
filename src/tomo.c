@@ -161,6 +161,13 @@ int main(int argc, char *argv[]) {
     // zig's llvm-based ar, so no system binutils is needed at runtime:
     ar = Texts(Text$from_str(TOMO_PATH), "/libexec/tomo@", TOMO_VERSION, "/zig/zig ar");
 
+    // Keep the bundled zig's global cache (its libc/compiler-rt builds, ~GBs)
+    // inside Tomo's own cache directory rather than the zig default
+    // (~/.cache/zig, which may belong to a zig the user runs themselves), so
+    // `tomo uninstall-self` can clear it. An explicit ZIG_GLOBAL_CACHE_DIR in
+    // the environment is respected:
+    setenv("ZIG_GLOBAL_CACHE_DIR", Path$child(xdg_tomo_dir("XDG_CACHE_HOME", "~/.cache"), Text("zig")), 0);
+
     // Nested tomo invocations (e.g. compiling packages) must run THIS tomo,
     // not whatever `tomo` is on PATH (which may be an older installed
     // version); record where we live (see tomo_exe() in packages.c):

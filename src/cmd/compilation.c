@@ -943,22 +943,16 @@ void transpile_code(env_t *base_env, Path_t path) {
 // The first time the bundled Zig toolchain compiles anything on a machine, it
 // builds its libc (musl, compiler-rt, etc.) from source and stores it in its
 // global cache; that one-time setup takes tens of seconds and can look like a
-// hang. Detect a missing cache (using the same resolution order as zig itself:
-// $ZIG_GLOBAL_CACHE_DIR, then $XDG_CACHE_HOME/zig, then $HOME/.cache/zig) and
-// print a notice so users know what's happening.
+// hang. Detect a missing cache and print a notice so users know what's
+// happening. ZIG_GLOBAL_CACHE_DIR is always set: main() points it into Tomo's
+// own cache directory unless the environment already had it.
 static void warn_if_first_compile(void) {
     static bool already_checked = false;
     if (already_checked) return;
     already_checked = true;
 
     const char *dir = getenv("ZIG_GLOBAL_CACHE_DIR");
-    if (dir == NULL || dir[0] == '\0') {
-        const char *xdg_cache = getenv("XDG_CACHE_HOME");
-        const char *home = getenv("HOME");
-        if (xdg_cache && xdg_cache[0]) dir = String(xdg_cache, "/zig");
-        else if (home && home[0]) dir = String(home, "/.cache/zig");
-        else return;
-    }
+    if (dir == NULL || dir[0] == '\0') return;
 
     struct stat st;
     if (stat(dir, &st) != 0) {

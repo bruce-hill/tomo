@@ -31,6 +31,11 @@
   unimplemented `--changelog`) have been removed, `--version`/`-V` is now
   `tomo version`, `--prefix` is gone, and program arguments are now only
   passed after `--` (the `--args` flag is gone).
+- The bundled Zig toolchain's global cache (its libc/compiler-rt builds,
+  which can reach several GB) now lives inside Tomo's own cache directory
+  (`~/.cache/tomo/zig`) instead of zig's default `~/.cache/zig`, so it never
+  mingles with a user-run zig's cache and `tomo uninstall-self` can clear it.
+  An explicit `$ZIG_GLOBAL_CACHE_DIR` in the environment is still respected.
 - The bundled Zig toolchain is now shared between coresident Tomo versions:
   the real copy lives in `libexec/zig@<zig version>` and each Tomo version's
   `libexec/tomo@VER/zig` is a symlink into it, so upgrading Tomo without a
