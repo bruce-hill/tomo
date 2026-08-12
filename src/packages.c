@@ -26,10 +26,10 @@ typedef struct {
 } pkg_info_t;
 
 // Installed packages are content-addressed: each project keeps its own store
-// of them in .build/store/<digest>/, and the names things call them by are
+// of them in .tomo/store/<digest>/, and the names things call them by are
 // symlinks (see create_binding_link() below).
 
-// The store entry (a .build/store/<digest>/ directory) containing the given
+// The store entry (a .tomo/store/<digest>/ directory) containing the given
 // path, if any:
 OptionalPath_t package_store_entry(Path_t path) {
     for (int depth = 0; depth < PATH_MAX; depth++) {
@@ -39,7 +39,7 @@ OptionalPath_t package_store_entry(Path_t path) {
             || Text$equal_values(Path$base_name(parent), Text("..")))
             return NONE_PATH;
         if (Text$equal_values(Path$base_name(parent), Text("store"))
-            && Text$equal_values(Path$base_name(Path$parent(parent)), Text(".build")))
+            && Text$equal_values(Path$base_name(Path$parent(parent)), Text(".tomo")))
             return path;
         path = parent;
     }
@@ -48,11 +48,11 @@ OptionalPath_t package_store_entry(Path_t path) {
 
 // A file inside a store entry installs *its* dependencies into the same
 // store, so the store root for a consumer is the store containing it (if any)
-// or its own directory's .build/store:
+// or its own directory's .tomo/store:
 static Path_t package_store_root(Path_t using_file) {
     OptionalPath_t entry = package_store_entry(using_file);
     if (entry != NULL) return Path$parent(entry);
-    return Path$sibling(using_file, Text(".build/store"));
+    return Path$sibling(using_file, Text(".tomo/store"));
 }
 
 // Verified downloaded package artifacts are cached globally, keyed by digest,
@@ -67,7 +67,7 @@ static Path_t download_cache_dir(Text_t digest) {
 // Record which package a `use NAME` resolved to, as a "packages/NAME" symlink
 // next to the file that used it. For a consumer inside a store, the link is
 // store-relative ("../../<digest>", pointing two levels up from its packages/
-// directory into the store); for a program, the link farm lives in its .build
+// directory into the store); for a program, the link farm lives in its .tomo
 // directory, pointing "../store/<digest>" for entries in the project's own
 // store. Either way the whole project tree is relocatable, and every level of
 // the dependency graph resolves the same way: ./packages/NAME, one level at a
@@ -80,7 +80,7 @@ static void create_binding_link(Path_t using_file, const char *name, Path_t inst
     bool dep_in_this_store = streq(Path$parent(installed), package_store_root(using_file));
 
     Path_t link_dir = consumer_in_store ? Path$child(using_dir, Text("packages"))
-                                        : Path$child(using_dir, Text(".build/packages"));
+                                        : Path$child(using_dir, Text(".tomo/packages"));
     const char *target = installed;
     if (dep_in_this_store) {
         target = Path$relative_to(installed, link_dir);
@@ -611,7 +611,7 @@ void vendor_package(const char *name, bool editable) {
 
     // Make sure the package is installed, which computes/verifies the digest
     // and caches the verified archive:
-    Path_t store_root = Path$child(Path$child(cwd, Text(".build")), Text("store"));
+    Path_t store_root = Path$child(Path$child(cwd, Text(".tomo")), Text("store"));
     OptionalPath_t installed = try_install_package(found_in, &pkg, true, store_root);
     if (installed == NULL) fail("Could not install package: ", name);
     const char *digest = Table$str_get(pkg.info, "digest");
@@ -659,7 +659,7 @@ void vendor_package(const char *name, bool editable) {
         Table$str_set(&updated.info, entry->key, entry->value);
     }
     rewrite_package_entry(ini, name, updated);
-    // Record the .build/packages/<name> binding link right away (it would
+    // Record the .tomo/packages/<name> binding link right away (it would
     // otherwise only appear on the next build):
     create_binding_link(ini, name, link_target);
     print("Vendored ", name, " to \033[1m", new_source, "\033[m", editable ? " (editable, without a digest pin)" : "");
@@ -703,7 +703,7 @@ static bool source_still_referenced(Path_t ini_file, const char *except_name, co
 
 // The inverse of vendor_package(): restore the named package's ./packages.ini
 // entry to a non-vendored source (the first fallback source, or the compiler's
-// default pin), re-install it into the project's .build/store/ (re-pinning the
+// default pin), re-install it into the project's .tomo/store/ (re-pinning the
 // digest if editable vendoring dropped it), and delete the vendored copy.
 void unvendor_package(const char *name) {
     Path_t cwd = Path$current_dir();
@@ -758,7 +758,7 @@ void unvendor_package(const char *name) {
 
     // Reinstall from the restored source, which re-verifies (and, if editable
     // vendoring dropped the digest pin, recomputes and re-pins) the digest:
-    Path_t store_root = Path$child(Path$child(cwd, Text(".build")), Text("store"));
+    Path_t store_root = Path$child(Path$child(cwd, Text(".tomo")), Text("store"));
     OptionalPath_t installed = try_install_package(ini, &updated, true, store_root);
     if (installed == NULL) fail("Could not reinstall package ", name, " from ", restored_source);
 
@@ -777,7 +777,7 @@ void unvendor_package(const char *name) {
     }
 
     rewrite_package_entry(ini, name, updated);
-    // Point the .build/packages/<name> binding link back at the store entry:
+    // Point the .tomo/packages/<name> binding link back at the store entry:
     create_binding_link(ini, name, installed);
 
     // Delete the vendored copy (an extracted directory for editable vendoring,

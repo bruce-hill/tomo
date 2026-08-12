@@ -131,7 +131,7 @@ static bool is_build_artifact(Text_t filename) {
 }
 
 // Recursively add every file in `dir` to the zip's name->path table under
-// `prefix`, skipping hidden files (like .build/), compiled artifacts, and
+// `prefix`, skipping hidden files (like .tomo/), compiled artifacts, and
 // symlinks (package binding links -- each linked package is embedded once,
 // under its own packages/ entry, via the dependency graph):
 static void add_dir_files(Table_t *files, Path_t dir, const char *prefix) {
@@ -149,7 +149,7 @@ static void add_dir_files(Table_t *files, Path_t dir, const char *prefix) {
 
 static bool is_store_entry_dir(Path_t dir) {
     return Text$equal_values(Path$base_name(Path$parent(dir)), Text("store"))
-           && Text$equal_values(Path$base_name(Path$parent(Path$parent(dir))), Text(".build"));
+           && Text$equal_values(Path$base_name(Path$parent(Path$parent(dir))), Text(".tomo"));
 }
 
 // Collect the binding names and (transitively) the store-entry digests that
@@ -175,8 +175,8 @@ static void collect_needed_packages(Path_t dir, Path_t store_root, Table_t *dige
     }
 }
 
-// Garbage-collect a source directory's .build/packages binding links and
-// .build/store entries: anything no .tm file in the directory (transitively)
+// Garbage-collect a source directory's .tomo/packages binding links and
+// .tomo/store entries: anything no .tm file in the directory (transitively)
 // uses anymore is removed. packages.ini pins and vendored sources are never
 // touched, so a garbage-collected package reinstalls without any network
 // access if its `use` comes back.
@@ -184,19 +184,19 @@ static void gc_package_dir(Path_t dir) {
     // Store entries are content-addressed and must never be modified (and
     // their dependencies live in the containing store, not their own):
     if (is_store_entry_dir(dir)) return;
-    Path_t store_root = Path$child(Path$child(dir, Text(".build")), Text("store"));
+    Path_t store_root = Path$child(Path$child(dir, Text(".tomo")), Text("store"));
     Table_t digests = EMPTY_TABLE, names = EMPTY_TABLE;
     collect_needed_packages(dir, store_root, &digests, &names);
     mark_unused_packages(Path$child(dir, Text("packages.ini")), names);
 
-    List_t links = Path$glob(Path$child(dir, Text(".build/packages/*")));
+    List_t links = Path$glob(Path$child(dir, Text(".tomo/packages/*")));
     for (int64_t i = 0; i < (int64_t)links.length; i++) {
         Path_t link = *(Path_t *)(links.data + i * links.stride);
         if (Table$str_get(names, Text$as_c_string(Path$base_name(link)))) continue;
         if (unlink(link) == 0 && !quiet)
             print("Removed unused package binding: ", Path$relative_to(link, Path$current_dir()));
     }
-    List_t entries = Path$glob(Path$child(dir, Text(".build/store/*")));
+    List_t entries = Path$glob(Path$child(dir, Text(".tomo/store/*")));
     for (int64_t i = 0; i < (int64_t)entries.length; i++) {
         Path_t entry = *(Path_t *)(entries.data + i * entries.stride);
         if (Table$str_get(digests, Text$as_c_string(Path$base_name(entry)))) continue;
@@ -208,7 +208,7 @@ static void gc_package_dir(Path_t dir) {
 
 // Where a linked package's sources go in the embedded source zip: store
 // entries go under store/<digest> (extracted into the pre-seeded
-// .build/store/), while directory-source packages inside the project (e.g.
+// .tomo/store/), while directory-source packages inside the project (e.g.
 // vendored ones) keep their project-relative location, so the extracted
 // tree's packages.ini still resolves them. NULL for a directory-source
 // package outside the project, which has no resolvable location to embed at:
@@ -307,7 +307,7 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
         }
         add_dir_files(&files, pkg_dir, prefix);
         // Manifest links inside packages only apply to store entries;
-        // directory-source packages' own binding links live in their .build
+        // directory-source packages' own binding links live in their .tomo
         // and are regenerated when the extracted tree builds:
         if (!is_store_entry_dir(pkg_dir)) continue;
         const char *store_name = Text$as_c_string(Path$base_name(pkg_dir));
@@ -385,15 +385,15 @@ static void create_extracted_links(Path_t outdir, char *manifest) {
             *tab1 = *tab2 = '\0';
             const char *consumer = line, *name = tab1 + 1, *dep = tab2 + 1;
             // The dep is a zip prefix: "store/<digest>" (extracted into
-            // .build/store/) or a project-relative directory like "vendor/x":
+            // .tomo/store/) or a project-relative directory like "vendor/x":
             if (*name && *dep && !strchr(consumer, '/') && !strchr(name, '/') && dep[0] != '/' && !streq(consumer, "..")
                 && !streq(name, "..") && !strstr(dep, "..")) {
-                Path_t store = Path$child(Path$child(outdir, Text(".build")), Text("store"));
+                Path_t store = Path$child(Path$child(outdir, Text(".tomo")), Text("store"));
                 Path_t dep_dir = strncmp(dep, "store/", strlen("store/")) == 0
-                                     ? Path$child(Path$child(outdir, Text(".build")), Text$from_str(dep))
+                                     ? Path$child(Path$child(outdir, Text(".tomo")), Text$from_str(dep))
                                      : Path$child(outdir, Text$from_str(dep));
                 Path_t link_dir = *consumer ? Path$child(Path$child(store, Text$from_str(consumer)), Text("packages"))
-                                            : Path$child(Path$child(outdir, Text(".build")), Text("packages"));
+                                            : Path$child(Path$child(outdir, Text(".tomo")), Text("packages"));
                 if (Path$is_directory(dep_dir, true)
                     && (!*consumer || Path$is_directory(Path$parent(link_dir), true))) {
                     Result_t result = Path$create_directory(link_dir, 0755, true);
@@ -455,10 +455,10 @@ void extract_embedded_source(Path_t binary) {
             mz_free(data);
             continue;
         }
-        // Package sources extract into a project-shaped .build/store/, so the
+        // Package sources extract into a project-shaped .tomo/store/, so the
         // extracted tree rebuilds as-is (offline: its store is pre-seeded):
         const char *out_name = stat.m_filename;
-        if (strncmp(out_name, "store/", strlen("store/")) == 0) out_name = String(".build/", out_name);
+        if (strncmp(out_name, "store/", strlen("store/")) == 0) out_name = String(".tomo/", out_name);
         Path_t out = Path$child(outdir, Text$from_str(out_name));
         Path$create_directory(Path$parent(out), 0755, true);
         int out_fd = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0644);
@@ -476,7 +476,7 @@ void extract_embedded_source(Path_t binary) {
 
     if (extracted_packages)
         print("\nNote: the sources of the packages this program uses were extracted into\n"
-              ".build/store/, so this program can be rebuilt as-is, without fetching the\n"
+              ".tomo/store/, so this program can be rebuilt as-is, without fetching the\n"
               "pinned package sources.");
 }
 
@@ -545,7 +545,7 @@ void build_package(Path_t pkg_dir) {
     if (!Path$is_directory(pkg_dir, true)) print_err("Not a valid directory: ", pkg_dir);
 
     List_t tm_files = Path$glob(Path$child(pkg_dir, Text("[!._0-9]*.tm")));
-    // Cross-compiled package archives go in the per-target .build directory so
+    // Cross-compiled package archives go in the per-target .tomo directory so
     // they don't clobber the native package.a:
     Path_t archive = cross_compiling ? build_file(Path$child(pkg_dir, Text("package.a")), "")
                                      : Path$child(pkg_dir, Text("package.a"));
@@ -561,7 +561,7 @@ void build_package_archive(Path_t pkg_dir, List_t tm_files, Path_t archive) {
         add_git_info(env, pkg_dir);
 
         // Store metadata about the package's build information (in the
-        // package's own .build directory, not the working directory's):
+        // package's own .tomo directory, not the working directory's):
         Path_t build_info_obj = build_file(Path$child(pkg_dir, Text("__build_info")), ".o");
         {
             FILE *prog = run_cmd(cc, " ", cflags, " -x c -c - -o ", build_info_obj);
@@ -593,7 +593,7 @@ void install_package(Path_t pkg_dir) {
         if (verbose) whisper("Moving files to ", dest);
         xsystem(as_owner, "mkdir -p '", dest, "'");
         xsystem(as_owner, "cp -r '", pkg_dir, "'/* '", dest, "/'");
-        xsystem(as_owner, "cp -r '", pkg_dir, "'/.build '", dest, "/'");
+        xsystem(as_owner, "cp -r '", pkg_dir, "'/.tomo '", dest, "/'");
     }
     print("Installed \033[1m", pkg_dir, "\033[m to ", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", pkg_name);
 }
@@ -760,7 +760,7 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
             if (cross_compiling) {
                 // Installed package archives were compiled for the native
                 // platform, so cross builds recompile the package's modules from
-                // their installed sources (into per-target .build directories)
+                // their installed sources (into per-target .tomo directories)
                 // and link those objects instead of package.a:
                 for (int64_t i = 0; i < (int64_t)children.length; i++) {
                     Path_t *child = (Path_t *)(children.data + i * children.stride);

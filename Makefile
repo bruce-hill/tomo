@@ -469,7 +469,7 @@ clean-obj:
 	rm -rf build/*/obj
 
 clean: clean-obj
-	rm -rf build/*/tomo@*/{bin,lib,libexec} test/*.tm.testresult test/.build lib/*/.build examples/.build examples/*/.build
+	rm -rf build/*/tomo@*/{bin,lib,libexec} test/*.tm.testresult test/.tomo lib/*/.tomo examples/.tomo examples/*/.tomo
 
 %.md: %.yaml scripts/api_gen.py
 	./scripts/api_gen.py $< >$@

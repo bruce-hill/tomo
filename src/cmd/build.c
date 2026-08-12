@@ -26,7 +26,7 @@ static int cmd_build(cli_command_t *self, List_t extra_args) {
     } else {
         exe_path = get_exe_path(path);
         // Put the executable as a sibling to the .tm file instead of in the
-        // .build directory. Cross-compiled executables get the target platform
+        // .tomo directory. Cross-compiled executables get the target platform
         // as a suffix (foo.aarch64-macos) so they don't collide with the
         // native executable or each other:
         Text_t exe_name = Path$base_name(exe_path);

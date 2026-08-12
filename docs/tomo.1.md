@@ -48,7 +48,7 @@ standard output, each preceded by a `// file:` line. The output is formatted
 with `clang-format` and (when standard output is a terminal)
 syntax-highlighted with `bat`, whichever of the two is installed; `--raw`
 prints the raw generated code instead. The generated `.h`/`.c` files are also
-written into the file's `.build/` directory.
+written into the file's `.tomo/` directory.
 
 `parse` *file.tm...*
 : Print the parse tree of the given files as S-expressions.

@@ -178,7 +178,7 @@ confirmation before downloading (or fails when stdin isn't a terminal);
 passing `--install-target` skips the confirmation. `TOMO_DIST_URL` overrides
 the download location.
 
-Cross-compiled artifacts go into a per-target `.build/<platform>/`
+Cross-compiled artifacts go into a per-target `.tomo/<platform>/`
 subdirectory, and executables are named with the platform as a suffix
 (`foo.aarch64-macos`), so builds for different targets never interfere with
 native builds or each other. Programs that use installed packages recompile

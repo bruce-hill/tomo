@@ -13,7 +13,7 @@
 
 /vendor/*/
 
-.build
+.tomo
 /build
 *.o
 *.so

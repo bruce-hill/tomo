@@ -92,10 +92,10 @@ also `X`, then it can be used without issues, regardless of where they got it.
 ## The Package Store
 
 Installed packages are content-addressed: each project keeps its own store of
-them in `.build/store/<package-digest>/`, next to the project's source files.
+them in `.tomo/store/<package-digest>/`, next to the project's source files.
 The names things call packages by are symlinks: whenever a `use name` resolves,
 Tomo records a `packages/name` binding link next to the consumer -- in the
-project's `.build/packages/` directory, pointing at `../store/<digest>`, or,
+project's `.tomo/packages/` directory, pointing at `../store/<digest>`, or,
 for a package inside the store using another package, in that store entry's own
 `packages/` directory, pointing at `../../<digest>`. Every level of the
 dependency graph thus resolves the same way (`./packages/name`, one level at a
@@ -103,7 +103,7 @@ time), the links are all relative (so a project directory is fully
 relocatable), and binding names stay scoped to their consumer: two projects (or
 two packages) can bind the same name to different versions without collision.
 
-Because the store is per-project, deleting `.build` removes everything, no
+Because the store is per-project, deleting `.tomo` removes everything, no
 compile ever writes outside your project directory, and upgrading Tomo never
 orphans your installed packages.
 
@@ -114,7 +114,7 @@ project store first, then the cache (re-verifying the digest), and only then
 downloads. The cache can be deleted at any time.
 
 After each successful build, unused package state is garbage collected: any
-`.build/packages/` binding link or `.build/store/` entry that no `.tm` file in
+`.tomo/packages/` binding link or `.tomo/store/` entry that no `.tm` file in
 the directory (transitively) uses anymore is removed, and the corresponding
 `packages.ini` entry is annotated with `unused=true` (the marker is removed
 again if the package comes back into use). The pins themselves and any
@@ -126,7 +126,7 @@ Compiled executables embed a zip of everything needed to rebuild them: the
 program's sources, its `packages.ini` pins, license texts, and the full sources
 of every package linked in. `tomo info -x <program>` unpacks that into
 a `<program>-source/` directory with exactly the shape of a working project --
-including a pre-seeded `.build/store/` and its binding links -- so an extracted
+including a pre-seeded `.tomo/store/` and its binding links -- so an extracted
 tree rebuilds as-is, offline, with no edits.
 
 ## Package Sources
@@ -156,7 +156,7 @@ For each source, Tomo will perform the following steps:
    digest for the newly downloaded file and save it to your `packages.ini` file
    so that all future compilations will know what the digest must be.
 4. The source archive will be extracted to the project's package store
-   (`.build/store/<package-digest>`), compiled with `tomo package`, and the verified
+   (`.tomo/store/<package-digest>`), compiled with `tomo package`, and the verified
    archive will be saved to the global download cache.
 
 Package sources are not tied to any single distribution channel by design. You

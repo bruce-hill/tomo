@@ -186,7 +186,7 @@ When your program is generated, it will also come with a `--help` flag (unless
 you have one defined) with automatically generated usage information. If you
 add comments in front of your main function arguments, they will appear in the
 `--help` output. Additionally, when your program is compiled, Tomo will also
-build a Manpage for your program in `.build/yourprogram.1`, which will get
+build a Manpage for your program in `.tomo/yourprogram.1`, which will get
 installed if you install your program.
 
 ```tomo
@@ -207,7 +207,7 @@ $ ./myprogram --help
 ```
 
 ```bash
-$ man .build/myprogram.1
+$ man .tomo/myprogram.1
 ```
 
 ```

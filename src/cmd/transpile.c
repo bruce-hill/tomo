@@ -70,7 +70,7 @@ static int cmd_transpile(cli_command_t *self, List_t extra_args) {
 cli_command_t transpile_command = {
     .name = "transpile",
     .summary = "Transpile a Tomo file to C and print the result",
-    .description = "The generated header and source (also written into the file's .build/\n"
+    .description = "The generated header and source (also written into the file's .tomo/\n"
                    "directory) are printed to stdout, each preceded by a \"// file:\" line.\n"
                    "The output is formatted with clang-format and syntax-highlighted with\n"
                    "bat when those tools are available (and stdout is a terminal).",

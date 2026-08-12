@@ -108,14 +108,14 @@ Text_t CONSTFUNC namespace_name(env_t *env, namespace_t *ns, Text_t name) {
 
 public
 Path_t tm_build_dir(Path_t tm_path) {
-    Path_t build_dir = Path$sibling(tm_path, Text(".build"));
+    Path_t build_dir = Path$sibling(tm_path, Text(".tomo"));
     if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-        if (!Path$is_directory(build_dir, true)) err(1, "Could not make .build directory");
+        if (!Path$is_directory(build_dir, true)) err(1, "Could not make .tomo directory");
     }
     if (build_target_platform.length > 0) {
         build_dir = Path$child(build_dir, build_target_platform);
         if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {
-            if (!Path$is_directory(build_dir, true)) err(1, "Could not make .build directory");
+            if (!Path$is_directory(build_dir, true)) err(1, "Could not make .tomo directory");
         }
     }
     return build_dir;

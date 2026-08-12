@@ -152,7 +152,7 @@ Path_t get_exe_path(Path_t path) {
 }
 
 // Cross-compiled artifacts live in a per-target subdirectory
-// (.build/<platform>/) so they never clobber native builds' artifacts:
+// (.tomo/<platform>/) so they never clobber native builds' artifacts:
 
 Path_t build_file(Path_t path, const char *extension) {
     return Path$child(tm_build_dir(path), Texts(Path$base_name(path), Text$from_str(extension)));

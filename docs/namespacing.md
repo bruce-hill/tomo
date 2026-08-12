@@ -40,7 +40,7 @@ func main() pass
 The generated C source code will look like this:
 
 ```C
-// File: .build/foo.tm.h
+// File: .tomo/foo.tm.h
 ...
 typedef struct Baz$$struct$foo_VEDjfzDs Baz$$type$foo_VEDjfzDs;
 struct Baz$$struct$foo_VEDjfzDs {
@@ -56,7 +56,7 @@ void main$foo_VEDjfzDs();
 ```
 
 ```C
-// File: .build/foo.tm.c
+// File: .tomo/foo.tm.c
 ...
 public Int_t my_var$foo_VEDjfzDs = I_small(123);
 public const TypeInfo_t Baz$$info$foo_VEDjfzDs = {...};
