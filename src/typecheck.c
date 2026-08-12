@@ -756,6 +756,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case TextLiteral: return TEXT_TYPE;
     case Path: return PATH_TYPE;
+    case Embed: return Type(ListType, Type(ByteType));
     case TextJoin: {
         type_ast_t *lang = Match(ast, TextJoin)->lang;
         if (lang) {
@@ -1711,14 +1712,51 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast) {
     case Metadata: return true;
     case FunctionCall: return false;
     case InlineCCode: return true;
+    // Whether an `Embed` is a compile-time constant depends on what type it's being
+    // compiled to, which `is_constant()` doesn't have access to, so conservatively say no
+    // here and let callers that do know the target type use `embed_is_constant()` instead:
+    case Embed: return false;
     default: return false;
     }
+}
+
+public
+List_t get_embed_bytes(ast_t *ast) {
+    DeclareMatch(embed, ast, Embed);
+    const char *path = Match(embed->path, Path)->path;
+    Path_t resolved = Path$resolved(Path$from_str(path), Path$parent(Path$from_str(ast->file->filename)));
+    OptionalList_t bytes = Path$read_bytes(resolved, NONE_INT);
+    if (bytes.data == NULL) code_err(ast, "I couldn't read this file: ", resolved);
+    return bytes;
+}
+
+// Like `is_constant()`, but for `Embed` expressions, where const-ness depends on the target type:
+// - `[Byte]`: always a constant (a raw bytes literal)
+// - `Text`: a constant only if the file's contents are ASCII (no NUL bytes, no high-bit bytes)
+// - `CString`: a constant only if the file has no embedded NUL bytes
+// - anything else: not a constant
+bool embed_is_constant(ast_t *ast, type_t *t) {
+    assert(ast->tag == Embed);
+    List_t bytes = get_embed_bytes(ast);
+    if (t->tag == ListType && Match(t, ListType)->item_type->tag == ByteType) return true;
+
+    if (t->tag != TextType && t->tag != CStringType) return false;
+
+    const uint8_t *data = (const uint8_t *)bytes.data;
+    for (int64_t i = 0; i < (int64_t)bytes.length; i++) {
+        uint8_t byte = data[i * bytes.stride];
+        if (byte == 0) return false;
+        if (t->tag == TextType && byte >= 0x80) return false;
+    }
+    return true;
 }
 
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (is_incomplete_type(needed)) return false;
 
     if (needed->tag == OptionalType && ast->tag == None) return true;
+
+    if (ast->tag == Embed && (needed->tag == TextType || needed->tag == CStringType)) return true;
 
     env = with_enum_scope(env, needed);
     if (is_numeric_type(needed) && ast->tag == Int) return true;

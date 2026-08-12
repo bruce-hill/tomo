@@ -76,6 +76,34 @@ Text_t compile_text_literal(Text_t literal) {
     return Texts(code, "\"");
 }
 
+public
+Text_t compile_bytes_literal(List_t bytes) {
+    Text_t code = Text("\"");
+    const uint8_t *data = (const uint8_t *)bytes.data;
+    for (int64_t i = 0; i < (int64_t)bytes.length; i++) {
+        uint8_t byte = data[i * bytes.stride];
+        switch (byte) {
+        case '\\': code = Texts(code, "\\\\"); break;
+        case '"': code = Texts(code, "\\\""); break;
+        case '\a': code = Texts(code, "\\a"); break;
+        case '\b': code = Texts(code, "\\b"); break;
+        case '\n': code = Texts(code, "\\n"); break;
+        case '\r': code = Texts(code, "\\r"); break;
+        case '\t': code = Texts(code, "\\t"); break;
+        case '\v': code = Texts(code, "\\v"); break;
+        default: {
+            if (isprint(byte) && byte < 0x80) {
+                code = Texts(code, Text$from_strn((char *)&byte, 1));
+            } else {
+                code = Texts(code, "\\x", String(hex(byte, .no_prefix = true, .uppercase = true, .digits = 2)), "\"\"");
+            }
+            break;
+        }
+        }
+    }
+    return Texts(code, "\"");
+}
+
 PUREFUNC static bool string_literal_is_all_ascii(Text_t literal) {
     TextIter_t state = NEW_TEXT_ITER_STATE(literal);
     for (int64_t i = 0; i < (int64_t)literal.length; i++) {
@@ -83,6 +111,26 @@ PUREFUNC static bool string_literal_is_all_ascii(Text_t literal) {
         if (g < 0 || g > 127 || !isascii(g)) return false;
     }
     return true;
+}
+
+public
+Text_t compile_embed_as_text(ast_t *ast, List_t bytes) {
+    OptionalText_t text = Text$from_utf8(bytes);
+    if (text.tag == TEXT_NONE)
+        code_err(ast, "This file's contents are not valid UTF8, so it can't be used here as a Text value");
+    if (text.length == 0) return Text("EMPTY_TEXT");
+    if (string_literal_is_all_ascii(text)) return Texts("Text(", compile_text_literal(text), ")");
+    else return Texts("Text$from_str(", compile_text_literal(text), ")");
+}
+
+public
+Text_t compile_embed_as_cstring(ast_t *ast, List_t bytes) {
+    const uint8_t *data = (const uint8_t *)bytes.data;
+    for (int64_t i = 0; i < (int64_t)bytes.length; i++) {
+        if (data[i * bytes.stride] == 0)
+            code_err(ast, "This file has a NUL byte in it, so it can't be embedded as a CString");
+    }
+    return compile_bytes_literal(bytes);
 }
 
 public

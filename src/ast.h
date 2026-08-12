@@ -278,6 +278,7 @@ typedef enum {
     Assert,
     Use,
     InlineCCode,
+    Embed,
     ExplicitlyTyped,
     Metadata,
 } ast_e;
@@ -316,6 +317,9 @@ struct ast_s {
         struct {
             const char *path;
         } Path;
+        struct {
+            ast_t *path; // A `Path` AST node
+        } Embed;
         struct {
             ast_t *var;
             type_ast_t *type;

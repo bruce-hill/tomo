@@ -35,7 +35,10 @@ void initialize_vars_and_statics(env_t *env, ast_t *ast) {
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == FunctionType) t = Type(ClosureType, t);
             Text_t val_code = compile_declared_value(env, stmt->ast);
-            if ((decl->value && !is_constant(env, decl->value)) || (!decl->value && has_heap_memory(t))) {
+            bool value_is_constant =
+                decl->value
+                && (decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value));
+            if ((decl->value && !value_is_constant) || (!decl->value && has_heap_memory(t))) {
                 Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
                 env->code->variable_initializers =
                     Texts(env->code->variable_initializers,
@@ -86,7 +89,10 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
         if (t->tag == FunctionType) t = Type(ClosureType, t);
         Text_t val_code = compile_declared_value(env, ast);
         bool is_private = decl_name[0] == '_';
-        if ((decl->value && is_constant(env, decl->value)) || (!decl->value && !has_heap_memory(t))) {
+        bool value_is_constant =
+            decl->value
+            && (decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value));
+        if (value_is_constant || (!decl->value && !has_heap_memory(t))) {
             set_binding(env, decl_name, t, full_name);
             return Texts(is_private ? "static " : "public ", compile_declaration(t, full_name), " = ", val_code, ";\n");
         } else {

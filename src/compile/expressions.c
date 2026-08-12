@@ -5,8 +5,8 @@
 #include "../config.h"
 #include "../environment.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
+#include "../util.h"
 #include "compilation.h"
 
 public
@@ -172,6 +172,15 @@ Text_t compile(env_t *env, ast_t *ast) {
     case TextJoin: return compile_text_ast(env, ast);
     case Path: {
         return Texts("Path(", compile_text_literal(Text$from_str(Match(ast, Path)->path)), ")");
+    }
+    case Embed: {
+        List_t bytes = get_embed_bytes(ast);
+        Text_t literal = compile_bytes_literal(bytes);
+        // This is a compile-time constant: a `List_t` whose `.data` points directly at a
+        // read-only string literal. `LIST_MAX_DATA_REFCOUNT` marks it as "shared", so any
+        // in-place mutation copies the data first instead of writing into read-only memory.
+        return Texts("((List_t){.length=", (int64_t)bytes.length, ", .stride=1, .data=(void*)", literal,
+                     ", .atomic=1, .data_refcount=LIST_MAX_DATA_REFCOUNT})");
     }
     case Block: return compile_block_expression(env, ast);
     case Min:

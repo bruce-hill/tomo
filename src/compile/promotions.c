@@ -164,6 +164,10 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
         return compile_typed_list(env, ast, t);
     } else if (t->tag == TableType && ast->tag == Table) {
         return compile_typed_table(env, ast, t);
+    } else if (ast->tag == Embed && t->tag == TextType) {
+        return compile_embed_as_text(ast, get_embed_bytes(ast));
+    } else if (ast->tag == Embed && t->tag == CStringType) {
+        return compile_embed_as_cstring(ast, get_embed_bytes(ast));
     }
 
     type_t *actual = get_type(env, ast);

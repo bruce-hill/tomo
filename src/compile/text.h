@@ -12,6 +12,9 @@
 Text_t compile_text_ast(env_t *env, ast_t *ast);
 Text_t compile_text(env_t *env, ast_t *ast, Text_t color);
 Text_t compile_text_literal(Text_t literal);
+Text_t compile_bytes_literal(List_t bytes);
+Text_t compile_embed_as_text(ast_t *ast, List_t bytes);
+Text_t compile_embed_as_cstring(ast_t *ast, List_t bytes);
 Text_t expr_as_text(Text_t expr, type_t *t, Text_t color);
 
 MACROLIKE Text_t quoted_str(const char *str) {

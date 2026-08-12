@@ -185,6 +185,7 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(TextJoin, "(Text", data.lang ? Texts(" :lang ", type_ast_to_sexp(data.lang)) : EMPTY_TEXT,
           ast_list_to_sexp(data.children), ")");
         T(Path, "(Path ", quoted_text(data.path), ")");
+        T(Embed, "(Embed ", ast_to_sexp(data.path), ")");
         T(Declare, "(Declare ", ast_to_sexp(data.var), " ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value),
           ")");
         T(Assign, "(Assign (targets ", ast_list_to_sexp(data.targets), ") (values ", ast_list_to_sexp(data.values),
@@ -472,6 +473,7 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
     case Path:
     case TextLiteral:
     case Metadata: return;
+    case Embed: ast_visit(Match(ast, Embed)->path, visitor, userdata); return;
     case TextJoin: ast_visit_list(Match(ast, TextJoin)->children, visitor, userdata); return;
     case Declare: {
         DeclareMatch(decl, ast, Declare);

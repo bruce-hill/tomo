@@ -66,3 +66,10 @@ ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
     if (inside_parens && !match(&pos, ")")) return NULL;
     return NewAST(ctx->file, start, pos, Path, .path = path);
 }
+
+ast_t *parse_embed(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    if (!match_word(&pos, "_embed_")) return NULL;
+    ast_t *path_ast = expect(ctx, start, &pos, parse_path, "I expected a file path here");
+    return NewAST(ctx->file, start, pos, Embed, .path = path_ast);
+}

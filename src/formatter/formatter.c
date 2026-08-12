@@ -320,6 +320,9 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case Path: {
         return Texts("(", Text$escaped(Text$from_str(Match(ast, Path)->path), false, Text("()")), ")");
     }
+    /*inline*/ case Embed: {
+        return Texts("_embed_ ", fmt_inline(Match(ast, Embed)->path, comments));
+    }
     /*inline*/ case Stop: {
         const char *target = Match(ast, Stop)->target;
         Text_t keyword = Match(ast, Stop)->keyword ? Text$from_str(Match(ast, Stop)->keyword) : Text("stop");
@@ -783,6 +786,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
     /*multiline*/ case Path: {
+        assert(inlined.length > 0);
+        return inlined;
+    }
+    /*multiline*/ case Embed: {
         assert(inlined.length > 0);
         return inlined;
     }
