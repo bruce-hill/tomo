@@ -504,7 +504,13 @@ install-files: build check-zig
 	fi; \
 	cp -R $(BUILD_DIR)/* $(PREFIX)/
 
+# After the files are in place, compile and run a hello-world through the
+# installed tomo: the first compile makes the bundled zig build its libc
+# cache (a one-time, ~10s setup), so it's better spent here than on the
+# user's first real program. Runs as the invoking user (not the prefix
+# owner), since the cache belongs to the user's home directory.
 install: install-files
+	@printf 'func main()\n\tsay("Tomo installation finished!")\n' | "$(PREFIX)/bin/tomo"
 
 # Uninstalling is the compiler's job (`tomo uninstall-self`): it knows where
 # every file of its version went and how to fix up the shared symlinks.
