@@ -725,11 +725,9 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
 
     staleness_t staleness = {
         .h = is_stale(build_file(path, ".h"), Path$sibling(path, Text("packages.ini")), true)
-             || is_stale(build_file(path, ".h"), build_file(path, ":packages.ini"), true)
              || is_stale(build_file(path, ".h"), path, false)
              || is_stale(build_file(path, ".h"), build_file(path, ".id"), false),
         .c = is_stale(build_file(path, ".c"), Path$sibling(path, Text("packages.ini")), true)
-             || is_stale(build_file(path, ".c"), build_file(path, ":packages.ini"), true)
              || is_stale(build_file(path, ".c"), path, false)
              || is_stale(build_file(path, ".c"), build_file(path, ".id"), false),
     };
@@ -1016,8 +1014,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
         && !is_stale_for_any(exe_path, object_files, false) && !is_stale_for_any(exe_path, linked_archives, true)
-        && !is_stale(exe_path, Path$sibling(path, Text("packages.ini")), true)
-        && !is_stale(exe_path, build_file(path, ":packages.ini"), true)) {
+        && !is_stale(exe_path, Path$sibling(path, Text("packages.ini")), true)) {
         if (verbose) whisper("Unchanged: ", exe_path);
         return exe_path;
     }

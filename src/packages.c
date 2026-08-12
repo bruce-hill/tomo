@@ -421,13 +421,8 @@ OptionalPath_t find_installed_package(Table_t *build_info, ast_t *use) {
     Path_t store_root = package_store_root(using_file);
     OptionalPath_t installed = NONE_PATH;
 
-    Path_t file_package = Path$from_str(String(use->file->filename, ":packages.ini"));
-    installed = get_package_install_location(build_info, file_package, name, store_root);
-
-    if (installed == NULL) {
-        Path_t local_package = Path$sibling(using_file, Text("packages.ini"));
-        installed = get_package_install_location(build_info, local_package, name, store_root);
-    }
+    Path_t local_package = Path$sibling(using_file, Text("packages.ini"));
+    installed = get_package_install_location(build_info, local_package, name, store_root);
 
     if (installed == NULL) {
         Path_t tomo_default_packages =
@@ -447,7 +442,6 @@ static bool parse_package_entry(Path_t ini_file, const char *name, pkg_info_t *p
 // directory-source package) or isn't found at all:
 const char *find_pinned_digest(Path_t using_file, const char *name) {
     Path_t candidates[] = {
-        Path$from_str(String(using_file, ":packages.ini")),
         Path$sibling(using_file, Text("packages.ini")),
         Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/packages.ini")),
     };
