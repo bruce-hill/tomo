@@ -56,13 +56,25 @@ static Path_t package_store_root(Path_t using_file) {
     return Path$child(tomo_root_for(Path$parent(using_file)), Text("store"));
 }
 
+// A literal ":" isn't valid in a filename on Windows, so this gets stripped
+// before a digest is used to name a directory:
+const char *package_digest_hex(const char *digest) {
+    const char *hex = strchr(digest, ':');
+    return hex ? hex + 1 : digest;
+}
+
+Path_t package_store_path(Path_t store_root, const char *digest) {
+    return Path$child(store_root, Text$from_str(package_digest_hex(digest)));
+}
+
 // Verified downloaded package artifacts are cached globally, keyed by digest,
 // so other projects can materialize their stores without re-fetching:
 static Path_t download_cache_dir(Text_t digest) {
     const char *cache_home = getenv("XDG_CACHE_HOME");
     Path_t base = (cache_home && cache_home[0] == '/') ? Path$from_str(String(cache_home, "/tomo"))
                                                        : Path$expand_home(Path$from_str("~/.cache/tomo"));
-    return Path$child(base, digest);
+    Text_t hex = Text$from_str(package_digest_hex(Text$as_c_string(digest)));
+    return Path$child(Path$child(base, Text("packages")), hex);
 }
 
 // Record which package a `use NAME` resolved to, as a "packages/NAME" symlink
@@ -272,7 +284,7 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source
         if (cache_result.Failure.reason.tag == TEXT_NONE) xsystem("cp ", quoted(downloaded), " ", quoted(cached));
     }
 
-    OptionalPath_t install_location = Path$child(store_root, digest);
+    OptionalPath_t install_location = package_store_path(store_root, Text$as_c_string(digest));
 
     Result_t result = Path$create_directory(install_location, 0755, true);
     if (result.Failure.reason.tag != TEXT_NONE) {
@@ -332,7 +344,7 @@ static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool
     OptionalPath_t install_location = NULL;
     const char *digest = Table$str_get(pkg->info, "digest");
     if (digest) {
-        install_location = Path$child(store_root, Text$from_str(digest));
+        install_location = package_store_path(store_root, digest);
         if (Path$exists(install_location)) {
             ensure_package_built(install_location);
             return install_location;
@@ -685,7 +697,7 @@ void vendor_package(const char *name, bool editable) {
     // at is no longer used; clean it up. (Non-editable vendoring keeps the
     // digest, so its store entry stays in use.)
     if (editable) {
-        Path_t old_entry = Path$child(store_root, Text$from_str(digest));
+        Path_t old_entry = package_store_path(store_root, digest);
         if (Path$exists(old_entry)) {
             Result_t removed = Path$remove(old_entry, true);
             if (removed.Failure.reason.tag == TEXT_NONE) print("Removed the now-unused store entry: ", old_entry);

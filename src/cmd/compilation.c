@@ -167,9 +167,11 @@ static void collect_needed_packages(Path_t dir, Path_t store_root, Table_t *dige
             if (use->what != USE_PACKAGE) continue;
             if (names) Table$str_set(names, use->path, "");
             const char *digest = find_pinned_digest(file, use->path);
-            if (digest == NULL || Table$str_get(*digests, digest)) continue;
-            Table$str_set(digests, digest, "");
-            Path_t entry = Path$child(store_root, Text$from_str(digest));
+            if (digest == NULL) continue;
+            const char *hex = package_digest_hex(digest);
+            if (Table$str_get(*digests, hex)) continue;
+            Table$str_set(digests, hex, "");
+            Path_t entry = package_store_path(store_root, digest);
             if (Path$is_directory(entry, true)) collect_needed_packages(entry, store_root, digests, NULL);
         }
     }
