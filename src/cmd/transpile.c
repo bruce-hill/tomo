@@ -50,8 +50,11 @@ static int cmd_transpile(cli_command_t *self, List_t extra_args) {
     Text_t pipeline = EMPTY_TEXT;
     if (!raw) {
         if (command_exists("clang-format")) pipeline = Text("clang-format");
-        if (isatty(STDOUT_FILENO) && command_exists("bat"))
-            pipeline = pipeline.length > 0 ? Texts(pipeline, " | bat -l c") : Text("bat -l c");
+        if (isatty(STDOUT_FILENO) && command_exists("bat")) {
+            Text_t base = Path$base_name(path);
+            Text_t bat = Texts("bat -l c --file-name '", base, ".h/", base, ".c'");
+            pipeline = pipeline.length > 0 ? Texts(pipeline, " | ", bat) : bat;
+        }
     }
     if (pipeline.length == 0) {
         print_inline(out);
