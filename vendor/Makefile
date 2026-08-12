@@ -62,7 +62,10 @@ endif
 # make sense of a gdb backtrace into these libs; set -g here if you ever need
 # to step through their code with locals visible. libbacktrace overrides this
 # with its own CFLAGS (further down).
-VENDOR_CFLAGS = -O2 -g1
+# -ffunction-sections/-fdata-sections so that the --gc-sections in every
+# program link (see tomo.c) can drop the individual functions and tables these
+# libraries' linked-in objects don't actually use:
+VENDOR_CFLAGS = -O2 -g1 -ffunction-sections -fdata-sections
 CONFIGURE_FLAGS = CC="$(DEP_CC)" AR="$(AR)" RANLIB="$(RANLIB)" $(CROSS_HOST) \
                   CFLAGS="$(VENDOR_CFLAGS)" --enable-static --disable-shared
 
