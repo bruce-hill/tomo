@@ -61,6 +61,9 @@ extern Text_t target_root;
 extern Text_t lib_root;
 // Whether the platform being compiled for uses Mach-O linking (macOS):
 extern bool link_macho;
+// The staged debug-stripped copy of zig's C runtime that executables link
+// -nostdlib against, or empty to let zig supply its own (unstripped) copy:
+extern Text_t zig_libc_dir;
 
 extern OptionalText_t cflags, ldlibs, ldflags, optimization,
     // The toolchain is not configurable; these are set in main() to the

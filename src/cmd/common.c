@@ -30,6 +30,8 @@ Text_t lib_root = Text("");
 
 bool link_macho = false;
 
+Text_t zig_libc_dir = Text("");
+
 OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
                              " -ffunction-sections -fdata-sections"
                              " -fno-signed-zeros"

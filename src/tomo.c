@@ -95,13 +95,32 @@ static void after_globals(void) {
     }
 
     ldflags = Texts(ldflags, Text(" -ffunction-sections -fdata-sections"));
-    // The stack unwinder used by libtomo's stacktrace code; zig provides it for
-    // every supported target:
-    ldlibs = Texts(ldlibs, Text(" -lunwind"));
     // Link flags depend on the OS being compiled for:
     const char *link_os = cross_compiling ? platform_os(Text$as_c_string(target)) : platform_os(TOMO_PLATFORM);
-    // Linux/musl links fully statically:
-    if (streq(link_os, "linux")) ldflags = Texts(ldflags, Text(" -static"));
+    // Linux/musl links fully statically. When a debug-stripped copy of zig's C
+    // runtime was staged at build time (vendor/zig-libc/, made by
+    // scripts/stage_zig_libc.sh), link -nostdlib against it: zig's own libc
+    // and compiler-rt unconditionally carry megabytes of DWARF that tomo
+    // stacktraces and gdb sessions never read. When the staged copy is
+    // missing, fall back to zig's -- the only cost is bigger binaries.
+    if (streq(link_os, "linux")) {
+        ldflags = Texts(ldflags, Text(" -static"));
+        Text_t staged = Texts(lib_root, "/lib/tomo@", TOMO_VERSION, "/vendor/zig-libc");
+        if (Path$is_file(Path$from_str(String(staged, "/libc.a")), true)
+            && Path$is_file(Path$from_str(String(staged, "/crt1.o")), true)) {
+            zig_libc_dir = staged;
+            // -nostdlib means supplying the C runtime ourselves: crt1.o here,
+            // the libraries after every other archive (in compile_executable()).
+            // zig also stops resolving -lm and -lunwind under -nostdlib (and
+            // would re-add its own crt1.o if they appeared); musl's libm lives
+            // inside libc.a and the staged libunwind.a covers -lunwind:
+            ldflags = Texts(ldflags, " -nostdlib '", staged, "/crt1.o'");
+            if (Text$equal_values(ldlibs, Text("-lm"))) ldlibs = Text("");
+        }
+    }
+    // The stack unwinder used by libtomo's stacktrace code; zig provides it for
+    // every supported target:
+    if (zig_libc_dir.length == 0) ldlibs = Texts(ldlibs, Text(" -lunwind"));
     if (streq(link_os, "macos")) {
         link_macho = true;
         // -u _tomo_versions forces the versions.o member (the version info in

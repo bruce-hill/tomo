@@ -1081,6 +1081,18 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     Text_t vendor_archives = Texts(" ", vendor_dir, "/libgc.a ", vendor_dir, "/libgmp.a ", vendor_dir,
                                    "/libunistring.a ", vendor_dir, "/libbacktrace.a");
 
+    // The debug-stripped zig C runtime replacing the libc that -nostdlib told
+    // zig not to add (see tomo_configure()). Last, like an implicit libc; the
+    // set of archives varies by zig version, so link whichever were staged:
+    if (zig_libc_dir.length > 0) {
+        static const char *runtime_archives[] = {"libc.a", "libcompiler_rt.a", "libzigc.a", "libunwind.a"};
+        for (size_t i = 0; i < sizeof(runtime_archives) / sizeof(runtime_archives[0]); i++) {
+            const char *archive = String(zig_libc_dir, "/", runtime_archives[i]);
+            if (Path$is_file(Path$from_str(archive), true))
+                vendor_archives = Texts(vendor_archives, Text(" '"), Text$from_str(archive), Text("'"));
+        }
+    }
+
     // On Mach-O the source blob is embedded by the linker rather than asm:
     Text_t source_section_flag =
         link_macho ? Texts(" '-Wl,-sectcreate,__TEXT,__tomo_source,", Text$from_str(Path$as_c_string(source_blob)), "'")

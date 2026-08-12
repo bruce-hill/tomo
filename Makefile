@@ -389,6 +389,16 @@ $(VENDOR_INSTALLED_LIBS) &: $(filter-out %/libminiz.a,$(VENDORED_LIBS))
 	@mkdir -p $(VENDOR_INSTALL_DIR)
 	cp $(filter-out %/libminiz.a,$(VENDORED_LIBS)) $(VENDOR_INSTALL_DIR)/
 
+# A debug-info-free copy of the C runtime zig links into static executables
+# (musl libc, compiler-rt, crt1.o, ...). Static (linux/musl) targets only:
+# tomo links compiled programs -nostdlib against these instead of zig's own
+# unstripped versions, keeping megabytes of libc DWARF out of every binary
+# (see scripts/stage_zig_libc.sh and src/tomo.c):
+ZIG_LIBC_DIR=$(VENDOR_INSTALL_DIR)/zig-libc
+$(ZIG_LIBC_DIR)/libc.a: $(ZIG_STAGED) scripts/stage_zig_libc.sh
+	@$(ECHO) "Staging debug-stripped zig libc:\t$(ZIG_LIBC_DIR)"
+	@sh scripts/stage_zig_libc.sh '$(ZIG_STAGED)' '$(ZIG_TARGET)' '$(ZIG_LIBC_DIR)'
+
 # Everything that makes up an installed Tomo tree for the current platform:
 BUILD_PRODUCTS = $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
 	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini \
@@ -396,6 +406,9 @@ BUILD_PRODUCTS = $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
 	$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/gc.h \
 	$(ZIG_STORE_DIR)/zig $(ZIG_LINK) $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE \
 	$(VENDOR_LICENSE_PRODUCTS) $(VENDOR_INSTALLED_LIBS)
+ifneq ($(call zig_is_static,$(ZIG_PLATFORM)),)
+BUILD_PRODUCTS += $(ZIG_LIBC_DIR)/libc.a
+endif
 
 build: $(BUILD_PRODUCTS)
 
