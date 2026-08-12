@@ -651,7 +651,6 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             entry->staleness.o = true;
         } else {
             if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".h"));
-            if (show_codegen.length > 0) xsystem(show_codegen, " <", build_file(entry->filename, ".h"));
         }
     }
 
@@ -672,7 +671,6 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (!clean_build && !entry->staleness.c && !entry->staleness.h && !entry->staleness.o
             && !is_config_outdated(entry->filename)) {
             if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".c"));
-            if (show_codegen.length > 0) xsystem(show_codegen, " <", build_file(entry->filename, ".c"));
             if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".o"));
             continue;
         }
@@ -903,7 +901,6 @@ void transpile_header(env_t *base_env, Path_t path) {
 
     if (!quiet) print("Transpiled header:\t", Path$relative_to(h_filename, Path$current_dir()));
 
-    if (show_codegen.length > 0) xsystem(show_codegen, " <", h_filename);
 }
 
 void transpile_code(env_t *base_env, Path_t path) {
@@ -941,7 +938,6 @@ void transpile_code(env_t *base_env, Path_t path) {
 
     if (!quiet) print("Transpiled code:\t", Path$relative_to(c_filename, Path$current_dir()));
 
-    if (show_codegen.length > 0) xsystem(show_codegen, " <", c_filename);
 }
 
 // The first time the bundled Zig toolchain compiles anything on a machine, it
@@ -1115,12 +1111,6 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         vendor_archives,
         // Output file:
         " -o ", exe_path);
-
-    if (show_codegen.length > 0) {
-        FILE *out = run_cmd(show_codegen);
-        Text$print(out, program);
-        pclose(out);
-    }
 
     Text$print(runner, program);
     int status = pclose(runner);

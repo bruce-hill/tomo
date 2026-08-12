@@ -28,8 +28,7 @@ Text_t lib_root = Text("");
 
 bool link_macho = false;
 
-OptionalText_t show_codegen = NONE_TEXT,
-               cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
+OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
                              " -ffunction-sections -fdata-sections"
                              " -fno-signed-zeros"
                              " -fPIC -ggdb"

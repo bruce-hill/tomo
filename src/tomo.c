@@ -30,8 +30,6 @@ cli_spec_t tomo_cli = {};
 static cli_arg_t global_spec[] = {
     {"verbose", &verbose, &Bool$info, .short_flag = 'v', .description = "verbose output"}, //
     {"quiet", &quiet, &Bool$info, .short_flag = 'q', .description = "quiet output"}, //
-    {"show-codegen", &show_codegen, &Text$info, .short_flag = 'C', .metavar = "pager",
-     .description = "show the generated code with a pager (e.g. cat or bat)"}, //
     {"optimization", &optimization, &Text$info, .short_flag = 'O', .metavar = "level",
      .description = "set the optimization level"}, //
     {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f', .description = "force rebuilding"}, //
@@ -119,9 +117,6 @@ static void after_globals(void) {
         ldflags = Texts(ldflags, Text(" -L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib"));
     }
 #endif
-
-    if (show_codegen.length > 0 && Text$equal_values(show_codegen, Text("pretty")))
-        show_codegen = Text("{ sed '/^#line/d;/^$/d' | clang-format | bat -l c -P; }");
 
     config_summary = Texts("TOMO_VERSION=", TOMO_VERSION, "\n", "COMPILER=", cc, " ", cflags, " -O", optimization, "\n",
                            "SOURCE_MAPPING=", source_mapping ? Text("yes") : Text("no"), "\n");

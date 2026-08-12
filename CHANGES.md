@@ -22,6 +22,9 @@
   non-vendored fallback source (or the compiler's default pin), re-installs
   the package into the project's store (re-pinning the digest if editable
   vendoring dropped it), and deletes the vendored copy.
+- `tomo transpile` now prints the generated C to stdout, formatted with
+  `clang-format` and syntax-highlighted with `bat` when those are installed
+  (`--raw` disables both). The `--show-codegen`/`-C` flag has been removed.
 
 - New `--target <platform>` flag: cross-compile executables, objects, and
   packages for any supported platform (e.g. `tomo --target aarch64-macos -e

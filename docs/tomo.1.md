@@ -42,10 +42,13 @@ does the same thing.
 : Compile the given program to a standalone executable, placed as a sibling
 of the `.tm` file (or at `-o` *output*).
 
-`transpile` *file.tm*
+`transpile` \[`--raw`\] *file.tm*
 : Transpile the given file to C and print the generated header and source to
-standard output, each preceded by a `// file:` line. The generated `.h`/`.c`
-files are also written into the file's `.build/` directory.
+standard output, each preceded by a `// file:` line. The output is formatted
+with `clang-format` and (when standard output is a terminal)
+syntax-highlighted with `bat`, whichever of the two is installed; `--raw`
+prints the raw generated code instead. The generated `.h`/`.c` files are also
+written into the file's `.build/` directory.
 
 `parse` *file.tm...*
 : Print the parse tree of the given files as S-expressions.
@@ -115,9 +118,6 @@ after their command.
 
 `--force-rebuild`, `-f`
 : Force rebuilding/recompiling.
-
-`--show-codegen` *<program>*, `-C` *<program>*
-: Set a program (e.g. `cat` or `bat`) to display the generated code
 
 `--source-mapping=`, `-m=` **<yes|no>**
 : Toggle whether source mapping should be enabled or disabled.

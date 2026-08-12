@@ -56,7 +56,7 @@ extern Text_t lib_root;
 // Whether the platform being compiled for uses Mach-O linking (macOS):
 extern bool link_macho;
 
-extern OptionalText_t show_codegen, cflags, ldlibs, ldflags, optimization,
+extern OptionalText_t cflags, ldlibs, ldflags, optimization,
     // The toolchain is not configurable; these are set in main() to the
     // `zig cc`/`zig ar` bundled inside the Tomo installation:
     cc, ar;
