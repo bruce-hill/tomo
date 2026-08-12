@@ -14,3 +14,6 @@ Text_t get_id_suffix(const char *filename);
 extern Text_t build_target_platform;
 // The .tomo directory (created if needed) that holds a .tm file's artifacts:
 Path_t tm_build_dir(Path_t tm_path);
+// "<dir>/.tomo", redirected under $XDG_CACHE_HOME/tomo/build/ when `dir` is
+// $HOME or not writable:
+Path_t tomo_root_for(Path_t dir);

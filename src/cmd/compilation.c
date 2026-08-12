@@ -190,19 +190,20 @@ static void gc_package_dir(Path_t dir) {
     // directory's usage:
     Path_t tomo_lib_dir = Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION));
     if (Enum$equal(&dir, &tomo_lib_dir, &Path$info)) return;
-    Path_t store_root = Path$child(Path$child(dir, Text(".tomo")), Text("store"));
+    Path_t tomo_root = tomo_root_for(dir);
+    Path_t store_root = Path$child(tomo_root, Text("store"));
     Table_t digests = EMPTY_TABLE, names = EMPTY_TABLE;
     collect_needed_packages(dir, store_root, &digests, &names);
     mark_unused_packages(Path$child(dir, Text("packages.ini")), names);
 
-    List_t links = Path$glob(Path$child(dir, Text(".tomo/packages/*")));
+    List_t links = Path$glob(Path$child(tomo_root, Text("packages/*")));
     for (int64_t i = 0; i < (int64_t)links.length; i++) {
         Path_t link = *(Path_t *)(links.data + i * links.stride);
         if (Table$str_get(names, Text$as_c_string(Path$base_name(link)))) continue;
         if (unlink(link) == 0 && !quiet)
             print("Removed unused package binding: ", Path$relative_to(link, Path$current_dir()));
     }
-    List_t entries = Path$glob(Path$child(dir, Text(".tomo/store/*")));
+    List_t entries = Path$glob(Path$child(tomo_root, Text("store/*")));
     for (int64_t i = 0; i < (int64_t)entries.length; i++) {
         Path_t entry = *(Path_t *)(entries.data + i * entries.stride);
         if (Table$str_get(digests, Text$as_c_string(Path$base_name(entry)))) continue;
@@ -904,7 +905,6 @@ void transpile_header(env_t *base_env, Path_t path) {
     if (fclose(header) == -1) print_err("Failed to write header file: ", h_filename);
 
     if (!quiet) print("Transpiled header:\t", Path$relative_to(h_filename, Path$current_dir()));
-
 }
 
 void transpile_code(env_t *base_env, Path_t path) {
@@ -941,7 +941,6 @@ void transpile_code(env_t *base_env, Path_t path) {
     if (fclose(c_file) == -1) print_err("Failed to output C code to ", c_filename);
 
     if (!quiet) print("Transpiled code:\t", Path$relative_to(c_filename, Path$current_dir()));
-
 }
 
 // The first time the bundled Zig toolchain compiles anything on a machine, it

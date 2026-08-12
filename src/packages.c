@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "config.h"
+#include "naming.h"
 #include "packages.h"
 #include "sha256.h"
 #include "stdlib/datatypes.h"
@@ -52,7 +53,7 @@ OptionalPath_t package_store_entry(Path_t path) {
 static Path_t package_store_root(Path_t using_file) {
     OptionalPath_t entry = package_store_entry(using_file);
     if (entry != NULL) return Path$parent(entry);
-    return Path$sibling(using_file, Text(".tomo/store"));
+    return Path$child(tomo_root_for(Path$parent(using_file)), Text("store"));
 }
 
 // Verified downloaded package artifacts are cached globally, keyed by digest,
@@ -80,7 +81,7 @@ static void create_binding_link(Path_t using_file, const char *name, Path_t inst
     bool dep_in_this_store = streq(Path$parent(installed), package_store_root(using_file));
 
     Path_t link_dir = consumer_in_store ? Path$child(using_dir, Text("packages"))
-                                        : Path$child(using_dir, Text(".tomo/packages"));
+                                        : Path$child(tomo_root_for(using_dir), Text("packages"));
     const char *target = installed;
     if (dep_in_this_store) {
         target = Path$relative_to(installed, link_dir);
@@ -104,8 +105,7 @@ static void create_binding_link(Path_t using_file, const char *name, Path_t inst
         if (streq(existing, target)) return; // Already correct
     }
     unlink(link);
-    if (symlink(target, link) != 0)
-        fprint(stderr, "Warning: could not create package link ", link, " -> ", target);
+    if (symlink(target, link) != 0) fprint(stderr, "Warning: could not create package link ", link, " -> ", target);
 }
 
 #define xsystem(...)                                                                                                   \
@@ -328,8 +328,7 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source
     return install_location;
 }
 
-static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool ask_confirmation,
-                                          Path_t store_root) {
+static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool ask_confirmation, Path_t store_root) {
     OptionalPath_t install_location = NULL;
     const char *digest = Table$str_get(pkg->info, "digest");
     if (digest) {
@@ -345,8 +344,8 @@ static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool
             List_t cached = Path$children(cache_dir, true);
             if (cached.length == 1) {
                 const char *source = Table$str_get(pkg->info, "source");
-                install_location = try_install_package_from_file(pkg, source ? source : "cache",
-                                                                 *(Path_t *)cached.data, NULL, store_root);
+                install_location = try_install_package_from_file(pkg, source ? source : "cache", *(Path_t *)cached.data,
+                                                                 NULL, store_root);
                 if (install_location != NULL) return install_location;
             }
         }
@@ -361,6 +360,19 @@ static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool
     }
     fail("No source for package: ", pkg->name);
     return NULL;
+}
+
+static bool ini_is_writable(Path_t ini_file) {
+    return Path$exists(ini_file) ? Path$can_write(ini_file) : Path$can_write(Path$parent(ini_file));
+}
+
+// Package pins are just an optimization, so skip the write instead of
+// crashing; warn once per ini file:
+static void warn_ini_not_writable(Path_t ini_file) {
+    static Table_t warned = EMPTY_TABLE;
+    if (Table$str_get(warned, ini_file) != NULL) return;
+    fprint(stderr, "Warning: ", ini_file, " is not writable, so package pins will not be saved\n");
+    Table$str_set(&warned, ini_file, ini_file);
 }
 
 static OptionalPath_t get_package_install_location(Table_t *build_info, Path_t ini_file, const char *name,
@@ -398,9 +410,13 @@ found_package:;
             reformatted = Texts(reformatted, line, "\n");
         }
         reformatted = Texts(Text$trim(reformatted, Text(" \r\n\t"), true, true), "\n");
-        Result_t result = Path$write(ini_file, reformatted, 0644);
-        if (result.Failure.reason.tag != TEXT_NONE) {
-            fail(result.Failure.reason);
+        if (ini_is_writable(ini_file)) {
+            Result_t result = Path$write(ini_file, reformatted, 0644);
+            if (result.Failure.reason.tag != TEXT_NONE) {
+                fail(result.Failure.reason);
+            }
+        } else {
+            warn_ini_not_writable(ini_file);
         }
     }
 
@@ -471,8 +487,10 @@ static bool parse_package_entry(Path_t ini_file, const char *name, pkg_info_t *p
     return found;
 }
 
-// Replace (or append) [name]'s entry in an ini file with the given info:
-static void rewrite_package_entry(Path_t ini_file, const char *name, pkg_info_t pkg) {
+// Replace (or append) [name]'s entry in an ini file with the given info.
+// Returns whether the file was actually written (false, with a warning
+// printed, if `ini_file` isn't writable):
+static bool rewrite_package_entry(Path_t ini_file, const char *name, pkg_info_t pkg) {
     Text_t out = EMPTY_TEXT;
     bool replaced = false;
     OptionalClosure_t by_line = Path$by_line(ini_file);
@@ -497,8 +515,13 @@ static void rewrite_package_entry(Path_t ini_file, const char *name, pkg_info_t 
         if (out.length > 0) out = Texts(Text$trim(out, Text(" \r\n\t"), false, true), Text("\n\n"));
         out = Texts(out, package_text(pkg));
     }
+    if (!ini_is_writable(ini_file)) {
+        warn_ini_not_writable(ini_file);
+        return false;
+    }
     Result_t result = Path$write(ini_file, out, 0644);
     if (result.Failure.reason.tag != TEXT_NONE) fail(result.Failure.reason);
+    return true;
 }
 
 // Enumerate the [section] names in an ini file:
@@ -542,7 +565,7 @@ void mark_unused_packages(Path_t ini_file, Table_t used_names) {
             if (!streq(entry->key, "unused")) Table$str_set(&updated.info, entry->key, entry->value);
         }
         if (!used) Table$str_set(&updated.info, "unused", "true");
-        rewrite_package_entry(ini_file, name, updated);
+        if (!rewrite_package_entry(ini_file, name, updated)) continue;
         if (used) print("Removed the unused=true marker for ", name, " in ", ini_file);
         else print("Marked the package ", name, " as unused=true in ", ini_file);
     }
@@ -706,8 +729,8 @@ void unvendor_package(const char *name) {
     if (!parse_package_entry(ini, name, &pkg)) fail("There is no [", name, "] package entry in ", ini);
 
     const char *vendored_source = Table$str_get(pkg.info, "source");
-    if (!is_vendored_source(vendored_source)) fail("The package ", name, " is not vendored (source is ",
-                                                   vendored_source ? vendored_source : "missing", ")");
+    if (!is_vendored_source(vendored_source))
+        fail("The package ", name, " is not vendored (source is ", vendored_source ? vendored_source : "missing", ")");
     Path_t vendored = Path$resolved(Path$from_str(vendored_source), cwd);
     bool editable = Path$is_directory(vendored, true);
 
