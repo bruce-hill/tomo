@@ -54,7 +54,17 @@ endif
 ifneq ($(HOST_ARCH)|$(HOST_OS),$(TARGET_ARCH)|$(TARGET_OS))
     CROSS_HOST = --host=$(call zig_gnu_triple,$(ZIG_PLATFORM))
 endif
-CONFIGURE_FLAGS = CC="$(DEP_CC)" AR="$(AR)" RANLIB="$(RANLIB)" $(CROSS_HOST) --enable-static --disable-shared
+# Vendored-library frames never appear in Tomo stacktraces, and gdb variable
+# inspection matters for libtomo and generated code, not these libraries'
+# internals — so full debug info for them is dead weight in every linked
+# program (autoconf's default `-g -O2` put ~2MB of DWARF into even a
+# hello-world binary). -g1 keeps just enough (function names + line tables) to
+# make sense of a gdb backtrace into these libs; set -g here if you ever need
+# to step through their code with locals visible. libbacktrace overrides this
+# with its own CFLAGS (further down).
+VENDOR_CFLAGS = -O2 -g1
+CONFIGURE_FLAGS = CC="$(DEP_CC)" AR="$(AR)" RANLIB="$(RANLIB)" $(CROSS_HOST) \
+                  CFLAGS="$(VENDOR_CFLAGS)" --enable-static --disable-shared
 
 # OpenBSD's native linker provides a `__data_start` symbol that Boehm GC's
 # OpenBSD configuration uses as the start of the data segment, but the lld

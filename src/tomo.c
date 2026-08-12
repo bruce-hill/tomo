@@ -109,7 +109,11 @@ static void after_globals(void) {
         // executable:
         ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info -Wl,-u,_tomo_versions");
     } else {
-        ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-u,build_info -Wl,-u,tomo_versions");
+        // --compress-debug-sections: the DWARF that powers runtime stacktraces
+        // is most of a binary's file size; the vendored libbacktrace
+        // decompresses zstd sections natively, so traces are unaffected.
+        ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-u,build_info -Wl,-u,tomo_versions"
+                                 " -Wl,--compress-debug-sections=zstd");
     }
 
 #ifdef __APPLE__
