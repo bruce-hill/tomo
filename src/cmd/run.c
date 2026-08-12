@@ -98,6 +98,10 @@ static int run_file(List_t extra_args) {
         prog_args[j + 1] = *(const char **)(extra_args.data + j * extra_args.stride);
     prog_args[1 + extra_args.length] = NULL;
     fflush(NULL);
+    // Don't leak the bundled zig's cache location into the program: if the
+    // program (or anything it spawns) runs the user's own zig, it should use
+    // that zig's normal cache, not Tomo's.
+    if (!zig_cache_dir_from_env) unsetenv("ZIG_GLOBAL_CACHE_DIR");
     execv(prog_args[0], (char **)prog_args);
     print_err("Could not execute program: ", prog_args[0]);
     return 1;

@@ -42,6 +42,12 @@
 // (and the toolchain/linker setup in main()) before any command runs:
 extern OptionalBool_t verbose, quiet, clean_build, source_mapping, install_target;
 
+// Whether ZIG_GLOBAL_CACHE_DIR came from the user's environment (true) or was
+// set by main() to point the bundled zig at Tomo's own cache directory
+// (false). In the latter case it must not leak into programs `tomo run`
+// execs, where it would misdirect a user-run zig's cache:
+extern bool zig_cache_dir_from_env;
+
 // Cross-compilation state, set up in main() when --target names a platform
 // other than the one this Tomo build is for:
 extern OptionalText_t target;

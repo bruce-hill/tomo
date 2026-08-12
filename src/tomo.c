@@ -165,7 +165,9 @@ int main(int argc, char *argv[]) {
     // inside Tomo's own cache directory rather than the zig default
     // (~/.cache/zig, which may belong to a zig the user runs themselves), so
     // `tomo uninstall-self` can clear it. An explicit ZIG_GLOBAL_CACHE_DIR in
-    // the environment is respected:
+    // the environment is respected (and remembered, so `tomo run` knows
+    // whether to strip the variable before exec'ing the user's program):
+    zig_cache_dir_from_env = getenv("ZIG_GLOBAL_CACHE_DIR") != NULL;
     setenv("ZIG_GLOBAL_CACHE_DIR", Path$child(xdg_tomo_dir("XDG_CACHE_HOME", "~/.cache"), Text("zig")), 0);
 
     // Nested tomo invocations (e.g. compiling packages) must run THIS tomo,

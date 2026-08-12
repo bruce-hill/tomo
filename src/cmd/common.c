@@ -18,6 +18,8 @@
 
 OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false;
 
+bool zig_cache_dir_from_env = false;
+
 OptionalText_t target = NONE_TEXT;
 
 bool cross_compiling = false;
