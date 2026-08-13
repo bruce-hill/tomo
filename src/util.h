@@ -4,6 +4,7 @@
 #include <signal.h> // IWYU pragma: export
 #include <stdio.h> // IWYU pragma: export
 
+#include "./stdlib/bools.h" // IWYU pragma: export
 #include "./stdlib/print.h" // IWYU pragma: export
 #include "./stdlib/stacktrace.h" // IWYU pragma: export
 #include "./stdlib/util.h" // IWYU pragma: export
@@ -24,6 +25,6 @@
         if (USE_COLOR) fputs("\x1b[m\n", stderr);                                                                      \
         else fputs("\n", stderr);                                                                                      \
         fflush(stderr);                                                                                                \
-        raise(SIGABRT);                                                                                                \
+        if (Bool$parse(Text$from_str(getenv("TOMO_CORE_DUMP")), NULL) == true) raise(SIGABRT);                         \
         exit(1);                                                                                                       \
     })

@@ -16,6 +16,7 @@
 
 #include "../config.h"
 #include "../util.h"
+#include "bools.h"
 #include "files.h"
 #include "metamethods.h"
 #include "optionals.h"
@@ -147,6 +148,7 @@ static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
         else fputs("===== ILLEGAL INSTRUCTION =====\n\n", stderr);
         print_stacktrace(stderr, 3);
         fflush(stderr);
+        if (Bool$parse(Text$from_str(getenv("TOMO_CORE_DUMP")), NULL) == true) raise(SIGABRT);
         raise(SIGABRT);
         _exit(1);
     }
@@ -171,7 +173,7 @@ void tomo_init(void) {
     struct sigaction sigact;
     sigact.sa_sigaction = signal_handler;
     sigemptyset(&sigact.sa_mask);
-    sigact.sa_flags = SA_SIGINFO;
+    sigact.sa_flags = SA_SIGINFO | SA_NODEFER | SA_RESETHAND;
     int fatal[] = {SIGHUP,  SIGINT,  SIGQUIT, SIGILL,  SIGTRAP, SIGABRT, SIGBUS,    SIGFPE,  SIGUSR1, SIGSEGV,
                    SIGUSR2, SIGPIPE, SIGALRM, SIGTERM, SIGXCPU, SIGXFSZ, SIGVTALRM, SIGPROF, SIGIO,   SIGSYS};
     for (size_t i = 0; i < sizeof(fatal) / sizeof(fatal[0]); i++) {

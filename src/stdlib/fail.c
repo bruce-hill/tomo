@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "../util.h"
+#include "bools.h"
 #include "fail.h"
 #include "files.h"
 #include "stacktrace.h"
@@ -38,6 +39,6 @@ _Noreturn void fail_source(const char *filename, int start, int end, Text_t mess
     }
     if (USE_COLOR) fputs("\x1b[m", stderr);
     fflush(stderr);
-    raise(SIGABRT);
+    if (Bool$parse(Text$from_str(getenv("TOMO_CORE_DUMP")), NULL) == true) raise(SIGABRT);
     exit(1);
 }
