@@ -33,10 +33,23 @@ a program piped in on standard input).
 
 # COMMANDS
 
+Every command takes a `--verbose`/`-v` flag that turns on all build logs (the
+compile steps, up-to-date "Unchanged" notices, and the toolchain commands being
+run). Commands that print build progress by default (`build`, `package`,
+`install`) also take `--quiet`/`-q` to silence it. The run-style commands
+(`tomo` *file.tm*, `run`, `eval`) are silent by default: use `tomo run -v`
+*file.tm* to see the compiler's work.
+
 `run` *file.tm* \[`--` *args...*\]
 : Compile and run the given program. Anything after `--` is passed to the
 program as its own arguments. The command name is optional: `tomo` *file.tm*
 does the same thing.
+
+`eval` *'expr'*
+: Evaluate a Tomo expression and print its result. The argument may be several
+statements separated by newlines or `;` (for example `tomo eval 'use random;
+random.int(1, 100)'`); the value of the final statement is printed, with syntax
+coloring when standard output is a terminal.
 
 `build` \[`-o` *output*\] *file.tm*
 : Compile the given program to a standalone executable, placed as a sibling
@@ -116,12 +129,6 @@ after their command.
 
 `--help`, `-h`
 : Print the usage (or a command's usage) and exit.
-
-`--verbose`, `-v`
-: Print extra verbose output.
-
-`--quiet`, `-q`
-: Run in quiet mode.
 
 `--optimization` **level**, `-O` **level**
 : Set the optimization level.

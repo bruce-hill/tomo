@@ -1,5 +1,22 @@
 # Changes
 
+## 2026-08-13
+
+- Reworked logging verbosity. The global `--verbose`/`-v` and `--quiet`/`-q`
+  flags are gone; each command now has its own `--verbose`/`-v` flag (and
+  commands that print progress by default — `build`, `package`, `install` —
+  also have `--quiet`/`-q`). Logs are grouped into categories (`[build]`,
+  `[skip]`, `[cmd]`) tracked by a bitmask; `--verbose` enables all of them.
+  Run-style commands (`tomo file.tm`, `run`, `eval`) are silent by default, so
+  `tomo run -v file.tm` is now how you see the compiler's progress (previously
+  `tomo -v file.tm`).
+
+- Added a `tomo eval '<expr>'` command that evaluates a Tomo expression and
+  prints its result, with syntax coloring when standard output is a terminal.
+  The argument may be several statements separated by newlines or `;`, so
+  compound inputs like `tomo eval 'use random; random.int(1, 100)'` work; the
+  value of the final statement is what gets printed.
+
 ## 2026-08-10
 
 - The install layout is now fully versioned: everything under the prefix lives

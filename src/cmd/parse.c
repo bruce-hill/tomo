@@ -11,10 +11,12 @@ static List_t files = EMPTY_LIST;
 static cli_arg_t parse_spec[] = {
     {"files", &files, List$info(&Path$info), .positional = true, .required = true, .metavar = "file.tm",
      .description = "the files to parse"}, //
+    VERBOSE_FLAG, //
 };
 
 static int cmd_parse(cli_command_t *self, List_t extra_args) {
     (void)extra_args;
+    set_default_logs(0);
     files = normalize_tm_paths(files);
     if (files.length == 0) print_err("No files provided to parse!\n", self->usage);
     for (int64_t i = 0; i < (int64_t)files.length; i++) {

@@ -6,6 +6,7 @@
 #include "../stdlib/lists.h"
 #include "../stdlib/text.h"
 #include "commands.h"
+#include "common.h"
 
 static List_t names = EMPTY_LIST;
 static OptionalBool_t editable = false, unvendor = false;
@@ -18,10 +19,12 @@ static cli_arg_t vendor_spec[] = {
     {"unvendor", &unvendor, &Bool$info, .short_flag = 'u',
      .description = "undo vendoring: restore the package to its non-vendored source (re-pinning the digest if "
                     "needed) and delete the vendored copy"}, //
+    VERBOSE_FLAG, //
 };
 
 static int cmd_vendor(cli_command_t *self, List_t extra_args) {
     (void)extra_args;
+    set_default_logs(0);
     if (names.length == 0) print_err("No packages provided to vendor!\n", self->usage);
     if (unvendor && editable) print_err("--unvendor and --editable can't be combined");
     for (int64_t i = 0; i < (int64_t)names.length; i++) {

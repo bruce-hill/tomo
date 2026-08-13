@@ -18,6 +18,23 @@
 
 OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false;
 
+uint32_t enabled_logs = 0;
+
+const char *log_prefix(logtype_t type) {
+    switch (type) {
+    case LOG_BUILD: return "\033[2m[build]\033[m ";
+    case LOG_SKIP: return "\033[2m[skip]\033[m ";
+    case LOG_COMMANDS: return "\033[2m[cmd]\033[m ";
+    default: return "";
+    }
+}
+
+void set_default_logs(uint32_t default_logs) {
+    enabled_logs = default_logs;
+    if (verbose) enabled_logs = ~0u;
+    else if (quiet) enabled_logs = 0;
+}
+
 bool zig_cache_dir_from_env = false;
 
 OptionalText_t target = NONE_TEXT;

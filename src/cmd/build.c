@@ -2,8 +2,8 @@
 
 #include "../environment.h"
 #include "../stdlib/lists.h"
-#include "common.h"
 #include "commands.h"
+#include "common.h"
 #include "compilation.h"
 
 static OptionalPath_t file = NULL, output = NULL;
@@ -13,10 +13,13 @@ static cli_arg_t build_spec[] = {
      .description = "the program to compile"}, //
     {"output", &output, &Path$info, .short_flag = 'o',
      .description = "where to put the executable (defaults to a sibling of the .tm file)"}, //
+    VERBOSE_FLAG, //
+    QUIET_FLAG, //
 };
 
 static int cmd_build(cli_command_t *self, List_t extra_args) {
     (void)self, (void)extra_args;
+    set_default_logs(LOG_BUILD);
     List_t files = normalize_tm_paths(List(file));
     Path_t path = *(Path_t *)files.data;
 

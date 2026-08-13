@@ -8,8 +8,8 @@
 #include "../environment.h"
 #include "../stdlib/fail.h"
 #include "../stdlib/lists.h"
-#include "common.h"
 #include "commands.h"
+#include "common.h"
 #include "compilation.h"
 
 static OptionalPath_t file = NULL;
@@ -19,13 +19,46 @@ static OptionalPath_t file = NULL;
 static cli_arg_t run_spec[] = {
     {"file", &file, &Path$info, .positional = true, .metavar = "file.tm",
      .description = "the program to compile and run"}, //
+    VERBOSE_FLAG, //
 };
+
+// Compile `path` and exec it, passing extra_args (the raw argv tail after
+// "--") as the program's arguments. Shared by `tomo run`, the bare-`tomo`
+// fallback, and `tomo eval` (which points it at a generated file):
+int compile_and_exec(Path_t path, List_t extra_args) {
+    if (cross_compiling)
+        print_err("Programs cross-compiled with --target can't run on this machine; "
+                  "use `tomo build` to build them instead");
+
+    List_t files = normalize_tm_paths(List(path));
+    path = *(Path_t *)files.data;
+    Path_t exe_path = get_exe_path(path);
+
+    env_t *env = global_env(source_mapping);
+    List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
+    compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
+    compile_executable(env, path, exe_path, object_files, extra_ldlibs);
+
+    const char *prog_args[1 + extra_args.length + 1];
+    Path_t relative_exe = Path$relative_to(exe_path, Path$current_dir());
+    prog_args[0] = (char *)Path$as_c_string(relative_exe);
+    for (int64_t j = 0; j < (int64_t)extra_args.length; j++)
+        prog_args[j + 1] = *(const char **)(extra_args.data + j * extra_args.stride);
+    prog_args[1 + extra_args.length] = NULL;
+    fflush(NULL);
+    // Don't leak the bundled zig's cache location into the program: if the
+    // program (or anything it spawns) runs the user's own zig, it should use
+    // that zig's normal cache, not Tomo's.
+    if (!zig_cache_dir_from_env) unsetenv("ZIG_GLOBAL_CACHE_DIR");
+    execv(prog_args[0], (char **)prog_args);
+    print_err("Could not execute program: ", prog_args[0]);
+    return 1;
+}
 
 // Compile `file` and exec it, passing extra_args (the raw argv tail after
 // "--") as the program's arguments:
 static int run_file(List_t extra_args) {
-    // When running files, don't print "compiled to ..." messages unless --verbose:
-    if (!verbose) quiet = true;
+    set_default_logs(0);
 
     if (file == NULL) {
         // `tomo --target <platform> --install-target` with nothing else to do:
@@ -33,8 +66,7 @@ static int run_file(List_t extra_args) {
 
         // Piping a program into Tomo
         if (!isatty(STDIN_FILENO)) {
-            Path_t parent =
-                Path$child(xdg_tomo_dir("XDG_STATE_HOME", "~/.local/state"), Texts("tomo@", TOMO_VERSION));
+            Path_t parent = Path$child(xdg_tomo_dir("XDG_STATE_HOME", "~/.local/state"), Texts("tomo@", TOMO_VERSION));
             Path$create_directory(parent, 0755, true);
             Path_t path = Path$child(parent, Text("stdin.tm"));
 
@@ -53,9 +85,9 @@ static int run_file(List_t extra_args) {
             print(tomo_cli.help);
             return 0;
         } else {
-            Path_t path = Path$child(
-                Path$child(xdg_tomo_dir("XDG_STATE_HOME", "~/.local/state"), Texts("tomo@", TOMO_VERSION)),
-                Text("run.tm"));
+            Path_t path =
+                Path$child(Path$child(xdg_tomo_dir("XDG_STATE_HOME", "~/.local/state"), Texts("tomo@", TOMO_VERSION)),
+                           Text("run.tm"));
             Path$create_directory(Path$parent(path), 0755, true);
             if (!Path$exists(path)) {
                 Path$write(path,
@@ -78,33 +110,7 @@ static int run_file(List_t extra_args) {
         }
     }
 
-    if (cross_compiling)
-        print_err("Programs cross-compiled with --target can't run on this machine; "
-                  "use `tomo build` to build them instead");
-
-    List_t files = normalize_tm_paths(List(file));
-    Path_t path = *(Path_t *)files.data;
-    Path_t exe_path = get_exe_path(path);
-
-    env_t *env = global_env(source_mapping);
-    List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
-    compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
-    compile_executable(env, path, exe_path, object_files, extra_ldlibs);
-
-    const char *prog_args[1 + extra_args.length + 1];
-    Path_t relative_exe = Path$relative_to(exe_path, Path$current_dir());
-    prog_args[0] = (char *)Path$as_c_string(relative_exe);
-    for (int64_t j = 0; j < (int64_t)extra_args.length; j++)
-        prog_args[j + 1] = *(const char **)(extra_args.data + j * extra_args.stride);
-    prog_args[1 + extra_args.length] = NULL;
-    fflush(NULL);
-    // Don't leak the bundled zig's cache location into the program: if the
-    // program (or anything it spawns) runs the user's own zig, it should use
-    // that zig's normal cache, not Tomo's.
-    if (!zig_cache_dir_from_env) unsetenv("ZIG_GLOBAL_CACHE_DIR");
-    execv(prog_args[0], (char **)prog_args);
-    print_err("Could not execute program: ", prog_args[0]);
-    return 1;
+    return compile_and_exec(file, extra_args);
 }
 
 static int cmd_run(cli_command_t *self, List_t extra_args) {

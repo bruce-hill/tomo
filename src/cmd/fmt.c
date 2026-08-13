@@ -14,10 +14,12 @@ static cli_arg_t fmt_spec[] = {
      .description = "the files to format"}, //
     {"in-place", &in_place, &Bool$info, .short_flag = 'i',
      .description = "rewrite the files instead of printing to stdout"}, //
+    VERBOSE_FLAG, //
 };
 
 static int cmd_fmt(cli_command_t *self, List_t extra_args) {
     (void)extra_args;
+    set_default_logs(0);
     files = normalize_tm_paths(files);
     if (files.length == 0) print_err("No files provided to format!\n", self->usage);
     for (int64_t i = 0; i < (int64_t)files.length; i++) {

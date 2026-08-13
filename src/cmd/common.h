@@ -4,23 +4,55 @@
 
 #include <gc.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 
+#include "../stdlib/bools.h" // IWYU pragma: export
 #include "../stdlib/datatypes.h"
 #include "../stdlib/print.h"
 #include "../stdlib/text.h"
 
+// Logging categories. Each command turns on a default set (see
+// set_default_logs) and its --verbose flag turns them all on. Values are
+// powers of two so `enabled_logs` can hold any combination.
+typedef enum {
+    LOG_BUILD = 1 << 0, // compiler progress: transpiled/compiled/installed steps
+    LOG_SKIP = 1 << 1, // "Unchanged: ..." notices for up-to-date artifacts
+    LOG_COMMANDS = 1 << 2, // the external toolchain commands being run
+} logtype_t;
+
+// Bitmask of the log categories that should currently print (0 = silent,
+// ~0 = everything). Set per-command via set_default_logs():
+extern uint32_t enabled_logs;
+
+// The "[build] "/"[cmd] "/... tag printed in front of a category's messages:
+const char *log_prefix(logtype_t type);
+
+// Print a log message (with its category's prefix) if that category is
+// enabled. Args are the usual print()/String() varargs:
+#define LOG(type, ...) (((type) & enabled_logs) ? print(log_prefix(type), __VA_ARGS__) : 0)
+
+// Set enabled_logs to a command's default, then apply its --verbose (turn
+// everything on) or --quiet (turn everything off) flag. Called at the top of
+// each command handler before it does any logging:
+void set_default_logs(uint32_t default_logs);
+
+// Reusable spec entries for a command's --verbose (and, for commands with a
+// nonzero default, --quiet) flag; drop them into a command's spec array:
+#define VERBOSE_FLAG {"verbose", &verbose, &Bool$info, .short_flag = 'v', .description = "print verbose logs"}
+#define QUIET_FLAG {"quiet", &quiet, &Bool$info, .short_flag = 'q', .description = "suppress logs"}
+
 #define run_cmd(...)                                                                                                   \
     ({                                                                                                                 \
         const char *_cmd = String(__VA_ARGS__);                                                                        \
-        if (verbose) print("\033[94;1m", _cmd, "\033[m");                                                              \
+        LOG(LOG_COMMANDS, "\033[94;1m", _cmd, "\033[m");                                                               \
         popen(_cmd, "w");                                                                                              \
     })
 #define command_output(...)                                                                                            \
     ({                                                                                                                 \
         const char *_cmd = String(__VA_ARGS__);                                                                        \
-        if (verbose) print("\033[94;1m", _cmd, "\033[m");                                                              \
+        LOG(LOG_COMMANDS, "\033[94;1m", _cmd, "\033[m");                                                               \
         FILE *_prog = popen(_cmd, "r");                                                                                \
         char *_output = GC_MALLOC_ATOMIC(1024);                                                                        \
         fgets(_output, 1023, _prog);                                                                                   \
@@ -38,8 +70,10 @@
 
 #define whisper(...) print("\033[2m", __VA_ARGS__, "\033[m")
 
-// Configuration shared by every command, populated from the global CLI flags
-// (and the toolchain/linker setup in main()) before any command runs:
+// Configuration shared by every command. clean_build/source_mapping/
+// install_target come from global CLI flags; verbose/quiet are the dests of
+// each command's own --verbose/--quiet flags (see VERBOSE_FLAG/QUIET_FLAG and
+// set_default_logs), no longer global flags:
 extern OptionalBool_t verbose, quiet, clean_build, source_mapping, install_target;
 
 // Whether ZIG_GLOBAL_CACHE_DIR came from the user's environment (true) or was

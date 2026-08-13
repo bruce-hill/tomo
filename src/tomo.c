@@ -28,8 +28,6 @@
 cli_spec_t tomo_cli = {};
 
 static cli_arg_t global_spec[] = {
-    {"verbose", &verbose, &Bool$info, .short_flag = 'v', .description = "verbose output"}, //
-    {"quiet", &quiet, &Bool$info, .short_flag = 'q', .description = "quiet output"}, //
     {"optimization", &optimization, &Text$info, .short_flag = 'O', .metavar = "level",
      .description = "set the optimization level"}, //
     {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f', .description = "force rebuilding"}, //
@@ -42,9 +40,9 @@ static cli_arg_t global_spec[] = {
 };
 
 static cli_command_t *commands[] = {
-    &run_command,       &build_command,          &transpile_command, &parse_command, &fmt_command,
-    &package_command,   &install_command,        &uninstall_command, &vendor_command, &info_command,
-    &version_command,   &uninstall_self_command,
+    &run_command,       &eval_command,           &build_command,     &transpile_command, &parse_command,
+    &fmt_command,       &package_command,        &install_command,   &uninstall_command, &vendor_command,
+    &info_command,      &version_command,        &uninstall_self_command,
 };
 
 // Runs after the global flags are popped, before command dispatch: sets up

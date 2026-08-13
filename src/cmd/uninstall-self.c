@@ -17,6 +17,7 @@ static OptionalBool_t skip_confirm = false;
 
 static cli_arg_t uninstall_self_spec[] = {
     {"yes", &skip_confirm, &Bool$info, .short_flag = 'y', .description = "uninstall without asking for confirmation"}, //
+    VERBOSE_FLAG, //
 };
 
 // The version another tomo@<version> installation in this prefix would
@@ -101,6 +102,7 @@ static bool tomo_on_path(void) {
 
 static int cmd_uninstall_self(cli_command_t *self, List_t extra_args) {
     (void)self, (void)extra_args;
+    set_default_logs(0);
 
     if (!skip_confirm) {
         if (!isatty(STDIN_FILENO))

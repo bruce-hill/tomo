@@ -15,10 +15,13 @@ static List_t paths = EMPTY_LIST;
 static cli_arg_t install_spec[] = {
     {"paths", &paths, List$info(&Path$info), .positional = true, .metavar = "dir-or-file",
      .description = "the package directories or .tm programs to install (default: the current directory)"}, //
+    VERBOSE_FLAG, //
+    QUIET_FLAG,   //
 };
 
 static int cmd_install(cli_command_t *self, List_t extra_args) {
     (void)self, (void)extra_args;
+    set_default_logs(LOG_BUILD);
     if (cross_compiling) print_err("`tomo install` can't be combined with --target: the binary wouldn't run here");
 
     Path_t cwd = Path$current_dir();

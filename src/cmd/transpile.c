@@ -17,6 +17,7 @@ static cli_arg_t transpile_spec[] = {
      .description = "the file to transpile"}, //
     {"raw", &raw, &Bool$info,
      .description = "print the raw generated code, without formatting or syntax highlighting"}, //
+    VERBOSE_FLAG, //
 };
 
 static bool command_exists(const char *cmd) {
@@ -26,8 +27,7 @@ static bool command_exists(const char *cmd) {
 
 static int cmd_transpile(cli_command_t *self, List_t extra_args) {
     (void)self, (void)extra_args;
-    // Don't print "Transpiled ..." progress messages into the output:
-    if (!verbose) quiet = true;
+    set_default_logs(0);
 
     List_t files = normalize_tm_paths(List(file));
     Path_t path = *(Path_t *)files.data;

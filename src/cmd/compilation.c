@@ -202,16 +202,16 @@ static void gc_package_dir(Path_t dir) {
     for (int64_t i = 0; i < (int64_t)links.length; i++) {
         Path_t link = *(Path_t *)(links.data + i * links.stride);
         if (Table$str_get(names, Text$as_c_string(Path$base_name(link)))) continue;
-        if (unlink(link) == 0 && !quiet)
-            print("Removed unused package binding: ", Path$relative_to(link, Path$current_dir()));
+        if (unlink(link) == 0)
+            LOG(LOG_BUILD, "Removed unused package binding: ", Path$relative_to(link, Path$current_dir()));
     }
     List_t entries = Path$glob(Path$child(tomo_root, Text("store/*")));
     for (int64_t i = 0; i < (int64_t)entries.length; i++) {
         Path_t entry = *(Path_t *)(entries.data + i * entries.stride);
         if (Table$str_get(digests, Text$as_c_string(Path$base_name(entry)))) continue;
         Result_t removed = Path$remove(entry, true);
-        if (removed.Failure.reason.tag == TEXT_NONE && !quiet)
-            print("Removed unused store entry: ", Path$relative_to(entry, Path$current_dir()));
+        if (removed.Failure.reason.tag == TEXT_NONE)
+            LOG(LOG_BUILD, "Removed unused store entry: ", Path$relative_to(entry, Path$current_dir()));
     }
 }
 
@@ -585,10 +585,10 @@ void build_package_archive(Path_t pkg_dir, List_t tm_files, Path_t archive) {
         if (!prog) print_err("Failed to run `ar`");
         int status = pclose(prog);
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
-        if (!quiet) print("Compiled static package:\t", Path$relative_to(archive, Path$current_dir()));
+        LOG(LOG_BUILD, "Compiled static package:\t", Path$relative_to(archive, Path$current_dir()));
         gc_package_dir(pkg_dir);
     } else {
-        if (verbose) whisper("Unchanged: ", archive);
+        LOG(LOG_SKIP, "Unchanged: ", archive);
     }
 }
 
@@ -597,9 +597,9 @@ void install_package(Path_t pkg_dir) {
     Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION)), pkg_name);
     print("Installing ", pkg_dir, " into ", dest);
     if (!Enum$equal(&pkg_dir, &dest, &Path$info)) {
-        if (verbose) whisper("Clearing out any pre-existing version of ", pkg_name);
+        LOG(LOG_BUILD, "Clearing out any pre-existing version of ", pkg_name);
         xsystem(as_owner, "rm -rf '", dest, "'");
-        if (verbose) whisper("Moving files to ", dest);
+        LOG(LOG_BUILD, "Moving files to ", dest);
         xsystem(as_owner, "mkdir -p '", dest, "'");
         xsystem(as_owner, "cp -r '", pkg_dir, "'/* '", dest, "/'");
         xsystem(as_owner, "cp -r '", pkg_dir, "'/.tomo '", dest, "/'");
@@ -659,7 +659,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             transpile_header(env, entry->filename);
             entry->staleness.o = true;
         } else {
-            if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".h"));
+            LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".h"));
         }
     }
 
@@ -679,15 +679,15 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         } *entry = (dependency_files.entries.data + i * dependency_files.entries.stride);
         if (!clean_build && !entry->staleness.c && !entry->staleness.h && !entry->staleness.o
             && !is_config_outdated(entry->filename)) {
-            if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".c"));
-            if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".o"));
+            LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".c"));
+            LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".o"));
             continue;
         }
 
         pid_t pid = fork();
         if (pid == 0) {
             if (clean_build || entry->staleness.c) transpile_code(env, entry->filename);
-            else if (verbose) whisper("Unchanged: ", build_file(entry->filename, ".c"));
+            else LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".c"));
             if (mode != COMPILE_C_FILES) compile_object_file(entry->filename);
             fflush(NULL);
             _exit(EXIT_SUCCESS);
@@ -906,7 +906,7 @@ void transpile_header(env_t *base_env, Path_t path) {
     Text$print(header, h_code);
     if (fclose(header) == -1) print_err("Failed to write header file: ", h_filename);
 
-    if (!quiet) print("Transpiled header:\t", Path$relative_to(h_filename, Path$current_dir()));
+    LOG(LOG_BUILD, "Transpiled header:\t", Path$relative_to(h_filename, Path$current_dir()));
 }
 
 void transpile_code(env_t *base_env, Path_t path) {
@@ -942,7 +942,7 @@ void transpile_code(env_t *base_env, Path_t path) {
 
     if (fclose(c_file) == -1) print_err("Failed to output C code to ", c_filename);
 
-    if (!quiet) print("Transpiled code:\t", Path$relative_to(c_filename, Path$current_dir()));
+    LOG(LOG_BUILD, "Transpiled code:\t", Path$relative_to(c_filename, Path$current_dir()));
 }
 
 // The first time the bundled Zig toolchain compiles anything on a machine, it
@@ -981,7 +981,7 @@ void compile_object_file(Path_t path) {
 
     Path$write(build_file(path, ".config"), config_summary, 0644);
 
-    if (!quiet) print("Compiled object:\t", Path$relative_to(obj_file, Path$current_dir()));
+    LOG(LOG_BUILD, "Compiled object:\t", Path$relative_to(obj_file, Path$current_dir()));
 }
 
 Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs) {
@@ -996,9 +996,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
             Text_t manpage =
                 compile_manpage(Path$base_name(exe_path), ast, Match(main_binding->type, FunctionType)->args);
             Path$write(manpage_file, manpage, 0644);
-            if (!quiet) print("Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
+            LOG(LOG_BUILD, "Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
         } else {
-            if (verbose) whisper("Unchanged: ", manpage_file);
+            LOG(LOG_SKIP, "Unchanged: ", manpage_file);
         }
     }
 
@@ -1016,7 +1016,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
         && !is_stale_for_any(exe_path, object_files, false) && !is_stale_for_any(exe_path, linked_archives, true)
         && !is_stale(exe_path, Path$sibling(path, Text("packages.ini")), true)) {
-        if (verbose) whisper("Unchanged: ", exe_path);
+        LOG(LOG_SKIP, "Unchanged: ", exe_path);
         return exe_path;
     }
 
@@ -1126,7 +1126,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     int status = pclose(runner);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
 
-    if (!quiet) print("Compiled executable:\t", Path$relative_to(exe_path, Path$current_dir()));
+    LOG(LOG_BUILD, "Compiled executable:\t", Path$relative_to(exe_path, Path$current_dir()));
     gc_package_dir(Path$parent(path));
     return exe_path;
 }

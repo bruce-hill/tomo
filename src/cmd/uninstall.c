@@ -11,10 +11,12 @@ static List_t names = EMPTY_LIST;
 static cli_arg_t uninstall_spec[] = {
     {"names", &names, List$info(&Text$info), .positional = true, .required = true, .metavar = "name",
      .description = "the programs or packages to uninstall"}, //
+    VERBOSE_FLAG, //
 };
 
 static int cmd_uninstall(cli_command_t *self, List_t extra_args) {
     (void)extra_args;
+    set_default_logs(0);
     if (names.length == 0) print_err("No names provided to uninstall!\n", self->usage);
     for (int64_t i = 0; i < (int64_t)names.length; i++) {
         Text_t *name = (Text_t *)(names.data + i * names.stride);

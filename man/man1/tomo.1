@@ -30,6 +30,15 @@ With no command, \f[B]tomo\f[R] \f[I]file.tm\f[R] runs the file (like
 \f[B]$EDITOR\f[R] to edit and run (or compiles and runs a program piped
 in on standard input).
 .SH COMMANDS
+Every command takes a \f[B]\-\-verbose\f[R]/\f[B]\-v\f[R] flag that
+turns on all build logs (the compile steps, up\-to\-date
+\[lq]Unchanged\[rq] notices, and the toolchain commands being run).
+Commands that print build progress by default (\f[B]build\f[R],
+\f[B]package\f[R], \f[B]install\f[R]) also take
+\f[B]\-\-quiet\f[R]/\f[B]\-q\f[R] to silence it.
+The run\-style commands (\f[B]tomo\f[R] \f[I]file.tm\f[R],
+\f[B]run\f[R], \f[B]eval\f[R]) are silent by default: use \f[B]tomo run
+\-v\f[R] \f[I]file.tm\f[R] to see the compiler\[cq]s work.
 .TP
 \f[B]run\f[R] \f[I]file.tm\f[R] [\f[B]\-\-\f[R] \f[I]args\&...\f[R]]
 Compile and run the given program.
@@ -37,6 +46,13 @@ Anything after \f[B]\-\-\f[R] is passed to the program as its own
 arguments.
 The command name is optional: \f[B]tomo\f[R] \f[I]file.tm\f[R] does the
 same thing.
+.TP
+\f[B]eval\f[R] \f[I]`expr'\f[R]
+Evaluate a Tomo expression and print its result.
+The argument may be several statements separated by newlines or
+\f[B];\f[R] (for example \f[B]tomo eval \[aq]use random; random.int(1,
+100)\[aq]\f[R]); the value of the final statement is printed, with
+syntax coloring when standard output is a terminal.
 .TP
 \f[B]build\f[R] [\f[B]\-o\f[R] \f[I]output\f[R]] \f[I]file.tm\f[R]
 Compile the given program to a standalone executable, placed as a
@@ -129,12 +145,6 @@ only valid after their command.
 .TP
 \f[B]\-\-help\f[R], \f[B]\-h\f[R]
 Print the usage (or a command\[cq]s usage) and exit.
-.TP
-\f[B]\-\-verbose\f[R], \f[B]\-v\f[R]
-Print extra verbose output.
-.TP
-\f[B]\-\-quiet\f[R], \f[B]\-q\f[R]
-Run in quiet mode.
 .TP
 \f[B]\-\-optimization\f[R] \f[B]level\f[R], \f[B]\-O\f[R] \f[B]level\f[R]
 Set the optimization level.
