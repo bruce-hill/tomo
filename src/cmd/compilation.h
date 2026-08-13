@@ -10,7 +10,8 @@
 typedef enum { COMPILE_C_FILES, COMPILE_OBJ, COMPILE_EXE } compile_mode_t;
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs, compile_mode_t mode);
-Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs);
+Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs,
+                          bool embed_git_info);
 void compile_object_file(Path_t path);
 void transpile_header(env_t *base_env, Path_t path);
 void transpile_code(env_t *base_env, Path_t path);

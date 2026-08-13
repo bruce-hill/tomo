@@ -6,6 +6,7 @@
 
 #include "../config.h"
 #include "../environment.h"
+#include "../profile.h"
 #include "../stdlib/fail.h"
 #include "../stdlib/lists.h"
 #include "commands.h"
@@ -34,10 +35,13 @@ int compile_and_exec(Path_t path, List_t extra_args) {
     path = *(Path_t *)files.data;
     Path_t exe_path = get_exe_path(path);
 
-    env_t *env = global_env(source_mapping);
+    env_t *env;
+    PROFILE("global env", env = global_env(source_mapping));
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
     compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
-    compile_executable(env, path, exe_path, object_files, extra_ldlibs);
+    // This executable is run once and discarded, so don't spend git subprocesses
+    // gathering provenance metadata to embed in it:
+    compile_executable(env, path, exe_path, object_files, extra_ldlibs, /*embed_git_info=*/false);
 
     const char *prog_args[1 + extra_args.length + 1];
     Path_t relative_exe = Path$relative_to(exe_path, Path$current_dir());
@@ -50,6 +54,8 @@ int compile_and_exec(Path_t path, List_t extra_args) {
     // program (or anything it spawns) runs the user's own zig, it should use
     // that zig's normal cache, not Tomo's.
     if (!zig_cache_dir_from_env) unsetenv("ZIG_GLOBAL_CACHE_DIR");
+    // execv replaces this process, so print the profile now (atexit won't fire):
+    profile_report();
     execv(prog_args[0], (char **)prog_args);
     print_err("Could not execute program: ", prog_args[0]);
     return 1;

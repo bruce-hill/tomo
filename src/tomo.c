@@ -15,6 +15,7 @@
 #include "cmd/common.h"
 #include "config.h"
 #include "naming.h"
+#include "profile.h"
 #include "stdlib/bools.h"
 #include "stdlib/cli.h"
 #include "stdlib/datatypes.h"
@@ -37,6 +38,8 @@ static cli_arg_t global_spec[] = {
      .description = "cross-compile for another platform; one of: " TOMO_DIST_PLATFORMS}, //
     {"install-target", &install_target, &Bool$info,
      .description = "install the --target platform's libraries without asking"}, //
+    {"profile", &profiling, &Bool$info,
+     .description = "print a breakdown of where compile time is spent"}, //
 };
 
 static cli_command_t *commands[] = {
@@ -146,6 +149,7 @@ static void after_globals(void) {
 
 int main(int argc, char *argv[]) {
     GC_INIT();
+    profile_mark_start();
     tomo_configure();
 
 #ifdef __linux__
@@ -219,5 +223,9 @@ int main(int argc, char *argv[]) {
         .after_globals = after_globals,
         .fallback = run_fallback,
     };
+    // Print the profile (if --profile was given) on any normal exit; the
+    // run/eval paths that exec a program call profile_report() themselves right
+    // before execv, since that replaces the process and skips atexit handlers.
+    atexit(profile_report);
     return tomo_dispatch_command(argc, argv, &tomo_cli);
 }

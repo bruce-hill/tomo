@@ -64,7 +64,7 @@ static int cmd_install(cli_command_t *self, List_t extra_args) {
             env_t *env = global_env(source_mapping);
             List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
             compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
-            compile_executable(env, path, exe_path, object_files, extra_ldlibs);
+            compile_executable(env, path, exe_path, object_files, extra_ldlibs, /*embed_git_info=*/true);
             xsystem(as_owner, "mkdir -p '", TOMO_PATH, "/bin' '", TOMO_PATH, "/man/man1'");
             xsystem(as_owner, "cp -v '", exe_path, "' '", TOMO_PATH, "/bin/'");
             Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");

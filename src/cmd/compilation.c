@@ -23,6 +23,7 @@
 #include "../naming.h"
 #include "../packages.h"
 #include "../parse/files.h"
+#include "../profile.h"
 #include "../stdlib/bytes.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/enums.h"
@@ -538,15 +539,47 @@ static Text_t compile_build_info(env_t *env, const char *symbol) {
     return Texts("__asm__(", Text$quoted(asm_text, false, Text("\"")), ");\n");
 }
 
+// Launch a shell command with its stdout on a pipe (logging it like
+// command_output does), but WITHOUT waiting for it -- so several can run
+// concurrently rather than one-at-a-time:
+#define popen_logged(...)                                                                                              \
+    ({                                                                                                                 \
+        const char *_cmd = String(__VA_ARGS__);                                                                        \
+        LOG(LOG_COMMANDS, "\033[94;1m", _cmd, "\033[m");                                                               \
+        popen(_cmd, "r");                                                                                              \
+    })
+
+// Read one newline-trimmed line from a pipe, or NULL at EOF (e.g. when the
+// command produced no output because it failed):
+static char *read_pipe_line(FILE *f) {
+    if (!f) return NULL;
+    char *buf = GC_MALLOC_ATOMIC(1024);
+    if (!fgets(buf, 1023, f)) return NULL;
+    size_t n = strlen(buf);
+    if (n > 0 && buf[n - 1] == '\n') buf[n - 1] = '\0';
+    return buf;
+}
+
 static void add_git_info(env_t *env, Path_t dir) {
-    const char *commit = command_output("git -C '", dir, "' rev-parse HEAD 2>/dev/null");
-    if (commit) {
-        Table$str_set(env->build_info, "Git commit", commit);
-        const char *commit_time = command_output("git -C '", dir, "' log -1 --format=%cI 2>/dev/null");
-        if (commit_time) Table$str_set(env->build_info, "Git commit time", commit_time);
-        const char *dirty = command_output("git -C '", dir, "' diff --quiet  2>/dev/null && echo false || echo true");
-        if (dirty) Table$str_set(env->build_info, "Git local changes", dirty);
-    }
+    // Launch both git queries up front so they run in parallel (each popen
+    // spawns a shell + git). The commit hash and its time come from a single
+    // `git log` (two output lines) instead of separate rev-parse + log calls,
+    // so this is 2 concurrent invocations rather than 3 sequential ones:
+    FILE *log = popen_logged("git -C '", dir, "' log -1 --format='%H%n%cI' 2>/dev/null");
+    FILE *dirty = popen_logged("git -C '", dir, "' diff --quiet 2>/dev/null && echo false || echo true");
+
+    char *commit = read_pipe_line(log);
+    char *commit_time = commit ? read_pipe_line(log) : NULL;
+    char *local_changes = read_pipe_line(dirty);
+    if (log) pclose(log);
+    if (dirty) pclose(dirty);
+
+    // No commit line means this isn't a git repo (or git is unavailable); the
+    // `diff` result is meaningless then, so drop it too:
+    if (!commit) return;
+    Table$str_set(env->build_info, "Git commit", commit);
+    if (commit_time) Table$str_set(env->build_info, "Git commit time", commit_time);
+    if (local_changes) Table$str_set(env->build_info, "Git local changes", local_changes);
 }
 
 void build_package(Path_t pkg_dir) {
@@ -616,7 +649,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (!Path$has_extension(filename, Text("tm")))
             print_err("Not a valid .tm file: \x1b[91;1m", filename, "\x1b[m");
         if (!Path$is_file(filename, true)) print_err("Couldn't find file: ", filename);
-        build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link);
+        PROFILE("dependency graph", build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link));
     }
 
     // Make sure all files and dependencies have a .id file:
@@ -656,7 +689,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         } *entry = (dependency_files.entries.data + i * dependency_files.entries.stride);
 
         if (entry->staleness.h || clean_build) {
-            transpile_header(env, entry->filename);
+            PROFILE("transpile header", transpile_header(env, entry->filename));
             entry->staleness.o = true;
         } else {
             LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".h"));
@@ -669,6 +702,12 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         struct child_s *next;
         pid_t pid;
     } *child_processes = NULL;
+
+    // Transpiling and `zig cc -c` run in forked children, so their profile
+    // spans never reach the parent's totals. When profiling, give the children
+    // a pipe to serialize their spans back over (merged into the parent below).
+    int profile_pipe[2] = {-1, -1};
+    if (profiling && pipe(profile_pipe) != 0) profile_pipe[0] = profile_pipe[1] = -1;
 
     // (Re)transpile and compile object files, eagerly for files explicitly
     // specified and lazily for downstream dependencies:
@@ -686,17 +725,27 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
 
         pid_t pid = fork();
         if (pid == 0) {
-            if (clean_build || entry->staleness.c) transpile_code(env, entry->filename);
+            // Start with a clean slate so we report only this child's work, not
+            // the parent history inherited by copy-on-write:
+            profile_reset();
+            if (clean_build || entry->staleness.c) PROFILE("transpile code", transpile_code(env, entry->filename));
             else LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".c"));
-            if (mode != COMPILE_C_FILES) compile_object_file(entry->filename);
+            if (mode != COMPILE_C_FILES) PROFILE("cc compile object", compile_object_file(entry->filename));
+            if (profile_pipe[1] >= 0) profile_serialize(profile_pipe[1]);
             fflush(NULL);
             _exit(EXIT_SUCCESS);
         }
         child_processes = new (struct child_s, .next = child_processes, .pid = pid);
     }
 
+    // Close the parent's write end so the merge read below sees EOF once every
+    // child has written and exited:
+    if (profile_pipe[1] >= 0) close(profile_pipe[1]);
+
     for (; child_processes; child_processes = child_processes->next)
         wait_for_child_success(child_processes->pid);
+
+    if (profile_pipe[0] >= 0) profile_merge(profile_pipe[0]); // closes the read end
 
     if (object_files) {
         for (int64_t i = 0; i < (int64_t)dependency_files.entries.length; i++) {
@@ -984,11 +1033,14 @@ void compile_object_file(Path_t path) {
     LOG(LOG_BUILD, "Compiled object:\t", Path$relative_to(obj_file, Path$current_dir()));
 }
 
-Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs) {
+Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs,
+                          bool embed_git_info) {
     warn_if_first_compile();
-    ast_t *ast = parse_file(Path$as_c_string(path), NULL);
+    ast_t *ast;
+    PROFILE("parse (main)", ast = parse_file(Path$as_c_string(path), NULL));
     if (!ast) print_err("Could not parse file ", path);
-    env_t *env = load_module_env(base_env, ast);
+    env_t *env;
+    PROFILE("load module env", env = load_module_env(base_env, ast));
     binding_t *main_binding = get_binding(env, "main");
     if (main_binding && main_binding->type->tag == FunctionType) {
         Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");
@@ -1020,11 +1072,15 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         return exe_path;
     }
 
-    add_git_info(env, Path$parent(path));
+    // Git provenance (commit, dirty flag) is embedded in the binary's
+    // build_info. It costs a few git subprocesses, so skip it for ephemeral
+    // `tomo run`/`eval` executables, where the metadata is thrown away with the
+    // binary; only persistent `build`/`install` artifacts pay for it:
+    if (embed_git_info) PROFILE("git info", add_git_info(env, Path$parent(path)));
 
     // Zip up the program's sources for embedding into the executable:
     Path_t source_blob = build_file(path, ".source.zip");
-    write_source_blob(env, path, source_blob);
+    PROFILE("source blob", write_source_blob(env, path, source_blob));
 
     Text_t program;
     if (main_binding && main_binding->type->tag == FunctionType) {
@@ -1102,6 +1158,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         link_macho ? Texts(" '-Wl,-sectcreate,__TEXT,__tomo_source,", Text$from_str(Path$as_c_string(source_blob)), "'")
                    : EMPTY_TEXT;
 
+    profile_span_t link_span = profile_begin("cc link executable");
     FILE *runner = run_cmd( // Invoke C compiler
         cc,
         // C flags:
@@ -1124,6 +1181,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     Text$print(runner, program);
     int status = pclose(runner);
+    profile_end(link_span);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
 
     LOG(LOG_BUILD, "Compiled executable:\t", Path$relative_to(exe_path, Path$current_dir()));
