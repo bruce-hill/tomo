@@ -15,13 +15,19 @@ static List_t paths = EMPTY_LIST;
 static cli_arg_t install_spec[] = {
     {"paths", &paths, List$info(&Path$info), .positional = true, .metavar = "dir-or-file",
      .description = "the package directories or .tm programs to install (default: the current directory)"}, //
-    VERBOSE_FLAG, //
-    QUIET_FLAG,   //
+    OPTIMIZATION_FLAG, //
+    VERBOSE_FLAG,      //
+    QUIET_FLAG,        //
 };
 
 static int cmd_install(cli_command_t *self, List_t extra_args) {
     (void)self, (void)extra_args;
     set_default_logs(LOG_BUILD);
+    // Installed programs and packages are persistent artifacts, like `build`:
+    // default to the highest safe optimization with the size-reducing link
+    // flags. Set here (before the per-artifact forks) so the children inherit
+    // it; -O overrides the level.
+    configure_codegen(opt_flag.tag == TEXT_NONE ? Text("3") : opt_flag, /*optimize=*/true);
     if (cross_compiling) print_err("`tomo install` can't be combined with --target: the binary wouldn't run here");
 
     Path_t cwd = Path$current_dir();

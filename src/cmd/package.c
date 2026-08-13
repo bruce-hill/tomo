@@ -17,13 +17,18 @@ static cli_arg_t package_spec[] = {
     {"output", &output, &Path$info, .short_flag = 'o', .metavar = "libname.a",
      .description = "where to put the archive (single package only; defaults to package.a in the package "
                     "directory)"}, //
-    VERBOSE_FLAG, //
-    QUIET_FLAG,   //
+    OPTIMIZATION_FLAG, //
+    VERBOSE_FLAG,      //
+    QUIET_FLAG,        //
 };
 
 static int cmd_package(cli_command_t *self, List_t extra_args) {
     (void)self, (void)extra_args;
     set_default_logs(LOG_BUILD);
+    // A package archive is a persistent artifact, like `build`: default to the
+    // highest safe optimization. Set before the per-package forks so children
+    // inherit it; -O overrides the level.
+    configure_codegen(opt_flag.tag == TEXT_NONE ? Text("3") : opt_flag, /*optimize=*/true);
     Path_t cwd = Path$current_dir();
     // Default: package the current directory:
     if (paths.length == 0) List$insert(&paths, &cwd, I(0), sizeof(Path_t));
