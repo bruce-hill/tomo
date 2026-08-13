@@ -15,11 +15,12 @@
 
 static OptionalPath_t file = NULL;
 
-// The file is optional in the spec so the bare-`tomo` fallback can fall
-// through to the stdin/scratch-file behavior; `tomo run` itself requires it:
+// The file is optional so both `tomo run` and the bare-`tomo` shim can fall
+// through to the stdin-program / editor-scratch behavior when none is given:
 static cli_arg_t run_spec[] = {
     {"file", &file, &Path$info, .positional = true, .metavar = "file.tm",
      .description = "the program to compile and run"}, //
+    OPTIMIZATION_FLAG, //
     VERBOSE_FLAG, //
 };
 
@@ -30,6 +31,12 @@ int compile_and_exec(Path_t path, List_t extra_args) {
     if (cross_compiling)
         print_err("Programs cross-compiled with --target can't run on this machine; "
                   "use `tomo build` to build them instead");
+
+    // run/eval compile for a quick single execution: default to a low
+    // optimization level (fast to compile) and skip the size-reducing link
+    // flags (fast to link), since this executable is discarded after one run.
+    // An explicit -O overrides the level but keeps the fast link path.
+    configure_codegen(opt_flag.tag == TEXT_NONE ? Text("1") : opt_flag, /*optimize=*/false);
 
     List_t files = normalize_tm_paths(List(path));
     path = *(Path_t *)files.data;
@@ -119,15 +126,11 @@ static int run_file(List_t extra_args) {
     return compile_and_exec(file, extra_args);
 }
 
+// The command handler for both `tomo run file.tm` and the bare-`tomo` shim
+// (see the CLI's default_command). With no file, run_file() falls through to
+// the stdin-program / editor-scratch behavior:
 static int cmd_run(cli_command_t *self, List_t extra_args) {
-    if (file == NULL) print_err("No file provided to run!\n", self->usage);
-    return run_file(extra_args);
-}
-
-int run_fallback(List_t args, List_t extra_args) {
-    cli_help_info_t info = {
-        .usage = run_command.usage, .help = run_command.help, .help_short = 'h', .strict_positionals = true};
-    tomo_parse_arg_list(args, info, sizeof(run_spec) / sizeof(run_spec[0]), run_spec);
+    (void)self;
     return run_file(extra_args);
 }
 

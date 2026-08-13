@@ -26,6 +26,7 @@ static Text_t expr = EMPTY_TEXT;
 static cli_arg_t eval_spec[] = {
     {"expr", &expr, &Text$info, .positional = true, .required = true, .metavar = "'<expr>'",
      .description = "the Tomo expression to evaluate"}, //
+    OPTIMIZATION_FLAG, //
     VERBOSE_FLAG, //
 };
 

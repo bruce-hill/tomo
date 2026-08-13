@@ -349,6 +349,14 @@ int tomo_dispatch_command(int argc, char *argv[], cli_spec_t *cli) {
 
     if (command) {
         List$remove_at(&head, I(1), I(1), sizeof(const char *)); // drop the command name itself
+    } else if (cli->default_command) {
+        // Shim: `tomo <args>` behaves as `tomo <default_command> <args>`. There
+        // is no command-name token in `head` to strip -- head[0] is already an
+        // argument (typically the file to run) -- so fall through to the same
+        // spec-parse + dispatch path a named command uses.
+        command = cli->default_command;
+    }
+    if (command) {
         cli_help_info_t info = {
             .usage = command->usage, .help = command->help, .help_short = 'h', .strict_positionals = true};
         tomo_parse_arg_list(head, info, command->spec_len, command->spec);

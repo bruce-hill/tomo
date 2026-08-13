@@ -54,9 +54,30 @@ OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-t
                              " -fno-signed-zeros"
                              " -fPIC -ggdb"
                              " -DGC_THREADS"),
-               ldlibs = Text("-lm"), ldflags = Text(""), optimization = Text("2"), cc = Text(""), ar = Text("");
+               ldlibs = Text("-lm"), ldflags = Text(""),
+               // optimization gets a concrete value from configure_codegen();
+               // opt_flag stays NONE until the user passes -O:
+               optimization = Text("2"), opt_flag = NONE_TEXT, cc = Text(""), ar = Text("");
+
+Text_t link_optimizations = Text("");
 
 Text_t config_summary = Text(""), as_owner = Text("");
+
+void configure_codegen(Text_t opt_level, bool optimize) {
+    optimization = opt_level;
+    // Dead-code stripping (--gc-sections / -dead_strip) and debug-section
+    // compression (zstd) make smaller binaries but slow linking noticeably.
+    // Enable them only for optimized (build/install) artifacts; the fast
+    // run/eval path skips them since its binary is thrown away after one run.
+    if (optimize) {
+        link_optimizations = link_macho ? Text(" -Wl,-w,-dead_strip")
+                                        : Text(" -Wl,--gc-sections -Wl,--compress-debug-sections=zstd");
+    } else {
+        link_optimizations = Text("");
+    }
+    config_summary = Texts("TOMO_VERSION=", TOMO_VERSION, "\n", "COMPILER=", cc, " ", cflags, " -O", optimization, "\n",
+                           "SOURCE_MAPPING=", source_mapping ? Text("yes") : Text("no"), "\n");
+}
 
 #ifdef __linux__
 

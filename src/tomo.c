@@ -29,8 +29,6 @@
 cli_spec_t tomo_cli = {};
 
 static cli_arg_t global_spec[] = {
-    {"optimization", &optimization, &Text$info, .short_flag = 'O', .metavar = "level",
-     .description = "set the optimization level"}, //
     {"force-rebuild", &clean_build, &Bool$info, .short_flag = 'f', .description = "force rebuilding"}, //
     {"source-mapping", &source_mapping, &Bool$info, .short_flag = 'm',
      .description = "toggle source mapping in generated code"}, //
@@ -126,14 +124,19 @@ static void after_globals(void) {
         link_macho = true;
         // -u _tomo_versions forces the versions.o member (the version info in
         // the __TEXT,__tomo_versions section) out of libtomo.a into every
-        // executable:
-        ldflags = Texts(ldflags, " -Wl,-w,-dead_strip -Wl,-U,build_info -Wl,-u,_tomo_versions");
+        // executable. Dead-stripping (-w,-dead_strip) is applied per-command by
+        // configure_codegen() via link_optimizations, since it slows linking.
+        ldflags = Texts(ldflags, " -Wl,-U,build_info -Wl,-u,_tomo_versions");
     } else {
-        // --compress-debug-sections: the DWARF that powers runtime stacktraces
-        // is most of a binary's file size; the vendored libbacktrace
-        // decompresses zstd sections natively, so traces are unaffected.
-        ldflags = Texts(ldflags, " -Wl,--gc-sections -Wl,-u,build_info -Wl,-u,tomo_versions"
-                                 " -Wl,--compress-debug-sections=zstd");
+        // -u forces the build_info/versions sections into every executable.
+        // Dead-code stripping (--gc-sections) and debug-section compression
+        // (--compress-debug-sections=zstd) are applied per-command by
+        // configure_codegen() via link_optimizations: the DWARF that powers
+        // runtime stacktraces is most of a binary's file size, and the vendored
+        // libbacktrace decompresses zstd sections natively so traces are
+        // unaffected -- but both flags slow linking, so the fast run/eval path
+        // skips them.
+        ldflags = Texts(ldflags, " -Wl,-u,build_info -Wl,-u,tomo_versions");
     }
 
 #ifdef __APPLE__
@@ -143,8 +146,10 @@ static void after_globals(void) {
     }
 #endif
 
-    config_summary = Texts("TOMO_VERSION=", TOMO_VERSION, "\n", "COMPILER=", cc, " ", cflags, " -O", optimization, "\n",
-                           "SOURCE_MAPPING=", source_mapping ? Text("yes") : Text("no"), "\n");
+    // Establish a safe default codegen configuration (highest safe
+    // optimization, size-reducing link flags on) for commands that don't set
+    // their own; the run/eval/build handlers override it with configure_codegen.
+    configure_codegen(Text("2"), /*optimize=*/true);
 }
 
 int main(int argc, char *argv[]) {
@@ -221,7 +226,8 @@ int main(int argc, char *argv[]) {
         .num_commands = (int)(sizeof(commands) / sizeof(commands[0])),
         .commands = commands,
         .after_globals = after_globals,
-        .fallback = run_fallback,
+        // Bare `tomo file.tm` (and `tomo` with no file) shims to `tomo run`:
+        .default_command = &run_command,
     };
     // Print the profile (if --profile was given) on any normal exit; the
     // run/eval paths that exec a program call profile_report() themselves right

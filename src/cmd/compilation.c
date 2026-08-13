@@ -1163,8 +1163,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         cc,
         // C flags:
         " ", cflags, " -O", optimization,
-        // Linker flags and dynamically linked shared packages:
-        " ", ldflags, source_section_flag, " ", ldlibs, " ", list_text(extra_ldlibs),
+        // Linker flags and dynamically linked shared packages (link_optimizations
+        // holds the size-reducing flags that optimized builds add, empty for the
+        // fast run/eval path):
+        " ", ldflags, link_optimizations, source_section_flag, " ", ldlibs, " ", list_text(extra_ldlibs),
         // Object files:
         " ", paths_str(object_files),
         // Input file:

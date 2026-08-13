@@ -66,7 +66,12 @@ typedef struct {
     cli_command_t **commands;
     // Runs after global flags are popped, before command dispatch:
     void (*after_globals)(void);
-    // Called when argv[1] is not a command name (bare files, no args, etc.):
+    // The command to shim to when argv[1] is not a command name (e.g. bare
+    // `tomo file.tm` behaves as `tomo run file.tm`): the remaining args are
+    // parsed against this command's spec and handed to its handler, with no
+    // command-name token to strip. Takes precedence over `fallback`.
+    cli_command_t *default_command;
+    // Called when argv[1] is not a command name and no default_command is set:
     int (*fallback)(List_t args, List_t extra_args);
 } cli_spec_t;
 

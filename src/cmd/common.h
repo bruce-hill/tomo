@@ -42,6 +42,12 @@ void set_default_logs(uint32_t default_logs);
 // nonzero default, --quiet) flag; drop them into a command's spec array:
 #define VERBOSE_FLAG {"verbose", &verbose, &Bool$info, .short_flag = 'v', .description = "print verbose logs"}
 #define QUIET_FLAG {"quiet", &quiet, &Bool$info, .short_flag = 'q', .description = "suppress logs"}
+// Per-command optimization flag. Its dest (opt_flag) stays NONE when unset, so
+// each command can fall back to its own default (fast for run/eval, high for
+// build) via configure_codegen():
+#define OPTIMIZATION_FLAG                                                                                              \
+    {"optimization", &opt_flag, &Text$info, .short_flag = 'O', .metavar = "level",                                    \
+     .description = "set the optimization level (0-3)"}
 
 #define run_cmd(...)                                                                                                   \
     ({                                                                                                                 \
@@ -99,10 +105,28 @@ extern bool link_macho;
 // -nostdlib against, or empty to let zig supply its own (unstripped) copy:
 extern Text_t zig_libc_dir;
 
-extern OptionalText_t cflags, ldlibs, ldflags, optimization,
+extern OptionalText_t cflags, ldlibs, ldflags,
+    // The effective `-O` level compiled with (always a concrete value like
+    // "1"). Set via configure_codegen(); see optimization vs opt_flag below.
+    optimization,
+    // The dest of each compiling command's --optimization/-O flag. NONE until
+    // the user passes -O, letting the command pick its own default level.
+    opt_flag,
     // The toolchain is not configurable; these are set in main() to the
     // `zig cc`/`zig ar` bundled inside the Tomo installation:
     cc, ar;
+
+// Extra link-time flags that shrink the binary at the cost of link speed
+// (dead-code stripping + debug-section compression). configure_codegen()
+// enables them for optimized builds and clears them for the fast run/eval
+// path, where the executable is ephemeral so its size doesn't matter.
+extern Text_t link_optimizations;
+
+// Set the optimization level (`-O<opt_level>`) and, when `optimize` is true,
+// the size-reducing link flags; then rebuild config_summary. Called once per
+// command before compiling: after_globals() applies a safe default, and the
+// run/eval/build handlers override it with their own level + speed tradeoff.
+void configure_codegen(Text_t opt_level, bool optimize);
 
 extern Text_t config_summary,
     // This will be either "" or "sudo -u <user>" or "doas -u <user>"

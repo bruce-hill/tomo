@@ -13,6 +13,7 @@ static cli_arg_t build_spec[] = {
      .description = "the program to compile"}, //
     {"output", &output, &Path$info, .short_flag = 'o',
      .description = "where to put the executable (defaults to a sibling of the .tm file)"}, //
+    OPTIMIZATION_FLAG, //
     VERBOSE_FLAG, //
     QUIET_FLAG, //
 };
@@ -20,6 +21,10 @@ static cli_arg_t build_spec[] = {
 static int cmd_build(cli_command_t *self, List_t extra_args) {
     (void)self, (void)extra_args;
     set_default_logs(LOG_BUILD);
+    // A built executable is a persistent artifact, so default to the highest
+    // safe optimization level and the size-reducing link flags; -O overrides
+    // the level:
+    configure_codegen(opt_flag.tag == TEXT_NONE ? Text("3") : opt_flag, /*optimize=*/true);
     List_t files = normalize_tm_paths(List(file));
     Path_t path = *(Path_t *)files.data;
 
