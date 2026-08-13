@@ -61,8 +61,6 @@ OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-t
 
 Text_t link_optimizations = Text("");
 
-Text_t pch_file = Text("");
-
 Text_t config_summary = Text(""), as_owner = Text("");
 
 void configure_codegen(Text_t opt_level, bool optimize) {

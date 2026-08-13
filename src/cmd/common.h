@@ -122,12 +122,6 @@ extern OptionalText_t cflags, ldlibs, ldflags,
 // path, where the executable is ephemeral so its size doesn't matter.
 extern Text_t link_optimizations;
 
-// Path to the precompiled <tomo.h> header for the current compile flags, or
-// empty if none is in use. Set by ensure_pch() (in compilation.c) before object
-// files are compiled; each object compile force-includes it with -include-pch
-// to skip re-parsing tomo.h. Empty means compile normally.
-extern Text_t pch_file;
-
 // Set the optimization level (`-O<opt_level>`) and, when `optimize` is true,
 // the size-reducing link flags; then rebuild config_summary. Called once per
 // command before compiling: after_globals() applies a safe default, and the

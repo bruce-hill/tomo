@@ -24,7 +24,6 @@
 #include "../packages.h"
 #include "../parse/files.h"
 #include "../profile.h"
-#include "../sha256.h"
 #include "../stdlib/bytes.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/enums.h"
@@ -641,8 +640,6 @@ void install_package(Path_t pkg_dir) {
     print("Installed \033[1m", pkg_dir, "\033[m to ", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", pkg_name);
 }
 
-static void ensure_pch(void); // defined below, near compile_object_file
-
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs, compile_mode_t mode) {
     Table_t to_link = EMPTY_TABLE;
     Table_t dependency_files = EMPTY_TABLE;
@@ -701,11 +698,6 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
 
     env->imports = new (Table_t);
 
-    // Build (or reuse) the precompiled <tomo.h> the object compiles below will
-    // force-include. Done once here in the parent, before forking, so every
-    // child shares the one PCH and never races to build it:
-    if (mode != COMPILE_C_FILES) PROFILE("ensure pch", ensure_pch());
-
     struct child_s {
         struct child_s *next;
         pid_t pid;
@@ -716,11 +708,6 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
     // a pipe to serialize their spans back over (merged into the parent below).
     int profile_pipe[2] = {-1, -1};
     if (profiling && pipe(profile_pipe) != 0) profile_pipe[0] = profile_pipe[1] = -1;
-
-    // Flush any buffered parent output (e.g. ensure_pch's log) before forking:
-    // otherwise each child inherits a copy of the unflushed buffer and reprints
-    // it when it fflush(NULL)s on _exit, so the line appears once per child.
-    fflush(NULL);
 
     // (Re)transpile and compile object files, eagerly for files explicitly
     // specified and lazily for downstream dependencies:
@@ -1031,79 +1018,12 @@ static void warn_if_first_compile(void) {
     }
 }
 
-// Every generated .c includes <tomo.h>, which preprocesses to a few thousand
-// lines. Precompiling it once and force-including the result with -include-pch
-// shaves ~10ms (~20%) off each cold object compile by skipping that parse. (It
-// only helps cold compiles: zig cc's own compilation cache already makes a
-// byte-identical recompile fast, but a real source edit isn't byte-identical.)
-// One PCH serves every optimization level -- a PCH built with an
-// explicit -O is accepted by any -O compile -- so a single cached .gch covers
-// run's -O1, build's -O3, and the rest. It's rebuilt when tomo.h (or anything
-// it includes, or the compiler) changes. Sets pch_file, which
-// compile_object_file force-includes; leaves it empty (compile normally) if
-// disabled, unbuildable, or the headers aren't laid out as expected. Call once,
-// in the parent, before forking the object compiles.
-static void ensure_pch(void) {
-    pch_file = Text("");
-    // Escape hatch for debugging codegen/header issues:
-    if (getenv("TOMO_NO_PCH")) return;
-
-    Text_t tomo_h = Texts(lib_root, "/include/tomo@", TOMO_VERSION, "/tomo.h");
-    if (!Path$is_file(Path$from_text(tomo_h), true)) return;
-
-    // A PCH isn't portable across compile flags or header locations (a mismatch
-    // is a hard error, not a fallback), so key the cache file by the C flags.
-    // Those encode the header prefix (-I) and target, so a cross-compile and a
-    // native build -- or two same-version installs at different paths (a build
-    // tree vs ~/.local) -- get distinct PCHs and never fatally collide:
-    const char *key = String(cflags);
-    char hash[SHA256_HEX_SIZE];
-    sha256_hex(key, strlen(key), hash);
-    hash[16] = '\0';
-
-    Path_t pch_dir = Path$child(xdg_tomo_dir("XDG_CACHE_HOME", "~/.cache"), Texts("tomo@", TOMO_VERSION, "/pch"));
-    Path$create_directory(pch_dir, 0755, true);
-    Path_t pch = Path$child(pch_dir, Texts(Text$from_str(hash), Text(".gch")));
-
-    // Reuse a fresh PCH (the common case: built once, hit forever). is_stale
-    // recurses tomo.h's includes and also treats anything older than the
-    // compiler as stale:
-    if (!is_stale(pch, Path$from_text(tomo_h), false)) {
-        pch_file = Path$as_text(&pch, false, &Path$info);
-        LOG(LOG_SKIP, "Unchanged: ", pch);
-        return;
-    }
-
-    // Build with an explicit -O1 (matching the compile flags otherwise): the
-    // level only has to be explicit, not identical to each compile's -O. Write
-    // to a temp path and rename in, so a concurrent build never reads a
-    // half-written PCH:
-    Path_t tmp = Path$from_text(Texts(Path$as_text(&pch, false, &Path$info), ".tmp"));
-    FILE *prog = run_cmd(cc, " ", cflags, " -O1 -x c-header '", tomo_h, "' -o '", tmp, "'");
-    if (!prog) return;
-    int status = pclose(prog);
-    // A failed PCH build is non-fatal: fall back to compiling without it (same
-    // result, just slower). Don't leave the temp file lying around.
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-        unlink(Path$as_c_string(tmp));
-        return;
-    }
-    if (rename(Path$as_c_string(tmp), Path$as_c_string(pch)) != 0) {
-        unlink(Path$as_c_string(tmp));
-        return;
-    }
-    pch_file = Path$as_text(&pch, false, &Path$info);
-    LOG(LOG_BUILD, "Built precompiled header:\t", Path$relative_to(pch, Path$current_dir()));
-}
-
 void compile_object_file(Path_t path) {
     warn_if_first_compile();
     Path_t obj_file = build_file(path, ".o");
     Path_t c_file = build_file(path, ".c");
 
-    // Force-include the precompiled <tomo.h> when one is in use (see ensure_pch):
-    Text_t pch_flag = pch_file.length > 0 ? Texts(" -include-pch '", pch_file, "'") : Text("");
-    FILE *prog = run_cmd(cc, " ", cflags, " -O", optimization, pch_flag, " -c ", c_file, " -o ", obj_file);
+    FILE *prog = run_cmd(cc, " ", cflags, " -O", optimization, " -c ", c_file, " -o ", obj_file);
     if (!prog) print_err("Failed to run C compiler: ", cc);
     int status = pclose(prog);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
