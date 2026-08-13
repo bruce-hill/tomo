@@ -4,6 +4,7 @@
 #include <setjmp.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/param.h>
 #include <unictype.h>
 
 #include "../ast.h"

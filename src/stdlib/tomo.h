@@ -6,7 +6,6 @@
 #include <math.h> // IWYU pragma: export
 #include <stdbool.h> // IWYU pragma: export
 #include <stdint.h> // IWYU pragma: export
-#include <sys/param.h> // IWYU pragma: export
 
 #include "bools.h" // IWYU pragma: export
 #include "bytes.h" // IWYU pragma: export

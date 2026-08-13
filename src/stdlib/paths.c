@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <fnmatch.h>
 #include <ftw.h>
 #include <gc.h>

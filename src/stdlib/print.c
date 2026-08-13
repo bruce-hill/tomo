@@ -4,6 +4,7 @@
 #include <gc.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/param.h>
 #include <unistd.h>
 
 #include "fpconv.h"
