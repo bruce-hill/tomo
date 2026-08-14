@@ -7,30 +7,32 @@ func suffix_fn(fn:func(t:Text->Text), suffix:Text -> func(t:Text->Text))
 func mul_func(n:Int, fn:func(x:Int->Int) -> func(x:Int->Int))
 	return func(x:Int) n*fn(x)
 
-func main()
+test "lambdas and higher-order functions"
 	>> add_one := func(x:Int) x + 1
+	>> add_one(10)
 	assert add_one(10) == 11
-
 	>> shout := func(msg:Text) say("$(msg.upper())!")
-	>> shout("hello")
-
+	shout("hello")
 	>> asdf := add_one
+	>> asdf(99)
 	assert asdf(99) == 100
-
 	>> add_100 := make_adder(100)
+	>> add_100(5)
 	assert add_100(5) == 105
-
 	>> shout2 := suffix_fn(func(t:Text) t.upper(), "!")
+	>> shout2("hello")
 	assert shout2("hello") == "HELLO!"
-
 	>> abs100 := mul_func(100, Int.abs)
+	>> abs100(-5)
 	assert abs100(-5) == 500
 
+test "nested lambdas"
 	# Test nested lambdas:
-    outer := "Hello"
-    fn := func()
-        return func()
-            return func()
-                defer say("$outer")
-                return outer
-    assert fn()()() == "Hello"
+	>> outer := "Hello"
+	>> fn := func()
+		return func()
+			return func()
+				defer say("$outer")
+				return outer
+	>> fn()()()
+	assert fn()()() == "Hello"

@@ -29,15 +29,26 @@ func table_key_str(t:{Text:Text} -> Text)
 	else return "EMPTY"
 	return str
 
-func main()
+test "for over list with else clause"
+	>> all_nums([10,20,30])
+	>> all_nums([])
 	assert all_nums([10,20,30]) == "10,20,30,"
 	assert all_nums([]) == "EMPTY"
 
+test "for over list with index and else clause"
+	>> labeled_nums([10,20,30])
+	>> labeled_nums([])
 	assert labeled_nums([10,20,30]) == "1:10,2:20,3:30,"
 	assert labeled_nums([]) == "EMPTY"
 
+test "for over table"
 	>> t := {"key1": "value1", "key2": "value2"}
+	>> table_str(t)
+	>> table_str({})
 	assert table_str(t) == "key1:value1,key2:value2,"
 	assert table_str({}) == "EMPTY"
 
+test "for over table keys"
+	>> t := {"key1": "value1", "key2": "value2"}
+	>> table_key_str(t)
 	assert table_key_str(t) == "key1,key2,"

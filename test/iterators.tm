@@ -15,19 +15,24 @@ func range(first:Int, last:Int -> func(->Int?))
         i += 1
         return (i-1)
 
-func main()
-    values := ["A", "B", "C", "D"]
-
+test "pairwise iterator comprehensions"
+    >> values := ["A", "B", "C", "D"]
+    >> (++: "($(foo.x)$(foo.y))" for foo in pairwise(values))
     assert (++: "($(foo.x)$(foo.y))" for foo in pairwise(values))! == "(AB)(BC)(CD)"
+    >> ["$(foo.x)$(foo.y)" for foo in pairwise(values)]
     assert ["$(foo.x)$(foo.y)" for foo in pairwise(values)] == ["AB", "BC", "CD"]
 
-    do
-        result : @[Text]
-        for foo in pairwise(values)
-            result.insert("$(foo.x)$(foo.y)")
-        assert result[] == ["AB", "BC", "CD"]
+test "pairwise iterator in for loop"
+    >> values := ["A", "B", "C", "D"]
+    result : @[Text]
+    for foo in pairwise(values)
+        >> "$(foo.x)$(foo.y)"
+        result.insert("$(foo.x)$(foo.y)")
+    >> result[]
+    assert result[] == ["AB", "BC", "CD"]
 
+test "range iterator"
+    >> [i for i in range(5, 10)]
     assert [i for i in range(5, 10)] == [5, 6, 7, 8, 9, 10]
-
+    >> (+: range(5, 10))
     assert (+: range(5, 10))! == 45
-

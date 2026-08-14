@@ -276,6 +276,7 @@ typedef enum {
     NonOptional,
     DebugLog,
     Assert,
+    Test,
     Use,
     InlineCCode,
     Embed,
@@ -454,6 +455,16 @@ struct ast_s {
         struct {
             ast_t *expr, *message;
         } Assert;
+        struct {
+            const char *label;             // test "this label"
+            ast_t *body;                   // Block
+            enum {
+                TEST_SUCCEEDS,             // plain `test`
+                TEST_FAILS,                // `fails "..."`         -- runtime panic/abort
+                TEST_FAILS_COMPILE,        // `fails_compile "..."` -- typecheck error
+            } expectation;
+            const char *expected_message;  // substring to match, or NULL for "any failure"
+        } Test;
         struct {
             ast_t *var;
             const char *path;

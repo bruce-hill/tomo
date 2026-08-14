@@ -53,6 +53,9 @@ void initialize_vars_and_statics(env_t *env, ast_t *ast) {
             initialize_namespace(env, Match(stmt->ast, LangDef)->name, Match(stmt->ast, LangDef)->namespace);
         } else if (stmt->ast->tag == Use) {
             continue;
+        } else if (stmt->ast->tag == Test) {
+            // Tests are only emitted by `tomo test`, never in normal builds:
+            continue;
         } else {
             Text_t code = compile_statement(env, stmt->ast);
             if (code.length > 0)
@@ -217,4 +220,48 @@ Text_t compile_file(env_t *env, ast_t *ast) {
                  namespace_name(env, env->namespace, Text("$initialize")), "(void) {\n",
                  "static bool initialized = false;\n", "if (initialized) return;\n", "initialized = true;\n",
                  use_imports, env->code->variable_initializers, "}\n");
+}
+
+public
+Text_t compile_test_runner(env_t *env, ast_t *ast, int64_t *out_count) {
+    // Compile each test body first so any lambdas/static helpers they generate
+    // accumulate into env->code and get emitted by compile_file() below:
+    Text_t test_fns = EMPTY_TEXT, descriptors = EMPTY_TEXT;
+    int64_t count = 0;
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        if (stmt->ast->tag != Test) continue;
+        DeclareMatch(test, stmt->ast, Test);
+        if (test->expectation == TEST_FAILS_COMPILE) continue; // handled by the driver's frontend
+        env_t *scope = fresh_scope(env);
+        Text_t body = compile_block(scope, test->body);
+        Text_t fn_name = Texts("test$", count);
+        test_fns = Texts(test_fns, "static void ", fn_name, "(void) ", body, "\n");
+        descriptors =
+            Texts(descriptors, "{.label=", quoted_str(test->label), ", .fn=", fn_name,
+                  ", .expect_failure=", test->expectation == TEST_FAILS ? "true" : "false", ", .expected_msg=",
+                  test->expected_message ? quoted_str(test->expected_message) : Text("NULL"),
+                  ", .first_line=", get_line_number(ast->file, stmt->ast->start), ", .last_line=",
+                  get_line_number(ast->file, stmt->ast->end), "},\n");
+        count += 1;
+    }
+    *out_count = count;
+    if (count == 0) return EMPTY_TEXT;
+
+    // Emit the entire module into the runner's own translation unit -- including
+    // its file-private (`static`) helpers -- so the test bodies above can call
+    // them. Because the module's code lives here, the driver must NOT also link
+    // the module's normal object file (that would duplicate every public
+    // symbol); see build_test_runner(). compile_file() emits the accumulated
+    // lambdas/staticdefs (module + tests), so append the test functions after.
+    Text_t module_code = compile_file(env, ast);
+
+    return Texts(module_code, "\n", test_fns, "static tomo_test_t _tomo_tests[] = {\n", descriptors,
+                 "};\n"
+                 "int main(int argc, char *argv[]) {\n"
+                 "(void)argc; (void)argv;\n"
+                 "tomo_init();\n",
+                 namespace_name(env, env->namespace, Text("$initialize")),
+                 "();\n"
+                 "return _tomo_run_tests(_tomo_tests, ",
+                 count, ");\n}\n");
 }

@@ -6,11 +6,13 @@
 #include "../ast.h"
 #include "../util.h"
 #include "context.h"
+#include "controlflow.h"
 #include "errors.h"
 #include "expressions.h"
 #include "files.h"
 #include "statements.h"
 #include "suffixes.h"
+#include "text.h"
 #include "types.h"
 #include "utils.h"
 
@@ -129,6 +131,65 @@ ast_t *parse_assert(parse_ctx_t *ctx, const char *pos) {
         pos = expr->end;
     }
     return NewAST(ctx->file, start, pos, Assert, .expr = expr, .message = message);
+}
+
+// Extract the plain (non-interpolated) string from a text literal at `*pos`,
+// advancing `*pos` past it. Returns NULL if there's no string literal here,
+// and errors if the literal contains interpolations.
+static const char *parse_plain_text(parse_ctx_t *ctx, const char **pos) {
+    const char *start = *pos;
+    ast_t *text = parse_text(ctx, *pos, /*allow_interps=*/false);
+    if (!text) return NULL;
+    *pos = text->end;
+    Text_t joined = EMPTY_TEXT;
+    for (ast_list_t *chunk = Match(text, TextJoin)->children; chunk; chunk = chunk->next) {
+        if (chunk->ast->tag != TextLiteral)
+            parser_err(ctx, start, *pos, "I expected a plain text label here, without any interpolations");
+        joined = Texts(joined, Match(chunk->ast, TextLiteral)->text);
+    }
+    return Text$as_c_string(joined);
+}
+
+// test "label"
+//     <body>
+// [fails "msg" | fails_compile "msg"]
+ast_t *parse_test(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    if (!match_word(&pos, "test")) return NULL;
+    int64_t starting_indent = get_indent(ctx, pos);
+    spaces(&pos);
+
+    // No string label => this isn't a test block; let `test` parse as an
+    // ordinary identifier instead (soft keyword, non-breaking):
+    const char *label = parse_plain_text(ctx, &pos);
+    if (!label) return NULL;
+
+    ast_t *body = expect(ctx, start, &pos, parse_block, "I expected an indented body for this test");
+
+    int expectation = TEST_SUCCEEDS;
+    const char *expected_message = NULL;
+
+    // Optional trailing outcome clause, dedented back to the test's own indent:
+    const char *save = pos;
+    whitespace(ctx, &pos);
+    if (get_indent(ctx, pos) == starting_indent) {
+        if (match_word(&pos, "fails_compile")) {
+            expectation = TEST_FAILS_COMPILE;
+            spaces(&pos);
+            expected_message = parse_plain_text(ctx, &pos);
+        } else if (match_word(&pos, "fails")) {
+            expectation = TEST_FAILS;
+            spaces(&pos);
+            expected_message = parse_plain_text(ctx, &pos);
+        } else {
+            pos = save; // no outcome clause; rewind for the next construct
+        }
+    } else {
+        pos = save;
+    }
+
+    return NewAST(ctx->file, start, pos, Test, .label = label, .body = body, .expectation = expectation,
+                  .expected_message = expected_message);
 }
 
 ast_t *parse_statement(parse_ctx_t *ctx, const char *pos) {

@@ -1,14 +1,17 @@
-func main()
-    x := 123
+test "defer in do block"
+    >> x := 123
     nums : @[Int]
     do
         defer
             nums.insert(x)
-        x = 999
+        >> x = 999
 
+    >> nums[]
     assert nums[] == [123]
+    >> x
     assert x == 999
 
+test "defer in loops"
     defer
         say("All done!")
 
@@ -37,8 +40,9 @@ func main()
             say("Made it through inner loop")
 
         say("Made it through the loop")
-    
-    >> thunk := func(return_early=no)
+
+test "defer in closures"
+    thunk := func(return_early=no)
         say("Entering thunk")
         defer
             say("Deferred thunk cleanup")
@@ -52,9 +56,11 @@ func main()
     >> thunk(no)
     >> thunk(yes)
 
+test "defer in functions"
     >> defer_func(yes)
     >> defer_func(no)
 
+test "defer in counter closure"
     >> counter := make_counter()
     assert counter() == 1
     assert counter() == 2
@@ -76,4 +82,3 @@ func make_counter(->func(->Int))
     return func()
         defer i += 1
         return i
-

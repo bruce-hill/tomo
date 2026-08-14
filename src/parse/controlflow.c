@@ -53,6 +53,8 @@ try_indented:;
                     parser_err(ctx, line_start, eol(pos), "Function definitions are only allowed at the top level");
                 else if (match_word(&pos, "use"))
                     parser_err(ctx, line_start, eol(pos), "'use' statements are only allowed at the top level");
+                else if (match_word(&pos, "test"))
+                    parser_err(ctx, line_start, eol(pos), "'test' blocks are only allowed at the top level");
 
                 spaces(&pos);
                 if (*pos && *pos != '\r' && *pos != '\n') parser_err(ctx, pos, eol(pos), "I couldn't parse this line");

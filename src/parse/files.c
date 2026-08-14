@@ -76,7 +76,7 @@ ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
             || (stmt = optional(ctx, &pos, parse_func_def)) || (stmt = optional(ctx, &pos, parse_enum_def))
             || (stmt = optional(ctx, &pos, parse_lang_def)) || (stmt = optional(ctx, &pos, parse_convert_def))
             || (stmt = optional(ctx, &pos, parse_use)) || (stmt = optional(ctx, &pos, parse_inline_c))
-            || (stmt = optional(ctx, &pos, parse_top_statement))) {
+            || (stmt = optional(ctx, &pos, parse_test)) || (stmt = optional(ctx, &pos, parse_top_statement))) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
             whitespace(ctx, &pos); // TODO: check for newline

@@ -66,6 +66,13 @@ env_t *with_enum_scope(env_t *env, type_t *t);
 env_t *namespace_env(env_t *env, const char *namespace_name);
 #define compiler_err(f, start, end, ...)                                                                               \
     ({                                                                                                                 \
+        /* Plain mode (set by `tomo test`): emit only the message, no header or source echo, so a captured error */   \
+        /* can be substring-matched without the echoed source (which includes the test's own `fails_compile` line) */ \
+        /* producing false matches. */                                                                                \
+        if (getenv("TOMO_PLAIN_ERRORS")) {                                                                             \
+            fprint(stderr, __VA_ARGS__);                                                                               \
+            exit(1);                                                                                                   \
+        }                                                                                                              \
         file_t *_f = f;                                                                                                \
         if (USE_COLOR) fputs("\x1b[95;7;1m Compiler Error \x1b[m\n\n", stderr);                                        \
         else fputs("Compiler Error:\n\n", stderr);                                                                     \

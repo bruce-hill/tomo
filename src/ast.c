@@ -276,6 +276,12 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(NonOptional, "(NonOptional ", ast_to_sexp(data.value), ")");
         T(DebugLog, "(DebugLog ", ast_list_to_sexp(data.values), ")");
         T(Assert, "(Assert ", ast_to_sexp(data.expr), " ", optional_sexp("message", data.message), ")");
+        T(Test, "(Test ", quoted_text(data.label), " ",
+          (data.expectation == TEST_SUCCEEDS      ? "succeeds"
+           : data.expectation == TEST_FAILS       ? "fails"
+                                                   : "fails_compile"),
+          data.expected_message ? Texts(" ", quoted_text(data.expected_message)) : EMPTY_TEXT, " ",
+          ast_to_sexp(data.body), ")");
         T(Use, "(Use ", optional_sexp("var", data.var), " ", quoted_text(data.path), ")");
         T(InlineCCode, "(InlineCCode ", ast_list_to_sexp(data.chunks), optional_type_sexp("type", data.type_ast), ")");
         T(Metadata, "((Metadata ", Text$quoted(data.key, false, Text("\"")), " ",
@@ -675,6 +681,10 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
         DeclareMatch(assert, ast, Assert);
         ast_visit(assert->expr, visitor, userdata);
         ast_visit(assert->message, visitor, userdata);
+        return;
+    }
+    case Test: {
+        ast_visit(Match(ast, Test)->body, visitor, userdata);
         return;
     }
     case Use: {

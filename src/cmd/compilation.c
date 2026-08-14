@@ -1190,3 +1190,74 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     gc_package_dir(Path$parent(path));
     return exe_path;
 }
+
+Path_t build_test_runner(Path_t path, List_t object_files, List_t extra_ldlibs, Text_t test_source) {
+    Path_t test_c = build_file(path, ".test.c");
+    Path$write(test_c, test_source, 0644);
+    Path_t test_o = build_file(path, ".test.o");
+    Path_t exe_path = build_file(path, ".test-runner");
+
+    // Compile the runner to an object with clean cflags first: the link line
+    // below carries -nostdlib and other ldflags that break system-header search
+    // (<math.h> etc.) if the .c were compiled inline like compile_executable's
+    // trivial runner.c (which doesn't include <tomo.h>).
+    FILE *cc_obj = run_cmd(cc, " ", cflags, " -O", optimization, " -c ", test_c, " -o ", test_o);
+    int cc_status = pclose(cc_obj);
+    if (!WIFEXITED(cc_status) || WEXITSTATUS(cc_status) != 0) exit(EXIT_FAILURE);
+
+    // The runner TU already contains the module's full code (so tests can reach
+    // its private helpers), so drop the module's own object file from the link
+    // to avoid duplicate definitions of its public symbols. Compare resolved
+    // absolute paths -- the dependency-graph objects and build_file(path) can
+    // carry different (relative vs absolute) representations of the same file:
+    Path_t cwd = Path$current_dir();
+    const char *module_obj = Path$as_c_string(Path$resolved(build_file(path, ".o"), cwd));
+    List_t link_objects = EMPTY_LIST;
+    for (int64_t i = 0; i < (int64_t)object_files.length; i++) {
+        Path_t *obj = (Path_t *)(object_files.data + i * object_files.stride);
+        if (!streq(Path$as_c_string(Path$resolved(*obj, cwd)), module_obj))
+            List$insert(&link_objects, obj, I(0), sizeof(Path_t));
+    }
+    object_files = link_objects;
+
+    // Same archive juggling as compile_executable: drop the always-bundled libs
+    // and push .a archives after the object files in link order.
+    static const char *bundled_libs[] = {"-lgc", "-lgmp", "-lunistring", "-lbacktrace", "-lm", "-lunwind"};
+    List_t archives = EMPTY_LIST;
+    for (int64_t i = 0; i < (int64_t)extra_ldlibs.length;) {
+        Text_t *lib = (Text_t *)(extra_ldlibs.data + i * extra_ldlibs.stride);
+        bool bundled = false;
+        for (size_t j = 0; j < sizeof(bundled_libs) / sizeof(bundled_libs[0]); j++)
+            bundled = bundled || Text$equal_values(*lib, Text$from_str(bundled_libs[j]));
+        if (bundled) {
+            List$remove_at(&extra_ldlibs, I(i + 1), I(1), sizeof(Text_t));
+        } else if (Text$ends_with(*lib, Text(".a"), NULL)) {
+            List$insert(&archives, lib, I(0), sizeof(Text_t));
+            List$remove_at(&extra_ldlibs, I(i + 1), I(1), sizeof(Text_t));
+        } else {
+            i += 1;
+        }
+    }
+
+    Text_t vendor_dir = Texts(lib_root, "/lib/tomo@", TOMO_VERSION, "/vendor");
+    Text_t vendor_archives = Texts(" ", vendor_dir, "/libgc.a ", vendor_dir, "/libgmp.a ", vendor_dir,
+                                   "/libunistring.a ", vendor_dir, "/libbacktrace.a");
+    if (zig_libc_dir.length > 0) {
+        static const char *runtime_archives[] = {"libc.a", "libcompiler_rt.a", "libzigc.a", "libunwind.a"};
+        for (size_t i = 0; i < sizeof(runtime_archives) / sizeof(runtime_archives[0]); i++) {
+            const char *archive = String(zig_libc_dir, "/", runtime_archives[i]);
+            if (Path$is_file(Path$from_str(archive), true))
+                vendor_archives = Texts(vendor_archives, Text(" '"), Text$from_str(archive), Text("'"));
+        }
+    }
+
+    FILE *runner = run_cmd(cc, " ", cflags, " -O", optimization, " ", ldflags, link_optimizations, " ", ldlibs, " ",
+                           list_text(extra_ldlibs), " ", paths_str(object_files), " ", test_o, " ", list_text(archives),
+                           link_macho ? "" : " -Wl,--no-whole-archive", " ", lib_root, "/lib/tomo@", TOMO_VERSION,
+                           "/libtomo.a", vendor_archives, " -o ", exe_path);
+    int status = pclose(runner);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
+
+    LOG(LOG_BUILD, "Compiled test runner:\t", Path$relative_to(exe_path, Path$current_dir()));
+    return exe_path;
+}

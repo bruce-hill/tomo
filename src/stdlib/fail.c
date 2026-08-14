@@ -26,6 +26,14 @@ public
 _Noreturn void fail_source(const char *filename, int start, int end, Text_t message) {
     tomo_cleanup();
     fflush(stdout);
+    // Plain mode (set by `tomo test`): emit only the message, no header, stacktrace, or source echo, so a captured
+    // failure can be substring-matched cleanly (the echoed source would otherwise include the test's own source text).
+    if (getenv("TOMO_PLAIN_ERRORS")) {
+        Text$print(stderr, message);
+        fputs("\n", stderr);
+        fflush(stderr);
+        exit(1);
+    }
     if (USE_COLOR) fputs("\x1b[91;7;1m Runtime Error \n\n\x1b[0;1m", stderr);
     else fputs("Runtime Error\n\n", stderr);
     print_stacktrace(stderr, 1);

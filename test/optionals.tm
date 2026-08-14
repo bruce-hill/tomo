@@ -67,8 +67,9 @@ func maybe_path(should_i:Bool->Path?)
     else
         return none
 
-func main()
-    optional : Int? = 5
+test "basic optional values"
+    >> optional : Int? = 5
+    >> optional
     assert optional == 5
 
     assert (
@@ -79,202 +80,175 @@ func main()
             5
     ) == 5
 
+    >> (optional or -1)
     assert (optional or -1) == 5
-
     assert (optional or fail("Non-none is falsey")) == 5
-
     assert (optional or exit("Non-none is falsey")) == 5
-
     >> none_int : Int? = none
+    >> none_int
     assert none_int or -1 == -1
 
-    do
-        say("Ints:")
-        yep := maybe_int(yes)
+test "optional Ints"
+    >> yep := maybe_int(yes)
+    assert yep == 123
+    >> nope := maybe_int(no)
+    assert nope == none
+    if yep
         assert yep == 123
-        nope := maybe_int(no)
-        assert nope == none
-        >> if yep
-            assert yep == 123
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+    else fail("Falsey: $yep")
+    if nope
+        fail("Truthy: $nope")
 
-    do
-        say("Int64s:")
-        yep := maybe_int64(yes)
+test "optional Int64s"
+    >> yep := maybe_int64(yes)
+    assert yep == Int64(123)
+    >> nope := maybe_int64(no)
+    assert nope == none
+    if yep
         assert yep == Int64(123)
-        nope := maybe_int64(no)
-        assert nope == none
-        >> if yep
-            assert yep == Int64(123)
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+    if nope
+        fail("Truthy: $nope")
 
-    do
-        say("Lists:")
-        yep := maybe_list(yes)
+test "optional Lists"
+    >> yep := maybe_list(yes)
+    assert yep == [10, 20, 30]
+    >> nope := maybe_list(no)
+    assert nope == none
+    if yep
         assert yep == [10, 20, 30]
-        nope := maybe_list(no)
-        assert nope == none
-        >> if yep
-            assert yep == [10, 20, 30]
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+    else fail("Falsey: $yep")
+    if nope
+        fail("Truthy: $nope")
 
-    do
-        say("...")
-        say("Bools:")
-        yep := maybe_bool(yes)
+test "optional Bools"
+    >> yep := maybe_bool(yes)
+    assert yep == no
+    >> nope := maybe_bool(no)
+    assert nope == none
+
+test "Can't coerce optional booleans to booleans"
+    yep := maybe_bool(yes)
+    if yep
         assert yep == no
-        nope := maybe_bool(no)
-        assert nope == none
-        # Can't coerce optional booleans to booleans:
-        # >> if yep
-        #     assert yep == no
-        # else fail("Falsey: $yep")
-        # >> if nope
-        #     fail("Truthy: $nope")
-        # else say("Falsey: $nope")
+fails_compile "use an explicit `yep != none` check"
 
-    do
-        say("...")
-        say("Text:")
-        yep := maybe_text(yes)
+test "optional Text"
+    >> yep := maybe_text(yes)
+    assert yep == "Hello"
+    >> nope := maybe_text(no)
+    assert nope == none
+    if yep
         assert yep == "Hello"
-        nope := maybe_text(no)
-        assert nope == none
-        >> if yep
-            assert yep == "Hello"
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+    else fail("Falsey: $yep")
+    if nope
+        fail("Truthy: $nope")
 
-    do
-        say("...")
-        say("Nums:")
-        yep := maybe_num(yes)
+test "optional Nums"
+    >> yep := maybe_num(yes)
+    assert yep == 12.3
+    >> nope := maybe_num(no)
+    assert nope == none
+    if yep
         assert yep == 12.3
-        nope := maybe_num(no)
-        assert nope == none
-        >> if yep
-            assert yep == 12.3
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+    if nope
+        fail("Truthy: $nope")
 
-    do
-        say("...")
-        say("Lambdas:")
-        nope := maybe_lambda(no)
-        assert nope == none
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+test "optional Lambdas"
+    >> nope := maybe_lambda(no)
+    >> nope
+    assert nope == none
+    if nope
+        fail("Truthy: $nope")
 
-    do
-        say("...")
-        say("Structs:")
-        yep := Struct.maybe(yes)
+test "optional Structs"
+    >> yep := Struct.maybe(yes)
+    assert yep == Struct(x=123, y="hello")
+    >> nope := Struct.maybe(no)
+    assert nope == none
+    if yep
         assert yep == Struct(x=123, y="hello")
-        nope := Struct.maybe(no)
-        assert nope == none
-        >> if yep
-            assert yep == Struct(x=123, y="hello")
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+    if nope
+        fail("Truthy: $nope")
 
-    do
-        say("...")
-        say("Enums:")
-        yep := Enum.maybe(yes)
+test "optional Enums"
+    >> yep := Enum.maybe(yes)
+    assert yep == Enum.Y(123)
+    >> nope := Enum.maybe(no)
+    assert nope == none
+    if yep
         assert yep == Enum.Y(123)
-        nope := Enum.maybe(no)
-        assert nope == none
-        >> if yep
-            assert yep == Enum.Y(123)
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+    if nope
+        fail("Truthy: $nope")
 
-    do
-        say("...")
-        say("C Strings:")
-        yep := maybe_c_string(yes)
+test "optional C Strings"
+    >> yep := maybe_c_string(yes)
+    assert yep == CString("hi")
+    >> nope := maybe_c_string(no)
+    assert nope == none
+    if yep
         assert yep == CString("hi")
-        nope := maybe_c_string(no)
-        assert nope == none
-        >> if yep
-            assert yep == CString("hi")
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+    if nope
+        fail("Truthy: $nope")
 
-    do
-        say("...")
-        say("Paths:")
-        yep := maybe_path(yes)
+test "optional Paths"
+    >> yep := maybe_path(yes)
+    assert yep == ./foo
+    >> nope := maybe_path(no)
+    assert nope == none
+    if yep
         assert yep == ./foo
-        nope := maybe_path(no)
-        assert nope == none
-        >> if yep
-            assert yep == ./foo
-        else fail("Falsey: $yep")
-        >> if nope
-            fail("Truthy: $nope")
-        else say("Falsey: $nope")
+    if nope
+        fail("Truthy: $nope")
+
+test "if-binding, force-unwrap, comparisons and hashing"
+    >> optional : Int? = 5
 
     if yep := maybe_int(yes)
+        >> yep
         assert yep == 123
     else fail("Unreachable")
 
+    >> maybe_int(yes)!
     assert maybe_int(yes)! == 123
 
     # Test comparisons, hashing, equality:
     assert none != optional
     assert optional == 5
     >> nones : {Int?:Bool} = {none: yes, none: yes}
+    >> nones.keys
     assert nones.keys == [none]
+    >> [5, none, none, 6].sorted()
     assert [5, none, none, 6].sorted() == [none, none, 5, 6]
 
-    do
-        assert (if var := optional then var else 0) == 5
+test "if-let binding uses value when present"
+    >> optional : Int? = 5
+    assert (if var := optional then var else 0) == 5
 
-    do
-        assert (if var : Int? = none then var else 0) == 0
+test "if-let binding falls through on none"
+    assert (if var : Int? = none then var else 0) == 0
 
-    do
-        >> opt : Int? = 5
-        >> if opt
-            >> opt
-        else
-            >> opt
+test "printing a present optional in if/else"
+    opt : Int? = 5
+    if opt
+        >> opt
+    else
+        >> opt
 
-    do
-        >> opt : Int? = none
-        >> if opt
-            >> opt
-        else
-            >> opt
+test "printing a none optional in if/else"
+    opt : Int? = none
+    if opt
+        >> opt
+    else
+        >> opt
 
+test "negation and 'or' with optionals"
+    >> optional : Int? = 5
+    >> not optional
     assert not optional == no
-
     >> nah : Int? = none
+    >> not nah
     assert not nah == yes
-
     assert [none, Struct(5,"A"), Struct(6,"B"), Struct(7,"C")] == [none, Struct(x=5, y="A"), Struct(x=6, y="B"), Struct(x=7, y="C")]
-
     if optional or no
         say("Binary op 'or' works with optionals")
     else

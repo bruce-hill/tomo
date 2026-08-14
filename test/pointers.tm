@@ -7,7 +7,10 @@ struct Baz(foo:Foo)
         # Make sure & propagates here!
         b.foo.update()
 
-func main()
-    b := Baz(Foo(123))
+test "nested pointer propagation"
+    >> b := Baz(Foo(123))
+    >> b.foo.x
     b.update()
+    >> b
+    >> b.foo.x
     assert b.foo.x == 124

@@ -455,7 +455,7 @@ $(OBJ_DIR)/%.o: %.c config.mk | deps
 test/results/%.tm.testresult: test/%.tm build
 	@mkdir -p test/results
 	@printf '\033[93;1;4m%s\033[m\n' $<
-	@if ! COLOR=1 LC_ALL=C ./local-tomo -O 1 $< 2>&1 | tee $@; then \
+	@if ! COLOR=1 LC_ALL=C ./local-tomo test $< 2>&1 | tee $@; then \
 		rm -f $@; \
 		false; \
 	fi

@@ -800,7 +800,9 @@ type_t *get_type(env_t *env, ast_t *ast) {
             }
             type_t *t2 = get_type(scope, item_ast);
             type_t *merged = item_type ? type_or_type(item_type, t2) : t2;
-            if (!merged) return Type(ListType, .item_type = NULL);
+            if (!merged)
+                code_err(item_ast, "This list has items of incompatible types: I can't reconcile ",
+                         type_to_text(item_type), " with ", type_to_text(t2));
             item_type = merged;
         }
 
@@ -1070,6 +1072,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case Assign:
     case UPDATE_CASES:
     case DebugLog:
+    case Test:
     case Assert: {
         return Type(VoidType);
     }

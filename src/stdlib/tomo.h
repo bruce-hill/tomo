@@ -31,5 +31,6 @@
 #include "stdlib.h" // IWYU pragma: export
 #include "structs.h" // IWYU pragma: export
 #include "tables.h" // IWYU pragma: export
+#include "test_harness.h" // IWYU pragma: export
 #include "text.h" // IWYU pragma: export
 #include "types.h" // IWYU pragma: export

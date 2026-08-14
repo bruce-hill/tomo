@@ -8,9 +8,13 @@ import re
 
 def single_test(name:str, test)->str:
     if "example" not in test: return
+    body = test["example"].strip()
     if name.startswith("Path.") or name in ['exit', 'say', 'print', 'sleep', 'fail', 'getenv', 'setenv', 'at_cleanup', 'ask']:
-        return f"    if no # Test {name}\n        " + test["example"].replace('\n', '\n        ').strip()
-    return f"    do # Test {name}\n        " + test["example"].replace('\n', '\n        ').strip()
+        # Compile-only: these examples have side effects (I/O, exit, ...) that
+        # must not actually run, so guard the body with `if no` -- it typechecks
+        # but never executes, and the test passes as long as it compiles.
+        return f'test "{name}"\n    if no\n        ' + body.replace('\n', '\n        ')
+    return f'test "{name}"\n    ' + body.replace('\n', '\n    ')
 
 def print_tests(yaml_doc:str):
     data = yaml.safe_load(yaml_doc)
@@ -21,7 +25,6 @@ def print_tests(yaml_doc:str):
         if t: all_tests.append(t)
 
     print("# This file contains auto-generated tests from the examples in api/*.yaml\n")
-    print("func main()")
     print('\n\n'.join(all_tests))
 
 if __name__ == "__main__":

@@ -44,34 +44,48 @@ struct Vec2(x,y:Int)
     func modulo1(v:Vec2, modulus:Int -> Vec2; inline)
         return Vec2(v.x mod1 modulus, v.y mod1 modulus)
 
-func main()
+test "arithmetic operators"
     >> x := Vec2(10, 20)
     >> y := Vec2(100, 200)
+    >> x + y
     assert x + y == Vec2(x=110, y=220)
+    >> x - y
     assert x - y == Vec2(x=-90, y=-180)
+    >> x * y
     assert x * y == Vec2(x=1000, y=4000)
+    >> x.dot(y)
     assert x.dot(y) == 5000
+    >> x * -1
     assert x * -1 == Vec2(x=-10, y=-20)
+    >> -10 * x
     assert -10 * x == Vec2(x=-100, y=-200)
 
-    >> x = Vec2(1, 2)
+test "update assignment operators"
+    >> x := Vec2(1, 2)
     >> x += Vec2(10, 20)
     assert x == Vec2(x=11, y=22)
     >> x *= Vec2(10, -1)
     assert x == Vec2(x=110, y=-22)
-
     >> x *= -1
     assert x == Vec2(x=-110, y=22)
 
-    >> x = Vec2(1, 2)
+test "negation"
+    >> x := Vec2(1, 2)
+    >> -x
     assert -x == Vec2(x=-1, y=-2)
 
-    x = Vec2(1, 2)
-    y = Vec2(4, 3)
+test "bitwise and division operators"
+    >> x := Vec2(1, 2)
+    >> y := Vec2(4, 3)
+    >> (x and y)
     assert (x and y) == Vec2(x=0, y=2)
+    >> (x or y)
     assert (x or y) == Vec2(x=5, y=3)
+    >> (x xor y)
     assert (x xor y) == Vec2(x=5, y=1)
+    >> x / 2
     assert x / 2 == Vec2(x=0, y=1)
+    >> x mod 3
     assert x mod 3 == Vec2(x=1, y=2)
+    >> x mod1 3
     assert x mod1 3 == Vec2(x=1, y=2)
-

@@ -133,7 +133,7 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
 
 public
 Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
-    assert(!is_incomplete_type(t));
+    if (is_incomplete_type(t)) code_err(ast, "I can't determine the complete type of this value.");
 
     if (t->tag == EnumType) {
         env = with_enum_scope(env, t);
