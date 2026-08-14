@@ -3,8 +3,8 @@
 #include "../ast.h"
 #include "../parse/files.h"
 #include "../stdlib/lists.h"
-#include "common.h"
 #include "commands.h"
+#include "common.h"
 
 static List_t files = EMPTY_LIST;
 

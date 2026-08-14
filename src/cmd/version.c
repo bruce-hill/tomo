@@ -1,8 +1,8 @@
 // `tomo version`: print the Tomo compiler version
 
 #include "../config.h"
-#include "common.h"
 #include "commands.h"
+#include "common.h"
 
 static cli_arg_t version_spec[] = {
     VERBOSE_FLAG, //

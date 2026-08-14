@@ -7,16 +7,16 @@
 
 #include "../config.h"
 #include "../stdlib/bools.h"
-#include "../stdlib/lists.h"
 #include "../stdlib/paths.h"
 #include "../stdlib/text.h"
-#include "common.h"
 #include "commands.h"
+#include "common.h"
 
 static OptionalBool_t skip_confirm = false;
 
 static cli_arg_t uninstall_self_spec[] = {
-    {"yes", &skip_confirm, &Bool$info, .short_flag = 'y', .description = "uninstall without asking for confirmation"}, //
+    {"yes", &skip_confirm, &Bool$info, .short_flag = 'y',
+     .description = "uninstall without asking for confirmation"}, //
     VERBOSE_FLAG, //
 };
 
@@ -105,8 +105,7 @@ static int cmd_uninstall_self(cli_command_t *self, List_t extra_args) {
     set_default_logs(0);
 
     if (!skip_confirm) {
-        if (!isatty(STDIN_FILENO))
-            print_err("Re-run with --yes to uninstall tomo@", TOMO_VERSION, " from ", TOMO_PATH);
+        if (!isatty(STDIN_FILENO)) print_err("Re-run with --yes to uninstall tomo@", TOMO_VERSION, " from ", TOMO_PATH);
         fprint_inline(stderr, "Uninstall \x1b[1mtomo@", TOMO_VERSION, "\x1b[m from ", TOMO_PATH, "? [y/N] ");
         fflush(stderr);
         char answer[16] = {};

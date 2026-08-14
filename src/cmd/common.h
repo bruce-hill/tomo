@@ -46,8 +46,8 @@ void set_default_logs(uint32_t default_logs);
 // each command can fall back to its own default (fast for run/eval, high for
 // build) via configure_codegen():
 #define OPTIMIZATION_FLAG                                                                                              \
-    {"optimization", &opt_flag, &Text$info, .short_flag = 'O', .metavar = "level",                                    \
-     .description = "set the optimization level (0-3)"}
+    {"optimization",    &opt_flag,          &Text$info,                                                                \
+     .short_flag = 'O', .metavar = "level", .description = "set the optimization level (0-3)"}
 
 #define run_cmd(...)                                                                                                   \
     ({                                                                                                                 \

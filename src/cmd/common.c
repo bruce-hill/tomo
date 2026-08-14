@@ -17,8 +17,23 @@
 #include "common.h"
 
 OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false;
-
+bool zig_cache_dir_from_env = false, cross_compiling = false, link_macho = false;
 uint32_t enabled_logs = 0;
+Text_t target_root = Text(""), lib_root = Text(""), zig_libc_dir = Text(""), cc = Text(""), ar = Text(""),
+       optimization = Text("2"), link_optimizations = Text(""), config_summary = Text(""), as_owner = Text(""),
+       ldlibs = Text("-lm"), ldflags = Text("");
+OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
+                             " -ffunction-sections -fdata-sections"
+                             " -fno-signed-zeros"
+                             " -fPIC -ggdb"
+                             " -DGC_THREADS");
+// optimization gets a concrete value from configure_codegen();
+// opt_flag stays NONE until the user passes -O:
+OptionalText_t opt_flag = NONE_TEXT, target = NONE_TEXT;
+
+#ifdef __linux__
+struct stat compiler_stat;
+#endif
 
 const char *log_prefix(logtype_t type) {
     switch (type) {
@@ -35,34 +50,6 @@ void set_default_logs(uint32_t default_logs) {
     else if (quiet) enabled_logs = 0;
 }
 
-bool zig_cache_dir_from_env = false;
-
-OptionalText_t target = NONE_TEXT;
-
-bool cross_compiling = false;
-
-Text_t target_root = Text("");
-
-Text_t lib_root = Text("");
-
-bool link_macho = false;
-
-Text_t zig_libc_dir = Text("");
-
-OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
-                             " -ffunction-sections -fdata-sections"
-                             " -fno-signed-zeros"
-                             " -fPIC -ggdb"
-                             " -DGC_THREADS"),
-               ldlibs = Text("-lm"), ldflags = Text(""),
-               // optimization gets a concrete value from configure_codegen();
-               // opt_flag stays NONE until the user passes -O:
-               optimization = Text("2"), opt_flag = NONE_TEXT, cc = Text(""), ar = Text("");
-
-Text_t link_optimizations = Text("");
-
-Text_t config_summary = Text(""), as_owner = Text("");
-
 void configure_codegen(Text_t opt_level, bool optimize) {
     optimization = opt_level;
     // Dead-code stripping (--gc-sections / -dead_strip) and debug-section
@@ -70,19 +57,14 @@ void configure_codegen(Text_t opt_level, bool optimize) {
     // Enable them only for optimized (build/install) artifacts; the fast
     // run/eval path skips them since its binary is thrown away after one run.
     if (optimize) {
-        link_optimizations = link_macho ? Text(" -Wl,-w,-dead_strip")
-                                        : Text(" -Wl,--gc-sections -Wl,--compress-debug-sections=zstd");
+        link_optimizations =
+            link_macho ? Text(" -Wl,-w,-dead_strip") : Text(" -Wl,--gc-sections -Wl,--compress-debug-sections=zstd");
     } else {
         link_optimizations = Text("");
     }
     config_summary = Texts("TOMO_VERSION=", TOMO_VERSION, "\n", "COMPILER=", cc, " ", cflags, " -O", optimization, "\n",
                            "SOURCE_MAPPING=", source_mapping ? Text("yes") : Text("no"), "\n");
 }
-
-#ifdef __linux__
-
-struct stat compiler_stat;
-#endif
 
 const char *paths_str(List_t paths) {
     Text_t result = EMPTY_TEXT;
@@ -185,7 +167,6 @@ Path_t get_exe_path(Path_t path) {
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     OptionalText_t exe_name = ast_metadata(ast, "EXECUTABLE");
     if (exe_name.tag == TEXT_NONE) exe_name = Path$base_name(Path$with_extension(path, Text(""), true));
-
     return Path$child(tm_build_dir(path), exe_name);
 }
 

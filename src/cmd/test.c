@@ -31,6 +31,11 @@
 #include "common.h"
 #include "compilation.h"
 
+typedef struct {
+    test_result_t *items;
+    int64_t len, cap;
+} results_t;
+
 static List_t files = EMPTY_LIST;
 static OptionalText_t filter = NONE_TEXT;
 
@@ -42,11 +47,6 @@ static cli_arg_t test_spec[] = {
     OPTIMIZATION_FLAG, //
     VERBOSE_FLAG, //
 };
-
-typedef struct {
-    test_result_t *items;
-    int64_t len, cap;
-} results_t;
 
 static void push_result(results_t *r, test_result_t x) {
     if (r->len >= r->cap) {

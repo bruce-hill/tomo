@@ -391,32 +391,32 @@ static void create_extracted_links(Path_t outdir, char *manifest) {
         if (end) *end = '\0';
         char *tab1 = strchr(line, '\t');
         char *tab2 = tab1 ? strchr(tab1 + 1, '\t') : NULL;
-        if (tab1 && tab2) {
-            *tab1 = *tab2 = '\0';
-            const char *consumer = line, *name = tab1 + 1, *dep = tab2 + 1;
-            // The dep is a zip prefix: "store/<digest>" (extracted into
-            // .tomo/store/) or a project-relative directory like "vendor/x":
-            if (*name && *dep && !strchr(consumer, '/') && !strchr(name, '/') && dep[0] != '/' && !streq(consumer, "..")
-                && !streq(name, "..") && !strstr(dep, "..")) {
-                Path_t store = Path$child(Path$child(outdir, Text(".tomo")), Text("store"));
-                Path_t dep_dir = strncmp(dep, "store/", strlen("store/")) == 0
-                                     ? Path$child(Path$child(outdir, Text(".tomo")), Text$from_str(dep))
-                                     : Path$child(outdir, Text$from_str(dep));
-                Path_t link_dir = *consumer ? Path$child(Path$child(store, Text$from_str(consumer)), Text("packages"))
-                                            : Path$child(Path$child(outdir, Text(".tomo")), Text("packages"));
-                if (Path$is_directory(dep_dir, true)
-                    && (!*consumer || Path$is_directory(Path$parent(link_dir), true))) {
-                    Result_t result = Path$create_directory(link_dir, 0755, true);
-                    if (result.Failure.reason.tag == TEXT_NONE) {
-                        Path_t link = Path$child(link_dir, Text$from_str(name));
-                        const char *link_target = Path$relative_to(dep_dir, link_dir);
-                        unlink(link);
-                        if (symlink(link_target, link) == 0)
-                            print("Linked    ", Path$relative_to(link, Path$current_dir()), " -> ", link_target);
-                    }
-                }
+        if (!tab1 || !tab2) goto next_line;
+        *tab1 = *tab2 = '\0';
+        const char *consumer = line, *name = tab1 + 1, *dep = tab2 + 1;
+        // The dep is a zip prefix: "store/<digest>" (extracted into
+        // .tomo/store/) or a project-relative directory like "vendor/x":
+        if (!(*name && *dep && !strchr(consumer, '/') && !strchr(name, '/') && dep[0] != '/' && !streq(consumer, "..")
+              && !streq(name, "..") && !strstr(dep, ".."))) {
+            goto next_line;
+        }
+        Path_t store = Path$child(Path$child(outdir, Text(".tomo")), Text("store"));
+        Path_t dep_dir = strncmp(dep, "store/", strlen("store/")) == 0
+                             ? Path$child(Path$child(outdir, Text(".tomo")), Text$from_str(dep))
+                             : Path$child(outdir, Text$from_str(dep));
+        Path_t link_dir = *consumer ? Path$child(Path$child(store, Text$from_str(consumer)), Text("packages"))
+                                    : Path$child(Path$child(outdir, Text(".tomo")), Text("packages"));
+        if (Path$is_directory(dep_dir, true) && (!*consumer || Path$is_directory(Path$parent(link_dir), true))) {
+            Result_t result = Path$create_directory(link_dir, 0755, true);
+            if (result.Failure.reason.tag == TEXT_NONE) {
+                Path_t link = Path$child(link_dir, Text$from_str(name));
+                const char *link_target = Path$relative_to(dep_dir, link_dir);
+                unlink(link);
+                if (symlink(link_target, link) == 0)
+                    print("Linked    ", Path$relative_to(link, Path$current_dir()), " -> ", link_target);
             }
         }
+    next_line:
         line = end ? end + 1 : NULL;
     }
 }
@@ -649,7 +649,8 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (!Path$has_extension(filename, Text("tm")))
             print_err("Not a valid .tm file: \x1b[91;1m", filename, "\x1b[m");
         if (!Path$is_file(filename, true)) print_err("Couldn't find file: ", filename);
-        PROFILE("dependency graph", build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link));
+        PROFILE("dependency graph",
+                build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link));
     }
 
     // Make sure all files and dependencies have a .id file:
@@ -660,24 +661,24 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         } *entry = (dependency_files.entries.data + i * dependency_files.entries.stride);
 
         Path_t id_file = build_file(entry->filename, ".id");
-        if (!Path$exists(id_file)) {
-            static const char id_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            int64_t num_id_chars = (int64_t)strlen(id_chars);
-            char id_str[8];
-            for (int j = 0; j < (int)sizeof(id_str); j++) {
-                id_str[j] = id_chars[random_range(0, num_id_chars - 1)];
-            }
-            Text_t filename_id = Text("");
-            Text_t base = Path$base_name(entry->filename);
-            TextIter_t state = NEW_TEXT_ITER_STATE(base);
-            for (int64_t j = 0; j < (int64_t)base.length; j++) {
-                uint32_t c = Text$get_main_grapheme_fast(&state, j);
-                if (c == '.') break;
-                if (isalpha(c) || isdigit(c) || c == '_')
-                    filename_id = Texts(filename_id, Text$from_strn((char[]){(char)c}, 1));
-            }
-            Path$write(id_file, Texts(filename_id, Text("_"), Text$from_strn(id_str, sizeof(id_str))), 0644);
+        if (Path$exists(id_file)) continue;
+
+        static const char id_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        int64_t num_id_chars = (int64_t)strlen(id_chars);
+        char id_str[8];
+        for (int j = 0; j < (int)sizeof(id_str); j++) {
+            id_str[j] = id_chars[random_range(0, num_id_chars - 1)];
         }
+        Text_t filename_id = Text("");
+        Text_t base = Path$base_name(entry->filename);
+        TextIter_t state = NEW_TEXT_ITER_STATE(base);
+        for (int64_t j = 0; j < (int64_t)base.length; j++) {
+            uint32_t c = Text$get_main_grapheme_fast(&state, j);
+            if (c == '.') break;
+            if (isalpha(c) || isdigit(c) || c == '_')
+                filename_id = Texts(filename_id, Text$from_strn((char[]){(char)c}, 1));
+        }
+        Path$write(id_file, Texts(filename_id, Text("_"), Text$from_strn(id_str, sizeof(id_str))), 0644);
     }
 
     // (Re)compile header files, eagerly for explicitly passed in files, lazily
@@ -947,7 +948,6 @@ void transpile_header(env_t *base_env, Path_t path) {
     if (!ast) print_err("Could not parse file: ", path);
 
     env_t *module_env = load_module_env(base_env, ast);
-
     Text_t h_code = compile_file_header(module_env, Path$resolved(h_filename, Path$from_str(".")), ast);
 
     FILE *header = fopen(Path$as_c_string(h_filename), "w");
@@ -964,7 +964,6 @@ void transpile_code(env_t *base_env, Path_t path) {
     if (!ast) print_err("Could not parse file: ", path);
 
     env_t *module_env = load_module_env(base_env, ast);
-
     Text_t c_code = compile_file(module_env, ast);
 
     FILE *c_file = fopen(Path$as_c_string(c_filename), "w");

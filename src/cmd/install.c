@@ -6,18 +6,18 @@
 #include "../environment.h"
 #include "../stdlib/lists.h"
 #include "../util.h"
-#include "common.h"
 #include "commands.h"
+#include "common.h"
 #include "compilation.h"
 
 static List_t paths = EMPTY_LIST;
 
 static cli_arg_t install_spec[] = {
     {"paths", &paths, List$info(&Path$info), .positional = true, .metavar = "dir-or-file",
-     .description = "the package directories or .tm programs to install (default: the current directory)"}, //
-    OPTIMIZATION_FLAG, //
-    VERBOSE_FLAG,      //
-    QUIET_FLAG,        //
+     .description = "the package directories or .tm programs to install (default: the current directory)"},
+    OPTIMIZATION_FLAG,
+    VERBOSE_FLAG,
+    QUIET_FLAG,
 };
 
 static int cmd_install(cli_command_t *self, List_t extra_args) {

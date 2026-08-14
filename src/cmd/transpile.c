@@ -5,8 +5,8 @@
 #include "../environment.h"
 #include "../stdlib/bools.h"
 #include "../stdlib/lists.h"
-#include "common.h"
 #include "commands.h"
+#include "common.h"
 #include "compilation.h"
 
 static OptionalPath_t file = NULL;
@@ -41,8 +41,8 @@ static int cmd_transpile(cli_command_t *self, List_t extra_args) {
         Path_t generated = build_file(path, extensions[i]);
         OptionalText_t contents = Path$read(generated);
         if (contents.tag == TEXT_NONE) print_err("Could not read the generated file: ", generated);
-        out = Texts(out, i > 0 ? Text("\n") : EMPTY_TEXT, "// file: ",
-                    Path$relative_to(generated, Path$current_dir()), "\n", contents);
+        out = Texts(out, i > 0 ? Text("\n") : EMPTY_TEXT, "// file: ", Path$relative_to(generated, Path$current_dir()),
+                    "\n", contents);
     }
 
     // Unless --raw, format the output with clang-format and (on a TTY)

@@ -4,8 +4,8 @@
 
 #include "../stdlib/lists.h"
 #include "../stdlib/text.h"
-#include "common.h"
 #include "commands.h"
+#include "common.h"
 #include "compilation.h"
 
 static List_t paths = EMPTY_LIST;
@@ -13,13 +13,13 @@ static OptionalPath_t output = NULL;
 
 static cli_arg_t package_spec[] = {
     {"paths", &paths, List$info(&Path$info), .positional = true, .metavar = "dir-or-file",
-     .description = "the package directories (or .tm files) to build (default: the current directory)"}, //
+     .description = "the package directories (or .tm files) to build (default: the current directory)"},
     {"output", &output, &Path$info, .short_flag = 'o', .metavar = "libname.a",
      .description = "where to put the archive (single package only; defaults to package.a in the package "
-                    "directory)"}, //
-    OPTIMIZATION_FLAG, //
-    VERBOSE_FLAG,      //
-    QUIET_FLAG,        //
+                    "directory)"},
+    OPTIMIZATION_FLAG,
+    VERBOSE_FLAG,
+    QUIET_FLAG,
 };
 
 static int cmd_package(cli_command_t *self, List_t extra_args) {

@@ -3,18 +3,18 @@
 #include "../formatter/formatter.h"
 #include "../stdlib/bools.h"
 #include "../stdlib/lists.h"
-#include "common.h"
 #include "commands.h"
+#include "common.h"
 
 static List_t files = EMPTY_LIST;
 static OptionalBool_t in_place = false;
 
 static cli_arg_t fmt_spec[] = {
     {"files", &files, List$info(&Path$info), .positional = true, .required = true, .metavar = "file.tm",
-     .description = "the files to format"}, //
+     .description = "the files to format"},
     {"in-place", &in_place, &Bool$info, .short_flag = 'i',
-     .description = "rewrite the files instead of printing to stdout"}, //
-    VERBOSE_FLAG, //
+     .description = "rewrite the files instead of printing to stdout"},
+    VERBOSE_FLAG,
 };
 
 static int cmd_fmt(cli_command_t *self, List_t extra_args) {
