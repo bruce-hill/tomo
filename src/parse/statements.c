@@ -166,21 +166,22 @@ ast_t *parse_test(parse_ctx_t *ctx, const char *pos) {
 
     ast_t *body = expect(ctx, start, &pos, parse_block, "I expected an indented body for this test");
 
-    int expectation = TEST_SUCCEEDS;
-    const char *expected_message = NULL;
+    // A `fails`/`fails_compile` clause sets its field non-NULL (a bare clause with no message becomes "", meaning
+    // "match any failure"); both left NULL means the test should pass.
+    const char *expected_failure = NULL, *expected_compile_error = NULL;
 
     // Optional trailing outcome clause, dedented back to the test's own indent:
     const char *save = pos;
     whitespace(ctx, &pos);
     if (get_indent(ctx, pos) == starting_indent) {
         if (match_word(&pos, "fails_compile")) {
-            expectation = TEST_FAILS_COMPILE;
             spaces(&pos);
-            expected_message = parse_plain_text(ctx, &pos);
+            const char *msg = parse_plain_text(ctx, &pos);
+            expected_compile_error = msg ? msg : "";
         } else if (match_word(&pos, "fails")) {
-            expectation = TEST_FAILS;
             spaces(&pos);
-            expected_message = parse_plain_text(ctx, &pos);
+            const char *msg = parse_plain_text(ctx, &pos);
+            expected_failure = msg ? msg : "";
         } else {
             pos = save; // no outcome clause; rewind for the next construct
         }
@@ -188,8 +189,8 @@ ast_t *parse_test(parse_ctx_t *ctx, const char *pos) {
         pos = save;
     }
 
-    return NewAST(ctx->file, start, pos, Test, .label = label, .body = body, .expectation = expectation,
-                  .expected_message = expected_message);
+    return NewAST(ctx->file, start, pos, Test, .label = label, .body = body, .expected_failure = expected_failure,
+                  .expected_compile_error = expected_compile_error);
 }
 
 ast_t *parse_statement(parse_ctx_t *ctx, const char *pos) {

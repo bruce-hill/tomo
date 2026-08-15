@@ -456,14 +456,12 @@ struct ast_s {
             ast_t *expr, *message;
         } Assert;
         struct {
-            const char *label;             // test "this label"
-            ast_t *body;                   // Block
-            enum {
-                TEST_SUCCEEDS,             // plain `test`
-                TEST_FAILS,                // `fails "..."`         -- runtime panic/abort
-                TEST_FAILS_COMPILE,        // `fails_compile "..."` -- typecheck error
-            } expectation;
-            const char *expected_message;  // substring to match, or NULL for "any failure"
+            const char *label; // test "this label"
+            ast_t *body;       // Block
+            // At most one of these is non-NULL (both NULL => the test should pass). The string is the substring the
+            // failure/error must contain; "" means "match any failure".
+            const char *expected_failure;       // `fails "..."`         -- expected runtime panic/abort
+            const char *expected_compile_error; // `fails_compile "..."` -- expected typecheck error
         } Test;
         struct {
             ast_t *var;

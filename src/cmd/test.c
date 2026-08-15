@@ -109,14 +109,14 @@ static test_result_t run_compile_fail(env_t *module_env, ast_t *test_node) {
                                 " instead of reporting an error)\n", output);
         outcome = TEST_RESULT_WRONG_MESSAGE;
     } else if (!failed) outcome = TEST_RESULT_UNEXPECTED_SUCCESS;
-    else if (t->expected_message && t->expected_message[0] && !strstr(output, t->expected_message))
+    else if (t->expected_compile_error[0] && !strstr(output, t->expected_compile_error))
         outcome = TEST_RESULT_WRONG_MESSAGE;
     else outcome = TEST_RESULT_PASS;
 
     return (test_result_t){
         .outcome = outcome,
         .label = t->label,
-        .expected_msg = t->expected_message,
+        .expected_msg = t->expected_compile_error[0] ? t->expected_compile_error : NULL,
         .expect_failure = true,
         .output = output,
         .first_line = (int)get_line_number(test_node->file, test_node->start),
@@ -153,7 +153,7 @@ static bool run_tests_for_file(Path_t path, results_t *results) {
         if (stmt->ast->tag != Test) continue;
         DeclareMatch(test, stmt->ast, Test);
         if (filt && !strstr(test->label, filt)) continue;
-        if (test->expectation == TEST_FAILS_COMPILE) {
+        if (test->expected_compile_error) {
             test_result_t r = run_compile_fail(module_env, stmt->ast);
             r.file = file_label;
             push_result(results, r);
