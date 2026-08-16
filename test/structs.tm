@@ -70,3 +70,12 @@ test "secret fields"
 
 test "corecursive struct construction"
 	>> CorecursiveA(@CorecursiveB())
+
+test "constructing a struct with the wrong arguments is rejected"
+	p := Pair(x=10)
+fails_compile "I could not find a constructor matching these arguments for the struct Pair"
+
+test "accessing a nonexistent struct field is rejected"
+	p := Pair(10, 20)
+	_ := p.z
+fails_compile "The field 'z' is not a valid field name of Pair"

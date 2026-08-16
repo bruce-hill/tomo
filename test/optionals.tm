@@ -253,3 +253,13 @@ test "negation and 'or' with optionals"
         say("Binary op 'or' works with optionals")
     else
         fail("Failed to do binary op 'or' on optional")
+
+test "force-unwrapping a none value panics"
+    x : Int? = none
+    _ := x!
+fails "This was expected to be a value, but it's `none`"
+
+test "dereferencing a maybe-none pointer is rejected"
+    p : @Int? = none
+    _ := p[]
+fails_compile "Only pointers can use the '[]' operator to dereference the entire value."

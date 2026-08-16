@@ -154,3 +154,11 @@ test "tag accessor extraction"
 		assert two.x == x
 		assert two.y == y
 	else fail("Unreachable")
+
+test "referencing a nonexistent enum variant is rejected"
+	f := Foo.Nonexistent
+fails_compile "I couldn't find the field 'Nonexistent' on this type"
+
+test "constructing an enum variant with the wrong argument type is rejected"
+	f := Foo.One("not an int")
+fails_compile "This function's signature doesn't match this call site."

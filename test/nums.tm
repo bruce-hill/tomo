@@ -51,3 +51,7 @@ test "math functions"
 	assert (2.0).mix(10, 20) == 30.
 	assert Num(5) == 5.
 	assert (0.5).percent() == "50%"
+
+test "force-unwrapping the square root of a negative panics"
+	_ := Num.sqrt(-1.0)!
+fails "This was expected to be a value, but it's `none`"

@@ -329,3 +329,7 @@ test "edit distance"
 	assert "hello".distance("ehllo") <= "hello".distance("XXllo")
 	>> "shffle".distance("shuffle")
 	assert "shffle".distance("shuffle") <= "shffle".distance("sample")
+
+test "concatenating text with a non-text value is rejected"
+	x := "hello" ++ 5
+fails_compile "I don't know how to do operations between Text and Int"

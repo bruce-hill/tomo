@@ -130,3 +130,12 @@ test "set operations on sets"
 	assert a.intersection(b) == {"B", "C"}
 	assert a.difference(b) == {"A", "D"}
 	assert a.without(b) == {"A"}
+
+test "force-unwrapping a missing key panics"
+	t := {1: 10, 2: 20}
+	_ := t[999]!
+fails "This key was not found in the table: 999"
+
+test "table values must match the declared type"
+	t : {Text:Int} = {"a": "b"}
+fails_compile "I expected a Int here, but this is a Text"

@@ -156,3 +156,11 @@ test "parsing integers"
 	assert Int.parse("Z", base=36) == 35
 	assert Int.parse("-z", base=36) == -35
 	assert Int.parse("-Z", base=36) == -35
+
+test "integers that don't fit a fixed-width type are rejected"
+	x := Int8(99999)
+fails_compile "This integer cannot fit in a 8-bit value"
+
+test "arithmetic between an integer and text is rejected"
+	x := 5 + "hello"
+fails_compile "I don't know how to do math operations between Int and Text"
