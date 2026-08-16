@@ -37,8 +37,9 @@ Text_t compile_update_assignment(env_t *env, ast_t *ast) {
         break;
     }
     case DivideUpdate: {
-        if (lhs_t->tag == IntType || lhs_t->tag == NumType || lhs_t->tag == ByteType)
-            update_assignment = Texts(lhs, " /= ", compile_to_type(env, update.rhs, lhs_t), ";");
+        // Integer/byte division falls through to the reconstructed binop so it goes through the
+        // guarded (divide-by-zero checked, Euclidean) division; only Num divides in place here.
+        if (lhs_t->tag == NumType) update_assignment = Texts(lhs, " /= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case LeftShiftUpdate: {

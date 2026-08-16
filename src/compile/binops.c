@@ -21,12 +21,51 @@ static PUREFUNC Text_t compile_unsigned_type(type_t *t) {
     return EMPTY_TEXT;
 }
 
+// Integer/byte division and modulo are guarded against a zero divisor so they raise a clean runtime
+// error (like force-unwrapping an out-of-bounds list index) instead of a hardware SIGFPE.
+static Text_t compile_checked_int_divmod(env_t *env, ast_t *ast, type_t *overall_t) {
+    binary_operands_t binop = BINARY_OPERANDS(ast);
+    Text_t lhs = compile_to_type(env, binop.lhs, overall_t);
+    Text_t rhs = compile_to_type(env, binop.rhs, overall_t);
+
+    int64_t start = (int64_t)(ast->start - ast->file->text);
+    int64_t end = (int64_t)(ast->end - ast->file->text);
+    int64_t line = get_line_number(ast->file, ast->start);
+
+    Text_t is_zero = overall_t->tag == BigIntType ? Text("I_is_zero($divisor)") : Text("$divisor == 0");
+
+    Text_t op_code;
+    if (overall_t->tag == ByteType) {
+        op_code = ast->tag == Divide ? Text("($numerator / $divisor)")
+                : ast->tag == Mod    ? Text("($numerator % $divisor)")
+                                     : Text("((($numerator - 1) % $divisor) + 1)");
+    } else {
+        binding_t *b = get_binding(get_namespace_by_type(env, overall_t), binop_info[ast->tag].method_name);
+        op_code = Texts(b->code, "($numerator, $divisor)");
+    }
+
+    // Report the numerator in the error message, matching the detail of other runtime errors:
+    Text_t numerator = overall_t->tag == BigIntType ? Text("$numerator") : Text("(int64_t)($numerator)");
+    const char *prefix = ast->tag == Divide ? "Cannot divide " : "Cannot take ";
+    const char *suffix = ast->tag == Divide ? " by zero\\n" : " modulo zero\\n";
+    Text_t message = Texts("Texts(Text(\"", prefix, "\"), ", numerator, ", Text(\"", suffix, "\"))");
+
+    return Texts("({ ", compile_declaration(overall_t, Text("$numerator")), " = ", lhs, ";\n",
+                 compile_declaration(overall_t, Text("$divisor")), " = ", rhs, ";\n", "if unlikely (", is_zero, ")\n",
+                 "#line ", line, "\n", "fail_source(", quoted_str(ast->file->filename), ", ", start, ", ", end, ", ",
+                 message, ");\n", op_code, "; })");
+}
+
 public
 Text_t compile_binary_op(env_t *env, ast_t *ast) {
     binary_operands_t binop = BINARY_OPERANDS(ast);
     type_t *lhs_t = get_type(env, binop.lhs);
     type_t *rhs_t = get_type(env, binop.rhs);
     type_t *overall_t = get_type(env, ast);
+
+    if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1)
+        && (overall_t->tag == IntType || overall_t->tag == BigIntType || overall_t->tag == ByteType))
+        return compile_checked_int_divmod(env, ast, overall_t);
 
     binding_t *b = get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, overall_t);
     if (!b) b = get_metamethod_binding(env, ast->tag, binop.rhs, binop.lhs, overall_t);
