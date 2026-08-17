@@ -42,9 +42,8 @@ static cli_arg_t global_spec[] = {
 };
 
 static cli_command_t *commands[] = {
-    &run_command,       &eval_command,           &build_command,     &transpile_command, &parse_command,
-    &fmt_command,       &package_command,        &install_command,   &uninstall_command, &vendor_command,
-    &info_command,      &version_command,        &uninstall_self_command, &test_command,
+    &run_command,  &eval_command,    &build_command,   &transpile_command, &parse_command, &fmt_command,
+    &package_command, &uninstall_command, &vendor_command,  &info_command,      &version_command, &test_command,
 };
 
 // Runs after the global flags are popped, before command dispatch: sets up
@@ -52,12 +51,6 @@ static cli_command_t *commands[] = {
 static void after_globals(void) {
     // The compiler is always the bundled `zig cc` (a clang):
     cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
-
-    Text_t owner = Path$owner(Path$from_str(TOMO_PATH), true);
-    Text_t user = Text$from_str(getenv("USER"));
-    if (!Text$equal_values(user, owner)) {
-        as_owner = Texts(Text(SUDO " -u "), owner, Text(" "));
-    }
 
     // Cross-compilation via --target: compile for another platform using the
     // bundled zig toolchain (which can target every supported platform) and the
@@ -195,7 +188,7 @@ int main(int argc, char *argv[]) {
     // Keep the bundled zig's global cache (its libc/compiler-rt builds, ~GBs)
     // inside Tomo's own cache directory rather than the zig default
     // (~/.cache/zig, which may belong to a zig the user runs themselves), so
-    // `tomo uninstall-self` can clear it. An explicit ZIG_GLOBAL_CACHE_DIR in
+    // `tomo uninstall` (no args) can clear it. An explicit ZIG_GLOBAL_CACHE_DIR in
     // the environment is respected (and remembered, so `tomo run` knows
     // whether to strip the variable before exec'ing the user's program):
     zig_cache_dir_from_env = getenv("ZIG_GLOBAL_CACHE_DIR") != NULL;

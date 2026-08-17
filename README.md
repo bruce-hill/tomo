@@ -227,12 +227,10 @@ Commands:
   parse: Print the parse tree of Tomo files as S-expressions
   fmt: Format Tomo source code
   package: Build Tomo packages into static archives
-  install: Install Tomo programs and packages into TOMO_PATH
-  uninstall: Remove installed Tomo programs and packages
+  uninstall: Uninstall Tomo programs, or this whole Tomo installation
   vendor: Copy packages' verified sources into ./vendor/
   info: Print the build info embedded in compiled binaries
   version: Print the Tomo compiler version (with -v: plus the git revision)
-  uninstall-self: Uninstall this Tomo installation
 ```
 
 For example:

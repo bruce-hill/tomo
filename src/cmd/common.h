@@ -128,11 +128,7 @@ extern Text_t link_optimizations;
 // run/eval/build handlers override it with their own level + speed tradeoff.
 void configure_codegen(Text_t opt_level, bool optimize);
 
-extern Text_t config_summary,
-    // This will be either "" or "sudo -u <user>" or "doas -u <user>"
-    // to allow a command to put stuff into TOMO_PATH as the owner
-    // of that directory.
-    as_owner;
+extern Text_t config_summary;
 
 #ifdef __linux__
 // The file modification time of the compiler itself, so files can be
@@ -149,5 +145,11 @@ bool platform_supported(const char *platform);
 void ensure_target_installed(void);
 List_t normalize_tm_paths(List_t paths);
 void wait_for_child_success(pid_t child);
+// Abort with a "re-run with more permissions" message if this user can't write
+// into `prefix` (checked at its nearest existing ancestor, so a prefix that
+// doesn't exist yet is fine as long as it can be created). Tomo never elevates
+// itself (no sudo/doas); the user re-runs the command with the permissions they
+// need.
+void require_writable_prefix(const char *prefix);
 Path_t get_exe_path(Path_t path);
 Path_t build_file(Path_t path, const char *extension);

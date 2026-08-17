@@ -308,7 +308,7 @@ ZIG_STAGED = $(BUILD_BASE)/zig/zig
 # The toolchain is shared between coresident Tomo versions: the real copy
 # lives in a store keyed by ZIG's version, and each Tomo version's
 # libexec/tomo@VER/zig is a symlink into it -- so a Tomo upgrade that keeps
-# the same zig pin adds ~10MB instead of ~400MB. `tomo uninstall-self`
+# the same zig pin adds ~10MB instead of ~400MB. `tomo uninstall` (no args)
 # removes stores that no remaining installation's symlink points into.
 ZIG_STORE_DIR = $(BUILD_DIR)/libexec/zig@$(ZIG_VERSION)
 ZIG_LINK = $(BUILD_DIR)/libexec/tomo@$(TOMO_VERSION)/zig
@@ -525,10 +525,11 @@ install-files: build check-zig
 install: install-files
 	@printf 'func main()\n\tsay("Tomo installation finished!")\n' | "$(PREFIX)/bin/tomo"
 
-# Uninstalling is the compiler's job (`tomo uninstall-self`): it knows where
-# every file of its version went and how to fix up the shared symlinks.
+# Uninstalling is the compiler's job (`tomo uninstall` with no arguments): it
+# knows where every file of its version went and how to fix up the shared
+# symlinks.
 uninstall:
-	"$(PREFIX)/bin/tomo@$(TOMO_VERSION)" uninstall-self
+	"$(PREFIX)/bin/tomo@$(TOMO_VERSION)" uninstall --yes
 
 .SUFFIXES:
 .PHONY: all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version

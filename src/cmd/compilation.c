@@ -42,6 +42,41 @@ typedef struct {
     bool h : 1, c : 1, o : 1;
 } staleness_t;
 
+// The sentinel every compiled Tomo binary (and package.a) carries at the head
+// of its embedded build-info blob. Scanned for both to print the info and to
+// recognize a file as Tomo's own before uninstalling it.
+static const char *const TOMO_BUILD_INFO_HEADER = "===== Begin Tomo Build Info =====";
+
+// Whether a file's raw bytes contain `needle` anywhere. Used to recognize
+// Tomo-produced artifacts (executables carry the build-info header; man pages
+// carry TOMO_MANPAGE_MARKER) without parsing their on-disk format.
+static bool file_contains(Path_t p, const char *needle) {
+    p = Path$expand_home(p);
+    int fd = open(Path$as_c_string(p), O_RDONLY);
+    if (fd < 0) return false;
+    struct stat sb;
+    if (fstat(fd, &sb) != 0 || sb.st_size == 0) {
+        close(fd);
+        return false;
+    }
+    char *contents = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    close(fd);
+    if (contents == MAP_FAILED) return false;
+    bool found = memmem(contents, (size_t)sb.st_size, needle, strlen(needle)) != NULL;
+    munmap(contents, (size_t)sb.st_size);
+    return found;
+}
+
+// Whether `p` is a compiled Tomo binary (carries the embedded build info).
+bool is_tomo_binary(Path_t p) {
+    return file_contains(p, TOMO_BUILD_INFO_HEADER);
+}
+
+// Whether `p` is a man page Tomo generated (carries TOMO_MANPAGE_MARKER).
+bool is_tomo_manpage(Path_t p) {
+    return file_contains(p, TOMO_MANPAGE_MARKER);
+}
+
 // The build-info blob lives in a named section (see compile_build_info()
 // below), but rather than maintaining ELF/Mach-O/archive parsers just to find
 // that section, the blob brackets itself with sentinel strings and this scans
@@ -62,7 +97,7 @@ void print_build_info(Path_t p) {
         exit(1);
     }
     const char *contents_end = contents + sb.st_size;
-    static const char *start_header = "===== Begin Tomo Build Info =====";
+    const char *start_header = TOMO_BUILD_INFO_HEADER;
     static const char *end_header = "===== End Tomo Build Info =====";
     bool found = false;
     for (const char *match = contents;
@@ -623,21 +658,6 @@ void build_package_archive(Path_t pkg_dir, List_t tm_files, Path_t archive) {
     } else {
         LOG(LOG_SKIP, "Unchanged: ", archive);
     }
-}
-
-void install_package(Path_t pkg_dir) {
-    Text_t pkg_name = get_package_name(pkg_dir);
-    Path_t dest = Path$child(Path$from_str(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION)), pkg_name);
-    print("Installing ", pkg_dir, " into ", dest);
-    if (!Enum$equal(&pkg_dir, &dest, &Path$info)) {
-        LOG(LOG_BUILD, "Clearing out any pre-existing version of ", pkg_name);
-        xsystem(as_owner, "rm -rf '", dest, "'");
-        LOG(LOG_BUILD, "Moving files to ", dest);
-        xsystem(as_owner, "mkdir -p '", dest, "'");
-        xsystem(as_owner, "cp -r '", pkg_dir, "'/* '", dest, "/'");
-        xsystem(as_owner, "cp -r '", pkg_dir, "'/.tomo '", dest, "/'");
-    }
-    print("Installed \033[1m", pkg_dir, "\033[m to ", TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/", pkg_name);
 }
 
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs, compile_mode_t mode) {

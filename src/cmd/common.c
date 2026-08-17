@@ -14,13 +14,15 @@
 #include "../stdlib/fail.h"
 #include "../stdlib/lists.h"
 #include "../stdlib/optionals.h"
+#include "../stdlib/paths.h"
+#include "../stdlib/print.h"
 #include "common.h"
 
 OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false;
 bool zig_cache_dir_from_env = false, cross_compiling = false, link_macho = false;
 uint32_t enabled_logs = 0;
 Text_t target_root = Text(""), lib_root = Text(""), zig_libc_dir = Text(""), cc = Text(""), ar = Text(""),
-       optimization = Text("2"), link_optimizations = Text(""), config_summary = Text(""), as_owner = Text(""),
+       optimization = Text("2"), link_optimizations = Text(""), config_summary = Text(""),
        ldlibs = Text("-lm"), ldflags = Text("");
 OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
                              " -ffunction-sections -fdata-sections"
@@ -161,6 +163,21 @@ void wait_for_child_success(pid_t child) {
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         _exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
     }
+}
+
+void require_writable_prefix(const char *prefix) {
+    // Check the nearest existing ancestor: if we can write there, we can create
+    // and populate the prefix subtree (bin/, man/, ...) even if it doesn't exist
+    // yet.
+    Path_t p = Path$from_str(prefix);
+    for (int i = 0; i < 64 && !Path$exists(p); i++) {
+        OptionalPath_t parent = Path$parent(p);
+        if (parent == NONE_PATH || strcmp(parent, p) == 0) break;
+        p = parent;
+    }
+    if (access(Path$as_c_string(p), W_OK) != 0)
+        print_err("You don't have permission to write to ", prefix,
+                  "\nRe-run this command as the owner of that directory (for example with `sudo`).");
 }
 
 Path_t get_exe_path(Path_t path) {

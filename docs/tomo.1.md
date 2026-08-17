@@ -1,6 +1,6 @@
 % TOMO(1)
 % Bruce Hill (*bruce@bruce-hill.com*)
-% August 11, 2026
+% August 16, 2026
 
 # NAME
 
@@ -27,6 +27,14 @@ high-performance, low-overhead datastructures. It compiles by first outputting
 C code, which is then compiled using the Zig toolchain bundled with the Tomo
 installation.
 
+A Tomo installation is relocatable: the `tomo` binary lives at
+*prefix*`/bin/tomo@`*version*, and it locates its libraries, headers, bundled
+toolchain, and man pages at startup relative to its own path (the *prefix* is
+the grandparent directory of the binary), so the whole tree can be moved or
+extracted into any prefix without rebuilding. The prefix is not fixed at build
+time; set `$TOMO_PATH` to override the automatically determined location (see
+**ENVIRONMENT**).
+
 With no command, `tomo` *file.tm* runs the file (like `tomo run`), and bare
 `tomo` opens a scratch file in `$EDITOR` to edit and run (or compiles and runs
 a program piped in on standard input).
@@ -51,9 +59,15 @@ statements separated by newlines or `;` (for example `tomo eval 'use random;
 random.int(1, 100)'`); the value of the final statement is printed, with syntax
 coloring when standard output is a terminal.
 
-`build` \[`-o` *output*\] *file.tm*
+`build` \[`-o` *output*\] \[`--install`\] \[`--prefix` *dir*\] \[`-y`\] *file.tm*
 : Compile the given program to a standalone executable, placed as a sibling
-of the `.tm` file (or at `-o` *output*).
+of the `.tm` file (or at `-o` *output*). With `--install`, the executable and
+its generated manpage are also copied into a prefix's `bin/` and `man/man1/` —
+the installation prefix by default, or `--prefix` *dir* to choose another.
+Existing files at those destinations are overwritten only after confirmation,
+or immediately with `--yes`/`-y`; a warning is printed if the target `bin/` is
+not on your `$PATH`. Remove installed programs again with `tomo uninstall`
+*name*.
 
 `transpile` \[`--raw`\] *file.tm*
 : Transpile the given file to C and print the generated header and source to
@@ -78,24 +92,24 @@ Directory arguments are each built the same way; `.tm` file arguments are
 compiled into a single archive. `-o` sets the archive path (single package
 only).
 
-`install` \[*dir-or-file...*\]
-: Install packages and programs into the Tomo installation prefix. Directory
-arguments are built as packages and installed into `lib/`; `.tm` file
-arguments are compiled to executables and installed into `bin/` (with their
-manpages). With no arguments, the current directory is installed as a package.
+`uninstall` \[`-y`\] \[*name-or-path...*\]
+: With one or more arguments, uninstall those installed programs. Each
+argument is either a bare *name* (looked up in the prefix's `bin/`) or a
+path to a binary. A binary is removed only if it is a Tomo program (it
+carries Tomo's embedded build info), and its Tomo-generated manpage in
+`man/man1/` is removed along with it. Files Tomo did not create are left
+untouched, and a missing binary or manpage is only a warning. Install
+programs with `tomo build --install`.
 
-`uninstall` *name...*
-: Uninstall the given packages or programs.
-
-`uninstall-self` \[`-y`\]
-: Uninstall this Tomo installation: remove this version's files from the
-installation prefix, along with its per-user state, cross-compilation
-target packs, and any bundled toolchains no remaining installation shares.
-If other Tomo versions remain in the same prefix, the `tomo` and man page
-symlinks are repointed to the newest one; otherwise they are removed too.
-If no `tomo` remains anywhere on `$PATH` afterwards, the cache
-(`~/.cache/tomo`: package downloads and the bundled Zig toolchain's compile
-cache) is also cleared. Asks for confirmation unless `--yes`/`-y` is given.
+: With no arguments, uninstall this whole Tomo installation: remove this
+version's files from the installation prefix, along with its per-user state,
+cross-compilation target packs, and any bundled toolchains no remaining
+installation shares. If other Tomo versions remain in the same prefix, the
+`tomo` and man page symlinks are repointed to the newest one; otherwise they
+are removed too. If no `tomo` remains anywhere on `$PATH` afterwards, the
+cache (`~/.cache/tomo`: package downloads and the bundled Zig toolchain's
+compile cache) is also cleared. Asks for confirmation unless `--yes`/`-y` is
+given.
 
 `vendor` \[`-e`|`-u`\] *package...*
 : Copy the named packages' digest-verified source archives into the current
@@ -152,3 +166,58 @@ Valid platforms are: `x86_64-linux`, `aarch64-linux`, `riscv64-linux`,
 `--install-target`
 : When using `--target`, download and install the target platform's libraries
 without asking for confirmation.
+
+# ENVIRONMENT
+
+`TOMO_PATH`
+: The installation prefix Tomo compiles and links against (its `lib/`,
+`include/`, `libexec/`, and `man/` trees) and installs into. By default this
+is determined at runtime from the location of the running `tomo` binary — the
+grandparent of the resolved executable path — so an installation is
+relocatable. Set `TOMO_PATH` to override it, for example to point at a tree in
+an unusual location or one whose `tomo` binary has been copied away from its
+sibling directories.
+
+`TOMO_DIST_URL`
+: Base URL for downloading distribution archives (used by `--target` and
+`--install-target` to fetch a target platform's libraries). Defaults to
+*https://tomo.bruce-hill.com/dist*.
+
+`EDITOR`
+: The editor bare `tomo` opens the scratch file in. Defaults to `vim`.
+
+`NO_COLOR`, `COLOR`
+: Set `NO_COLOR` to any non-empty value to disable colored output. Set `COLOR`
+to `1` to force it on; otherwise color is used only when standard output is a
+terminal.
+
+`TOMO_STACKTRACE`, `TOMO_PLAIN_ERRORS`, `TOMO_CORE_DUMP`
+: Diagnostics for compiler and runtime errors: `TOMO_STACKTRACE` prints a
+stack trace on errors, `TOMO_PLAIN_ERRORS` disables the fancy source-quoting
+error formatting, and setting `TOMO_CORE_DUMP` to a truthy value makes a fatal
+error abort (dumping core) instead of exiting cleanly.
+
+`TOMO_TEST_FILTER`, `TOMO_TEST_TIMEOUT`, `TOMO_TEST_VERBOSE`
+: Control `tomo test` runs: only run tests whose label contains
+`TOMO_TEST_FILTER`, cap each test at `TOMO_TEST_TIMEOUT` seconds, and print
+verbose output when `TOMO_TEST_VERBOSE` is set.
+
+`ZIG_GLOBAL_CACHE_DIR`
+: Where the bundled Zig toolchain keeps its global compile cache. If unset,
+Tomo points it at its own cache directory (under `$XDG_CACHE_HOME/tomo`) rather
+than Zig's default, so it never mingles with a separately-run Zig's cache; an
+explicit value is respected.
+
+# FILES
+
+*prefix*`/bin/tomo@`*version*
+: The compiler binary, with a `bin/tomo` symlink to the newest coresident
+version. Programs installed with `tomo build --install` also land in
+*prefix*`/bin/`.
+
+*prefix*`/lib/tomo@`*version*`/`, *prefix*`/include/tomo@`*version*`/`
+: The Tomo standard library archive and headers this version links against.
+
+*prefix*`/man/man1/`
+: Man pages, including those installed for programs built with `tomo build
+--install`.
