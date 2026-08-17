@@ -9,6 +9,7 @@ A few topics that are documented:
 - [Built-In Functions](builtins.md)
 - [Compilation Pipeline](compilation.md)
 - [Functions](functions.md)
+- [Identifiers (Unicode variable names)](identifiers.md)
 - [Packages](packages.md)
 - [Namespacing](namespacing.md)
 - [Operator Overloading](operators.md)

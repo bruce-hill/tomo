@@ -5,6 +5,7 @@
 #include "../unistr-fixed.h"
 #include <unictype.h>
 #include <uniname.h>
+#include <uninorm.h>
 
 #include "../stdlib/tables.h"
 #include "../util.h"
@@ -90,7 +91,29 @@ const char *get_word(const char **inout) {
         if (!uc_is_property_xid_continue(point)) break;
     }
     *inout = (const char *)pos;
-    return GC_strndup(word, (size_t)((const char *)pos - word));
+
+    size_t len = (size_t)((const char *)pos - word);
+
+    // ASCII identifiers are already in Normalization Form C, so avoid the
+    // normalization cost for the common case.
+    bool ascii_only = true;
+    for (size_t i = 0; i < len; i++) {
+        if ((uint8_t)word[i] >= 0x80) {
+            ascii_only = false;
+            break;
+        }
+    }
+    if (ascii_only) return GC_strndup(word, len);
+
+    // Normalize non-ASCII identifiers to NFC (per Unicode UAX #31) so that
+    // canonically-equivalent spellings (e.g. precomposed "é" vs. "e" + combining
+    // accent) refer to the same variable.
+    size_t norm_len = 0;
+    uint8_t *normalized = u8_normalize(UNINORM_NFC, (const uint8_t *)word, len, NULL, &norm_len);
+    if (!normalized) return GC_strndup(word, len); // Fall back to the raw bytes on failure
+    const char *result = GC_strndup((const char *)normalized, norm_len);
+    free(normalized);
+    return result;
 }
 
 const char *get_id(const char **inout) {
