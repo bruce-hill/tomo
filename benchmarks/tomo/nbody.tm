@@ -14,6 +14,9 @@
 #     `for &b in bodies` to update in place), which skips per-index bounds
 #     checks and per-write copy-on-write guards; loop counters/indices are
 #     native `Int64`, not the default arbitrary-precision `Int`.
+#   - Pairwise work reads as `for bi, bj in bodies.pairs()` (each distinct
+#     pair once); in for-position that compiles to an inline double-index
+#     loop, no iterator closure.
 #
 # Usage: nbody <steps>   (e.g. ./nbody 50000000)
 
@@ -65,10 +68,10 @@ func advance(bodies:@[Body], steps:Int64, dt:Num)
 
 func energy(bodies:[Body] -> Num)
     e := (+: 0.5 * b.mass * b.vel.len2() for b in bodies) or 0.0
-    for bi at i in bodies.to(-2)
-        for bj in bodies.from(i+1)
-            d := bi.pos - bj.pos
-            e -= (bi.mass * bj.mass) / Num.sqrt(d.len2())!
+    # Potential energy over each distinct pair of bodies:
+    for bi, bj in bodies.pairs()
+        d := bi.pos - bj.pos
+        e -= (bi.mass * bj.mass) / Num.sqrt(d.len2())!
     return e
 
 func main(steps:Int64)
