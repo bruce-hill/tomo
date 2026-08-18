@@ -531,6 +531,35 @@ List_t List$reversed(List_t list, int64_t padded_item_size) {
     return reversed;
 }
 
+// The state for a `xs.pairs()` iterator: yields each unordered pair of
+// distinct elements exactly once, as (i, j) index pairs with i < j
+// (equivalent to `for x at i in xs.to(n-1); for y in xs.from(i+1)`).
+typedef struct {
+    List_t list;
+    int64_t i, j;
+    int64_t item_size;
+} ListPairsState_t;
+
+static bool List$pairs$next(void *a, void *b, void *userdata) {
+    ListPairsState_t *state = userdata;
+    state->j += 1;
+    if (state->j > (int64_t)state->list.length) {
+        state->i += 1;
+        state->j = state->i + 1;
+    }
+    if (state->j > (int64_t)state->list.length) return false;
+    memcpy(a, state->list.data + (state->i - 1) * state->list.stride, (size_t)state->item_size);
+    memcpy(b, state->list.data + (state->j - 1) * state->list.stride, (size_t)state->item_size);
+    return true;
+}
+
+public
+Closure_t List$pairs(List_t list, int64_t padded_item_size) {
+    ListPairsState_t *state = GC_MALLOC(sizeof(ListPairsState_t));
+    *state = (ListPairsState_t){.list = list, .i = 1, .j = 1, .item_size = padded_item_size};
+    return (Closure_t){.fn = (void *)List$pairs$next, .userdata = state};
+}
+
 public
 List_t List$concat(List_t x, List_t y, int64_t padded_item_size) {
     void *data = x.atomic ? GC_MALLOC_ATOMIC((size_t)(padded_item_size * (int64_t)(x.length + y.length)))

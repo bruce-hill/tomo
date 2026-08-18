@@ -17,14 +17,14 @@ func labeled_nums(nums:[Int] -> Text)
 
 func table_str(t:{Text:Text} -> Text)
 	str := ""
-	for k,v in t
+	for k,v in t.entries()
 		str ++= "$k:$v,"
 	else return "EMPTY"
 	return str
 
 func table_key_str(t:{Text:Text} -> Text)
 	str := ""
-	for k in t
+	for k in t.keys
 		str ++= "$k,"
 	else return "EMPTY"
 	return str

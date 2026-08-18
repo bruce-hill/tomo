@@ -72,6 +72,10 @@ for a, b in pairs([10, 20, 30])
     say("$(a) $(b)")  # 10 20, 10 30, 20 30
 ```
 
+The built-in `list.pairs()` (each unordered pair of distinct elements, once)
+and `table.entries()` (each key/value pair) methods are iterators of this
+kind.
+
 The number of `&` arguments is the number of values the iterator yields, and
 a loop over it must bind exactly that many variables (a mismatch is a compile
 error). The loop variables themselves are the storage the iterator writes

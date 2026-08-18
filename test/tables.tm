@@ -11,7 +11,7 @@ test "table literal, lookup, and iteration"
 	assert t["???"] or -1 == -1
 
 	>> t_str := ""
-	for k,v in t
+	for k,v in t.entries()
 		t_str ++= "($k=$v)"
 	>> t_str
 	>> t.length
@@ -38,7 +38,7 @@ test "fallback tables"
 	assert t2.fallback == {"one": 1, "two": 2}
 
 	>> t2_str := ""
-	for k,v in t2
+	for k,v in t2.entries()
 		t2_str ++= "($k=$v)"
 	>> t2_str
 	assert t2_str == "(three=3)"
@@ -143,7 +143,7 @@ fails_compile "I expected a Int here, but this is a Text"
 test "skip and stop work in table loops"
 	t := {"a": 1, "b": 2, "c": 3}
 	n := 0
-	for k, v in t
+	for k, v in t.entries()
 		if k == "a"
 			skip
 		n += v

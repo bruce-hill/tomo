@@ -245,6 +245,13 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         self = compile_to_pointer_depth(env, call->self, 0, true);
         (void)compile_arguments(env, ast, NULL, call->args);
         return Texts("List$reversed(", self, ", ", padded_item_size, ")");
+    } else if (streq(call->name, "pairs")) {
+        // Iterator over each unordered pair of distinct elements (i < j). The
+        // incref gives it snapshot semantics: mutating the list after making
+        // the iterator copies first, like other buffer-sharing methods.
+        self = compile_to_pointer_depth(env, call->self, 0, true);
+        (void)compile_arguments(env, ast, NULL, call->args);
+        return Texts("List$pairs(", self, ", ", padded_item_size, ")");
     } else if (streq(call->name, "unique")) {
         self = compile_to_pointer_depth(env, call->self, 0, false);
         (void)compile_arguments(env, ast, NULL, call->args);

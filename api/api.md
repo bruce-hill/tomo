@@ -1032,6 +1032,26 @@ list.insert_all([99, 100], at=2)
 assert list == [10, 99, 100, 20, 30, 40]
 
 ```
+## List.pairs
+
+```tomo
+List.pairs : func(list: [T] -> func(a:&T, b:&T -> Bool))
+```
+
+Returns an iterator that yields each unordered pair of distinct elements exactly once (equivalent to iterating `a` at index `i` and `b` at every later index `j > i`). The iterator yields two values per iteration, so a loop over it binds two variables: `for a, b in list.pairs()`. Mutating the list after making the iterator does not affect what it yields.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+list | `[T]` | The list whose element pairs will be iterated.  | -
+
+**Return:** An iterator function that yields each pair of elements.
+
+
+**Example:**
+```tomo
+assert ["$a$b" for a, b in [1, 2, 3].pairs()] == ["12", "13", "23"]
+
+```
 ## List.pop
 
 ```tomo
@@ -3671,6 +3691,27 @@ other | `{K:V}` | The other table.  | -
 t1 := {"A": 1, "B": 2, "C": 3}
 t2 := {"B": 2, "C":30, "D": 40}
 assert t1.difference(t2) == {"A": 1, "D": 40}
+
+```
+## Table.entries
+
+```tomo
+Table.entries : func(t: {K:V} -> func(key:&K, value:&V -> Bool))
+```
+
+Returns an iterator that yields each key/value pair in the table, in insertion order. The iterator yields two values per iteration, so a loop over it binds two variables: `for k, v in table.entries()`. This is the only way to iterate a table's pairs (`for k, v in table` is a compile error); use the `.keys` or `.values` fields to iterate just one side. Mutating the table after making the iterator does not affect what it yields.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+t | `{K:V}` | The table whose entries will be iterated.  | -
+
+**Return:** An iterator function that yields each key/value pair.
+
+
+**Example:**
+```tomo
+t := {"A": 1, "B": 2}
+assert ["$k=$v" for k, v in t.entries()] == ["A=1", "B=2"]
 
 ```
 ## Table.get

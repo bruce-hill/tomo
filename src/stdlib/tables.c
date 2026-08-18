@@ -318,6 +318,32 @@ void Table$clear(Table_t *t) {
     *t = EMPTY_TABLE;
 }
 
+// The state for a `t.entries()` iterator: yields each (key, value) pair of
+// the table's entries in insertion order.
+typedef struct {
+    List_t entries;
+    int64_t i;
+    int64_t key_size, value_offset, value_size;
+} TableEntriesState_t;
+
+static bool Table$entries$next(void *key, void *value, void *userdata) {
+    TableEntriesState_t *state = userdata;
+    if (state->i >= (int64_t)state->entries.length) return false;
+    void *entry = state->entries.data + state->i * state->entries.stride;
+    memcpy(key, entry, (size_t)state->key_size);
+    memcpy(value, entry + state->value_offset, (size_t)state->value_size);
+    state->i += 1;
+    return true;
+}
+
+public
+Closure_t Table$entries_iter(Table_t t, int64_t key_size, int64_t value_offset, int64_t value_size) {
+    TableEntriesState_t *state = GC_MALLOC(sizeof(TableEntriesState_t));
+    *state = (TableEntriesState_t){
+        .entries = t.entries, .i = 0, .key_size = key_size, .value_offset = value_offset, .value_size = value_size};
+    return (Closure_t){.fn = (void *)Table$entries$next, .userdata = state};
+}
+
 public
 Table_t Table$sorted(Table_t t, const TypeInfo_t *type) {
     Closure_t cmp = (Closure_t){.fn = generic_compare, .userdata = (void *)type->TableInfo.key};

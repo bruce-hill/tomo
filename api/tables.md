@@ -48,6 +48,27 @@ t2 := {"B": 2, "C":30, "D": 40}
 assert t1.difference(t2) == {"A": 1, "D": 40}
 
 ```
+## Table.entries
+
+```tomo
+Table.entries : func(t: {K:V} -> func(key:&K, value:&V -> Bool))
+```
+
+Returns an iterator that yields each key/value pair in the table, in insertion order. The iterator yields two values per iteration, so a loop over it binds two variables: `for k, v in table.entries()`. This is the only way to iterate a table's pairs (`for k, v in table` is a compile error); use the `.keys` or `.values` fields to iterate just one side. Mutating the table after making the iterator does not affect what it yields.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+t | `{K:V}` | The table whose entries will be iterated.  | -
+
+**Return:** An iterator function that yields each key/value pair.
+
+
+**Example:**
+```tomo
+t := {"A": 1, "B": 2}
+assert ["$k=$v" for k, v in t.entries()] == ["A=1", "B=2"]
+
+```
 ## Table.get
 
 ```tomo

@@ -93,6 +93,7 @@ void Table$remove(Table_t *t, const void *key, const TypeInfo_t *type);
         Table$remove(t, &k, type);                                                                                     \
     })
 
+Closure_t Table$entries_iter(Table_t t, int64_t key_size, int64_t value_offset, int64_t value_size);
 Table_t Table$intersection(Table_t a, Table_t b, const TypeInfo_t *type);
 Table_t Table$with(Table_t a, Table_t b, const TypeInfo_t *type);
 Table_t Table$without(Table_t a, Table_t b, const TypeInfo_t *type);

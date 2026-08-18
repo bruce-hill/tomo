@@ -283,6 +283,26 @@ list.insert_all([99, 100], at=2)
 assert list == [10, 99, 100, 20, 30, 40]
 
 ```
+## List.pairs
+
+```tomo
+List.pairs : func(list: [T] -> func(a:&T, b:&T -> Bool))
+```
+
+Returns an iterator that yields each unordered pair of distinct elements exactly once (equivalent to iterating `a` at index `i` and `b` at every later index `j > i`). The iterator yields two values per iteration, so a loop over it binds two variables: `for a, b in list.pairs()`. Mutating the list after making the iterator does not affect what it yields.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+list | `[T]` | The list whose element pairs will be iterated.  | -
+
+**Return:** An iterator function that yields each pair of elements.
+
+
+**Example:**
+```tomo
+assert ["$a$b" for a, b in [1, 2, 3].pairs()] == ["12", "13", "23"]
+
+```
 ## List.pop
 
 ```tomo

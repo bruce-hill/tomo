@@ -118,14 +118,14 @@ test "comprehensions and reducers support index variables"
     # set and table comprehensions
     assert {i*x for x at i in xs} == {10, 40, 90}
     assert {i: x for x at i in xs} == {Int64(1): 10, Int64(2): 20, Int64(3): 30}
-    assert {v: k for k, v in t} == {1: "a", 2: "b"}
+    assert {v: k for k, v in t.entries()} == {1: "a", 2: "b"}
     # nested comprehensions (later `for` is the outer loop)
     assert [i*10 + j for x at i in 2 for y at j in 2] == [Int64(11), Int64(21), Int64(12), Int64(22)]
     # reducers
     assert (+: i for x at i in xs)! == Int64(6)
     assert (+: x for x at i in xs if i != 2)! == 40
     assert (+: i for x at i in 2.to(5))! == Int64(10)
-    assert (+: v for k, v in t)! == 3
+    assert (+: v for k, v in t.entries())! == 3
     assert (++: "$(i)$(c)" for c at i in "abc")! == "1a2b3c"
     assert (_max_: i*x for x at i in [30, 20, 10])! == 40
 
@@ -230,7 +230,9 @@ test "lockstep iteration over multiple iterables"
     assert ["$(r)$(x)" for r, x in 100.to(200), xs] == ["10010", "10120", "10230"]
     assert ["$(c)$(x)" for c, x in "abc", xs] == ["a10", "b20", "c30"]
     t := {"one": 1, "two": 2}
-    assert ["$(k)$(v)$(x)" for k, v, x in t, xs] == ["one110", "two220"]
+    assert ["$(k)$(v)$(x)" for k, v, x in t.entries(), xs] == ["one110", "two220"]
+    s := {5, 6, 7}
+    assert ["$(e)$(x)" for e, x in s, xs] == ["510", "620", "730"]
     # ...including multi-value iterator functions:
     assert ["$(a)$(b)$(y)" for a, b, y in int_pairs([1, 2, 3]), ys] == ["12a", "13b", "23c"]
 
@@ -288,9 +290,59 @@ test "reducers inside lambdas capture their iterables"
 
 test "lockstep variable counts must match the iterables' total yields"
     t := {"one": 1}
-    for k, x in t, [1, 2]
+    for k, x in t.entries(), [1, 2]
         pass
-fails_compile "`t` yields 2 values, `[1, 2]` yields 1 value"
+fails_compile "`t.entries()` yields 2 values, `[1, 2]` yields 1 value"
+
+test "table.entries() iterates key/value pairs"
+    t := {"one": 1, "two": 2, "three": 3}
+    got := ""
+    for k, v in t.entries()
+        got ++= "$k=$v "
+    assert got == "one=1 two=2 three=3 "
+    # with an `at` counter, in comprehensions, and in reducers:
+    assert ["$(i):$(k)$(v)" for k, v at i in t.entries()] == ["1:one1", "2:two2", "3:three3"]
+    assert (+: v for _, v in t.entries())! == 6
+    assert {v: k for k, v in t.entries()} == {1: "one", 2: "two", 3: "three"}
+    # snapshot semantics: mutations after making the iterator aren't seen
+    t2 := @{"a": 1}
+    iter := t2.entries()
+    t2.set("b", 2)
+    assert ["$k$v" for k, v in iter] == ["a1"]
+
+test "list.pairs() iterates each unordered pair once (i < j)"
+    xs := [10, 20, 30, 40]
+    assert ["$a-$b" for a, b in xs.pairs()] == ["10-20", "10-30", "10-40", "20-30", "20-40", "30-40"]
+    assert (+: 1 for _, _ in [1, 2, 3].pairs()) == 3
+    assert [b for _, b in [5, 6].pairs()] == [6]
+    # too few elements for any pair:
+    assert ["$a$b" for a, b in [7].pairs()] == []
+    ran_else := no
+    empty : [Int] = []
+    for a, b in empty.pairs()
+        pass
+    else
+        ran_else = yes
+    assert ran_else
+    # snapshot semantics: mutations after making the iterator aren't seen
+    ys := @[1, 2]
+    p := ys.pairs()
+    ys[1] = 99
+    assert ["$a$b" for a, b in p] == ["12"]
+
+test "tables can't be iterated directly"
+    t := {"one": 1}
+    for k, v in t
+        pass
+fails_compile "Use `.entries()`"
+
+test "sets iterate their elements directly"
+    s := {10, 20, 30}
+    total := 0
+    for x at i in s
+        total += x + Int(i)
+    assert total == 66
+    assert (+: x for x in s)! == 60
 
 test "by-reference variables aren't allowed in lockstep loops"
     xs := @[1, 2, 3]

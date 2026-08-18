@@ -138,8 +138,9 @@ static Text_t compile_lockstep_loop(env_t *env, ast_t *ast, env_t *body_scope, T
             break;
         }
         case TableType: {
-            type_t *key_t = Match(iter_value_t, TableType)->key_type;
-            type_t *value_t = Match(iter_value_t, TableType)->value_type;
+            // Only sets ({T}) reach here (direct table iteration is a compile
+            // error in iteration_slots()); iterate the entry keys:
+            type_t *item_t = Match(iter_value_t, TableType)->key_type;
             Text_t list = Texts(temp, "$entries"), idx = Texts(temp, "$i");
             if (raw_t->tag == PointerType) {
                 Text_t ptr = Texts(temp, "$ptr");
@@ -152,20 +153,11 @@ static Text_t compile_lockstep_loop(env_t *env, ast_t *ast, env_t *body_scope, T
             }
             setup = Texts(setup, "int64_t ", idx, " = 0;\n");
             advance = Texts(advance, "if (", idx, " >= ", list, ".length) break;\n", idx, " += 1;\n");
-            ast_t *key_var = var->ast;
+            ast_t *v = var->ast;
             var = var->next;
-            if (!streq(Match(key_var, Var)->name, "_"))
-                advance = Texts(advance, compile_declaration(key_t, compile(body_scope, key_var)), " = *(",
-                                compile_type(key_t), "*)(", list, ".data + (", idx, "-1)*", list, ".stride);\n");
-            ast_t *value_var = var->ast;
-            var = var->next;
-            if (!streq(Match(value_var, Var)->name, "_")) {
-                Text_t value_offset = Texts("offsetof(struct { ", compile_declaration(key_t, Text("k")), "; ",
-                                            compile_declaration(value_t, Text("v")), "; }, v)");
-                advance = Texts(advance, compile_declaration(value_t, compile(body_scope, value_var)), " = *(",
-                                compile_type(value_t), "*)(", list, ".data + (", idx, "-1)*", list, ".stride + ",
-                                value_offset, ");\n");
-            }
+            if (!streq(Match(v, Var)->name, "_"))
+                advance = Texts(advance, compile_declaration(item_t, compile(body_scope, v)), " = *(",
+                                compile_type(item_t), "*)(", list, ".data + (", idx, "-1)*", list, ".stride);\n");
             break;
         }
         case BigIntType: {
@@ -476,25 +468,16 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         return loop;
     }
     case TableType: {
+        // Only sets ({T}) reach here (direct table iteration is a compile
+        // error in for_scope()); iterate the entry keys:
         Text_t loop = Text("for (int64_t i = 0; i < (int64_t)iterating.length; ++i) {\n");
         if (for_->at) loop = Texts(loop, "Int64_t ", compile(body_scope, for_->at), " = i + 1;\n");
-        if (for_->vars) {
-            Text_t key = compile(body_scope, for_->vars->ast);
-            type_t *key_t = Match(iter_value_t, TableType)->key_type;
-            loop = Texts(loop, compile_declaration(key_t, key), " = *(", compile_type(key_t), "*)(",
+        ast_t *value_var = single_loop_var(for_->vars);
+        if (value_var) {
+            Text_t item = compile(body_scope, value_var);
+            type_t *item_t = Match(iter_value_t, TableType)->key_type;
+            loop = Texts(loop, compile_declaration(item_t, item), " = *(", compile_type(item_t), "*)(",
                          "iterating.data + i*iterating.stride);\n");
-
-            if (for_->vars->next) {
-                if (for_->vars->next->next)
-                    code_err(for_->vars->next->next->ast, "This is too many variables for this loop");
-
-                type_t *value_t = Match(iter_value_t, TableType)->value_type;
-                Text_t value = compile(body_scope, for_->vars->next->ast);
-                Text_t value_offset = Texts("offsetof(struct { ", compile_declaration(key_t, Text("k")), "; ",
-                                            compile_declaration(value_t, Text("v")), "; }, v)");
-                loop = Texts(loop, compile_declaration(value_t, value), " = *(", compile_type(value_t), "*)(",
-                             "iterating.data + i*iterating.stride + ", value_offset, ");\n");
-            }
         }
 
         loop = Texts(loop, naked_body, "\n}");

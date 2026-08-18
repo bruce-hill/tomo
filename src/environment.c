@@ -652,8 +652,11 @@ arg_t *iteration_slots(env_t *env, ast_t *iter_ast) {
     switch (iter_t->tag) {
     case ListType: return new (arg_t, .name = "item", .type = Match(iter_t, ListType)->item_type);
     case TableType:
-        return new (arg_t, .name = "key", .type = Match(iter_t, TableType)->key_type,
-                    .next = new (arg_t, .name = "value", .type = Match(iter_t, TableType)->value_type));
+        // Sets ({T}) yield each element; tables must use `.entries()`:
+        if (Match(iter_t, TableType)->value_type == PRESENT_TYPE)
+            return new (arg_t, .name = "item", .type = Match(iter_t, TableType)->key_type);
+        code_err(iter_ast, "Tables can't be iterated directly. Use `.entries()` to iterate key/value pairs "
+                           "(`for k, v in t.entries()`), or `.keys`/`.values` to iterate just the keys or values.");
     case BigIntType:
     case IntType: return new (arg_t, .name = "count", .type = iter_t);
     case TextType: return new (arg_t, .name = "grapheme", .type = TEXT_TYPE);
@@ -766,21 +769,16 @@ env_t *for_scope(env_t *env, ast_t *ast) {
         return scope;
     }
     case TableType: {
-        const char *vars[2] = {};
-        int64_t num_vars = 0;
-        for (ast_list_t *var = for_->vars; var; var = var->next) {
-            if (num_vars >= 2) code_err(var->ast, "This is too many variables for this loop");
-            vars[num_vars++] = Match(var->ast, Var)->name;
-        }
-
-        type_t *key_t = Match(iter_t, TableType)->key_type;
-        if (num_vars == 1) {
-            set_binding(scope, vars[0], key_t, Texts("_$", vars[0]));
-        } else if (num_vars == 2) {
-            set_binding(scope, vars[0], key_t, Texts("_$", vars[0]));
-            type_t *value_t = Match(iter_t, TableType)->value_type;
-            set_binding(scope, vars[1], value_t, Texts("_$", vars[1]));
-        }
+        // Sets ({T}) iterate their elements directly; tables must use
+        // `.entries()` (or `.keys`/`.values`) so that iteration always binds
+        // exactly what the iterable yields:
+        if (Match(iter_t, TableType)->value_type != PRESENT_TYPE)
+            code_err(iter_ast, "Tables can't be iterated directly. Use `.entries()` to iterate key/value pairs "
+                               "(`for k, v in t.entries()`), or `.keys`/`.values` to iterate just the keys or values.");
+        ast_t *value_var = single_loop_var(for_->vars);
+        if (value_var)
+            set_binding(scope, Match(value_var, Var)->name, Match(iter_t, TableType)->key_type,
+                        Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
     case BigIntType:

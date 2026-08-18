@@ -187,6 +187,9 @@ test "List.insert_all"
     list.insert_all([99, 100], at=2)
     assert list == [10, 99, 100, 20, 30, 40]
 
+test "List.pairs"
+    assert ["$a$b" for a, b in [1, 2, 3].pairs()] == ["12", "13", "23"]
+
 test "List.pop"
     list := &[10, 20, 30, 40]
     
@@ -702,6 +705,10 @@ test "Table.difference"
     t1 := {"A": 1, "B": 2, "C": 3}
     t2 := {"B": 2, "C":30, "D": 40}
     assert t1.difference(t2) == {"A": 1, "D": 40}
+
+test "Table.entries"
+    t := {"A": 1, "B": 2}
+    assert ["$k=$v" for k, v in t.entries()] == ["A=1", "B=2"]
 
 test "Table.get"
     t := {"A": 1, "B": 2}

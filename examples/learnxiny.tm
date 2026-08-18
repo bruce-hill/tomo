@@ -116,11 +116,12 @@ func main()
     empty_table : {Text:Int}
     assert empty_table == {}
 
-    # Tables can be iterated over either by key or key,value:
-    for key in table
+    # Iterate a table's key/value pairs with .entries():
+    for key, value in table.entries()
         pass
 
-    for key, value in table
+    # ...or just its keys or values with .keys/.values:
+    for key in table.keys
         pass
 
     # Tables also have ".keys" and ".values" fields to explicitly access the

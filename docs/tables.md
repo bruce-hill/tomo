@@ -122,17 +122,29 @@ assert t.values == [10, 20]
 
 ## Iteration
 
-You can iterate over the key/value pairs in a table like this:
+Iterate over the key/value pairs in a table with the `.entries()` method:
 
 ```tomo
-for key, value in table
-    ...
-
-for key in table
+for key, value in table.entries()
     ...
 ```
 
-Table iteration operates over the value of the table when the loop began, so
+To iterate over just the keys or just the values, use the `.keys` or
+`.values` fields:
+
+```tomo
+for key in table.keys
+    ...
+
+for value in table.values
+    ...
+```
+
+(Tables can't be iterated directly--`for k, v in table` is a compile
+error--so a loop's variables always bind exactly what the iterable yields.
+Sets iterate their elements directly: `for x in a_set`.)
+
+Iteration operates over the value of the table when the iterator was made, so
 modifying the table during iteration is safe and will not result in the loop
 iterating over any of the new values.
 

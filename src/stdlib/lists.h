@@ -176,6 +176,7 @@ PUREFUNC List_t List$to(List_t list, Int_t last);
 PUREFUNC List_t List$by(List_t list, Int_t stride, int64_t padded_item_size);
 PUREFUNC List_t List$slice(List_t list, Int_t int_first, Int_t int_last);
 PUREFUNC List_t List$reversed(List_t list, int64_t padded_item_size);
+Closure_t List$pairs(List_t list, int64_t padded_item_size);
 List_t List$concat(List_t x, List_t y, int64_t padded_item_size);
 PUREFUNC uint64_t List$hash(const void *list, const TypeInfo_t *type);
 PUREFUNC int32_t List$compare(const void *x, const void *y, const TypeInfo_t *type);

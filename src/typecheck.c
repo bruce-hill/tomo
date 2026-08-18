@@ -972,6 +972,17 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "heapify")) return Type(VoidType);
             else if (streq(call->name, "insert")) return Type(VoidType);
             else if (streq(call->name, "insert_all")) return Type(VoidType);
+            else if (streq(call->name, "pairs"))
+                // A multi-value iterator (see iterator_yield_args()) yielding
+                // each unordered pair of distinct elements once (i < j):
+                return Type(ClosureType,
+                            .fn = Type(FunctionType,
+                                       .args = new (arg_t, .name = "a",
+                                                    .type = Type(PointerType, .pointed = item_type, .is_stack = true),
+                                                    .next = new (arg_t, .name = "b",
+                                                                 .type = Type(PointerType, .pointed = item_type,
+                                                                              .is_stack = true))),
+                                       .ret = Type(BoolType)));
             else if (streq(call->name, "pop")) return Type(OptionalType, .type = item_type);
             else if (streq(call->name, "random")) return Type(OptionalType, .type = item_type);
             else if (streq(call->name, "remove_at")) return Type(VoidType);
@@ -993,6 +1004,18 @@ type_t *get_type(env_t *env, ast_t *ast) {
         case TableType: {
             DeclareMatch(table, self_value_t, TableType);
             if (streq(call->name, "clear")) return Type(VoidType);
+            else if (streq(call->name, "entries"))
+                // A multi-value iterator (see iterator_yield_args()) yielding
+                // each (key, value) pair of the table:
+                return Type(ClosureType,
+                            .fn = Type(FunctionType,
+                                       .args = new (arg_t, .name = "key",
+                                                    .type = Type(PointerType, .pointed = table->key_type,
+                                                                 .is_stack = true),
+                                                    .next = new (arg_t, .name = "value",
+                                                                 .type = Type(PointerType, .pointed = table->value_type,
+                                                                              .is_stack = true))),
+                                       .ret = Type(BoolType)));
             else if (streq(call->name, "get")) return Type(OptionalType, .type = table->value_type);
             else if (streq(call->name, "get_or_set")) return table->value_type;
             else if (streq(call->name, "has")) return Type(BoolType);
@@ -1873,14 +1896,14 @@ List_t get_method_names(env_t *env, type_t *t) {
     case ListType: {
         return List(Text("binary_search"), Text("by"), Text("clear"), Text("counts"), Text("find"), Text("where"),
                     Text("from"), Text("has"), Text("heap_pop"), Text("heap_push"), Text("heapify"), Text("insert"),
-                    Text("insert_all"), Text("pop"), Text("random"), Text("remove_at"), Text("remove_item"),
-                    Text("reversed"), Text("sample"), Text("shuffle"), Text("shuffled"), Text("slice"), Text("sort"),
-                    Text("sorted"), Text("to"), Text("unique"));
+                    Text("insert_all"), Text("pairs"), Text("pop"), Text("random"), Text("remove_at"),
+                    Text("remove_item"), Text("reversed"), Text("sample"), Text("shuffle"), Text("shuffled"),
+                    Text("slice"), Text("sort"), Text("sorted"), Text("to"), Text("unique"));
     }
     case TableType: {
-        return List(Text("clear"), Text("get"), Text("get_or_set"), Text("has"), Text("remove"), Text("set"),
-                    Text("sorted"), Text("with_fallback"), Text("without"), Text("intersection"), Text("difference"),
-                    Text("with"));
+        return List(Text("clear"), Text("entries"), Text("get"), Text("get_or_set"), Text("has"), Text("remove"),
+                    Text("set"), Text("sorted"), Text("with_fallback"), Text("without"), Text("intersection"),
+                    Text("difference"), Text("with"));
     }
     default: {
         env_t *ns_env = get_namespace_by_type(env, t);

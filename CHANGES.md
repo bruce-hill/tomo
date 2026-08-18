@@ -2,6 +2,20 @@
 
 ## 2026-08-18
 
+- New `table.entries()` and `list.pairs()` iterator methods, and direct table
+  iteration is removed. `t.entries()` yields each key/value pair
+  (`for k, v in t.entries()`) and `xs.pairs()` yields each unordered pair of
+  distinct elements once (i < j, e.g. `(+: a.dist(b) for a, b in
+  points.pairs()) or 0.0`). Both are multi-value out-parameter iterators, so
+  they compose with `at` counters, `_` discards, lockstep iteration,
+  comprehensions, and reducers, and both have snapshot semantics (mutating
+  the container after making the iterator doesn't affect what it yields).
+  `for k, v in t` is now a compile error pointing at `.entries()` (or
+  `.keys`/`.values`), so loop variables always bind exactly what the
+  iterable yields — there's no more special case where a table yields a
+  different number of values than everything else. Sets still iterate their
+  elements directly (`for x in a_set`), which stays unambiguous at one value
+  per iteration.
 - New lockstep iteration: `for x, y in xs, ys` iterates over several iterables
   at once, advancing all of them together and ending as soon as any one runs
   out. Each iterable's yielded values bind to its slice of the loop variables

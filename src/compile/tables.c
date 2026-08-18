@@ -141,6 +141,16 @@ Text_t compile_table_method_call(env_t *env, ast_t *ast) {
         self = compile_to_pointer_depth(env, call->self, 0, false);
         (void)compile_arguments(env, ast, NULL, call->args);
         return Texts("Table$sorted(", self, ", ", compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "entries")) {
+        // Iterator over each (key, value) pair. The incref gives it snapshot
+        // semantics: mutating the table after making the iterator copies
+        // first.
+        self = compile_to_pointer_depth(env, call->self, 0, true);
+        (void)compile_arguments(env, ast, NULL, call->args);
+        Text_t value_offset = Texts("offsetof(struct { ", compile_declaration(table->key_type, Text("k")), "; ",
+                                    compile_declaration(table->value_type, Text("v")), "; }, v)");
+        return Texts("Table$entries_iter(", self, ", sizeof(", compile_type(table->key_type), "), ", value_offset,
+                     ", sizeof(", compile_type(table->value_type), "))");
     } else if (streq(call->name, "with_fallback")) {
         self = compile_to_pointer_depth(env, call->self, 0, false);
         arg_t *arg_spec = new (arg_t, .name = "fallback", .type = Type(OptionalType, self_value_t));
