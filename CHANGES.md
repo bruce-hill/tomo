@@ -2,6 +2,13 @@
 
 ## 2026-08-18
 
+- `list.pairs()` and `table.entries()` used directly in for-position (a loop,
+  comprehension, reducer, or lockstep clause) now compile to inline index
+  loops instead of allocating an iterator closure and calling it indirectly
+  once per iteration. This is a semantics-preserving optimization -- behavior,
+  including snapshot semantics, is identical to iterating the closure -- but a
+  pairs-heavy loop measured ~6x faster. Storing the iterator in a variable
+  first (`p := xs.pairs(); for a, b in p`) still uses the closure, as it must.
 - New `table.entries()` and `list.pairs()` iterator methods, and direct table
   iteration is removed. `t.entries()` yields each key/value pair
   (`for k, v in t.entries()`) and `xs.pairs()` yields each unordered pair of

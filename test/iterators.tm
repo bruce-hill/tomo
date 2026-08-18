@@ -330,6 +330,23 @@ test "list.pairs() iterates each unordered pair once (i < j)"
     ys[1] = 99
     assert ["$a$b" for a, b in p] == ["12"]
 
+test "pairs()/entries() keep snapshot semantics when inlined in for-position"
+    # These compile to inline index loops (no closure); mutating the container
+    # in the body must still not affect the iteration (the snapshot is stable).
+    xs := @[1, 2, 3]
+    got := ""
+    for a, b in xs.pairs()
+        got ++= "$a$b "
+        xs[1] = 99
+    assert got == "12 13 23 "
+    assert xs[1]! == 99
+    t := @{"a": 1, "b": 2}
+    got2 := ""
+    for k, v in t.entries()
+        got2 ++= "$k$v "
+        t.set("c", 3)
+    assert got2 == "a1 b2 "
+
 test "tables can't be iterated directly"
     t := {"one": 1}
     for k, v in t

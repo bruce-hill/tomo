@@ -97,6 +97,89 @@ static Text_t compile_iterator_call(type_t *iter_value_t, Text_t next_fn, Text_t
     }
 }
 
+// `xs.pairs()` and `t.entries()` are multi-value iterators, but when they
+// appear directly in for-position we compile them as inline index loops --
+// no closure is allocated and no indirect call happens per iteration. The
+// result is identical to iterating the closure; this is a pure performance
+// special-case. Returns true (having appended to setup/advance/cleanup and
+// advanced *var_p) if `iter_ast` is such a call, false otherwise.
+static bool is_combinatoric_call(env_t *env, ast_t *iter_ast) {
+    if (iter_ast->tag != MethodCall) return false;
+    DeclareMatch(call, iter_ast, MethodCall);
+    if (call->args) return false; // extra args -> let the normal path report the error
+    type_t *self_t = value_type(get_type(env, call->self));
+    if (streq(call->name, "pairs")) return self_t->tag == ListType;
+    if (streq(call->name, "entries"))
+        return self_t->tag == TableType && Match(self_t, TableType)->value_type != PRESENT_TYPE;
+    return false;
+}
+
+static void compile_combinatoric_fragment(env_t *env, env_t *body_scope, ast_t *iter_ast, Text_t temp,
+                                          ast_list_t **var_p, Text_t *setup, Text_t *advance, Text_t *cleanup) {
+    DeclareMatch(call, iter_ast, MethodCall);
+    ast_t *self = call->self;
+    type_t *raw_self = get_type(env, self);
+    type_t *self_t = value_type(raw_self);
+
+    if (streq(call->name, "pairs")) {
+        // Each unordered pair of distinct elements once (i < j). An incref'd
+        // snapshot gives the same "mutations aren't seen" behavior as the
+        // closure: mutating the list mid-loop copies its buffer first.
+        type_t *item_t = Match(self_t, ListType)->item_type;
+        Text_t list = Texts(temp, "$list"), i = Texts(temp, "$i"), j = Texts(temp, "$j");
+        if (raw_self->tag == PointerType) {
+            Text_t ptr = Texts(temp, "$ptr");
+            *setup = Texts(*setup, "List_t *", ptr, " = ", compile_to_pointer_depth(env, self, 1, false),
+                           ";\nLIST_INCREF(*", ptr, ");\nList_t ", list, " = *", ptr, ";\n");
+            *cleanup = Texts(*cleanup, "LIST_DECREF(*", ptr, ");\n");
+        } else {
+            *setup = Texts(*setup, "List_t ", list, " = ", compile_to_pointer_depth(env, self, 0, false), ";\n");
+        }
+        *setup = Texts(*setup, "int64_t ", i, " = 1, ", j, " = 1;\n");
+        *advance = Texts(*advance, j, " += 1;\nif (", j, " > (int64_t)", list, ".length) { ", i, " += 1; ", j, " = ",
+                         i, " + 1; }\nif (", j, " > (int64_t)", list, ".length) break;\n");
+        ast_t *va = (*var_p)->ast;
+        *var_p = (*var_p)->next;
+        if (!streq(Match(va, Var)->name, "_"))
+            *advance = Texts(*advance, compile_declaration(item_t, compile(body_scope, va)), " = *(",
+                             compile_type(item_t), "*)(", list, ".data + (", i, "-1)*", list, ".stride);\n");
+        ast_t *vb = (*var_p)->ast;
+        *var_p = (*var_p)->next;
+        if (!streq(Match(vb, Var)->name, "_"))
+            *advance = Texts(*advance, compile_declaration(item_t, compile(body_scope, vb)), " = *(",
+                             compile_type(item_t), "*)(", list, ".data + (", j, "-1)*", list, ".stride);\n");
+    } else { // "entries"
+        type_t *key_t = Match(self_t, TableType)->key_type;
+        type_t *value_t = Match(self_t, TableType)->value_type;
+        Text_t list = Texts(temp, "$entries"), idx = Texts(temp, "$i");
+        if (raw_self->tag == PointerType) {
+            Text_t ptr = Texts(temp, "$ptr");
+            *setup = Texts(*setup, "Table_t *", ptr, " = ", compile_to_pointer_depth(env, self, 1, false),
+                           ";\nLIST_INCREF(", ptr, "->entries);\nList_t ", list, " = ", ptr, "->entries;\n");
+            *cleanup = Texts(*cleanup, "LIST_DECREF(", ptr, "->entries);\n");
+        } else {
+            *setup = Texts(*setup, "List_t ", list, " = (", compile_to_pointer_depth(env, self, 0, false),
+                           ").entries;\n");
+        }
+        *setup = Texts(*setup, "int64_t ", idx, " = 0;\n");
+        *advance = Texts(*advance, "if (", idx, " >= ", list, ".length) break;\n", idx, " += 1;\n");
+        ast_t *key_var = (*var_p)->ast;
+        *var_p = (*var_p)->next;
+        if (!streq(Match(key_var, Var)->name, "_"))
+            *advance = Texts(*advance, compile_declaration(key_t, compile(body_scope, key_var)), " = *(",
+                             compile_type(key_t), "*)(", list, ".data + (", idx, "-1)*", list, ".stride);\n");
+        ast_t *value_var = (*var_p)->ast;
+        *var_p = (*var_p)->next;
+        if (!streq(Match(value_var, Var)->name, "_")) {
+            Text_t value_offset = Texts("offsetof(struct { ", compile_declaration(key_t, Text("k")), "; ",
+                                        compile_declaration(value_t, Text("v")), "; }, v)");
+            *advance = Texts(*advance, compile_declaration(value_t, compile(body_scope, value_var)), " = *(",
+                             compile_type(value_t), "*)(", list, ".data + (", idx, "-1)*", list, ".stride + ",
+                             value_offset, ");\n");
+        }
+    }
+}
+
 // Compile `for x, y in xs, ys` -- lockstep iteration over several iterables.
 //
 // Each iterable contributes a setup step (run once, leftmost first, so the
@@ -105,6 +188,9 @@ static Text_t compile_iterator_call(type_t *iter_value_t, Text_t next_fn, Text_t
 // out. Each iterable's yielded values bind to its slice of the loop variables
 // (`_` discards one); arity was already checked in for_scope(). The `else`
 // block (if any) runs when the body never ran at all.
+//
+// A single-iterable `for a, b in xs.pairs()` also routes here (so pairs() and
+// entries() get their inline codegen); it's just a lockstep loop of one.
 static Text_t compile_lockstep_loop(env_t *env, ast_t *ast, env_t *body_scope, Text_t naked_body, Text_t stop) {
     DeclareMatch(for_, ast, For);
 
@@ -113,6 +199,10 @@ static Text_t compile_lockstep_loop(env_t *env, ast_t *ast, env_t *body_scope, T
     int64_t k = 0;
     for (ast_list_t *it = for_->iters; it; it = it->next, k += 1) {
         Text_t temp = Texts("lockstep", k);
+        if (is_combinatoric_call(env, it->ast)) {
+            compile_combinatoric_fragment(env, body_scope, it->ast, temp, &var, &setup, &advance, &cleanup);
+            continue;
+        }
         type_t *raw_t = get_type(env, it->ast);
         type_t *iter_value_t = value_type(raw_t);
         switch (iter_value_t->tag) {
@@ -317,7 +407,11 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
     if (loop_ctx.skip_label.length > 0) naked_body = Texts(naked_body, "\n", loop_ctx.skip_label, ": continue;");
     Text_t stop = loop_ctx.stop_label.length > 0 ? Texts("\n", loop_ctx.stop_label, ":;") : EMPTY_TEXT;
 
-    if (for_->iters->next) return compile_lockstep_loop(env, ast, body_scope, naked_body, stop);
+    // Lockstep loops, and single `for a, b in xs.pairs()` / `for k, v in
+    // t.entries()` loops, compile to inline index loops (no closure, no
+    // indirect calls) through the same fragment machinery:
+    if (for_->iters->next || is_combinatoric_call(env, iter))
+        return compile_lockstep_loop(env, ast, body_scope, naked_body, stop);
 
     // Special case for improving performance for numeric iteration:
     if (iter->tag == MethodCall && streq(Match(iter, MethodCall)->name, "to")
