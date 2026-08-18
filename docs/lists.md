@@ -84,9 +84,69 @@ for i, item in list
     ...
 ```
 
+When iterating with an index variable, the index is a native `Int64` counting
+up from `1`.
+
 List iteration operates over the value of the list when the loop began, so
 modifying the list during iteration is safe and will not result in the loop
-iterating over any of the new values.
+iterating over any of the new values. (In-place iteration with a `&` variable,
+described below, is the exception: it operates on the live list.)
+
+### Updating Elements In-Place
+
+If you have a pointer to a list (`@[T]` or `&[T]`), you can iterate over it
+with a `&` variable to update its elements in place:
+
+```tomo
+nums := @[10, 20, 30]
+for &x in nums
+    x[] += 1
+assert nums[] == [11, 21, 31]
+```
+
+The loop variable is a non-escaping `&` reference pointing directly at each
+element in the list's memory, so updates through it are direct writes with no
+per-element bounds checking or copy-on-write overhead. As with other loops,
+you can also bind an index variable: `for i, &x in nums`.
+
+Field accesses work through the reference, which makes updating lists of
+structs concise:
+
+```tomo
+struct Vec(x, y: Num)
+
+vecs := @[Vec(1.0, 2.0), Vec(3.0, 4.0)]
+for &v in vecs
+    v.x *= 2.0
+assert vecs[] == [Vec(2.0, 2.0), Vec(6.0, 4.0)]
+```
+
+Unlike ordinary iteration, a `for &` loop operates on the live list: reads and
+indexed writes through the list's own name inside the loop body see the
+updates as they happen.
+
+Two operations are not allowed while the loop is running, because they would
+pull the memory out from under the loop's references: resizing the list (for
+example with `insert()` or `remove_at()`) and making a copy of its value (for
+example `tmp := nums[]`, or slicing it). Doing either--directly or through any
+other pointer to the same list--is a runtime error, checked on every iteration
+and once more after the loop ends, so a violation on the final iteration is
+still caught. Copies that already exist *before* the loop begins are safe: in
+that case the loop copies the shared data up front, exactly as any other
+mutation would under copy-on-write, and the pre-existing copies are unaffected:
+
+```tomo
+nums := @[10, 20, 30]
+snapshot := nums[] # Taken before the loop, so it is protected:
+for &x in nums
+    x[] = x[] * 10
+assert nums[] == [100, 200, 300]
+assert snapshot == [10, 20, 30]
+```
+
+Because `&` references can't escape, an element reference can be passed to a
+function that takes a `&` argument, but it can't be stored anywhere that would
+let it outlive the loop iteration that created it.
 
 ## Concatenation
 
@@ -158,23 +218,23 @@ simple examples:
 ```tomo
 nums := [10, 20, 30, 39]
 
-// Efficient in-place mutation because data references are not shared:
+# Efficient in-place mutation because data references are not shared:
 nums[4] = 40
 
-// Constant time operation, but increments the reference count:
+# Constant time operation, but increments the reference count:
 tmp := nums
 assert tmp == [10, 20, 30, 40]
 
-// Now, a mutation will trigger a copy-on-write,
-// which resets the reference count to zero:
+# Now, a mutation will trigger a copy-on-write,
+# which resets the reference count to zero:
 nums[4] = 999
 assert nums == [10, 20, 30, 999]
 
-// Because of the copy-on-write, `tmp` is unchanged:
+# Because of the copy-on-write, `tmp` is unchanged:
 assert tmp == [10, 20, 30, 40]
 
-// Since the reference count has been reset, we can do more
-// mutations without triggering another copy-on-write:
+# Since the reference count has been reset, we can do more
+# mutations without triggering another copy-on-write:
 nums[4] = -1
 assert nums == [10, 20, 30, -1]
 ```
@@ -207,8 +267,8 @@ the one stored on the heap. It's only when we store the "value" in multiple
 places that we need to increment the reference count:
 
 ```tomo
-// Increment the reference count, because `value` now has to hold
-// whatever data was at the pointer's location at this point in time: 
+# Increment the reference count, because `value` now has to hold
+# whatever data was at the pointer's location at this point in time: 
 value := nums[]
 ```
 

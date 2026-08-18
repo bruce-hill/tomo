@@ -141,3 +141,8 @@ that accept `&` pointers are more flexible in what they can accept as inputs,
 but they are subject to the restrictions above. When possible, it's preferable
 to take `&` arguments to allow them to be called with local variable
 references.
+
+`&` references also appear as loop variables: `for &x in list` iterates a
+mutable list with a reference to each element, so the elements can be updated
+in place. See [Updating Elements In-Place](lists.md#updating-elements-in-place)
+for details.
