@@ -91,24 +91,53 @@ you can use `ptr.foo` on a pointer to that struct type as well, without needing
 to use `ptr[].foo`. The same is true for list accesses like `ptr[i]` and method
 calls like `ptr.reversed()`.
 
-# Read-Only Views
+# Variable References and Non-escaping Pointers
 
-In a small number of API methods (`list.first()`, `list.binary_search()`,
-`list.sort()`, `list.sorted()`, and `list.heapify()`), the methods allow you
-to provide custom comparison functions. However, for safety, we don't actually
-want the comparison methods to be able mutate the values inside of immutable
-list values. For implementation reasons, we can't pass the values themselves
-to the comparison functions, but need to pass pointers to the list members.
-So, to work around this, Tomo allows you to define functions that take
-immutable view pointers as arguments. These behave similarly to `@` pointers,
-but their type signature uses `&` instead of `@` and read-only view pointers
-cannot be used to mutate the contents that they point to and cannot be stored
-inside of any datastructures as elements or members.
+Tomo allows you to take the reference of a local variable or value similarly to
+C using the `&` operator. The result is a pointer with type `&T`:
 
 ```tomo
-nums := @[10, 20, 30]
-assert nums.first(func(x:&Int): x / 2 == 10) == 2
+x := 123
+ptr := &x
+assert ptr[] == 123
+ptr[] = 456
+assert x == 456
 ```
 
-Normal `@` pointers can be promoted to immutable view pointers automatically,
-but not vice versa.
+This can be helpful for making functions that modify local variables:
+
+```tomo
+func increment(ptr:&Int)
+    ptr[] += 1
+
+x := 123
+increment(&x)
+assert x == 124
+```
+
+You can automatically promote a `@` pointer (heap) to a `&` pointer
+(stack-or-heap):
+
+```tomo
+# Valid promotion:
+heap := @123
+increment(heap)
+assert heap[] == 124
+```
+
+However, there are several restrictions on how `&` pointers are used:
+
+1. A stack-or-heap `&` pointer cannot be returned from a function (e.g. `return &x`)
+2. A stack-or-heap `&` pointer cannot be stored in memory (e.g. `arr[i] = &x`)
+3. A stack-or-heap `&` pointer cannot be promoted to a heap `@` pointer
+
+These restrictions ensure that a local variable reference can't outlive the
+stack frame in which it was created, which would be a memory safety error.
+
+So, the general rule is that heap `@` pointers are for long-lived or
+interlinked data and stack-or-heap `&` pointers are for local variable
+references or functions that are agnostic to where the data lives. Functions
+that accept `&` pointers are more flexible in what they can accept as inputs,
+but they are subject to the restrictions above. When possible, it's preferable
+to take `&` arguments to allow them to be called with local variable
+references.
