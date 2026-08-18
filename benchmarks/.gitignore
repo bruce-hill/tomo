@@ -1,0 +1,12 @@
+# Downloaded reference implementations (other languages) — never tracked.
+fetched/
+# Compiled binaries and per-language build scratch.
+.build/
+# Tomo build artifacts emitted next to the tracked sources.
+tomo/.tomo/
+tomo/*
+!tomo/*.tm
+# Benchmark results and generated graphs.
+results.json
+results.svg
+results.png

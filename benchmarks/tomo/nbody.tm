@@ -1,0 +1,105 @@
+# n-body — The Computer Language Benchmarks Game
+#
+# A Tomo port. The simulation uses NO inline C; the only C_code use is the
+# final printf() calls, which format the energy to 9 decimal places (the
+# benchmark's required output format). All the actual computation is pure Tomo.
+#
+# Design notes (for performance without giving up readability):
+#   - Vec3 has inline arithmetic metamethods, so the physics reads as vector
+#     math (`a - b`, `v*k`, `v.dot(v)`) rather than component bookkeeping.
+#   - Each body is one `Body` struct in a single `@[Body]` array, so one
+#     bounds-checked access yields a body's position, velocity, and mass
+#     (all adjacent in memory) instead of indexing three parallel arrays.
+#   - Full sweeps use `for b in bodies` (element iteration skips per-index
+#     bounds checks); loop counters/indices are native `Int64`, not the
+#     default arbitrary-precision `Int`.
+#
+# Usage: nbody <steps>   (e.g. ./nbody 50000000)
+
+struct Vec3(x, y, z: Num)
+    func plus(a, b: Vec3 -> Vec3; inline)
+        return Vec3(a.x + b.x, a.y + b.y, a.z + b.z)
+
+    func minus(a, b: Vec3 -> Vec3; inline)
+        return Vec3(a.x - b.x, a.y - b.y, a.z - b.z)
+
+    func scaled_by(v:Vec3, k:Num -> Vec3; inline)
+        return Vec3(v.x*k, v.y*k, v.z*k)
+
+    func dot(a, b: Vec3 -> Num; inline)
+        return a.x*b.x + a.y*b.y + a.z*b.z
+
+struct Body(pos, vel: Vec3, mass: Num)
+
+func print9(x:Num)
+    # Format-only inline C: print `x` with %.9f, matching the reference output.
+    C_code `printf("%.9f", @x); putchar(10);`
+
+func advance(bodies:@[Body], steps:Int64, dt:Num)
+    n := Int64(bodies.length)
+    for _ in Int64(1).to(steps)
+        # NOTE: this loop mutates `bodies`, so it must index rather than iterate
+        # a slice — a live slice shares the underlying data, and writing through
+        # the array while such a view exists triggers a copy-on-write compaction
+        # every write (both slow and, since the view then goes stale, wrong).
+        for i in Int64(1).to(n-1)
+            bi := bodies[i]!
+            # Accumulate body i's velocity locally, writing the array once.
+            vi := bi.vel
+            for j in (i+1).to(n)
+                bj := bodies[j]!
+                d := bi.pos - bj.pos
+                d2 := d.dot(d)
+                mag := dt / (d2 * Num.sqrt(d2)!)
+                vi -= d * (bj.mass * mag)
+                bodies[j] = Body(bj.pos, bj.vel + d * (bi.mass * mag), bj.mass)
+            bodies[i] = Body(bi.pos, vi, bi.mass)
+        for i in Int64(1).to(n)
+            b := bodies[i]!
+            bodies[i] = Body(b.pos + b.vel * dt, b.vel, b.mass)
+
+func energy(bodies:[Body] -> Num)
+    e := 0.0
+    for b in bodies
+        e += 0.5 * b.mass * b.vel.dot(b.vel)
+    for i, bi in bodies.to(-2)
+        for bj in bodies.from(i+1)
+            d := bi.pos - bj.pos
+            e -= (bi.mass * bj.mass) / Num.sqrt(d.dot(d))!
+    return e
+
+func main(steps:Int64)
+    dpy := 365.24
+    sm := 4.0 * Num.PI * Num.PI
+
+    # Bodies: sun, jupiter, saturn, uranus, neptune.
+    bodies := @[
+        Body(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0), sm),
+        Body(
+            Vec3(4.84143144246472090e00, -1.16032004402742839e00, -1.03622044471123109e-01),
+            Vec3(1.66007664274403694e-03*dpy, 7.69901118419740425e-03*dpy, -6.90460016972063023e-05*dpy),
+            9.54791938424326609e-04 * sm),
+        Body(
+            Vec3(8.34336671824457987e00, 4.12479856412430479e00, -4.03523417114321381e-01),
+            Vec3(-2.76742510726862411e-03*dpy, 4.99852801234917238e-03*dpy, 2.30417297573763929e-05*dpy),
+            2.85885980666130812e-04 * sm),
+        Body(
+            Vec3(1.28943695621391310e01, -1.51111514016986312e01, -2.23307578892655734e-01),
+            Vec3(2.96460137564761618e-03*dpy, 2.37847173959480950e-03*dpy, -2.96589568540237556e-05*dpy),
+            4.36624404335156298e-05 * sm),
+        Body(
+            Vec3(1.53796971148509165e01, -2.59193146099879641e01, 1.79258772950371181e-01),
+            Vec3(2.68067772490389322e-03*dpy, 1.62824170038242295e-03*dpy, -9.51592254519715870e-05*dpy),
+            5.15138902046611451e-05 * sm),
+    ]
+
+    # offset_momentum: pin the total momentum to zero via the sun's velocity.
+    p := Vec3(0.0, 0.0, 0.0)
+    for b in bodies
+        p += b.vel * b.mass
+    sun := bodies[1]!
+    bodies[1] = Body(sun.pos, p * (-1.0 / sm), sun.mass)
+
+    print9(energy(bodies[]))
+    advance(bodies, steps, 0.01)
+    print9(energy(bodies[]))

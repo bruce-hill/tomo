@@ -1,0 +1,78 @@
+{
+  "site": "https://benchmarksgame-team.pages.debian.net/benchmarksgame/program",
+  "repeats": 3,
+  "languages": {
+    "tomo": {
+      "label": "Tomo", "ext": "tm", "tracked": true, "color": "#e4572e",
+      "build": ["tomo", "build", "-O3", "-o", "{bin}", "{src}"],
+      "run": ["{bin}"]
+    },
+    "c": {
+      "label": "C (gcc)", "ext": "c", "color": "#555555",
+      "build": ["gcc", "-O3", "-fomit-frame-pointer", "-march=native", "-o", "{bin}", "{src}", "-lm"],
+      "run": ["{bin}"]
+    },
+    "cpp": {
+      "label": "C++ (g++)", "ext": "cpp", "color": "#8e44ad",
+      "build": ["g++", "-O3", "-fomit-frame-pointer", "-march=native", "-o", "{bin}", "{src}", "-lm"],
+      "run": ["{bin}"]
+    },
+    "rust": {
+      "label": "Rust", "ext": "rs", "color": "#d1832f",
+      "build": ["rustc", "-C", "opt-level=3", "-C", "target-cpu=native", "-o", "{bin}", "{src}"],
+      "run": ["{bin}"]
+    },
+    "go": {
+      "label": "Go", "ext": "go", "color": "#00add8",
+      "build": ["go", "build", "-o", "{bin}", "{src}"],
+      "run": ["{bin}"]
+    },
+    "javascript": {
+      "label": "JavaScript (node)", "ext": "js", "color": "#f0c419",
+      "run": ["node", "{src}"]
+    },
+    "lua": {
+      "label": "Lua", "ext": "lua", "color": "#2c2c8c",
+      "run": ["lua", "{src}"]
+    },
+    "luajit": {
+      "label": "LuaJIT", "ext": "lua", "source_from": "lua", "color": "#3355bb",
+      "run": ["luajit", "{src}"]
+    },
+    "python": {
+      "label": "Python", "ext": "py", "color": "#3572a5",
+      "run": ["python3", "{src}"]
+    },
+    "java": {
+      "label": "Java", "ext": "java", "handler": "java", "color": "#b07219"
+    },
+    "csharp": {
+      "label": "C#", "ext": "cs", "handler": "csharp", "color": "#178600",
+      "disabled": true
+    },
+    "swift": {
+      "label": "Swift", "ext": "swift", "color": "#f05138",
+      "build": ["swiftc", "-O", "-o", "{bin}", "{src}"],
+      "run": ["{bin}"]
+    }
+  },
+  "benchmarks": {
+    "nbody": {
+      "args": ["5000000"],
+      "reference": "c",
+      "programs": {
+        "c": "gcc-1",
+        "cpp": "gpp-1",
+        "rust": "rust-2",
+        "go": "go-1",
+        "javascript": "node-6",
+        "lua": "lua-1",
+        "luajit": "lua-1",
+        "python": "python3-1",
+        "java": "graalvmaot-1",
+        "csharp": "csharpcore-1",
+        "swift": "swift-1"
+      }
+    }
+  }
+}
