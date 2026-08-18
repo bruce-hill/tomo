@@ -4,7 +4,7 @@
   "languages": {
     "tomo": {
       "label": "Tomo", "ext": "tm", "tracked": true, "color": "#e4572e",
-      "build": ["tomo", "build", "-O3", "-o", "{bin}", "{src}"],
+      "build": ["{tomo}", "build", "-O3", "-o", "{bin}", "{src}"],
       "run": ["{bin}"]
     },
     "c": {
@@ -72,6 +72,23 @@
         "java": "graalvmaot-1",
         "csharp": "csharpcore-1",
         "swift": "swift-1"
+      }
+    },
+    "fannkuchredux": {
+      "args": ["10"],
+      "reference": "c",
+      "programs": {
+        "c": "gcc-1",
+        "cpp": "gpp-1",
+        "rust": "rust-2",
+        "go": "go-1",
+        "javascript": "node-5",
+        "lua": "lua-1",
+        "luajit": "lua-1",
+        "python": "python3-4",
+        "java": "graalvmaot-1",
+        "csharp": "csharpaot-2",
+        "swift": "swift-3"
       }
     }
   }

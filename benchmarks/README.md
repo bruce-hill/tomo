@@ -34,6 +34,7 @@ benchmarks/
   plot.py          # results.json -> results.svg + results.png
   tomo/            # TRACKED — the Tomo ports (the only source we own)
     nbody.tm
+    fannkuchredux.tm
   fetched/         # git-ignored — reference implementations, downloaded
   .build/          # git-ignored — compiled binaries / build scratch
   results.json     # git-ignored — measured timings
@@ -84,8 +85,8 @@ failing the run.
 
 ## Benchmarks
 
-Currently implemented: **n-body**. The plan is to grow the library-free core set
-(fannkuch-redux, spectral-norm, mandelbrot, binary-trees, fasta,
+Currently implemented: **n-body**, **fannkuch-redux**. The plan is to grow the
+library-free core set (spectral-norm, mandelbrot, binary-trees, fasta,
 reverse-complement, k-nucleotide) one at a time, each with a validated Tomo port.
 
 [clbg]: https://benchmarksgame-team.pages.debian.net/benchmarksgame/

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render benchmark results (results.json) as a comparison graph.
+"""Render benchmark results (results.json) as comparison graphs.
 
 One horizontal-bar panel per benchmark, languages sorted fastest-first.
 Tomo is drawn in an accent color; every other language is neutral gray, so
@@ -7,8 +7,10 @@ the graph reads as "Tomo vs. the field" and is colorblind-safe by
 construction (one accent vs. gray). Each bar is directly labeled with its
 wall-clock time and slowdown relative to the fastest language.
 
+Writes a combined overview (<out>.svg/.png, all benchmarks stacked) plus one
+standalone graph per benchmark (<out>-<benchmark>.svg/.png).
+
 Usage: python3 plot.py [results.json] [-o out_basename]
-Writes <out>.svg and <out>.png (default: results).
 """
 import json
 import os
@@ -132,6 +134,32 @@ def main():
     fig.savefig(svg)
     fig.savefig(png, dpi=140)
     print(f"wrote {svg}\nwrote {png}")
+    plt.close(fig)
+
+    # One standalone graph per benchmark, so each can be linked/shared on
+    # its own instead of only as a panel in the combined overview.
+    for bname, block in benches:
+        bfig, bax = plt.subplots(1, 1, figsize=(9, 3.4))
+        bfig.patch.set_facecolor("white")
+        bax.set_facecolor("white")
+        panel(bax, bname, block)
+        legend = [
+            Patch(facecolor=ACCENT, label="Tomo"),
+            Patch(facecolor=NEUTRAL, label="other languages"),
+        ]
+        bax.legend(handles=legend, loc="upper right", frameon=False,
+                  fontsize=9, borderaxespad=0.6)
+        bfig.text(0.02, 0.02,
+                 "best of 3 runs · same input · outputs validated against the C reference",
+                 ha="left", fontsize=8, color=MUTED)
+        bfig.tight_layout(rect=[0, 0.08, 1, 1])
+
+        bsvg = os.path.join(HERE, f"{out}-{bname}.svg")
+        bpng = os.path.join(HERE, f"{out}-{bname}.png")
+        bfig.savefig(bsvg)
+        bfig.savefig(bpng, dpi=140)
+        print(f"wrote {bsvg}\nwrote {bpng}")
+        plt.close(bfig)
 
 
 if __name__ == "__main__":

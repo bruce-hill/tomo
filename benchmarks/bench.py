@@ -24,6 +24,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FETCHED = os.path.join(HERE, "fetched")
 BUILD = os.path.join(HERE, ".build")
 RESULTS = os.path.join(HERE, "results.json")
+# Build with the repo's own in-tree compiler, not whatever `tomo` happens to
+# be on PATH — an installed release build can lag behind language features
+# used by the ports (e.g. `for x at i in xs`), and silently mis-parse them.
+LOCAL_TOMO = os.path.join(HERE, "..", "local-tomo")
 
 
 def load_config():
@@ -85,6 +89,8 @@ def tool_available(spec):
     if handler == "csharp":
         return bool(shutil.which("dotnet"))
     exe = (spec.get("build") or spec.get("run"))[0]
+    if exe == "{tomo}":
+        return os.access(LOCAL_TOMO, os.X_OK)
     if exe.startswith("{"):
         exe = spec["run"][0]
     return bool(shutil.which(exe))
@@ -156,10 +162,10 @@ def prepare(cfg, bname, lang):
 
     if "build" in spec:
         binpath = os.path.join(bdir, lang)
-        _check(expand(spec["build"], src=src, bin=binpath))
-        return expand(spec["run"], src=src, bin=binpath)
+        _check(expand(spec["build"], src=src, bin=binpath, tomo=LOCAL_TOMO))
+        return expand(spec["run"], src=src, bin=binpath, tomo=LOCAL_TOMO)
 
-    return expand(spec["run"], src=src, bin="")
+    return expand(spec["run"], src=src, bin="", tomo=LOCAL_TOMO)
 
 
 BUILD_TIMEOUT = int(os.environ.get("BENCH_BUILD_TIMEOUT", "180"))
