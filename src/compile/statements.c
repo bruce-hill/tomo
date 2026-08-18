@@ -161,7 +161,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         DeclareMatch(comp, ast, Comprehension);
         if (comp->expr->tag == Comprehension) { // Nested comprehension
             ast_t *body = comp->filter ? WrapAST(ast, If, .condition = comp->filter, .body = comp->expr) : comp->expr;
-            ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iter = comp->iter, .body = body);
+            ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iters = comp->iters, .body = body);
             return compile_statement(env, loop);
         }
 
@@ -169,7 +169,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         comprehension_body_t get_body = (void *)env->comprehension_action->fn;
         ast_t *body = get_body(comp->expr, env->comprehension_action->userdata);
         if (comp->filter) body = WrapAST(comp->expr, If, .condition = comp->filter, .body = body);
-        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iter = comp->iter, .body = body);
+        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iters = comp->iters, .body = body);
         return compile_statement(env, loop);
     }
     case InlineCCode: {

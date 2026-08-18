@@ -298,7 +298,16 @@ ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
     }
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
 
-    ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
+    // One or more comma-separated iterables (`for x, y in xs, ys` iterates in lockstep):
+    ast_list_t *iters = NULL;
+    for (;;) {
+        ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
+        iters = new (ast_list_t, .ast = iter, .next = iters);
+        spaces(&pos);
+        if (!match(&pos, ",")) break;
+        spaces(&pos);
+    }
+    REVERSE_LIST(iters);
 
     spaces(&pos);
     if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
@@ -316,5 +325,5 @@ ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
         empty = expect(ctx, pos, &pos, parse_block, "I expected a body for this 'else'");
     }
     REVERSE_LIST(vars);
-    return NewAST(ctx->file, start, pos, For, .vars = vars, .at = at_var, .iter = iter, .body = body, .empty = empty);
+    return NewAST(ctx->file, start, pos, For, .vars = vars, .at = at_var, .iters = iters, .body = body, .empty = empty);
 }

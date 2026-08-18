@@ -210,3 +210,90 @@ test "a leading index variable on a multi-value iterator suggests `at`"
     for i, a, b in int_pairs(xs)
         pass
 fails_compile "bind it with `at`"
+
+test "lockstep iteration over multiple iterables"
+    xs := [10, 20, 30]
+    ys := ["a", "b", "c"]
+    got := ""
+    for x, y in xs, ys
+        got ++= "$(x)$(y) "
+    assert got == "10a 20b 30c "
+    # the loop ends when the shortest iterable runs out (either side):
+    assert ["$(x)$(y)" for x, y in xs, [1, 2]] == ["101", "202"]
+    assert ["$(x)$(y)" for x, y in [1, 2], xs] == ["110", "220"]
+    # `at` counts iterations alongside the lockstep values:
+    assert ["$(i):$(x)$(y)" for x, y at i in xs, ys] == ["1:10a", "2:20b", "3:30c"]
+    # `_` discards a value:
+    assert [y for _, y in xs, ys] == ["a", "b", "c"]
+    # any iterable kind can participate: counts, ranges, text, tables...
+    assert ["$(n)$(x)" for n, x in 5, xs] == ["110", "220", "330"]
+    assert ["$(r)$(x)" for r, x in 100.to(200), xs] == ["10010", "10120", "10230"]
+    assert ["$(c)$(x)" for c, x in "abc", xs] == ["a10", "b20", "c30"]
+    t := {"one": 1, "two": 2}
+    assert ["$(k)$(v)$(x)" for k, v, x in t, xs] == ["one110", "two220"]
+    # ...including multi-value iterator functions:
+    assert ["$(a)$(b)$(y)" for a, b, y in int_pairs([1, 2, 3]), ys] == ["12a", "13b", "23c"]
+
+test "lockstep iterables are evaluated left to right, exactly once"
+    order : @[Text]
+    first := func(-> [Int])
+        order.insert("first")
+        return [1, 2]
+    second := func(-> [Int])
+        order.insert("second")
+        return [10, 20]
+    for x, y in first(), second()
+        pass
+    assert order[] == ["first", "second"]
+
+test "lockstep loops support skip, stop, and else"
+    xs := [10, 20, 30]
+    ys := ["a", "b", "c"]
+    got := ""
+    for x, y at i in xs, ys
+        if i == 1
+            skip
+        if i == 3
+            stop
+        got ++= "$(x)$(y)"
+    assert got == "20b"
+    ran_else := no
+    empty : [Int] = []
+    for x, y in xs, empty
+        pass
+    else
+        ran_else = yes
+    assert ran_else
+    # ...but not when every iterable has values:
+    ran_else2 := no
+    for x, y in xs, ys
+        pass
+    else
+        ran_else2 = yes
+    assert not ran_else2
+
+test "lockstep reducers"
+    # dot product, no intermediate list:
+    assert (+: x*y for x, y in [1, 2, 3], [4, 5, 6])! == 32
+
+test "reducers inside lambdas capture their iterables"
+    xs := [1, 2, 3]
+    ys := [10, 20, 30]
+    f := func(-> Int)
+        return (+: x*2 for x in xs) or 0
+    assert f() == 12
+    g := func(-> Int)
+        return (+: a*b for a, b in xs, ys) or 0
+    assert g() == 140
+
+test "lockstep variable counts must match the iterables' total yields"
+    t := {"one": 1}
+    for k, x in t, [1, 2]
+        pass
+fails_compile "`t` yields 2 values, `[1, 2]` yields 1 value"
+
+test "by-reference variables aren't allowed in lockstep loops"
+    xs := @[1, 2, 3]
+    for &x, y in xs, [4, 5, 6]
+        x[] += y
+fails_compile "aren't supported when iterating over multiple values in lockstep"

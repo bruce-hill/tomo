@@ -355,7 +355,8 @@ struct ast_s {
         struct {
             ast_list_t *vars;
             ast_t *at; // optional `at i` iteration-counter variable
-            ast_t *expr, *iter, *filter;
+            ast_t *expr, *filter;
+            ast_list_t *iters; // one or more iterables (lockstep iteration when >1)
         } Comprehension;
         struct {
             ast_t *name;
@@ -393,7 +394,8 @@ struct ast_s {
         struct {
             ast_list_t *vars;
             ast_t *at; // optional `at i` iteration-counter variable
-            ast_t *iter, *body, *empty;
+            ast_list_t *iters; // one or more iterables (lockstep iteration when >1)
+            ast_t *body, *empty;
         } For;
         struct {
             ast_t *condition, *body;

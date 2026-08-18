@@ -89,3 +89,41 @@ As with any loop, `at` binds an `Int64` iteration counter:
 for a, b at i in pairs([10, 20, 30])
     ...
 ```
+
+## Lockstep Iteration
+
+A loop can iterate over several iterables at once by listing them after `in`,
+separated by commas. All of them advance together each iteration, and the loop
+ends as soon as *any* of them runs out:
+
+```tomo
+xs := [10, 20, 30]
+ys := ["a", "b", "c"]
+for x, y in xs, ys
+    say("$(x) $(y)")  # 10 a, 20 b, 30 c
+
+dot := (+: x*y for x, y in [1, 2, 3], [4, 5, 6]) or 0  # 32
+```
+
+Each iterable's yielded values bind to its slice of the loop variables, in
+order, and the total number of variables must match exactly (a mismatch is a
+compile error). Any iterable kind can participate--lists, counts, ranges,
+text, tables (which yield a key and a value), or iterator functions (which
+yield one value per `&` out-parameter):
+
+```tomo
+for k1, v1, k2, v2 in t1, t2  # two tables, four values per iteration
+    ...
+```
+
+`_` discards a value you don't need, and `at` binds an `Int64` iteration
+counter as usual:
+
+```tomo
+for _, y at i in xs, ys
+    ...
+```
+
+The iterables are evaluated once each, left to right, before the loop begins.
+An `else` block runs if the loop body never ran (i.e. some iterable was empty
+from the start).

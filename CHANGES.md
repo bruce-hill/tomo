@@ -2,6 +2,25 @@
 
 ## 2026-08-18
 
+- New lockstep iteration: `for x, y in xs, ys` iterates over several iterables
+  at once, advancing all of them together and ending as soon as any one runs
+  out. Each iterable's yielded values bind to its slice of the loop variables
+  in order, and the total arity must match exactly (a mismatch is a compile
+  error naming each iterable's yield count). Any iterable kind can
+  participate — lists, counts, ranges, text, tables (key + value), and
+  iterator functions (including multi-value out-parameter iterators, e.g.
+  `for k1, v1, k2, v2 in entries1, entries2`). `_` discards a value, `at`
+  binds an `Int64` iteration counter, and `skip`/`stop`/`else`,
+  comprehensions, and reducers all work as usual (e.g. the dot product
+  `(+: x*y for x, y in xs, ys) or 0`). Iterables are evaluated once each,
+  left to right, before the loop begins. In container literals the comma
+  binds to the comprehension's iterables, so `[x for x in xs, 99]` is now an
+  arity error; put plain items before the comprehension instead.
+- Fixed: the code formatter dropped the closing parenthesis of reduction
+  expressions (`(+: x for x in xs)` formatted as `(+: x for x in xs`).
+- Fixed: a reducer inside a lambda didn't capture the variables in its
+  iterable expression (`func(-> Int) return (+: x*2 for x in xs) or 0`
+  failed to compile with an undeclared-identifier error in the generated C).
 - New in-place list iteration: `for &x in xs` (and `for &x at i in xs`) yields a
   live `&` reference to each element of a mutable list, so element updates are
   direct in-place stores with no per-element bounds checks or copy-on-write

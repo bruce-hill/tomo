@@ -641,6 +641,41 @@ arg_t *iterator_yield_args(type_t *iter_value_t) {
     return fn->args;
 }
 
+// One entry per value that a single iterable yields per iteration: a list,
+// count, range, or text yields 1, a table yields 2 (key, value), and a
+// multi-value iterator function yields one per `&` out-parameter. Used to
+// distribute the variables of a lockstep loop (`for x, y in xs, ys`) among its
+// iterables and to enforce a strict arity match.
+public
+arg_t *iteration_slots(env_t *env, ast_t *iter_ast) {
+    type_t *iter_t = value_type(get_type(env, iter_ast));
+    switch (iter_t->tag) {
+    case ListType: return new (arg_t, .name = "item", .type = Match(iter_t, ListType)->item_type);
+    case TableType:
+        return new (arg_t, .name = "key", .type = Match(iter_t, TableType)->key_type,
+                    .next = new (arg_t, .name = "value", .type = Match(iter_t, TableType)->value_type));
+    case BigIntType:
+    case IntType: return new (arg_t, .name = "count", .type = iter_t);
+    case TextType: return new (arg_t, .name = "grapheme", .type = TEXT_TYPE);
+    case FunctionType:
+    case ClosureType: {
+        arg_t *yields = iterator_yield_args(iter_t);
+        if (yields) {
+            arg_t *slots = NULL;
+            for (arg_t *a = yields; a; a = a->next)
+                slots = new (arg_t, .name = a->name, .type = Match(a->type, PointerType)->pointed, .next = slots);
+            REVERSE_LIST(slots);
+            return slots;
+        }
+        type_t *ret = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType)->ret
+                                                 : Match(iter_t, FunctionType)->ret;
+        return new (arg_t, .name = "item",
+                    .type = ret->tag == OptionalType ? Match(ret, OptionalType)->type : ret);
+    }
+    default: code_err(iter_ast, "Iteration is not implemented for type: ", type_to_text(iter_t));
+    }
+}
+
 public
 ast_t *single_loop_var(ast_list_t *vars) {
     if (!vars) return NULL;
@@ -652,7 +687,8 @@ ast_t *single_loop_var(ast_list_t *vars) {
 
 env_t *for_scope(env_t *env, ast_t *ast) {
     DeclareMatch(for_, ast, For);
-    type_t *raw_iter_t = get_type(env, for_->iter);
+    ast_t *iter_ast = for_->iters->ast;
+    type_t *raw_iter_t = get_type(env, iter_ast);
     type_t *iter_t = value_type(raw_iter_t);
     env_t *scope = fresh_scope(env);
 
@@ -661,6 +697,49 @@ env_t *for_scope(env_t *env, ast_t *ast) {
     if (for_->at)
         set_binding(scope, Match(for_->at, Var)->name, INT64_TYPE, Texts("_$", Match(for_->at, Var)->name));
 
+    // Lockstep iteration (`for x, y in xs, ys`): every iterable's yielded
+    // values get variables, in order, and the arity must match exactly (`_`
+    // discards a value). The loop ends when the shortest iterable runs out.
+    if (for_->iters->next) {
+        int64_t total_slots = 0;
+        Text_t breakdown = EMPTY_TEXT;
+        for (ast_list_t *it = for_->iters; it; it = it->next) {
+            int64_t n = 0;
+            for (arg_t *s = iteration_slots(env, it->ast); s; s = s->next) n += 1;
+            total_slots += n;
+            breakdown = Texts(breakdown, breakdown.length > 0 ? ", " : "", "`", ast_source(it->ast), "` yields ", n,
+                              " value", n == 1 ? "" : "s");
+        }
+        int64_t num_vars = 0;
+        for (ast_list_t *var = for_->vars; var; var = var->next) {
+            if (var->ast->tag == StackReference)
+                code_err(var->ast, "By-reference `&` variables aren't supported when iterating over "
+                                   "multiple values in lockstep");
+            num_vars += 1;
+        }
+        if (num_vars != total_slots) {
+            // Highlight just the variables through the iterables (`for {x, y
+            // in xs, ys, zs} ...`), not the whole loop:
+            ast_list_t *last_iter = for_->iters;
+            while (last_iter->next)
+                last_iter = last_iter->next;
+            const char *start = for_->vars ? for_->vars->ast->start : for_->iters->ast->start;
+            compiler_err(ast->file, start, last_iter->ast->end, "These iterables yield a total of ", total_slots,
+                         " value", total_slots == 1 ? "" : "s", " per iteration (", breakdown,
+                         "), but this loop has ", num_vars, " variable", num_vars == 1 ? "" : "s",
+                         ". Use `_` to discard a value you don't need, or `at` to bind an iteration counter.");
+        }
+
+        ast_list_t *var = for_->vars;
+        for (ast_list_t *it = for_->iters; it; it = it->next) {
+            for (arg_t *s = iteration_slots(env, it->ast); s; s = s->next, var = var->next) {
+                const char *name = Match(var->ast, Var)->name;
+                if (!streq(name, "_")) set_binding(scope, name, s->type, Texts("_$", name));
+            }
+        }
+        return scope;
+    }
+
     // By-reference variables (`for &x in xs`) are only supported for the value
     // variable of a mutable list iteration:
     for (ast_list_t *var = for_->vars; var; var = var->next) {
@@ -668,8 +747,8 @@ env_t *for_scope(env_t *env, ast_t *ast) {
         if (iter_t->tag != ListType)
             code_err(var->ast, "Iterating by reference is only supported for lists, not ", type_to_text(iter_t));
         if (raw_iter_t->tag != PointerType)
-            code_err(for_->iter, "This is an immutable list value, so it can't be iterated by reference. "
-                                 "You need a pointer to a list (`@` or `&`) to update its elements in place.");
+            code_err(iter_ast, "This is an immutable list value, so it can't be iterated by reference. "
+                               "You need a pointer to a list (`@` or `&`) to update its elements in place.");
         if (var->next != NULL)
             code_err(var->ast, "Only the value variable of a list iteration can be a `&` reference");
     }
@@ -750,7 +829,7 @@ env_t *for_scope(env_t *env, ast_t *ast) {
         if (value_var) set_binding(scope, Match(value_var, Var)->name, TEXT_TYPE, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
-    default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_text(iter_t));
+    default: code_err(iter_ast, "Iteration is not implemented for type: ", type_to_text(iter_t));
     }
     return NULL;
 }

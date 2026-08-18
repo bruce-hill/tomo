@@ -44,6 +44,7 @@ static Text_t index_counter_step(Text_t index) {
 static Text_t compile_for_reference_loop(env_t *env, ast_t *ast, Text_t naked_body, Text_t stop, type_t *item_t,
                                          Text_t index, ast_t *value_var) {
     DeclareMatch(for_, ast, For);
+    ast_t *iter = for_->iters->ast;
 
     const char *name = Match(Match(value_var, StackReference)->value, Var)->name;
     Text_t value = Texts("_$", name);
@@ -59,7 +60,7 @@ static Text_t compile_for_reference_loop(env_t *env, ast_t *ast, Text_t naked_bo
 
     return Texts("{ // for &", name, " in ...\n"
                  "List_t *ptr = ",
-                 compile_to_pointer_depth(env, for_->iter, 1, false),
+                 compile_to_pointer_depth(env, iter, 1, false),
                  ";\n"
                  "if unlikely (ptr->data_refcount > 0) List$compact(ptr, sizeof(",
                  item_type_code,
@@ -75,16 +76,219 @@ static Text_t compile_for_reference_loop(env_t *env, ast_t *ast, Text_t naked_bo
                  "\nif (n0 > 0) ", guard, "}\n");
 }
 
+// Build the C call for one step of an iterator function or closure, e.g.
+// `next(&x, &y)` or `((ret(*)(...))next.fn)(&x, &y, next.userdata)`:
+static Text_t compile_iterator_call(type_t *iter_value_t, Text_t next_fn, Text_t args_joined) {
+    if (iter_value_t->tag == ClosureType) {
+        type_t *fn_t = Match(iter_value_t, ClosureType)->fn;
+        arg_t *closure_fn_args = NULL;
+        for (arg_t *arg = Match(fn_t, FunctionType)->args; arg; arg = arg->next)
+            closure_fn_args = new (arg_t, .name = arg->name, .type = arg->type, .default_val = arg->default_val,
+                                   .next = closure_fn_args);
+        closure_fn_args = new (arg_t, .name = "userdata", .type = Type(PointerType, .pointed = Type(MemoryType)),
+                               .next = closure_fn_args);
+        REVERSE_LIST(closure_fn_args);
+        Text_t fn_type_code =
+            compile_type(Type(FunctionType, .args = closure_fn_args, .ret = Match(fn_t, FunctionType)->ret));
+        return Texts("((", fn_type_code, ")", next_fn, ".fn)(", args_joined, args_joined.length > 0 ? ", " : "",
+                     next_fn, ".userdata)");
+    } else {
+        return Texts(next_fn, "(", args_joined, ")");
+    }
+}
+
+// Compile `for x, y in xs, ys` -- lockstep iteration over several iterables.
+//
+// Each iterable contributes a setup step (run once, leftmost first, so the
+// iterables are evaluated in source order) and an advance-or-break step at the
+// top of a single shared loop, so the loop ends as soon as ANY iterable runs
+// out. Each iterable's yielded values bind to its slice of the loop variables
+// (`_` discards one); arity was already checked in for_scope(). The `else`
+// block (if any) runs when the body never ran at all.
+static Text_t compile_lockstep_loop(env_t *env, ast_t *ast, env_t *body_scope, Text_t naked_body, Text_t stop) {
+    DeclareMatch(for_, ast, For);
+
+    Text_t setup = EMPTY_TEXT, advance = EMPTY_TEXT, cleanup = EMPTY_TEXT;
+    ast_list_t *var = for_->vars;
+    int64_t k = 0;
+    for (ast_list_t *it = for_->iters; it; it = it->next, k += 1) {
+        Text_t temp = Texts("lockstep", k);
+        type_t *raw_t = get_type(env, it->ast);
+        type_t *iter_value_t = value_type(raw_t);
+        switch (iter_value_t->tag) {
+        case ListType: {
+            type_t *item_t = Match(iter_value_t, ListType)->item_type;
+            Text_t list = Texts(temp, "$list"), idx = Texts(temp, "$i");
+            if (raw_t->tag == PointerType) {
+                Text_t ptr = Texts(temp, "$ptr");
+                setup = Texts(setup, "List_t *", ptr, " = ", compile_to_pointer_depth(env, it->ast, 1, false),
+                              ";\nLIST_INCREF(*", ptr, ");\nList_t ", list, " = *", ptr, ";\n");
+                cleanup = Texts(cleanup, "LIST_DECREF(*", ptr, ");\n");
+            } else {
+                setup =
+                    Texts(setup, "List_t ", list, " = ", compile_to_pointer_depth(env, it->ast, 0, false), ";\n");
+            }
+            setup = Texts(setup, "int64_t ", idx, " = 0;\n");
+            advance = Texts(advance, "if (", idx, " >= ", list, ".length) break;\n", idx, " += 1;\n");
+            ast_t *v = var->ast;
+            var = var->next;
+            if (!streq(Match(v, Var)->name, "_"))
+                advance = Texts(advance, compile_declaration(item_t, compile(body_scope, v)), " = *(",
+                                compile_type(item_t), "*)(", list, ".data + (", idx, "-1)*", list, ".stride);\n");
+            break;
+        }
+        case TableType: {
+            type_t *key_t = Match(iter_value_t, TableType)->key_type;
+            type_t *value_t = Match(iter_value_t, TableType)->value_type;
+            Text_t list = Texts(temp, "$entries"), idx = Texts(temp, "$i");
+            if (raw_t->tag == PointerType) {
+                Text_t ptr = Texts(temp, "$ptr");
+                setup = Texts(setup, "Table_t *", ptr, " = ", compile_to_pointer_depth(env, it->ast, 1, false),
+                              ";\nLIST_INCREF(", ptr, "->entries);\nList_t ", list, " = ", ptr, "->entries;\n");
+                cleanup = Texts(cleanup, "LIST_DECREF(", ptr, "->entries);\n");
+            } else {
+                setup = Texts(setup, "List_t ", list, " = (", compile_to_pointer_depth(env, it->ast, 0, false),
+                              ").entries;\n");
+            }
+            setup = Texts(setup, "int64_t ", idx, " = 0;\n");
+            advance = Texts(advance, "if (", idx, " >= ", list, ".length) break;\n", idx, " += 1;\n");
+            ast_t *key_var = var->ast;
+            var = var->next;
+            if (!streq(Match(key_var, Var)->name, "_"))
+                advance = Texts(advance, compile_declaration(key_t, compile(body_scope, key_var)), " = *(",
+                                compile_type(key_t), "*)(", list, ".data + (", idx, "-1)*", list, ".stride);\n");
+            ast_t *value_var = var->ast;
+            var = var->next;
+            if (!streq(Match(value_var, Var)->name, "_")) {
+                Text_t value_offset = Texts("offsetof(struct { ", compile_declaration(key_t, Text("k")), "; ",
+                                            compile_declaration(value_t, Text("v")), "; }, v)");
+                advance = Texts(advance, compile_declaration(value_t, compile(body_scope, value_var)), " = *(",
+                                compile_type(value_t), "*)(", list, ".data + (", idx, "-1)*", list, ".stride + ",
+                                value_offset, ");\n");
+            }
+            break;
+        }
+        case BigIntType: {
+            Text_t cur = Texts(temp, "$cur"), max = Texts(temp, "$max");
+            setup = Texts(setup, "Int_t ", cur, " = I_small(1), ", max, " = ",
+                          compile_to_pointer_depth(env, it->ast, 0, false), ";\n");
+            advance = Texts(advance, "if (Int$compare_value(", cur, ", ", max, ") > 0) break;\n");
+            ast_t *v = var->ast;
+            var = var->next;
+            if (!streq(Match(v, Var)->name, "_"))
+                advance = Texts(advance, "Int_t ", compile(body_scope, v), " = ", cur, ";\n");
+            advance = Texts(advance, cur, " = Int$plus(", cur, ", I_small(1));\n");
+            break;
+        }
+        case IntType: {
+            Text_t type_code = compile_type(iter_value_t);
+            Text_t cur = Texts(temp, "$cur"), max = Texts(temp, "$max");
+            setup = Texts(setup, "Int64_t ", cur, " = 0, ", max, " = (Int64_t)(",
+                          compile_to_pointer_depth(env, it->ast, 0, false), ");\n");
+            advance = Texts(advance, "if (", cur, " >= ", max, ") break;\n", cur, " += 1;\n");
+            ast_t *v = var->ast;
+            var = var->next;
+            if (!streq(Match(v, Var)->name, "_"))
+                advance = Texts(advance, type_code, " ", compile(body_scope, v), " = (", type_code, ")", cur, ";\n");
+            break;
+        }
+        case TextType: {
+            Text_t state = Texts(temp, "$state"), idx = Texts(temp, "$i");
+            setup = Texts(setup, "TextIter_t ", state, " = NEW_TEXT_ITER_STATE(",
+                          compile_to_pointer_depth(env, it->ast, 0, false), ");\nint64_t ", idx, " = 0;\n");
+            advance = Texts(advance, "if (", idx, " >= (int64_t)", state, ".stack[0].text.length) break;\n");
+            ast_t *v = var->ast;
+            var = var->next;
+            if (!streq(Match(v, Var)->name, "_"))
+                advance = Texts(advance, "Text_t ", compile(body_scope, v), " = Text$from_grapheme(",
+                                "Text$get_grapheme_fast(&", state, ", ", idx, "));\n");
+            advance = Texts(advance, idx, " += 1;\n");
+            break;
+        }
+        case FunctionType:
+        case ClosureType: {
+            Text_t next_fn;
+            if (is_idempotent(it->ast)) {
+                next_fn = compile_to_pointer_depth(env, it->ast, 0, false);
+            } else {
+                next_fn = Texts(temp, "$next");
+                setup = Texts(setup, compile_declaration(iter_value_t, next_fn), " = ",
+                              compile_to_pointer_depth(env, it->ast, 0, false), ";\n");
+            }
+
+            arg_t *yield_args = iterator_yield_args(iter_value_t);
+            if (yield_args) {
+                // Multi-value iterator protocol: the loop variables are the
+                // `&` out-slots (declared outside the loop, written each call):
+                Text_t args_joined = EMPTY_TEXT;
+                int64_t pos = 1;
+                for (arg_t *arg = yield_args; arg; arg = arg->next, pos += 1) {
+                    type_t *val_t = Match(arg->type, PointerType)->pointed;
+                    ast_t *v = var->ast;
+                    var = var->next;
+                    Text_t name = streq(Match(v, Var)->name, "_") ? Texts(temp, "$yield", pos)
+                                                                  : compile(body_scope, v);
+                    setup = Texts(setup, compile_declaration(val_t, name), ";\n");
+                    args_joined = pos == 1 ? Texts("&", name) : Texts(args_joined, ", &", name);
+                }
+                advance =
+                    Texts(advance, "if (!", compile_iterator_call(iter_value_t, next_fn, args_joined), ") break;\n");
+            } else {
+                __typeof(iter_value_t->__data.FunctionType) *fn =
+                    iter_value_t->tag == ClosureType ? Match(Match(iter_value_t, ClosureType)->fn, FunctionType)
+                                                     : Match(iter_value_t, FunctionType);
+                Text_t call = compile_iterator_call(iter_value_t, next_fn, EMPTY_TEXT);
+                ast_t *v = var->ast;
+                var = var->next;
+                bool discard = streq(Match(v, Var)->name, "_");
+                if (fn->ret->tag == OptionalType) {
+                    Text_t cur = Texts(temp, "$cur");
+                    setup = Texts(setup, compile_declaration(fn->ret, cur), ";\n");
+                    advance = Texts(advance, cur, " = ", call, ";\nif (", check_none(fn->ret, cur), ") break;\n");
+                    if (!discard)
+                        advance = Texts(advance,
+                                        compile_declaration(Match(fn->ret, OptionalType)->type,
+                                                            compile(body_scope, v)),
+                                        " = ", optional_into_nonnone(fn->ret, cur), ";\n");
+                } else if (!discard) {
+                    advance = Texts(advance, compile_declaration(fn->ret, compile(body_scope, v)), " = ", call, ";\n");
+                } else {
+                    advance = Texts(advance, call, ";\n");
+                }
+            }
+            break;
+        }
+        default: code_err(it->ast, "Iteration is not implemented for type: ", type_to_text(raw_t));
+        }
+    }
+
+    Text_t at_decl = EMPTY_TEXT, at_step = EMPTY_TEXT;
+    if (for_->at) {
+        Text_t index = compile(body_scope, for_->at);
+        at_decl = index_counter_decl(index);
+        at_step = index_counter_step(index);
+    }
+
+    Text_t code = Texts("{ // lockstep iteration\n", setup, at_decl);
+    if (for_->empty) code = Texts(code, "Bool_t lockstep$ran = no;\n");
+    code = Texts(code, "for (;;) {\n", advance);
+    if (for_->empty) code = Texts(code, "lockstep$ran = yes;\n");
+    code = Texts(code, at_step, naked_body, "}\n", stop, "\n", cleanup);
+    if (for_->empty) code = Texts(code, "if (!lockstep$ran) ", compile_statement(env, for_->empty), "\n");
+    return Texts(code, "}\n");
+}
+
 public
 Text_t compile_for_loop(env_t *env, ast_t *ast) {
     DeclareMatch(for_, ast, For);
+    ast_t *iter = for_->iters->ast;
 
     // If we're iterating over a comprehension, that's actually just doing
     // one loop, we don't need to compile the comprehension as a list
     // comprehension. This is a common case for reducers like `(+: i*2 for i
     // in 5)` or `(and) x.is_good() for x in xs`
-    if (for_->iter->tag == Comprehension) {
-        DeclareMatch(comp, for_->iter, Comprehension);
+    if (!for_->iters->next && iter->tag == Comprehension) {
+        DeclareMatch(comp, iter, Comprehension);
         ast_t *body = for_->body;
         if (for_->at)
             code_err(for_->at, "An `at` counter isn't supported when iterating over a comprehension. "
@@ -102,7 +306,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         }
 
         if (comp->filter) body = WrapAST(for_->body, If, .condition = comp->filter, .body = body);
-        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iter = comp->iter, .body = body);
+        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iters = comp->iters, .body = body);
         return compile_statement(env, loop);
     }
 
@@ -121,14 +325,16 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
     if (loop_ctx.skip_label.length > 0) naked_body = Texts(naked_body, "\n", loop_ctx.skip_label, ": continue;");
     Text_t stop = loop_ctx.stop_label.length > 0 ? Texts("\n", loop_ctx.stop_label, ":;") : EMPTY_TEXT;
 
-    // Special case for improving performance for numeric iteration:
-    if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "to")
-        && is_int_type(get_type(env, Match(for_->iter, MethodCall)->self))) {
-        // TODO: support other integer types
-        arg_ast_t *args = Match(for_->iter, MethodCall)->args;
-        if (!args) code_err(for_->iter, "to() needs at least one argument");
+    if (for_->iters->next) return compile_lockstep_loop(env, ast, body_scope, naked_body, stop);
 
-        type_t *int_type = get_type(env, Match(for_->iter, MethodCall)->self);
+    // Special case for improving performance for numeric iteration:
+    if (iter->tag == MethodCall && streq(Match(iter, MethodCall)->name, "to")
+        && is_int_type(get_type(env, Match(iter, MethodCall)->self))) {
+        // TODO: support other integer types
+        arg_ast_t *args = Match(iter, MethodCall)->args;
+        if (!args) code_err(iter, "to() needs at least one argument");
+
+        type_t *int_type = get_type(env, Match(iter, MethodCall)->self);
         type_t *step_type = int_type->tag == ByteType ? Type(IntType, .bits = TYPE_IBITS8) : int_type;
 
         Text_t last = EMPTY_TEXT, step = EMPTY_TEXT, optional_step = EMPTY_TEXT;
@@ -152,7 +358,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
             }
         }
 
-        if (last.length == 0) code_err(for_->iter, "No `last` argument was given");
+        if (last.length == 0) code_err(iter, "No `last` argument was given");
 
         Text_t type_code = compile_type(int_type);
         // `for i, x in a.to(b)`: `i` is an Int64 iteration counter (1, 2, 3, ...)
@@ -176,7 +382,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
                 step = Text("Int$compare_value(last, first) >= 0 ? "
                             "I_small(1) : I_small(-1)");
             return Texts(open, counter_decl, "for (", type_code,
-                         " first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ", value,
+                         " first = ", compile(env, Match(iter, MethodCall)->self), ", ", value,
                          " = first, last = ", last, ", step = ", step,
                          "; "
                          "Int$compare_value(",
@@ -192,20 +398,20 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
                              type_code, ")(last >= first ? 1 : -1) : maybe_step.value; })");
             else if (step.length == 0) step = Texts("(", type_code, ")(last >= first ? 1 : -1)");
             return Texts(open, counter_decl, "for (", type_code,
-                         " first = ", compile(env, Match(for_->iter, MethodCall)->self), ", ", value,
+                         " first = ", compile(env, Match(iter, MethodCall)->self), ", ", value,
                          " = first, last = ", last, ", step = ", step, "; (", compile_type(step_type),
                          ")step > 0 ? ", value, " <= last : ", value, " >= last; ", value,
                          " += step) {\n", index_decl,
                          "\t",
                          naked_body, "}", stop, close);
         }
-    } else if (for_->iter->tag == MethodCall && streq(Match(for_->iter, MethodCall)->name, "onward")
-               && get_type(env, Match(for_->iter, MethodCall)->self)->tag == BigIntType) {
+    } else if (iter->tag == MethodCall && streq(Match(iter, MethodCall)->name, "onward")
+               && get_type(env, Match(iter, MethodCall)->self)->tag == BigIntType) {
         // Special case for Int.onward()
-        arg_ast_t *args = Match(for_->iter, MethodCall)->args;
+        arg_ast_t *args = Match(iter, MethodCall)->args;
         arg_t *arg_spec =
             new (arg_t, .name = "step", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "1"), .next = NULL);
-        Text_t step = compile_arguments(env, for_->iter, arg_spec, args);
+        Text_t step = compile_arguments(env, iter, arg_spec, args);
         ast_t *index_var = for_->at;
         ast_t *value_var = single_loop_var(for_->vars);
         Text_t index = index_var ? compile(body_scope, index_var) : EMPTY_TEXT;
@@ -213,14 +419,14 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         Text_t open = index.length > 0 ? Text("{\n") : EMPTY_TEXT;
         Text_t close = index.length > 0 ? Text("\n}\n") : EMPTY_TEXT;
         return Texts(open, index_counter_decl(index), "for (Int_t ", value, " = ",
-                     compile(env, Match(for_->iter, MethodCall)->self), ", ", "step = ", step, "; ; ", value,
+                     compile(env, Match(iter, MethodCall)->self), ", ", "step = ", step, "; ; ", value,
                      " = Int$plus(", value,
                      ", step)) {\n", index_counter_step(index),
                      "\t",
                      naked_body, "}", stop, close);
     }
 
-    type_t *iter_t = get_type(env, for_->iter);
+    type_t *iter_t = get_type(env, iter);
     type_t *iter_value_t = value_type(iter_t);
 
     switch (iter_value_t->tag) {
@@ -254,7 +460,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         if (iter_t->tag == PointerType) {
             loop = Texts("{\n"
                          "List_t *ptr = ",
-                         compile_to_pointer_depth(env, for_->iter, 1, false),
+                         compile_to_pointer_depth(env, iter, 1, false),
                          ";\n"
                          "\nLIST_INCREF(*ptr);\n"
                          "List_t iterating = *ptr;\n",
@@ -265,7 +471,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         } else {
             loop = Texts("{\n"
                          "List_t iterating = ",
-                         compile_to_pointer_depth(env, for_->iter, 0, false), ";\n", loop, stop, "}\n");
+                         compile_to_pointer_depth(env, iter, 0, false), ";\n", loop, stop, "}\n");
         }
         return loop;
     }
@@ -300,7 +506,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         // NOTE: the `stop` label goes before the DECREF (like the ListType
         // case) so that stopping out of the loop still releases the refcount.
         if (iter_t->tag == PointerType) {
-            loop = Texts("{\n", "Table_t *t = ", compile_to_pointer_depth(env, for_->iter, 1, false),
+            loop = Texts("{\n", "Table_t *t = ", compile_to_pointer_depth(env, iter, 1, false),
                          ";\n"
                          "LIST_INCREF(t->entries);\n"
                          "List_t iterating = t->entries;\n",
@@ -308,7 +514,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
                          "\nLIST_DECREF(t->entries);\n"
                          "}\n");
         } else {
-            loop = Texts("{\n", "List_t iterating = (", compile_to_pointer_depth(env, for_->iter, 0, false),
+            loop = Texts("{\n", "List_t iterating = (", compile_to_pointer_depth(env, iter, 0, false),
                          ").entries;\n", loop, stop, "}\n");
         }
         return loop;
@@ -324,10 +530,10 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         Text_t value = value_var ? compile(body_scope, value_var) : EMPTY_TEXT;
 
         Text_t n;
-        if (for_->iter->tag == Int) {
-            const char *str = Match(for_->iter, Int)->str;
+        if (iter->tag == Int) {
+            const char *str = Match(iter, Int)->str;
             Int_t int_val = Int$from_str(str);
-            if (int_val.small == 0) code_err(for_->iter, "Failed to parse this integer");
+            if (int_val.small == 0) code_err(iter, "Failed to parse this integer");
             mpz_t i;
             if likely (int_val.small & 1L) {
                 mpz_init_set_si(i, int_val.small >> 2L);
@@ -348,7 +554,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         }
 
     big_n:
-        n = compile_to_pointer_depth(env, for_->iter, 0, false);
+        n = compile_to_pointer_depth(env, iter, 0, false);
         Text_t i = value.length > 0 ? value : Text("i");
         Text_t n_var = value.length > 0 ? Texts("max", i) : Text("n");
         Text_t counter_decl = index_counter_decl(index);
@@ -387,7 +593,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         Text_t index = index_var ? compile(body_scope, index_var) : EMPTY_TEXT;
         Text_t value = value_var ? compile(body_scope, value_var) : EMPTY_TEXT;
         Text_t type_code = compile_type(iter_value_t);
-        Text_t n = compile_to_pointer_depth(env, for_->iter, 0, false);
+        Text_t n = compile_to_pointer_depth(env, iter, 0, false);
         Text_t decls = Texts(index.length > 0 ? Texts("Int64_t ", index, " = i$;\n") : EMPTY_TEXT,
                              value.length > 0 ? Texts(type_code, " ", value, " = (", type_code, ")i$;\n")
                                               : EMPTY_TEXT);
@@ -424,11 +630,11 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         }
 
         Text_t next_fn;
-        if (is_idempotent(for_->iter)) {
-            next_fn = compile_to_pointer_depth(env, for_->iter, 0, false);
+        if (is_idempotent(iter)) {
+            next_fn = compile_to_pointer_depth(env, iter, 0, false);
         } else {
             code = Texts(code, compile_declaration(iter_value_t, Text("next")), " = ",
-                         compile_to_pointer_depth(env, for_->iter, 0, false), ";\n");
+                         compile_to_pointer_depth(env, iter, 0, false), ";\n");
             next_fn = Text("next");
         }
 
@@ -454,23 +660,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
                 if (v) v = v->next;
             }
 
-            Text_t get_next;
-            if (iter_value_t->tag == ClosureType) {
-                type_t *fn_t = Match(iter_value_t, ClosureType)->fn;
-                arg_t *closure_fn_args = NULL;
-                for (arg_t *arg = Match(fn_t, FunctionType)->args; arg; arg = arg->next)
-                    closure_fn_args = new (arg_t, .name = arg->name, .type = arg->type,
-                                           .default_val = arg->default_val, .next = closure_fn_args);
-                closure_fn_args = new (arg_t, .name = "userdata",
-                                       .type = Type(PointerType, .pointed = Type(MemoryType)),
-                                       .next = closure_fn_args);
-                REVERSE_LIST(closure_fn_args);
-                Text_t fn_type_code =
-                    compile_type(Type(FunctionType, .args = closure_fn_args, .ret = Match(fn_t, FunctionType)->ret));
-                get_next = Texts("((", fn_type_code, ")", next_fn, ".fn)(", args_joined, ", ", next_fn, ".userdata)");
-            } else {
-                get_next = Texts(next_fn, "(", args_joined, ")");
-            }
+            Text_t get_next = compile_iterator_call(iter_value_t, next_fn, args_joined);
 
             if (for_->empty) {
                 code = Texts(code, "if (", get_next,
@@ -488,22 +678,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
 
         ast_t *value_var = single_loop_var(for_->vars);
 
-        Text_t get_next;
-        if (iter_value_t->tag == ClosureType) {
-            type_t *fn_t = Match(iter_value_t, ClosureType)->fn;
-            arg_t *closure_fn_args = NULL;
-            for (arg_t *arg = Match(fn_t, FunctionType)->args; arg; arg = arg->next)
-                closure_fn_args = new (arg_t, .name = arg->name, .type = arg->type, .default_val = arg->default_val,
-                                       .next = closure_fn_args);
-            closure_fn_args = new (arg_t, .name = "userdata", .type = Type(PointerType, .pointed = Type(MemoryType)),
-                                   .next = closure_fn_args);
-            REVERSE_LIST(closure_fn_args);
-            Text_t fn_type_code =
-                compile_type(Type(FunctionType, .args = closure_fn_args, .ret = Match(fn_t, FunctionType)->ret));
-            get_next = Texts("((", fn_type_code, ")", next_fn, ".fn)(", next_fn, ".userdata)");
-        } else {
-            get_next = Texts(next_fn, "()");
-        }
+        Text_t get_next = compile_iterator_call(iter_value_t, next_fn, EMPTY_TEXT);
 
         if (fn->ret->tag == OptionalType) {
             // Use an optional variable `cur` for each iteration step, which
@@ -550,7 +725,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         Text_t code =
             Texts("{\n"
                   "TextIter_t ",
-                  value, "$state = NEW_TEXT_ITER_STATE(", compile_to_pointer_depth(env, for_->iter, 0, false), ");\n");
+                  value, "$state = NEW_TEXT_ITER_STATE(", compile_to_pointer_depth(env, iter, 0, false), ");\n");
 
         Text_t loop = Texts("for (int64_t ", value, "$i = 0; ", value, "$i < (int64_t)", value,
                             "$state.stack[0].text.length; ", value, "$i += 1) {\n");
@@ -576,7 +751,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         code = Texts(code, loop, stop, "}\n");
         return code;
     }
-    default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_text(iter_t));
+    default: code_err(iter, "Iteration is not implemented for type: ", type_to_text(iter_t));
     }
 }
 

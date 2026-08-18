@@ -328,14 +328,14 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         DeclareMatch(comp, ast, Comprehension);
         if (comp->expr->tag == Comprehension) { // Nested comprehension
             ast_t *body = comp->filter ? WrapAST(ast, If, .condition = comp->filter, .body = comp->expr) : comp->expr;
-            ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iter = comp->iter, .body = body);
+            ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iters = comp->iters, .body = body);
             return add_closed_vars(closed_vars, enclosing_scope, env, loop);
         }
 
         // List/Table comprehension:
         ast_t *body = comp->expr;
         if (comp->filter) body = WrapAST(comp->expr, If, .condition = comp->filter, .body = body);
-        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iter = comp->iter, .body = body);
+        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iters = comp->iters, .body = body);
         add_closed_vars(closed_vars, enclosing_scope, env, loop);
         break;
     }
@@ -366,7 +366,8 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         break;
     }
     case For: {
-        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, For)->iter);
+        for (ast_list_t *iter = Match(ast, For)->iters; iter; iter = iter->next)
+            add_closed_vars(closed_vars, enclosing_scope, env, iter->ast);
         env_t *body_scope = for_scope(env, ast);
         add_closed_vars(closed_vars, enclosing_scope, body_scope, Match(ast, For)->body);
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, For)->empty);
@@ -440,10 +441,11 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
     }
     case Reduction: {
         DeclareMatch(reduction, ast, Reduction);
+        add_closed_vars(closed_vars, enclosing_scope, env, reduction->iter);
         static int64_t next_id = 1;
         ast_t *item = FakeAST(Var, String("$it", next_id++));
         ast_t *loop =
-            FakeAST(For, .vars = new (ast_list_t, .ast = item), .iter = reduction->iter, .body = FakeAST(Pass));
+            FakeAST(For, .vars = new (ast_list_t, .ast = item), .iters = new (ast_list_t, .ast = reduction->iter), .body = FakeAST(Pass));
         env_t *scope = for_scope(env, loop);
         add_closed_vars(closed_vars, enclosing_scope, scope, reduction->key ? reduction->key : item);
         break;

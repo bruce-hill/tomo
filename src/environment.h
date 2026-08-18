@@ -79,6 +79,7 @@ ast_t *single_loop_var(ast_list_t *vars);
 // Otherwise return NULL. The number of arguments is the number of values the
 // iterator yields per iteration.
 arg_t *iterator_yield_args(type_t *iter_value_t);
+arg_t *iteration_slots(env_t *env, ast_t *iter_ast);
 env_t *with_enum_scope(env_t *env, type_t *t);
 env_t *namespace_env(env_t *env, const char *namespace_name);
 #define compiler_err(f, start, end, ...)                                                                               \

@@ -69,7 +69,20 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
         spaces(&pos);
     }
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
-    ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
+    // One or more comma-separated iterables (`... for x, y in xs, ys` iterates in lockstep).
+    // NOTE: the comma is parsed greedily, so in a container literal like
+    // `[x for x in xs, 99]`, the `99` is treated as another iterable (an arity
+    // error) rather than another list item; put plain items before the
+    // comprehension instead.
+    ast_list_t *iters = NULL;
+    for (;;) {
+        ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
+        iters = new (ast_list_t, .ast = iter, .next = iters);
+        spaces(&pos);
+        if (!match(&pos, ",")) break;
+        spaces(&pos);
+    }
+    REVERSE_LIST(iters);
     const char *next_pos = pos;
     whitespace(ctx, &next_pos);
     ast_t *filter = NULL;
@@ -81,7 +94,7 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
         filter = expect(ctx, pos - 2, &pos, parse_expr, "I expected a condition for this 'unless'");
         filter = WrapAST(filter, Not, filter);
     }
-    return NewAST(ctx->file, start, pos, Comprehension, .expr = expr, .vars = vars, .at = at_var, .iter = iter, .filter = filter);
+    return NewAST(ctx->file, start, pos, Comprehension, .expr = expr, .vars = vars, .at = at_var, .iters = iters, .filter = filter);
 }
 
 ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {

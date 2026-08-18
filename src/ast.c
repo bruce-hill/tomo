@@ -239,8 +239,8 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Table, "(Table", optional_sexp("default", data.default_value), optional_sexp("fallback", data.fallback),
           ast_list_to_sexp(data.entries), ")");
         T(TableEntry, "(TableEntry ", ast_to_sexp(data.key), " ", ast_to_sexp(data.value), ")");
-        T(Comprehension, "(Comprehension ", ast_to_sexp(data.expr), " (vars", ast_list_to_sexp(data.vars), ") ",
-          ast_to_sexp(data.iter), " ", optional_sexp("filter", data.filter), ")");
+        T(Comprehension, "(Comprehension ", ast_to_sexp(data.expr), " (vars", ast_list_to_sexp(data.vars), ") (iters",
+          ast_list_to_sexp(data.iters), ") ", optional_sexp("filter", data.filter), ")");
         T(FunctionDef, "(FunctionDef ", ast_to_sexp(data.name), " ", arg_defs_to_sexp(data.args),
           optional_type_sexp("return", data.ret_type), " ", ast_to_sexp(data.body), ")");
         T(ConvertDef, "(ConvertDef ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret_type), " ",
@@ -251,8 +251,8 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(MethodCall, "(MethodCall ", ast_to_sexp(data.self), " ", quoted_text(data.name), arg_list_to_sexp(data.args),
           ")")
         T(Block, "(Block", ast_list_to_sexp(data.statements), ")");
-        T(For, "(For (vars", ast_list_to_sexp(data.vars), ") ", ast_to_sexp(data.iter), " ", ast_to_sexp(data.body),
-          " ", ast_to_sexp(data.empty), ")");
+        T(For, "(For (vars", ast_list_to_sexp(data.vars), ") (iters", ast_list_to_sexp(data.iters), ") ",
+          ast_to_sexp(data.body), " ", ast_to_sexp(data.empty), ")");
         T(While, "(While ", ast_to_sexp(data.condition), " ", ast_to_sexp(data.body), ")");
         T(Repeat, "(Repeat ", ast_to_sexp(data.body), ")");
         T(If, "(If ", ast_to_sexp(data.condition), " ", ast_to_sexp(data.body), optional_sexp("else", data.else_body),
@@ -549,7 +549,7 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
         ast_visit(comp->expr, visitor, userdata);
         ast_visit_list(comp->vars, visitor, userdata);
         ast_visit(comp->at, visitor, userdata);
-        ast_visit(comp->iter, visitor, userdata);
+        ast_visit_list(comp->iters, visitor, userdata);
         ast_visit(comp->filter, visitor, userdata);
         return;
     }
@@ -592,7 +592,7 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
         DeclareMatch(for_, ast, For);
         ast_visit_list(for_->vars, visitor, userdata);
         ast_visit(for_->at, visitor, userdata);
-        ast_visit(for_->iter, visitor, userdata);
+        ast_visit_list(for_->iters, visitor, userdata);
         ast_visit(for_->body, visitor, userdata);
         ast_visit(for_->empty, visitor, userdata);
         return;
