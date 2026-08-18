@@ -413,10 +413,9 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
     }
     case FunctionType:
     case ClosureType: {
-        // Iterator function. `for i, x in iterfn` gives an Int64 iteration
+        // Iterator function. `for x at i in iterfn` gives an Int64 iteration
         // counter (1, 2, 3, ...) alongside each yielded value.
         ast_t *index_var = for_->at;
-        ast_t *value_var = single_loop_var(for_->vars);
         Text_t code = Text("{\n");
         if (index_var) {
             Text_t index = compile(body_scope, index_var);
@@ -436,6 +435,58 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         __typeof(iter_value_t->__data.FunctionType) *fn =
             iter_value_t->tag == ClosureType ? Match(Match(iter_value_t, ClosureType)->fn, FunctionType)
                                              : Match(iter_value_t, FunctionType);
+
+        // Multi-value iterator protocol: every argument is a `&` out-parameter
+        // and the return is a Bool saying whether values were produced. The
+        // loop variables themselves are the out-slots -- each call writes the
+        // next values directly into them, no tuple or wrapper value involved.
+        arg_t *yield_args = iterator_yield_args(iter_value_t);
+        if (yield_args) {
+            Text_t args_joined = EMPTY_TEXT;
+            int64_t pos = 1;
+            ast_list_t *v = for_->vars;
+            for (arg_t *arg = yield_args; arg; arg = arg->next, pos += 1) {
+                type_t *val_t = Match(arg->type, PointerType)->pointed;
+                Text_t name = (v && !streq(Match(v->ast, Var)->name, "_")) ? Texts("_$", Match(v->ast, Var)->name)
+                                                                           : Texts("yield$", pos);
+                code = Texts(code, compile_declaration(val_t, name), ";\n");
+                args_joined = pos == 1 ? Texts("&", name) : Texts(args_joined, ", &", name);
+                if (v) v = v->next;
+            }
+
+            Text_t get_next;
+            if (iter_value_t->tag == ClosureType) {
+                type_t *fn_t = Match(iter_value_t, ClosureType)->fn;
+                arg_t *closure_fn_args = NULL;
+                for (arg_t *arg = Match(fn_t, FunctionType)->args; arg; arg = arg->next)
+                    closure_fn_args = new (arg_t, .name = arg->name, .type = arg->type,
+                                           .default_val = arg->default_val, .next = closure_fn_args);
+                closure_fn_args = new (arg_t, .name = "userdata",
+                                       .type = Type(PointerType, .pointed = Type(MemoryType)),
+                                       .next = closure_fn_args);
+                REVERSE_LIST(closure_fn_args);
+                Text_t fn_type_code =
+                    compile_type(Type(FunctionType, .args = closure_fn_args, .ret = Match(fn_t, FunctionType)->ret));
+                get_next = Texts("((", fn_type_code, ")", next_fn, ".fn)(", args_joined, ", ", next_fn, ".userdata)");
+            } else {
+                get_next = Texts(next_fn, "(", args_joined, ")");
+            }
+
+            if (for_->empty) {
+                code = Texts(code, "if (", get_next,
+                             ") {\n"
+                             "\tdo{\n\t\t",
+                             naked_body, "\t} while(", get_next,
+                             ");\n"
+                             "} else {\n\t",
+                             compile_statement(env, for_->empty), "}", stop, "\n}\n");
+            } else {
+                code = Texts(code, "while(", get_next, ") {\n\t", naked_body, "}\n", stop, "\n}\n");
+            }
+            return code;
+        }
+
+        ast_t *value_var = single_loop_var(for_->vars);
 
         Text_t get_next;
         if (iter_value_t->tag == ClosureType) {

@@ -597,6 +597,10 @@ static visit_behavior_t find_assigned_variables(ast_t *ast, void *userdata) {
         Table$str_set(vars, name, var);
         return VISIT_STOP;
     }
+    // Don't cross into nested lambdas: they're checked separately with their
+    // own argument list, and their arguments (e.g. `&` out-parameters written
+    // via `a[] = ...`) shadow the enclosing scope's names.
+    case Lambda: return VISIT_STOP;
     default: return VISIT_PROCEED;
     }
 }

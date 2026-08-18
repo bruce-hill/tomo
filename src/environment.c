@@ -628,6 +628,20 @@ env_t *with_enum_scope(env_t *env, type_t *t) {
 }
 
 public
+arg_t *iterator_yield_args(type_t *iter_value_t) {
+    type_t *fn_t = iter_value_t;
+    if (fn_t->tag == ClosureType) fn_t = Match(fn_t, ClosureType)->fn;
+    if (fn_t->tag != FunctionType) return NULL;
+    DeclareMatch(fn, fn_t, FunctionType);
+    if (!fn->ret || fn->ret->tag != BoolType) return NULL;
+    if (!fn->args) return NULL;
+    for (arg_t *arg = fn->args; arg; arg = arg->next) {
+        if (arg->type->tag != PointerType || !Match(arg->type, PointerType)->is_stack || arg->default_val) return NULL;
+    }
+    return fn->args;
+}
+
+public
 ast_t *single_loop_var(ast_list_t *vars) {
     if (!vars) return NULL;
     if (vars->next)
@@ -703,6 +717,29 @@ env_t *for_scope(env_t *env, ast_t *ast) {
                                                         ? Match(Match(iter_t, ClosureType)->fn, FunctionType)
                                                         : Match(iter_t, FunctionType);
 
+        arg_t *yields = iterator_yield_args(iter_t);
+        if (yields) {
+            int64_t num_yields = 0;
+            for (arg_t *a = yields; a; a = a->next) num_yields += 1;
+            int64_t num_vars = 0;
+            for (ast_list_t *v = for_->vars; v; v = v->next) num_vars += 1;
+            if (num_vars != 0 && num_vars != num_yields) {
+                if (num_vars == num_yields + 1)
+                    code_err(for_->vars->ast, "This iterator yields ", num_yields, " value", num_yields == 1 ? "" : "s",
+                             " per iteration, but this loop has ", num_vars,
+                             " variables. If the extra variable is meant to be an iteration counter, bind it with "
+                             "`at` (e.g. `for x at i in ...`).");
+                code_err(for_->vars->ast, "This iterator yields ", num_yields, " value", num_yields == 1 ? "" : "s",
+                         " per iteration, but this loop has ", num_vars, " variable", num_vars == 1 ? "" : "s", ".");
+            }
+            arg_t *arg = yields;
+            for (ast_list_t *v = for_->vars; v; v = v->next, arg = arg->next) {
+                const char *name = Match(v->ast, Var)->name;
+                if (!streq(name, "_"))
+                    set_binding(scope, name, Match(arg->type, PointerType)->pointed, Texts("_$", name));
+            }
+            return scope;
+        }
         type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
         ast_t *value_var = single_loop_var(for_->vars);
         if (value_var) set_binding(scope, Match(value_var, Var)->name, non_opt_type, Texts("_$", Match(value_var, Var)->name));

@@ -21,10 +21,22 @@
   comprehensions and reducers (e.g. `[i*x for x at i in xs]`). Table
   iteration keeps its `for k, v` key/value meaning, with `at` available
   there too.
+- New multi-value iterator protocol: a function whose arguments are all
+  non-escaping `&` out-parameters and whose return type is `Bool` yields one
+  value per argument on each call (write the values through the
+  out-parameters and return `yes`, or return `no` to finish). Loops bind
+  exactly as many variables as the iterator yields (`for a, b in
+  pairs_fn`; a mismatch is a compile error), the loop variables themselves
+  are the storage the iterator writes into, the yielded types may differ,
+  and comprehensions/reducers work the same way (e.g.
+  `(+: a.dist(b) for a, b in pairs_fn) or 0.0`). The existing
+  one-value `func(->T?)` iterator protocol is unchanged.
 - `for x in n` now works when `n` is a native int type (`Int64`, `Int32`, ...),
   compiling to a native counting loop.
 - Fixed: `stop` inside a table or text iteration loop generated invalid C
   (a `goto` to a label that was never emitted) and failed to compile.
+- Fixed: a lambda that only wrote through a `&` argument (`a[] = ...`) was
+  wrongly rejected by the enclosing function's unused-variable check.
 - Fixed: text iteration with an iteration counter (now `for c at i in
   some_text`) generated invalid C and failed to compile. The counter is
   1-based, matching text cluster indexing.

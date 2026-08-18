@@ -69,6 +69,13 @@ env_t *for_scope(env_t *env, ast_t *ast);
 // iterable value yields exactly one value per iteration. This is the one
 // place the loop-variable arity rule lives.
 ast_t *single_loop_var(ast_list_t *vars);
+// If `iter_value_t` is a function/closure following the multi-value iterator
+// protocol -- every argument is a non-escaping `&` out-parameter and the
+// return type is Bool (each call either writes the next values through the
+// out-refs and returns `yes`, or returns `no`) -- return its argument list.
+// Otherwise return NULL. The number of arguments is the number of values the
+// iterator yields per iteration.
+arg_t *iterator_yield_args(type_t *iter_value_t);
 env_t *with_enum_scope(env_t *env, type_t *t);
 env_t *namespace_env(env_t *env, const char *namespace_name);
 #define compiler_err(f, start, end, ...)                                                                               \

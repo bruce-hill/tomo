@@ -133,3 +133,80 @@ test "the old leading-index loop form is an error"
     for i, x in [10, 20, 30]
         pass
 fails_compile "use `at`"
+
+func int_pairs(xs:[Int] -> func(a:&Int, b:&Int -> Bool))
+    i := 1
+    j := 1
+    return func(a:&Int, b:&Int -> Bool)
+        j += 1
+        if j > xs.length
+            i += 1
+            j = i + 1
+        if j > xs.length
+            return no
+        a[] = xs[i]!
+        b[] = xs[j]!
+        return yes
+
+func numbered(names:[Text] -> func(n:&Int64, name:&Text -> Bool))
+    i := Int64(0)
+    return func(n:&Int64, name:&Text -> Bool)
+        i += 1
+        if i > Int64(names.length)
+            return no
+        n[] = i
+        name[] = names[i]!
+        return yes
+
+test "multi-value iterators yield through & out-parameters"
+    xs := [1, 2, 3, 4]
+    got := ""
+    for a, b in int_pairs(xs)
+        got ++= "$(a)$(b) "
+    assert got == "12 13 14 23 24 34 "
+    # with an `at` counter
+    got2 := ""
+    for a, b at i in int_pairs(xs)
+        got2 ++= "$(i):$(a)$(b) "
+    assert got2 == "1:12 2:13 3:14 4:23 5:24 6:34 "
+    # heterogeneous yield types
+    got3 := ""
+    for n, name in numbered(["a", "b"])
+        got3 ++= "$(n)$(name) "
+    assert got3 == "1a 2b "
+    # `_` discards bind nothing
+    total := 0
+    for a, _ in int_pairs(xs)
+        total += a
+    assert total == 1 + 1 + 1 + 2 + 2 + 3
+    # comprehensions and reducers
+    assert [a*10 + b for a, b in int_pairs(xs)] == [12, 13, 14, 23, 24, 34]
+    assert (+: a*b for a, b in int_pairs(xs) if a != 1)! == 6 + 8 + 12
+    # skip and stop
+    got4 := ""
+    for a, b at i in int_pairs(xs)
+        if i == 2
+            skip
+        if i == 4
+            stop
+        got4 ++= "$(a)$(b) "
+    assert got4 == "12 14 "
+    # else clause runs when the iterator yields nothing
+    ran_else := no
+    for a, b in int_pairs([7])
+        pass
+    else
+        ran_else = yes
+    assert ran_else
+
+test "multi-value iterator variable counts must match the yield count"
+    xs := [1, 2, 3]
+    for a in int_pairs(xs)
+        pass
+fails_compile "yields 2 values per iteration, but this loop has 1 variable"
+
+test "a leading index variable on a multi-value iterator suggests `at`"
+    xs := [1, 2, 3]
+    for i, a, b in int_pairs(xs)
+        pass
+fails_compile "bind it with `at`"
