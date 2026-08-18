@@ -354,6 +354,7 @@ struct ast_s {
         } TableEntry;
         struct {
             ast_list_t *vars;
+            ast_t *at; // optional `at i` iteration-counter variable
             ast_t *expr, *iter, *filter;
         } Comprehension;
         struct {
@@ -391,6 +392,7 @@ struct ast_s {
         } Block;
         struct {
             ast_list_t *vars;
+            ast_t *at; // optional `at i` iteration-counter variable
             ast_t *iter, *body, *empty;
         } For;
         struct {

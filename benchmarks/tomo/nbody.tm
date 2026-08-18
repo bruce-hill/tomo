@@ -45,7 +45,7 @@ func advance(bodies:@[Body], steps:Int64, dt:Num)
         # nature. The list stays live inside a `for &` loop, so indexed reads
         # and writes through `bodies` are fine; only resizing/copying it
         # mid-loop is (loudly) disallowed.
-        for i, &bi in bodies
+        for &bi at i in bodies
             if i == n
                 stop
             # Hoist body i's fields into locals; accumulate velocity locally.
@@ -65,7 +65,7 @@ func advance(bodies:@[Body], steps:Int64, dt:Num)
 
 func energy(bodies:[Body] -> Num)
     e := (+: 0.5 * b.mass * b.vel.dot(b.vel) for b in bodies) or 0.0
-    for i, bi in bodies.to(-2)
+    for bi at i in bodies.to(-2)
         for bj in bodies.from(i+1)
             d := bi.pos - bj.pos
             e -= (bi.mass * bj.mass) / Num.sqrt(d.dot(d))!

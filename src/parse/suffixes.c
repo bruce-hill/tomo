@@ -61,6 +61,13 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
     }
     REVERSE_LIST(vars);
 
+    // Optional `at i` binds an Int64 iteration counter: `[... for x at i in xs]`
+    ast_t *at_var = NULL;
+    if (match_word(&pos, "at")) {
+        spaces(&pos);
+        at_var = expect(ctx, start, &pos, parse_var, "I expected a variable name after 'at'");
+        spaces(&pos);
+    }
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
     const char *next_pos = pos;
@@ -74,7 +81,7 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
         filter = expect(ctx, pos - 2, &pos, parse_expr, "I expected a condition for this 'unless'");
         filter = WrapAST(filter, Not, filter);
     }
-    return NewAST(ctx->file, start, pos, Comprehension, .expr = expr, .vars = vars, .iter = iter, .filter = filter);
+    return NewAST(ctx->file, start, pos, Comprehension, .expr = expr, .vars = vars, .at = at_var, .iter = iter, .filter = filter);
 }
 
 ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {

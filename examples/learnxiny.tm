@@ -74,7 +74,7 @@ func main()
         >> num
 
     # Optionally, you can use an iteration index as well:
-    for index, num in my_numbers
+    for num at index in my_numbers
         pass # Pass means "do nothing"
 
     # Lists can be created with list comprehensions, which are loops:

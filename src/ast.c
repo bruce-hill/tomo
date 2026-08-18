@@ -548,6 +548,7 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
         DeclareMatch(comp, ast, Comprehension);
         ast_visit(comp->expr, visitor, userdata);
         ast_visit_list(comp->vars, visitor, userdata);
+        ast_visit(comp->at, visitor, userdata);
         ast_visit(comp->iter, visitor, userdata);
         ast_visit(comp->filter, visitor, userdata);
         return;
@@ -590,6 +591,7 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
     case For: {
         DeclareMatch(for_, ast, For);
         ast_visit_list(for_->vars, visitor, userdata);
+        ast_visit(for_->at, visitor, userdata);
         ast_visit(for_->iter, visitor, userdata);
         ast_visit(for_->body, visitor, userdata);
         ast_visit(for_->empty, visitor, userdata);

@@ -80,12 +80,12 @@ You can iterate over the items in a list like this:
 for item in list
     ...
 
-for i, item in list
+for item at i in list
     ...
 ```
 
-When iterating with an index variable, the index is a native `Int64` counting
-up from `1`.
+The `at` clause binds an iteration counter: a native `Int64` counting up from
+`1`.
 
 List iteration operates over the value of the list when the loop began, so
 modifying the list during iteration is safe and will not result in the loop
@@ -107,7 +107,7 @@ assert nums[] == [11, 21, 31]
 The loop variable is a non-escaping `&` reference pointing directly at each
 element in the list's memory, so updates through it are direct writes with no
 per-element bounds checking or copy-on-write overhead. As with other loops,
-you can also bind an index variable: `for i, &x in nums`.
+you can also bind an iteration counter: `for &x at i in nums`.
 
 Field accesses work through the reference, which makes updating lists of
 structs concise:

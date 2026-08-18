@@ -289,6 +289,13 @@ ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
     }
 
     spaces(&pos);
+    // Optional `at i` binds an Int64 iteration counter: `for x at i in xs`
+    ast_t *at_var = NULL;
+    if (match_word(&pos, "at")) {
+        spaces(&pos);
+        at_var = expect(ctx, start, &pos, parse_var, "I expected a variable name after 'at'");
+        spaces(&pos);
+    }
     expect_str(ctx, start, &pos, "in", "I expected an 'in' for this 'for'");
 
     ast_t *iter = expect(ctx, start, &pos, parse_expr, "I expected an iterable value for this 'for'");
@@ -309,5 +316,5 @@ ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
         empty = expect(ctx, pos, &pos, parse_block, "I expected a body for this 'else'");
     }
     REVERSE_LIST(vars);
-    return NewAST(ctx->file, start, pos, For, .vars = vars, .iter = iter, .body = body, .empty = empty);
+    return NewAST(ctx->file, start, pos, For, .vars = vars, .at = at_var, .iter = iter, .body = body, .empty = empty);
 }

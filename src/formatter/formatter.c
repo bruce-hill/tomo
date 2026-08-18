@@ -208,6 +208,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             code = Texts(code, fmt_inline(var->ast, comments));
             if (var->next) code = Texts(code, ", ");
         }
+        if (loop->at) code = Texts(code, " at ", fmt_inline(loop->at, comments));
         code = Texts(code, " in ", fmt_inline(loop->iter, comments), " do ", fmt_inline(loop->body, comments));
         if (loop->empty) code = Texts(code, " else ", fmt_inline(loop->empty, comments));
         return code;
@@ -219,6 +220,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             code = Texts(code, fmt_inline(var->ast, comments));
             if (var->next) code = Texts(code, ", ");
         }
+        if (comp->at) code = Texts(code, " at ", fmt_inline(comp->at, comments));
         code = Texts(code, " in ", fmt_inline(comp->iter, comments));
         if (comp->filter) code = Texts(code, " if ", fmt_inline(comp->filter, comments));
         return code;
@@ -539,6 +541,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             code = Texts(code, fmt(var->ast, comments, indent));
             if (var->next) code = Texts(code, ", ");
         }
+        if (loop->at) code = Texts(code, " at ", fmt(loop->at, comments, indent));
         code = Texts(code, " in ", fmt(loop->iter, comments, indent), format_namespace(loop->body, comments, indent));
         if (loop->empty) code = Texts(code, "\n", indent, "else", format_namespace(loop->empty, comments, indent));
         return code;
@@ -554,6 +557,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             code = Texts(code, fmt(var->ast, comments, indent));
             if (var->next) code = Texts(code, ", ");
         }
+        if (comp->at) code = Texts(code, " at ", fmt(comp->at, comments, indent));
 
         code = Texts(code, " in ", fmt(comp->iter, comments, indent));
 

@@ -86,6 +86,9 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
     if (for_->iter->tag == Comprehension) {
         DeclareMatch(comp, for_->iter, Comprehension);
         ast_t *body = for_->body;
+        if (for_->at)
+            code_err(for_->at, "An `at` counter isn't supported when iterating over a comprehension. "
+                               "Put the `at` inside the comprehension instead.");
         if (for_->vars) {
             if (for_->vars->ast->tag == StackReference)
                 code_err(for_->vars->ast, "You can't iterate by reference over a comprehension");
@@ -99,14 +102,16 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         }
 
         if (comp->filter) body = WrapAST(for_->body, If, .condition = comp->filter, .body = body);
-        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .iter = comp->iter, .body = body);
+        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iter = comp->iter, .body = body);
         return compile_statement(env, loop);
     }
 
     env_t *body_scope = for_scope(env, ast);
+    // `skip`/`stop` can target any loop variable by name, including the `at` counter:
+    ast_list_t *ctx_vars = for_->at ? new (ast_list_t, .ast = for_->at, .next = for_->vars) : for_->vars;
     loop_ctx_t loop_ctx = (loop_ctx_t){
         .loop_name = "for",
-        .loop_vars = for_->vars,
+        .loop_vars = ctx_vars,
         .deferred = body_scope->deferred,
         .next = body_scope->loop_ctx,
     };
@@ -152,8 +157,8 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         Text_t type_code = compile_type(int_type);
         // `for i, x in a.to(b)`: `i` is an Int64 iteration counter (1, 2, 3, ...)
         // and `x` is the range value, typed like the range's endpoints.
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        ast_t *index_var = for_->at;
+        ast_t *value_var = single_loop_var(for_->vars);
         Text_t index = index_var ? compile(body_scope, index_var) : EMPTY_TEXT;
         Text_t value = value_var ? compile(body_scope, value_var) : Text("i");
         Text_t counter_decl = index_counter_decl(index);
@@ -201,8 +206,8 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         arg_t *arg_spec =
             new (arg_t, .name = "step", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "1"), .next = NULL);
         Text_t step = compile_arguments(env, for_->iter, arg_spec, args);
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        ast_t *index_var = for_->at;
+        ast_t *value_var = single_loop_var(for_->vars);
         Text_t index = index_var ? compile(body_scope, index_var) : EMPTY_TEXT;
         Text_t value = value_var ? compile(body_scope, value_var) : Text("i");
         Text_t open = index.length > 0 ? Text("{\n") : EMPTY_TEXT;
@@ -221,8 +226,8 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
     switch (iter_value_t->tag) {
     case ListType: {
         type_t *item_t = Match(iter_value_t, ListType)->item_type;
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        ast_t *index_var = for_->at;
+        ast_t *value_var = single_loop_var(for_->vars);
         Text_t index = index_var ? compile(body_scope, index_var) : EMPTY_TEXT;
         Text_t value = EMPTY_TEXT;
 
@@ -266,6 +271,7 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
     }
     case TableType: {
         Text_t loop = Text("for (int64_t i = 0; i < (int64_t)iterating.length; ++i) {\n");
+        if (for_->at) loop = Texts(loop, "Int64_t ", compile(body_scope, for_->at), " = i + 1;\n");
         if (for_->vars) {
             Text_t key = compile(body_scope, for_->vars->ast);
             type_t *key_t = Match(iter_value_t, TableType)->key_type;
@@ -312,8 +318,8 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         // index form `for i, x in n` adds an Int64 index. The index is just a
         // counter starting at 1 -- it can't plausibly overflow within any
         // physically executable loop, so it needs no relation to the bound.
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        ast_t *index_var = for_->at;
+        ast_t *value_var = single_loop_var(for_->vars);
         Text_t index = index_var ? compile(body_scope, index_var) : EMPTY_TEXT;
         Text_t value = value_var ? compile(body_scope, value_var) : EMPTY_TEXT;
 
@@ -376,8 +382,8 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         // native loop whose value variable has the count's own type and whose
         // optional index is an Int64. The internal counter is Int64 so that
         // counting to a smaller type's maximum can't overflow.
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        ast_t *index_var = for_->at;
+        ast_t *value_var = single_loop_var(for_->vars);
         Text_t index = index_var ? compile(body_scope, index_var) : EMPTY_TEXT;
         Text_t value = value_var ? compile(body_scope, value_var) : EMPTY_TEXT;
         Text_t type_code = compile_type(iter_value_t);
@@ -409,8 +415,8 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
     case ClosureType: {
         // Iterator function. `for i, x in iterfn` gives an Int64 iteration
         // counter (1, 2, 3, ...) alongside each yielded value.
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        ast_t *index_var = for_->at;
+        ast_t *value_var = single_loop_var(for_->vars);
         Text_t code = Text("{\n");
         if (index_var) {
             Text_t index = compile(body_scope, index_var);
@@ -485,8 +491,8 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
         return code;
     }
     case TextType: {
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        ast_t *index_var = for_->at;
+        ast_t *value_var = single_loop_var(for_->vars);
         Text_t index = index_var ? compile(body_scope, index_var) : EMPTY_TEXT;
         Text_t value = value_var ? compile(body_scope, value_var) : EMPTY_TEXT;
 

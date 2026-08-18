@@ -24,7 +24,7 @@ test "indexing, length, and iteration"
 	assert sum == 60
 
 	>> str := ""
-	for i,x in list
+	for x at i in list
 		>> str ++= "($i,$x)"
 	>> str
 	assert str == "(1,10)(2,20)(3,30)"
@@ -136,7 +136,7 @@ test "slicing with from, to, and by"
 
 	# Test iterating over list.from() and list.to()
 	>> xs := ["A", "B", "C", "D"]
-	for i,x in xs.to(-2)
+	for x at i in xs.to(-2)
 		for y in xs.from(i+1)
 			say("$(x)$(y)")
 
@@ -203,7 +203,7 @@ test "in-place iteration by reference"
 
 test "in-place iteration with an index variable"
 	xs := @[10, 20, 30]
-	for i, &x in xs
+	for &x at i in xs
 		x[] = x[] + i
 	assert xs[] == [11, 22, 33]
 
@@ -217,7 +217,7 @@ test "in-place iteration preserves snapshots taken before the loop"
 
 test "in-place iteration supports skip and stop"
 	xs := @[1, 2, 3, 4, 5]
-	for i, &x in xs
+	for &x at i in xs
 		if i == 2
 			skip
 		if i == 4
@@ -265,7 +265,7 @@ test "a copy made during the FINAL iteration of a 'for &' loop still fails"
 	# the snapshot was silently corrupted by the iteration's later writes.
 	xs := @[1, 2]
 	ref_loop_alias = xs
-	for i, &x in xs
+	for &x at i in xs
 		if i == 2
 			_ := copy_ref_loop_alias()
 		x[] += 100
@@ -274,7 +274,7 @@ fails "A copy of the list was made while a 'for &' loop"
 test "a copy made before a 'stop' exit of a 'for &' loop still fails"
 	xs := @[1, 2, 3, 4]
 	ref_loop_alias = xs
-	for i, &x in xs
+	for &x at i in xs
 		if i == 2
 			_ := copy_ref_loop_alias()
 			stop
@@ -291,7 +291,7 @@ fails "The list was resized while a 'for &' loop"
 
 test "the list is live inside a 'for &' loop"
 	xs := @[1, 2, 3]
-	for i, &x in xs
+	for &x at i in xs
 		assert xs.length == 3
 		if i == 1
 			xs[3] = 30 # indexed writes through the name still work and are seen live

@@ -328,14 +328,14 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         DeclareMatch(comp, ast, Comprehension);
         if (comp->expr->tag == Comprehension) { // Nested comprehension
             ast_t *body = comp->filter ? WrapAST(ast, If, .condition = comp->filter, .body = comp->expr) : comp->expr;
-            ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .iter = comp->iter, .body = body);
+            ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iter = comp->iter, .body = body);
             return add_closed_vars(closed_vars, enclosing_scope, env, loop);
         }
 
         // List/Table comprehension:
         ast_t *body = comp->expr;
         if (comp->filter) body = WrapAST(comp->expr, If, .condition = comp->filter, .body = body);
-        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .iter = comp->iter, .body = body);
+        ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iter = comp->iter, .body = body);
         add_closed_vars(closed_vars, enclosing_scope, env, loop);
         break;
     }

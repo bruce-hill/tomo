@@ -9,7 +9,7 @@ func all_nums(nums:[Int] -> Text)
 
 func labeled_nums(nums:[Int] -> Text)
 	result := ""
-	for i,num in nums
+	for num at i in nums
 		result ++= "$i:$num,"
 	else
 		return "EMPTY"

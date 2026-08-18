@@ -628,16 +628,12 @@ env_t *with_enum_scope(env_t *env, type_t *t) {
 }
 
 public
-void loop_index_value_vars(ast_list_t *vars, ast_t **index_var, ast_t **value_var) {
-    *index_var = *value_var = NULL;
-    if (!vars) return;
-    if (vars->next) {
-        if (vars->next->next) code_err(vars->next->next->ast, "This is too many variables for this loop");
-        *index_var = vars->ast;
-        *value_var = vars->next->ast;
-    } else {
-        *value_var = vars->ast;
-    }
+ast_t *single_loop_var(ast_list_t *vars) {
+    if (!vars) return NULL;
+    if (vars->next)
+        code_err(vars->next->ast, "This is too many variables for this loop: this iterable only yields one value "
+                                  "per iteration. To bind an iteration counter, use `at` (e.g. `for x at i in ...`).");
+    return vars->ast;
 }
 
 env_t *for_scope(env_t *env, ast_t *ast) {
@@ -645,6 +641,11 @@ env_t *for_scope(env_t *env, ast_t *ast) {
     type_t *raw_iter_t = get_type(env, for_->iter);
     type_t *iter_t = value_type(raw_iter_t);
     env_t *scope = fresh_scope(env);
+
+    // The `at` variable is an Int64 iteration counter (1, 2, 3, ...) for any
+    // kind of iteration:
+    if (for_->at)
+        set_binding(scope, Match(for_->at, Var)->name, INT64_TYPE, Texts("_$", Match(for_->at, Var)->name));
 
     // By-reference variables (`for &x in xs`) are only supported for the value
     // variable of a mutable list iteration:
@@ -662,11 +663,8 @@ env_t *for_scope(env_t *env, ast_t *ast) {
     switch (iter_t->tag) {
     case ListType: {
         type_t *item_t = Match(iter_t, ListType)->item_type;
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
-        if (index_var) set_binding(scope, Match(index_var, Var)->name, INT64_TYPE, Texts("_$", Match(index_var, Var)->name));
+        ast_t *value_var = single_loop_var(for_->vars);
         if (value_var) {
-            // Only the value variable can be a `&` reference (validated above):
             bool by_ref = value_var->tag == StackReference;
             const char *name = Match(by_ref ? Match(value_var, StackReference)->value : value_var, Var)->name;
             type_t *var_t = by_ref ? Type(PointerType, .pointed = item_t, .is_stack = true) : item_t;
@@ -694,10 +692,8 @@ env_t *for_scope(env_t *env, ast_t *ast) {
     }
     case BigIntType:
     case IntType: {
-        // `for [i,] x in n`: `i` is an Int64 index; `x` has the count's type.
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
-        if (index_var) set_binding(scope, Match(index_var, Var)->name, INT64_TYPE, Texts("_$", Match(index_var, Var)->name));
+        // The loop variable has the count's own type:
+        ast_t *value_var = single_loop_var(for_->vars);
         if (value_var) set_binding(scope, Match(value_var, Var)->name, iter_t, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
@@ -707,18 +703,13 @@ env_t *for_scope(env_t *env, ast_t *ast) {
                                                         ? Match(Match(iter_t, ClosureType)->fn, FunctionType)
                                                         : Match(iter_t, FunctionType);
 
-        // `for [i,] x in iterfn`: `i` is an Int64 iteration counter.
         type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
-        if (index_var) set_binding(scope, Match(index_var, Var)->name, INT64_TYPE, Texts("_$", Match(index_var, Var)->name));
+        ast_t *value_var = single_loop_var(for_->vars);
         if (value_var) set_binding(scope, Match(value_var, Var)->name, non_opt_type, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
     case TextType: {
-        ast_t *index_var, *value_var;
-        loop_index_value_vars(for_->vars, &index_var, &value_var);
-        if (index_var) set_binding(scope, Match(index_var, Var)->name, INT64_TYPE, Texts("_$", Match(index_var, Var)->name));
+        ast_t *value_var = single_loop_var(for_->vars);
         if (value_var) set_binding(scope, Match(value_var, Var)->name, TEXT_TYPE, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }

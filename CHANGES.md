@@ -2,7 +2,7 @@
 
 ## 2026-08-18
 
-- New in-place list iteration: `for &x in xs` (and `for i, &x in xs`) yields a
+- New in-place list iteration: `for &x in xs` (and `for &x at i in xs`) yields a
   live `&` reference to each element of a mutable list, so element updates are
   direct in-place stores with no per-element bounds checks or copy-on-write
   guards. The list stays usable inside the body (reads and indexed writes see
@@ -10,21 +10,24 @@
   a clean runtime failure — checked every iteration and once after the loop,
   so a violation in the final iteration is still caught. The reference is a
   non-escaping `&` pointer, so it can't outlive its iteration.
-- Uniform loop index variables: in every `for i, x in <sequence>` loop, `i` is
-  now a native `Int64` counting 1, 2, 3, ... and `x` is the element with the
-  sequence's own type. This replaces the old arbitrary-precision `Int` index
-  for lists and adds index support that previously didn't exist for integer
-  counts (`for i, x in n`), ranges (`for step, x in a.to(b)`), `onward()`, and
-  iterator functions. Works in comprehensions and reducers too (e.g.
-  `[i*x for i, x in xs]`, `(+: v for k, v in t)`). Table iteration keeps its
-  `for k, v` key/value meaning.
+- New `at` loop clause: `for x at i in xs` binds `i` as a native `Int64`
+  iteration counter (1, 2, 3, ...) alongside the yielded value `x`. This
+  replaces the old leading-index form (`for i, x in xs` is now a compile
+  error suggesting `at`): loop variables always bind exactly what the
+  iterable yields, so a loop's meaning never depends on the type of the
+  iterable. Works uniformly across lists, text, integer counts, ranges
+  (`for x at step in a.to(b)`), `onward()`, and iterator functions --
+  the last four previously had no index support at all -- and in
+  comprehensions and reducers (e.g. `[i*x for x at i in xs]`). Table
+  iteration keeps its `for k, v` key/value meaning, with `at` available
+  there too.
 - `for x in n` now works when `n` is a native int type (`Int64`, `Int32`, ...),
   compiling to a native counting loop.
 - Fixed: `stop` inside a table or text iteration loop generated invalid C
   (a `goto` to a label that was never emitted) and failed to compile.
-- Fixed: `for i, c in some_text` (text iteration with an index variable)
-  generated invalid C and failed to compile. The index is 1-based, matching
-  text cluster indexing.
+- Fixed: text iteration with an iteration counter (now `for c at i in
+  some_text`) generated invalid C and failed to compile. The counter is
+  1-based, matching text cluster indexing.
 - Optional `Num` checks (`x!`, `or` fallbacks) now compile to an inline NaN
   test instead of an out-of-line libc call, which also unblocks register
   allocation around unwraps in hot loops (~30% faster on the n-body
