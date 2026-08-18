@@ -112,11 +112,12 @@ dot := (+: x*y for x, y in [1, 2, 3], [4, 5, 6]) or 0  # 32
 Each iterable's yielded values bind to its slice of the loop variables, in
 order, and the total number of variables must match exactly (a mismatch is a
 compile error). Any iterable kind can participate--lists, counts, ranges,
-text, tables (which yield a key and a value), or iterator functions (which
-yield one value per `&` out-parameter):
+text, sets, or iterator functions. An iterator function that yields several
+values per iteration (like `list.pairs()` or `table.entries()`) contributes
+that many variables:
 
 ```tomo
-for k1, v1, k2, v2 in t1, t2  # two tables, four values per iteration
+for k1, v1, k2, v2 in t1.entries(), t2.entries()  # four values per iteration
     ...
 ```
 

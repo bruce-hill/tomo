@@ -92,6 +92,18 @@ modifying the list during iteration is safe and will not result in the loop
 iterating over any of the new values. (In-place iteration with a `&` variable,
 described below, is the exception: it operates on the live list.)
 
+To iterate over each distinct *pair* of elements (each unordered pair once,
+`i < j`), use `list.pairs()`:
+
+```tomo
+for a, b in [10, 20, 30].pairs()
+    say("$(a) $(b)")  # 10 20, 10 30, 20 30
+```
+
+You can also iterate several lists in lockstep by listing them after `in`
+(`for x, y in xs, ys`). Both `pairs()` and lockstep iteration are covered in
+more detail in [the iterators documentation](iterators.md).
+
 ### Updating Elements In-Place
 
 If you have a pointer to a list (`@[T]` or `&[T]`), you can iterate over it
