@@ -6,7 +6,7 @@
 #
 # Design notes (for performance without giving up readability):
 #   - Vec3 has inline arithmetic metamethods, so the physics reads as vector
-#     math (`a - b`, `v*k`, `v.dot(v)`) rather than component bookkeeping.
+#     math (`a - b`, `v*k`, `v.len2()`) rather than component bookkeeping.
 #   - Each body is one `Body` struct in a single `@[Body]` array, so one
 #     bounds-checked access yields a body's position, velocity, and mass
 #     (all adjacent in memory) instead of indexing three parallel arrays.
@@ -27,8 +27,8 @@ struct Vec3(x, y, z: Num)
     func scaled_by(v:Vec3, k:Num -> Vec3; inline)
         return Vec3(v.x*k, v.y*k, v.z*k)
 
-    func dot(a, b: Vec3 -> Num; inline)
-        return a.x*b.x + a.y*b.y + a.z*b.z
+    func len2(a: Vec3 -> Num; inline)
+        return a.x*a.x + a.y*a.y + a.z*a.z
 
 struct Body(pos, vel: Vec3, mass: Num)
 
@@ -55,7 +55,7 @@ func advance(bodies:@[Body], steps:Int64, dt:Num)
             for j in (i+1).to(n)
                 bj := bodies[j]!
                 d := pos_i - bj.pos
-                d2 := d.dot(d)
+                d2 := d.len2()
                 mag := dt / (d2 * Num.sqrt(d2)!)
                 vi -= d * (bj.mass * mag)
                 bodies[j] = Body(bj.pos, bj.vel + d * (mass_i * mag), bj.mass)
@@ -64,11 +64,11 @@ func advance(bodies:@[Body], steps:Int64, dt:Num)
             b.pos += b.vel * dt
 
 func energy(bodies:[Body] -> Num)
-    e := (+: 0.5 * b.mass * b.vel.dot(b.vel) for b in bodies) or 0.0
+    e := (+: 0.5 * b.mass * b.vel.len2() for b in bodies) or 0.0
     for bi at i in bodies.to(-2)
         for bj in bodies.from(i+1)
             d := bi.pos - bj.pos
-            e -= (bi.mass * bj.mass) / Num.sqrt(d.dot(d))!
+            e -= (bi.mass * bj.mass) / Num.sqrt(d.len2())!
     return e
 
 func main(steps:Int64)
