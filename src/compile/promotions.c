@@ -3,6 +3,7 @@
 #include "../ast.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
+#include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
@@ -19,7 +20,36 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
     if (!can_promote(actual, needed)) return false;
 
     if (needed->tag == ClosureType && actual->tag == FunctionType) {
-        *code = Texts("((Closure_t){", *code, ", NULL})");
+        // Closure calls go through a function pointer with a trailing
+        // `void *userdata` argument. Calling the promoted function through
+        // that type directly would be undefined behavior (mismatched
+        // function-pointer types), so promotion goes through a shim (one per
+        // function type) whose signature matches the closure calling
+        // convention exactly; the target function pointer rides in the
+        // userdata slot and is called through its own exact type:
+        DeclareMatch(fn, actual, FunctionType);
+        Text_t fn_type_code = compile_type(actual);
+        const char *type_key = Text$as_c_string(fn_type_code);
+        const char *existing = Table$str_get(env->code->closure_shims, type_key);
+        Text_t shim_name;
+        if (existing) {
+            shim_name = Text$from_str(existing);
+        } else {
+            shim_name = Texts("closure$shim$", (int64_t)Table$length(env->code->closure_shims) + 1);
+            Text_t params = EMPTY_TEXT, args = EMPTY_TEXT;
+            int64_t i = 1;
+            for (arg_t *arg = fn->args; arg; arg = arg->next, i++) {
+                params = Texts(params, compile_type(arg->type), " a", i, ", ");
+                args = i == 1 ? Texts("a", i) : Texts(args, ", a", i);
+            }
+            Text_t call = Texts("((", fn_type_code, ")fn)(", args, ")");
+            bool no_ret = fn->ret->tag == VoidType || fn->ret->tag == AbortType;
+            env->code->staticdefs =
+                Texts(env->code->staticdefs, "static ", compile_type(fn->ret), " ", shim_name, "(", params,
+                      "void *fn) { ", no_ret ? EMPTY_TEXT : Text("return "), call, "; }\n");
+            Table$str_set(&env->code->closure_shims, type_key, Text$as_c_string(shim_name));
+        }
+        *code = Texts("((Closure_t){(void*)", shim_name, ", (void*)", *code, "})");
         return true;
     }
 

@@ -37,13 +37,18 @@
   (a `goto` to a label that was never emitted) and failed to compile.
 - Fixed: a lambda that only wrote through a `&` argument (`a[] = ...`) was
   wrongly rejected by the enclosing function's unused-variable check.
-- Fixed: building with `-O 0` failed to link with undefined `__ubsan_handle_*`
-  symbols. `zig cc` enables UBSan instrumentation at -O0, but the -nostdlib
-  link has no UBSan runtime, and generated code deliberately uses two
-  patterns that are UB by the letter of C but well-defined on every real ABI
-  (closure calls through a generic function-pointer cast, and negative left
-  shifts in the tagged small-int fast paths), so generated code is now
-  compiled with `-fno-sanitize=undefined`.
+- Debug builds (`-O 0`) now run with UBSan enabled in trap mode: undefined
+  behavior -- including in user-written `C_code` -- crashes with an ILLEGAL
+  INSTRUCTION report instead of silently misbehaving. (Previously `-O 0`
+  failed to link outright: `zig cc` enables UBSan at -O0 but the -nostdlib
+  link has no UBSan runtime; trap mode needs none.) To make generated code
+  UBSan-clean, lambdas now receive their closure userdata as a `void *` and
+  cast internally (so closure calls no longer go through a mismatched
+  function-pointer type), function-to-closure promotion goes through a
+  per-function-type shim, and the tagged small-int fast paths shift through
+  `uint64_t` with explicit bounds on shift amounts instead of relying on
+  formally-undefined shifts. Optimized builds are unchanged (no
+  instrumentation).
 - Fixed: text iteration with an iteration counter (now `for c at i in
   some_text`) generated invalid C and failed to compile. The counter is
   1-based, matching text cluster indexing.

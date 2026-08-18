@@ -693,7 +693,12 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
             else userdata = Texts(userdata, binding_code);
         }
         userdata = Texts(userdata, "}))");
-        code = Texts(code, name, "$userdata_t *userdata)");
+        // The closure calling convention passes userdata as a `void *` (see the
+        // fn_type_code casts at call sites). The lambda's own signature must
+        // match that type exactly -- calling through a mismatched
+        // function-pointer type is undefined behavior -- so take `void *` and
+        // cast to the concrete userdata struct inside:
+        code = Texts(code, "void *$userdata)");
     }
 
     Text_t body = EMPTY_TEXT;
@@ -707,7 +712,10 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
     if ((ret_t->tag == VoidType || ret_t->tag == AbortType) && body_scope->deferred)
         body = Texts(body, compile_statement(body_scope, FakeAST(Return)), "\n");
 
-    env->code->lambdas = Texts(env->code->lambdas, code, " {\n", body, "\n}\n");
+    Text_t userdata_cast = Table$length(closed_vars) > 0
+                               ? Texts(name, "$userdata_t *userdata = $userdata;\n")
+                               : EMPTY_TEXT;
+    env->code->lambdas = Texts(env->code->lambdas, code, " {\n", userdata_cast, body, "\n}\n");
 
     check_unused_vars(env, lambda->args, lambda->body);
 

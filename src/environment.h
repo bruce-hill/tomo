@@ -12,6 +12,9 @@ typedef struct {
     Text_t staticdefs;
     Text_t lambdas;
     Text_t variable_initializers;
+    // Per-function-type closure shims (see promote() in compile/promotions.c),
+    // keyed by the compiled function-pointer type string:
+    Table_t closure_shims;
 } compilation_unit_t;
 
 typedef struct deferral_s {

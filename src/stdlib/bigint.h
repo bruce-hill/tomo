@@ -88,7 +88,11 @@ MACROLIKE Int_t Int$divided_by(Int_t x, Int_t y) {
         const int64_t d = (y.small >> 2L);
         int64_t q = D / d, r = D % d;
         q -= (r < 0L) * (2L * (d > 0L) - 1L);
-        if likely (q == (int32_t)q) return (Int_t){.small = (q << 2L) | 1L};
+        // NOTE: shifts of possibly-negative values go through uint64_t: left-
+        // shifting a negative value is undefined behavior by C's rules, but the
+        // unsigned wraparound produces exactly the intended two's-complement
+        // bit pattern (likewise below).
+        if likely (q == (int32_t)q) return (Int_t){.small = (int64_t)((uint64_t)q << 2L) | 1L};
     }
     return Int$slow_divided_by(x, y);
 }
@@ -101,7 +105,7 @@ MACROLIKE Int_t Int$modulo(Int_t x, Int_t y) {
         const int64_t d = (y.small >> 2L);
         int64_t r = D % d;
         r -= (r < 0L) * (2L * (d < 0L) - 1L) * d;
-        return (Int_t){.small = (r << 2L) | 1L};
+        return (Int_t){.small = (int64_t)((uint64_t)r << 2L) | 1L};
     }
     return Int$slow_modulo(x, y);
 }
@@ -114,23 +118,34 @@ MACROLIKE Int_t Int$modulo1(Int_t x, Int_t y) {
         const int64_t d = (y.small >> 2L);
         int64_t r = D % d;
         r -= (r < 0L) * (2L * (d < 0L) - 1L) * d;
-        return (Int_t){.small = ((r + 1L) << 2L) | 1L};
+        return (Int_t){.small = (int64_t)((uint64_t)(r + 1L) << 2L) | 1L};
     }
     return Int$slow_modulo1(x, y);
 }
 
 MACROLIKE Int_t Int$left_shifted(Int_t x, Int_t y) {
     if likely (x.small & y.small & 1L) {
-        const int64_t z = ((x.small >> 2L) << (y.small >> 2L)) << 2L;
-        if likely (z == (int32_t)z) return (Int_t){.small = z + 1L};
+        // The shift amount must be small enough that the unsigned shift can't
+        // wrap (small values fit in 30 bits + 2 tag bits): an out-of-range or
+        // negative amount is undefined behavior in C, and correctness here
+        // previously depended on the optimizer not exploiting that. Amounts
+        // >= 32 take the slow path.
+        const uint64_t amount = (uint64_t)(y.small >> 2L);
+        if likely (amount < 32) {
+            const int64_t z = (int64_t)(((uint64_t)(x.small >> 2L) << amount) << 2L);
+            if likely (z == (int32_t)z) return (Int_t){.small = z + 1L};
+        }
     }
     return Int$slow_left_shifted(x, y);
 }
 
 MACROLIKE Int_t Int$right_shifted(Int_t x, Int_t y) {
     if likely (x.small & y.small & 1L) {
-        const int64_t z = ((x.small >> 2L) >> (y.small >> 2L)) << 2L;
-        if likely (z == (int32_t)z) return (Int_t){.small = z + 1L};
+        const uint64_t amount = (uint64_t)(y.small >> 2L);
+        if likely (amount < 62) {
+            const int64_t z = (int64_t)((uint64_t)((x.small >> 2L) >> amount) << 2L);
+            if likely (z == (int32_t)z) return (Int_t){.small = z + 1L};
+        }
     }
     return Int$slow_right_shifted(x, y);
 }
@@ -157,7 +172,7 @@ MACROLIKE Int_t Int$negated(Int_t x) {
 }
 
 MACROLIKE Int_t Int$negative(Int_t x) {
-    if likely (x.small & 1L) return (Int_t){.small = ((-((x.small) >> 2L)) << 2L) | 1L};
+    if likely (x.small & 1L) return (Int_t){.small = (int64_t)((uint64_t)(-((x.small) >> 2L)) << 2L) | 1L};
     return Int$slow_negative(x);
 }
 

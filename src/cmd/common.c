@@ -27,16 +27,6 @@ Text_t target_root = Text(""), lib_root = Text(""), zig_libc_dir = Text(""), cc 
 OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
                              " -ffunction-sections -fdata-sections"
                              " -fno-signed-zeros"
-                             // `zig cc` turns on UBSan instrumentation at -O0, which broke -O0
-                             // builds: the -nostdlib link has no UBSan runtime for the handler
-                             // symbols the instrumentation references. Trap mode would link, but
-                             // generated code has two deliberate UB-by-the-letter patterns that
-                             // trap at runtime: closure calls go through a generic
-                             // (ret(*)(..., void*)) function-pointer cast (-fsanitize=function),
-                             // and the tagged small-int fast paths left-shift negative values
-                             // ((q << 2) | 1). Both are well-defined on every real ABI, so
-                             // sanitizing generated code stays off at every optimization level:
-                             " -fno-sanitize=undefined"
                              " -fPIC -ggdb"
                              " -DGC_THREADS");
 // optimization gets a concrete value from configure_codegen();
@@ -64,6 +54,17 @@ void set_default_logs(uint32_t default_logs) {
 
 void configure_codegen(Text_t opt_level, bool optimize) {
     optimization = opt_level;
+    // Debug (-O0) builds get UBSan in trap mode: generated code is kept free
+    // of undefined behavior (lambdas take their userdata as `void *` to match
+    // the closure calling convention, function-to-closure promotion goes
+    // through typed shims, and the tagged small-int fast paths shift through
+    // uint64_t), so violations -- including in user-written `C_code` -- trap
+    // with an ILLEGAL INSTRUCTION crash report instead of misbehaving
+    // silently. Trap mode needs no UBSan runtime library, which the -nostdlib
+    // link couldn't provide anyway. Optimized builds skip the instrumentation
+    // for performance:
+    if (Text$equal_values(opt_level, Text("0"))) cflags = Texts(cflags, " -fsanitize=undefined -fsanitize-trap=undefined");
+    else cflags = Texts(cflags, " -fno-sanitize=undefined");
     // Dead-code stripping (--gc-sections / -dead_strip) and debug-section
     // compression (zstd) make smaller binaries but slow linking noticeably.
     // Enable them only for optimized (build/install) artifacts; the fast
