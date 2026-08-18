@@ -218,17 +218,19 @@ CONSTFUNC bool NAMESPACED(is_none)(const void *n, const TypeInfo_t *info) {
     return isnan(*(NUM_T *)n);
 }
 
+// NOTE: use the isinf()/isnan() macros, not fpclassify(): the macros compile
+// to inline bit checks, while fpclassify is an out-of-line libc call.
 public
 CONSTFUNC bool NAMESPACED(isinf)(NUM_T n) {
-    return (fpclassify(n) == FP_INFINITE);
+    return isinf(n);
 }
 public
 CONSTFUNC bool NAMESPACED(finite)(NUM_T n) {
-    return (fpclassify(n) != FP_INFINITE);
+    return !isinf(n);
 }
 public
 CONSTFUNC bool NAMESPACED(isnan)(NUM_T n) {
-    return (fpclassify(n) == FP_NAN);
+    return isnan(n);
 }
 
 public

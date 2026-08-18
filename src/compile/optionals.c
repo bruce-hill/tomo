@@ -92,7 +92,9 @@ Text_t check_none(type_t *t, Text_t value) {
     case PathType: return Texts("(", value, " == NULL)");
     case BigIntType: return Texts("((", value, ").small == 0)");
     case ClosureType: return Texts("((", value, ").fn == NULL)");
-    case NumType: return Texts(Match(t, NumType)->bits == TYPE_NBITS64 ? "Num$isnan(" : "Num32$isnan(", value, ")");
+    // __builtin_isnan compiles to an inline comparison; Num$isnan is an
+    // out-of-line call (via fpclassify), too slow for hot-loop `!` unwraps.
+    case NumType: return Texts("__builtin_isnan(", value, ")");
     case ListType: return Texts("((", value, ").data == NULL)");
     case TableType: return Texts("((", value, ").entries.data == NULL)");
     case BoolType: return Texts("((", value, ") == NONE_BOOL)");
