@@ -1,5 +1,35 @@
 # Changes
 
+## 2026-08-18
+
+- New in-place list iteration: `for &x in xs` (and `for i, &x in xs`) yields a
+  live `&` reference to each element of a mutable list, so element updates are
+  direct in-place stores with no per-element bounds checks or copy-on-write
+  guards. The list stays usable inside the body (reads and indexed writes see
+  live data); resizing the list or making a copy of it while the loop runs is
+  a clean runtime failure — checked every iteration and once after the loop,
+  so a violation in the final iteration is still caught. The reference is a
+  non-escaping `&` pointer, so it can't outlive its iteration.
+- Uniform loop index variables: in every `for i, x in <sequence>` loop, `i` is
+  now a native `Int64` counting 1, 2, 3, ... and `x` is the element with the
+  sequence's own type. This replaces the old arbitrary-precision `Int` index
+  for lists and adds index support that previously didn't exist for integer
+  counts (`for i, x in n`), ranges (`for step, x in a.to(b)`), `onward()`, and
+  iterator functions. Works in comprehensions and reducers too (e.g.
+  `[i*x for i, x in xs]`, `(+: v for k, v in t)`). Table iteration keeps its
+  `for k, v` key/value meaning.
+- `for x in n` now works when `n` is a native int type (`Int64`, `Int32`, ...),
+  compiling to a native counting loop.
+- Fixed: `stop` inside a table or text iteration loop generated invalid C
+  (a `goto` to a label that was never emitted) and failed to compile.
+- Fixed: `for i, c in some_text` (text iteration with an index variable)
+  generated invalid C and failed to compile. The index is 1-based, matching
+  text cluster indexing.
+- Optional `Num` checks (`x!`, `or` fallbacks) now compile to an inline NaN
+  test instead of an out-of-line libc call, which also unblocks register
+  allocation around unwraps in hot loops (~30% faster on the n-body
+  benchmark's inner loop).
+
 ## 2026-08-16
 
 - Reworked install/uninstall around programs instead of packages. The `tomo

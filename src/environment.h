@@ -62,6 +62,10 @@ env_t *load_module_env(env_t *env, ast_t *ast);
 env_t *get_namespace_by_type(env_t *env, type_t *t);
 env_t *fresh_scope(env_t *env);
 env_t *for_scope(env_t *env, ast_t *ast);
+// Split a for-loop's variable list into an optional index variable and an
+// optional value variable (`for x` / `for i, x`), raising a compile error on
+// more than two. This is the one place the loop-variable arity rule lives.
+void loop_index_value_vars(ast_list_t *vars, ast_t **index_var, ast_t **value_var);
 env_t *with_enum_scope(env_t *env, type_t *t);
 env_t *namespace_env(env_t *env, const char *namespace_name);
 #define compiler_err(f, start, end, ...)                                                                               \

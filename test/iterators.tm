@@ -36,3 +36,95 @@ test "range iterator"
     assert [i for i in range(5, 10)] == [5, 6, 7, 8, 9, 10]
     >> (+: range(5, 10))
     assert (+: range(5, 10))! == 45
+
+test "loop indices are always Int64"
+    xs := [10, 20, 30]
+    for i, x in xs
+        typed : Int64 = i # the index is a native Int64
+        assert xs[typed]! == x
+        _ : Int = i + 1 # ...and promotes to Int seamlessly
+
+test "integer-count loop variables match the count's type"
+    total := 0
+    for x in 5
+        typed : Int = x # `x` has the count's type
+        total += typed
+    assert total == 15
+
+test "integer-count loops can have an Int64 index"
+    n := 10
+    for i, x in n
+        _ : Int64 = i # the index is a native Int64
+        _ : Int = x # ...and the value is an Int, like the count
+        assert Int(i) == x
+    big_hits := 0
+    for i, x in Int(99999999999999)
+        _ : Int64 = i
+        _ : Int = x
+        big_hits += 1
+        if big_hits == 3
+            stop
+    assert big_hits == 3
+
+test "ranges and iterator functions can have an Int64 index"
+    # `for i, x in a.to(b)`: i counts 1, 2, 3, ... as Int64; x is the range value
+    large := Int(99999999999999)
+    for step, x in large.to(large+3)
+        _ : Int64 = step
+        assert large + Int(step) - 1 == x
+    for step, x in Int64(10).to(Int64(13))
+        assert Int64(9) + step == x
+    # `for i, x in n.onward()`
+    total := 0
+    for i, x in Int(100).onward()
+        total += x
+        if i == Int64(3)
+            stop
+    assert total == 100 + 101 + 102
+    # `for i, x in iterfn`
+    got := ""
+    for i, foo in pairwise(["A", "B", "C"])
+        got ++= "$(i):$(foo.x)$(foo.y) "
+    assert got == "1:AB 2:BC "
+
+test "native Int64 counts are iterable"
+    total : Int64 = 0
+    for x in Int64(4)
+        total += x
+    assert total == Int64(10)
+    for i, x in Int64(4)
+        assert i == x
+    ran_else := no
+    for x in Int64(0)
+        pass
+    else
+        ran_else = yes
+    assert ran_else
+
+test "text iteration indices are Int64 and 1-based"
+    out := ""
+    for i, c in "abc"
+        out ++= "$(i)$(c)"
+    assert out == "1a2b3c"
+
+test "comprehensions and reducers support index variables"
+    xs := [10, 20, 30]
+    t := {"a": 1, "b": 2}
+    # list comprehensions
+    assert [i*x for i, x in xs] == [10, 40, 90]
+    assert [x for i, x in xs if i mod 2 == 1] == [10, 30]
+    assert [b for a, b in 3] == [1, 2, 3]
+    assert [a for a, b in 5.to(7)] == [Int64(1), Int64(2), Int64(3)]
+    # set and table comprehensions
+    assert {i*x for i, x in xs} == {10, 40, 90}
+    assert {i: x for i, x in xs} == {Int64(1): 10, Int64(2): 20, Int64(3): 30}
+    assert {v: k for k, v in t} == {1: "a", 2: "b"}
+    # nested comprehensions (later `for` is the outer loop)
+    assert [i*10 + j for i, x in 2 for j, y in 2] == [Int64(11), Int64(21), Int64(12), Int64(22)]
+    # reducers
+    assert (+: i for i, x in xs)! == Int64(6)
+    assert (+: x for i, x in xs if i != 2)! == 40
+    assert (+: i for i, x in 2.to(5))! == Int64(10)
+    assert (+: v for k, v in t)! == 3
+    assert (++: "$(i)$(c)" for i, c in "abc")! == "1a2b3c"
+    assert (_max_: i*x for i, x in [30, 20, 10])! == 40

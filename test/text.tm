@@ -333,3 +333,13 @@ test "edit distance"
 test "concatenating text with a non-text value is rejected"
 	x := "hello" ++ 5
 fails_compile "I don't know how to do operations between Text and Int"
+
+test "skip and stop work in text loops"
+	out := ""
+	for c in "abcd"
+		if c == "b"
+			skip
+		if c == "d"
+			stop
+		out ++= c
+	assert out == "ac"

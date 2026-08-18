@@ -270,8 +270,19 @@ ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     ast_list_t *vars = NULL;
     for (;;) {
-        ast_t *var = optional(ctx, &pos, parse_var);
-        if (var) vars = new (ast_list_t, .ast = var, .next = vars);
+        spaces(&pos);
+        const char *var_start = pos;
+        if (match(&pos, "&")) {
+            // By-reference iteration variable: `for &x in xs` yields `&x` pointers
+            // into the list so the loop can update elements in place.
+            spaces(&pos);
+            ast_t *var = expect(ctx, var_start, &pos, parse_var, "I expected a variable name after this '&'");
+            vars = new (ast_list_t, .ast = NewAST(ctx->file, var_start, var->end, StackReference, .value = var),
+                        .next = vars);
+        } else {
+            ast_t *var = optional(ctx, &pos, parse_var);
+            if (var) vars = new (ast_list_t, .ast = var, .next = vars);
+        }
 
         spaces(&pos);
         if (!match(&pos, ",")) break;

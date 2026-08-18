@@ -194,3 +194,112 @@ fails_compile "I can't tell what type of items this empty list holds"
 test "list elements must match the declared type"
 	xs : [Int] = ["hello"]
 fails_compile "I expected a Int here, but this is a Text"
+
+test "in-place iteration by reference"
+	xs := @[10, 20, 30]
+	for &x in xs
+		x[] += 1
+	assert xs[] == [11, 21, 31]
+
+test "in-place iteration with an index variable"
+	xs := @[10, 20, 30]
+	for i, &x in xs
+		x[] = x[] + i
+	assert xs[] == [11, 22, 33]
+
+test "in-place iteration preserves snapshots taken before the loop"
+	xs := @[1, 2, 3]
+	snapshot := xs[]
+	for &x in xs
+		x[] = x[] * 10
+	assert xs[] == [10, 20, 30]
+	assert snapshot == [1, 2, 3]
+
+test "in-place iteration supports skip and stop"
+	xs := @[1, 2, 3, 4, 5]
+	for i, &x in xs
+		if i == 2
+			skip
+		if i == 4
+			stop
+		x[] += 100
+	assert xs[] == [101, 2, 103, 4, 5]
+
+test "in-place iteration runs the else block on an empty list"
+	xs : @[Int] = @[]
+	ran_else := no
+	for &x in xs
+		x[] = 99
+	else
+		ran_else = yes
+	assert ran_else
+
+# Shared state for the 'for &' aliasing failure tests below:
+ref_loop_alias : @[Int] = @[0]
+
+func resize_ref_loop_alias()
+	ref_loop_alias.insert(99)
+
+func copy_ref_loop_alias(-> [Int])
+	return ref_loop_alias[]
+
+test "resizing a list during a 'for &' loop fails"
+	xs := @[1, 2, 3]
+	ref_loop_alias = xs
+	for &x in xs
+		resize_ref_loop_alias()
+		x[] += 1
+fails "The list was resized while a 'for &' loop"
+
+test "copying a list during a 'for &' loop fails"
+	xs := @[1, 2, 3]
+	ref_loop_alias = xs
+	for &x in xs
+		_ := copy_ref_loop_alias()
+		x[] += 1
+fails "A copy of the list was made while a 'for &' loop"
+
+test "a copy made during the FINAL iteration of a 'for &' loop still fails"
+	# Regression: the per-iteration guard runs at the top of each iteration, so
+	# without the post-loop check a final-iteration copy escaped detection and
+	# the snapshot was silently corrupted by the iteration's later writes.
+	xs := @[1, 2]
+	ref_loop_alias = xs
+	for i, &x in xs
+		if i == 2
+			_ := copy_ref_loop_alias()
+		x[] += 100
+fails "A copy of the list was made while a 'for &' loop"
+
+test "a copy made before a 'stop' exit of a 'for &' loop still fails"
+	xs := @[1, 2, 3, 4]
+	ref_loop_alias = xs
+	for i, &x in xs
+		if i == 2
+			_ := copy_ref_loop_alias()
+			stop
+		x[] += 10
+fails "A copy of the list was made while a 'for &' loop"
+
+test "a resize during the FINAL iteration of a 'for &' loop still fails"
+	xs := @[7]
+	ref_loop_alias = xs
+	for &x in xs
+		resize_ref_loop_alias()
+		x[] += 1
+fails "The list was resized while a 'for &' loop"
+
+test "the list is live inside a 'for &' loop"
+	xs := @[1, 2, 3]
+	for i, &x in xs
+		assert xs.length == 3
+		if i == 1
+			xs[3] = 30 # indexed writes through the name still work and are seen live
+		x[] += 100
+	assert xs[] == [101, 102, 130]
+
+test "iterating a list value by reference is a compile error"
+	xs := [1, 2, 3]
+	for &x in xs
+		x[] += 1
+fails_compile "can't be iterated by reference"

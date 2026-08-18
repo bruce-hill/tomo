@@ -139,3 +139,14 @@ fails "This key was not found in the table: 999"
 test "table values must match the declared type"
 	t : {Text:Int} = {"a": "b"}
 fails_compile "I expected a Int here, but this is a Text"
+
+test "skip and stop work in table loops"
+	t := {"a": 1, "b": 2, "c": 3}
+	n := 0
+	for k, v in t
+		if k == "a"
+			skip
+		n += v
+		if n >= 5
+			stop
+	assert n == 5

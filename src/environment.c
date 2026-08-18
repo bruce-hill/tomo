@@ -627,25 +627,50 @@ env_t *with_enum_scope(env_t *env, type_t *t) {
     return env;
 }
 
+public
+void loop_index_value_vars(ast_list_t *vars, ast_t **index_var, ast_t **value_var) {
+    *index_var = *value_var = NULL;
+    if (!vars) return;
+    if (vars->next) {
+        if (vars->next->next) code_err(vars->next->next->ast, "This is too many variables for this loop");
+        *index_var = vars->ast;
+        *value_var = vars->next->ast;
+    } else {
+        *value_var = vars->ast;
+    }
+}
+
 env_t *for_scope(env_t *env, ast_t *ast) {
     DeclareMatch(for_, ast, For);
-    type_t *iter_t = value_type(get_type(env, for_->iter));
+    type_t *raw_iter_t = get_type(env, for_->iter);
+    type_t *iter_t = value_type(raw_iter_t);
     env_t *scope = fresh_scope(env);
+
+    // By-reference variables (`for &x in xs`) are only supported for the value
+    // variable of a mutable list iteration:
+    for (ast_list_t *var = for_->vars; var; var = var->next) {
+        if (var->ast->tag != StackReference) continue;
+        if (iter_t->tag != ListType)
+            code_err(var->ast, "Iterating by reference is only supported for lists, not ", type_to_text(iter_t));
+        if (raw_iter_t->tag != PointerType)
+            code_err(for_->iter, "This is an immutable list value, so it can't be iterated by reference. "
+                                 "You need a pointer to a list (`@` or `&`) to update its elements in place.");
+        if (var->next != NULL)
+            code_err(var->ast, "Only the value variable of a list iteration can be a `&` reference");
+    }
 
     switch (iter_t->tag) {
     case ListType: {
         type_t *item_t = Match(iter_t, ListType)->item_type;
-        const char *vars[2] = {};
-        int64_t num_vars = 0;
-        for (ast_list_t *var = for_->vars; var; var = var->next) {
-            if (num_vars >= 2) code_err(var->ast, "This is too many variables for this loop");
-            vars[num_vars++] = Match(var->ast, Var)->name;
-        }
-        if (num_vars == 1) {
-            set_binding(scope, vars[0], item_t, Texts("_$", vars[0]));
-        } else if (num_vars == 2) {
-            set_binding(scope, vars[0], INT_TYPE, Texts("_$", vars[0]));
-            set_binding(scope, vars[1], item_t, Texts("_$", vars[1]));
+        ast_t *index_var, *value_var;
+        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        if (index_var) set_binding(scope, Match(index_var, Var)->name, INT64_TYPE, Texts("_$", Match(index_var, Var)->name));
+        if (value_var) {
+            // Only the value variable can be a `&` reference (validated above):
+            bool by_ref = value_var->tag == StackReference;
+            const char *name = Match(by_ref ? Match(value_var, StackReference)->value : value_var, Var)->name;
+            type_t *var_t = by_ref ? Type(PointerType, .pointed = item_t, .is_stack = true) : item_t;
+            set_binding(scope, name, var_t, Texts("_$", name));
         }
         return scope;
     }
@@ -667,12 +692,13 @@ env_t *for_scope(env_t *env, ast_t *ast) {
         }
         return scope;
     }
-    case BigIntType: {
-        if (for_->vars) {
-            if (for_->vars->next) code_err(for_->vars->next->ast, "This is too many variables for this loop");
-            const char *var = Match(for_->vars->ast, Var)->name;
-            set_binding(scope, var, INT_TYPE, Texts("_$", var));
-        }
+    case BigIntType:
+    case IntType: {
+        // `for [i,] x in n`: `i` is an Int64 index; `x` has the count's type.
+        ast_t *index_var, *value_var;
+        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        if (index_var) set_binding(scope, Match(index_var, Var)->name, INT64_TYPE, Texts("_$", Match(index_var, Var)->name));
+        if (value_var) set_binding(scope, Match(value_var, Var)->name, iter_t, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
     case FunctionType:
@@ -681,27 +707,19 @@ env_t *for_scope(env_t *env, ast_t *ast) {
                                                         ? Match(Match(iter_t, ClosureType)->fn, FunctionType)
                                                         : Match(iter_t, FunctionType);
 
-        if (for_->vars) {
-            if (for_->vars->next) code_err(for_->vars->next->ast, "This is too many variables for this loop");
-            const char *var = Match(for_->vars->ast, Var)->name;
-            type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
-            set_binding(scope, var, non_opt_type, Texts("_$", var));
-        }
+        // `for [i,] x in iterfn`: `i` is an Int64 iteration counter.
+        type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
+        ast_t *index_var, *value_var;
+        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        if (index_var) set_binding(scope, Match(index_var, Var)->name, INT64_TYPE, Texts("_$", Match(index_var, Var)->name));
+        if (value_var) set_binding(scope, Match(value_var, Var)->name, non_opt_type, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
     case TextType: {
-        const char *vars[2] = {};
-        int64_t num_vars = 0;
-        for (ast_list_t *var = for_->vars; var; var = var->next) {
-            if (num_vars >= 2) code_err(var->ast, "This is too many variables for this loop");
-            vars[num_vars++] = Match(var->ast, Var)->name;
-        }
-        if (num_vars == 1) {
-            set_binding(scope, vars[0], TEXT_TYPE, Texts("_$", vars[0]));
-        } else if (num_vars == 2) {
-            set_binding(scope, vars[0], INT_TYPE, Texts("_$", vars[0]));
-            set_binding(scope, vars[1], TEXT_TYPE, Texts("_$", vars[1]));
-        }
+        ast_t *index_var, *value_var;
+        loop_index_value_vars(for_->vars, &index_var, &value_var);
+        if (index_var) set_binding(scope, Match(index_var, Var)->name, INT64_TYPE, Texts("_$", Match(index_var, Var)->name));
+        if (value_var) set_binding(scope, Match(value_var, Var)->name, TEXT_TYPE, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
     default: code_err(for_->iter, "Iteration is not implemented for type: ", type_to_text(iter_t));

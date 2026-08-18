@@ -48,6 +48,28 @@ extern char _EMPTY_LIST_SENTINEL;
         (item_type *)(list->data + list->stride * off);                                                                \
     })
 #define List_set(item_type, list, index, value, start, end) List_lvalue(item_type, list_expr, index, start, end) = value
+// Guard for `for &x in xs` reference iteration (see compile_for_reference_loop
+// in compile/loops.c): while raw element pointers into the buffer are live, the
+// list must not be resized (buffer/length/stride would change under the
+// pointers) or copied (a snapshot would alias a buffer we write without
+// copy-on-write checks). Emitted once per iteration AND once after the loop
+// (so a violation in the final iteration is still caught). The fast path is a
+// single predicted-not-taken branch; message selection happens only in the
+// cold failure block. This macro lives here, next to List$compact and the
+// List_lvalue copy-on-write machinery, so changes to list internals update the
+// borrow protocol in the same file.
+#define List_ref_iter_guard(list_ptr, data0, n0, stride0, filename, start, end)                                        \
+    do {                                                                                                               \
+        const List_t *_l = (list_ptr);                                                                                 \
+        if (unlikely(_l->data != (data0) || (int64_t)_l->length != (n0) || (int64_t)_l->stride != (stride0)            \
+                     || _l->data_refcount > 0)) {                                                                      \
+            if (_l->data_refcount > 0)                                                                                 \
+                fail_source(filename, start, end,                                                                      \
+                            Text("A copy of the list was made while a 'for &' loop was updating it\n"));               \
+            fail_source(filename, start, end,                                                                          \
+                        Text("The list was resized while a 'for &' loop was iterating over it\n"));                    \
+        }                                                                                                              \
+    } while (0)
 #define is_atomic(x)                                                                                                   \
     _Generic(x,                                                                                                        \
         bool: true,                                                                                                    \
