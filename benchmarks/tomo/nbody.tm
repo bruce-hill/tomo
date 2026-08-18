@@ -10,9 +10,10 @@
 #   - Each body is one `Body` struct in a single `@[Body]` array, so one
 #     bounds-checked access yields a body's position, velocity, and mass
 #     (all adjacent in memory) instead of indexing three parallel arrays.
-#   - Full sweeps use `for b in bodies` (element iteration skips per-index
-#     bounds checks); loop counters/indices are native `Int64`, not the
-#     default arbitrary-precision `Int`.
+#   - Full sweeps use element iteration (`for b in bodies` to read,
+#     `for &b in bodies` to update in place), which skips per-index bounds
+#     checks and per-write copy-on-write guards; loop counters/indices are
+#     native `Int64`, not the default arbitrary-precision `Int`.
 #
 # Usage: nbody <steps>   (e.g. ./nbody 50000000)
 
@@ -38,30 +39,32 @@ func print9(x:Num)
 func advance(bodies:@[Body], steps:Int64, dt:Num)
     n := Int64(bodies.length)
     for _ in Int64(1).to(steps)
-        # NOTE: this loop mutates `bodies`, so it must index rather than iterate
-        # a slice — a live slice shares the underlying data, and writing through
-        # the array while such a view exists triggers a copy-on-write compaction
-        # every write (both slow and, since the view then goes stale, wrong).
-        for i in Int64(1).to(n-1)
-            bi := bodies[i]!
-            # Accumulate body i's velocity locally, writing the array once.
+        # The outer body is held by reference (`&bi`): direct field reads and a
+        # single field write, no per-element checks. The inner `bodies[j]`
+        # cross-accesses stay indexed (checked) — they're random-access by
+        # nature. The list stays live inside a `for &` loop, so indexed reads
+        # and writes through `bodies` are fine; only resizing/copying it
+        # mid-loop is (loudly) disallowed.
+        for i, &bi in bodies
+            if i == n
+                stop
+            # Hoist body i's fields into locals; accumulate velocity locally.
+            pos_i := bi.pos
+            mass_i := bi.mass
             vi := bi.vel
             for j in (i+1).to(n)
                 bj := bodies[j]!
-                d := bi.pos - bj.pos
+                d := pos_i - bj.pos
                 d2 := d.dot(d)
                 mag := dt / (d2 * Num.sqrt(d2)!)
                 vi -= d * (bj.mass * mag)
-                bodies[j] = Body(bj.pos, bj.vel + d * (bi.mass * mag), bj.mass)
-            bodies[i] = Body(bi.pos, vi, bi.mass)
-        for i in Int64(1).to(n)
-            b := bodies[i]!
-            bodies[i] = Body(b.pos + b.vel * dt, b.vel, b.mass)
+                bodies[j] = Body(bj.pos, bj.vel + d * (mass_i * mag), bj.mass)
+            bi.vel = vi
+        for &b in bodies
+            b.pos += b.vel * dt
 
 func energy(bodies:[Body] -> Num)
-    e := 0.0
-    for b in bodies
-        e += 0.5 * b.mass * b.vel.dot(b.vel)
+    e := (+: 0.5 * b.mass * b.vel.dot(b.vel) for b in bodies) or 0.0
     for i, bi in bodies.to(-2)
         for bj in bodies.from(i+1)
             d := bi.pos - bj.pos
