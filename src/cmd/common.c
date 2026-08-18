@@ -27,6 +27,16 @@ Text_t target_root = Text(""), lib_root = Text(""), zig_libc_dir = Text(""), cc 
 OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
                              " -ffunction-sections -fdata-sections"
                              " -fno-signed-zeros"
+                             // `zig cc` turns on UBSan instrumentation at -O0, which broke -O0
+                             // builds: the -nostdlib link has no UBSan runtime for the handler
+                             // symbols the instrumentation references. Trap mode would link, but
+                             // generated code has two deliberate UB-by-the-letter patterns that
+                             // trap at runtime: closure calls go through a generic
+                             // (ret(*)(..., void*)) function-pointer cast (-fsanitize=function),
+                             // and the tagged small-int fast paths left-shift negative values
+                             // ((q << 2) | 1). Both are well-defined on every real ABI, so
+                             // sanitizing generated code stays off at every optimization level:
+                             " -fno-sanitize=undefined"
                              " -fPIC -ggdb"
                              " -DGC_THREADS");
 // optimization gets a concrete value from configure_codegen();
