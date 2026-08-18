@@ -17,7 +17,10 @@
 #     `+1` rule.
 #   - Indexed reads are unwrapped with `!` (bounds-checked, per-element);
 #     indexed writes are plain assignment, since compound assignment through
-#     an index (`count[r] -= 1`) isn't supported.
+#     an index (`count[r] -= 1`) isn't supported. The flip reversal uses
+#     multi-assignment swap (`perm[i], perm[j] = perm[j]!, perm[i]!`), which
+#     reads both right-hand values before either write — same generated ops
+#     as a manual tmp-swap.
 #   - Hot loops iterate `Int64(1).to(k2)`, NOT `1.to(k2)`: a bare `1` literal
 #     is a default arbitrary-precision `Int`, so `1.to(k2)` yields a *bignum*
 #     range whose counter and index math compile to tagged `Int$plus` /
@@ -53,9 +56,7 @@ func fannkuchredux(n:Int64 -> Int64)
             k := perm[1]!
             k2 := (k+1)/2
             for i in Int64(1).to(k2)
-                tmp := perm[i]!
-                perm[i] = perm[k-i+2]!
-                perm[k-i+2] = tmp
+                perm[i], perm[k-i+2] = perm[k-i+2]!, perm[i]!
             flips += 1
 
         if flips > max_flips
