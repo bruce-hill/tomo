@@ -6,6 +6,7 @@
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "compilation.h"
+#include "optionals.h"
 
 static CONSTFUNC const char *comparison_operator(ast_e tag) {
     switch (tag) {
@@ -42,6 +43,19 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
             code_err(ast, "I can't do comparisons between ", type_to_text(lhs_t), " and ", type_to_text(rhs_t));
         }
         assert(operand_t);
+
+        // Fast path: comparing an optional against the `none` literal is just
+        // an inline none-check on the other operand -- no need for a full
+        // type-dispatched generic_equal() (e.g. `ptr == none` -> `ptr == NULL`).
+        if (operand_t->tag == OptionalType) {
+            ast_t *other = binop.lhs->tag == None ? binop.rhs : (binop.rhs->tag == None ? binop.lhs : NULL);
+            if (other != NULL) {
+                if (other->tag == None) // `none == none`
+                    return ast->tag == Equals ? Text("yes") : Text("no");
+                Text_t check = check_none(operand_t, compile_to_type(env, other, operand_t));
+                return ast->tag == Equals ? check : Texts("!", check);
+            }
+        }
 
         Text_t lhs, rhs;
         lhs = compile_to_type(env, binop.lhs, operand_t);
