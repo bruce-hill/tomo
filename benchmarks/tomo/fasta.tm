@@ -85,9 +85,7 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
     col := Int64(0)  # characters written on the current line
     say(header)      # header line, with its own trailing newline
     s := seed
-    # `step=1` keeps the range ascending, so n=0 yields an empty range rather
-    # than `.to()`'s default bidirectional descent.
-    for _ in Int64(1).to(n, step=1)
+    for _ in n
         s = (s * IA + IC) mod IM
         r := Num(s) / Num(IM)
         b := last_code
