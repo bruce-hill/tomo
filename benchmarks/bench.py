@@ -8,7 +8,9 @@ Subcommands:
                            writing results to results.json. Set BENCH_LANGS=
                            tomo,go to re-time only those languages, preserving
                            the others' existing rows (the reference language is
-                           always run to re-validate output).
+                           always run to re-validate output). Aborts if the
+                           machine is on battery (turbo throttling skews
+                           timings); set BENCH_ALLOW_BATTERY=1 to override.
     sizes [benchmark...]   Statically build every compiled language that can
                            produce a standalone binary and record the stripped
                            binary size, writing sizes.json.
@@ -195,6 +197,55 @@ def fasta_input(n):
     return out
 
 
+def on_battery(base="/sys/class/power_supply"):
+    """True if running on battery, False if on AC, None if undeterminable.
+
+    Battery power caps sustained CPU turbo, which reproducibly slows timings
+    even when pinned to one core -- enough to make results.json inconsistent
+    with rows recorded while plugged in. Reads the Linux power-supply sysfs;
+    returns None on other platforms or when there is no AC/battery to inspect
+    (e.g. a desktop, or an empty sysfs), so the caller can proceed rather
+    than block.
+    """
+    if not os.path.isdir(base):
+        return None
+
+    def _read(name, field):
+        try:
+            with open(os.path.join(base, name, field)) as f:
+                return f.read().strip()
+        except OSError:
+            return None
+
+    ac_verdict = None       # from a Mains adapter's `online`
+    battery_verdict = None  # fallback from a Battery's `status`
+    for name in os.listdir(base):
+        kind = _read(name, "type")
+        if kind == "Mains":
+            online = _read(name, "online")
+            if online == "1":
+                return False  # a plugged-in AC adapter -> definitely on AC
+            if online == "0":
+                ac_verdict = True  # AC adapter present but offline -> battery
+        elif kind == "Battery":
+            status = _read(name, "status")
+            if status == "Discharging":
+                battery_verdict = True
+            elif status in ("Charging", "Full", "Not charging"):
+                battery_verdict = False
+    return ac_verdict if ac_verdict is not None else battery_verdict
+
+
+def require_ac_power():
+    """Abort a timing run when on battery, unless BENCH_ALLOW_BATTERY is set."""
+    if on_battery() and not os.environ.get("BENCH_ALLOW_BATTERY"):
+        sys.exit(
+            "error: running on battery power. CPU turbo is throttled on "
+            "battery, which produces slower, inconsistent timings.\n"
+            "       Plug in and re-run, or set BENCH_ALLOW_BATTERY=1 to "
+            "override.")
+
+
 def run_once(cmd, cwd=None, stdin_path=None):
     stdin = open(stdin_path, "rb") if stdin_path else subprocess.DEVNULL
     t0 = time.perf_counter()
@@ -295,6 +346,7 @@ def _check(cmd, quiet=False):
 # run
 # ---------------------------------------------------------------------------
 def run(cfg, benchmarks):
+    require_ac_power()
     repeats = int(os.environ.get("BENCH_REPEATS", cfg.get("repeats", 3)))
     # BENCH_LANGS=tomo,go re-times only those languages and preserves every
     # other language's existing row in results.json (handy when only the Tomo
