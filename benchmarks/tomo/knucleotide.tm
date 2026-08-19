@@ -41,8 +41,6 @@ func pct3(x:Num -> Text)
 func read_third_sequence(-> [Byte])
     data := (/dev/stdin).read_bytes()!
     n := Int64(data.length)
-    seq := &[Byte(0) for _ in 0] # grows; codes 0..3
-
     # Find the byte just after the ">THREE" header's newline.
     i := Int64(1)
     start := Int64(0)
@@ -59,17 +57,13 @@ func read_third_sequence(-> [Byte])
         i += 1
 
     if start == 0
-        return seq[]
+        return []
 
-    i = start
-    while i <= n
-        b := Int64(data[i]!)
-        if b == 62 # '>' — next section
-            stop
-        if b != 10 # skip newlines
-            seq.insert(CODE8[(b and 7) + 1]!)
-        i += 1
-    return seq[]
+    # THREE is the last record, so its sequence runs to EOF: take every
+    # non-newline byte from `start` on and map it to its 2-bit code. As a
+    # single-list-source comprehension this pre-sizes and fills with inlined
+    # appends (no grow-from-empty reallocation).
+    return [CODE8[(Int64(b) and 7) + 1]! for b in data.from(start) if Int64(b) != 10]
 
 # Count every length-k oligonucleotide and print each with its frequency.
 func write_frequencies(seq:[Byte], k:Int64)
