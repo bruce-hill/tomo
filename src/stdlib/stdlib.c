@@ -9,6 +9,8 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h> // Must be before gmp.h
+#include <gmp.h>
 #include <stdlib.h>
 #include <sys/param.h>
 #include <time.h>
@@ -157,9 +159,28 @@ static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
     _exit(1);
 }
 
+// GMP allocates the limb storage behind every bignum through these hooks.
+// Route them to the garbage collector so that storage is reclaimed
+// automatically: otherwise every mpz result copied into a GC object (see
+// Int$from_mpz) leaks its malloc'd limbs, and the temporary mpz_t locals in
+// the arithmetic helpers are never cleared and leak outright. Limbs hold no
+// pointers, so atomic allocation is both safe and keeps them off the GC's scan
+// set (important: limb bit-patterns would otherwise look like pointers and
+// falsely retain garbage). GC_REALLOC preserves the atomic kind of the block.
+static void *gc_gmp_alloc(size_t size) { return GC_MALLOC_ATOMIC(size); }
+static void *gc_gmp_realloc(void *ptr, size_t old_size, size_t new_size) {
+    (void)old_size;
+    return GC_REALLOC(ptr, new_size);
+}
+static void gc_gmp_free(void *ptr, size_t size) {
+    (void)ptr;
+    (void)size; // reclaimed by the GC
+}
+
 public
 void tomo_init(void) {
     GC_INIT();
+    mp_set_memory_functions(gc_gmp_alloc, gc_gmp_realloc, gc_gmp_free);
     tomo_configure();
     const char *color_env = getenv("COLOR");
     USE_COLOR = color_env ? strcmp(color_env, "1") == 0 : isatty(STDOUT_FILENO);
