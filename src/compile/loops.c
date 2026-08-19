@@ -7,6 +7,7 @@
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
+#include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../util.h"
@@ -21,6 +22,251 @@ static Text_t index_counter_decl(Text_t index) {
 
 static Text_t index_counter_step(Text_t index) {
     return index.length > 0 ? Texts("Int64_t ", index, " = ++", index, "$counter;\n") : EMPTY_TEXT;
+}
+
+// ---------------------------------------------------------------------------
+// Copy-on-write guard hoisting.
+//
+// Every indexed list write normally pays a per-write CoW guard
+// (`if (data_refcount > 0) List$compact(...)` inside List_lvalue). Even when
+// the branch is never taken, the *returning* List$compact call in a hot loop
+// pins registers and blocks vectorization. When we can prove the guard can't
+// fire mid-loop, we hoist it: compact once (if shared) before the loop, then
+// compile the loop's indexed writes to List_lvalue_nocow (bounds check kept).
+//
+// Soundness: data_refcount is not a general aliasing property -- writes
+// through aliased pointers never bump it. It changes only at specific
+// compiler-emitted operations: taking a value snapshot (copying/dereferencing
+// a list value, slicing), starting a list iteration (which snapshots), and
+// resizing. Snapshots taken *before* the loop are discharged by the one
+// up-front compact. Mid-loop, only the loop body itself runs, so it suffices
+// that the body provably contains none of those operations. We establish that
+// with a strict whitelist scan: the body may contain only scalar-typed
+// declarations/assignments/updates, reads and writes of list elements whose
+// items are scalar-typed, arithmetic/comparison operators, if/skip/stop/pass,
+// and nested loops over integer ranges. Any function call, method call,
+// lambda, return (deferred blocks could run arbitrary code), list-typed
+// value, iteration over a container, comprehension, or anything else not
+// explicitly whitelisted makes the loop ineligible and it compiles exactly as
+// before. Shadowing can't smuggle in a different list under a hoisted name:
+// list-typed declarations are not whitelisted, and loop variables are always
+// integer-typed here (only integer-range iterables are allowed).
+// ---------------------------------------------------------------------------
+
+typedef struct {
+    Table_t *written; // variable name -> representative Index lvalue ast
+} cow_scan_t;
+
+// Scalar-ish types: values whose copies can't share a list buffer.
+static bool cow_type_ok(type_t *t) {
+    if (t == NULL) return false;
+    switch (t->tag) {
+    case IntType:
+    case BigIntType:
+    case NumType:
+    case BoolType:
+    case ByteType: return true;
+    case OptionalType: return cow_type_ok(Match(t, OptionalType)->type);
+    case StructType: {
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next)
+            if (!cow_type_ok(field->type)) return false;
+        return true;
+    }
+    default: return false;
+    }
+}
+
+// Non-fatal variable type lookup: the scanner must never `code_err` (it runs
+// speculatively and merely declines the optimization on anything unmodeled,
+// including discard variables like `_` that have no binding).
+static type_t *cow_var_type(env_t *env, ast_t *var_ast) {
+    if (var_ast->tag != Var) return NULL;
+    binding_t *binding = get_binding(env, Match(var_ast, Var)->name);
+    return binding ? binding->type : NULL;
+}
+
+// An indexed list element access (`xs[i]`) on a plain variable with
+// scalar-typed items. Used for both reads and (in Assign targets) writes.
+static bool cow_index_ok(env_t *env, ast_t *ast) {
+    DeclareMatch(index, ast, Index);
+    if (index->index == NULL) return false; // `ptr[]` dereference takes a snapshot
+    type_t *indexed_t = cow_var_type(env, index->indexed);
+    if (indexed_t == NULL) return false;
+    type_t *container_t = value_type(indexed_t);
+    if (container_t->tag != ListType) return false; // table reads can insert defaults
+    return cow_type_ok(Match(container_t, ListType)->item_type);
+}
+
+static bool cow_expr_ok(env_t *env, ast_t *ast) {
+    if (ast == NULL) return false;
+    switch (ast->tag) {
+    case Int:
+    case Num:
+    case Bool:
+    case None: return true;
+    case Var: return cow_type_ok(cow_var_type(env, ast));
+    case NonOptional: return cow_expr_ok(env, Match(ast, NonOptional)->value);
+    case Not: return cow_expr_ok(env, Match(ast, Not)->value);
+    case Negative: return cow_expr_ok(env, Match(ast, Negative)->value);
+    case Index: return cow_index_ok(env, ast) && cow_expr_ok(env, Match(ast, Index)->index);
+    case FunctionCall: {
+        // Constructor calls of scalar types (e.g. `Int64(1)`) are pure
+        // conversions: with scalar-only arguments they can't touch any list.
+        // Actual function calls (the callee is a function, not a type) stay
+        // disallowed -- they could reach the list through an escaped alias.
+        DeclareMatch(call, ast, FunctionCall);
+        type_t *fn_t = cow_var_type(env, call->fn);
+        if (fn_t == NULL || fn_t->tag != TypeInfoType || !cow_type_ok(Match(fn_t, TypeInfoType)->type)) return false;
+        for (arg_ast_t *arg = call->args; arg; arg = arg->next)
+            if (!cow_expr_ok(env, arg->value)) return false;
+        return true;
+    }
+    case BINOP_CASES: {
+        if (is_update_assignment(ast)) return false; // statements, not expressions
+        binary_operands_t operands = BINARY_OPERANDS(ast);
+        return cow_expr_ok(env, operands.lhs) && cow_expr_ok(env, operands.rhs);
+    }
+    default: return false;
+    }
+}
+
+static bool cow_stmt_ok(env_t *env, ast_t *ast, cow_scan_t *scan);
+
+static bool cow_block_ok(env_t *env, ast_t *block, cow_scan_t *scan) {
+    env_t *scope = fresh_scope(env);
+    if (block->tag == Block) {
+        for (ast_list_t *stmt = Match(block, Block)->statements; stmt; stmt = stmt->next)
+            if (!cow_stmt_ok(scope, stmt->ast, scan)) return false;
+        return true;
+    }
+    return cow_stmt_ok(scope, block, scan);
+}
+
+// Only integer-range iterables (`a.to(b)` on integers, or a plain integer
+// count) are allowed for nested loops: iterating a container takes a snapshot
+// of it, which is exactly the refcount bump we must rule out.
+static bool cow_iterable_ok(env_t *env, ast_t *iter) {
+    if (iter->tag == MethodCall) {
+        DeclareMatch(call, iter, MethodCall);
+        if (!streq(call->name, "to")) return false;
+        if (!cow_expr_ok(env, call->self) || !is_int_type(get_type(env, call->self))) return false;
+        for (arg_ast_t *arg = call->args; arg; arg = arg->next)
+            if (!cow_expr_ok(env, arg->value)) return false;
+        return true;
+    }
+    return cow_expr_ok(env, iter) && is_int_type(get_type(env, iter));
+}
+
+static bool cow_for_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
+    DeclareMatch(for_, ast, For);
+    if (for_->iters == NULL || for_->iters->next != NULL) return false; // no lockstep
+    if (for_->empty != NULL) return false;
+    if (!cow_iterable_ok(env, for_->iters->ast)) return false;
+    for (ast_list_t *var = for_->vars; var; var = var->next)
+        if (var->ast->tag != Var) return false; // no `&x` reference vars
+    if (for_->at != NULL && for_->at->tag != Var) return false;
+    env_t *scope = for_scope(env, ast);
+    return cow_block_ok(scope, for_->body, scan);
+}
+
+static bool cow_stmt_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
+    switch (ast->tag) {
+    case Pass:
+    case Skip:
+    case Stop: return true;
+    case Block: return cow_block_ok(env, ast, scan);
+    case Declare: {
+        DeclareMatch(decl, ast, Declare);
+        if (!cow_expr_ok(env, decl->value)) return false;
+        // The value expression passed the scalar whitelist, so its type (and
+        // thus the declared variable's) is scalar; an explicit annotation
+        // could only promote it to another scalar type. Discard declarations
+        // (`_ := ...`) have no binding, so don't query the variable itself.
+        bind_statement(env, ast); // register the variable for later type lookups
+        return cow_type_ok(get_type(env, decl->value));
+    }
+    case Assign: {
+        DeclareMatch(assign, ast, Assign);
+        for (ast_list_t *value = assign->values; value; value = value->next)
+            if (!cow_expr_ok(env, value->ast)) return false;
+        for (ast_list_t *target = assign->targets; target; target = target->next) {
+            if (target->ast->tag == Var) {
+                if (!cow_type_ok(cow_var_type(env, target->ast))) return false;
+            } else if (target->ast->tag == Index) {
+                if (!cow_index_ok(env, target->ast)) return false;
+                if (!cow_expr_ok(env, Match(target->ast, Index)->index)) return false;
+                Table$str_set(scan->written, Match(Match(target->ast, Index)->indexed, Var)->name, target->ast);
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+    case UPDATE_CASES: {
+        binary_operands_t operands = UPDATE_OPERANDS(ast);
+        if (!cow_type_ok(cow_var_type(env, operands.lhs))) return false;
+        return cow_expr_ok(env, operands.rhs);
+    }
+    case If: {
+        DeclareMatch(if_, ast, If);
+        if (if_->condition == NULL || !cow_expr_ok(env, if_->condition)) return false;
+        if (!cow_block_ok(env, if_->body, scan)) return false;
+        if (if_->else_body != NULL && !cow_block_ok(env, if_->else_body, scan)) return false;
+        return true;
+    }
+    case While: {
+        DeclareMatch(while_, ast, While);
+        if (while_->condition != NULL && !cow_expr_ok(env, while_->condition)) return false;
+        return cow_block_ok(env, while_->body, scan);
+    }
+    case Repeat: return cow_block_ok(env, Match(ast, Repeat)->body, scan);
+    case For: return cow_for_ok(env, ast, scan);
+    default: return false; // calls, lambdas, returns, comprehensions, C code, ...
+    }
+}
+
+// If `loop_ast` (a For/While/Repeat) qualifies for CoW-guard hoisting, return
+// a copy of `env` with the written list variables recorded in ->cow_hoisted
+// and append the up-front compact-if-shared code for each to `prelude`.
+// Otherwise return `env` unchanged with an empty prelude.
+static env_t *cow_hoist_env(env_t *env, ast_t *loop_ast, Text_t *prelude) {
+    cow_scan_t scan = {.written = new (Table_t)};
+    env_t *scratch = fresh_scope(env);
+    bool safe = false;
+    switch (loop_ast->tag) {
+    case While: {
+        DeclareMatch(while_, loop_ast, While);
+        safe = (while_->condition == NULL || cow_expr_ok(scratch, while_->condition))
+               && cow_block_ok(scratch, while_->body, &scan);
+        break;
+    }
+    case Repeat: safe = cow_block_ok(scratch, Match(loop_ast, Repeat)->body, &scan); break;
+    case For: safe = cow_for_ok(scratch, loop_ast, &scan); break;
+    default: safe = false; break;
+    }
+    if (!safe || Table$length(*scan.written) == 0) return env;
+
+    env_t *hoisted = new (env_t);
+    *hoisted = *env;
+    hoisted->cow_hoisted = new (Table_t, .fallback = env->cow_hoisted);
+    for (int64_t i = 0; i < (int64_t)scan.written->entries.length; i++) {
+        struct {
+            const char *name;
+            ast_t *index_ast;
+        } *entry = scan.written->entries.data + scan.written->entries.stride * i;
+        // Already hoisted by an enclosing loop: writes are nocow already.
+        if (env->cow_hoisted && Table$str_get(*env->cow_hoisted, entry->name)) continue;
+        ast_t *indexed = Match(entry->index_ast, Index)->indexed;
+        type_t *container_t = value_type(get_type(env, indexed));
+        type_t *item_type = Match(container_t, ListType)->item_type;
+        *prelude = Texts(*prelude, "{ // Hoisted copy-on-write guard:\nList_t *cow$hoisted = ",
+                         compile_to_pointer_depth(env, indexed, 1, false),
+                         ";\nif unlikely (cow$hoisted->data_refcount > 0) List$compact(cow$hoisted, sizeof(",
+                         compile_type(item_type), "));\n}\n");
+        Table$str_set(hoisted->cow_hoisted, entry->name, entry->index_ast);
+    }
+    if (Table$length(*hoisted->cow_hoisted) == 0) return env;
+    return hoisted;
 }
 
 // Compile `for [i,] &x in xs` -- in-place mutable iteration over a list.
@@ -360,8 +606,7 @@ static Text_t compile_lockstep_loop(env_t *env, ast_t *ast, env_t *body_scope, T
     return Texts(code, "}\n");
 }
 
-public
-Text_t compile_for_loop(env_t *env, ast_t *ast) {
+static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
     DeclareMatch(for_, ast, For);
     ast_t *iter = for_->iters->ast;
 
@@ -833,7 +1078,18 @@ Text_t compile_for_loop(env_t *env, ast_t *ast) {
 }
 
 public
+Text_t compile_for_loop(env_t *env, ast_t *ast) {
+    Text_t cow_prelude = EMPTY_TEXT;
+    env = cow_hoist_env(env, ast, &cow_prelude);
+    Text_t code = compile_for_loop_impl(env, ast);
+    if (cow_prelude.length > 0) code = Texts("{\n", cow_prelude, code, "\n}");
+    return code;
+}
+
+public
 Text_t compile_repeat(env_t *env, ast_t *ast) {
+    Text_t cow_prelude = EMPTY_TEXT;
+    env = cow_hoist_env(env, ast, &cow_prelude);
     ast_t *body = Match(ast, Repeat)->body;
     env_t *scope = fresh_scope(env);
     loop_ctx_t loop_ctx = (loop_ctx_t){
@@ -846,11 +1102,14 @@ Text_t compile_repeat(env_t *env, ast_t *ast) {
     if (loop_ctx.skip_label.length > 0) body_code = Texts(body_code, "\n", loop_ctx.skip_label, ": continue;");
     Text_t loop = Texts("for (;;) {\n\t", body_code, "\n}");
     if (loop_ctx.stop_label.length > 0) loop = Texts(loop, "\n", loop_ctx.stop_label, ":;");
+    if (cow_prelude.length > 0) loop = Texts("{\n", cow_prelude, loop, "\n}");
     return loop;
 }
 
 public
 Text_t compile_while(env_t *env, ast_t *ast) {
+    Text_t cow_prelude = EMPTY_TEXT;
+    env = cow_hoist_env(env, ast, &cow_prelude);
     DeclareMatch(while_, ast, While);
     env_t *scope = fresh_scope(env);
     loop_ctx_t loop_ctx = (loop_ctx_t){
@@ -864,6 +1123,7 @@ Text_t compile_while(env_t *env, ast_t *ast) {
     Text_t loop =
         Texts("while (", while_->condition ? compile(scope, while_->condition) : Text("yes"), ") {\n\t", body, "\n}");
     if (loop_ctx.stop_label.length > 0) loop = Texts(loop, "\n", loop_ctx.stop_label, ":;");
+    if (cow_prelude.length > 0) loop = Texts("{\n", cow_prelude, loop, "\n}");
     return loop;
 }
 

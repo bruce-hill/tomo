@@ -47,6 +47,23 @@ extern char _EMPTY_LIST_SENTINEL;
         if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                            \
         (item_type *)(list->data + list->stride * off);                                                                \
     })
+// Like List_lvalue, but without the per-write copy-on-write guard. Only
+// emitted by the compiler when an enclosing loop has already performed the
+// compact-if-shared up front AND static analysis proved the loop body cannot
+// create any new value snapshot of (or resize) the list mid-loop, so
+// data_refcount is guaranteed to stay 0 for the loop's duration (see
+// cow_hoist_env in compile/loops.c). The bounds check stays.
+#define List_lvalue_nocow(item_type, list_expr, index_expr, start, end)                                                \
+    *({                                                                                                                \
+        List_t *list = list_expr;                                                                                      \
+        int64_t index = index_expr;                                                                                    \
+        int64_t off = index + (index < 0) * (list->length + 1) - 1;                                                    \
+        if (unlikely(off < 0 || off >= list->length))                                                                  \
+            fail_source(__SOURCE_FILE__, start, end,                                                                   \
+                        Text$concat(Text("Invalid list index: "), convert_to_text(index), Text(" (list has length "),  \
+                                    convert_to_text((int64_t)list->length), Text(")\n")));                             \
+        (item_type *)(list->data + list->stride * off);                                                                \
+    })
 #define List_set(item_type, list, index, value, start, end) List_lvalue(item_type, list_expr, index, start, end) = value
 // Guard for `for &x in xs` reference iteration (see compile_for_reference_loop
 // in compile/loops.c): while raw element pointers into the buffer are live, the

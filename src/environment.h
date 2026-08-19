@@ -51,6 +51,11 @@ typedef struct env_s {
     loop_ctx_t *loop_ctx;
     deferral_t *deferred;
     Closure_t *comprehension_action;
+    // List variables whose copy-on-write guard has been hoisted out of an
+    // enclosing loop (see cow_hoist_env in compile/loops.c): keys are variable
+    // names; indexed writes to them compile to List_lvalue_nocow. NULL when no
+    // hoist is active.
+    Table_t *cow_hoisted;
     bool do_source_mapping : 1;
     type_t *current_type;
 } env_t;
