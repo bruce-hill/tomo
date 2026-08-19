@@ -217,6 +217,25 @@
         "csharp": "csharpaot-1",
         "swift": "swift-1"
       }
+    },
+    "mandelbrot": {
+      "args": ["4000"],
+      "reference": "c",
+      "cflags": {"c": ["-ffp-contract=off"], "cpp": ["-ffp-contract=off"]},
+      "programs": {
+        "c": "gcc-2",
+        "cpp": "gpp-2",
+        "rust": "rust-1",
+        "go": "go-2",
+        "javascript": "node-2",
+        "lua": "lua-2",
+        "luajit": "lua-2",
+        "python": "python3-2",
+        "pypy": "python3-2",
+        "java": "graalvmaot-2",
+        "csharp": "csharpaot-2",
+        "swift": "swift-1"
+      }
     }
   }
 }
