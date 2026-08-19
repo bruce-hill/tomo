@@ -5,7 +5,10 @@ Subcommands:
     fetch [benchmark...]   Download reference implementations from the
                            Computer Language Benchmarks Game into fetched/.
     run   [benchmark...]   Build + time + validate every runnable language,
-                           writing results to results.json.
+                           writing results to results.json. Set BENCH_LANGS=
+                           tomo,go to re-time only those languages, preserving
+                           the others' existing rows (the reference language is
+                           always run to re-validate output).
     sizes [benchmark...]   Statically build every compiled language that can
                            produce a standalone binary and record the stripped
                            binary size, writing sizes.json.
@@ -293,6 +296,13 @@ def _check(cmd, quiet=False):
 # ---------------------------------------------------------------------------
 def run(cfg, benchmarks):
     repeats = int(os.environ.get("BENCH_REPEATS", cfg.get("repeats", 3)))
+    # BENCH_LANGS=tomo,go re-times only those languages and preserves every
+    # other language's existing row in results.json (handy when only the Tomo
+    # compiler changed). The reference language is always run to regenerate the
+    # expected output for validation, but its stored row is kept as-is unless it
+    # too was named.
+    only_env = os.environ.get("BENCH_LANGS")
+    only = {l.strip() for l in only_env.split(",") if l.strip()} if only_env else None
     results = {}
     if os.path.exists(RESULTS):
         results = json.load(open(RESULTS))
@@ -318,9 +328,21 @@ def run(cfg, benchmarks):
         rest = [l for l in _langs_for(cfg, bench) if l not in (ref_lang, "tomo")]
         order = [ref_lang, "tomo"] + rest
         expected = None
+        prev_rows = results.get(bname, {}).get("results", {})
         rows = {}
         for lang in order:
             spec = cfg["languages"][lang]
+            is_ref = lang == ref_lang
+            # With BENCH_LANGS set, skip languages that weren't named (carrying
+            # their prior row forward). The reference is never skipped: we need
+            # its fresh output to validate the languages we *are* re-running.
+            requested = only is None or lang in only
+            if not requested and not is_ref:
+                if lang in prev_rows:
+                    rows[lang] = prev_rows[lang]
+                else:
+                    print(f"  skip {lang:<11} (not in BENCH_LANGS, no prior result)")
+                continue
             if spec.get("disabled"):
                 print(f"  skip {lang:<11} (disabled)")
                 continue
@@ -348,17 +370,24 @@ def run(cfg, benchmarks):
                 continue
 
             norm = out.strip()
-            if lang == ref_lang:
+            if is_ref:
                 expected = norm
             ok = expected is not None and norm == expected
             mark = "ok " if ok else "OUT"  # OUT = output mismatch
-            rows[lang] = {"seconds": round(best, 4),
-                          "rss_kb": rss,
-                          "valid": bool(ok),
-                          "label": spec["label"],
-                          "color": spec.get("color", "#888888")}
-            print(f"  {mark}  {lang:<11} {best:8.3f}s  {rss/1024:7.1f} MB"
-                  f"  {'valid' if ok else 'OUTPUT MISMATCH'}")
+            fresh_row = {"seconds": round(best, 4),
+                         "rss_kb": rss,
+                         "valid": bool(ok),
+                         "label": spec["label"],
+                         "color": spec.get("color", "#888888")}
+            if not requested and is_ref and lang in prev_rows:
+                # Reference was run only to regenerate the expected output;
+                # keep its stored timing rather than this validation run's.
+                rows[lang] = prev_rows[lang]
+                print(f"  ref  {lang:<11} {best:8.3f}s  (validated; stored row preserved)")
+            else:
+                rows[lang] = fresh_row
+                print(f"  {mark}  {lang:<11} {best:8.3f}s  {rss/1024:7.1f} MB"
+                      f"  {'valid' if ok else 'OUTPUT MISMATCH'}")
 
         results[bname] = {"args": args, "reference": ref_lang, "results": rows}
 
