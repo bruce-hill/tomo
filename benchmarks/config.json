@@ -183,6 +183,21 @@
         "nim": "2",
         "odin": "1"
       }
+    },
+    "pidigits": {
+      "args": ["10000"],
+      "reference": "c",
+      "cflags": {"c": ["-lgmp"], "cpp": ["-lgmp"]},
+      "programs": {
+        "c": "gcc-1",
+        "cpp": "gpp-5",
+        "go": "go-7",
+        "javascript": "node-3",
+        "python": "python3-4",
+        "pypy": "python3-4",
+        "java": "graalvmaot-1",
+        "csharp": "csharpaot-4"
+      }
     }
   }
 }
