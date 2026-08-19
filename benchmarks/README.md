@@ -21,26 +21,25 @@ With the field now up to ~17 languages across all nine of the CLBG's
 library-free benchmarks, the useful summary is that **Tomo sits inside the
 compiled-language cluster and beats every scripting language on every single
 benchmark, with no exceptions**. On the tight compute loops it lands in the
-middle of that cluster: **fannkuch-redux** puts it at 0.35s, within 2.2× of the
-fastest and jostling with Java, Fortran, and C; **n-body** at 0.56s is ~1.9×
-the leader (Rust), just ahead of Go and Java. On the hash-table-heavy
-**k-nucleotide** it takes 3rd at 0.28s — behind only C and C++, and ahead of
+middle of that cluster: **fannkuch-redux** puts it at 0.17s, within 1.8× of the
+fastest and jostling with C++, Fortran, and C; **n-body** at 0.27s is ~1.9×
+the leaders (Zig/Rust), just ahead of C#, Go, and Java. On the hash-table-heavy
+**k-nucleotide** it takes 3rd at 0.24s — behind only C and C++, and ahead of
 Go, LuaJIT, Java, Rust, and every scripting language. **binary-trees** (an
-allocation/GC stress test) has it at 0.28s, mid-pack and ahead of Go, Odin,
-and every scripting language. **fasta** is Tomo's softest core benchmark but
-not an outlier — at 0.75s it's ~10× C (C's SIMD-friendly byte tables set an
-unusually high bar here), still ahead of Java, C#, Rust, and every scripting
-language.
+allocation/GC stress test) has it at 0.29s, mid-pack and ahead of Go, Odin,
+and every scripting language. **fasta** at 0.36s is ~4.9× C (C's SIMD-friendly
+byte tables set a high bar here), still ahead of Java, Rust, C#, LuaJIT,
+Fortran, and every scripting language.
 
 Of the four newer benchmarks, **mandelbrot** is a standout: at 0.70s Tomo
 *beats* the (multithreaded, core-pinned) C and Go entries outright, trailing
-only Rust, C++, and Java. **reverse-complement** at 0.24s (2.3× C) is ahead of
+only Rust, C++, and Java. **reverse-complement** at 0.23s (2.3× C) is ahead of
 Python, Java, LuaJIT, JavaScript, C++, PyPy, and Lua, and closing in on
-C#/Swift (0.13s). **spectral-norm** at 1.16s is ~1.9× C, ahead of Go, C#,
+C#/Swift (0.13s). **spectral-norm** at 1.15s is ~1.9× C, ahead of Go, C#,
 Java, and every scripting language. **pidigits** — a pure GMP bignum stress
-test — is Tomo's weakest relative showing at ~4.8× C, but still 4th of 9,
+test — is Tomo's weakest relative showing at ~4.7× C, but still 4th of 9,
 comfortably ahead of Python, PyPy, Java, C#, and JavaScript. Several runtime
-improvements came out of chasing these numbers down — see below.
+and compiler improvements came out of chasing these numbers down — see below.
 
 The top of each compute chart is crowded with fast natives — Zig, Nim,
 Fortran, and Rust routinely lead — but no garbage-collected, memory-safe
