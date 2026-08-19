@@ -17,29 +17,33 @@
 #include "types.h"
 #include "utils.h"
 
-static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, bool allow_interps) {
+static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, bool allow_interps, bool allow_escapes) {
     const char *pos = *out_pos;
 
     int64_t starting_indent = get_indent(ctx, pos);
     int64_t string_indent = starting_indent + SPACES_PER_INDENT;
 
     const char *quote, *interp;
-    bool allow_escapes = true;
+    bool quote_allows_escapes = true;
     if (match(&pos, "\"\"\"")) { // Triple double quote
-        quote = "\"\"\"", interp = "$", allow_escapes = false;
+        quote = "\"\"\"", interp = "$", quote_allows_escapes = false;
     } else if (match(&pos, "'''")) { // Triple single quote
-        quote = "'''", interp = "$", allow_escapes = false;
+        quote = "'''", interp = "$", quote_allows_escapes = false;
     } else if (match(&pos, "```")) { // Triple backtick
-        quote = "```", interp = "@", allow_escapes = false;
+        quote = "```", interp = "@", quote_allows_escapes = false;
     } else if (match(&pos, "\"")) { // Double quote
-        quote = "\"", interp = "$", allow_escapes = true;
+        quote = "\"", interp = "$", quote_allows_escapes = true;
     } else if (match(&pos, "'")) { // Single quote
-        quote = "'", interp = "$", allow_escapes = true;
+        quote = "'", interp = "$", quote_allows_escapes = true;
     } else if (match(&pos, "`")) { // Backtick
-        quote = "`", interp = "@", allow_escapes = true;
+        quote = "`", interp = "@", quote_allows_escapes = true;
     } else {
         parser_err(ctx, pos, pos, "I expected a valid text here");
     }
+
+    // The caller can force escapes off (e.g. inline C, which must be verbatim so
+    // a `\n` reaches the C compiler as a backslash-n, not a real newline).
+    allow_escapes = allow_escapes && quote_allows_escapes;
 
     if (!allow_interps) interp = NULL;
 
@@ -137,7 +141,7 @@ ast_t *parse_text(parse_ctx_t *ctx, const char *pos, bool allow_interps) {
 
     if (!(*pos == '"' || *pos == '\'' || *pos == '`')) return NULL;
 
-    ast_list_t *chunks = _parse_text_helper(ctx, &pos, allow_interps);
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos, allow_interps, /*allow_escapes=*/true);
     bool colorize = match(&pos, "~") && match_word(&pos, "colorized");
     return NewAST(ctx->file, start, pos, TextJoin, .lang = lang, .children = chunks, .colorize = colorize);
 }
@@ -158,6 +162,8 @@ ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
         parser_err(ctx, pos, pos + 1,
                    "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
 
-    ast_list_t *chunks = _parse_text_helper(ctx, &pos, true);
+    // Inline C is verbatim: no backslash-escaping (so `\n` reaches the C
+    // compiler as-is), though `@`-interpolation is still allowed.
+    ast_list_t *chunks = _parse_text_helper(ctx, &pos, /*allow_interps=*/true, /*allow_escapes=*/false);
     return NewAST(ctx->file, start, pos, InlineCCode, .chunks = chunks, .type_ast = type);
 }
