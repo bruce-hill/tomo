@@ -5,27 +5,30 @@
     "tomo": {
       "label": "Tomo", "ext": "tm", "tracked": true, "color": "#e4572e",
       "build": ["{tomo}", "build", "-O3", "-o", "{bin}", "{src}"],
-      "run": ["{bin}"]
+      "run": ["{bin}"], "static_default": true
     },
     "c": {
       "label": "C (gcc)", "ext": "c", "color": "#555555",
       "build": ["gcc", "-O3", "-fomit-frame-pointer", "-march=native", "-o", "{bin}", "{src}", "-lm"],
+      "size_build": ["gcc", "-O3", "-fomit-frame-pointer", "-march=native", "-static", "-o", "{bin}", "{src}", "-lm"],
       "run": ["{bin}"]
     },
     "cpp": {
       "label": "C++ (g++)", "ext": "cpp", "color": "#8e44ad",
       "build": ["g++", "-O3", "-fomit-frame-pointer", "-march=native", "-o", "{bin}", "{src}", "-lm"],
+      "size_build": ["g++", "-O3", "-fomit-frame-pointer", "-march=native", "-static", "-o", "{bin}", "{src}", "-lm"],
       "run": ["{bin}"]
     },
     "rust": {
       "label": "Rust", "ext": "rs", "color": "#d1832f",
       "build": ["rustc", "-C", "opt-level=3", "-C", "target-cpu=native", "-o", "{bin}", "{src}"],
+      "size_build": ["rustc", "-C", "opt-level=3", "-C", "target-cpu=native", "-C", "target-feature=+crt-static", "-o", "{bin}", "{src}"],
       "run": ["{bin}"]
     },
     "go": {
       "label": "Go", "ext": "go", "color": "#00add8",
       "build": ["go", "build", "-o", "{bin}", "{src}"],
-      "run": ["{bin}"]
+      "run": ["{bin}"], "static_default": true
     },
     "javascript": {
       "label": "JavaScript (node)", "ext": "js", "color": "#f0c419",
@@ -67,11 +70,13 @@
     "zig": {
       "label": "Zig", "ext": "zig", "color": "#f7a41d", "source": "plb",
       "build": ["{zig}", "build-exe", "-OReleaseFast", "-lc", "-femit-bin={bin}", "{src}"],
+      "size_build": ["{zig}", "build-exe", "-OReleaseFast", "-target", "x86_64-linux-musl", "-lc", "-femit-bin={bin}", "{src}"],
       "run": ["{bin}"]
     },
     "nim": {
       "label": "Nim", "ext": "nim", "color": "#ffe953", "source": "plb",
       "build": ["nim", "c", "-d:danger", "--hints:off", "--warnings:off", "-o:{bin}", "{src}"],
+      "size_build": ["nim", "c", "-d:danger", "--hints:off", "--warnings:off", "--passL:-static", "-o:{bin}", "{src}"],
       "run": ["{bin}"]
     },
     "odin": {

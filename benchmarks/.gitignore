@@ -17,3 +17,7 @@ tomo/*
 results.json
 results.svg
 results-*.svg
+# Binary-size comparison: machine-specific data + vector graph are ignored;
+# the sizes.png snapshot IS checked in (embedded in README.md), like results.png.
+sizes.json
+sizes.svg

@@ -6,6 +6,9 @@ Subcommands:
                            Computer Language Benchmarks Game into fetched/.
     run   [benchmark...]   Build + time + validate every runnable language,
                            writing results to results.json.
+    sizes [benchmark...]   Statically build every compiled language that can
+                           produce a standalone binary and record the stripped
+                           binary size, writing sizes.json.
     list                   Show benchmarks, languages, and toolchain status.
 
 Only Tomo sources (tomo/*.tm) are tracked in git; everything under fetched/
@@ -24,6 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FETCHED = os.path.join(HERE, "fetched")
 BUILD = os.path.join(HERE, ".build")
 RESULTS = os.path.join(HERE, "results.json")
+SIZES = os.path.join(HERE, "sizes.json")
 # Build with the repo's own in-tree compiler, not whatever `tomo` happens to
 # be on PATH — an installed release build can lag behind language features
 # used by the ports (e.g. `for x at i in xs`), and silently mis-parse them.
@@ -367,6 +371,103 @@ def _langs_for(cfg, bench):
     return list(bench["programs"].keys()) + ["tomo"]
 
 
+# ---------------------------------------------------------------------------
+# sizes — compare compiled *static* binary sizes across languages
+# ---------------------------------------------------------------------------
+# Only languages that can produce a standalone statically-linked binary are
+# included, so the comparison is like-for-like (a self-contained executable,
+# no external libc/runtime hidden off to the side). A language qualifies if it
+# is static by default (`static_default`, e.g. Tomo's musl build, Go) or has a
+# `size_build` recipe that forces static linking (C/C++ `-static`, Rust
+# crt-static, Nim `-static`, Zig musl target). Interpreted and bytecode
+# languages (Python, Lua, JS, Java) have no such binary and are skipped, as are
+# toolchains that can't statically link on this box (Swift, Odin, Fortran).
+def _size_build_cmd(spec):
+    if spec.get("size_build"):
+        return spec["size_build"]
+    if spec.get("static_default"):
+        return spec["build"]
+    return None
+
+
+def _is_static(path):
+    """Best-effort: does `file` report this ELF as statically linked?"""
+    try:
+        out = subprocess.run(["file", "-L", path], capture_output=True,
+                             text=True).stdout
+    except Exception:
+        return None
+    return ("statically linked" in out) or ("static-pie linked" in out)
+
+
+def _stripped_size(binpath):
+    """Size of the binary after stripping symbols, so the comparison reflects
+    real code+runtime footprint rather than how much debug info a toolchain
+    happens to leave in. Falls back to the raw size if `strip` isn't available
+    or refuses (e.g. an already-stripped or unusual object)."""
+    raw = os.path.getsize(binpath)
+    if not shutil.which("strip"):
+        return raw, raw
+    scopy = binpath + ".stripped"
+    try:
+        shutil.copyfile(binpath, scopy)
+        r = subprocess.run(["strip", "-s", scopy], capture_output=True)
+        stripped = os.path.getsize(scopy) if r.returncode == 0 else raw
+    except Exception:
+        stripped = raw
+    finally:
+        if os.path.exists(scopy):
+            os.remove(scopy)
+    return raw, stripped
+
+
+def sizes(cfg, benchmarks):
+    results = {}
+    if os.path.exists(SIZES):
+        results = json.load(open(SIZES))
+    for bname in benchmarks:
+        bench = cfg["benchmarks"][bname]
+        print(f"\n=== {bname}  (static binary size) ===")
+        rows = {}
+        for lang in _langs_for(cfg, bench):
+            spec = cfg["languages"][lang]
+            build = _size_build_cmd(spec)
+            if build is None:
+                continue  # not a statically-linkable compiled language
+            if spec.get("disabled") or not tool_available(spec):
+                print(f"  skip {lang:<11} (toolchain missing)")
+                continue
+            src = source_path(cfg, bname, lang)
+            if not os.path.exists(src):
+                print(f"  skip {lang:<11} (source missing — run fetch)")
+                continue
+            bdir = os.path.join(BUILD, bname, "size")
+            os.makedirs(bdir, exist_ok=True)
+            binpath = os.path.join(bdir, lang)
+            cflags = bench.get("cflags", {}).get(lang, [])
+            try:
+                _check(expand(build, src=src, bin=binpath, tomo=LOCAL_TOMO,
+                              zig=ZIG_BIN) + cflags)
+            except Exception as e:
+                print(f"  FAIL {lang:<11} ({str(e).splitlines()[0]})")
+                continue
+            if not os.path.exists(binpath):
+                print(f"  FAIL {lang:<11} (no binary produced)")
+                continue
+            raw, stripped = _stripped_size(binpath)
+            static = _is_static(binpath)
+            rows[lang] = {"bytes": stripped, "raw_bytes": raw,
+                          "static": static, "label": spec["label"],
+                          "color": spec.get("color", "#888888")}
+            tag = "static" if static else "DYNAMIC!"
+            print(f"  ok   {lang:<11} {stripped:>12,} B stripped "
+                  f"({raw:,} raw)  [{tag}]  {spec['label']}")
+        results[bname] = {"results": rows}
+    with open(SIZES, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"\nwrote {SIZES}")
+
+
 def cmd_list(cfg):
     print("Benchmarks:", ", ".join(cfg["benchmarks"]))
     print("\nLanguages (toolchain status):")
@@ -387,6 +488,8 @@ def main():
         fetch(cfg, picks)
     elif cmd == "run":
         run(cfg, picks)
+    elif cmd == "sizes":
+        sizes(cfg, picks)
     elif cmd == "list":
         cmd_list(cfg)
     else:

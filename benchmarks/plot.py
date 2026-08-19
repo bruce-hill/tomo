@@ -95,9 +95,102 @@ def panel(ax, bname, block):
     ax.set_xlabel("wall-clock seconds — lower is faster", fontsize=9, color=MUTED)
 
 
+def human_bytes(n):
+    """Compact size label: KB below 1 MB, else MB (binary units)."""
+    if n < 1024 * 1024:
+        return f"{n / 1024:.0f} KB"
+    return f"{n / (1024 * 1024):.2f} MB"
+
+
+def size_panel(ax, bname, block):
+    rows = []
+    for lang, r in block["results"].items():
+        rows.append((lang, r["label"], r["bytes"]))
+    rows.sort(key=lambda t: t[2])  # smallest first
+    smallest = rows[0][2] if rows else 1
+
+    labels = [lbl for _, lbl, _ in rows]
+    vals = [b for *_, b in rows]
+    y = range(len(rows))
+
+    colors = [ACCENT if lang == "tomo" else NEUTRAL for lang, _, _ in rows]
+    ax.barh(y, vals, color=colors, height=0.68, zorder=3)
+    ax.invert_yaxis()
+    ax.set_yticks(list(y))
+    ax.set_yticklabels(labels, fontsize=10, color=INK)
+    for tick, (lang, *_) in zip(ax.get_yticklabels(), rows):
+        if lang == "tomo":
+            tick.set_color(ACCENT)
+            tick.set_fontweight("bold")
+
+    xmax = max(vals) if vals else 1
+    ax.set_xlim(0, xmax * 1.20)
+    for spine in ("top", "right", "left"):
+        ax.spines[spine].set_visible(False)
+    ax.spines["bottom"].set_color(GRID)
+    ax.tick_params(axis="x", colors=MUTED, labelsize=9, length=0)
+    ax.tick_params(axis="y", length=0)
+    ax.xaxis.set_major_formatter(
+        plt.FuncFormatter(lambda v, _p: f"{v / (1024 * 1024):.1f}"))
+    ax.xaxis.grid(True, color=GRID, linewidth=1, zorder=0)
+    ax.set_axisbelow(True)
+
+    for yi, (lang, _, b) in zip(y, rows):
+        rel = b / smallest if smallest else 1.0
+        txt = human_bytes(b) + (f"  ({rel:.1f}×)" if rel >= 1.05 else "  (smallest)")
+        ax.text(b + xmax * 0.012, yi, txt, va="center", ha="left",
+                fontsize=9, color=INK if lang == "tomo" else MUTED,
+                fontweight="bold" if lang == "tomo" else "normal", zorder=4)
+
+    ax.set_title(f"{bname}", loc="left", fontsize=13, color=INK,
+                 fontweight="bold", pad=8)
+    ax.set_xlabel("static binary size (MB, stripped) — smaller is leaner",
+                  fontsize=9, color=MUTED)
+
+
+def main_sizes(path, out):
+    data = load(path)
+    benches = [(b, blk) for b, blk in data.items() if blk.get("results")]
+    n = len(benches)
+    fig, axes = plt.subplots(n, 1, figsize=(9, 1.0 + 3.2 * n), squeeze=False)
+    fig.patch.set_facecolor("white")
+    for ax, (bname, block) in zip(axes[:, 0], benches):
+        ax.set_facecolor("white")
+        size_panel(ax, bname, block)
+    legend = [
+        Patch(facecolor=ACCENT, label="Tomo"),
+        Patch(facecolor=NEUTRAL, label="other languages"),
+    ]
+    axes[0, 0].legend(handles=legend, loc="upper right", frameon=False,
+                      fontsize=9, borderaxespad=0.6)
+    fig.suptitle("Static binary size — Tomo vs. other compiled languages",
+                 x=0.02, ha="left", fontsize=14, fontweight="bold", color=INK)
+    fig.text(0.02, 0.008,
+             "statically linked · symbols stripped · only languages that can "
+             "produce a standalone static binary",
+             ha="left", fontsize=8, color=MUTED)
+    fig.tight_layout(rect=[0, 0.03, 1, 0.93])
+    svg = os.path.join(HERE, out + ".svg")
+    png = os.path.join(HERE, out + ".png")
+    fig.savefig(svg)
+    fig.savefig(png, dpi=140)
+    print(f"wrote {svg}\nwrote {png}")
+    plt.close(fig)
+
+
 def main():
     argv = sys.argv[1:]
     out = "results"
+    if "--sizes" in argv:
+        argv.remove("--sizes")
+        out = "sizes"
+        if "-o" in argv:
+            i = argv.index("-o")
+            out = argv[i + 1]
+            del argv[i:i + 2]
+        path = argv[0] if argv else os.path.join(HERE, "sizes.json")
+        main_sizes(path, out)
+        return
     if "-o" in argv:
         i = argv.index("-o")
         out = argv[i + 1]
