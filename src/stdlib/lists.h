@@ -126,6 +126,10 @@ extern char _EMPTY_LIST_SENTINEL;
                         Text("The list was resized while a 'for &' loop was iterating over it\n"));                    \
         }                                                                                                              \
     } while (0)
+// A list whose items contain no pointers can be allocated as GC-atomic, so the
+// collector never scans its payload. All the fixed-size number types qualify
+// (including Byte, which is uint8_t — the unsigned widths were previously
+// missing, so Byte/Int lists were needlessly scanned).
 #define is_atomic(x)                                                                                                   \
     _Generic(x,                                                                                                        \
         bool: true,                                                                                                    \
@@ -133,6 +137,10 @@ extern char _EMPTY_LIST_SENTINEL;
         int16_t: true,                                                                                                 \
         int32_t: true,                                                                                                 \
         int64_t: true,                                                                                                 \
+        uint8_t: true,                                                                                                 \
+        uint16_t: true,                                                                                                 \
+        uint32_t: true,                                                                                                 \
+        uint64_t: true,                                                                                                 \
         float: true,                                                                                                   \
         double: true,                                                                                                  \
         default: false)
