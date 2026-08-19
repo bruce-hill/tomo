@@ -34,12 +34,14 @@ language.
 
 Of the four newer benchmarks, **mandelbrot** is a standout: at 0.70s Tomo
 *beats* the (multithreaded, core-pinned) C and Go entries outright, trailing
-only Rust, C++, and Java. **reverse-complement** at 0.25s (2.4× C) is ahead
-of Python, Java, LuaJIT, JavaScript, C++, PyPy, and Lua, and closing in on
-C#/Swift (0.13s). **spectral-norm** at 1.16s is ~1.9× C, ahead of Go, C#,
-Java, and every scripting language. **pidigits** — a pure GMP bignum stress
-test — is Tomo's weakest relative showing at ~4.8× C, but still 4th of 9,
-comfortably ahead of Python, PyPy, Java, C#, and JavaScript. Three runtime
+only Rust, C++, and Java. **reverse-complement** at 0.29s is ahead of Python,
+Java, LuaJIT, JavaScript, C++, PyPy, and Lua — and it's written as ordinary
+idiomatic Tomo (a list comprehension), not a hand-tuned index loop, thanks to
+compiler work on comprehensions described below. **spectral-norm** at 1.16s is
+~1.9× C, ahead of Go, C#, Java, and every scripting language. **pidigits** — a
+pure GMP bignum stress test — is Tomo's weakest relative showing at ~4.8× C,
+but still 4th of 9, comfortably ahead of Python, PyPy, Java, C#, and
+JavaScript. Several runtime
 improvements came out of chasing these numbers down — see below.
 
 The top of each compute chart is crowded with fast natives — Zig, Nim,
@@ -112,6 +114,25 @@ list-indexing math, replacing cheap pointer increments with real per-access
 multiplies that cost more than the branch it removed. Good algorithmic
 intuition doesn't always survive contact with the compiler's actual codegen;
 measuring beats predicting.
+
+Finally, the port was rewritten to express the transform the *idiomatic* way —
+a list comprehension, `[comp[d] for d in region.reversed() if d != newline]` —
+rather than a hand-tuned index loop. That motivated three more general
+compiler/runtime improvements so the idiomatic form wouldn't pay a tax: (1)
+**list comprehensions now compile to a pre-sized buffer filled with inlined
+appends** instead of `insert`-into-an-empty-list — for `[expr for x in SOURCE
+(if cond)]` over a list, the result can't exceed `SOURCE.length`, so the
+buffer is allocated once and every append is a bounds-free store (no growth
+realloc, no per-element function call). This ~3×'d a comprehension
+microbenchmark (0.39s → 0.13s). (2) The inlined-append fast path lives in
+`List.insert` itself (keyed on appending at the end), so *all* append-in-a-loop
+code benefits, not just comprehensions. (3) **Unsigned-int lists (including
+`[Byte]`) are now GC-atomic**, so the collector no longer scans their payload
+for pointers. The comprehension port lands at 0.29s — about 15% slower than the
+hand-tuned 0.25s index loop (a comprehension is at most 1:1, so it can't insert
+the wrap newlines in the same pass, and the materialized intermediate list plus
+the separate rewrap cost the difference) — but it's ordinary readable Tomo, and
+still comfortably ahead of every scripting language and both JVM/CLR entries.
 
 Per-benchmark graphs: [n-body](results-nbody.png) ·
 [fannkuch-redux](results-fannkuchredux.png) · [fasta](results-fasta.png) ·
