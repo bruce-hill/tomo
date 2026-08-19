@@ -27,11 +27,11 @@
 #
 # Usage: fasta <n>   (e.g. ./fasta 2500000)
 
-IM := Int64(139968)
-IA := Int64(3877)
-IC := Int64(29573)
-LINE := Int64(60)
-BATCH_LINES := Int64(1024)
+_IM := Int64(139968)
+_IA := Int64(3877)
+_IC := Int64(29573)
+_LINE := Int64(60)
+_BATCH_LINES := Int64(1024)
 
 # A cumulative probability paired with the byte to emit if it's selected.
 struct Freq(cutoff:Num, code:Byte)
@@ -50,21 +50,21 @@ func make_freqs(ps:[Num], codes:[Byte] -> [Freq])
 
 func repeat_fasta(header:Text, s:Text, n:Int64)
     # One cord wide enough that every 60-char window is a valid slice:
-    ext := s ++ s.slice(1, LINE)
+    ext := s ++ s.slice(1, _LINE)
     len := Int64(s.length)
     pos := Int64(0) # 0-based offset of the next character into `s`
     todo := n
     batch := header ++ "\n"
     batched := Int64(1)
     while todo > 0
-        m := LINE
-        if todo < LINE
+        m := _LINE
+        if todo < _LINE
             m = todo
         batch = batch ++ ext.slice(pos+1, pos+m) ++ "\n" # O(1) slice of the cord
         pos = (pos + m) mod len
         todo -= m
         batched += 1
-        if batched >= BATCH_LINES
+        if batched >= _BATCH_LINES
             say(batch, newline=no)
             batch = ""
             batched = 0
@@ -79,7 +79,7 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
     # First cutoff greater than r wins; on the floating-point edge where r is
     # >= every cutoff, the last symbol is used (matching the reference).
     last_code := freqs[freqs.length]!.code
-    cap := (LINE + 1) * BATCH_LINES  # a full batch: lines plus their newlines
+    cap := (_LINE + 1) * _BATCH_LINES  # a full batch: lines plus their newlines
     buf := &[Byte(0) for _ in cap]   # stack scratch buffer; never escapes
     p := Int64(0)    # write cursor into `buf` (0-based; buf is 1-indexed)
     col := Int64(0)  # characters written on the current line
@@ -89,8 +89,8 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
     emit((header ++ "\n").utf8())!
     s := seed
     for _ in n
-        s = (s * IA + IC) mod IM
-        r := Num(s) / Num(IM)
+        s = (s * _IA + _IC) mod _IM
+        r := Num(s) / Num(_IM)
         b := last_code
         for f in freqs # linear search over cumulative probabilities
             if r < f.cutoff
@@ -99,7 +99,7 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
         p += 1
         buf[p] = b
         col += 1
-        if col == LINE
+        if col == _LINE
             p += 1
             buf[p] = Byte(10) # newline
             col = 0
