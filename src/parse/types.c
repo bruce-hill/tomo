@@ -32,7 +32,18 @@ type_ast_t *parse_table_type(parse_ctx_t *ctx, const char *pos) {
     }
     spaces(&pos);
     ast_t *default_value = NULL;
+    // A table type can carry a default value, either terse (`{K:V = expr}`) or
+    // in the same `; default=expr` form used by table value literals:
     if (match(&pos, "=")) {
+        default_value =
+            expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the default value for this table");
+    } else if (match(&pos, ";")) {
+        spaces(&pos);
+        const char *attr_start = pos;
+        if (!match_word(&pos, "default"))
+            parser_err(ctx, attr_start, pos, "I only recognize 'default=' after ';' in a table type");
+        spaces(&pos);
+        if (!match(&pos, "=")) parser_err(ctx, attr_start, pos, "I expected an '=' after 'default'");
         default_value =
             expect(ctx, start, &pos, parse_extended_expr, "I couldn't parse the default value for this table");
     }

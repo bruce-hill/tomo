@@ -89,6 +89,17 @@ assert counts["baz"] == 1
 When values are accessed from a table with a default value, the return type
 is non-optional (because a value will always be present).
 
+An **empty** table can be given a default too, but since an empty literal can't
+infer its key/value types, the default goes in the type annotation:
+
+```tomo
+counts : &{Text:Int; default=0} = &{}
+counts["baz"] += 1
+assert counts["baz"] == 1
+```
+
+The terser `&{Text:Int = 0}` is equivalent.
+
 ## Setting Values
 
 You can assign a new key/value mapping or overwrite an existing one using

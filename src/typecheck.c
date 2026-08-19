@@ -341,6 +341,21 @@ void bind_statement(env_t *env, ast_t *statement) {
         if (decl->value) bind_statement(env, decl->value);
         type_t *type = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
         if (!type) code_err(statement, "I couldn't figure out the type of this value");
+        // A table literal with a default whose declared type has none would
+        // silently drop the default (making indexing optional). Reject it and
+        // point at the type-annotation form instead. Unwrap any `&`/`@` around
+        // the value, and the pointer around the declared type.
+        if (decl->type && decl->value) {
+            ast_t *tbl_val = decl->value;
+            if (tbl_val->tag == HeapAllocate) tbl_val = Match(tbl_val, HeapAllocate)->value;
+            else if (tbl_val->tag == StackReference) tbl_val = Match(tbl_val, StackReference)->value;
+            type_t *tbl_type = value_type(type);
+            if (tbl_val->tag == Table && Match(tbl_val, Table)->default_value && tbl_type->tag == TableType
+                && Match(tbl_type, TableType)->default_value == NULL)
+                code_err(tbl_val, "This table has a default value, but the type it's declared as (",
+                         type_to_text(type),
+                         ") doesn't. Move the default into the type annotation instead, like `{K:V; default=...}`.");
+        }
         if (type->tag == FunctionType) type = Type(ClosureType, type);
         Text_t code;
         if (name[0] != '_' && (env->namespace || decl->top_level))

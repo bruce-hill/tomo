@@ -103,6 +103,25 @@ test "default values"
 	>> counter["y"]
 	assert counter["y"] == 1
 
+	# A default in the type annotation lets an empty table index
+	# non-optionally (needed because empty literals can't infer their types):
+	empty : &{Text:Int; default=0} = &{}
+	assert empty["missing"] == 0
+	empty["a"] += 1
+	empty["a"] += 1
+	assert empty["a"] == 2
+	# Terse `= default` type form is equivalent:
+	terse : &{Text:Int = 0} = &{}
+	terse["z"] += 5
+	assert terse["z"] == 5
+
+test "default on value but not type is rejected"
+	# The default would be silently dropped (indexing would become optional),
+	# so this is a compile error pointing at the type-annotation form:
+	t : &{Int:Int} = &{; default=0}
+	>> t[9]
+fails_compile "default value, but the type"
+
 test "set operations on tables"
 	# Set operations
 	>> a := {"A":1, "B":2, "C":3}
