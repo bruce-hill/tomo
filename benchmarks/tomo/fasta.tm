@@ -16,9 +16,9 @@
 #     `[Freq]` list, and the linear search is `for f in freqs` — element
 #     iteration, so no per-step bounds-checked optional indexing.
 #   - Output bytes are filled straight into a fixed byte buffer sized for a
-#     whole batch of lines (with newlines), and each full batch is turned into
-#     Text once (`Text.from_utf8`) and printed — so no per-line Text allocation
-#     or cord concatenation.
+#     whole batch of lines (with newlines) and written raw to stdout with a
+#     `byte_writer` — no per-line Text allocation, cord concatenation, or
+#     UTF-8 round-trip.
 #
 # The repeated-ALU block (ONE) still leans on Tomo's cord/rope Text: `++` is
 # O(1) and slicing is O(1), so `alu ++ alu.slice(1, 60)` is a cord whose every
@@ -83,7 +83,10 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
     buf := @[Byte(0) for _ in cap]
     p := Int64(0)    # write cursor into `buf` (0-based; buf is 1-indexed)
     col := Int64(0)  # characters written on the current line
-    say(header)      # header line, with its own trailing newline
+    # Write raw bytes straight to stdout — no UTF-8 validation or Text/cord
+    # round-trip. `append` avoids seeking a pipe; the final write closes it.
+    emit := (/dev/stdout).byte_writer(append=yes)
+    emit((header ++ "\n").utf8())!
     s := seed
     for _ in n
         s = (s * IA + IC) mod IM
@@ -101,13 +104,12 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
             buf[p] = Byte(10) # newline
             col = 0
             if p >= cap
-                say(Text.from_utf8(buf[])!, newline=no)
+                emit(buf[])!
                 p = 0
     if col > 0 # trailing partial line
         p += 1
         buf[p] = Byte(10)
-    if p > 0
-        say(Text.from_utf8(buf[].to(Int(p)))!, newline=no)
+    emit(buf[].to(Int(p)), close=yes)!
     return s
 
 func main(n:Int64)
