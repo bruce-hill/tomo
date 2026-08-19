@@ -20,6 +20,10 @@ typedef struct {
     // Per-function-type closure shims (see promote() in compile/promotions.c),
     // keyed by the compiled function-pointer type string:
     Table_t closure_shims;
+    // Per-item-type by-value predicate/comparison adapters for List methods
+    // (see compile_byval_closure() in compile/lists.c), keyed by
+    // "pred:"/"cmp:" + the compiled item-type string:
+    Table_t byval_adapters;
 } compilation_unit_t;
 
 typedef struct deferral_s {

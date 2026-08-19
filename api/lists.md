@@ -6,7 +6,7 @@
 ## List.binary_search
 
 ```tomo
-List.binary_search : func(list: [T], predicate: func(x:&T->Bool) -> Int)
+List.binary_search : func(list: [T], predicate: func(x:T->Bool) -> Int)
 ```
 
 Performs a binary search on a sorted list.
@@ -14,7 +14,7 @@ Performs a binary search on a sorted list.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `[T]` | The sorted list to search.  | -
-predicate | `func(x:&T->Bool)` | The predicate to look for in the list.  | -
+predicate | `func(x:T->Bool)` | The predicate to look for in the list.  | -
 
 **Return:** Find the first item in the list where the predicate function is true and return its index (or `none` if no such item exists). This assumes that the predicate function is monotonic over the list's contents. In other words, the predicate is false for the first zero or more items in the list and then true for the remainder of the list.
 
@@ -22,11 +22,11 @@ predicate | `func(x:&T->Bool)` | The predicate to look for in the list.  | -
 **Example:**
 ```tomo
 # Find an item:
-assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 30) == 3
+assert [10, 20, 30, 40].binary_search(func(x:Int) x == 30) == 3
 # No such item:
-assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 25) == none
+assert [10, 20, 30, 40].binary_search(func(x:Int) x == 25) == none
 # Find an insertion point (where an item would go to preserve sort order):
-assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] >= 25) == 3
+assert [10, 20, 30, 40].binary_search(func(x:Int) x >= 25) == 3
 
 ```
 ## List.by
@@ -159,7 +159,7 @@ assert [10, 20, 30].has(20) == yes
 ## List.heap_pop
 
 ```tomo
-List.heap_pop : func(list: @[T], by: func(x,y:&T->Int32) = T.compare -> T?)
+List.heap_pop : func(list: @[T], by: func(x,y:T->Int32) = T.compare -> T?)
 ```
 
 Removes and returns the top element of a heap or `none` if the list is empty. By default, this is the *minimum* value in the heap.
@@ -167,7 +167,7 @@ Removes and returns the top element of a heap or `none` if the list is empty. By
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `@[T]` | The mutable reference to the heap.  | -
-by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
+by | `func(x,y:T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** The removed top element of the heap or `none` if the list is empty.
 
@@ -206,7 +206,7 @@ assert my_heap.heap_pop() == 10
 ## List.heapify
 
 ```tomo
-List.heapify : func(list: @[T], by: func(x,y:&T->Int32) = T.compare -> Void)
+List.heapify : func(list: @[T], by: func(x,y:T->Int32) = T.compare -> Void)
 ```
 
 Converts a list into a heap.
@@ -214,7 +214,7 @@ Converts a list into a heap.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `@[T]` | The mutable reference to the list to be heapified.  | -
-by | `func(x,y:&T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
+by | `func(x,y:T->Int32)` | The comparison function used to determine order. If not specified, the default comparison function for the item type will be used.  | `T.compare`
 
 **Return:** Nothing.
 
@@ -551,7 +551,7 @@ list := &[40, 10, -30, 20]
 list.sort()
 assert list == [-30, 10, 20, 40]
 
-list.sort(func(a,b:&Int) a.abs() <> b.abs())
+list.sort(func(a,b:Int) a.abs() <> b.abs())
 assert list == [10, 20, -30, 40]
 
 ```
@@ -575,7 +575,7 @@ by | `` | The comparison function used to determine order. If not specified, the
 ```tomo
 assert [40, 10, -30, 20].sorted() == [-30, 10, 20, 40]
 assert [40, 10, -30, 20].sorted(
-   func(a,b:&Int) a.abs() <> b.abs()
+   func(a,b:Int) a.abs() <> b.abs()
 ) == [10, 20, -30, 40]
 
 ```
@@ -651,7 +651,7 @@ assert [10, 20, 10, 10, 30].unique() == {10, 20, 30}
 ## List.where
 
 ```tomo
-List.where : func(list: [T], predicate: func(item:&T -> Bool) -> Int)
+List.where : func(list: [T], predicate: func(item:T -> Bool) -> Int)
 ```
 
 Find the index of the first item that matches a predicate function (if any).
@@ -659,14 +659,14 @@ Find the index of the first item that matches a predicate function (if any).
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `[T]` | The list to search through.  | -
-predicate | `func(item:&T -> Bool)` | A function that returns `yes` if the item's index should be returned or `no` if it should not.  | -
+predicate | `func(item:T -> Bool)` | A function that returns `yes` if the item's index should be returned or `no` if it should not.  | -
 
 **Return:** Returns the index of the first item where the predicate is true or `none` if no item matches.
 
 
 **Example:**
 ```tomo
-assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("A")) == 2
-assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("X")) == none
+assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("A")) == 2
+assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("X")) == none
 
 ```

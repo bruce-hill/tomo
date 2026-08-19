@@ -130,11 +130,11 @@ test "Int.to"
 
 test "List.binary_search"
     # Find an item:
-    assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 30) == 3
+    assert [10, 20, 30, 40].binary_search(func(x:Int) x == 30) == 3
     # No such item:
-    assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 25) == none
+    assert [10, 20, 30, 40].binary_search(func(x:Int) x == 25) == none
     # Find an insertion point (where an item would go to preserve sort order):
-    assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] >= 25) == 3
+    assert [10, 20, 30, 40].binary_search(func(x:Int) x >= 25) == 3
 
 test "List.by"
     assert [1, 2, 3, 4, 5, 6].by(2) == [1, 3, 5]
@@ -247,13 +247,13 @@ test "List.sort"
     list.sort()
     assert list == [-30, 10, 20, 40]
     
-    list.sort(func(a,b:&Int) a.abs() <> b.abs())
+    list.sort(func(a,b:Int) a.abs() <> b.abs())
     assert list == [10, 20, -30, 40]
 
 test "List.sorted"
     assert [40, 10, -30, 20].sorted() == [-30, 10, 20, 40]
     assert [40, 10, -30, 20].sorted(
-       func(a,b:&Int) a.abs() <> b.abs()
+       func(a,b:Int) a.abs() <> b.abs()
     ) == [10, 20, -30, 40]
 
 test "List.swap"
@@ -272,8 +272,8 @@ test "List.unique"
     assert [10, 20, 10, 10, 30].unique() == {10, 20, 30}
 
 test "List.where"
-    assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("A")) == 2
-    assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("X")) == none
+    assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("A")) == 2
+    assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("X")) == none
 
 test "Num.abs"
     assert (-3.5).abs() == 3.5
@@ -810,7 +810,7 @@ test "Text.codepoint_names"
 test "Text.distance"
     assert "hello".distance("hello") == 0
     texts := &["goodbye", "hello", "hallo"]
-    texts.sort(func(a,b:&Text) a.distance("hello") <> b.distance("hello"))
+    texts.sort(func(a,b:Text) a.distance("hello") <> b.distance("hello"))
     assert texts == ["hello", "hallo", "goodbye"]
 
 test "Text.ends_with"

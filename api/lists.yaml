@@ -16,16 +16,16 @@ List.binary_search:
       description: >
         The sorted list to search.
     predicate:
-      type: 'func(x:&T->Bool)'
+      type: 'func(x:T->Bool)'
       description: >
         The predicate to look for in the list.
   example: |
     # Find an item:
-    assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 30) == 3
+    assert [10, 20, 30, 40].binary_search(func(x:Int) x == 30) == 3
     # No such item:
-    assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 25) == none
+    assert [10, 20, 30, 40].binary_search(func(x:Int) x == 25) == none
     # Find an insertion point (where an item would go to preserve sort order):
-    assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] >= 25) == 3
+    assert [10, 20, 30, 40].binary_search(func(x:Int) x >= 25) == 3
 
 List.by:
   short: slice by a step value
@@ -157,7 +157,7 @@ List.heap_pop:
       description: >
         The mutable reference to the heap.
     by:
-      type: 'func(x,y:&T->Int32)'
+      type: 'func(x,y:T->Int32)'
       default: 'T.compare'
       description: >
         The comparison function used to determine order. If not specified, the
@@ -209,7 +209,7 @@ List.heapify:
       description: >
         The mutable reference to the list to be heapified.
     by:
-      type: 'func(x,y:&T->Int32)'
+      type: 'func(x,y:T->Int32)'
       default: 'T.compare'
       description: >
         The comparison function used to determine order. If not specified, the
@@ -590,7 +590,7 @@ List.sort:
     list.sort()
     assert list == [-30, 10, 20, 40]
 
-    list.sort(func(a,b:&Int) a.abs() <> b.abs())
+    list.sort(func(a,b:Int) a.abs() <> b.abs())
     assert list == [10, 20, -30, 40]
 
 List.sorted:
@@ -614,7 +614,7 @@ List.sorted:
   example: |
     assert [40, 10, -30, 20].sorted() == [-30, 10, 20, 40]
     assert [40, 10, -30, 20].sorted(
-       func(a,b:&Int) a.abs() <> b.abs()
+       func(a,b:Int) a.abs() <> b.abs()
     ) == [10, 20, -30, 40]
 
 List.swap:
@@ -702,10 +702,10 @@ List.where:
       description: >
         The list to search through.
     predicate:
-      type: 'func(item:&T -> Bool)'
+      type: 'func(item:T -> Bool)'
       description: >
         A function that returns `yes` if the item's index should be returned or
         `no` if it should not.
   example: |
-    assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("A")) == 2
-    assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("X")) == none
+    assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("A")) == 2
+    assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("X")) == none

@@ -200,7 +200,7 @@ language | `Text` | The ISO 639 language code for which character width to use. 
 ```tomo
 assert "hello".distance("hello") == 0
 texts := &["goodbye", "hello", "hallo"]
-texts.sort(func(a,b:&Text) a.distance("hello") <> b.distance("hello"))
+texts.sort(func(a,b:Text) a.distance("hello") <> b.distance("hello"))
 assert texts == ["hello", "hallo", "goodbye"]
 
 ```

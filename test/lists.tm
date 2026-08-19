@@ -1,3 +1,5 @@
+struct Vec(x,y:Int)
+
 test "empty list literal with type"
 	>> nums : [Num32] = []
 	assert nums == []
@@ -104,10 +106,10 @@ test "sorting"
 	>> nums[]
 	assert nums[] == [-20, 10, 30]
 	# Custom sort functions:
-	nums.sort(func(x,y:&Int) x.abs() <> y.abs())
+	nums.sort(func(x,y:Int) x.abs() <> y.abs())
 	>> nums[]
 	assert nums[] == [10, -20, 30]
-	nums.sort(func(x,y:&Int) y[] <> x[])
+	nums.sort(func(x,y:Int) y <> x)
 	>> nums[]
 	assert nums[] == [30, 10, -20]
 
@@ -162,22 +164,42 @@ test "binary search"
 	>> nums := @[-7, -4, -1, 2, 5]
 	nums.sort()
 	>> nums[]
-	>> [nums.binary_search(func(x:&Int) x[] >= i) for i in nums[]]
-	assert [nums.binary_search(func(x:&Int) x[] >= i) for i in nums[]] == [1, 2, 3, 4, 5]
-	nums.sort(func(a,b:&Int) a.abs() <> b.abs())
+	>> [nums.binary_search(func(x:Int) x >= i) for i in nums[]]
+	assert [nums.binary_search(func(x:Int) x >= i) for i in nums[]] == [1, 2, 3, 4, 5]
+	nums.sort(func(a,b:Int) a.abs() <> b.abs())
 	>> nums[]
-	>> [nums.binary_search(func(x:&Int) x[].abs() >= i.abs()) for i in nums[]]
-	assert [nums.binary_search(func(x:&Int) x[].abs() >= i.abs()) for i in nums[]] == [1, 2, 3, 4, 5]
+	>> [nums.binary_search(func(x:Int) x.abs() >= i.abs()) for i in nums[]]
+	assert [nums.binary_search(func(x:Int) x.abs() >= i.abs()) for i in nums[]] == [1, 2, 3, 4, 5]
 
 test "find and where"
 	>> ["a", "b", "c"].find("b")
 	assert ["a", "b", "c"].find("b") == 2
 	>> ["a", "b", "c"].find("XXX")
 	assert ["a", "b", "c"].find("XXX") == none
-	>> [10, 20].where(func(i:&Int) i.is_prime())
-	assert [10, 20].where(func(i:&Int) i.is_prime()) == none
-	>> [4, 5, 6].where(func(i:&Int) i.is_prime())
-	assert [4, 5, 6].where(func(i:&Int) i.is_prime()) == 2
+	>> [10, 20].where(func(i:Int) i.is_prime())
+	assert [10, 20].where(func(i:Int) i.is_prime()) == none
+	>> [4, 5, 6].where(func(i:Int) i.is_prime())
+	assert [4, 5, 6].where(func(i:Int) i.is_prime()) == 2
+
+test "by-value predicates and comparisons"
+	# By-value closures on struct elements:
+	pts := @[Vec(3, 1), Vec(1, 2), Vec(2, 0)]
+	pts.sort(func(a,b:Vec) a.x <> b.x)
+	assert pts[] == [Vec(1, 2), Vec(2, 0), Vec(3, 1)]
+	assert pts.where(func(p:Vec) p.y == 0) == 2
+	# By-value closures on optional elements:
+	opts : [Int?] = [3, none, 1]
+	assert opts.where(func(x:Int?) x == none) == 2
+	assert opts.where(func(x:Int?) x == 1) == 3
+	# Mutation safety: the by-value parameter is a copy, so mutating it inside
+	# the predicate cannot change the source list.
+	xs := @[10, 20, 30]
+	matched := xs.where(func(i:Int)
+		i += 100
+		return i == 130
+	)
+	assert matched == 3
+	assert xs[] == [10, 20, 30]
 
 test "pop and clear"
 	>> nums := &[10, 20, 30, 40, 50]

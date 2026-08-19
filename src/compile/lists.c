@@ -170,6 +170,56 @@ list_comprehension: {
 }
 }
 
+// The generic List runtime calls predicate/comparison closures with the item(s)
+// passed BY POINTER (`fn(void *elem, void *userdata)`), because it's compiled
+// once and can't know an arbitrary item type's by-value C ABI. To let users
+// write natural by-value closures (`func(i:Int) i == 3`), we emit a tiny
+// per-item-type adapter whose own signature is that by-pointer one, and which
+// dereferences and calls the user's by-value closure. `*(T*)e` is a value copy,
+// so the closure can't mutate the list. Deduped per (shape, item type); mirrors
+// the closure-shim mechanism in promote() (compile/promotions.c).
+static Text_t byval_adapter_name(env_t *env, type_t *item_t, bool is_compare) {
+    Text_t item_type_code = compile_type(item_t);
+    const char *key = String(is_compare ? "cmp:" : "pred:", Text$as_c_string(item_type_code));
+    const char *existing = Table$str_get(env->code->byval_adapters, key);
+    if (existing) return Text$from_str(existing);
+
+    Text_t name = Texts("byval$", is_compare ? Text("cmp") : Text("pred"), "$",
+                        (int64_t)Table$length(env->code->byval_adapters) + 1);
+    Text_t def;
+    if (is_compare)
+        def = Texts("static int32_t ", name, "(void *a, void *b, void *ud) { Closure_t *u = ud; return ",
+                    "((int32_t(*)(", item_type_code, ", ", item_type_code, ", void*))u->fn)(*(", item_type_code,
+                    "*)a, *(", item_type_code, "*)b, u->userdata); }\n");
+    else
+        def = Texts("static bool ", name, "(void *e, void *ud) { Closure_t *u = ud; return ", "((bool(*)(",
+                    item_type_code, ", void*))u->fn)(*(", item_type_code, "*)e, u->userdata); }\n");
+    env->code->staticdefs = Texts(env->code->staticdefs, def);
+    Table$str_set(&env->code->byval_adapters, key, Text$as_c_string(name));
+    return name;
+}
+
+// Compile a single user-supplied closure argument (matched from `closure_args`
+// against a one-arg spec named `arg_name` with the by-value item type) and wrap
+// it in a by-value adapter. Sets *decl to `Closure_t <tmp> = <user closure>;`
+// and returns `(Closure_t){(void*)<adapter>, &<tmp>}`. The caller must splice
+// *decl and the returned expression into a single statement-expression that
+// encloses the whole runtime call, so <tmp> outlives the call that reads it (no
+// heap allocation). Safe because no List method retains the closure past return.
+static Text_t compile_byval_closure(env_t *env, ast_t *ast, type_t *item_t, bool is_compare, const char *arg_name,
+                                    arg_ast_t *closure_args, Text_t *decl) {
+    type_t *fn_t = is_compare ? NewFunctionType(Type(IntType, .bits = TYPE_IBITS32), {.name = "x", .type = item_t},
+                                                {.name = "y", .type = item_t})
+                              : NewFunctionType(Type(BoolType), {.name = "item", .type = item_t});
+    arg_t *arg_spec = new (arg_t, .name = arg_name, .type = Type(ClosureType, .fn = fn_t));
+    Text_t user_closure = compile_arguments(env, ast, arg_spec, closure_args);
+    Text_t tmp = Texts("_byval$", (int64_t)(ast->start - ast->file->text));
+    *decl = Texts("Closure_t ", tmp, " = ", user_closure, "; ");
+    // Extra parens: heap_push_value/heap_pop_value are function-like macros, and
+    // the braced Closure literal contains a comma that would otherwise be split.
+    return Texts("((Closure_t){(void*)", byval_adapter_name(env, item_t, is_compare), ", &", tmp, "})");
+}
+
 public
 Text_t compile_list_method_call(env_t *env, ast_t *ast) {
     DeclareMatch(call, ast, MethodCall);
@@ -285,68 +335,73 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
     } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
         if (streq(call->name, "sort")) EXPECT_POINTER();
         else self = compile_to_pointer_depth(env, call->self, 0, false);
-        Text_t comparison;
         if (call->args) {
-            type_t *item_ptr = Type(PointerType, .pointed = item_t, .is_stack = true);
-            type_t *fn_t = NewFunctionType(Type(IntType, .bits = TYPE_IBITS32), {.name = "x", .type = item_ptr},
-                                           {.name = "y", .type = item_ptr});
-            arg_t *arg_spec = new (arg_t, .name = "by", .type = Type(ClosureType, .fn = fn_t));
-            comparison = compile_arguments(env, ast, arg_spec, call->args);
-        } else {
-            comparison = Texts("((Closure_t){.fn=generic_compare, "
-                               ".userdata=(void*)",
-                               compile_type_info(item_t), "})");
+            Text_t decl, cmp = compile_byval_closure(env, ast, item_t, true, "by", call->args, &decl);
+            return Texts("({ ", decl, "List$", call->name, "(", self, ", ", cmp, ", ", padded_item_size, "); })");
         }
+        Text_t comparison =
+            Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
         return Texts("List$", call->name, "(", self, ", ", comparison, ", ", padded_item_size, ")");
     } else if (streq(call->name, "heapify")) {
         EXPECT_POINTER();
-        Text_t comparison;
         if (call->args) {
-            type_t *item_ptr = Type(PointerType, .pointed = item_t, .is_stack = true);
-            type_t *fn_t = NewFunctionType(Type(IntType, .bits = TYPE_IBITS32), {.name = "x", .type = item_ptr},
-                                           {.name = "y", .type = item_ptr});
-            arg_t *arg_spec = new (arg_t, .name = "by", .type = Type(ClosureType, .fn = fn_t));
-            comparison = compile_arguments(env, ast, arg_spec, call->args);
-        } else {
-            comparison = Texts("((Closure_t){.fn=generic_compare, "
-                               ".userdata=(void*)",
-                               compile_type_info(item_t), "})");
+            Text_t decl, cmp = compile_byval_closure(env, ast, item_t, true, "by", call->args, &decl);
+            return Texts("({ ", decl, "List$heapify(", self, ", ", cmp, ", ", padded_item_size, "); })");
         }
+        Text_t comparison =
+            Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
         return Texts("List$heapify(", self, ", ", comparison, ", ", padded_item_size, ")");
     } else if (streq(call->name, "heap_push")) {
         EXPECT_POINTER();
-        type_t *item_ptr = Type(PointerType, .pointed = item_t, .is_stack = true);
-        type_t *fn_t = NewFunctionType(Type(IntType, .bits = TYPE_IBITS32), {.name = "x", .type = item_ptr},
-                                       {.name = "y", .type = item_ptr});
-        ast_t *default_cmp = LiteralCode(Texts("((Closure_t){.fn=generic_compare, "
-                                               ".userdata=(void*)",
-                                               compile_type_info(item_t), "})"),
-                                         .type = Type(ClosureType, .fn = fn_t));
-        arg_t *arg_spec =
-            new (arg_t, .name = "item", .type = item_t,
-                 .next = new (arg_t, .name = "by", .type = Type(ClosureType, .fn = fn_t), .default_val = default_cmp));
-        Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
-        return Texts("List$heap_push_value(", self, ", ", arg_code, ", ", padded_item_size, ")");
+        // Split the (required) `item` value from the optional `by` comparison so
+        // the comparison can be adapted to by-value independently. Matching
+        // mirrors compile_arguments: a keyword arg claims its slot; the rest fill
+        // positionally in order.
+        arg_ast_t *item_arg = NULL, *by_arg = NULL, *positional[2] = {NULL, NULL};
+        int np = 0;
+        for (arg_ast_t *a = call->args; a; a = a->next) {
+            if (a->name) {
+                if (streq(a->name, "item")) item_arg = a;
+                else if (streq(a->name, "by")) by_arg = a;
+                else code_err(a->value, "heap_push() has no argument named '", a->name, "'");
+            } else if (np < 2) {
+                positional[np++] = a;
+            } else {
+                code_err(a->value, "heap_push() takes at most two arguments");
+            }
+        }
+        int p = 0;
+        if (!item_arg) item_arg = positional[p++];
+        if (!by_arg && p < np) by_arg = positional[p++];
+        if (!item_arg) code_err(ast, "heap_push() requires an item to push");
+        if (p < np) code_err(positional[p]->value, "This positional argument to heap_push() has no slot to fill "
+                                                   "(item and comparison are already provided)");
+
+        arg_t *item_spec = new (arg_t, .name = "item", .type = item_t);
+        Text_t item_code = compile_arguments(env, ast, item_spec, new (arg_ast_t, .value = item_arg->value));
+        if (by_arg) {
+            Text_t decl, cmp = compile_byval_closure(env, ast, item_t, true, "by", new (arg_ast_t, .value = by_arg->value),
+                                                     &decl);
+            return Texts("({ ", decl, "List$heap_push_value(", self, ", ", item_code, ", ", cmp, ", ", padded_item_size,
+                         "); })");
+        }
+        Text_t default_cmp =
+            Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
+        return Texts("List$heap_push_value(", self, ", ", item_code, ", ", default_cmp, ", ", padded_item_size, ")");
     } else if (streq(call->name, "heap_pop")) {
         EXPECT_POINTER();
-        type_t *item_ptr = Type(PointerType, .pointed = item_t, .is_stack = true);
-        type_t *fn_t = NewFunctionType(Type(IntType, .bits = TYPE_IBITS32), {.name = "x", .type = item_ptr},
-                                       {.name = "y", .type = item_ptr});
-        ast_t *default_cmp = LiteralCode(Texts("((Closure_t){.fn=generic_compare, "
-                                               ".userdata=(void*)",
-                                               compile_type_info(item_t), "})"),
-                                         .type = Type(ClosureType, .fn = fn_t));
-        arg_t *arg_spec = new (arg_t, .name = "by", .type = Type(ClosureType, .fn = fn_t), .default_val = default_cmp);
-        Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
-        return Texts("List$heap_pop_value(", self, ", ", arg_code, ", ", compile_type(item_t), ", _, ",
+        if (call->args) {
+            Text_t decl, cmp = compile_byval_closure(env, ast, item_t, true, "by", call->args, &decl);
+            return Texts("({ ", decl, "List$heap_pop_value(", self, ", ", cmp, ", ", compile_type(item_t), ", _, ",
+                         promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t), "); })");
+        }
+        Text_t cmp = Texts("((Closure_t){.fn=generic_compare, .userdata=(void*)", compile_type_info(item_t), "})");
+        return Texts("List$heap_pop_value(", self, ", ", cmp, ", ", compile_type(item_t), ", _, ",
                      promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t), ")");
     } else if (streq(call->name, "binary_search")) {
         self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
-        type_t *item_ptr = Type(PointerType, .pointed = item_t, .is_stack = true);
-        type_t *fn_t = NewFunctionType(Type(BoolType), {.name = "x", .type = item_ptr});
-        arg_t *arg_spec = new (arg_t, .name = "predicate", .type = Type(ClosureType, .fn = fn_t));
-        Text_t arg_code = compile_arguments(env, ast, arg_spec, call->args);
-        return Texts("List$binary_search(", self, ", ", arg_code, ")");
+        Text_t decl, pred = compile_byval_closure(env, ast, item_t, false, "predicate", call->args, &decl);
+        return Texts("({ ", decl, "List$binary_search(", self, ", ", pred, "); })");
     } else if (streq(call->name, "clear")) {
         EXPECT_POINTER();
         (void)compile_arguments(env, ast, NULL, call->args);
@@ -358,11 +413,8 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
                      compile_type_info(self_value_t), ")");
     } else if (streq(call->name, "where")) {
         self = compile_to_pointer_depth(env, call->self, 0, call->args != NULL);
-        type_t *item_ptr = Type(PointerType, .pointed = item_t, .is_stack = true);
-        type_t *predicate_type =
-            Type(ClosureType, .fn = NewFunctionType(Type(BoolType), {.name = "item", .type = item_ptr}));
-        arg_t *arg_spec = new (arg_t, .name = "predicate", .type = predicate_type);
-        return Texts("List$first(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ")");
+        Text_t decl, pred = compile_byval_closure(env, ast, item_t, false, "predicate", call->args, &decl);
+        return Texts("({ ", decl, "List$first(", self, ", ", pred, "); })");
     } else if (streq(call->name, "from")) {
         self = compile_to_pointer_depth(env, call->self, 0, true);
         arg_t *arg_spec = new (arg_t, .name = "first", .type = INT_TYPE);
