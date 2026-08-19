@@ -222,6 +222,32 @@ extern char _EMPTY_LIST_SENTINEL;
                             .data_refcount = 0}                                                                        \
                  : (is_atomic(zero_item) ? EMPTY_ATOMIC_LIST : EMPTY_LIST);                                            \
     })
+// A list of `count` all-bits-zero items -- what a comprehension whose body is
+// a constant zero (`[Byte(0) for _ in n]`, `[0.0 for _ in n]`, ...) produces,
+// but without looping to store each element: allocate and zero the whole block
+// in one shot. GC_MALLOC (non-atomic) already returns cleared memory; the
+// atomic allocator does NOT (it promises no-pointers, not zeroed), so those
+// blocks are memset here. `zero_item` supplies the item type only; this is
+// valid solely for types whose zero value is all-bits-zero (bytes, fixed-width
+// ints, Nums, Bools), which the compiler checks before emitting this.
+#define List$zeroed(count, zero_item)                                                                                  \
+    ({                                                                                                                 \
+        int64_t _zn = (count);                                                                                         \
+        int64_t _zsz = (int64_t)sizeof(zero_item);                                                                     \
+        List_t _zlist;                                                                                                 \
+        if (_zn <= 0) {                                                                                                \
+            _zlist = is_atomic(zero_item) ? EMPTY_ATOMIC_LIST : EMPTY_LIST;                                            \
+        } else if (is_atomic(zero_item)) {                                                                             \
+            void *_zd = GC_MALLOC_ATOMIC((size_t)(_zn * _zsz));                                                        \
+            memset(_zd, 0, (size_t)(_zn * _zsz));                                                                      \
+            _zlist = (List_t){.data = _zd, .length = (uint64_t)_zn, .free = 0, .stride = _zsz, .atomic = 1,            \
+                              .data_refcount = 0};                                                                     \
+        } else {                                                                                                       \
+            _zlist = (List_t){.data = GC_MALLOC((size_t)(_zn * _zsz)), .length = (uint64_t)_zn, .free = 0,             \
+                              .stride = _zsz, .atomic = 0, .data_refcount = 0};                                        \
+        }                                                                                                              \
+        _zlist;                                                                                                        \
+    })
 void List$insert(List_t *list, const void *item, Int_t index, int64_t padded_item_size);
 void List$insert_all(List_t *list, List_t to_insert, Int_t index, int64_t padded_item_size);
 void List$remove_at(List_t *list, Int_t index, Int_t count, int64_t padded_item_size);

@@ -3,6 +3,7 @@
 #include <gc.h>
 #include <glob.h>
 #include <gmp.h>
+#include <math.h>
 #include <uninorm.h>
 
 #include "../ast.h"
@@ -13,6 +14,44 @@
 #include "../util.h"
 #include "../typecheck.h"
 #include "compilation.h"
+
+// Is `ast` a literal whose value for `item_type` is all-bits-zero? (So a
+// comprehension of it can be produced by a zeroed allocation with no fill
+// loop.) Only types whose zero value is genuinely all-bits-zero qualify:
+// bytes, fixed-width ints (NOT bignum Int, whose 0 is the tagged value 1),
+// Nums (+0.0 is all-zero bits; -0.0 is not), and Bools. Unwraps a numeric
+// constructor like `Byte(0)` / `Int64(0)` to its literal argument.
+static bool is_zero_valued_literal(env_t *env, ast_t *ast, type_t *item_type) {
+    if (ast->tag == FunctionCall) {
+        DeclareMatch(call, ast, FunctionCall);
+        type_t *fn_t = get_type(env, call->fn);
+        // Forward through a numeric cast only -- `Byte(0)`/`Int64(0)`/`Num(0.0)`
+        // really is all-bits-zero when its argument is. A struct/enum
+        // constructor like `Foo(0)` is NOT (its other fields may default to
+        // nonzero, and its layout isn't its argument's), so it never qualifies.
+        if (fn_t->tag == TypeInfoType && call->args && !call->args->next && !call->args->name) {
+            type_t *ctor_t = Match(fn_t, TypeInfoType)->type;
+            if (ctor_t->tag == ByteType || ctor_t->tag == IntType || ctor_t->tag == NumType
+                || ctor_t->tag == BoolType)
+                return is_zero_valued_literal(env, call->args->value, ctor_t);
+        }
+        return false;
+    }
+    if (ast->tag == Int) {
+        if (item_type->tag != ByteType && item_type->tag != IntType && item_type->tag != NumType) return false;
+        OptionalInt_t v = Int$from_str(Match(ast, Int)->str);
+        if (v.small == 0) return false; // failed to parse
+        // Zero always fits the tagged small form (a bignum is never zero):
+        return (v.small & 1L) && ((v.small >> 2L) == 0);
+    }
+    if (ast->tag == Num) {
+        if (item_type->tag != NumType) return false;
+        double n = Match(ast, Num)->n;
+        return n == 0.0 && !signbit(n);
+    }
+    if (ast->tag == Bool) return item_type->tag == BoolType && Match(ast, Bool)->b == false;
+    return false;
+}
 
 static ast_t *add_to_list_comprehension(ast_t *item, ast_t *subject) {
     // Append at the end. `insert` at the default index I(0) hits an inlined
@@ -77,12 +116,18 @@ list_comprehension: {
             else if (src_t->tag == IntType) capacity = Texts("(int64_t)(", src_name, ")");
             if (capacity.length > 0) {
                 Text_t src_code = compile_to_pointer_depth(env, comp->iters->ast, 0, false);
+                Text_t zero = Texts("(", compile_type(item_type), "){0}");
+                // Even faster: with no filter and a constant all-bits-zero body
+                // (`[Byte(0) for _ in n]`), every slot is zero, so skip the loop
+                // entirely and just allocate a zeroed block of `capacity` items.
+                if (!comp->filter && is_zero_valued_literal(env, comp->expr, item_type))
+                    return Texts("({ ", compile_type(src_t), " ", src_name, " = ", src_code, ";\n",
+                                 "List$zeroed(", capacity, ", ", zero, "); })");
                 ast_t *src_ref = LiteralCode(Texts(src_name), .type = src_t);
                 ast_t *body = add_to_list_comprehension(comp->expr, comprehension_var);
                 if (comp->filter) body = WrapAST(comp->expr, If, .condition = comp->filter, .body = body);
                 ast_t *loop = WrapAST(list->items->ast, For, .vars = comp->vars, .at = comp->at,
                                       .iters = new (ast_list_t, .ast = src_ref), .body = body);
-                Text_t zero = Texts("(", compile_type(item_type), "){0}");
                 return Texts("({ ", compile_type(src_t), " ", src_name, " = ", src_code, "; List_t ",
                              comprehension_name, " = List$with_capacity(", capacity, ", ", zero, ");\n",
                              compile_statement(scope, loop), " ", comprehension_name, "; })");
