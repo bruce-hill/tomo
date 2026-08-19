@@ -36,6 +36,7 @@ benchmarks/
   tomo/            # TRACKED — the Tomo ports (the only source we own)
     nbody.tm
     fannkuchredux.tm
+    fasta.tm
   fetched/         # git-ignored — reference implementations, downloaded
   .build/          # git-ignored — compiled binaries / build scratch
   results.json     # git-ignored — measured timings
@@ -96,8 +97,13 @@ failing the run.
 
 ## Benchmarks
 
-Currently implemented: **n-body**, **fannkuch-redux**. The plan is to grow the
-library-free core set (spectral-norm, mandelbrot, binary-trees, fasta,
-reverse-complement, k-nucleotide) one at a time, each with a validated Tomo port.
+Currently implemented: **n-body**, **fannkuch-redux**, **fasta**. The plan is
+to grow the library-free core set (spectral-norm, mandelbrot, binary-trees,
+reverse-complement, k-nucleotide) one at a time, each with a validated Tomo
+port.
+
+LuaJIT is omitted from **fasta**: the CLBG Lua entries for it use
+`table.unpack` (Lua 5.2+), which LuaJIT (5.1 semantics) does not provide, and
+we don't patch fetched sources.
 
 [clbg]: https://benchmarksgame-team.pages.debian.net/benchmarksgame/

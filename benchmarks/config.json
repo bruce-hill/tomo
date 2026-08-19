@@ -90,6 +90,22 @@
         "csharp": "csharpaot-2",
         "swift": "swift-3"
       }
+    },
+    "fasta": {
+      "args": ["2500000"],
+      "reference": "c",
+      "programs": {
+        "c": "gcc-1",
+        "cpp": "gpp-1",
+        "rust": "rust-1",
+        "go": "go-1",
+        "javascript": "node-1",
+        "lua": "lua-2",
+        "python": "python3-1",
+        "java": "graalvmaot-2",
+        "csharp": "csharpaot-1",
+        "swift": "swift-1"
+      }
     }
   }
 }
