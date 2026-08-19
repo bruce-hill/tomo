@@ -9,19 +9,20 @@ is git-ignored — so this directory never vendors other languages' code.
 
 Results are machine-specific, so `results.json` and the generated graphs
 (`results.svg`/`results.png`) are git-ignored; run the three commands below to
-produce them locally. On one x86-64 Linux box (n-body, n=5,000,000, best of 3):
+produce them locally. On one x86-64 Linux box (n-body, n=5,000,000, best of 3,
+pinned to one core):
 
 | Language | Time | vs fastest |
 |---|---|---|
 | Rust | 0.16s | 1.0× |
 | C++ (g++) | 0.20s | 1.3× |
 | C (gcc) | 0.22s | 1.4× |
+| **Tomo** | **0.29s** | **1.8×** |
 | Go | 0.30s | 1.9× |
-| Java | 0.32s | 2.0× |
-| JavaScript (node) | 0.36s | 2.3× |
-| **Tomo** | **0.48s** | **3.0×** |
+| Java | 0.34s | 2.2× |
+| JavaScript (node) | 0.37s | 2.3× |
 | LuaJIT | 0.61s | 3.9× |
-| Lua | 7.6s | 48× |
+| Lua | 8.1s | 51× |
 | Python | 21s | 135× |
 
 ## Layout
@@ -54,6 +55,8 @@ Environment overrides for quick iteration:
 - `BENCH_ARGS="1000"` — override the benchmark input (e.g. a fast smoke test).
 - `BENCH_REPEATS=1` — number of timed runs per language (best time is kept).
 - `BENCH_BUILD_TIMEOUT=180` — per-language build timeout in seconds.
+- `BENCH_CPU=2` — which core to pin runs to (default `0`); `BENCH_CPU=all`
+  disables pinning.
 
 ## How a run works
 
@@ -62,6 +65,14 @@ becomes the expected result. Every other language must reproduce that output
 byte-for-byte or it is flagged as an output mismatch (a program can't post a
 fast time by computing the wrong thing). Each language is run `repeats` times
 and the best wall-clock time is kept, along with peak RSS.
+
+**Every timed run is pinned to a single core** (`taskset -c 0`). Several CLBG
+programs are multithreaded — fannkuch-redux's `go-1` hardcodes
+`runtime.GOMAXPROCS(4)`, `gpp-1` fans out with `std::async`, and the Rust and
+Java entries spawn threads — while the C reference and the Tomo ports are
+single-threaded. Unpinned, the wall-clock chart would compare 1-core programs
+against N-core ones; pinned, it's a same-resources, language-vs-language
+comparison.
 
 ## Ground rules for the Tomo ports
 

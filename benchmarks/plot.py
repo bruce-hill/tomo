@@ -125,7 +125,7 @@ def main():
     fig.suptitle("Tomo vs. other languages — Computer Language Benchmarks Game",
                  x=0.02, ha="left", fontsize=14, fontweight="bold", color=INK)
     fig.text(0.02, 0.008,
-             "best of 3 runs · same input · outputs validated against the C reference",
+             "best of 3 runs · same input · pinned to one core · outputs validated against the C reference",
              ha="left", fontsize=8, color=MUTED)
     fig.tight_layout(rect=[0, 0.03, 1, 0.93])
 
@@ -150,7 +150,7 @@ def main():
         bax.legend(handles=legend, loc="upper right", frameon=False,
                   fontsize=9, borderaxespad=0.6)
         bfig.text(0.02, 0.02,
-                 "best of 3 runs · same input · outputs validated against the C reference",
+                 "best of 3 runs · same input · pinned to one core · outputs validated against the C reference",
                  ha="left", fontsize=8, color=MUTED)
         bfig.tight_layout(rect=[0, 0.08, 1, 1])
 

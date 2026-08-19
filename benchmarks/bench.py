@@ -108,10 +108,23 @@ def source_path(cfg, bname, lang):
 # ---------------------------------------------------------------------------
 # run one process, measuring wall time and peak RSS
 # ---------------------------------------------------------------------------
+# Every timed run is pinned to a single core (taskset). Several CLBG programs
+# are multithreaded (e.g. fannkuchredux go-1 hardcodes GOMAXPROCS(4); gpp-1
+# uses std::async), so unpinned wall-clock times would compare 1-core naive
+# programs against N-core parallel ones. Pinning makes the numbers a
+# same-resources, language-vs-language comparison. Override the core with
+# BENCH_CPU, or set BENCH_CPU=all to disable pinning.
+def _pin(cmd):
+    cpu = os.environ.get("BENCH_CPU", "0")
+    if cpu == "all" or not shutil.which("taskset"):
+        return cmd
+    return ["taskset", "-c", cpu] + cmd
+
+
 def run_once(cmd, cwd=None, stdin_path=None):
     stdin = open(stdin_path, "rb") if stdin_path else subprocess.DEVNULL
     t0 = time.perf_counter()
-    p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE,
+    p = subprocess.Popen(_pin(cmd), cwd=cwd, stdout=subprocess.PIPE,
                          stderr=subprocess.DEVNULL, stdin=stdin)
     out = p.stdout.read()
     _, status, ru = os.wait4(p.pid, 0)
