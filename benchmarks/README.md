@@ -27,9 +27,9 @@ ahead of Go and Java. On the hash-table-heavy **k-nucleotide** it's a strong
 languages, with only C, C++, Go, and a warmed-up LuaJIT faster. **binary-trees**
 (an allocation/GC stress test) has it at 0.31s, mid-pack and ahead of Go and
 every scripting language. **fasta** is Tomo's softest benchmark but no longer an
-outlier — at 0.47s it's ~1.9× C (in line with n-body), ahead of LuaJIT,
-Fortran, C#, and every scripting language, with only the hand-tuned byte-level
-entries (Zig, C++, Nim, C, Go, Swift, Java) faster.
+outlier — at 0.42s it's ~1.8× C (in line with n-body), edging out Rust and
+ahead of LuaJIT, Fortran, and every scripting language, with only the hand-tuned
+byte-level entries (Zig, C++, Nim, C, Go, Swift, Java) clearly faster.
 
 The top of each compute chart is now crowded with fast natives — Zig, Nim, and
 Fortran routinely lead — but no garbage-collected, memory-safe language in the
