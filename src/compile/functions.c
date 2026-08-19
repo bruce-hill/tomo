@@ -637,8 +637,15 @@ static void check_unused_vars(env_t *env, arg_ast_t *args, ast_t *body) {
     }
 }
 
-public
-Text_t compile_lambda(env_t *env, ast_t *ast) {
+// Compile a lambda to a `(Closure_t){fn, userdata}` value. When
+// `args_by_pointer` is set, every argument is received as a `void *` and copied
+// into a local of its declared type at function entry (`T _$x = *(T*)_$ptr$x;`).
+// This lets a lambda match the by-pointer calling convention that the generic
+// List runtime uses for predicates/comparisons WITHOUT an adapter shim, while
+// the entry copy preserves by-value semantics (mutating the parameter can't
+// touch the list element). Only compile_list_method_call() uses this, and only
+// for a directly-passed lambda whose declared arg/return types already match.
+static Text_t compile_lambda_ex(env_t *env, ast_t *ast, bool args_by_pointer) {
     DeclareMatch(lambda, ast, Lambda);
     Text_t name = namespace_name(env, env->namespace, Texts("lambda$", lambda->id));
 
@@ -673,9 +680,16 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
 
     type_t *ret_t = get_function_return_type(env, ast);
     Text_t code = Texts("static ", compile_type(ret_t), " ", name, "(");
+    Text_t arg_unpack = EMPTY_TEXT;
     for (arg_ast_t *arg = lambda->args; arg; arg = arg->next) {
         type_t *arg_type = get_arg_ast_type(env, arg);
-        code = Texts(code, compile_type(arg_type), " _$", arg->name, ", ");
+        if (args_by_pointer) {
+            code = Texts(code, "void *_$ptr$", arg->name, ", ");
+            arg_unpack = Texts(arg_unpack, compile_type(arg_type), " _$", arg->name, " = *(", compile_type(arg_type),
+                               "*)_$ptr$", arg->name, ";\n");
+        } else {
+            code = Texts(code, compile_type(arg_type), " _$", arg->name, ", ");
+        }
     }
 
     Text_t userdata;
@@ -721,11 +735,22 @@ Text_t compile_lambda(env_t *env, ast_t *ast) {
     Text_t userdata_cast = Table$length(closed_vars) > 0
                                ? Texts(name, "$userdata_t *userdata = $userdata;\n")
                                : EMPTY_TEXT;
-    env->code->lambdas = Texts(env->code->lambdas, code, " {\n", userdata_cast, body, "\n}\n");
+    env->code->lambdas = Texts(env->code->lambdas, code, " {\n", userdata_cast, arg_unpack, body, "\n}\n");
 
     check_unused_vars(env, lambda->args, lambda->body);
 
     return Texts("((Closure_t){", name, ", ", userdata, "})");
+}
+
+public
+Text_t compile_lambda(env_t *env, ast_t *ast) {
+    return compile_lambda_ex(env, ast, false);
+}
+
+// Compile a lambda whose arguments are received by pointer (see compile_lambda_ex).
+public
+Text_t compile_lambda_pointer_args(env_t *env, ast_t *ast) {
+    return compile_lambda_ex(env, ast, true);
 }
 
 public

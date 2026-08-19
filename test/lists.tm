@@ -200,6 +200,14 @@ test "by-value predicates and comparisons"
 	)
 	assert matched == 3
 	assert xs[] == [10, 20, 30]
+	# A directly-passed lambda is compiled with by-pointer args (no adapter);
+	# a closure value goes through the generic by-value adapter. Both must agree.
+	is_five := func(i:Int) i == 5
+	assert [1, 5, 9].where(is_five) == 2
+	cmp := func(a,b:Int) b <> a
+	descending := @[3, 1, 2]
+	descending.sort(cmp)
+	assert descending[] == [3, 2, 1]
 
 test "pop and clear"
 	>> nums := &[10, 20, 30, 40, 50]

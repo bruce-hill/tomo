@@ -206,8 +206,39 @@ static Text_t byval_adapter_name(env_t *env, type_t *item_t, bool is_compare) {
 // *decl and the returned expression into a single statement-expression that
 // encloses the whole runtime call, so <tmp> outlives the call that reads it (no
 // heap allocation). Safe because no List method retains the closure past return.
+// Can this closure argument take the shim-free fast path? Only a single,
+// directly-passed lambda whose parameters are all explicitly typed as the item
+// type (right arity) and whose return type already matches the expected one. In
+// that case the lambda's own C body can be compiled with by-pointer arguments
+// (see compile_lambda_pointer_args), so it plugs straight into the runtime's
+// by-pointer call with no adapter and no boxed closure. Anything else (an
+// inferred-type lambda, a named function, a closure variable, a mismatched
+// signature) falls back to the adapter path, which also produces the right type
+// error when the signature is actually wrong.
+static bool byval_lambda_fastpath(env_t *env, arg_ast_t *closure_args, type_t *item_t, bool is_compare,
+                                  const char *arg_name) {
+    if (!closure_args || closure_args->next) return false;
+    if (closure_args->name && !streq(closure_args->name, arg_name)) return false;
+    ast_t *lambda_ast = closure_args->value;
+    if (!lambda_ast || lambda_ast->tag != Lambda) return false;
+    DeclareMatch(lambda, lambda_ast, Lambda);
+    int arity = 0;
+    for (arg_ast_t *a = lambda->args; a; a = a->next) {
+        if (!a->type) return false; // inferred param type: let the adapter path fill it in
+        if (!type_eq(parse_type_ast(env, a->type), item_t)) return false;
+        arity += 1;
+    }
+    if (arity != (is_compare ? 2 : 1)) return false;
+    type_t *ret = get_function_return_type(env, lambda_ast);
+    return type_eq(ret, is_compare ? Type(IntType, .bits = TYPE_IBITS32) : Type(BoolType));
+}
+
 static Text_t compile_byval_closure(env_t *env, ast_t *ast, type_t *item_t, bool is_compare, const char *arg_name,
                                     arg_ast_t *closure_args, Text_t *decl) {
+    if (byval_lambda_fastpath(env, closure_args, item_t, is_compare, arg_name)) {
+        *decl = EMPTY_TEXT;
+        return compile_lambda_pointer_args(env, closure_args->value);
+    }
     type_t *fn_t = is_compare ? NewFunctionType(Type(IntType, .bits = TYPE_IBITS32), {.name = "x", .type = item_t},
                                                 {.name = "y", .type = item_t})
                               : NewFunctionType(Type(BoolType), {.name = "item", .type = item_t});
