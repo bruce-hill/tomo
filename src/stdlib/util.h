@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <err.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
 #define streq(a, b) (((a) == NULL && (b) == NULL) || (((a) == NULL) == ((b) == NULL) && strcmp(a, b) == 0))
@@ -60,3 +61,26 @@ extern void *GC_malloc(size_t);
 #define heap(x) (__typeof(x) *)memcpy(GC_malloc(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define stack(x) (__typeof(x) *)((__typeof(x)[1]){x})
 #endif
+
+// A single-item copy whose size is a runtime value (e.g. a container's
+// per-element `padded_item_size`), not a compile-time constant. libc's
+// memcpy() already has its own internal fast paths for small sizes, but none
+// of that helps here: since the *compiler* can't see the size, it can't
+// inline it away, so every call is a real, non-inlined function call (likely
+// through an IFUNC dispatch) -- measured at ~5x the cost of a direct store
+// for size 1 or 8. This macro is `always_inline`, so the size switch below
+// gets resolved and folded down to one instruction at each call site where
+// the compiler CAN see the actual runtime size take one of these common
+// values (which it very often can, from a preceding `if`/`switch` on the
+// same variable, or profile-guided branch prediction); larger or uncommon
+// sizes fall back to plain memcpy(), where the call overhead is amortized
+// over more bytes anyway.
+MACROLIKE void memcpy_fixed(void *dest, const void *src, int64_t size) {
+    switch (size) {
+    case 1: *(uint8_t *)dest = *(uint8_t *)src; break;
+    case 2: *(uint16_t *)dest = *(uint16_t *)src; break;
+    case 4: *(uint32_t *)dest = *(uint32_t *)src; break;
+    case 8: *(uint64_t *)dest = *(uint64_t *)src; break;
+    default: memcpy(dest, src, (size_t)size); break;
+    }
+}

@@ -182,7 +182,7 @@ void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeIn
             maybe_copy_on_write(t, type);
             value_home = t->entries.data + offset;
 
-            if (value && value_size > 0) memcpy(value_home, value, (size_t)value_size);
+            if (value && value_size > 0) memcpy_fixed(value_home, value, value_size);
 
             return value_home;
         }
@@ -208,8 +208,8 @@ void *Table$reserve(Table_t *t, const void *key, const void *value, const TypeIn
 
     char buf[entry_size(type)];
     memset(buf, 0, sizeof(buf));
-    memcpy(buf, key, (size_t)key_size);
-    if (value && value_size > 0) memcpy(buf + value_offset(type), value, (size_t)value_size);
+    memcpy_fixed(buf, key, key_size);
+    if (value && value_size > 0) memcpy_fixed(buf + value_offset(type), value, value_size);
     else if (value_size > 0) memset(buf + value_offset(type), 0, (size_t)value_size);
     List$insert(&t->entries, buf, I(0), (int64_t)entry_size(type));
 
@@ -285,7 +285,7 @@ found_it:;
 
         // Clobber the entry being removed (in the middle of the list) with
         // the last entry:
-        memcpy(GET_ENTRY(*t, bucket->index), GET_ENTRY(*t, last_entry), entry_size(type));
+        memcpy_fixed(GET_ENTRY(*t, bucket->index), GET_ENTRY(*t, last_entry), (int64_t)entry_size(type));
     }
 
     // Last entry is being removed, so clear it out to be safe:
@@ -330,8 +330,8 @@ static bool Table$entries$next(void *key, void *value, void *userdata) {
     TableEntriesState_t *state = userdata;
     if (state->i >= (int64_t)state->entries.length) return false;
     void *entry = state->entries.data + state->i * state->entries.stride;
-    memcpy(key, entry, (size_t)state->key_size);
-    memcpy(value, entry + state->value_offset, (size_t)state->value_size);
+    memcpy_fixed(key, entry, state->key_size);
+    memcpy_fixed(value, entry + state->value_offset, state->value_size);
     state->i += 1;
     return true;
 }

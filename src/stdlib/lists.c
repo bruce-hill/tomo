@@ -40,7 +40,7 @@ void List$compact(List_t *list, int64_t padded_item_size) {
             memcpy(copy, list->data, (size_t)list->length * (size_t)padded_item_size);
         } else {
             for (int64_t i = 0; i < (int64_t)list->length; i++)
-                memcpy(copy + i * padded_item_size, list->data + list->stride * i, (size_t)padded_item_size);
+                memcpy_fixed(copy + i * padded_item_size, list->data + list->stride * i, padded_item_size);
         }
     }
     *list = (List_t){
@@ -83,9 +83,9 @@ void List$insert(List_t *list, const void *item, Int_t int_index, int64_t padded
                        (size_t)((int64_t)list->length - (index - 1)) * (size_t)padded_item_size);
         } else {
             for (int64_t i = 0; i < index - 1; i++)
-                memcpy(copy + i * padded_item_size, list->data + list->stride * i, (size_t)padded_item_size);
+                memcpy_fixed(copy + i * padded_item_size, list->data + list->stride * i, padded_item_size);
             for (int64_t i = index - 1; i < (int64_t)list->length; i++)
-                memcpy(copy + (i + 1) * padded_item_size, list->data + list->stride * i, (size_t)padded_item_size);
+                memcpy_fixed(copy + (i + 1) * padded_item_size, list->data + list->stride * i, padded_item_size);
         }
         list->data = copy;
         list->data_refcount = 0;
@@ -101,7 +101,7 @@ void List$insert(List_t *list, const void *item, Int_t int_index, int64_t padded
     assert(list->free > 0);
     --list->free;
     ++list->length;
-    memcpy((void *)list->data + (index - 1) * padded_item_size, item, (size_t)padded_item_size);
+    memcpy_fixed((void *)list->data + (index - 1) * padded_item_size, item, padded_item_size);
 }
 
 public
@@ -158,7 +158,7 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
                 p += (index - 1) * padded_item_size;
             } else {
                 for (int64_t i = 0; i < index - 1; i++) {
-                    memcpy(p, list->data + list->stride * i, (size_t)padded_item_size);
+                    memcpy_fixed(p, list->data + list->stride * i, padded_item_size);
                     p += padded_item_size;
                 }
             }
@@ -170,7 +170,7 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
             p += (int64_t)to_insert.length * padded_item_size;
         } else {
             for (int64_t i = 0; i < (int64_t)to_insert.length; i++) {
-                memcpy(p, to_insert.data + to_insert.stride * i, (size_t)padded_item_size);
+                memcpy_fixed(p, to_insert.data + to_insert.stride * i, padded_item_size);
                 p += padded_item_size;
             }
         }
@@ -182,7 +182,7 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
                        (size_t)(((int64_t)list->length - index + 1) * padded_item_size));
             } else {
                 for (int64_t i = index - 1; i < (int64_t)list->length - 1; i++) {
-                    memcpy(p, list->data + list->stride * i, (size_t)padded_item_size);
+                    memcpy_fixed(p, list->data + list->stride * i, padded_item_size);
                     p += padded_item_size;
                 }
             }
@@ -334,9 +334,9 @@ void List$shuffle(List_t *list, OptionalClosure_t random_int64, int64_t padded_i
         int64_t j = rng_fn(0, i, random_int64.userdata);
         if unlikely (j < 0 || j > (int64_t)list->length - 1)
             fail("The provided random number function returned an invalid value: ", j, " (not between 0 and ", i, ")");
-        memcpy(tmp, list->data + i * padded_item_size, (size_t)padded_item_size);
-        memcpy((void *)list->data + i * padded_item_size, list->data + j * padded_item_size, (size_t)padded_item_size);
-        memcpy((void *)list->data + j * padded_item_size, tmp, (size_t)padded_item_size);
+        memcpy_fixed(tmp, list->data + i * padded_item_size, padded_item_size);
+        memcpy_fixed((void *)list->data + i * padded_item_size, list->data + j * padded_item_size, padded_item_size);
+        memcpy_fixed((void *)list->data + j * padded_item_size, tmp, padded_item_size);
     }
 }
 
@@ -462,7 +462,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
         int64_t index = (int64_t)r;
         assert(index >= 0 && index < (int64_t)list.length);
         if ((r - (double)index) > aliases[index].odds) index = aliases[index].alias;
-        memcpy(selected.data + i * selected.stride, list.data + index * list.stride, (size_t)padded_item_size);
+        memcpy_fixed(selected.data + i * selected.stride, list.data + index * list.stride, padded_item_size);
     }
     return selected;
 }
@@ -490,7 +490,7 @@ List_t List$by(List_t list, Int_t int_stride, int64_t padded_item_size) {
                                  : GC_MALLOC((size_t)(len * padded_item_size));
         void *start = (stride < 0 ? list.data + (list.stride * ((int64_t)list.length - 1)) : list.data);
         for (int64_t i = 0; i < len; i++)
-            memcpy(copy + i * padded_item_size, start + list.stride * stride * i, (size_t)padded_item_size);
+            memcpy_fixed(copy + i * padded_item_size, start + list.stride * stride * i, padded_item_size);
         return (List_t){
             .data = copy,
             .length = (uint64_t)len,
@@ -566,8 +566,8 @@ static bool List$pairs$next(void *a, void *b, void *userdata) {
         state->j = state->i + 1;
     }
     if (state->j > (int64_t)state->list.length) return false;
-    memcpy(a, state->list.data + (state->i - 1) * state->list.stride, (size_t)state->item_size);
-    memcpy(b, state->list.data + (state->j - 1) * state->list.stride, (size_t)state->item_size);
+    memcpy_fixed(a, state->list.data + (state->i - 1) * state->list.stride, state->item_size);
+    memcpy_fixed(b, state->list.data + (state->j - 1) * state->list.stride, state->item_size);
     return true;
 }
 
@@ -586,7 +586,7 @@ List_t List$concat(List_t x, List_t y, int64_t padded_item_size) {
         memcpy(data, x.data, (size_t)(padded_item_size * (int64_t)x.length));
     } else {
         for (int64_t i = 0; i < (int64_t)x.length; i++)
-            memcpy(data + i * padded_item_size, x.data + i * padded_item_size, (size_t)padded_item_size);
+            memcpy_fixed(data + i * padded_item_size, x.data + i * padded_item_size, padded_item_size);
     }
 
     void *dest = data + padded_item_size * (int64_t)x.length;
@@ -594,7 +594,7 @@ List_t List$concat(List_t x, List_t y, int64_t padded_item_size) {
         memcpy(dest, y.data, (size_t)(padded_item_size * (int64_t)y.length));
     } else {
         for (int64_t i = 0; i < (int64_t)y.length; i++)
-            memcpy(dest + i * padded_item_size, y.data + i * y.stride, (size_t)padded_item_size);
+            memcpy_fixed(dest + i * padded_item_size, y.data + i * y.stride, padded_item_size);
     }
 
     return (List_t){
@@ -693,17 +693,17 @@ uint64_t List$hash(const void *obj, const TypeInfo_t *type) {
 static void siftdown(List_t *heap, int64_t startpos, int64_t pos, Closure_t comparison, int64_t padded_item_size) {
     assert(pos > 0 && pos < (int64_t)heap->length);
     char newitem[padded_item_size];
-    memcpy(newitem, heap->data + heap->stride * pos, (size_t)(padded_item_size));
+    memcpy_fixed(newitem, heap->data + heap->stride * pos, padded_item_size);
     while (pos > startpos) {
         int64_t parentpos = (pos - 1) >> 1;
         typedef int32_t (*cmp_fn_t)(void *, void *, void *);
         int32_t cmp = ((cmp_fn_t)comparison.fn)(newitem, heap->data + heap->stride * parentpos, comparison.userdata);
         if (cmp >= 0) break;
 
-        memcpy(heap->data + heap->stride * pos, heap->data + heap->stride * parentpos, (size_t)(padded_item_size));
+        memcpy_fixed(heap->data + heap->stride * pos, heap->data + heap->stride * parentpos, padded_item_size);
         pos = parentpos;
     }
-    memcpy(heap->data + heap->stride * pos, newitem, (size_t)(padded_item_size));
+    memcpy_fixed(heap->data + heap->stride * pos, newitem, padded_item_size);
 }
 
 static void siftup(List_t *heap, int64_t pos, Closure_t comparison, int64_t padded_item_size) {
@@ -712,7 +712,7 @@ static void siftup(List_t *heap, int64_t pos, Closure_t comparison, int64_t padd
     assert(pos < endpos);
 
     char old_top[padded_item_size];
-    memcpy(old_top, heap->data + heap->stride * pos, (size_t)(padded_item_size));
+    memcpy_fixed(old_top, heap->data + heap->stride * pos, padded_item_size);
     // Bubble up the smallest leaf node
     int64_t limit = endpos >> 1;
     while (pos < limit) {
@@ -725,10 +725,10 @@ static void siftup(List_t *heap, int64_t pos, Closure_t comparison, int64_t padd
         }
 
         // Move the child node up:
-        memcpy(heap->data + heap->stride * pos, heap->data + heap->stride * childpos, (size_t)(padded_item_size));
+        memcpy_fixed(heap->data + heap->stride * pos, heap->data + heap->stride * childpos, padded_item_size);
         pos = childpos;
     }
-    memcpy(heap->data + heap->stride * pos, old_top, (size_t)(padded_item_size));
+    memcpy_fixed(heap->data + heap->stride * pos, old_top, padded_item_size);
     // Shift the node's parents down:
     siftdown(heap, startpos, pos, comparison, padded_item_size);
 }
@@ -754,7 +754,7 @@ void List$heap_pop(List_t *heap, Closure_t comparison, int64_t padded_item_size)
         --heap->length;
     } else {
         if (heap->data_refcount != 0) List$compact(heap, padded_item_size);
-        memcpy(heap->data, heap->data + heap->stride * ((int64_t)heap->length - 1), (size_t)(padded_item_size));
+        memcpy_fixed(heap->data, heap->data + heap->stride * ((int64_t)heap->length - 1), padded_item_size);
         --heap->length;
         siftup(heap, 0, comparison, padded_item_size);
     }
