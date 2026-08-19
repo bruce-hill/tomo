@@ -8,9 +8,9 @@ fetched/
 tomo/.tomo/
 tomo/*
 !tomo/*.tm
-# Benchmark results and generated graphs (combined + per-benchmark).
+# Raw measured timings (machine-specific) and the vector graphs. The PNG
+# graphs ARE checked in (a representative snapshot embedded in README.md);
+# everything else here regenerates locally.
 results.json
 results.svg
-results.png
 results-*.svg
-results-*.png

@@ -7,23 +7,23 @@ Only the **Tomo** ports (`tomo/*.tm`) live in this repo. Every other language's
 source is **downloaded on demand** from the CLBG website into `fetched/`, which
 is git-ignored — so this directory never vendors other languages' code.
 
-Results are machine-specific, so `results.json` and the generated graphs
-(`results.svg`/`results.png`) are git-ignored; run the three commands below to
-produce them locally. On one x86-64 Linux box (n-body, n=5,000,000, best of 3,
-pinned to one core):
+The PNG graphs below are a checked-in snapshot from one x86-64 Linux box (best
+of 3 runs, each pinned to a single core, every output validated against the
+reference). Timings are machine-specific — `results.json` and the vector
+graphs are git-ignored; run the three commands below to reproduce everything
+locally and regenerate these PNGs.
 
-| Language | Time | vs fastest |
-|---|---|---|
-| Rust | 0.16s | 1.0× |
-| C++ (g++) | 0.20s | 1.3× |
-| C (gcc) | 0.22s | 1.4× |
-| **Tomo** | **0.29s** | **1.8×** |
-| Go | 0.30s | 1.9× |
-| Java | 0.34s | 2.2× |
-| JavaScript (node) | 0.37s | 2.3× |
-| LuaJIT | 0.61s | 3.9× |
-| Lua | 8.1s | 51× |
-| Python | 21s | 135× |
+![Tomo vs. other languages across four CLBG benchmarks](results.png)
+
+Tomo runs shoulder-to-shoulder with the compiled languages on the tight
+compute loops (**n-body**, **fannkuch-redux**), and on the hash-table-heavy
+**k-nucleotide** it places 4th — ahead of Java, Rust, and every scripting
+language. **fasta** is the outlier, where hand-tuned byte-level output gives
+the low-level entries a wider edge, but Tomo still beats Lua, Node, and Python.
+
+Per-benchmark graphs: [n-body](results-nbody.png) ·
+[fannkuch-redux](results-fannkuchredux.png) · [fasta](results-fasta.png) ·
+[k-nucleotide](results-knucleotide.png).
 
 ## Layout
 
