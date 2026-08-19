@@ -44,6 +44,10 @@
       "label": "Python", "ext": "py", "color": "#3572a5",
       "run": ["python3", "{src}"]
     },
+    "pypy": {
+      "label": "PyPy", "ext": "py", "source_from": "python", "color": "#5a9fd4",
+      "run": ["pypy3", "{src}"]
+    },
     "java": {
       "label": "Java", "ext": "java", "handler": "java", "color": "#b07219"
     },
@@ -89,6 +93,7 @@
         "lua": "lua-1",
         "luajit": "lua-1",
         "python": "python3-1",
+        "pypy": "python3-1",
         "java": "graalvmaot-1",
         "csharp": "csharpcore-1",
         "swift": "swift-3",
@@ -110,6 +115,7 @@
         "lua": "lua-1",
         "luajit": "lua-1",
         "python": "python3-4",
+        "pypy": "python3-4",
         "java": "graalvmaot-1",
         "csharp": "csharpaot-2",
         "swift": "swift-3",
@@ -129,6 +135,7 @@
         "lua": "lua-2",
         "luajit": "lua-2",
         "python": "python3-1",
+        "pypy": "python3-1",
         "java": "graalvmaot-2",
         "csharp": "csharpaot-1",
         "swift": "swift-1",
@@ -151,6 +158,7 @@
         "lua": "lua-2",
         "luajit": "lua-2",
         "python": "python3-1",
+        "pypy": "python3-1",
         "java": "graalvmaot-3",
         "swift": "swift-2"
       }
@@ -166,6 +174,7 @@
         "lua": "lua-2",
         "luajit": "lua-2",
         "python": "python3-1",
+        "pypy": "python3-1",
         "java": "graalvmaot-2",
         "csharp": "csharpaot-1",
         "swift": "swift-1",

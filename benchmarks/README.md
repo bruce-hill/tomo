@@ -105,7 +105,7 @@ comparison.
 
 | Status | Languages |
 |--------|-----------|
-| Active | C (gcc), C++ (g++), Rust, Go, Zig, Nim, Odin, Java, C#, Swift, Fortran, JavaScript (node), Lua, LuaJIT, Python, **Tomo** |
+| Active | C (gcc), C++ (g++), Rust, Go, Zig, Nim, Odin, Java, C#, Swift, Fortran, JavaScript (node), Lua, LuaJIT, Python, PyPy, **Tomo** |
 
 Not every language implements every benchmark. A language runs only the
 benchmarks it has a validated program for; the rest are simply absent from that
@@ -169,6 +169,10 @@ implementation (see `stdin_fasta` in `config.json`). The C entry depends on
 klib's `khash.h`; the benchmark's `cflags` adds `-I/usr/include/klib`, so C is
 skipped on machines where klib isn't installed there. Its Java entry uses
 `graalvmaot-3` (the `-1`/`-2` entries need the external `fastutil` library).
+
+PyPy runs the same fetched sources as CPython (`source_from: "python"`), via
+`pypy3` — so it needs a Python **3** PyPy (the `pypy` 2.7 binary won't run the
+Python-3 entries). It covers all five.
 
 LuaJIT runs the same fetched source as Lua. LuaJIT is Lua 5.1, and a few CLBG
 Lua entries call 5.2+ names (e.g. `table.unpack` in the fasta entry), so the
