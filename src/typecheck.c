@@ -986,6 +986,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "heap_push")) return Type(VoidType);
             else if (streq(call->name, "heapify")) return Type(VoidType);
             else if (streq(call->name, "insert")) return Type(VoidType);
+            else if (streq(call->name, "$push")) return Type(VoidType); // internal: comprehension append
             else if (streq(call->name, "insert_all")) return Type(VoidType);
             else if (streq(call->name, "pairs"))
                 // A multi-value iterator (see iterator_yield_args()) yielding

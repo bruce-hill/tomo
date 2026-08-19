@@ -176,6 +176,42 @@ extern char _EMPTY_LIST_SENTINEL;
 
 #define List$insert_value(list, item_expr, index, padded_item_size)                                                    \
     List$insert(list, (__typeof(item_expr)[1]){item_expr}, index, padded_item_size)
+// Append one item to the end of a list, inlining the common case (there is
+// spare capacity, the list isn't an aliased/CoW snapshot, and the stride
+// already matches): a bounds-free store plus two counter bumps, with no
+// function call and no Int_t index to convert. Falls back to List$insert for
+// the growth / resize / copy-on-write cases. Used to build list comprehensions
+// (which append per element); `padded_item_size` is a compile-time sizeof, so
+// the memcpy_fixed folds to a single store.
+#define List$push_value(list, item_expr, padded_item_size)                                                             \
+    ({                                                                                                                 \
+        List_t *_push_l = (list);                                                                                      \
+        __typeof(item_expr) _push_it = (item_expr);                                                                    \
+        if (likely(_push_l->free > 0 && _push_l->data_refcount == 0                                                    \
+                   && (int64_t)_push_l->stride == (int64_t)(padded_item_size))) {                                      \
+            int64_t _push_n = (int64_t)_push_l->length;                                                                \
+            memcpy_fixed((void *)_push_l->data + _push_n * (int64_t)(padded_item_size), &_push_it, padded_item_size);  \
+            _push_l->length = (uint64_t)(_push_n + 1);                                                                 \
+            _push_l->free -= 1;                                                                                        \
+        } else {                                                                                                       \
+            List$insert(_push_l, &_push_it, I_small(0), padded_item_size);                                             \
+        }                                                                                                              \
+        (void)0;                                                                                                       \
+    })
+// Allocate a list with `capacity` slots of spare room (length 0), so that up
+// to `capacity` List$push_value appends hit the inlined store path with no
+// resize. `zero_item` is any value of the item type (used only for its type,
+// to pick atomic vs. scanned allocation and the element size).
+#define List$with_capacity(capacity, zero_item)                                                                        \
+    ({                                                                                                                 \
+        int64_t _cap = (capacity);                                                                                     \
+        int64_t _isz = (int64_t)sizeof(zero_item);                                                                     \
+        _cap > 0 ? (List_t){.data = is_atomic(zero_item) ? GC_MALLOC_ATOMIC((size_t)(_cap * _isz))                     \
+                                                         : GC_MALLOC((size_t)(_cap * _isz)),                           \
+                            .length = 0, .free = _cap, .stride = _isz, .atomic = is_atomic(zero_item),                 \
+                            .data_refcount = 0}                                                                        \
+                 : (is_atomic(zero_item) ? EMPTY_ATOMIC_LIST : EMPTY_LIST);                                            \
+    })
 void List$insert(List_t *list, const void *item, Int_t index, int64_t padded_item_size);
 void List$insert_all(List_t *list, List_t to_insert, Int_t index, int64_t padded_item_size);
 void List$remove_at(List_t *list, Int_t index, Int_t count, int64_t padded_item_size);

@@ -15,7 +15,9 @@
 #include "compilation.h"
 
 static ast_t *add_to_list_comprehension(ast_t *item, ast_t *subject) {
-    return WrapAST(item, MethodCall, .name = "insert", .self = subject, .args = new (arg_ast_t, .value = item));
+    // `$push` is an internal list method that appends via the inlined
+    // List$push_value fast path (no per-element function call / index convert).
+    return WrapAST(item, MethodCall, .name = "$push", .self = subject, .args = new (arg_ast_t, .value = item));
 }
 
 public
@@ -45,11 +47,40 @@ Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type) {
 list_comprehension: {
     env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : fresh_scope(env);
     static int64_t comp_num = 1;
-    const char *comprehension_name = String("list$", comp_num++);
+    int64_t this_comp = comp_num++;
+    const char *comprehension_name = String("list$", this_comp);
     ast_t *comprehension_var =
         LiteralCode(Texts("&", comprehension_name), .type = Type(PointerType, .pointed = list_type, .is_stack = true));
     Closure_t comp_action = {.fn = add_to_list_comprehension, .userdata = comprehension_var};
     scope->comprehension_action = &comp_action;
+
+    // Fast path: a single comprehension `[expr for x in SOURCE (if cond)]`
+    // whose SOURCE is a list of known length. The result can never have more
+    // than SOURCE.length elements (a filter only removes), so pre-allocate
+    // exactly that capacity and fill it with the inlined List$push_value
+    // append -- no growth reallocation, no repeated GC scans of a growing
+    // buffer. SOURCE is hoisted into a temp (evaluated once, since it may not
+    // be idempotent, e.g. `xs.reversed()`), and the loop iterates that temp.
+    if (list->items && !list->items->next && list->items->ast->tag == Comprehension) {
+        DeclareMatch(comp, list->items->ast, Comprehension);
+        if (comp->iters && !comp->iters->next && comp->expr->tag != Comprehension) {
+            type_t *src_t = value_type(get_type(env, comp->iters->ast));
+            if (src_t->tag == ListType) {
+                const char *src_name = String("comp_src$", this_comp);
+                Text_t src_code = compile_to_pointer_depth(env, comp->iters->ast, 0, false);
+                ast_t *src_ref = LiteralCode(Texts(src_name), .type = src_t);
+                ast_t *body = add_to_list_comprehension(comp->expr, comprehension_var);
+                if (comp->filter) body = WrapAST(comp->expr, If, .condition = comp->filter, .body = body);
+                ast_t *loop = WrapAST(list->items->ast, For, .vars = comp->vars, .at = comp->at,
+                                      .iters = new (ast_list_t, .ast = src_ref), .body = body);
+                Text_t zero = Texts("(", compile_type(item_type), "){0}");
+                return Texts("({ List_t ", src_name, " = ", src_code, "; List_t ", comprehension_name,
+                             " = List$with_capacity(", src_name, ".length, ", zero, ");\n",
+                             compile_statement(scope, loop), " ", comprehension_name, "; })");
+            }
+        }
+    }
+
     Text_t code = Texts("({ List_t ", comprehension_name, " = EMPTY_LIST;");
     // set_binding(scope, comprehension_name, list_type, comprehension_name);
     for (ast_list_t *item = list->items; item; item = item->next) {
@@ -297,6 +328,16 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         self = compile_to_pointer_depth(env, call->self, 0, false);
         (void)compile_arguments(env, ast, NULL, call->args);
         return Texts("List$counts(", self, ", ", compile_type_info(self_value_t), ")");
+    } else if (streq(call->name, "$push")) {
+        // Internal method (not user-visible): append at the end via the
+        // inlined List$push_value fast path. Emitted by list comprehensions
+        // instead of `insert`, so the per-element append has no function-call
+        // overhead and no Int_t index to convert. Reuses `insert`'s argument
+        // coercion so the item is compiled to the list's item type.
+        EXPECT_POINTER();
+        arg_t *arg_spec = new (arg_t, .name = "item", .type = item_t);
+        return Texts("List$push_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
+                     padded_item_size, ")");
     } else {
         code_err(ast, "There is no '", call->name, "' method for lists");
     }
