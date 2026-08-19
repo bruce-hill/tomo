@@ -4,6 +4,9 @@ __pycache__/
 fetched/
 # Compiled binaries and per-language build scratch.
 .build/
+# Fortran module files (gfortran emits these; -J.build redirects them, this is
+# a safety net in case a build runs without it).
+*.mod
 # Tomo build artifacts emitted next to the tracked sources.
 tomo/.tomo/
 tomo/*

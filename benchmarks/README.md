@@ -4,8 +4,10 @@ Compare Tomo's performance against other languages using programs from
 [The Computer Language Benchmarks Game][clbg] (CLBG).
 
 Only the **Tomo** ports (`tomo/*.tm`) live in this repo. Every other language's
-source is **downloaded on demand** from the CLBG website into `fetched/`, which
-is git-ignored — so this directory never vendors other languages' code.
+source is **downloaded on demand** into `fetched/`, which is git-ignored — so
+this directory never vendors other languages' code. Most come from the CLBG
+website; **Zig**, **Nim**, and **Odin** aren't covered by the CLBG, so they're
+fetched from the community [Programming-Language-Benchmarks][plb] repo instead.
 
 The PNG graphs below are a checked-in snapshot from one x86-64 Linux box (best
 of 3 runs, each pinned to a single core, every output validated against the
@@ -13,16 +15,25 @@ reference). Timings are machine-specific — `results.json` and the vector
 graphs are git-ignored; run the three commands below to reproduce everything
 locally and regenerate these PNGs.
 
-![Tomo vs. other languages across five CLBG benchmarks](results.png)
+![Tomo vs. other languages across five benchmarks](results.png)
 
-Tomo runs shoulder-to-shoulder with the compiled languages on the tight
-compute loops (**n-body**, **fannkuch-redux**), landing right alongside C, Go,
-and C#. On the hash-table-heavy **k-nucleotide** it comes 5th — ahead of Java,
-Rust, Lua, Node, and Python, with only C, C++, Go, and a warmed-up LuaJIT
-faster. **binary-trees**, an allocation/GC stress test, has it 5th too, behind
-only AOT Java, AOT C#, C, and C++, and ahead of Go, Node, and every scripting
-language. **fasta** is the outlier, where hand-tuned byte-level output gives the
-low-level entries a wider edge, but Tomo still beats Lua, Node, and Python.
+With the field now up to ~15 languages, the useful summary is that **Tomo sits
+inside the compiled-language cluster and beats every scripting language on every
+benchmark**. On the tight compute loops it lands in the middle of that cluster:
+**fannkuch-redux** puts it at 0.18s, within 1.8× of the fastest and jostling
+with C, Java, and C++; **n-body** at 0.27s is ~1.9× the leaders (Zig/Rust), just
+ahead of Go and Java. On the hash-table-heavy **k-nucleotide** it's a strong
+0.49s — top-half of the field, ahead of Java, Rust, and all the scripting
+languages, with only C, C++, Go, and a warmed-up LuaJIT faster. **binary-trees**
+(an allocation/GC stress test) has it at 0.31s, mid-pack and ahead of Go and
+every scripting language. **fasta** is the weak spot: hand-tuned byte-level
+output gives the low-level entries a wide edge, though Tomo still beats Lua,
+Node, and Python.
+
+The top of each compute chart is now crowded with fast natives — Zig, Nim, and
+Fortran routinely lead — but no garbage-collected, memory-safe language in the
+set is dramatically ahead of Tomo, and the scripting languages trail it
+everywhere.
 
 Per-benchmark graphs: [n-body](results-nbody.png) ·
 [fannkuch-redux](results-fannkuchredux.png) · [fasta](results-fasta.png) ·
@@ -94,7 +105,11 @@ comparison.
 
 | Status | Languages |
 |--------|-----------|
-| Active | C (gcc), C++ (g++), Rust, Go, Java, C#, Swift, JavaScript (node), Lua, LuaJIT, Python, **Tomo** |
+| Active | C (gcc), C++ (g++), Rust, Go, Zig, Nim, Odin, Java, C#, Swift, Fortran, JavaScript (node), Lua, LuaJIT, Python, **Tomo** |
+
+Not every language implements every benchmark. A language runs only the
+benchmarks it has a validated program for; the rest are simply absent from that
+chart. Coverage gaps (and why they exist) are noted below.
 
 C# uses **Native AOT** (`dotnet publish` with `PublishAot`), matching the
 CLBG `csharpaot` entries: the driver writes a minimal AOT `.csproj`, drops the
@@ -111,6 +126,32 @@ output format, so the slugs are chosen to avoid those: **n-body** uses
 `swift-3` (`swift-1` prints unformatted doubles instead of `%.9f`) and
 **k-nucleotide** uses `swift-2` (`swift-1` calls the long-removed
 `String.characters`).
+
+Fortran is compiled with `gfortran -O3 -march=native`. It runs in four of the
+five benchmarks; CLBG has no Fortran k-nucleotide entry (the page is a stub
+noting the lack of a standard Fortran hash table), so it's skipped there.
+
+Zig, Nim, and Odin are the non-CLBG languages: their sources come from the
+community [Programming-Language-Benchmarks][plb] repo (raw files, not
+HTML-extracted — see `source: "plb"` in `config.json`), and a program's slug is
+just the repo's filename stem (e.g. `"2"` → `2.nim`).
+
+- **Zig** builds with `zig build-exe -OReleaseFast -lc`. Those sources target
+  Zig ~0.14 (before the 0.15 `std.io`/`process.args` rework), so the driver
+  prefers a `zig0.14` binary on PATH (override with `ZIG=...`); a bleeding-edge
+  `zig` alone won't compile them. Runs four of five — its k-nucleotide entry
+  reads an input *file path* rather than stdin, which doesn't fit the
+  `stdin_fasta` harness.
+- **Nim** builds with `nim c -d:danger`. The repo has Nim for n-body,
+  binary-trees, and fasta only (three of five) — no fannkuch or k-nucleotide
+  entry exists to fetch.
+- **Odin** builds with `odin build -o:speed`. The repo has Odin for n-body,
+  binary-trees, and k-nucleotide, but the k-nucleotide entry doesn't compile on
+  a current Odin (`os.stream_from_handle` was removed), leaving two of five.
+
+The PLB benchmark directory names differ slightly from ours
+(`fannkuch-redux` vs `fannkuchredux`); `bench.py`'s `PLB_ALGO` maps between
+them.
 
 A language with no installed toolchain is skipped with a message rather than
 failing the run.
@@ -148,3 +189,4 @@ C# is omitted from **k-nucleotide**: its CLBG entries depend on the external
 entries there need `fastutil`), which isn't vendored here.
 
 [clbg]: https://benchmarksgame-team.pages.debian.net/benchmarksgame/
+[plb]: https://github.com/hanabi1224/Programming-Language-Benchmarks

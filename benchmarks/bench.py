@@ -33,6 +33,16 @@ LOCAL_TOMO = os.path.join(HERE, "..", "local-tomo")
 # produces a standalone native binary — a fair peer to the other compiled
 # languages, with none of the ~25 ms JIT/runtime startup a `dotnet foo.dll`
 # launch would add to every short benchmark. Needs `clang` for the final link.
+# Zig is fetched from the community Programming-Language-Benchmarks repo (the
+# CLBG has no Zig entries) and built with a specific interpreter: the fetched
+# sources target Zig ~0.14 (before the 0.15 std.io / process.args rework), so
+# prefer a `zig0.14` on PATH, overridable with $ZIG.
+ZIG_BIN = os.environ.get("ZIG") or shutil.which("zig0.14") or "zig"
+PLB_RAW = ("https://raw.githubusercontent.com/hanabi1224/"
+           "Programming-Language-Benchmarks/main/bench/algorithm")
+# Our benchmark name -> the repo's algorithm directory (default: same name).
+PLB_ALGO = {"fannkuchredux": "fannkuch-redux"}
+
 CSPROJ_AOT = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -78,6 +88,19 @@ def fetch(cfg, benchmarks):
                 continue  # reuses another language's source at run time
             ext = spec["ext"]
             dest = os.path.join(outdir, f"{lang}.{ext}")
+            # A language can source from the community Programming-Language-
+            # Benchmarks repo (raw file, no HTML extraction) instead of CLBG.
+            if spec.get("source") == "plb":
+                algo = PLB_ALGO.get(bname, bname)
+                url = f"{PLB_RAW}/{algo}/{slug}.{ext}"
+                try:
+                    with open(dest, "w") as f:
+                        f.write(curl(url))
+                    print(f"  ok   {bname}/{lang:<11} <- plb {algo}/{slug}.{ext}",
+                          flush=True)
+                except Exception as e:
+                    print(f"  FAIL {bname}/{lang:<11} {url}\n       {e}", flush=True)
+                continue
             url = f"{site}/{bname}-{slug}.html"
             try:
                 page = curl(url)
@@ -110,6 +133,8 @@ def tool_available(spec):
     exe = (spec.get("build") or spec.get("run"))[0]
     if exe == "{tomo}":
         return os.access(LOCAL_TOMO, os.X_OK)
+    if exe == "{zig}":
+        return bool(shutil.which(ZIG_BIN))
     if exe.startswith("{"):
         exe = spec["run"][0]
     return bool(shutil.which(exe))
@@ -174,8 +199,14 @@ def run_once(cmd, cwd=None, stdin_path=None):
 
 
 def expand(template, **kw):
-    return [kw.get(t[1:-1], t) if t.startswith("{") and t.endswith("}") else t
-            for t in template]
+    # Substitute {key} placeholders anywhere in each token (not just tokens that
+    # are entirely a placeholder), so forms like `-femit-bin={bin}` work.
+    out = []
+    for t in template:
+        for k, v in kw.items():
+            t = t.replace("{" + k + "}", v)
+        out.append(t)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -219,10 +250,12 @@ def prepare(cfg, bname, lang):
         # header-only dependency like klib/khash that k-nucleotide's C entry
         # needs). Absent for most benchmarks.
         cflags = cfg["benchmarks"][bname].get("cflags", {}).get(lang, [])
-        _check(expand(spec["build"], src=src, bin=binpath, tomo=LOCAL_TOMO) + cflags)
-        return expand(spec["run"], src=src, bin=binpath, tomo=LOCAL_TOMO)
+        _check(expand(spec["build"], src=src, bin=binpath, tomo=LOCAL_TOMO,
+                      zig=ZIG_BIN) + cflags)
+        return expand(spec["run"], src=src, bin=binpath, tomo=LOCAL_TOMO,
+                      zig=ZIG_BIN)
 
-    run = expand(spec["run"], src=src, bin="", tomo=LOCAL_TOMO)
+    run = expand(spec["run"], src=src, bin="", tomo=LOCAL_TOMO, zig=ZIG_BIN)
     # A `prelude` is a one-liner run via the interpreter's `-e` before the
     # script — used to shim LuaJIT (Lua 5.1 semantics) up to the handful of
     # 5.2+ names a few CLBG Lua entries expect (e.g. `table.unpack`), so we can

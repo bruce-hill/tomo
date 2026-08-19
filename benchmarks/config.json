@@ -54,6 +54,26 @@
       "label": "Swift", "ext": "swift", "color": "#f05138",
       "build": ["swiftc", "-O", "-o", "{bin}", "{src}"],
       "run": ["{bin}"]
+    },
+    "fortran": {
+      "label": "Fortran", "ext": "f90", "color": "#734f96",
+      "build": ["gfortran", "-O3", "-march=native", "-fomit-frame-pointer", "-J.build", "-o", "{bin}", "{src}"],
+      "run": ["{bin}"]
+    },
+    "zig": {
+      "label": "Zig", "ext": "zig", "color": "#f7a41d", "source": "plb",
+      "build": ["{zig}", "build-exe", "-OReleaseFast", "-lc", "-femit-bin={bin}", "{src}"],
+      "run": ["{bin}"]
+    },
+    "nim": {
+      "label": "Nim", "ext": "nim", "color": "#ffe953", "source": "plb",
+      "build": ["nim", "c", "-d:danger", "--hints:off", "--warnings:off", "-o:{bin}", "{src}"],
+      "run": ["{bin}"]
+    },
+    "odin": {
+      "label": "Odin", "ext": "odin", "color": "#3882d8", "source": "plb",
+      "build": ["odin", "build", "{src}", "-file", "-o:speed", "-out:{bin}"],
+      "run": ["{bin}"]
     }
   },
   "benchmarks": {
@@ -71,7 +91,11 @@
         "python": "python3-1",
         "java": "graalvmaot-1",
         "csharp": "csharpcore-1",
-        "swift": "swift-3"
+        "swift": "swift-3",
+        "fortran": "gfortran-1",
+        "zig": "3",
+        "nim": "2",
+        "odin": "1-i"
       }
     },
     "fannkuchredux": {
@@ -88,7 +112,9 @@
         "python": "python3-4",
         "java": "graalvmaot-1",
         "csharp": "csharpaot-2",
-        "swift": "swift-3"
+        "swift": "swift-3",
+        "fortran": "gfortran-1",
+        "zig": "1"
       }
     },
     "fasta": {
@@ -105,7 +131,10 @@
         "python": "python3-1",
         "java": "graalvmaot-2",
         "csharp": "csharpaot-1",
-        "swift": "swift-1"
+        "swift": "swift-1",
+        "fortran": "gfortran-1",
+        "zig": "1",
+        "nim": "2"
       }
     },
     "knucleotide": {
@@ -139,7 +168,11 @@
         "python": "python3-1",
         "java": "graalvmaot-2",
         "csharp": "csharpaot-1",
-        "swift": "swift-1"
+        "swift": "swift-1",
+        "fortran": "gfortran-1",
+        "zig": "1",
+        "nim": "2",
+        "odin": "1"
       }
     }
   }
