@@ -1910,24 +1910,30 @@ bool embed_is_constant(ast_t *ast, type_t *t) {
 // in a target numeric type (e.g. `(I64(1)+I64(2))`) instead of in
 // bignum-then-converted. Excludes comparisons and Concat, which don't produce a
 // numeric result of the operands' type. Used by can_compile_to_type (to accept
-// such an expression for a numeric type), compile_to_type (to emit the native
-// form), and is_constant (to recognize the native constant).
-PUREFUNC bool is_pushdown_arithmetic(ast_t *ast) {
+// such an expression for a numeric type) and compile_to_type (to emit the native
+// form).
+//
+// The op set is `target`-dependent, because the native C form only exists for
+// some (op, type) pairs (mirroring the native table in is_constant): bit shifts
+// and bitwise and/or/xor have no float form, so they can't push into a `Num`
+// target (`(3.0 << 1.0)` is invalid C); exponentiation compiles to `pow()` and
+// only supports `Num`. `target == NULL` means "no target constraint".
+PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target) {
     switch (ast->tag) {
-    case Power:
+    case Power: return target == NULL || target->tag == NumType;
     case Multiply:
     case Divide:
     case Mod:
     case Mod1:
     case Plus:
-    case Minus:
+    case Minus: return true;
     case LeftShift:
     case RightShift:
     case UnsignedLeftShift:
     case UnsignedRightShift:
     case And:
     case Or:
-    case Xor: return true;
+    case Xor: return target == NULL || target->tag != NumType;
     default: return false;
     }
 }
@@ -1944,7 +1950,7 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (needed->tag == NumType && ast->tag == Num) return true;
     // Untyped-int-literal arithmetic (inferred as bignum `Int`) can compile to
     // any numeric type its operands can, by pushing the type into them.
-    if (is_numeric_type(non_optional(needed)) && is_pushdown_arithmetic(ast)
+    if (is_numeric_type(non_optional(needed)) && is_pushdown_arithmetic(ast, non_optional(needed))
         && get_type(env, ast)->tag == BigIntType) {
         binary_operands_t binop = BINARY_OPERANDS(ast);
         return can_compile_to_type(env, binop.lhs, non_optional(needed))

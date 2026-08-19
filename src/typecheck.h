@@ -26,7 +26,7 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast);
 type_t *parse_type_string(env_t *env, const char *str);
 type_t *get_method_type(env_t *env, ast_t *self, const char *name);
 bool is_constant(env_t *env, ast_t *ast, type_t *expected_type);
-PUREFUNC bool is_pushdown_arithmetic(ast_t *ast);
+PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target);
 List_t get_embed_bytes(ast_t *ast);
 bool embed_is_constant(ast_t *ast, type_t *t);
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed);
