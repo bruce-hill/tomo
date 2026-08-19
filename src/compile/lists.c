@@ -56,18 +56,26 @@ list_comprehension: {
     scope->comprehension_action = &comp_action;
 
     // Fast path: a single comprehension `[expr for x in SOURCE (if cond)]`
-    // whose SOURCE is a list of known length. The result can never have more
-    // than SOURCE.length elements (a filter only removes), so pre-allocate
-    // exactly that capacity and fill it with the inlined List$insert_value
-    // append -- no growth reallocation, no repeated GC scans of a growing
-    // buffer. SOURCE is hoisted into a temp (evaluated once, since it may not
-    // be idempotent, e.g. `xs.reversed()`), and the loop iterates that temp.
+    // whose element count is bounded up front. The result can never have more
+    // elements than SOURCE yields (a filter only removes), so pre-allocate
+    // that capacity and fill it with the inlined List$insert_value append --
+    // no growth reallocation, no repeated GC scans of a growing buffer.
+    // SOURCE is hoisted into a temp (evaluated once, since it may not be
+    // idempotent, e.g. `xs.reversed()` or `a*b`), and the loop iterates that
+    // temp. Bounded sources: a list (capacity = its length) or an integer
+    // count `for x in n` (capacity = n; `with_capacity` clamps n <= 0 to
+    // empty, and a truncated bignum just means a non-pre-sized fallback, never
+    // a wrong result).
     if (list->items && !list->items->next && list->items->ast->tag == Comprehension) {
         DeclareMatch(comp, list->items->ast, Comprehension);
         if (comp->iters && !comp->iters->next && comp->expr->tag != Comprehension) {
             type_t *src_t = value_type(get_type(env, comp->iters->ast));
-            if (src_t->tag == ListType) {
-                const char *src_name = String("comp_src$", this_comp);
+            Text_t capacity = EMPTY_TEXT;
+            const char *src_name = String("comp_src$", this_comp);
+            if (src_t->tag == ListType) capacity = Texts(src_name, ".length");
+            else if (src_t->tag == BigIntType) capacity = Texts("Int64$from_int(", src_name, ", yes)");
+            else if (src_t->tag == IntType) capacity = Texts("(int64_t)(", src_name, ")");
+            if (capacity.length > 0) {
                 Text_t src_code = compile_to_pointer_depth(env, comp->iters->ast, 0, false);
                 ast_t *src_ref = LiteralCode(Texts(src_name), .type = src_t);
                 ast_t *body = add_to_list_comprehension(comp->expr, comprehension_var);
@@ -75,8 +83,8 @@ list_comprehension: {
                 ast_t *loop = WrapAST(list->items->ast, For, .vars = comp->vars, .at = comp->at,
                                       .iters = new (ast_list_t, .ast = src_ref), .body = body);
                 Text_t zero = Texts("(", compile_type(item_type), "){0}");
-                return Texts("({ List_t ", src_name, " = ", src_code, "; List_t ", comprehension_name,
-                             " = List$with_capacity(", src_name, ".length, ", zero, ");\n",
+                return Texts("({ ", compile_type(src_t), " ", src_name, " = ", src_code, "; List_t ",
+                             comprehension_name, " = List$with_capacity(", capacity, ", ", zero, ");\n",
                              compile_statement(scope, loop), " ", comprehension_name, "; })");
             }
         }
