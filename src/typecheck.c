@@ -1946,18 +1946,21 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (ast->tag == Embed && (needed->tag == TextType || needed->tag == CStringType)) return true;
 
     env = with_enum_scope(env, needed);
-    if (is_numeric_type(needed) && ast->tag == Int) return true;
+    type_t *non_optional_needed = non_optional(needed);
+    // Untyped int literals can compile to a numeric type even when it's
+    // wrapped in an Optional (e.g. comparing a `(+.length: ...)` reduction's
+    // `Int64?` result against the literal `6`).
+    if (is_numeric_type(non_optional_needed) && ast->tag == Int) return true;
     if (needed->tag == NumType && ast->tag == Num) return true;
     // Untyped-int-literal arithmetic (inferred as bignum `Int`) can compile to
     // any numeric type its operands can, by pushing the type into them.
-    if (is_numeric_type(non_optional(needed)) && is_pushdown_arithmetic(ast, non_optional(needed))
+    if (is_numeric_type(non_optional_needed) && is_pushdown_arithmetic(ast, non_optional_needed)
         && get_type(env, ast)->tag == BigIntType) {
         binary_operands_t binop = BINARY_OPERANDS(ast);
-        return can_compile_to_type(env, binop.lhs, non_optional(needed))
-               && can_compile_to_type(env, binop.rhs, non_optional(needed));
+        return can_compile_to_type(env, binop.lhs, non_optional_needed)
+               && can_compile_to_type(env, binop.rhs, non_optional_needed);
     }
 
-    type_t *non_optional_needed = non_optional(needed);
     if (non_optional_needed->tag == ListType && ast->tag == List) {
         type_t *item_type = Match(non_optional_needed, ListType)->item_type;
         for (ast_list_t *item = Match(ast, List)->items; item; item = item->next) {

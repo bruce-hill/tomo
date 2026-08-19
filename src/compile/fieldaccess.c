@@ -32,7 +32,7 @@ Text_t compile_field_access(env_t *env, ast_t *ast) {
             Text_t text = compile_to_pointer_depth(env, f->fielded, 0, false);
             return Texts("((Text_t)", text, ")");
         } else if (streq(f->field, "length")) {
-            return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
+            return Texts("((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
         }
         code_err(ast, "There is no '", f->field, "' field on ", type_to_text(value_t), " values");
     }
@@ -44,12 +44,12 @@ Text_t compile_field_access(env_t *env, ast_t *ast) {
     }
     case ListType: {
         if (streq(f->field, "length"))
-            return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
+            return Texts("((", compile_to_pointer_depth(env, f->fielded, 0, false), ").length)");
         code_err(ast, "There is no ", f->field, " field on lists");
     }
     case TableType: {
         if (streq(f->field, "length")) {
-            return Texts("Int$from_int64((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
+            return Texts("((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries.length)");
         } else if (streq(f->field, "keys")) {
             return Texts("LIST_COPY((", compile_to_pointer_depth(env, f->fielded, 0, false), ").entries)");
         } else if (streq(f->field, "values")) {
