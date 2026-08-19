@@ -75,7 +75,7 @@ func read_third_sequence(-> [Byte])
 func write_frequencies(seq:[Byte], k:Int64)
     n := Int64(seq.length)
     mask := (Int64(1) << (2*k)) - 1
-    counts : &{Int64:Int64} = &{}
+    counts : &{Int64:Int64; default=Int64(0)} = &{}
     key := Int64(0)
     # Prime the rolling key with the first k-1 codes (step=1 keeps the range
     # ascending, so k=1 yields an empty range instead of descending).
@@ -83,7 +83,7 @@ func write_frequencies(seq:[Byte], k:Int64)
         key = ((key << 2) and mask) or Int64(seq[i]!)
     for i in k.to(n, step=1)
         key = ((key << 2) and mask) or Int64(seq[i]!)
-        counts[key] = (counts[key] or Int64(0)) + 1
+        counts[key] += 1
 
     entries := &[Count(kk, vv) for kk, vv in counts.entries()]
     entries.sort(by_count_then_key)

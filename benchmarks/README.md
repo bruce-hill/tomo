@@ -22,9 +22,9 @@ inside the compiled-language cluster and beats every scripting language on every
 benchmark**. On the tight compute loops it lands in the middle of that cluster:
 **fannkuch-redux** puts it at 0.18s, within 1.8× of the fastest and jostling
 with C, Java, and C++; **n-body** at 0.27s is ~1.9× the leaders (Zig/Rust), just
-ahead of Go and Java. On the hash-table-heavy **k-nucleotide** it's a strong
-0.49s — top-half of the field, ahead of Java, Rust, and all the scripting
-languages, with only C, C++, Go, and a warmed-up LuaJIT faster. **binary-trees**
+ahead of Go and Java. On the hash-table-heavy **k-nucleotide** it takes 3rd at
+0.29s — behind only C and C++, and ahead of Go, LuaJIT, Java, Rust, and every
+scripting language. **binary-trees**
 (an allocation/GC stress test) has it at 0.31s, mid-pack and ahead of Go and
 every scripting language. **fasta** is Tomo's softest benchmark but no longer an
 outlier — at 0.37s it's ~1.6× C (in line with n-body), edging out Rust and Java
