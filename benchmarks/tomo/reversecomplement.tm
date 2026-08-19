@@ -13,6 +13,14 @@
 #     non-zero lookups reverses, complements, upper-cases and strips newlines in
 #     a single pass, exactly like the reference's `xtab` (where `if (c)` skips
 #     the zero entries).
+#   - The output buffer is `data`'s own bytes reused as scratch space (plus a
+#     little padding): a `[Byte]` slice shares its backing storage (CoW) until
+#     the first write, which triggers exactly one bulk copy-on-write compact
+#     for the *whole* buffer; every write after that is a plain bounds-checked
+#     pointer store, with no growth logic and no per-byte `memcpy()` call. This
+#     replaced a per-byte `out.insert(c)`, which (even after fixing
+#     `List$insert`'s growth path to bulk-copy) still called a real `memcpy()`
+#     once per byte to place the new item.
 #   - Output goes through a raw `byte_writer` (like fasta), one whole record at
 #     a time.
 #
@@ -37,6 +45,15 @@ func main()
     comp := build_comp()
     emit := (/dev/stdout).byte_writer(append=yes)
 
+    # Reused write buffer for every record's output, shared across the whole
+    # run. Output can never be longer than the input (re-wrapping only removes
+    # or repositions newlines), so `n` bytes of `data` itself, plus a little
+    # slack for a wrap-width mismatch between input and output, is always
+    # enough room. Sliced (not copied) from `data` — the first indexed write
+    # below triggers one bulk copy-on-write compact, not a per-byte cost.
+    out := &(data.slice(1, n) ++ [Byte(0) for _ in n / 60 + 64])
+    p := Int64(0)  # write cursor into `out`, shared across all records
+
     i := Int64(1)
     while i <= n
         # Header line: from '>' up to (not including) the newline.
@@ -55,18 +72,21 @@ func main()
 
         # Walk the sequence backwards, emitting only non-zero complements, and
         # re-wrap at 60 columns. Newlines map to 0 and are skipped for free.
-        out := &[Byte(0) for _ in 0]
+        record_start := p + 1
         col := Int64(0)
         j := seq_end - 1
         while j >= seq_start
             c := comp[Int64(data[j]!) + 1]!
             if Int64(c) != 0
-                out.insert(c)
+                p += 1
+                out[p] = c
                 col += 1
                 if col == 60
-                    out.insert(Byte(10))
+                    p += 1
+                    out[p] = Byte(10)
                     col = 0
             j -= 1
         if col > 0
-            out.insert(Byte(10))
-        emit(out[])!
+            p += 1
+            out[p] = Byte(10)
+        emit(out[].slice(record_start, p))!

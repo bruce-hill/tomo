@@ -34,12 +34,13 @@ language.
 
 Of the four newer benchmarks, **mandelbrot** is a standout: at 0.70s Tomo
 *beats* the (multithreaded, core-pinned) C and Go entries outright, trailing
-only Rust, C++, and Java. **reverse-complement** at 0.45s is mid-pack, ahead of
-JavaScript, PyPy, C++, and Lua. **spectral-norm** at 1.16s is ~1.9× C, ahead of
-Go, C#, Java, and every scripting language. **pidigits** — a pure GMP bignum
-stress test — is Tomo's weakest relative showing at ~4.8× C, but still 4th of
-9, comfortably ahead of Python, PyPy, Java, C#, and JavaScript. Two runtime
-bugs surfaced (and got fixed) while chasing these numbers down — see below.
+only Rust, C++, and Java. **reverse-complement** at 0.30s effectively ties
+Python and Java, ahead of LuaJIT, JavaScript, C++, PyPy, and Lua. **spectral-
+norm** at 1.16s is ~1.9× C, ahead of Go, C#, Java, and every scripting
+language. **pidigits** — a pure GMP bignum stress test — is Tomo's weakest
+relative showing at ~4.8× C, but still 4th of 9, comfortably ahead of Python,
+PyPy, Java, C#, and JavaScript. Two runtime bugs surfaced (and got fixed)
+while chasing these numbers down — see below.
 
 The top of each compute chart is crowded with fast natives — Zig, Nim,
 Fortran, and Rust routinely lead — but no garbage-collected, memory-safe
@@ -58,16 +59,31 @@ pidigits (n=10000) dropped from **~11.3 GB to 12 MB**, and wall time from
 6.75s to 1.75s, since the GC was no longer thrashing over gigabytes of leaked
 limbs.
 
-Profiling **reverse-complement** (which builds its output with a per-byte
+Profiling **reverse-complement** (which built its output with a per-byte
 `out.insert(c)`) turned up a second one: `List$insert`'s growth path copied
 the *entire* existing list one element at a time via a separate `memcpy()`
 call per item, even when the data was already tightly packed and a single
 bulk `memcpy` would do. `perf` showed a quarter of total runtime spent inside
 those one-byte `memcpy` calls. Fixed to bulk-copy contiguous lists (the common
-case, including every plain append-via-`insert`); reverse-complement dropped
-from 0.60s to 0.45s and k-nucleotide (which builds its sequence the same way)
-improved too. This is a general fix — it speeds up any Tomo code that builds
-a list via repeated `insert()`, not just these two benchmarks.
+case, including every plain append-via-`insert`); this alone took reverse-
+complement from 0.60s to 0.40s and improved k-nucleotide (which builds its
+sequence the same way) too. It's a general fix — it speeds up any Tomo code
+that builds a list via repeated `insert()`, not just these two benchmarks.
+
+Even with that fix, `List$insert` still calls `memcpy()` once per element for
+the actual item placement — real function-call overhead when the item is a
+single byte. The reverse-complement port now avoids `insert()` entirely: its
+output buffer is `data`'s own backing bytes, reused as scratch space by
+slicing them (an O(1), zero-copy view) and writing into that slice by index.
+The *first* indexed write triggers one bulk copy-on-write compact for the
+whole buffer; every write after that is a plain bounds-checked pointer store,
+no function call and no growth logic at all. That dropped reverse-complement
+from 0.40s to **0.30s — tying Python**, whose entry does the equivalent
+transform as two O(n) bulk C calls (`bytes.translate()` then
+`bytearray.reverse()`) with zero per-byte interpreter overhead. Matching that
+from a genuine scalar byte-loop, instead of losing to it the way even the
+compiled C++ reference here does (0.89s), is about as good an outcome as a
+safe, bounds-checked language can get without hand-vectorizing.
 
 Per-benchmark graphs: [n-body](results-nbody.png) ·
 [fannkuch-redux](results-fannkuchredux.png) · [fasta](results-fasta.png) ·
