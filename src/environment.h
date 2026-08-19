@@ -8,6 +8,11 @@
 #include "types.h"
 
 typedef struct {
+    // Module-level `static const` definitions (e.g. constant list literals'
+    // backing arrays) that must precede everything else -- lambdas and
+    // staticdefs reference them but they are not forward-declared, so they are
+    // emitted first.
+    Text_t constants;
     Text_t local_typedefs;
     Text_t staticdefs;
     Text_t lambdas;

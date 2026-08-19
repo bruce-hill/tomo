@@ -900,8 +900,12 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, bool
         DeclareMatch(fn, constructor->type, FunctionType);
         if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, options)) return constructor;
     }
-    // Fall back to promotion:
+    // Fall back to promotion -- but never let a `[Byte]` argument match a
+    // differently-typed parameter by implicit (de)serialization (e.g. a byte
+    // list silently deserializing to fill a Path/CString argument). That's what
+    // `x : T = bytes` is for; a constructor call is not.
     options.promotion = true;
+    options.no_serialization = true;
     for (int64_t i = (int64_t)constructors.length - 1; i >= 0; i--) {
         binding_t *constructor = constructors.data + i * constructors.stride;
         DeclareMatch(fn, constructor->type, FunctionType);

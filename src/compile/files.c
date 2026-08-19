@@ -34,11 +34,17 @@ void initialize_vars_and_statics(env_t *env, ast_t *ast) {
             Text_t full_name = namespace_name(env, env->namespace, Text$from_str(decl_name));
             type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
             if (t->tag == FunctionType) t = Type(ClosureType, t);
-            Text_t val_code = compile_declared_value(env, stmt->ast);
             bool value_is_constant =
                 decl->value
-                && (decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value));
+                && (decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value, t));
             if ((decl->value && !value_is_constant) || (!decl->value && has_heap_memory(t))) {
+                // Only non-constant values need runtime initialization here.
+                // (Compile the value inside this branch, not above -- for a
+                // constant value it's emitted as a static initializer by
+                // compile_top_level_code instead, and compiling it here too
+                // would duplicate any hoisted static defs, e.g. a list
+                // literal's backing array.)
+                Text_t val_code = compile_declared_value(env, stmt->ast);
                 Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
                 env->code->variable_initializers =
                     Texts(env->code->variable_initializers,
@@ -94,7 +100,7 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
         bool is_private = decl_name[0] == '_';
         bool value_is_constant =
             decl->value
-            && (decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value));
+            && (decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value, t));
         if (value_is_constant || (!decl->value && !has_heap_memory(t))) {
             set_binding(env, decl_name, t, full_name);
             return Texts(is_private ? "static " : "public ", compile_declaration(t, full_name), " = ", val_code, ";\n");
@@ -215,8 +221,8 @@ Text_t compile_file(env_t *env, ast_t *ast) {
                  "#define __SOURCE_FILE__ ", quoted_str(ast->file->filename), "\n",
                  "#include <tomo.h>\n"
                  "#include \"",
-                 name, ".tm.h\"\n\n", includes, env->code->local_typedefs, "\n", env->code->lambdas, "\n",
-                 env->code->staticdefs, "\n", top_level_code, "public void ",
+                 name, ".tm.h\"\n\n", includes, env->code->constants, "\n", env->code->local_typedefs, "\n",
+                 env->code->lambdas, "\n", env->code->staticdefs, "\n", top_level_code, "public void ",
                  namespace_name(env, env->namespace, Text("$initialize")), "(void) {\n",
                  "static bool initialized = false;\n", "if (initialized) return;\n", "initialized = true;\n",
                  use_imports, env->code->variable_initializers, "}\n");

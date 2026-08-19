@@ -321,3 +321,35 @@ test "iterating a list value by reference is a compile error"
 	for &x in xs
 		x[] += 1
 fails_compile "can't be iterated by reference"
+
+# A list literal whose elements are all compile-time constants is backed by a
+# module-level `static const` array (see ConstList / is_constant). These tests
+# guard that optimization: the value must survive escaping its stack frame, and
+# any mutation must copy-on-write rather than write through the shared const data.
+func constant_list_literal(-> [Int])
+	return [10, 20, 30]
+
+func nested_constant_literal(-> [[Int]])
+	return [[1, 2], [3, 4]]
+
+test "nested constant list literals are constant"
+	assert nested_constant_literal() == [[1, 2], [3, 4]]
+
+test "a constant list literal survives escaping its stack frame"
+	# The returned value's buffer is static, so it stays valid after the
+	# function that produced it has returned:
+	assert constant_list_literal() == [10, 20, 30]
+	got := constant_list_literal()
+	assert got == [10, 20, 30]
+
+test "mutating a constant-literal-backed list copies on write"
+	list := @[10, 20, 30]
+	snapshot := list[]
+	list.insert(40)
+	assert list[] == [10, 20, 30, 40]
+	list[1] = 999
+	assert list[] == [999, 20, 30, 40]
+	# The snapshot and a second identical literal must read the original values,
+	# proving the static const buffer was never written through:
+	assert snapshot == [10, 20, 30]
+	assert [10, 20, 30] == [10, 20, 30]

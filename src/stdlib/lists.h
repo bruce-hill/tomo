@@ -150,8 +150,10 @@ extern char _EMPTY_LIST_SENTINEL;
         (List_t){.length = sizeof(items) / sizeof(items[0]),                                                           \
                  .stride = (int64_t)&items[1] - (int64_t)&items[0],                                                    \
                  .data = sizeof(items) == 0 ? &_EMPTY_LIST_SENTINEL                                                    \
-                                            : memcpy(GC_MALLOC(sizeof(items)), items, sizeof(items)),                  \
-                 .atomic = 0,                                                                                          \
+                                            : memcpy(is_atomic((t){0}) ? GC_MALLOC_ATOMIC(sizeof(items))              \
+                                                                       : GC_MALLOC(sizeof(items)),                     \
+                                                     items, sizeof(items)),                                            \
+                 .atomic = is_atomic((t){0}),                                                                          \
                  .data_refcount = 0};                                                                                  \
     })
 #define TypedListN(t, N, ...)                                                                                          \
@@ -159,10 +161,30 @@ extern char _EMPTY_LIST_SENTINEL;
         t items[N] = {__VA_ARGS__};                                                                                    \
         (List_t){.length = N,                                                                                          \
                  .stride = (int64_t)&items[1] - (int64_t)&items[0],                                                    \
-                 .data = N == 0 ? &_EMPTY_LIST_SENTINEL : memcpy(GC_MALLOC(sizeof(items)), items, sizeof(items)),      \
-                 .atomic = 0,                                                                                          \
+                 .data = N == 0 ? &_EMPTY_LIST_SENTINEL                                                                \
+                                : memcpy(is_atomic((t){0}) ? GC_MALLOC_ATOMIC(sizeof(items))                          \
+                                                           : GC_MALLOC(sizeof(items)),                                 \
+                                         items, sizeof(items)),                                                        \
+                 .atomic = is_atomic((t){0}),                                                                          \
                  .data_refcount = 0};                                                                                  \
     })
+// A list literal whose elements are all compile-time constants. `data` points
+// at a module-level `static const` array (emitted separately by the compiler,
+// so its elements have .rodata/program lifetime), and this is a plain constant
+// *expression* (no statement expression) -- so the whole List_t is itself a
+// compile-time constant, usable even as a file-scope initializer, and its buffer
+// never dangles wherever the value escapes to. `data_refcount` is maxed and
+// `free` is 0 so any mutation path copies to a fresh heap buffer before writing
+// (copy-on-write), never touching the const data. The compiler emits this only
+// when every element compiles to a C constant (see is_constant() /
+// compile_typed_list); N is always >= 1 (empty literals use EMPTY_LIST).
+#define ConstList(t, N, data_ptr)                                                                                     \
+    ((List_t){.length = (N),                                                                                           \
+              .stride = sizeof(t),                                                                                     \
+              .data = (void *)(data_ptr),                                                                              \
+              .atomic = is_atomic((t){0}),                                                                            \
+              .free = 0,                                                                                              \
+              .data_refcount = LIST_MAX_DATA_REFCOUNT})
 #define List(x, ...)                                                                                                   \
     ({                                                                                                                 \
         __typeof(x) items[] = {x, __VA_ARGS__};                                                                        \

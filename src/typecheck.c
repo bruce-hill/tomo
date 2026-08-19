@@ -1612,6 +1612,33 @@ type_t *get_arg_type(env_t *env, arg_t *arg) {
     return get_type(env, arg->default_val);
 }
 
+// Would matching `arg` (of type `actual`) to a parameter of type `needed` rely
+// on implicit byte (de)serialization -- i.e. exactly one side is `[Byte]`?
+// (Both sides `[Byte]`, or neither, is not (de)serialization.) A list *literal*
+// whose items each coerce to the needed element type is exempt: that's per-item
+// literal coercion (e.g. `[1, 2, 3]` as shorthand for `[Byte(1), Byte(2),
+// Byte(3)]`), which goes through can_compile_to_type's list-literal branch, not
+// the serialization rule. Mirrors the serialize/deserialize rule in
+// promote()/can_promote().
+static bool is_byte_serialization_match(env_t *env, ast_t *arg, type_t *actual, type_t *needed) {
+    if (!actual || !needed || type_eq(actual, needed)) return false;
+    type_t *byte_list = Type(ListType, .item_type = Type(ByteType));
+    bool actual_bytes = type_eq(non_optional(value_type(actual)), byte_list);
+    bool needed_bytes = type_eq(non_optional(value_type(needed)), byte_list);
+    if (actual_bytes == needed_bytes) return false;
+    if (arg->tag == List) {
+        type_t *needed_list = non_optional(value_type(needed));
+        if (needed_list->tag == ListType) {
+            type_t *item_t = Match(needed_list, ListType)->item_type;
+            bool per_item = item_t != NULL;
+            for (ast_list_t *it = Match(arg, List)->items; per_item && it; it = it->next)
+                if (it->ast->tag == Comprehension || !can_compile_to_type(env, it->ast, item_t)) per_item = false;
+            if (per_item) return false; // per-item literal coercion, not serialization
+        }
+    }
+    return true;
+}
+
 bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts_t options) {
     Table_t used_args = EMPTY_TABLE;
 
@@ -1628,6 +1655,9 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
             if (options.promotion) {
                 if (!can_compile_to_type(arg_scope, call_arg->value, spec_type))
                     return false; // Positional arg trying to fill in
+                if (options.no_serialization
+                    && is_byte_serialization_match(arg_scope, call_arg->value, call_type, spec_type))
+                    return false;
             } else {
                 type_t *complete_call_type =
                     is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
@@ -1655,6 +1685,10 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
                     if (!can_compile_to_type(arg_scope, unused_args->value, spec_type)) {
                         return false; // Positional arg trying to fill in
                     }
+                    if (options.no_serialization
+                        && is_byte_serialization_match(arg_scope, unused_args->value,
+                                                       get_arg_ast_type(arg_scope, unused_args), spec_type))
+                        return false;
                 } else {
                     type_t *call_type = get_arg_ast_type(arg_scope, unused_args);
                     type_t *complete_call_type =
@@ -1711,12 +1745,25 @@ type_t *parse_type_string(env_t *env, const char *str) {
     return ast ? parse_type_ast(env, ast) : NULL;
 }
 
-bool is_constant(env_t *env, ast_t *ast) {
+bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
+    // For numeric cases, the type this value will be compiled to: when the
+    // caller knows it (a declared type or a list's item type), an untyped-int
+    // expression compiles in that type -- `1 + 2` in an Int64 context is native
+    // `(I64(1)+I64(2))`, a C constant -- rather than bignum-then-converted.
+    // `NULL` means "use the value's own inferred type".
+#define EXPECTED_OR_INFERRED (expected_type ? expected_type : get_type(env, ast))
     switch (ast->tag) {
     case Bool:
     case Num:
     case None: return true;
     case Int: {
+        // Compiled to a native fixed-width int / Num / Byte target, any int
+        // literal that fits is a plain cast -- a C constant (codegen errors if
+        // it doesn't fit). Compiled to a bignum `Int`, only a small-enough
+        // literal is constant (the I_small() compound literal); a larger one
+        // compiles to a runtime Int$from_str/from_int64 call.
+        type_t *t = EXPECTED_OR_INFERRED;
+        if (t->tag == IntType || t->tag == NumType || t->tag == ByteType) return true;
         DeclareMatch(info, ast, Int);
         Int_t int_val = Int$parse(Text$from_str(info->str), NONE_INT, NULL);
         if (int_val.small == 0) return false; // Failed to parse
@@ -1726,7 +1773,25 @@ bool is_constant(env_t *env, ast_t *ast) {
         DeclareMatch(text, ast, TextJoin);
         if (!text->children) return true; // Empty string, OK
         if (text->children->next) return false; // Concatenation, not constant
-        return is_constant(env, text->children->ast);
+        return is_constant(env, text->children->ast, NULL);
+    }
+    case List: {
+        // A list literal is a compile-time constant when it has no comprehension
+        // and every element is constant: it compiles to a `(List_t){...}` backed
+        // by a hoisted `static const` array, itself a constant expression (see
+        // ConstList / compile_typed_list). An empty literal is the constant
+        // EMPTY_LIST.
+        DeclareMatch(list, ast, List);
+        if (!list->items) return true;
+        type_t *lt = EXPECTED_OR_INFERRED;
+        if (lt->tag != ListType) return false;
+        type_t *item_type = Match(lt, ListType)->item_type;
+        if (item_type == NULL || is_incomplete_type(item_type)) return false;
+        for (ast_list_t *item = list->items; item; item = item->next) {
+            if (item->ast->tag == Comprehension) return false;
+            if (!is_constant(env, item->ast, item_type)) return false;
+        }
+        return true;
     }
     case TextLiteral: {
         Text_t literal = Match(ast, TextLiteral)->text;
@@ -1737,18 +1802,50 @@ bool is_constant(env_t *env, ast_t *ast) {
         }
         return true; // Literal ASCII string, OK
     }
-    case Not: return is_constant(env, Match(ast, Not)->value);
-    case Negative: return is_constant(env, Match(ast, Negative)->value);
+    case Not: {
+        // `not` is a native C `!`/`~` (constant) for Bool and fixed-width int /
+        // Byte, but a function call (`Int$negated`) for bignum `Int`. Codegen
+        // doesn't push a target type through `not`, so gate on the value's own
+        // type, not the expected type.
+        type_t *nt = get_type(env, ast);
+        if (nt->tag == BigIntType) return false;
+        return is_constant(env, Match(ast, Not)->value, NULL);
+    }
+    case Negative: {
+        // Negation compiles to a native C `-` (a constant expression) only for
+        // fixed-width int / Num / Byte, not bignum `Int` (`Int$negative` call).
+        // Codegen doesn't push a target type through `-`, so gate on the value's
+        // own type.
+        type_t *nt = get_type(env, ast);
+        if (nt->tag != IntType && nt->tag != NumType && nt->tag != ByteType) return false;
+        return is_constant(env, Match(ast, Negative)->value, NULL);
+    }
     case BINOP_CASES: {
         binary_operands_t binop = BINARY_OPERANDS(ast);
+        type_t *t = EXPECTED_OR_INFERRED;
+        // An operation is a compile-time constant only when it has a native C
+        // operator form for `t` (so `compile_to_type` -- which pushes `t` into
+        // the operands -- renders it as a constant expression). The op set is
+        // type-dependent: fixed-width int `/`,`%` compile to *checked* blocks
+        // (division-by-zero), `**` and bignum arithmetic to function calls --
+        // none are constants. Operands are checked against the same target `t`.
+        bool native;
         switch (ast->tag) {
-        case Power:
-        case Concat:
-        case Min:
-        case Max:
-        case Compare: return false;
-        default: return is_constant(env, binop.lhs) && is_constant(env, binop.rhs);
+        case Plus:
+        case Minus:
+        case Multiply: native = (t->tag == IntType || t->tag == ByteType || t->tag == NumType); break;
+        case Divide: native = (t->tag == NumType); break; // fixed-width int '/' is a checked block
+        case LeftShift:
+        case RightShift:
+        case UnsignedLeftShift:
+        case UnsignedRightShift: native = (t->tag == IntType || t->tag == ByteType); break;
+        case And:
+        case Or:
+        case Xor: native = (t->tag == IntType || t->tag == ByteType || t->tag == BoolType); break;
+        default: native = false; break; // Power, Mod, Mod1, Concat, comparisons, Min, Max, Compare
         }
+        if (!native) return false;
+        return is_constant(env, binop.lhs, t) && is_constant(env, binop.rhs, t);
     }
     case Use:
     case Metadata: return true;
@@ -1760,10 +1857,10 @@ bool is_constant(env_t *env, ast_t *ast) {
         DeclareMatch(call, ast, FunctionCall);
         type_t *fn_t = get_type(env, call->fn);
         if (fn_t && fn_t->tag == TypeInfoType && call->args && !call->args->next) {
-            type_t *t = Match(fn_t, TypeInfoType)->type;
+            type_t *ctor_t = Match(fn_t, TypeInfoType)->type;
             ast_t *arg = call->args->value;
-            if (is_numeric_type(t) && arg->tag == Int && is_constant(env, arg)) return true;
-            if (t->tag == NumType && arg->tag == Num) return true;
+            if (is_numeric_type(ctor_t) && arg->tag == Int && is_constant(env, arg, ctor_t)) return true;
+            if (ctor_t->tag == NumType && arg->tag == Num) return true;
         }
         return false;
     }
@@ -1774,6 +1871,7 @@ bool is_constant(env_t *env, ast_t *ast) {
     case Embed: return false;
     default: return false;
     }
+#undef EXPECTED_OR_INFERRED
 }
 
 public
@@ -1807,6 +1905,33 @@ bool embed_is_constant(ast_t *ast, type_t *t) {
     return true;
 }
 
+// Arithmetic/bitwise binary ops whose result type can be pushed down into the
+// operands, so untyped-int-literal arithmetic like `1 + 2` can compile natively
+// in a target numeric type (e.g. `(I64(1)+I64(2))`) instead of in
+// bignum-then-converted. Excludes comparisons and Concat, which don't produce a
+// numeric result of the operands' type. Used by can_compile_to_type (to accept
+// such an expression for a numeric type), compile_to_type (to emit the native
+// form), and is_constant (to recognize the native constant).
+PUREFUNC bool is_pushdown_arithmetic(ast_t *ast) {
+    switch (ast->tag) {
+    case Power:
+    case Multiply:
+    case Divide:
+    case Mod:
+    case Mod1:
+    case Plus:
+    case Minus:
+    case LeftShift:
+    case RightShift:
+    case UnsignedLeftShift:
+    case UnsignedRightShift:
+    case And:
+    case Or:
+    case Xor: return true;
+    default: return false;
+    }
+}
+
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (is_incomplete_type(needed)) return false;
 
@@ -1817,6 +1942,14 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     env = with_enum_scope(env, needed);
     if (is_numeric_type(needed) && ast->tag == Int) return true;
     if (needed->tag == NumType && ast->tag == Num) return true;
+    // Untyped-int-literal arithmetic (inferred as bignum `Int`) can compile to
+    // any numeric type its operands can, by pushing the type into them.
+    if (is_numeric_type(non_optional(needed)) && is_pushdown_arithmetic(ast)
+        && get_type(env, ast)->tag == BigIntType) {
+        binary_operands_t binop = BINARY_OPERANDS(ast);
+        return can_compile_to_type(env, binop.lhs, non_optional(needed))
+               && can_compile_to_type(env, binop.rhs, non_optional(needed));
+    }
 
     type_t *non_optional_needed = non_optional(needed);
     if (non_optional_needed->tag == ListType && ast->tag == List) {

@@ -58,10 +58,20 @@ static Text_t compile_checked_int_divmod(env_t *env, ast_t *ast, type_t *overall
 
 public
 Text_t compile_binary_op(env_t *env, ast_t *ast) {
+    return compile_binary_op_to_type(env, ast, get_type(env, ast));
+}
+
+// Compile a binary operation, treating its result (and, via compile_to_type,
+// its operands) as `overall_t`. `compile_binary_op` passes the inferred type;
+// callers that know the value flows into a specific numeric type (e.g. an
+// `[Int64]` list literal holding `1 + 2`, whose operands would otherwise infer
+// as bignum `Int`) pass that type so the arithmetic is done natively in it
+// instead of in bignum-then-converted.
+public
+Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
     binary_operands_t binop = BINARY_OPERANDS(ast);
     type_t *lhs_t = get_type(env, binop.lhs);
     type_t *rhs_t = get_type(env, binop.rhs);
-    type_t *overall_t = get_type(env, ast);
 
     if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1)
         && (overall_t->tag == IntType || overall_t->tag == BigIntType || overall_t->tag == ByteType))

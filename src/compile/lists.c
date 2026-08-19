@@ -77,6 +77,30 @@ Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type) {
     {
         env_t *scope = item_type->tag == EnumType ? with_enum_scope(env, item_type) : env;
         if (is_incomplete_type(item_type)) code_err(ast, "This list's type can't be inferred!");
+        bool all_const = true;
+        for (ast_list_t *item = list->items; item; item = item->next) {
+            if (!is_constant(scope, item->ast, item_type)) {
+                all_const = false;
+                break;
+            }
+        }
+        if (all_const) {
+            // Every item is a compile-time constant: hoist the data into a
+            // module-level `static const` array (program lifetime, .rodata) and
+            // point a `ConstList` at it. The result is a constant List_t
+            // *expression* -- no allocation, no copy, valid even as a file-scope
+            // initializer -- that never dangles wherever it escapes to. Mutation
+            // is guarded by copy-on-write (see ConstList in stdlib/lists.h).
+            static int64_t const_list_num = 0;
+            Text_t data_name = Text$from_str(String("list_literal$", ++const_list_num));
+            Text_t items = EMPTY_TEXT;
+            for (ast_list_t *item = list->items; item; item = item->next)
+                items = Texts(items, items.length > 0 ? Text(", ") : EMPTY_TEXT,
+                              compile_to_type(scope, item->ast, item_type));
+            env->code->constants = Texts(env->code->constants, "static const ", compile_type(item_type), " ",
+                                         data_name, "[", n, "] = {", items, "};\n");
+            return Texts("ConstList(", compile_type(item_type), ", ", n, ", ", data_name, ")");
+        }
         Text_t code = Texts("TypedListN(", compile_type(item_type), ", ", n);
         for (ast_list_t *item = list->items; item; item = item->next) {
             code = Texts(code, ", ", compile_to_type(scope, item->ast, item_type));

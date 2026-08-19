@@ -198,6 +198,21 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
         return compile_embed_as_text(ast, get_embed_bytes(ast));
     } else if (ast->tag == Embed && t->tag == CStringType) {
         return compile_embed_as_cstring(ast, get_embed_bytes(ast));
+    } else if (is_pushdown_arithmetic(ast) && get_type(env, ast)->tag == BigIntType) {
+        // Untyped-int-literal arithmetic (`1 + 2`, always inferred as bignum
+        // `Int`) flowing into a fixed-width numeric type: if both operands can
+        // themselves compile to that target, do the arithmetic natively in it
+        // (e.g. `(I64(1) + I64(2))`) instead of computing a bignum and
+        // converting. This is faster and, for the ops with a native C form, a
+        // compile-time constant (see is_constant).
+        type_t *target = non_optional(t);
+        if (is_numeric_type(target) && target->tag != BigIntType) {
+            binary_operands_t binop = BINARY_OPERANDS(ast);
+            if (can_compile_to_type(env, binop.lhs, target) && can_compile_to_type(env, binop.rhs, target)) {
+                Text_t code = compile_binary_op_to_type(env, ast, target);
+                return t->tag == OptionalType ? promote_to_optional(target, code) : code;
+            }
+        }
     }
 
     type_t *actual = get_type(env, ast);

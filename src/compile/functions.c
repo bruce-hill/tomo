@@ -154,9 +154,13 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
     type_t *fn_t = get_type(env, call->fn);
     if (fn_t->tag == FunctionType) {
         Text_t fn = compile(env, call->fn);
-        if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args, (call_opts_t){.promotion = true})) {
+        // no_serialization: a `[Byte]` argument must not silently (de)serialize
+        // to fill a differently-typed parameter (that's what `x : T = bytes` is
+        // for). A signature mismatch is reported instead.
+        if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args,
+                           (call_opts_t){.promotion = true, .no_serialization = true})) {
             if (is_valid_call(env, Match(fn_t, FunctionType)->args, call->args,
-                              (call_opts_t){.promotion = true, .underscores = true})) {
+                              (call_opts_t){.promotion = true, .underscores = true, .no_serialization = true})) {
                 code_err(ast, "You can't pass underscore arguments to this function as positional arguments. You must "
                               "use keyword arguments.");
             } else {
