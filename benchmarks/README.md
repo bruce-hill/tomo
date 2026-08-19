@@ -37,6 +37,7 @@ benchmarks/
     nbody.tm
     fannkuchredux.tm
     fasta.tm
+    knucleotide.tm
   fetched/         # git-ignored — reference implementations, downloaded
   .build/          # git-ignored — compiled binaries / build scratch
   results.json     # git-ignored — measured timings
@@ -97,10 +98,17 @@ failing the run.
 
 ## Benchmarks
 
-Currently implemented: **n-body**, **fannkuch-redux**, **fasta**. The plan is
-to grow the library-free core set (spectral-norm, mandelbrot, binary-trees,
-reverse-complement, k-nucleotide) one at a time, each with a validated Tomo
-port.
+Currently implemented: **n-body**, **fannkuch-redux**, **fasta**,
+**k-nucleotide**. The plan is to grow the library-free core set (spectral-norm,
+mandelbrot, binary-trees, reverse-complement) one at a time, each with a
+validated Tomo port.
+
+**k-nucleotide** reads a FASTA file on stdin: the driver generates that input
+with the C fasta program at the configured scale and pipes it to each
+implementation (see `stdin_fasta` in `config.json`). The C entry depends on
+klib's `khash.h`; the benchmark's `cflags` adds `-I/usr/include/klib`, so C is
+skipped on machines where klib isn't installed there. Its Java entry uses
+`graalvmaot-3` (the `-1`/`-2` entries need the external `fastutil` library).
 
 LuaJIT is omitted from **fasta**: the CLBG Lua entries for it use
 `table.unpack` (Lua 5.2+), which LuaJIT (5.1 semantics) does not provide, and
