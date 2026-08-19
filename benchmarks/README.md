@@ -94,8 +94,7 @@ comparison.
 
 | Status | Languages |
 |--------|-----------|
-| Active | C (gcc), C++ (g++), Rust, Go, Java, C#, JavaScript (node), Lua, LuaJIT, Python, **Tomo** |
-| Skipped here | Swift — no `swiftc` toolchain installed on this machine |
+| Active | C (gcc), C++ (g++), Rust, Go, Java, C#, Swift, JavaScript (node), Lua, LuaJIT, Python, **Tomo** |
 
 C# uses **Native AOT** (`dotnet publish` with `PublishAot`), matching the
 CLBG `csharpaot` entries: the driver writes a minimal AOT `.csproj`, drops the
@@ -105,6 +104,13 @@ runtime startup a `dotnet foo.dll` launch adds to every short run. It needs the
 .NET SDK plus `clang` (for the final native link); machines without both are
 skipped. The first AOT build restores the ILCompiler package from NuGet, so it
 needs network access once.
+
+Swift is compiled ahead-of-time with `swiftc -O`. A few CLBG Swift entries are
+too old for a current toolchain (Swift 6.x) or skip the benchmark's required
+output format, so the slugs are chosen to avoid those: **n-body** uses
+`swift-3` (`swift-1` prints unformatted doubles instead of `%.9f`) and
+**k-nucleotide** uses `swift-2` (`swift-1` calls the long-removed
+`String.characters`).
 
 A language with no installed toolchain is skipped with a message rather than
 failing the run.

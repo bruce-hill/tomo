@@ -71,7 +71,7 @@
         "python": "python3-1",
         "java": "graalvmaot-1",
         "csharp": "csharpcore-1",
-        "swift": "swift-1"
+        "swift": "swift-3"
       }
     },
     "fannkuchredux": {
@@ -122,7 +122,8 @@
         "lua": "lua-2",
         "luajit": "lua-2",
         "python": "python3-1",
-        "java": "graalvmaot-3"
+        "java": "graalvmaot-3",
+        "swift": "swift-2"
       }
     },
     "binarytrees": {
