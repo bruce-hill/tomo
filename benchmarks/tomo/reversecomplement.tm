@@ -8,25 +8,32 @@
 #   - The whole input is slurped once as raw `[Byte]` (`read_bytes()`), and all
 #     work is byte-level: no Text decoding, no per-line allocation.
 #   - `comp` is a 256-entry byte table mapping each nucleotide (upper OR lower
-#     case) to its upper-case complement, and everything else to 0.
+#     case) to its upper-case complement, and everything else — crucially
+#     newlines — to 0. Walking the sequence backwards and emitting only the
+#     non-zero lookups reverses, complements, upper-cases and strips newlines in
+#     a single pass, exactly like the reference's `xtab` (where `if (c)` skips
+#     the zero entries).
 #   - Header/record boundaries are located with `.find()` (memchr-backed,
-#     vectorized), the same technique the fast reference implementations use.
-#   - The reverse-complement of each record's sequence is a single list
-#     comprehension: `[comp[d] for d in region.reversed() if d != newline]`.
-#     `region.reversed()` is an O(1) negative-stride view, and because the
-#     comprehension's source is a list of known length, the compiler
-#     pre-sizes the result buffer and fills it with inlined appends (no
-#     growth reallocation) — so this reads as ordinary idiomatic Tomo yet
-#     runs as a tight loop.
-#   - That clean, newline-free sequence is then re-wrapped to 60 columns into
-#     a reused output buffer (`data`'s own bytes as scratch: one bulk
-#     copy-on-write compact on first write, then plain indexed stores) and
-#     written per record through a raw `byte_writer` (like fasta).
+#     vectorized) instead of a manual per-byte scan loop — the same technique
+#     the fast reference implementations use (Go's line-splitting bufio
+#     reader, C#'s `Array.IndexOf`), which a hand-written scalar loop can't
+#     match without SIMD.
+#   - The output buffer is `data`'s own bytes reused as scratch space (plus a
+#     little padding): a `[Byte]` slice shares its backing storage (CoW) until
+#     the first write, which triggers exactly one bulk copy-on-write compact
+#     for the *whole* buffer; every write after that is a plain bounds-checked
+#     pointer store, with no growth logic and no per-byte `memcpy()` call. This
+#     replaced a per-byte `out.insert(c)`, which (even after fixing
+#     `List$insert`'s growth path to bulk-copy) still called a real `memcpy()`
+#     once per byte to place the new item.
+#   - Output goes through a raw `byte_writer` (like fasta), one whole record at
+#     a time.
 #
 # Usage: reversecomplement < fasta_input   (stdin is FASTA text)
 
 # Build the complement lookup: index by byte value + 1 (lists are 1-indexed).
-# Each nucleotide in `letters` maps to the complement at the same position in
+# Zeros elsewhere mean "drop this byte" (newlines, stray characters). Each
+# nucleotide in `letters` maps to the complement at the same position in
 # `comps` (A<->T, C<->G, plus the IUB ambiguity codes); all ASCII, so
 # `.utf8()` yields exactly their byte values.
 func build_comp(-> [Byte])
@@ -46,41 +53,50 @@ func main()
     comp := build_comp()
     emit := (/dev/stdout).byte_writer(append=yes)
 
-    # Reused 60-column-wrapped output buffer (never longer than the input plus
-    # one newline per 60 columns). Sliced from `data`, so the first indexed
-    # write triggers one bulk copy-on-write compact, not a per-byte cost.
+    # Reused write buffer for every record's output, shared across the whole
+    # run. Output can never be longer than the input (re-wrapping only removes
+    # or repositions newlines), so `n` bytes of `data` itself, plus a little
+    # slack for a wrap-width mismatch between input and output, is always
+    # enough room. Sliced (not copied) from `data` — the first indexed write
+    # below triggers one bulk copy-on-write compact, not a per-byte cost.
     out := &(data ++ [Byte(0) for _ in n / 60 + 64])
     p := Int64(0)  # write cursor into `out`, shared across all records
 
     i := Int64(1)
     while i <= n
-        # Header line: '>' up to (not including) the newline.
+        # Header line: from '>' up to (not including) the newline. `.find()`
+        # on a `[Byte]` is memchr-backed (vectorized), so this locates the
+        # newline in one call instead of a manual per-byte scan.
+        hstart := i
         nl := data.from(i).find(Byte(10))
-        header_end := if nl then i + Int64(nl) - 1 else n + 1
-        emit(data.slice(i, header_end - 1))!
+        i = if nl then i + Int64(nl) - 1 else n + 1
+        emit(data.slice(hstart, i - 1))!
         emit([Byte(10)])!
-        i = header_end + 1
+        i += 1  # step past the newline
 
-        # Sequence region: up to the next '>' (or EOF).
+        # Sequence bytes run until the next '>' (or EOF), found the same way.
         seq_start := i
         if i <= n
             gt := data.from(i).find(Byte(62))
             i = if gt then i + Int64(gt) - 1 else n + 1
+        seq_end := i  # exclusive
 
-        # Reverse-complement the region, dropping newlines, as a comprehension.
-        rc := [comp[Int64(d) + 1]! for d in data.slice(seq_start, i - 1).reversed() if Int64(d) != 10]
-
-        # Re-wrap the clean sequence to 60 columns into `out`, then emit it.
+        # Walk the sequence backwards, emitting only non-zero complements, and
+        # re-wrap at 60 columns. Newlines map to 0 and are skipped for free.
         record_start := p + 1
         col := Int64(0)
-        for b in rc
-            p += 1
-            out[p] = b
-            col += 1
-            if col == 60
+        j := seq_end - 1
+        while j >= seq_start
+            c := comp[Int64(data[j]!) + 1]!
+            if Int64(c) != 0
                 p += 1
-                out[p] = Byte(10)
-                col = 0
+                out[p] = c
+                col += 1
+                if col == 60
+                    p += 1
+                    out[p] = Byte(10)
+                    col = 0
+            j -= 1
         if col > 0
             p += 1
             out[p] = Byte(10)
