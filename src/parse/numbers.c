@@ -62,7 +62,7 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     else if (pos[len] != 'e' && pos[len] != 'f' && pos[len] != '%') return NULL;
     if (pos[len] == 'e') {
         len += 1;
-        if (pos[len] == '-') len += 1;
+        if (pos[len] == '-' || pos[len] == '+') len += 1;
         len += strspn(pos + len, "0123456789_");
     }
     char *buf = GC_MALLOC_ATOMIC(len + 1);
