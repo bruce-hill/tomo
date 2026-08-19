@@ -13,6 +13,11 @@
 #     non-zero lookups reverses, complements, upper-cases and strips newlines in
 #     a single pass, exactly like the reference's `xtab` (where `if (c)` skips
 #     the zero entries).
+#   - Header/record boundaries are located with `.find()` (memchr-backed,
+#     vectorized) instead of a manual per-byte scan loop — the same technique
+#     the fast reference implementations use (Go's line-splitting bufio
+#     reader, C#'s `Array.IndexOf`), which a hand-written scalar loop can't
+#     match without SIMD.
 #   - The output buffer is `data`'s own bytes reused as scratch space (plus a
 #     little padding): a `[Byte]` slice shares its backing storage (CoW) until
 #     the first write, which triggers exactly one bulk copy-on-write compact
@@ -51,23 +56,26 @@ func main()
     # slack for a wrap-width mismatch between input and output, is always
     # enough room. Sliced (not copied) from `data` — the first indexed write
     # below triggers one bulk copy-on-write compact, not a per-byte cost.
-    out := &(data.slice(1, n) ++ [Byte(0) for _ in n / 60 + 64])
+    out := &(data ++ [Byte(0) for _ in n / 60 + 64])
     p := Int64(0)  # write cursor into `out`, shared across all records
 
     i := Int64(1)
     while i <= n
-        # Header line: from '>' up to (not including) the newline.
+        # Header line: from '>' up to (not including) the newline. `.find()`
+        # on a `[Byte]` is memchr-backed (vectorized), so this locates the
+        # newline in one call instead of a manual per-byte scan.
         hstart := i
-        while i <= n and Int64(data[i]!) != 10
-            i += 1
+        nl := data.from(i).find(Byte(10))
+        i = if nl then i + Int64(nl) - 1 else n + 1
         emit(data.slice(hstart, i - 1))!
         emit([Byte(10)])!
         i += 1  # step past the newline
 
-        # Sequence bytes run until the next '>' (or EOF).
+        # Sequence bytes run until the next '>' (or EOF), found the same way.
         seq_start := i
-        while i <= n and Int64(data[i]!) != 62
-            i += 1
+        if i <= n
+            gt := data.from(i).find(Byte(62))
+            i = if gt then i + Int64(gt) - 1 else n + 1
         seq_end := i  # exclusive
 
         # Walk the sequence backwards, emitting only non-zero complements, and

@@ -34,13 +34,13 @@ language.
 
 Of the four newer benchmarks, **mandelbrot** is a standout: at 0.70s Tomo
 *beats* the (multithreaded, core-pinned) C and Go entries outright, trailing
-only Rust, C++, and Java. **reverse-complement** at 0.30s effectively ties
-Python and Java, ahead of LuaJIT, JavaScript, C++, PyPy, and Lua. **spectral-
-norm** at 1.16s is ~1.9× C, ahead of Go, C#, Java, and every scripting
-language. **pidigits** — a pure GMP bignum stress test — is Tomo's weakest
-relative showing at ~4.8× C, but still 4th of 9, comfortably ahead of Python,
-PyPy, Java, C#, and JavaScript. Two runtime bugs surfaced (and got fixed)
-while chasing these numbers down — see below.
+only Rust, C++, and Java. **reverse-complement** at 0.25s (2.4× C) is ahead
+of Python, Java, LuaJIT, JavaScript, C++, PyPy, and Lua, and closing in on
+C#/Swift (0.13s). **spectral-norm** at 1.16s is ~1.9× C, ahead of Go, C#,
+Java, and every scripting language. **pidigits** — a pure GMP bignum stress
+test — is Tomo's weakest relative showing at ~4.8× C, but still 4th of 9,
+comfortably ahead of Python, PyPy, Java, C#, and JavaScript. Three runtime
+improvements came out of chasing these numbers down — see below.
 
 The top of each compute chart is crowded with fast natives — Zig, Nim,
 Fortran, and Rust routinely lead — but no garbage-collected, memory-safe
@@ -48,7 +48,7 @@ language in the set is dramatically ahead of Tomo, and the scripting languages
 trail it everywhere, often by one or two orders of magnitude (Python is
 50–300× slower than the fastest entry on several benchmarks here).
 
-### Two runtime fixes this benchmark suite found
+### Runtime improvements this benchmark suite found
 
 Timing **pidigits** turned up a genuine bug: every `Int` bignum's GMP limb
 storage was allocated with GMP's default (plain `malloc`) allocator, so the
@@ -78,12 +78,40 @@ slicing them (an O(1), zero-copy view) and writing into that slice by index.
 The *first* indexed write triggers one bulk copy-on-write compact for the
 whole buffer; every write after that is a plain bounds-checked pointer store,
 no function call and no growth logic at all. That dropped reverse-complement
-from 0.40s to **0.30s — tying Python**, whose entry does the equivalent
-transform as two O(n) bulk C calls (`bytes.translate()` then
-`bytearray.reverse()`) with zero per-byte interpreter overhead. Matching that
-from a genuine scalar byte-loop, instead of losing to it the way even the
-compiled C++ reference here does (0.89s), is about as good an outcome as a
-safe, bounds-checked language can get without hand-vectorizing.
+from 0.40s to 0.30s.
+
+At that point Tomo was still ~2x slower than Go, C#, and Swift, so we dug
+further with `perf annotate` on the compiled binary. The remaining cost split
+roughly in half: ~29% of total runtime was a scalar per-byte scan just to
+locate each FASTA record's boundary (looking for the next `>`); ~51% was a
+data-dependent branch in the transform loop itself (checking whether each
+byte was a former newline to skip it). Go's reference doesn't pay either
+cost: it reads *lines* via `bufio.ReadSlice('\n')`, which uses a vectorized
+`IndexByte` (memchr-equivalent) internally, and C#'s calls `Array.IndexOf`
+directly (SIMD-accelerated on .NET) — both delegate the byte-search entirely
+to a vectorized primitive Tomo's stdlib didn't have.
+
+So we added one: **`List$find`/`List$has` now use `memchr()` for `[Byte]`/
+`[Int8]` lists** (stride 1, no metamethods — byte-value equality already *is*
+what `memchr` computes), instead of a scalar per-element loop. Measured on a
+50M-byte worst-case search (value absent, forces a full scan): 1.59s → 0.37s,
+~4.3x. Rewriting reverse-complement's two boundary scans as `data.from(i)
+.find(...)` calls — the same technique Go and C# use, expressed in pure Tomo
+with no inline C — brought it to **0.25s: 2.4x C, now clearly ahead of
+Python and Java (0.30s), and closing in on C#/Swift (0.13s)**. `List.find`'s
+new memchr fast path is a general win too, not specific to this benchmark:
+it speeds up any byte/int8-list search in any Tomo program.
+
+We tried one more restructuring first that *didn't* pan out, worth recording
+honestly: mimicking Go's exact technique of transforming line-by-line into a
+branchless inner loop, deferring all newline-insertion to a separate bulk
+rewrap pass. It successfully eliminated the per-byte data-dependent branch,
+but was *slower* in practice (0.26s → 0.37s) — `perf annotate` showed the
+more complex multi-cursor loop nest defeated GCC's strength-reduction of the
+list-indexing math, replacing cheap pointer increments with real per-access
+multiplies that cost more than the branch it removed. Good algorithmic
+intuition doesn't always survive contact with the compiler's actual codegen;
+measuring beats predicting.
 
 Per-benchmark graphs: [n-body](results-nbody.png) ·
 [fannkuch-redux](results-fannkuchredux.png) · [fasta](results-fasta.png) ·
