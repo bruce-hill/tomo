@@ -7,7 +7,8 @@
 # Design notes (for performance without giving up readability):
 #   - Vec3 has inline arithmetic metamethods, so the physics reads as vector
 #     math (`a - b`, `v*k`, `v.len2()`) rather than component bookkeeping.
-#   - Each body is one `Body` struct in a single `@[Body]` array, so one
+#   - Each body is one `Body` struct in a single `&[Body]` array (stack header,
+#     heap payload; it never escapes `main`), so one
 #     bounds-checked access yields a body's position, velocity, and mass
 #     (all adjacent in memory) instead of indexing three parallel arrays.
 #   - Full sweeps use element iteration (`for b in bodies` to read,
@@ -39,7 +40,7 @@ func print9(x:Num)
     # Format-only inline C: print `x` with %.9f, matching the reference output.
     C_code `printf("%.9f", @x); putchar(10);`
 
-func advance(bodies:@[Body], steps:Int64, dt:Num)
+func advance(bodies:&[Body], steps:Int64, dt:Num)
     n := Int64(bodies.length)
     for _ in Int64(1).to(steps)
         # The outer body is held by reference (`&bi`): direct field reads and a
@@ -79,7 +80,7 @@ func main(steps:Int64)
     sm := 4.0 * Num.PI * Num.PI
 
     # Bodies: sun, jupiter, saturn, uranus, neptune.
-    bodies := @[
+    bodies := &[
         Body(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0), sm),
         Body(
             Vec3(4.84143144246472090e00, -1.16032004402742839e00, -1.03622044471123109e-01),

@@ -41,7 +41,7 @@ func pct3(x:Num -> Text)
 func read_third_sequence(-> [Byte])
     data := (/dev/stdin).read_bytes()!
     n := Int64(data.length)
-    seq := @[Byte(0) for _ in 0] # grows; codes 0..3
+    seq := &[Byte(0) for _ in 0] # grows; codes 0..3
 
     # Find the byte just after the ">THREE" header's newline.
     i := Int64(1)
@@ -85,7 +85,7 @@ func write_frequencies(seq:[Byte], k:Int64)
         key = ((key << 2) and mask) or Int64(seq[i]!)
         counts[key] = (counts[key] or Int64(0)) + 1
 
-    entries := @[Count(kk, vv) for kk, vv in counts.entries()]
+    entries := &[Count(kk, vv) for kk, vv in counts.entries()]
     entries.sort(by_count_then_key)
 
     total := Num(n - k + 1)

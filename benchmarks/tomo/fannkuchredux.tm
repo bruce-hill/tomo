@@ -19,7 +19,8 @@
 # Tomo-specific notes (see nbody.tm and git history for the general levers):
 #   - Pure Tomo; no inline C anywhere — output uses `say()`.
 #   - Hot loops iterate `Int64(...)` ranges so counters stay native, and use
-#     `p.swap(i, j)`/indexed access on `@[Int64]` lists. The main loop body
+#     `p.swap(i, j)`/indexed access on `&[Int64]` lists (stack-allocated
+#     headers; the list values never escape). The main loop body
 #     qualifies for the compiler's CoW-guard/header hoisting (no calls except
 #     swap/constructors), so element accesses compile against hoisted
 #     data/stride/length locals with no per-access CoW checks.
@@ -30,9 +31,9 @@
 # Usage: fannkuchredux <n>   (e.g. ./fannkuchredux 12)
 
 func fannkuchredux(n:Int64 -> Int64)
-    p := @[Int64(k-1) for k in 1.to(n)]
-    pp := @[Int64(0) for _ in 1.to(n)]
-    count := @[Int64(0) for _ in 1.to(n)]
+    p := &[Int64(k-1) for k in 1.to(n)]
+    pp := &[Int64(0) for _ in 1.to(n)]
+    count := &[Int64(0) for _ in 1.to(n)]
     max_flips := Int64(0)
     checksum := Int64(0)
 
