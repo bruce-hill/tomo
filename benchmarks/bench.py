@@ -154,7 +154,10 @@ def prepare(cfg, bname, lang):
     handler = spec.get("handler")
 
     if handler == "java":
-        m = re.search(r"public\s+(?:final\s+)?class\s+(\w+)", open(src).read())
+        # Match the top-level class declaration (`public`/`final` optional --
+        # some entries, e.g. fasta, declare a package-private `class fasta`).
+        m = re.search(r"^(?:public\s+)?(?:final\s+)?class\s+(\w+)",
+                      open(src).read(), re.MULTILINE)
         cls = m.group(1) if m else "Main"
         jsrc = os.path.join(bdir, f"{cls}.java")
         shutil.copyfile(src, jsrc)
