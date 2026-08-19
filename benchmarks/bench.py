@@ -29,6 +29,24 @@ RESULTS = os.path.join(HERE, "results.json")
 # used by the ports (e.g. `for x at i in xs`), and silently mis-parse them.
 LOCAL_TOMO = os.path.join(HERE, "..", "local-tomo")
 
+# C# is compiled with Native AOT (matching CLBG's `csharpaot` entries) so it
+# produces a standalone native binary — a fair peer to the other compiled
+# languages, with none of the ~25 ms JIT/runtime startup a `dotnet foo.dll`
+# launch would add to every short benchmark. Needs `clang` for the final link.
+CSPROJ_AOT = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+</Project>
+"""
+
 
 def load_config():
     with open(os.path.join(HERE, "config.json")) as f:
@@ -87,7 +105,8 @@ def tool_available(spec):
     if handler == "java":
         return shutil.which("javac") and shutil.which("java")
     if handler == "csharp":
-        return bool(shutil.which("dotnet"))
+        # Native AOT needs the .NET SDK plus clang to link the native binary.
+        return bool(shutil.which("dotnet") and shutil.which("clang"))
     exe = (spec.get("build") or spec.get("run"))[0]
     if exe == "{tomo}":
         return os.access(LOCAL_TOMO, os.X_OK)
@@ -185,15 +204,14 @@ def prepare(cfg, bname, lang):
 
     if handler == "csharp":
         proj = os.path.join(bdir, "cs")
-        if not os.path.exists(proj):
-            os.makedirs(proj)
-            _check(["dotnet", "new", "console", "-o", proj], quiet=True)
+        os.makedirs(proj, exist_ok=True)
+        with open(os.path.join(proj, "cs.csproj"), "w") as f:
+            f.write(CSPROJ_AOT)
         shutil.copyfile(src, os.path.join(proj, "Program.cs"))
-        _check(["dotnet", "build", "-c", "Release", "-o",
-                os.path.join(proj, "out"), proj], quiet=True)
-        dll = next(f for f in os.listdir(os.path.join(proj, "out"))
-                   if f.endswith(".dll") and "Microsoft" not in f)
-        return ["dotnet", os.path.join(proj, "out", dll)]
+        outdir = os.path.join(proj, "out")
+        _check(["dotnet", "publish", "-c", "Release", "-o", outdir, proj],
+               quiet=True)
+        return [os.path.join(outdir, "cs")]  # the AOT-linked native binary
 
     if "build" in spec:
         binpath = os.path.join(bdir, lang)
@@ -204,7 +222,16 @@ def prepare(cfg, bname, lang):
         _check(expand(spec["build"], src=src, bin=binpath, tomo=LOCAL_TOMO) + cflags)
         return expand(spec["run"], src=src, bin=binpath, tomo=LOCAL_TOMO)
 
-    return expand(spec["run"], src=src, bin="", tomo=LOCAL_TOMO)
+    run = expand(spec["run"], src=src, bin="", tomo=LOCAL_TOMO)
+    # A `prelude` is a one-liner run via the interpreter's `-e` before the
+    # script — used to shim LuaJIT (Lua 5.1 semantics) up to the handful of
+    # 5.2+ names a few CLBG Lua entries expect (e.g. `table.unpack`), so we can
+    # run the *same* fetched source under both Lua and LuaJIT without editing
+    # it. The script still sees its own argv.
+    prelude = spec.get("prelude")
+    if prelude:
+        run = [run[0], "-e", prelude] + run[1:]
+    return run
 
 
 BUILD_TIMEOUT = int(os.environ.get("BENCH_BUILD_TIMEOUT", "180"))

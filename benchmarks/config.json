@@ -37,7 +37,8 @@
     },
     "luajit": {
       "label": "LuaJIT", "ext": "lua", "source_from": "lua", "color": "#3355bb",
-      "run": ["luajit", "{src}"]
+      "run": ["luajit", "{src}"],
+      "prelude": "if not table.unpack then table.unpack=unpack end"
     },
     "python": {
       "label": "Python", "ext": "py", "color": "#3572a5",
@@ -47,8 +48,7 @@
       "label": "Java", "ext": "java", "handler": "java", "color": "#b07219"
     },
     "csharp": {
-      "label": "C#", "ext": "cs", "handler": "csharp", "color": "#178600",
-      "disabled": true
+      "label": "C#", "ext": "cs", "handler": "csharp", "color": "#178600"
     },
     "swift": {
       "label": "Swift", "ext": "swift", "color": "#f05138",
@@ -101,6 +101,7 @@
         "go": "go-1",
         "javascript": "node-1",
         "lua": "lua-2",
+        "luajit": "lua-2",
         "python": "python3-1",
         "java": "graalvmaot-2",
         "csharp": "csharpaot-1",
@@ -119,6 +120,7 @@
         "go": "go-3",
         "javascript": "node-1",
         "lua": "lua-2",
+        "luajit": "lua-2",
         "python": "python3-1",
         "java": "graalvmaot-3"
       }
@@ -135,6 +137,7 @@
         "luajit": "lua-2",
         "python": "python3-1",
         "java": "graalvmaot-2",
+        "csharp": "csharpaot-1",
         "swift": "swift-1"
       }
     }

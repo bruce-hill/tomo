@@ -13,16 +13,16 @@ reference). Timings are machine-specific — `results.json` and the vector
 graphs are git-ignored; run the three commands below to reproduce everything
 locally and regenerate these PNGs.
 
-![Tomo vs. other languages across four CLBG benchmarks](results.png)
+![Tomo vs. other languages across five CLBG benchmarks](results.png)
 
 Tomo runs shoulder-to-shoulder with the compiled languages on the tight
-compute loops (**n-body**, **fannkuch-redux**), and on the hash-table-heavy
-**k-nucleotide** it places 4th — ahead of Java, Rust, and every scripting
-language. **binary-trees** is an allocation/GC stress test, and Tomo again
-places 4th — behind only AOT Java, C, and C++, and ahead of Go, Node, and every
-scripting language. **fasta** is the outlier, where hand-tuned byte-level
-output gives the low-level entries a wider edge, but Tomo still beats Lua,
-Node, and Python.
+compute loops (**n-body**, **fannkuch-redux**), landing right alongside C, Go,
+and C#. On the hash-table-heavy **k-nucleotide** it comes 5th — ahead of Java,
+Rust, Lua, Node, and Python, with only C, C++, Go, and a warmed-up LuaJIT
+faster. **binary-trees**, an allocation/GC stress test, has it 5th too, behind
+only AOT Java, AOT C#, C, and C++, and ahead of Go, Node, and every scripting
+language. **fasta** is the outlier, where hand-tuned byte-level output gives the
+low-level entries a wider edge, but Tomo still beats Lua, Node, and Python.
 
 Per-benchmark graphs: [n-body](results-nbody.png) ·
 [fannkuch-redux](results-fannkuchredux.png) · [fasta](results-fasta.png) ·
@@ -94,9 +94,17 @@ comparison.
 
 | Status | Languages |
 |--------|-----------|
-| Active | C (gcc), C++ (g++), Rust, Go, Java, JavaScript (node), Lua, LuaJIT, Python, **Tomo** |
-| Disabled | C# — needs a project-style `dotnet build`; disabled in `config.json` for now |
+| Active | C (gcc), C++ (g++), Rust, Go, Java, C#, JavaScript (node), Lua, LuaJIT, Python, **Tomo** |
 | Skipped here | Swift — no `swiftc` toolchain installed on this machine |
+
+C# uses **Native AOT** (`dotnet publish` with `PublishAot`), matching the
+CLBG `csharpaot` entries: the driver writes a minimal AOT `.csproj`, drops the
+fetched source in as `Program.cs`, and runs the resulting standalone native
+binary — a fair peer to the other compiled languages, with none of the JIT/
+runtime startup a `dotnet foo.dll` launch adds to every short run. It needs the
+.NET SDK plus `clang` (for the final native link); machines without both are
+skipped. The first AOT build restores the ILCompiler package from NuGet, so it
+needs network access once.
 
 A language with no installed toolchain is skipped with a message rather than
 failing the run.
@@ -115,14 +123,22 @@ klib's `khash.h`; the benchmark's `cflags` adds `-I/usr/include/klib`, so C is
 skipped on machines where klib isn't installed there. Its Java entry uses
 `graalvmaot-3` (the `-1`/`-2` entries need the external `fastutil` library).
 
-LuaJIT is omitted from **fasta**: the CLBG Lua entries for it use
-`table.unpack` (Lua 5.2+), which LuaJIT (5.1 semantics) does not provide, and
-we don't patch fetched sources.
+LuaJIT runs the same fetched source as Lua. LuaJIT is Lua 5.1, and a few CLBG
+Lua entries call 5.2+ names (e.g. `table.unpack` in the fasta entry), so the
+`luajit` config carries a one-line `prelude` — `if not table.unpack then
+table.unpack=unpack end` — run via `luajit -e` before the script. That shims
+the 5.1/5.2 gap without editing the fetched source, so Lua and LuaJIT run
+byte-identical programs. (k-nucleotide's Lua entry needs no shim; it just
+hadn't been wired up for LuaJIT before.)
 
 Rust is omitted from **binary-trees**: every CLBG Rust entry links an external
 arena crate (`typed_arena`, `bumpalo`) and/or `rayon`, none vendored here. The
 C++ entry (`gpp-2`) is the self-contained one; the faster `gpp-1`/`gpp-3` need
 Boost.Pool. Tomo uses its own GC and heap pointers, no arena — a node is a
 self-referential struct with two optional `@Tree?` children.
+
+C# is omitted from **k-nucleotide**: its CLBG entries depend on the external
+`Microsoft.Collections.DictionarySlim` NuGet package (much like the Java
+entries there need `fastutil`), which isn't vendored here.
 
 [clbg]: https://benchmarksgame-team.pages.debian.net/benchmarksgame/
