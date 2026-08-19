@@ -41,7 +41,7 @@ struct Freq(cutoff:Num, code:Byte)
 # Each cutoff is paired with its output byte so the linear search below can be
 # a plain element iteration.
 func make_freqs(ps:[Num], codes:[Byte] -> [Freq])
-    freqs : @[Freq] = @[]
+    freqs : &[Freq] = &[]
     total := 0.0
     for p at i in ps
         total += p
@@ -80,7 +80,7 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
     # >= every cutoff, the last symbol is used (matching the reference).
     last_code := freqs[freqs.length]!.code
     cap := (LINE + 1) * BATCH_LINES  # a full batch: lines plus their newlines
-    buf := @[Byte(0) for _ in cap]
+    buf := &[Byte(0) for _ in cap]   # stack scratch buffer; never escapes
     p := Int64(0)    # write cursor into `buf` (0-based; buf is 1-indexed)
     col := Int64(0)  # characters written on the current line
     # Write raw bytes straight to stdout — no UTF-8 validation or Text/cord
