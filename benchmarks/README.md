@@ -26,9 +26,10 @@ ahead of Go and Java. On the hash-table-heavy **k-nucleotide** it's a strong
 0.49s — top-half of the field, ahead of Java, Rust, and all the scripting
 languages, with only C, C++, Go, and a warmed-up LuaJIT faster. **binary-trees**
 (an allocation/GC stress test) has it at 0.31s, mid-pack and ahead of Go and
-every scripting language. **fasta** is the weak spot: hand-tuned byte-level
-output gives the low-level entries a wide edge, though Tomo still beats Lua,
-Node, and Python.
+every scripting language. **fasta** is Tomo's softest benchmark but no longer an
+outlier — at 0.47s it's ~1.9× C (in line with n-body), ahead of LuaJIT,
+Fortran, C#, and every scripting language, with only the hand-tuned byte-level
+entries (Zig, C++, Nim, C, Go, Swift, Java) faster.
 
 The top of each compute chart is now crowded with fast natives — Zig, Nim, and
 Fortran routinely lead — but no garbage-collected, memory-safe language in the
