@@ -43,8 +43,17 @@ Text_t compile_indexing(env_t *env, ast_t *ast, bool checked) {
                                               : Texts("(Int64_t)(", compile(env, indexing->index), ")"));
         if (checked) {
             int64_t start = (int64_t)(ast->start - ast->file->text), end = (int64_t)(ast->end - ast->file->text);
-            Text_t code = Texts("List_get_checked(", list, ", ", index_code, ", ", compile_type(item_type), ", ", start,
-                                ", ", end, ")");
+            // If an enclosing loop hoisted this list's header (see
+            // cow_hoist_env in loops.c), read through the hoisted locals so
+            // the header stays in registers. The bounds check stays.
+            Text_t code =
+                is_cow_hoisted(env, indexing->indexed)
+                    ? Texts("List_get_hoisted(", cow_hoisted_local(indexing->indexed, "data"), ", ",
+                            cow_hoisted_local(indexing->indexed, "stride"), ", ",
+                            cow_hoisted_local(indexing->indexed, "length"), ", ", index_code, ", ",
+                            compile_type(item_type), ", ", start, ", ", end, ")")
+                    : Texts("List_get_checked(", list, ", ", index_code, ", ", compile_type(item_type), ", ", start,
+                            ", ", end, ")");
             if (item_type->tag == OptionalType) {
                 int64_t line = get_line_number(ast->file, ast->start);
                 return Texts("({ ", compile_declaration(item_type, Text("opt")), " = ", code, "; ", "if unlikely (",

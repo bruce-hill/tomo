@@ -256,6 +256,14 @@ test "List.sorted"
        func(a,b:&Int) a.abs() <> b.abs()
     ) == [10, 20, -30, 40]
 
+test "List.swap"
+    list := &[10, 20, 30]
+    list.swap(1, 3)
+    assert list == [30, 20, 10]
+    
+    list.swap(2, -1)
+    assert list == [30, 10, 20]
+
 test "List.to"
     assert [10, 20, 30, 40, 50].to(3) == [10, 20, 30]
     assert [10, 20, 30, 40, 50].to(-2) == [10, 20, 30, 40]

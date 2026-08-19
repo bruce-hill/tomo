@@ -171,14 +171,18 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
                     ? compile_int_to_type(env, index->index, Type(IntType, .bits = TYPE_IBITS64))
                     : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, index->index), ", no)")
                                                   : Texts("(Int64_t)(", compile(env, index->index), ")"));
-            // If an enclosing loop hoisted this list's copy-on-write guard
-            // (see cow_hoist_env in loops.c), skip the per-write CoW check;
-            // the bounds check stays.
-            bool cow_hoisted = index->indexed->tag == Var && env->cow_hoisted
-                               && Table$str_get(*env->cow_hoisted, Match(index->indexed, Var)->name);
-            return Texts(cow_hoisted ? "List_lvalue_nocow(" : "List_lvalue(", compile_type(item_type), ", ",
-                         target_code, ", ", index_code, ", ", (int64_t)(ast->start - ast->file->text), ", ",
-                         (int64_t)(ast->end - ast->file->text), ")");
+            // If an enclosing loop hoisted this list's header and CoW guard
+            // (see cow_hoist_env in loops.c), write through the hoisted
+            // locals: no per-write CoW check, and the header stays in
+            // registers. The bounds check stays.
+            if (is_cow_hoisted(env, index->indexed))
+                return Texts("List_lvalue_hoisted(", compile_type(item_type), ", ",
+                             cow_hoisted_local(index->indexed, "data"), ", ",
+                             cow_hoisted_local(index->indexed, "stride"), ", ",
+                             cow_hoisted_local(index->indexed, "length"), ", ", index_code, ", ",
+                             (int64_t)(ast->start - ast->file->text), ", ", (int64_t)(ast->end - ast->file->text), ")");
+            return Texts("List_lvalue(", compile_type(item_type), ", ", target_code, ", ", index_code, ", ",
+                         (int64_t)(ast->start - ast->file->text), ", ", (int64_t)(ast->end - ast->file->text), ")");
         } else if (container_t->tag == TableType) {
             if (!index->index) code_err(ast, "This table needs an index");
             DeclareMatch(table_type, container_t, TableType);

@@ -13,16 +13,27 @@ extern char _EMPTY_LIST_SENTINEL;
 #define EMPTY_LIST ((List_t){.data = &_EMPTY_LIST_SENTINEL})
 #define EMPTY_ATOMIC_LIST ((List_t){.data = &_EMPTY_LIST_SENTINEL, .atomic = 1})
 
-// Convert negative indices to back-indexed without branching: index0 = index + (index < 0)*(len+1)) - 1
+// Convert a (possibly negative, 1-indexed) list index to a checked 0-based
+// offset without branching on sign: off = index + (index<0)*(len+1) - 1.
+// Fails via fail_source if out of bounds. Shared by every accessor below so
+// the bounds-check-and-error-message logic lives in exactly one place.
+// `index_expr` is evaluated exactly once; `length_val` may be evaluated
+// twice, so it must be side-effect-free (every call site below passes a
+// struct field read or a plain local, never an expression with side effects).
+#define List_checked_offset(index_expr, length_val, start, end)                                                        \
+    ({                                                                                                                 \
+        int64_t index = index_expr;                                                                                    \
+        int64_t off = index + (index < 0) * ((length_val) + 1) - 1;                                                    \
+        if (unlikely(off < 0 || off >= (length_val)))                                                                  \
+            fail_source(__SOURCE_FILE__, start, end,                                                                   \
+                        Text$concat(Text("Invalid list index: "), convert_to_text(index), Text(" (list has length "),  \
+                                    convert_to_text((int64_t)(length_val)), Text(")\n")));                             \
+        off;                                                                                                           \
+    })
 #define List_get_checked(list_expr, index_expr, item_type, start, end)                                                 \
     ({                                                                                                                 \
         const List_t list = list_expr;                                                                                 \
-        int64_t index = index_expr;                                                                                    \
-        int64_t off = index + (index < 0) * (list.length + 1) - 1;                                                     \
-        if (unlikely(off < 0 || off >= list.length))                                                                   \
-            fail_source(__SOURCE_FILE__, start, end,                                                                   \
-                        Text$concat(Text("Invalid list index: "), convert_to_text(index), Text(" (list has length "),  \
-                                    convert_to_text((int64_t)list.length), Text(")\n")));                              \
+        int64_t off = List_checked_offset(index_expr, list.length, start, end);                                        \
         *(item_type *)(list.data + list.stride * off);                                                                 \
     })
 #define List_get(list_expr, index_expr, item_type, var, optional_expr, none_expr)                                      \
@@ -38,48 +49,54 @@ extern char _EMPTY_LIST_SENTINEL;
 #define List_lvalue(item_type, list_expr, index_expr, start, end)                                                      \
     *({                                                                                                                \
         List_t *list = list_expr;                                                                                      \
-        int64_t index = index_expr;                                                                                    \
-        int64_t off = index + (index < 0) * (list->length + 1) - 1;                                                    \
-        if (unlikely(off < 0 || off >= list->length))                                                                  \
-            fail_source(__SOURCE_FILE__, start, end,                                                                   \
-                        Text$concat(Text("Invalid list index: "), convert_to_text(index), Text(" (list has length "),  \
-                                    convert_to_text((int64_t)list->length), Text(")\n")));                             \
-        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                            \
-        (item_type *)(list->data + list->stride * off);                                                                \
+        int64_t off = List_checked_offset(index_expr, list->length, start, end);                                       \
+        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                           \
+        (item_type *)(list->data + list->stride * off);                                                               \
     })
-// Like List_lvalue, but without the per-write copy-on-write guard. Only
-// emitted by the compiler when an enclosing loop has already performed the
-// compact-if-shared up front AND static analysis proved the loop body cannot
-// create any new value snapshot of (or resize) the list mid-loop, so
-// data_refcount is guaranteed to stay 0 for the loop's duration (see
-// cow_hoist_env in compile/loops.c). The bounds check stays.
-#define List_lvalue_nocow(item_type, list_expr, index_expr, start, end)                                                \
-    *({                                                                                                                \
-        List_t *list = list_expr;                                                                                      \
-        int64_t index = index_expr;                                                                                    \
-        int64_t off = index + (index < 0) * (list->length + 1) - 1;                                                    \
-        if (unlikely(off < 0 || off >= list->length))                                                                  \
-            fail_source(__SOURCE_FILE__, start, end,                                                                   \
-                        Text$concat(Text("Invalid list index: "), convert_to_text(index), Text(" (list has length "),  \
-                                    convert_to_text((int64_t)list->length), Text(")\n")));                             \
-        (item_type *)(list->data + list->stride * off);                                                                \
+// Hoisted-header list accessors: variants of List_get_checked / List_lvalue /
+// List_swap that take the list's data pointer, stride, and length as values
+// (C locals) instead of re-reading them through the list struct on every
+// access. Only emitted by the compiler inside loops where static analysis
+// proved the body cannot create any new value snapshot of (or resize) the
+// list (see cow_hoist_env in compile/loops.c): the loop performs one
+// compact-if-shared up front, captures the header fields into locals, and
+// compiles accesses against those. This both removes the per-write CoW guard
+// (data_refcount provably stays 0) and lets the C compiler keep the header in
+// registers / strength-reduce the stride multiply -- re-reading through the
+// pointer would force a reload on every iteration, since element stores could
+// alias the list struct. Bounds checks stay.
+#define List_get_hoisted(data_val, stride_val, length_val, index_expr, item_type, start, end)                          \
+    ({                                                                                                                 \
+        int64_t off = List_checked_offset(index_expr, length_val, start, end);                                         \
+        *(item_type *)((data_val) + (stride_val) * off);                                                               \
     })
-// `xs.swap(i, j)`: exchange two elements in place. One copy-on-write check
-// covers both writes, and each index is bounds-checked once (compare a
-// two-element multi-assignment swap: 4 bounds checks + 2 CoW checks).
-// Swapping an element with itself is a no-op, not an error.
+#define List_lvalue_hoisted(item_type, data_val, stride_val, length_val, index_expr, start, end)                       \
+    (*({                                                                                                               \
+        int64_t off = List_checked_offset(index_expr, length_val, start, end);                                         \
+        (item_type *)((data_val) + (stride_val) * off);                                                               \
+    }))
+// `xs.swap(i, j)`: exchange two elements in place, checking each index with
+// List_checked_offset in turn (so a failure names whichever index -- i first,
+// then j -- was actually out of range). One copy-on-write check covers both
+// writes (compare a two-element multi-assignment swap: 4 bounds checks + 2
+// CoW checks). Swapping an index with itself is a no-op, not an error.
+#define List_swap_hoisted(item_type, data_val, stride_val, length_val, i_expr, j_expr, start, end)                     \
+    ({                                                                                                                 \
+        int64_t i_off = List_checked_offset(i_expr, length_val, start, end);                                          \
+        int64_t j_off = List_checked_offset(j_expr, length_val, start, end);                                          \
+        item_type *i_ptr = (item_type *)((data_val) + (stride_val) * i_off);                                           \
+        item_type *j_ptr = (item_type *)((data_val) + (stride_val) * j_off);                                           \
+        item_type tmp = *i_ptr;                                                                                        \
+        *i_ptr = *j_ptr;                                                                                               \
+        *j_ptr = tmp;                                                                                                  \
+        (void)0;                                                                                                       \
+    })
 #define List_swap(item_type, list_expr, i_expr, j_expr, start, end)                                                    \
     ({                                                                                                                 \
         List_t *list = list_expr;                                                                                      \
-        int64_t i = i_expr, j = j_expr;                                                                                \
-        int64_t i_off = i + (i < 0) * (list->length + 1) - 1;                                                          \
-        int64_t j_off = j + (j < 0) * (list->length + 1) - 1;                                                          \
-        if (unlikely(i_off < 0 || i_off >= list->length || j_off < 0 || j_off >= list->length))                        \
-            fail_source(__SOURCE_FILE__, start, end,                                                                   \
-                        Text$concat(Text("Invalid list index: "),                                                      \
-                                    convert_to_text((i_off < 0 || i_off >= list->length) ? i : j),                     \
-                                    Text(" (list has length "), convert_to_text((int64_t)list->length), Text(")\n"))); \
-        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                            \
+        int64_t i_off = List_checked_offset(i_expr, list->length, start, end);                                        \
+        int64_t j_off = List_checked_offset(j_expr, list->length, start, end);                                        \
+        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                           \
         item_type *i_ptr = (item_type *)(list->data + list->stride * i_off);                                           \
         item_type *j_ptr = (item_type *)(list->data + list->stride * j_off);                                           \
         item_type tmp = *i_ptr;                                                                                        \
@@ -87,27 +104,6 @@ extern char _EMPTY_LIST_SENTINEL;
         *j_ptr = tmp;                                                                                                  \
         (void)0;                                                                                                       \
     })
-// List_swap without the CoW guard: emitted only under a hoisted CoW guard
-// (same contract as List_lvalue_nocow).
-#define List_swap_nocow(item_type, list_expr, i_expr, j_expr, start, end)                                              \
-    ({                                                                                                                 \
-        List_t *list = list_expr;                                                                                      \
-        int64_t i = i_expr, j = j_expr;                                                                                \
-        int64_t i_off = i + (i < 0) * (list->length + 1) - 1;                                                          \
-        int64_t j_off = j + (j < 0) * (list->length + 1) - 1;                                                          \
-        if (unlikely(i_off < 0 || i_off >= list->length || j_off < 0 || j_off >= list->length))                        \
-            fail_source(__SOURCE_FILE__, start, end,                                                                   \
-                        Text$concat(Text("Invalid list index: "),                                                      \
-                                    convert_to_text((i_off < 0 || i_off >= list->length) ? i : j),                     \
-                                    Text(" (list has length "), convert_to_text((int64_t)list->length), Text(")\n"))); \
-        item_type *i_ptr = (item_type *)(list->data + list->stride * i_off);                                           \
-        item_type *j_ptr = (item_type *)(list->data + list->stride * j_off);                                           \
-        item_type tmp = *i_ptr;                                                                                        \
-        *i_ptr = *j_ptr;                                                                                               \
-        *j_ptr = tmp;                                                                                                  \
-        (void)0;                                                                                                       \
-    })
-#define List_set(item_type, list, index, value, start, end) List_lvalue(item_type, list_expr, index, start, end) = value
 // Guard for `for &x in xs` reference iteration (see compile_for_reference_loop
 // in compile/loops.c): while raw element pointers into the buffer are live, the
 // list must not be resized (buffer/length/stride would change under the
