@@ -7,6 +7,7 @@
 #include <sys/param.h>
 
 #include "../util.h"
+#include "bytes.h"
 #include "integers.h"
 #include "lists.h"
 #include "math.h"
@@ -257,6 +258,15 @@ void List$remove_item(List_t *list, void *item, Int_t max_removals, const TypeIn
 public
 PUREFUNC OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type) {
     const TypeInfo_t *item_type = type->ListInfo.item;
+    // Fast path: a tightly-packed list of single-byte items (Byte or Int8) is
+    // just a byte buffer, and byte-value equality *is* generic_equal() for
+    // these types (no metamethods, no padding) -- so search it with memchr(),
+    // which is typically SIMD-vectorized, instead of a scalar per-element
+    // generic_equal() loop.
+    if (list.stride == 1 && (item_type == &Byte$info || item_type == &Int8$info)) {
+        void *found = memchr(list.data, *(uint8_t *)item, (size_t)list.length);
+        return found ? I(found - list.data + 1) : NONE_INT;
+    }
     for (int64_t i = 0; i < (int64_t)list.length; i++) {
         if (generic_equal(item, list.data + i * list.stride, item_type)) return I(i + 1);
     }
@@ -608,6 +618,11 @@ List_t List$concat(List_t x, List_t y, int64_t padded_item_size) {
 public
 bool List$has(List_t list, void *item, const TypeInfo_t *type) {
     const TypeInfo_t *item_type = type->ListInfo.item;
+    // See List$find for why this fast path is safe: a packed Byte/Int8 list
+    // is just a byte buffer, so a vectorized memchr() replaces the scalar
+    // per-element generic_equal() loop.
+    if (list.stride == 1 && (item_type == &Byte$info || item_type == &Int8$info))
+        return memchr(list.data, *(uint8_t *)item, (size_t)list.length) != NULL;
     for (int64_t i = 0; i < (int64_t)list.length; i++) {
         if (generic_equal(list.data + i * list.stride, item, item_type)) return true;
     }
