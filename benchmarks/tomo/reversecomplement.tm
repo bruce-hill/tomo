@@ -32,10 +32,13 @@
 # Usage: reversecomplement < fasta_input   (stdin is FASTA text)
 
 # Build the complement lookup: index by byte value + 1 (lists are 1-indexed).
-# Zeros elsewhere mean "drop this byte" (newlines, stray characters).
+# Zeros elsewhere mean "drop this byte" (newlines, stray characters). Each
+# nucleotide in `letters` maps to the complement at the same position in
+# `comps` (A<->T, C<->G, plus the IUB ambiguity codes); all ASCII, so
+# `.utf8()` yields exactly their byte values.
 func build_comp(-> [Byte])
-    letters : [Byte] = [65, 66, 67, 68, 71, 72, 75, 77, 78, 82, 83, 84, 86, 87, 89]
-    comps : [Byte] = [84, 86, 71, 72, 67, 68, 77, 75, 78, 89, 83, 65, 66, 87, 82]
+    letters := "ABCDGHKMNRSTVWY".utf8()
+    comps := "TVGHCDMKNYSABWR".utf8()
     comp := &[Byte(0) for _ in 256]
     for i in letters.length
         u := Int64(letters[i]!)
