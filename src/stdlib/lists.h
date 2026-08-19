@@ -174,32 +174,34 @@ extern char _EMPTY_LIST_SENTINEL;
         list;                                                                                                          \
     })
 
+// Insert an item, inlining the hot case: an *append* (index I(0), the
+// default) where there is spare capacity, the list isn't an aliased/CoW
+// snapshot, and the stride already matches -- a bounds-free store plus two
+// counter bumps, with no function call. Everything else (any other index,
+// growth, resize, copy-on-write) falls back to List$insert. When the index
+// is the compile-time constant I(0) -- list comprehensions and plain
+// `list.insert(x)` appends both compile to that -- the compiler folds the
+// `is I(0)` test away and keeps only the store; a runtime index just pays one
+// predictable comparison. `padded_item_size` is a compile-time sizeof, so the
+// memcpy_fixed folds to a single store.
 #define List$insert_value(list, item_expr, index, padded_item_size)                                                    \
-    List$insert(list, (__typeof(item_expr)[1]){item_expr}, index, padded_item_size)
-// Append one item to the end of a list, inlining the common case (there is
-// spare capacity, the list isn't an aliased/CoW snapshot, and the stride
-// already matches): a bounds-free store plus two counter bumps, with no
-// function call and no Int_t index to convert. Falls back to List$insert for
-// the growth / resize / copy-on-write cases. Used to build list comprehensions
-// (which append per element); `padded_item_size` is a compile-time sizeof, so
-// the memcpy_fixed folds to a single store.
-#define List$push_value(list, item_expr, padded_item_size)                                                             \
     ({                                                                                                                 \
-        List_t *_push_l = (list);                                                                                      \
-        __typeof(item_expr) _push_it = (item_expr);                                                                    \
-        if (likely(_push_l->free > 0 && _push_l->data_refcount == 0                                                    \
-                   && (int64_t)_push_l->stride == (int64_t)(padded_item_size))) {                                      \
-            int64_t _push_n = (int64_t)_push_l->length;                                                                \
-            memcpy_fixed((void *)_push_l->data + _push_n * (int64_t)(padded_item_size), &_push_it, padded_item_size);  \
-            _push_l->length = (uint64_t)(_push_n + 1);                                                                 \
-            _push_l->free -= 1;                                                                                        \
+        List_t *_ins_l = (list);                                                                                       \
+        Int_t _ins_idx = (index);                                                                                      \
+        __typeof(item_expr) _ins_it = (item_expr);                                                                     \
+        if (likely(_ins_idx.small == I_small(0).small && _ins_l->free > 0 && _ins_l->data_refcount == 0               \
+                   && (int64_t)_ins_l->stride == (int64_t)(padded_item_size))) {                                       \
+            int64_t _ins_n = (int64_t)_ins_l->length;                                                                  \
+            memcpy_fixed((void *)_ins_l->data + _ins_n * (int64_t)(padded_item_size), &_ins_it, padded_item_size);     \
+            _ins_l->length = (uint64_t)(_ins_n + 1);                                                                   \
+            _ins_l->free -= 1;                                                                                         \
         } else {                                                                                                       \
-            List$insert(_push_l, &_push_it, I_small(0), padded_item_size);                                             \
+            List$insert(_ins_l, &_ins_it, _ins_idx, padded_item_size);                                                 \
         }                                                                                                              \
         (void)0;                                                                                                       \
     })
 // Allocate a list with `capacity` slots of spare room (length 0), so that up
-// to `capacity` List$push_value appends hit the inlined store path with no
+// to `capacity` List$insert_value appends hit the inlined store path with no
 // resize. `zero_item` is any value of the item type (used only for its type,
 // to pick atomic vs. scanned allocation and the element size).
 #define List$with_capacity(capacity, zero_item)                                                                        \

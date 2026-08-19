@@ -15,9 +15,10 @@
 #include "compilation.h"
 
 static ast_t *add_to_list_comprehension(ast_t *item, ast_t *subject) {
-    // `$push` is an internal list method that appends via the inlined
-    // List$push_value fast path (no per-element function call / index convert).
-    return WrapAST(item, MethodCall, .name = "$push", .self = subject, .args = new (arg_ast_t, .value = item));
+    // Append at the end. `insert` at the default index I(0) hits an inlined
+    // fast path in List$insert_value (a bounds-free store, no function call),
+    // which GCC selects at compile time here since the index is constant.
+    return WrapAST(item, MethodCall, .name = "insert", .self = subject, .args = new (arg_ast_t, .value = item));
 }
 
 public
@@ -57,7 +58,7 @@ list_comprehension: {
     // Fast path: a single comprehension `[expr for x in SOURCE (if cond)]`
     // whose SOURCE is a list of known length. The result can never have more
     // than SOURCE.length elements (a filter only removes), so pre-allocate
-    // exactly that capacity and fill it with the inlined List$push_value
+    // exactly that capacity and fill it with the inlined List$insert_value
     // append -- no growth reallocation, no repeated GC scans of a growing
     // buffer. SOURCE is hoisted into a temp (evaluated once, since it may not
     // be idempotent, e.g. `xs.reversed()`), and the loop iterates that temp.
@@ -328,16 +329,6 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         self = compile_to_pointer_depth(env, call->self, 0, false);
         (void)compile_arguments(env, ast, NULL, call->args);
         return Texts("List$counts(", self, ", ", compile_type_info(self_value_t), ")");
-    } else if (streq(call->name, "$push")) {
-        // Internal method (not user-visible): append at the end via the
-        // inlined List$push_value fast path. Emitted by list comprehensions
-        // instead of `insert`, so the per-element append has no function-call
-        // overhead and no Int_t index to convert. Reuses `insert`'s argument
-        // coercion so the item is compiled to the list's item type.
-        EXPECT_POINTER();
-        arg_t *arg_spec = new (arg_t, .name = "item", .type = item_t);
-        return Texts("List$push_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
-                     padded_item_size, ")");
     } else {
         code_err(ast, "There is no '", call->name, "' method for lists");
     }
