@@ -18,12 +18,16 @@ locally and regenerate these PNGs.
 Tomo runs shoulder-to-shoulder with the compiled languages on the tight
 compute loops (**n-body**, **fannkuch-redux**), and on the hash-table-heavy
 **k-nucleotide** it places 4th — ahead of Java, Rust, and every scripting
-language. **fasta** is the outlier, where hand-tuned byte-level output gives
-the low-level entries a wider edge, but Tomo still beats Lua, Node, and Python.
+language. **binary-trees** is an allocation/GC stress test, and Tomo again
+places 4th — behind only AOT Java, C, and C++, and ahead of Go, Node, and every
+scripting language. **fasta** is the outlier, where hand-tuned byte-level
+output gives the low-level entries a wider edge, but Tomo still beats Lua,
+Node, and Python.
 
 Per-benchmark graphs: [n-body](results-nbody.png) ·
 [fannkuch-redux](results-fannkuchredux.png) · [fasta](results-fasta.png) ·
-[k-nucleotide](results-knucleotide.png).
+[k-nucleotide](results-knucleotide.png) ·
+[binary-trees](results-binarytrees.png).
 
 ## Layout
 
@@ -38,6 +42,7 @@ benchmarks/
     fannkuchredux.tm
     fasta.tm
     knucleotide.tm
+    binarytrees.tm
   fetched/         # git-ignored — reference implementations, downloaded
   .build/          # git-ignored — compiled binaries / build scratch
   results.json     # git-ignored — measured timings
@@ -99,8 +104,8 @@ failing the run.
 ## Benchmarks
 
 Currently implemented: **n-body**, **fannkuch-redux**, **fasta**,
-**k-nucleotide**. The plan is to grow the library-free core set (spectral-norm,
-mandelbrot, binary-trees, reverse-complement) one at a time, each with a
+**k-nucleotide**, **binary-trees**. The plan is to grow the library-free core
+set (spectral-norm, mandelbrot, reverse-complement) one at a time, each with a
 validated Tomo port.
 
 **k-nucleotide** reads a FASTA file on stdin: the driver generates that input
@@ -113,5 +118,11 @@ skipped on machines where klib isn't installed there. Its Java entry uses
 LuaJIT is omitted from **fasta**: the CLBG Lua entries for it use
 `table.unpack` (Lua 5.2+), which LuaJIT (5.1 semantics) does not provide, and
 we don't patch fetched sources.
+
+Rust is omitted from **binary-trees**: every CLBG Rust entry links an external
+arena crate (`typed_arena`, `bumpalo`) and/or `rayon`, none vendored here. The
+C++ entry (`gpp-2`) is the self-contained one; the faster `gpp-1`/`gpp-3` need
+Boost.Pool. Tomo uses its own GC and heap pointers, no arena — a node is a
+self-referential struct with two optional `@Tree?` children.
 
 [clbg]: https://benchmarksgame-team.pages.debian.net/benchmarksgame/

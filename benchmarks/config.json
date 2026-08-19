@@ -122,6 +122,21 @@
         "python": "python3-1",
         "java": "graalvmaot-3"
       }
+    },
+    "binarytrees": {
+      "args": ["16"],
+      "reference": "c",
+      "programs": {
+        "c": "gcc-1",
+        "cpp": "gpp-2",
+        "go": "go-1",
+        "javascript": "node-1",
+        "lua": "lua-2",
+        "luajit": "lua-2",
+        "python": "python3-1",
+        "java": "graalvmaot-2",
+        "swift": "swift-1"
+      }
     }
   }
 }
