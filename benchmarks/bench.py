@@ -121,6 +121,25 @@ def _pin(cmd):
     return ["taskset", "-c", cpu] + cmd
 
 
+def fasta_input(n):
+    """Produce FASTA output at scale `n` to feed as stdin to k-nucleotide-style
+    benchmarks. Built once with the fetched C fasta generator (the canonical,
+    deterministic producer) and cached per `n` under .build/."""
+    src = os.path.join(FETCHED, "fasta", "c.c")
+    if not os.path.exists(src):
+        raise RuntimeError("fasta source missing; run: python3 bench.py fetch fasta")
+    os.makedirs(BUILD, exist_ok=True)
+    gen = os.path.join(BUILD, "fasta_gen")
+    if not os.path.exists(gen) or os.path.getmtime(gen) < os.path.getmtime(src):
+        _check(["gcc", "-O3", "-o", gen, src, "-lm"])
+    out = os.path.join(BUILD, f"fasta_input_{n}.txt")
+    if not os.path.exists(out) or os.path.getsize(out) == 0:
+        with open(out, "wb") as f:
+            if subprocess.run([gen, str(n)], stdout=f).returncode != 0:
+                raise RuntimeError("fasta generator failed")
+    return out
+
+
 def run_once(cmd, cwd=None, stdin_path=None):
     stdin = open(stdin_path, "rb") if stdin_path else subprocess.DEVNULL
     t0 = time.perf_counter()
@@ -178,7 +197,11 @@ def prepare(cfg, bname, lang):
 
     if "build" in spec:
         binpath = os.path.join(bdir, lang)
-        _check(expand(spec["build"], src=src, bin=binpath, tomo=LOCAL_TOMO))
+        # Per-benchmark, per-language extra build flags (e.g. an -I path for a
+        # header-only dependency like klib/khash that k-nucleotide's C entry
+        # needs). Absent for most benchmarks.
+        cflags = cfg["benchmarks"][bname].get("cflags", {}).get(lang, [])
+        _check(expand(spec["build"], src=src, bin=binpath, tomo=LOCAL_TOMO) + cflags)
         return expand(spec["run"], src=src, bin=binpath, tomo=LOCAL_TOMO)
 
     return expand(spec["run"], src=src, bin="", tomo=LOCAL_TOMO)
@@ -211,7 +234,14 @@ def run(cfg, benchmarks):
         args = [str(a) for a in bench.get("args", [])]
         if os.environ.get("BENCH_ARGS"):
             args = os.environ["BENCH_ARGS"].split()
-        stdin_path = None  # (future: benchmarks that read stdin)
+        # `stdin_fasta` benchmarks (e.g. k-nucleotide) read a FASTA file on
+        # stdin instead of taking CLI args: `args` sizes the generated input,
+        # and the programs themselves are invoked with no arguments.
+        stdin_path = None
+        prog_args = args
+        if bench.get("stdin_fasta"):
+            stdin_path = fasta_input(args[0])
+            prog_args = []
         ref_lang = bench.get("reference", "c")
         print(f"\n=== {bname}  args={args} ===")
 
@@ -230,7 +260,7 @@ def run(cfg, benchmarks):
                 print(f"  skip {lang:<11} (toolchain missing)")
                 continue
             try:
-                cmd = prepare(cfg, bname, lang) + args
+                cmd = prepare(cfg, bname, lang) + prog_args
             except Exception as e:
                 print(f"  skip {lang:<11} ({str(e).splitlines()[0]})")
                 continue
