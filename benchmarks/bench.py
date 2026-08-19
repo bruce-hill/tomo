@@ -101,7 +101,11 @@ def fetch(cfg, benchmarks):
                 except Exception as e:
                     print(f"  FAIL {bname}/{lang:<11} {url}\n       {e}", flush=True)
                 continue
-            url = f"{site}/{bname}-{slug}.html"
+            # The CLBG's program URLs use a short slug for some benchmarks that
+            # differs from our (more descriptive) name, e.g. reverse-complement
+            # lives under `revcomp-*`. `site_name` overrides the URL stem.
+            site_bname = bench.get("site_name", bname)
+            url = f"{site}/{site_bname}-{slug}.html"
             try:
                 page = curl(url)
                 src = extract_source(page)

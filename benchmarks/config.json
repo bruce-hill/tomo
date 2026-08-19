@@ -198,6 +198,25 @@
         "java": "graalvmaot-1",
         "csharp": "csharpaot-4"
       }
+    },
+    "reversecomplement": {
+      "args": ["5000000"],
+      "reference": "c",
+      "site_name": "revcomp",
+      "stdin_fasta": true,
+      "programs": {
+        "c": "gcc-4",
+        "cpp": "gpp-5",
+        "go": "go-3",
+        "javascript": "node-2",
+        "lua": "lua-2",
+        "luajit": "lua-2",
+        "python": "python3-2",
+        "pypy": "python3-2",
+        "java": "graalvmaot-3",
+        "csharp": "csharpaot-1",
+        "swift": "swift-1"
+      }
     }
   }
 }
