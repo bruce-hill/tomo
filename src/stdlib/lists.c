@@ -70,10 +70,23 @@ void List$insert(List_t *list, const void *item, Int_t int_index, int64_t padded
         list->free = MIN(LIST_MAX_FREE_ENTRIES, MAX(8, list->length) / 2);
         void *copy = list->atomic ? GC_MALLOC_ATOMIC((size_t)(list->length + list->free) * (size_t)padded_item_size)
                                   : GC_MALLOC((size_t)(list->length + list->free) * (size_t)padded_item_size);
-        for (int64_t i = 0; i < index - 1; i++)
-            memcpy(copy + i * padded_item_size, list->data + list->stride * i, (size_t)padded_item_size);
-        for (int64_t i = index - 1; i < (int64_t)list->length; i++)
-            memcpy(copy + (i + 1) * padded_item_size, list->data + list->stride * i, (size_t)padded_item_size);
+        if ((int64_t)list->stride == padded_item_size) {
+            // Existing data is already tightly packed: copy each contiguous
+            // side of the insertion point in one shot instead of walking
+            // element-by-element. For the common case of inserting at the
+            // end (index == length+1, e.g. every plain `list.insert(x)`
+            // append), this is a single bulk memcpy of the whole list
+            // instead of `length` separate one-item memcpy() calls.
+            if (index > 1) memcpy(copy, list->data, (size_t)(index - 1) * (size_t)padded_item_size);
+            if (index <= (int64_t)list->length)
+                memcpy(copy + index * padded_item_size, list->data + (size_t)(index - 1) * (size_t)padded_item_size,
+                       (size_t)((int64_t)list->length - (index - 1)) * (size_t)padded_item_size);
+        } else {
+            for (int64_t i = 0; i < index - 1; i++)
+                memcpy(copy + i * padded_item_size, list->data + list->stride * i, (size_t)padded_item_size);
+            for (int64_t i = index - 1; i < (int64_t)list->length; i++)
+                memcpy(copy + (i + 1) * padded_item_size, list->data + list->stride * i, (size_t)padded_item_size);
+        }
         list->data = copy;
         list->data_refcount = 0;
         list->stride = padded_item_size;
@@ -121,9 +134,14 @@ void List$insert_all(List_t *list, List_t to_insert, Int_t int_index, int64_t pa
             int64_t count = (int64_t)list->length - index;
             memmove(to, from, (size_t)(count * padded_item_size));
         }
-        for (int64_t i = 0; i < (int64_t)to_insert.length; i++) {
-            memcpy((void *)list->data + (index - 1 + i) * padded_item_size, to_insert.data + i * to_insert.stride,
-                   (size_t)padded_item_size);
+        if (to_insert.stride == padded_item_size) {
+            memcpy((void *)list->data + (index - 1) * padded_item_size, to_insert.data,
+                   (size_t)((int64_t)to_insert.length * padded_item_size));
+        } else {
+            for (int64_t i = 0; i < (int64_t)to_insert.length; i++) {
+                memcpy((void *)list->data + (index - 1 + i) * padded_item_size, to_insert.data + i * to_insert.stride,
+                       (size_t)padded_item_size);
+            }
         }
     } else {
         // Otherwise, allocate a new chunk of memory for the list and populate it:
