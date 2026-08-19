@@ -67,8 +67,16 @@ void List$insert(List_t *list, const void *item, Int_t int_index, int64_t padded
                                   : GC_MALLOC((size_t)list->free * (size_t)padded_item_size);
         list->stride = padded_item_size;
     } else if (list->free < 1 || list->data_refcount != 0 || (int64_t)list->stride != padded_item_size) {
-        // Resize policy: +50% growth (clamped between 8 and LIST_MAX_FREE_ENTRIES)
-        list->free = MIN(LIST_MAX_FREE_ENTRIES, MAX(8, list->length) / 2);
+        // Resize policy: +65% growth (free = length/2 + length/8), clamped
+        // between 8 and LIST_MAX_FREE_ENTRIES. Measured against a pure-append
+        // loop under the GC, ~1.65x beat both 1.5x (more reallocations => more
+        // transient garbage and copying: slower and, counterintuitively, more
+        // peak RSS) and 2x (fewer reallocations, but a larger old+new transient
+        // during each copy => higher peak RSS). It's the sweet spot on both
+        // time and memory.
+        // Also, it's a magic math number: the golden ratio (rounded up). Surely
+        // that's why it's fast, right? Blessed by Pythagoras.
+        list->free = MIN(LIST_MAX_FREE_ENTRIES, MAX(8, (list->length >> 1) + (list->length >> 3)));
         void *copy = list->atomic ? GC_MALLOC_ATOMIC((size_t)(list->length + list->free) * (size_t)padded_item_size)
                                   : GC_MALLOC((size_t)(list->length + list->free) * (size_t)padded_item_size);
         if ((int64_t)list->stride == padded_item_size) {
