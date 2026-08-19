@@ -236,6 +236,24 @@
         "csharp": "csharpaot-2",
         "swift": "swift-1"
       }
+    },
+    "spectralnorm": {
+      "args": ["5500"],
+      "reference": "c",
+      "cflags": {"cpp": ["-fopenmp"]},
+      "programs": {
+        "c": "gcc-5",
+        "cpp": "gpp-5",
+        "rust": "rust-2",
+        "go": "go-2",
+        "javascript": "node-1",
+        "lua": "lua-1",
+        "luajit": "lua-1",
+        "python": "python3-6",
+        "pypy": "python3-6",
+        "java": "graalvmaot-2",
+        "csharp": "csharpaot-2"
+      }
     }
   }
 }
