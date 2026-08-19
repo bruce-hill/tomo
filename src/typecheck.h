@@ -25,7 +25,7 @@ type_t *get_clause_type(env_t *env, type_t *subject_t, when_clause_t *clause);
 PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast);
 type_t *parse_type_string(env_t *env, const char *str);
 type_t *get_method_type(env_t *env, ast_t *self, const char *name);
-PUREFUNC bool is_constant(env_t *env, ast_t *ast);
+bool is_constant(env_t *env, ast_t *ast);
 List_t get_embed_bytes(ast_t *ast);
 bool embed_is_constant(ast_t *ast, type_t *t);
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed);

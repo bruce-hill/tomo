@@ -1696,7 +1696,7 @@ type_t *parse_type_string(env_t *env, const char *str) {
     return ast ? parse_type_ast(env, ast) : NULL;
 }
 
-PUREFUNC bool is_constant(env_t *env, ast_t *ast) {
+bool is_constant(env_t *env, ast_t *ast) {
     switch (ast->tag) {
     case Bool:
     case Num:
@@ -1737,7 +1737,21 @@ PUREFUNC bool is_constant(env_t *env, ast_t *ast) {
     }
     case Use:
     case Metadata: return true;
-    case FunctionCall: return false;
+    case FunctionCall: {
+        // A numeric type "constructor" applied to a constant literal (e.g.
+        // `Int64(123)`, `Byte(10)`, `Num(1.5)`) is not a real call: it compiles
+        // to a plain cast (see the pure-cast path in compile_typed_call()), so
+        // it's a compile-time constant just like the literal it wraps.
+        DeclareMatch(call, ast, FunctionCall);
+        type_t *fn_t = get_type(env, call->fn);
+        if (fn_t && fn_t->tag == TypeInfoType && call->args && !call->args->next) {
+            type_t *t = Match(fn_t, TypeInfoType)->type;
+            ast_t *arg = call->args->value;
+            if (is_numeric_type(t) && arg->tag == Int && is_constant(env, arg)) return true;
+            if (t->tag == NumType && arg->tag == Num) return true;
+        }
+        return false;
+    }
     case InlineCCode: return true;
     // Whether an `Embed` is a compile-time constant depends on what type it's being
     // compiled to, which `is_constant()` doesn't have access to, so conservatively say no
