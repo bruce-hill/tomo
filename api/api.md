@@ -1328,6 +1328,33 @@ assert [40, 10, -30, 20].sorted(
 ) == [10, 20, -30, 40]
 
 ```
+## List.swap
+
+```tomo
+List.swap : func(list: @[T], i: Int, j: Int -> Void)
+```
+
+Swaps the elements at two indices in place. Compiles inline, so a swap costs one bounds check per index and a single copy-on-write check (a two-element multi-assignment swap pays both twice). Swapping an index with itself is a no-op. Negative indices count from the back of the list, and an out-of-bounds index is a runtime error.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+list | `@[T]` | The mutable reference to the list.  | -
+i | `Int` | The index of the first element (1-indexed).  | -
+j | `Int` | The index of the second element (1-indexed).  | -
+
+**Return:** Nothing.
+
+
+**Example:**
+```tomo
+list := &[10, 20, 30]
+list.swap(1, 3)
+assert list == [30, 20, 10]
+
+list.swap(2, -1)
+assert list == [30, 10, 20]
+
+```
 ## List.to
 
 ```tomo

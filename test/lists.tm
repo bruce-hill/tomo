@@ -74,6 +74,24 @@ test "reversed is copy-on-write"
 	>> reversed
 	assert reversed == [30, 20, 10]
 
+test "swap"
+	>> list := &[10, 20, 30]
+	list.swap(1, 3)
+	assert list[] == [30, 20, 10]
+	# Negative indices count from the back:
+	list.swap(2, -1)
+	assert list[] == [30, 10, 20]
+	# Self-swap is a no-op:
+	list.swap(2, 2)
+	assert list[] == [30, 10, 20]
+
+test "swap is copy-on-write"
+	>> list := &[10, 20, 30]
+	>> snapshot := list[]
+	list.swap(1, 3)
+	assert list[] == [30, 20, 10]
+	assert snapshot == [10, 20, 30]
+
 test "sorting"
 	>> nums := @[10, -20, 30]
 	# Sorted function doesn't mutate original:

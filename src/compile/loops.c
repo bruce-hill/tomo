@@ -54,7 +54,7 @@ static Text_t index_counter_step(Text_t index) {
 // ---------------------------------------------------------------------------
 
 typedef struct {
-    Table_t *written; // variable name -> representative Index lvalue ast
+    Table_t *written; // variable name -> the written list's Var ast
 } cow_scan_t;
 
 // Scalar-ish types: values whose copies can't share a list buffer.
@@ -195,7 +195,8 @@ static bool cow_stmt_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
             } else if (target->ast->tag == Index) {
                 if (!cow_index_ok(env, target->ast)) return false;
                 if (!cow_expr_ok(env, Match(target->ast, Index)->index)) return false;
-                Table$str_set(scan->written, Match(Match(target->ast, Index)->indexed, Var)->name, target->ast);
+                ast_t *indexed = Match(target->ast, Index)->indexed;
+                Table$str_set(scan->written, Match(indexed, Var)->name, indexed);
             } else {
                 return false;
             }
@@ -206,6 +207,24 @@ static bool cow_stmt_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
         binary_operands_t operands = UPDATE_OPERANDS(ast);
         if (!cow_type_ok(cow_var_type(env, operands.lhs))) return false;
         return cow_expr_ok(env, operands.rhs);
+    }
+    case MethodCall: {
+        // `xs.swap(i, j)` is the one whitelisted method: it compiles inline
+        // (List_swap) and behaves exactly like a pair of indexed writes -- it
+        // never snapshots or resizes, and its own CoW guard is elided under a
+        // hoist just like List_lvalue's.
+        DeclareMatch(call, ast, MethodCall);
+        if (!streq(call->name, "swap")) return false;
+        if (call->self->tag != Var) return false;
+        type_t *self_t = cow_var_type(env, call->self);
+        if (self_t == NULL) return false;
+        type_t *container_t = value_type(self_t);
+        if (container_t->tag != ListType) return false;
+        if (!cow_type_ok(Match(container_t, ListType)->item_type)) return false;
+        for (arg_ast_t *arg = call->args; arg; arg = arg->next)
+            if (!cow_expr_ok(env, arg->value)) return false;
+        Table$str_set(scan->written, Match(call->self, Var)->name, call->self);
+        return true;
     }
     case If: {
         DeclareMatch(if_, ast, If);
@@ -252,18 +271,18 @@ static env_t *cow_hoist_env(env_t *env, ast_t *loop_ast, Text_t *prelude) {
     for (int64_t i = 0; i < (int64_t)scan.written->entries.length; i++) {
         struct {
             const char *name;
-            ast_t *index_ast;
+            ast_t *var_ast;
         } *entry = scan.written->entries.data + scan.written->entries.stride * i;
         // Already hoisted by an enclosing loop: writes are nocow already.
         if (env->cow_hoisted && Table$str_get(*env->cow_hoisted, entry->name)) continue;
-        ast_t *indexed = Match(entry->index_ast, Index)->indexed;
+        ast_t *indexed = entry->var_ast;
         type_t *container_t = value_type(get_type(env, indexed));
         type_t *item_type = Match(container_t, ListType)->item_type;
         *prelude = Texts(*prelude, "{ // Hoisted copy-on-write guard:\nList_t *cow$hoisted = ",
                          compile_to_pointer_depth(env, indexed, 1, false),
                          ";\nif unlikely (cow$hoisted->data_refcount > 0) List$compact(cow$hoisted, sizeof(",
                          compile_type(item_type), "));\n}\n");
-        Table$str_set(hoisted->cow_hoisted, entry->name, entry->index_ast);
+        Table$str_set(hoisted->cow_hoisted, entry->name, entry->var_ast);
     }
     if (Table$length(*hoisted->cow_hoisted) == 0) return env;
     return hoisted;

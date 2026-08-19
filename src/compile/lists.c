@@ -8,6 +8,7 @@
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
+#include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../util.h"
 #include "../typecheck.h"
@@ -142,6 +143,33 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         return Texts("List$random_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      compile_type(item_t), ", _, ", promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t),
                      ")");
+    } else if (streq(call->name, "swap")) {
+        // Compiled inline (List_swap in stdlib/lists.h): two bounds checks
+        // and one CoW guard per swap, no function call. Indexes compile to
+        // native Int64 exactly like indexed assignment does.
+        EXPECT_POINTER();
+        arg_ast_t *i_arg = call->args;
+        if (i_arg == NULL || i_arg->next == NULL || i_arg->next->next != NULL)
+            code_err(ast, "swap() takes exactly two index arguments");
+        if ((i_arg->name && !streq(i_arg->name, "i")) || (i_arg->next->name && !streq(i_arg->next->name, "j")))
+            code_err(ast, "swap()'s arguments are named `i` and `j`");
+        Text_t index_codes[2];
+        arg_ast_t *arg = i_arg;
+        for (int n = 0; n < 2; n++, arg = arg->next) {
+            type_t *arg_t = get_type(env, arg->value);
+            if (arg->value->tag == Int)
+                index_codes[n] = compile_int_to_type(env, arg->value, Type(IntType, .bits = TYPE_IBITS64));
+            else if (arg_t->tag == BigIntType) index_codes[n] = Texts("Int64$from_int(", compile(env, arg->value), ", no)");
+            else if (is_int_type(arg_t)) index_codes[n] = Texts("(Int64_t)(", compile(env, arg->value), ")");
+            else code_err(arg->value, "swap() indexes must be integers, not ", type_to_text(arg_t));
+        }
+        // If an enclosing loop hoisted this list's copy-on-write guard
+        // (see cow_hoist_env in loops.c), skip the per-swap CoW check.
+        bool cow_hoisted = call->self->tag == Var && env->cow_hoisted
+                           && Table$str_get(*env->cow_hoisted, Match(call->self, Var)->name);
+        return Texts(cow_hoisted ? "List_swap_nocow(" : "List_swap(", compile_type(item_t), ", ", self, ", ",
+                     index_codes[0], ", ", index_codes[1], ", ", (int64_t)(ast->start - ast->file->text), ", ",
+                     (int64_t)(ast->end - ast->file->text), ")");
     } else if (streq(call->name, "sort") || streq(call->name, "sorted")) {
         if (streq(call->name, "sort")) EXPECT_POINTER();
         else self = compile_to_pointer_depth(env, call->self, 0, false);

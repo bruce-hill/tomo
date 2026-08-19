@@ -34,6 +34,14 @@ test "aliased pointers share writes inside a hoisted loop"
 	assert zs[] == [20, 20, 20]
 	assert alias[] == [20, 20, 20]
 
+test "swap() composes with hoisting and still protects prior snapshots"
+	vs := @[1, 2, 3, 4]
+	before := vs[]
+	for i in Int64(1).to(Int64(2))
+		vs.swap(i, i + 2)
+	assert vs[] == [3, 4, 1, 2]
+	assert before == [1, 2, 3, 4]
+
 test "hoisted writes accumulate across outer-loop iterations"
 	ws := @[0, 0, 0]
 	count := Int64(0)

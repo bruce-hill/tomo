@@ -64,6 +64,49 @@ extern char _EMPTY_LIST_SENTINEL;
                                     convert_to_text((int64_t)list->length), Text(")\n")));                             \
         (item_type *)(list->data + list->stride * off);                                                                \
     })
+// `xs.swap(i, j)`: exchange two elements in place. One copy-on-write check
+// covers both writes, and each index is bounds-checked once (compare a
+// two-element multi-assignment swap: 4 bounds checks + 2 CoW checks).
+// Swapping an element with itself is a no-op, not an error.
+#define List_swap(item_type, list_expr, i_expr, j_expr, start, end)                                                    \
+    ({                                                                                                                 \
+        List_t *list = list_expr;                                                                                      \
+        int64_t i = i_expr, j = j_expr;                                                                                \
+        int64_t i_off = i + (i < 0) * (list->length + 1) - 1;                                                          \
+        int64_t j_off = j + (j < 0) * (list->length + 1) - 1;                                                          \
+        if (unlikely(i_off < 0 || i_off >= list->length || j_off < 0 || j_off >= list->length))                        \
+            fail_source(__SOURCE_FILE__, start, end,                                                                   \
+                        Text$concat(Text("Invalid list index: "),                                                      \
+                                    convert_to_text((i_off < 0 || i_off >= list->length) ? i : j),                     \
+                                    Text(" (list has length "), convert_to_text((int64_t)list->length), Text(")\n"))); \
+        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                            \
+        item_type *i_ptr = (item_type *)(list->data + list->stride * i_off);                                           \
+        item_type *j_ptr = (item_type *)(list->data + list->stride * j_off);                                           \
+        item_type tmp = *i_ptr;                                                                                        \
+        *i_ptr = *j_ptr;                                                                                               \
+        *j_ptr = tmp;                                                                                                  \
+        (void)0;                                                                                                       \
+    })
+// List_swap without the CoW guard: emitted only under a hoisted CoW guard
+// (same contract as List_lvalue_nocow).
+#define List_swap_nocow(item_type, list_expr, i_expr, j_expr, start, end)                                              \
+    ({                                                                                                                 \
+        List_t *list = list_expr;                                                                                      \
+        int64_t i = i_expr, j = j_expr;                                                                                \
+        int64_t i_off = i + (i < 0) * (list->length + 1) - 1;                                                          \
+        int64_t j_off = j + (j < 0) * (list->length + 1) - 1;                                                          \
+        if (unlikely(i_off < 0 || i_off >= list->length || j_off < 0 || j_off >= list->length))                        \
+            fail_source(__SOURCE_FILE__, start, end,                                                                   \
+                        Text$concat(Text("Invalid list index: "),                                                      \
+                                    convert_to_text((i_off < 0 || i_off >= list->length) ? i : j),                     \
+                                    Text(" (list has length "), convert_to_text((int64_t)list->length), Text(")\n"))); \
+        item_type *i_ptr = (item_type *)(list->data + list->stride * i_off);                                           \
+        item_type *j_ptr = (item_type *)(list->data + list->stride * j_off);                                           \
+        item_type tmp = *i_ptr;                                                                                        \
+        *i_ptr = *j_ptr;                                                                                               \
+        *j_ptr = tmp;                                                                                                  \
+        (void)0;                                                                                                       \
+    })
 #define List_set(item_type, list, index, value, start, end) List_lvalue(item_type, list_expr, index, start, end) = value
 // Guard for `for &x in xs` reference iteration (see compile_for_reference_loop
 // in compile/loops.c): while raw element pointers into the buffer are live, the

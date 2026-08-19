@@ -617,6 +617,39 @@ List.sorted:
        func(a,b:&Int) a.abs() <> b.abs()
     ) == [10, 20, -30, 40]
 
+List.swap:
+  short: swap two elements in place
+  description: >
+    Swaps the elements at two indices in place. Compiles inline, so a swap
+    costs one bounds check per index and a single copy-on-write check (a
+    two-element multi-assignment swap pays both twice). Swapping an index with
+    itself is a no-op. Negative indices count from the back of the list, and
+    an out-of-bounds index is a runtime error.
+  return:
+    type: 'Void'
+    description: >
+      Nothing.
+  args:
+    list:
+      type: '@[T]'
+      description: >
+        The mutable reference to the list.
+    i:
+      type: 'Int'
+      description: >
+        The index of the first element (1-indexed).
+    j:
+      type: 'Int'
+      description: >
+        The index of the second element (1-indexed).
+  example: |
+    list := &[10, 20, 30]
+    list.swap(1, 3)
+    assert list == [30, 20, 10]
+
+    list.swap(2, -1)
+    assert list == [30, 10, 20]
+
 List.to:
   short: slice a list to an end index
   description: >

@@ -994,6 +994,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "slice")) return self_value_t;
             else if (streq(call->name, "sort")) return Type(VoidType);
             else if (streq(call->name, "sorted")) return self_value_t;
+            else if (streq(call->name, "swap")) return Type(VoidType);
             else if (streq(call->name, "to")) return self_value_t;
             else if (streq(call->name, "unique"))
                 return Type(TableType, .key_type = item_type, .value_type = PRESENT_TYPE);
@@ -1898,7 +1899,7 @@ List_t get_method_names(env_t *env, type_t *t) {
                     Text("from"), Text("has"), Text("heap_pop"), Text("heap_push"), Text("heapify"), Text("insert"),
                     Text("insert_all"), Text("pairs"), Text("pop"), Text("random"), Text("remove_at"),
                     Text("remove_item"), Text("reversed"), Text("sample"), Text("shuffle"), Text("shuffled"),
-                    Text("slice"), Text("sort"), Text("sorted"), Text("to"), Text("unique"));
+                    Text("slice"), Text("sort"), Text("sorted"), Text("swap"), Text("to"), Text("unique"));
     }
     case TableType: {
         return List(Text("clear"), Text("entries"), Text("get"), Text("get_or_set"), Text("has"), Text("remove"),
