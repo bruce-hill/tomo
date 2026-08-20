@@ -3802,6 +3802,109 @@ char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact)
 // Symbolic form
 
 // A rational as "42", "-7/2", ...
+// ---------------------------------------------------------------------------
+// Shared subexpressions in the symbolic form
+//
+// A value's structure is a DAG: `y = x + x` refers to x twice rather than
+// copying it. Printing it as a plain expression unfolds that DAG into a tree,
+// which is exponential in the worst case -- doubling an irrational n times
+// prints 2^n copies of it.
+//
+// So: print plainly while the unfolded form stays small (the overwhelmingly
+// common case, and the readable one), and past a threshold switch to a form
+// that names each repeated subexpression once:
+//
+//   sin(1) + sin(1)        stays as it is
+//   {#1 = <big>; #1 + #1}  once unfolding would be too large
+//
+// The labelled form is still exact, still readable, and linear in the number
+// of distinct nodes rather than exponential. number_from_symbolic parses both.
+
+// Past this many nodes in the unfolded tree, switch to the labelled form.
+// Well above any expression a person would write out, far below the point
+// where unfolding costs real memory.
+#define SYM_UNFOLD_LIMIT 1000
+
+typedef struct {
+    number node;
+    size_t refs;  // how many times the DAG reaches this node
+    size_t size;  // its unfolded size, saturating at SYM_UNFOLD_LIMIT
+    int label;    // -1 until assigned
+} sym_entry;
+
+typedef struct {
+    sym_entry *entries;
+    size_t len, cap;
+} sym_table;
+
+// Only IRRATIONAL nodes can be shared in a way that matters: every other kind
+// prints in a bounded amount of text (a rational's digits, or a real's
+// a + b*F with rational parts), so unfolding one costs nothing.
+static bool sym_shareable(number x)
+{
+    return is_irrational_kind(x);
+}
+
+static sym_entry *sym_find(sym_table *t, number x)
+{
+    for (size_t i = 0; i < t->len; i++)
+        if (t->entries[i].node.bits == x.bits) return &t->entries[i];
+    return NULL;
+}
+
+// Records a reference to x and returns the size of its unfolded form,
+// saturating at SYM_UNFOLD_LIMIT. Each distinct node is expanded once and
+// its size remembered, so a DAG whose unfolded form is astronomical is still
+// measured in time linear in the number of distinct nodes.
+static size_t sym_survey(sym_table *t, number x)
+{
+    if (!sym_shareable(x)) return 1;
+
+    sym_entry *existing = sym_find(t, x);
+    if (existing) {
+        existing->refs++;
+        return existing->size; // seen before: same size, one more reference
+    }
+
+    if (t->len == t->cap) {
+        size_t new_cap = t->cap ? t->cap * 2 : 16;
+        sym_entry *grown = xmalloc(new_cap * sizeof(sym_entry));
+        if (t->entries) memcpy(grown, t->entries, t->len * sizeof(sym_entry));
+        t->entries = grown;
+        t->cap = new_cap;
+    }
+    size_t index = t->len++;
+    t->entries[index] = (sym_entry){.node = x, .refs = 1, .size = 0, .label = -1};
+
+    num_irr *n = as_irr(x);
+    // Both children always, even once the size has saturated: the reference
+    // counts are what decide which nodes get named, and skipping a subtree
+    // would undercount everything in it.
+    size_t size = 1 + sym_survey(t, n->x);
+    if (n->y.bits != 0) size += sym_survey(t, n->y);
+    if (size > SYM_UNFOLD_LIMIT) size = SYM_UNFOLD_LIMIT;
+    t->entries[index].size = size; // by index: the array may have moved above
+    return size;
+}
+
+// The label table in force during a shared-form render. number.c is
+// single-threaded (see number_pi's note), so a static is consistent with how
+// the rest of this file already caches.
+static struct {
+    bool active;
+    sym_table *table;
+    number defining; // the node whose binding is being written right now
+} sym_share = {.active = false, .table = NULL, .defining = {0}};
+
+static char *symbolic_render(number x);
+
+static int sym_label_of(number x)
+{
+    if (!sym_share.table) return -1;
+    sym_entry *e = sym_find(sym_share.table, x);
+    return e ? e->label : -1;
+}
+
 static char *rational_symbolic(number x)
 {
     if (number_tag(x) == TAG_SMALL) {
@@ -3943,6 +4046,9 @@ enum { RENDER_ATOM, RENDER_PRODUCT, RENDER_SUM };
 
 static int render_level(number x)
 {
+    // A labelled node prints as "#1": a single token, never needing parens,
+    // whatever the expression underneath it would have needed.
+    if (sym_share.active && x.bits != sym_share.defining.bits && sym_label_of(x) >= 0) return RENDER_ATOM;
     if (is_irrational_kind(x)) {
         num_irr *n = as_irr(x);
         switch (n->op) {
@@ -4019,7 +4125,7 @@ static char *mul_chain_str(num_irr *n, bool tex)
                 power++;
             }
         }
-        char *base = tex ? number_to_tex(leaves[i]) : number_to_symbolic(leaves[i]);
+        char *base = tex ? number_to_tex(leaves[i]) : symbolic_render(leaves[i]);
         char *piece = base;
         if (power > 1) {
             bool parens = pow_base_needs_parens(leaves[i], tex);
@@ -4055,13 +4161,13 @@ static char *mul_chain_str(num_irr *n, bool tex)
 static char *irr_symbolic(num_irr *n)
 {
     if (n->op == IRR_MUL) return mul_chain_str(n, false);
-    char *xs = number_to_symbolic(n->x);
+    char *xs = symbolic_render(n->x);
     const char *fname = irr_op_name(n->op);
     if (fname) {
         char *result = xsprintf("%s(%s)", fname, xs);
         return result;
     }
-    char *ys = number_to_symbolic(n->y);
+    char *ys = symbolic_render(n->y);
     // A right operand that renders as a sum misreads after any of these
     // operators ("x - 1 + pi"); after '/' even a product does ("x/2*pi").
     // Left operands only misread when a sum meets '/' ("1 + pi/x").
@@ -4077,8 +4183,14 @@ static char *irr_symbolic(num_irr *n)
     return result;
 }
 
-char *number_to_symbolic(number x)
+static char *symbolic_render(number x)
 {
+    // In shared mode, a subexpression that appears more than once prints as
+    // its label everywhere except the binding that defines it.
+    if (sym_share.active && x.bits != sym_share.defining.bits) {
+        int label = sym_label_of(x);
+        if (label >= 0) return xsprintf("#%d", label);
+    }
     if (number_is_error(x)) return xstrdup("(error)");
     if (is_irrational_kind(x)) return irr_symbolic(as_irr(x));
     if (!is_real_kind(x)) return rational_symbolic(x);
@@ -4122,6 +4234,44 @@ char *number_to_symbolic(number x)
         char *a_str = rational_symbolic(r->a);
         result = xsprintf("%s %c %s", a_str, bneg ? '-' : '+', term);
     }
+    return result;
+}
+
+char *number_to_symbolic(number x)
+{
+    sym_table table = {.entries = NULL, .len = 0, .cap = 0};
+    size_t unfolded = sym_survey(&table, x);
+    if (unfolded < SYM_UNFOLD_LIMIT) return symbolic_render(x); // the common case
+
+    // Too big to unfold: name every subexpression that appears more than
+    // once, so each is written exactly one time.
+    int next_label = 1;
+    for (size_t i = 0; i < table.len; i++)
+        if (table.entries[i].refs > 1) table.entries[i].label = next_label++;
+
+    if (next_label == 1) return symbolic_render(x); // big, but nothing repeats
+
+    sym_share.active = true;
+    sym_share.table = &table;
+
+    // Bindings in dependency order: sym_survey visits a node before its
+    // children, so walking the table backwards defines each label after
+    // everything it refers to.
+    char *out = xstrdup("{");
+    for (size_t i = table.len; i-- > 0;) {
+        sym_entry *e = &table.entries[i];
+        if (e->label < 0) continue;
+        sym_share.defining = e->node;
+        char *body = symbolic_render(e->node);
+        sym_share.defining = (number){0};
+        char *joined = xsprintf("%s#%d = %s; ", out, e->label, body);
+        out = joined;
+    }
+    char *root = symbolic_render(x);
+    char *result = xsprintf("%s%s}", out, root);
+
+    sym_share.active = false;
+    sym_share.table = NULL;
     return result;
 }
 
@@ -4479,9 +4629,13 @@ number number_from_decimal(const char *str)
 // Every production builds its result with the ordinary public constructors,
 // so the parse is exact by the same rules the original computation was.
 
+#define SYM_MAX_LABELS 4096
+
 typedef struct {
     const char *pos;
     bool failed;
+    number labels[SYM_MAX_LABELS]; // labels[i] is #(i+1); bits 0 means unbound
+    int label_count;
 } sym_parser;
 
 static number sym_expr(sym_parser *p);
@@ -4534,6 +4688,21 @@ static number sym_atom(sym_parser *p)
         number value = number_from_decimal(digits);
         if (number_is_error(value)) return sym_fail(p);
         return value;
+    }
+
+    // A label reference from the shared form: "#1"
+    if (*p->pos == '#') {
+        p->pos++;
+        if (!isdigit((unsigned char)*p->pos)) return sym_fail(p);
+        int index = 0;
+        while (isdigit((unsigned char)*p->pos)) {
+            if (index > SYM_MAX_LABELS) return sym_fail(p);
+            index = index * 10 + (*p->pos++ - '0');
+        }
+        if (index < 1 || index > p->label_count) return sym_fail(p);
+        number bound = p->labels[index - 1];
+        if (bound.bits == 0) return sym_fail(p);
+        return bound;
     }
 
     if (sym_word(p, "pi")) return number_pi();
@@ -4629,11 +4798,52 @@ static number sym_expr(sym_parser *p)
     }
 }
 
+// The labelled form: "{#1 = <expr>; #2 = <expr>; <expr>}". Each binding is
+// available to the bindings after it and to the final expression, so a shared
+// subexpression is written -- and built -- exactly once.
+static number sym_bindings(sym_parser *p)
+{
+    p->pos++; // '{'
+    for (;;) {
+        sym_skip_space(p);
+        if (*p->pos != '#') break; // no more bindings: the result expression
+        const char *save = p->pos;
+        p->pos++;
+        if (!isdigit((unsigned char)*p->pos)) return sym_fail(p);
+        int index = 0;
+        while (isdigit((unsigned char)*p->pos)) {
+            if (index > SYM_MAX_LABELS) return sym_fail(p);
+            index = index * 10 + (*p->pos++ - '0');
+        }
+        sym_skip_space(p);
+        if (*p->pos != '=') { // "#1 + #1" as the result, not a binding
+            p->pos = save;
+            break;
+        }
+        p->pos++;
+        if (index < 1 || index > SYM_MAX_LABELS) return sym_fail(p);
+        number bound = sym_expr(p);
+        if (p->failed) return NUMBER_ERROR;
+        p->labels[index - 1] = bound;
+        if (index > p->label_count) p->label_count = index;
+        sym_skip_space(p);
+        if (*p->pos != ';') return sym_fail(p);
+        p->pos++;
+    }
+    number result = sym_expr(p);
+    if (p->failed) return NUMBER_ERROR;
+    sym_skip_space(p);
+    if (*p->pos != '}') return sym_fail(p);
+    p->pos++;
+    return result;
+}
+
 number number_from_symbolic(const char *str)
 {
     if (!str) return err(ERR_PARSE);
-    sym_parser p = {.pos = str, .failed = false};
-    number value = sym_expr(&p);
+    sym_parser p = {.pos = str, .failed = false, .labels = {{0}}, .label_count = 0};
+    sym_skip_space(&p);
+    number value = *p.pos == '{' ? sym_bindings(&p) : sym_expr(&p);
     if (p.failed) return err(ERR_PARSE);
     sym_skip_space(&p);
     if (*p.pos != '\0') return err(ERR_PARSE); // trailing garbage

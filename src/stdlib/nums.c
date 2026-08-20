@@ -300,11 +300,40 @@ Text_t Num$as_text(const void *n, bool colorize, const TypeInfo_t *info) {
     return text;
 }
 
+// Where exactness runs out. Comparing two irrationals is undecidable in
+// general -- proving sqrt(3 + 2*sqrt(2)) == 1 + sqrt(2) takes symbolic
+// reasoning no engine does in full -- so past this many digits of agreement,
+// two values are treated as the same. Deep enough that nothing a program
+// actually computes lands inside it by accident.
+#define EQUALITY_DIGITS 40
+
+// The value rounded to EQUALITY_DIGITS, as an exact rational. Comparing two
+// of these always decides, where comparing the originals may not.
+static Num_t rounded_for_equality(Num_t n) {
+    bool exact = false;
+    char *decimal = number_to_string(n, EQUALITY_DIGITS, &exact);
+    Num_t rounded = number_from_decimal(decimal);
+    return number_is_error(rounded) ? n : rounded;
+}
+
 public
 PUREFUNC int32_t Num$compare_value(Num_t x, Num_t y) {
     int cmp = number_compare(x, y);
-    // 2 means "unordered": an error operand, or two general irrationals whose
-    // difference the library could not decide within its precision cap.
+    if (likely(cmp != 2)) return (int32_t)cmp;
+
+    // 2 means the engine couldn't decide: two general irrationals whose
+    // difference it can neither prove zero nor prove nonzero. Two answers are
+    // still available, in order of cost.
+
+    // Identical expressions are the same value, whatever that value is --
+    // sin(2) and sin(2) need no refinement to be equal. The symbolic form is
+    // canonical for structure, and is linear even for a heavily shared
+    // expression (see number_to_symbolic's shared form).
+    if (streq(number_to_symbolic(x), number_to_symbolic(y))) return 0;
+
+    // Otherwise decide it numerically: agreement to EQUALITY_DIGITS counts as
+    // equality. Rounding both to rationals first makes the comparison total.
+    cmp = number_compare(rounded_for_equality(x), rounded_for_equality(y));
     return cmp == 2 ? 0 : (int32_t)cmp;
 }
 
@@ -316,7 +345,9 @@ PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t *inf
 
 public
 PUREFUNC bool Num$equal_value(Num_t x, Num_t y) {
-    return number_equal(x, y);
+    // number_equal reports the undecidable case as not-equal; Num$compare_value
+    // resolves it instead (see there), so route through it.
+    return likely(number_equal(x, y)) ? true : Num$compare_value(x, y) == 0;
 }
 
 public
@@ -328,13 +359,14 @@ PUREFUNC bool Num$equal(const void *x, const void *y, const TypeInfo_t *info) {
 public
 PUREFUNC uint64_t Num$hash(const void *vx, const TypeInfo_t *info) {
     (void)info;
-    Num_t x = *(Num_t *)vx;
-    // Equal numbers must hash equally, and equality here is mathematical, not
-    // bitwise: sqrt(8) and 2*sqrt(2) are the same value in different shapes,
-    // and a rational can be an immediate or a heap bigrat. The exact symbolic
-    // form is canonical across all of that, so hash it rather than the bits.
-    char *canonical = number_to_symbolic(x);
-    return siphash24((void *)canonical, strlen(canonical));
+    // Equal values must hash equally, and equality here is mathematical, not
+    // bitwise: sqrt(8) and 2*sqrt(2) are the same number wearing different
+    // shapes, a rational can be an immediate or a heap bigrat, and two
+    // irrationals count as equal once they agree to EQUALITY_DIGITS. The
+    // decimal expansion to that many digits is the one form all three of
+    // those collapse to, so hash that.
+    char *digits = number_to_string(*(Num_t *)vx, EQUALITY_DIGITS, NULL);
+    return siphash24((void *)digits, strlen(digits));
 }
 
 public

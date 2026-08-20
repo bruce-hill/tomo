@@ -121,6 +121,39 @@ test "comparisons"
 	assert (2.).sqrt()! > 1.4
 	assert ((1./3.) <> (1./3.)) == Int32(0)
 
+test "identical expressions are equal"
+	# Two separately built irrationals with the same structure are the same
+	# value, and need no numeric refinement to say so.
+	assert (2.).sin() == (2.).sin()
+	assert (2.).sin() + Num.PI == (2.).sin() + Num.PI
+	assert (2.).sin() * Num.PI == (2.).sin() * Num.PI
+	assert (2.).sin() != (3.).sin()
+
+test "equal values are equal however they're written"
+	assert (2.).sqrt()! == (8.).sqrt()! / 2
+	assert (2.).sqrt()! * (2.).sqrt()! == 2
+	assert Num.PI * 2 == Num.TAU
+	# Proving this symbolically takes reasoning no engine does in full, so it
+	# falls back to agreeing to 40 digits -- which it does.
+	assert (3. + 2 * (2.).sqrt()!).sqrt()! == 1 + (2.).sqrt()!
+
+test "irrationals work as table keys"
+	>> t := {(2.).sin(): "sin 2", Num.PI: "pi", (2.).sqrt()!: "root 2"}
+	assert t[(2.).sin()]! == "sin 2"
+	assert t[Num.PI]! == "pi"
+	assert t[(8.).sqrt()! / 2]! == "root 2"
+
+test "a heavily shared expression stays small"
+	# Doubling an irrational builds a DAG whose unfolded form is 2^n; the
+	# symbolic form names repeated subexpressions instead of copying them.
+	x := (1.).sin()
+	for i in 1.to(30)
+		x = x + x
+	assert x.symbolic().length < 1000
+	bytes : [Byte] = x
+	roundtrip : Num = bytes
+	assert roundtrip == x
+
 test "methods with a restricted domain return none"
 	assert (-1.).sqrt() == none
 	assert (0.).log() == none
@@ -169,19 +202,11 @@ test "serialization round-trips exact rationals"
 	assert roundtrip == obj
 
 test "serialization round-trips irrationals"
-	# Compared by symbolic form rather than ==, because two separately built
-	# general irrationals can't be *proven* equal, so == reports no. Closed
-	# forms like sqrt(2) and pi do compare equal.
 	irrationals := [(2.).sqrt()!, Num.PI, Num.PI * 2, (2.).sin(), (2.).exp(), (3.).log()!, Num.PI + (2.).sqrt()!, Num.PI * Num.PI * Num.PI, (1. + Num.PI) * (2.).sin(), (1.).atan()]
 	for x in irrationals
 		bytes : [Byte] = x
 		roundtrip : Num = bytes
 		assert roundtrip.symbolic() == x.symbolic()
-
-test "closed symbolic forms round-trip to equal values"
-	for x in [(2.).sqrt()!, Num.PI, Num.PI * 2, (2.).exp(), 0.5, 1./3.]
-		bytes : [Byte] = x
-		roundtrip : Num = bytes
 		assert roundtrip == x
 
 test "dividing by zero panics"
