@@ -20,7 +20,7 @@ struct Count{key:Int64, count:Int64}
 
 # Sort by count descending, then by key ascending (ties broken toward the
 # smaller code, i.e. alphabetically).
-func by_count_then_key(a, b: &Count -> Int32)
+func by_count_then_key(a, b: Count -> Int32)
     if a.count != b.count
         return b.count <> a.count
     return a.key <> b.key
