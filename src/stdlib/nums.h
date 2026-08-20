@@ -116,7 +116,7 @@ Num_t Num$tau(void);
 
 // Approximation and conversion: a Num is exact, so getting digits out of one
 // means saying how many you want.
-Text_t Num$digits(Num_t n, Int_t digits);
+Text_t Num$digits(Num_t n, Int_t digits, Text_t ellipsis);
 PUREFUNC bool Num$is_exact(Num_t n, Int_t digits);
 Text_t Num$symbolic(Num_t n);
 Text_t Num$tex(Num_t n);

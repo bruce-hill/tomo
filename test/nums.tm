@@ -89,12 +89,21 @@ test "display shows exact values"
 	assert "$(2. + 2.)" == "4"
 
 test "approximating to a requested number of digits"
-	>> (1./3.).digits(10)
-	assert (1./3.).digits(10) == "0.3333333333"
-	assert (1./3.).digits(0) == "0"
-	assert Num.PI.digits(10) == "3.1415926536"
-	assert (2.).sqrt()!.digits(10) == "1.4142135624"
-	# An exact value stops early rather than padding zeros:
+	>> (1/3).digits(10)
+	# An inexact result gets an ellipsis, and its digits are a truncated
+	# prefix of the true expansion (never rounded: an ellipsis promises the
+	# real expansion continues from what's shown).
+	assert (1/3).digits(10) == "0.3333333333…"
+	assert (2/3).digits(10) == "0.6666666666…"
+	assert (1/3).digits(0) == "0…"
+	assert Num.PI.digits(10) == "3.1415926535…"
+	assert (2.).sqrt()!.digits(10) == "1.4142135623…"
+	assert (-2/3).digits(10) == "-0.6666666666…"
+	# The digits never round, whatever the ellipsis -- rounding is what
+	# .round() is for:
+	assert (2/3).digits(10, ellipsis="") == "0.6666666666"
+	assert (2/3).digits(10, ellipsis="...") == "0.6666666666..."
+	# An exact value has no ellipsis, and stops early rather than padding:
 	assert (0.25).digits(10) == "0.25"
 
 test "is_exact reports whether digits capture the value"

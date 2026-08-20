@@ -175,7 +175,7 @@ env_t *global_env(bool source_mapping) {
             {"ceil", "Num$ceil", "func(x:Num -> Num)"}, //
             {"cos", "Num$cos", "func(x:Num -> Num)"}, //
             {"cosh", "Num$cosh", "func(x:Num -> Num)"}, //
-            {"digits", "Num$digits", "func(n:Num, digits=15 -> Text)"}, //
+            {"digits", "Num$digits", "func(n:Num, digits=15, ellipsis=\"\u2026\" -> Text)"}, //
             {"divided_by", "Num$divided_by", "func(x,y:Num -> Num)"}, //
             {"floor_divided_by", "Num$floor_divided_by", "func(x,y:Num -> Num)"}, //
             {"exp", "Num$exp", "func(x:Num -> Num)"}, //

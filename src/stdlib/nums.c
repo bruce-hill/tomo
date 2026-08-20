@@ -239,19 +239,31 @@ Num_t Num$tau(void) {
 // A Num is exact, so getting digits out of one means saying how many you
 // want. These are the ways to ask.
 
-// The decimal expansion to at most `digits` fractional places, correctly
-// rounded (half-to-even). Exact values stop early rather than padding zeros:
-// (1/4):digits(10) is "0.25", not "0.2500000000".
+// The decimal expansion to at most `digits` fractional places. Exact values
+// stop early rather than padding zeros -- (1/4):digits(10) is "0.25" -- and
+// need no marker. A value that doesn't fit shows a TRUNCATED prefix of its
+// true expansion with the ellipsis appended: never a rounding, whatever the
+// ellipsis is. The shown digits are always digits the value actually has --
+// (2/3):digits(10) is "0.6666666666…", not "0.6666666667" with a 7 the
+// expansion never contains -- and anyone who wants rounding rounds first.
 public
-Text_t Num$digits(Num_t n, Int_t digits) {
+Text_t Num$digits(Num_t n, Int_t digits, Text_t ellipsis) {
     int64_t d = Int64$from_int(digits, false);
     if (unlikely(d < 0)) fail("Digit count can't be negative: ", digits);
     if (unlikely(d > UINT32_MAX)) fail("Digit count is too large: ", digits);
-    return Text$from_str(number_to_string(n, (uint32_t)d, NULL));
+    bool exact = false;
+    char *full = number_to_string(n, (uint32_t)d, &exact);
+    if (exact) return Text$from_str(full);
+    // Truncate toward zero at the d'th fractional digit: trunc(n * 10^d) has
+    // the prefix's digits exactly, and dividing back gives a value
+    // number_to_string renders exactly (it fits d digits by construction).
+    Num_t scale = number_pow(number_from_int(10), number_from_int(d));
+    Num_t prefix = number_div(number_trunc(number_mul(n, scale)), scale);
+    return Text$concat(Text$from_str(number_to_string(prefix, (uint32_t)d, NULL)), ellipsis);
 }
 
 // Whether `digits` fractional places capture the value exactly -- that is,
-// whether `:digits(digits)` is the value itself rather than a rounding of it.
+// whether `:digits(digits)` is the value itself rather than a truncation of it.
 public
 PUREFUNC bool Num$is_exact(Num_t n, Int_t digits) {
     int64_t d = Int64$from_int(digits, false);

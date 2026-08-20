@@ -53,17 +53,23 @@ assert "$(Num.PI)" == "pi"
 ## Getting digits
 
 Since a `Num` is exact, turning one into digits means saying how many you
-want. `:digits()` gives the decimal expansion, correctly rounded, and
-`:is_exact()` says whether that many digits capture the value:
+want. `:digits()` gives the decimal expansion, and `:is_exact()` says whether
+that many digits capture the value:
 
 ```tomo
-assert (1./3.).digits(10) == "0.3333333333"
-assert Num.PI.digits(10) == "3.1415926536"
-assert not (1./3.).is_exact(10)
+assert (1/3).digits(10) == "0.3333333333…"
+assert Num.PI.digits(10) == "3.1415926535…"
+assert not (1/3).is_exact(10)
 
-# An exact value stops early rather than padding zeros:
+# An exact value stops early rather than padding zeros, and has no ellipsis:
 assert (0.25).digits(10) == "0.25"
 assert (0.25).is_exact(10)
+
+# The digits are a truncated prefix of the true expansion, never rounded --
+# every digit shown is a digit the value actually has. Rounding is what
+# .round() is for:
+assert (2/3).digits(10) == "0.6666666666…"
+assert (2/3).digits(10, ellipsis="") == "0.6666666666"
 ```
 
 `:symbolic()` gives the exact form as text, and `:tex()` gives it as TeX:

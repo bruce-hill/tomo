@@ -2605,7 +2605,7 @@ The ratio of a circle's circumference to its diameter, held exactly rather than 
 **Example:**
 ```tomo
 assert Num.PI.sin() == 0
-assert Num.PI.digits(10) == "3.1415926536"
+assert Num.PI.digits(10) == "3.1415926535…"
 
 ```
 ## Num.TAU
@@ -2815,23 +2815,25 @@ assert (0.).cosh() == 1
 ## Num.digits
 
 ```tomo
-Num.digits : func(n: Num, digits: Int = 15 -> Text)
+Num.digits : func(n: Num, digits: Int = 15, ellipsis: Text = "…" -> Text)
 ```
 
-The decimal expansion of a number, to at most the requested number of fractional digits, correctly rounded. A value that needs fewer digits stops early rather than padding with zeros.
+The decimal expansion of a number, to at most the requested number of fractional digits. A value that fits exactly stops early rather than padding with zeros, and gets no marker. A value that doesn't shows a truncated prefix of its true expansion with the ellipsis appended -- never a rounding: every digit shown is a digit the value actually has. To round, round first.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 n | `Num` | The number to expand.  | -
 digits | `Int` | The maximum number of fractional digits.  | `15`
+ellipsis | `Text` | Appended when the digits don't capture the value exactly.  | `"…"`
 
 **Return:** The decimal expansion as text.
 
 
 **Example:**
 ```tomo
-assert (1./3.).digits(10) == "0.3333333333"
-assert Num.PI.digits(10) == "3.1415926536"
+assert (1/3).digits(10) == "0.3333333333…"
+assert Num.PI.digits(10) == "3.1415926535…"
+assert (2/3).digits(10, ellipsis="") == "0.6666666666"
 assert (0.25).digits(10) == "0.25"
 
 ```

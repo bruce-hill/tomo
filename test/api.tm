@@ -451,7 +451,7 @@ test "List.where"
 
 test "Num.PI"
     assert Num.PI.sin() == 0
-    assert Num.PI.digits(10) == "3.1415926536"
+    assert Num.PI.digits(10) == "3.1415926535…"
 
 test "Num.TAU"
     assert Num.TAU == 2 * Num.PI
@@ -491,8 +491,9 @@ test "Num.cosh"
     assert (0.).cosh() == 1
 
 test "Num.digits"
-    assert (1./3.).digits(10) == "0.3333333333"
-    assert Num.PI.digits(10) == "3.1415926536"
+    assert (1/3).digits(10) == "0.3333333333…"
+    assert Num.PI.digits(10) == "3.1415926535…"
+    assert (2/3).digits(10, ellipsis="") == "0.6666666666"
     assert (0.25).digits(10) == "0.25"
 
 test "Num.exp"
