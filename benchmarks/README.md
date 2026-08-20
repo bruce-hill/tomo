@@ -18,12 +18,14 @@ everything locally and regenerates these PNGs.
 ![Tomo vs. other languages across nine benchmarks](results.png)
 
 Where a handful of entries are far slower than the rest of the field, the
-panel's x-axis is **broken**: the pack keeps a linear scale and the runaways
-are compressed into a band at the right, marked with a zigzag on the axis and
-on each bar that crosses it. Without it, Python's 182s on spectral-norm would
-squash the other eleven languages into slivers. Every bar keeps its real time
-and slowdown as a label, and where to break is picked from the data (`break_at`
-in `plot.py`), not hardcoded per benchmark.
+panel's x-axis is **cut** short of them — one cut per panel, marked with a
+zigzag on the axis and on each bar that runs into it. Without it, Python's 182s
+on spectral-norm would squash the other eleven languages into slivers. The
+scale never changes across a panel: every bar, cut or not, is drawn at the same
+seconds per inch, so lengths stay comparable — a cut bar simply runs off the
+end, and its label carries the real time and slowdown. Where to cut is picked
+from the data (`break_at` in `plot.py`), not hardcoded per benchmark, and sits
+clear of the longest bar that fits so a cut bar plainly outruns it.
 
 With the field now up to ~17 languages across all nine of the CLBG's
 library-free benchmarks, the useful summary is that **Tomo sits inside the

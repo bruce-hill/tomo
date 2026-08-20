@@ -8,9 +8,9 @@ construction (one accent vs. gray). Each bar is directly labeled with its
 wall-clock time and slowdown relative to the fastest language.
 
 Where a few entries are far slower than the rest of the field (Python is 300x
-the leader on spectral-norm), the panel's x-axis is broken: the pack keeps a
-linear scale and the runaways are compressed into a band at the right, with a
-zigzag on the axis and on each crossing bar. See break_at() for where.
+the leader on spectral-norm), the panel's x-axis is cut short of them: one cut
+per panel, the same scale on every bar, and a bar that runs into the cut ends
+in a zigzag and keeps its real time as its label. See break_at() for where.
 
 Writes a combined overview (<out>.svg/.png, all benchmarks stacked) plus one
 standalone graph per benchmark (<out>-<benchmark>.svg/.png).
@@ -24,8 +24,6 @@ import sys
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-import numpy as np
 from matplotlib.patches import Patch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -39,28 +37,26 @@ MUTED = "#5f6368"
 GRID = "#e6e8eb"
 
 
-# A single very slow entry squashes everyone else: on spectral-norm Python
-# takes 182s against a 0.6s leader, so every other bar is a sliver. When that
-# happens the axis is broken: everything up to the break keeps a normal linear
-# scale, and the runaway entries past it are drawn on a compressed scale in a
-# band at the right, marked with a zigzag where the scale changes. Where to
-# break is derived from the data rather than fixed at some number of seconds:
-# sort the times and break at the *lowest* neighbor-to-neighbor jump that is
-# big enough to matter and leaves only a few entries above it -- the lowest
-# such jump, not the biggest, because it is the one that wins back the most
-# axis for the pack (mandelbrot's biggest jump is Lua->Python at the very top,
-# but breaking below PyPy is what stops the field from being a sliver).
-BREAK_JUMP = 2.5        # a jump this large can host the break...
+# A few very slow entries squash everyone else: on spectral-norm Python takes
+# 182s against a 0.61s leader, so every other bar is a sliver. The panel then
+# cuts its x-axis: the segment past the cut is not drawn at all, and a bar that
+# runs into it ends in a zigzag and keeps its real time as its label. The scale
+# never changes -- every bar on the chart, cut or not, is drawn at the same
+# seconds-per-inch, so bar lengths stay comparable. Where to cut is derived
+# from the data rather than fixed at some number of seconds: sort the times and
+# cut above the *lowest* neighbor-to-neighbor jump that is big enough to matter
+# and leaves only a few entries above it -- the lowest such jump, not the
+# biggest, because it is the one that wins back the most axis for the pack
+# (mandelbrot's biggest jump is Lua->Python at the very top, where cutting
+# would leave the field just as squashed).
+BREAK_JUMP = 2.5        # a jump this large can host the cut...
 BREAK_MAX_SHARE = 0.25  # ...if at most this fraction of the field is above it
 BREAK_MIN_SQUASH = 0.4  # ...and the rest is squashed into this fraction of the
                         #    axis, i.e. there is real room to be won back
-# How much of the axis the compressed band gets. It has to be wide enough to
-# read as a region of its own -- the point of breaking is to stop the far end
-# from eating the axis, not to shave the outliers down to a stub.
-BREAK_TAIL_SHARE = 0.22
-# The share of that band spent on the (empty) gap right after the break, so a
-# compressed bar starts clear of the break rather than ending on top of it.
-BREAK_TAIL_LEAD = 0.25
+# Clear space (as a share of the pack's own range) left between the longest bar
+# that fits and the cut, so a cut bar plainly outruns it rather than looking a
+# hair longer.
+BREAK_CLEARANCE = 0.18
 
 
 def load(path):
@@ -69,9 +65,10 @@ def load(path):
 
 
 def break_at(times):
-    """Break the axis at this value, or None to draw every bar to scale.
+    """Cut the axis at this value, or None to draw every bar in full.
 
-    `times` must be sorted ascending.
+    `times` must be sorted ascending. The cut sits above the last bar that
+    fits, never right against it.
     """
     slowest = times[-1] if times else 0.0
     if len(times) < 4 or slowest <= 0:
@@ -83,77 +80,27 @@ def break_at(times):
         # ...but only if the field really is being squashed; if it already
         # fills a decent share of the axis there is nothing to win back.
         if times[i - 1] / slowest <= BREAK_MIN_SQUASH:
-            return times[i - 1]
+            return times[i - 1] * (1 + BREAK_CLEARANCE)
     return None
 
 
-def apply_break(ax, brk, times):
-    """Give `ax` a broken x-axis at `brk`; return its (forward, inverse) pair.
-
-    Everything up to `brk` keeps its linear scale; past it, the axis is
-    compressed so the slowest entry lands at the far edge of a band
-    `BREAK_TAIL_SHARE` wide. This is matplotlib's built-in "function" scale, so
-    bars, ticks, gridlines and text all stay in real data coordinates -- only
-    the mapping to the page changes. With no break, the pair is the identity.
-    """
-    slowest = times[-1] if times else 0.0
-    if brk is None or slowest <= brk:
-        return (lambda x: x), (lambda x: x)
-
-    band = brk * BREAK_TAIL_SHARE
-    # Knots of the piecewise-linear map: identity up to the break, then the
-    # empty gap just past it collapses into a short lead-in (so the first
-    # compressed bar clears the break instead of ending on it), and the
-    # entries themselves spread over the rest of the band. The last segment is
-    # extended past the slowest entry so offsets and limits computed beyond it
-    # still map back sensibly.
-    first = min(x for x in times if x > brk)
-    xs = [0.0, brk, first, slowest, slowest + (slowest - first) + 1e-9]
-    ys = [0.0, brk, brk + band * BREAK_TAIL_LEAD, brk + band,
-          brk + band + band * (1 - BREAK_TAIL_LEAD)]
-
-    def forward(x):
-        return np.interp(np.asarray(x, dtype=float), xs, ys)
-
-    def inverse(x):
-        return np.interp(np.asarray(x, dtype=float), ys, xs)
-
-    ax.set_xscale("function", functions=(forward, inverse))
-    # The default locator would spread ticks across the whole (mostly
-    # compressed) data range; ticks only mean anything below the break.
-    ax.set_xticks([t for t in ticker.MaxNLocator(nbins=6, steps=[1, 2, 2.5, 5, 10])
-                   .tick_values(0, brk) if 0 <= t <= brk])
-    return forward, inverse
-
-
-def break_marks(ax, x, fwd, inv, dx):
-    """The x positions of a two-slash break mark centered on `x`.
-
-    The offsets are measured on the page (i.e. after `fwd`), so the mark stays
-    an even zigzag even though the two sides of the break are at different
-    scales.
-    """
-    return [(float(inv(fwd(x) + a)), float(inv(fwd(x) + b)))
-            for a, b in ((-2 * dx, 0), (0, 2 * dx))]
-
-
-def draw_bar_break(ax, x, yi, height, fwd, inv, dx):
-    """Zigzag a bar where it crosses the break, so the scale change is visible."""
+def draw_bar_break(ax, x, yi, height, dx):
+    """Zigzag the end of a bar that runs into the cut."""
     h = height / 2
-    (a0, a1), (b0, b1) = break_marks(ax, x, fwd, inv, dx)
-    # A white wedge cuts the bar in two, with a slash fencing off each side.
-    ax.fill([a0, a1, b1, b0], [yi + h, yi - h, yi - h, yi + h],
-            color="white", zorder=4, linewidth=0)
-    for x0, x1 in ((a0, a1), (b0, b1)):
-        ax.plot([x0, x1], [yi + h, yi - h], color=MUTED, linewidth=0.9,
-                zorder=5, solid_capstyle="butt")
+    # A white wedge eats the bar's end, with a slash fencing off each side.
+    ax.fill([x - 2.5 * dx, x - 0.5 * dx, x + 2.5 * dx, x + 0.5 * dx],
+            [yi + h, yi - h, yi - h, yi + h], color="white", zorder=4, linewidth=0)
+    for off in (-2 * dx, 2 * dx):
+        ax.plot([x + off, x + off + 2 * dx], [yi + h, yi - h], color=MUTED,
+                linewidth=0.9, zorder=5, solid_capstyle="butt")
 
 
-def draw_axis_break(ax, x, fwd, inv, dx):
-    """The same zigzag on the x-axis itself, where the scale changes."""
-    for x0, x1 in break_marks(ax, x, fwd, inv, dx):
-        ax.plot([x0, x1], [-0.012, 0.012], transform=ax.get_xaxis_transform(),
-                color=MUTED, linewidth=0.9, clip_on=False, zorder=5)
+def draw_axis_break(ax, x, dx):
+    """The same zigzag on the x-axis itself, where it is cut."""
+    for off in (-2 * dx, 2 * dx):
+        ax.plot([x + off, x + off + 2 * dx], [-0.012, 0.012],
+                transform=ax.get_xaxis_transform(), color=MUTED, linewidth=0.9,
+                clip_on=False, zorder=5)
 
 
 def panel(ax, bname, block):
@@ -177,14 +124,13 @@ def panel(ax, bname, block):
         else:
             colors.append(NEUTRAL)
 
-    # One runaway entry would squash the rest of the field into slivers, so
-    # past `brk` the axis switches to a compressed scale (see break_at).
-    brk = break_at(times)
-    slowest = times[-1] if times else 1.0
-    fwd, inv = apply_break(ax, brk, times)
+    # A few runaway entries would squash the rest of the field into slivers, so
+    # the axis is cut short of them (see break_at); the scale is unchanged.
+    cut = break_at(times)
+    widths = [min(s, cut) for s in times] if cut else times
 
     # Draw top (fastest) at the top of the panel.
-    ax.barh(y, times, color=colors, height=0.68, zorder=3)
+    ax.barh(y, widths, color=colors, height=0.68, zorder=3)
     ax.invert_yaxis()
     ax.set_yticks(list(y))
     ax.set_yticklabels(labels, fontsize=10,
@@ -195,11 +141,8 @@ def panel(ax, bname, block):
             tick.set_color(ACCENT)
             tick.set_fontweight("bold")
 
-    # Everything below is laid out on the page, i.e. in `fwd` space, and
-    # converted back to data values -- with a break, a data-space offset would
-    # mean two different distances on the two sides of it.
-    page_max = float(fwd(slowest))
-    ax.set_xlim(0, float(inv(page_max * 1.18)))
+    xmax = max(widths) if widths else 1.0
+    ax.set_xlim(0, xmax * 1.18)
     for spine in ("top", "right", "left"):
         ax.spines[spine].set_visible(False)
     ax.spines["bottom"].set_color(GRID)
@@ -207,18 +150,22 @@ def panel(ax, bname, block):
     ax.tick_params(axis="y", length=0)
     ax.xaxis.grid(True, color=GRID, linewidth=1, zorder=0)
     ax.set_axisbelow(True)
-    if brk is not None:
-        draw_axis_break(ax, brk, fwd, inv, page_max * 0.006)
+    if cut is not None:
+        # Ticks stop at the cut: past it, the axis simply isn't there.
+        ax.set_xticks([t for t in ax.get_xticks() if 0 <= t <= cut])
+        draw_axis_break(ax, cut, xmax * 0.006)
 
-    for yi, (lang, _, s, valid) in zip(y, rows):
+    for yi, (lang, _, s, valid), w in zip(y, rows, widths):
         rel = s / fastest if fastest else 1.0
         txt = f"{s:.2f}s" + (f"  ({rel:.1f}×)" if rel >= 1.005 else "  (fastest)")
         if not valid:
             txt += "  ✗ output"
-        if brk is not None and s > brk:
-            draw_bar_break(ax, brk, yi, 0.68, fwd, inv, page_max * 0.006)
-        ax.text(float(inv(fwd(s) + page_max * 0.012)), yi, txt, va="center",
-                ha="left", fontsize=9, color=INK if lang == "tomo" else MUTED,
+        pad = xmax * 0.012
+        if cut is not None and s > cut:
+            draw_bar_break(ax, cut, yi, 0.68, xmax * 0.006)
+            pad = xmax * 0.030  # clear of the zigzag
+        ax.text(w + pad, yi, txt, va="center", ha="left",
+                fontsize=9, color=INK if lang == "tomo" else MUTED,
                 fontweight="bold" if lang == "tomo" else "normal", zorder=4)
 
     args = " ".join(block.get("args", []))
