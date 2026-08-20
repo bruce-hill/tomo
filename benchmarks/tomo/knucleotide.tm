@@ -32,7 +32,7 @@ CODE8 : [Byte] = [0, 0, 0, 1, 3, 0, 0, 2]
 func nucleotide_for_code(code:Int64 -> Text)
     return "ACGT".slice(code+1, code+1)
 
-func pct3(x:Num -> Text)
+func pct3(x:Float64 -> Text)
     return C_code:Text`({ char buf[32]; snprintf(buf, sizeof(buf), "%.3f", @x); Text$from_str(buf); })`
 
 # Read all of stdin, then collect the codes of the ">THREE" sequence: continue to
@@ -89,7 +89,7 @@ func write_frequencies(seq:[Byte], k:Int64)
             return a.key <> b.key
     )
 
-    total := Num(n - k + 1)
+    total := Float64(n - k + 1)
     out := ""
     for e in entries
         # Decode the key back to its nucleotide string (high 2 bits first).
@@ -98,7 +98,7 @@ func write_frequencies(seq:[Byte], k:Int64)
         while shift >= 0
             name = name ++ nucleotide_for_code((e.key >> shift) and 3)
             shift -= 2
-        out = out ++ name ++ " " ++ pct3(100.0 * Num(e.count) / total) ++ "\n"
+        out = out ++ name ++ " " ++ pct3(100.0 * Float64(e.count) / total) ++ "\n"
     say(out, newline=no)
 
 # Count occurrences of one specific oligonucleotide by sliding its exact key

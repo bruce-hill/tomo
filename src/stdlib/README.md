@@ -24,7 +24,7 @@ some common functionality.
 - Functiontype: [functiontype.h](functiontype.h), [functiontype.c](functiontype.c)
 - Integers: [integers.h](integers.h), [integers.c](integers.c)
 - Memory: [memory.h](memory.h), [memory.c](memory.c)
-- Nums: [nums.h](nums.h), [nums.c](nums.c)
+- Floats: [floats.h](floats.h), [floatX.c.h](floatX.c.h)
 - Optionals: [optionals.h](optionals.h), [optionals.c](optionals.c)
 - Paths: [paths.h](paths.h), [paths.c](paths.c)
 - Pointers: [pointers.h](pointers.h), [pointers.c](pointers.c)

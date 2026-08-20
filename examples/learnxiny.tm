@@ -201,7 +201,7 @@ func demo_keyword_args()
 func takes_many_types(
     boolean:Bool,
     integer:Int,
-    floating_point_number:Num,
+    floating_point_number:Float64,
     text_aka_string:Text,
     list_of_ints:[Int],
     table_of_text_to_bools:{Text:Bool},
@@ -254,17 +254,17 @@ func demo_structs()
 # known as "sum types". You enumerate all the different types of values
 # something could have, and it's stored internally as a small integer that
 # indicates which type it is, and any data you want to associate with it.
-enum Shape(Point, Circle{radius:Num}, Rectangle{width:Num, height:Num})
+enum Shape(Point, Circle{radius:Float64}, Rectangle{width:Float64, height:Float64})
     # Just like with structs, you define methods and constants inside a level
     # of indentation:
-    func get_area(self:Shape -> Num)
+    func get_area(self:Shape -> Float64)
         # In order to work with an enum, it's most often handy to use a 'match'
         # statement to get the internal values:
         match self
         case Point
             return 0
         case Circle{r}
-            return Num.PI*r^2
+            return Float64.PI*r^2
         case Rectangle{w, h}
             return w*h
 

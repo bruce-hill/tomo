@@ -187,14 +187,14 @@ setenv("FOOBAR", "xyz")
 ## sleep
 
 ```tomo
-sleep : func(seconds: Num -> Void)
+sleep : func(seconds: Float64 -> Void)
 ```
 
 Pause execution for a given number of seconds.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-seconds | `Num` | How many seconds to sleep for.  | -
+seconds | `Float64` | How many seconds to sleep for.  | -
 
 **Return:** Nothing.
 
@@ -1207,7 +1207,7 @@ assert [10, 20, 30].reversed() == [30, 20, 10]
 ## List.sample
 
 ```tomo
-List.sample : func(list: [T], count: Int, weights: [Num]? = none, random: func(->Num)? = none -> [T])
+List.sample : func(list: [T], count: Int, weights: [Float64]? = none, random: func(->Float64)? = none -> [T])
 ```
 
 Selects a sample of elements from the list, optionally with weighted probabilities.
@@ -1218,8 +1218,8 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 list | `[T]` | The list to sample from.  | -
 count | `Int` | The number of elements to sample.  | -
-weights | `[Num]?` | The probability weights for each element in the list. These values do not need to add up to any particular number, they are relative weights. If no weights are given, elements will be sampled with uniform probability.  | `none`
-random | `func(->Num)?` | If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic pseudorandom number generation)  | `none`
+weights | `[Float64]?` | The probability weights for each element in the list. These values do not need to add up to any particular number, they are relative weights. If no weights are given, elements will be sampled with uniform probability.  | `none`
+random | `func(->Float64)?` | If provided, this function will be used to get random values for sampling the list. The provided function should return random numbers between `0.0` (inclusive) and `1.0` (exclusive). (Used for deterministic pseudorandom number generation)  | `none`
 
 **Return:** A list of sampled elements from the list.
 
@@ -1440,130 +1440,130 @@ assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("X")) == none
 
 ```
 
-# Num
-## Num.1_PI
+# Float64
+## Float64.1_PI
 
 ```tomo
-Num.1_PI : Num
+Float64.1_PI : Float64
 ```
 
 The constant $\frac{1}{\pi}$.
 
-## Num.2_PI
+## Float64.2_PI
 
 ```tomo
-Num.2_PI : Num
+Float64.2_PI : Float64
 ```
 
 The constant $2 \times \pi$.
 
-## Num.2_SQRTPI
+## Float64.2_SQRTPI
 
 ```tomo
-Num.2_SQRTPI : Num
+Float64.2_SQRTPI : Float64
 ```
 
 The constant $2 \times \sqrt{\pi}$.
 
-## Num.E
+## Float64.E
 
 ```tomo
-Num.E : Num
+Float64.E : Float64
 ```
 
 The base of the natural logarithm ($e$).
 
-## Num.INF
+## Float64.INF
 
 ```tomo
-Num.INF : Num
+Float64.INF : Float64
 ```
 
 Positive infinity.
 
-## Num.LN10
+## Float64.LN10
 
 ```tomo
-Num.LN10 : Num
+Float64.LN10 : Float64
 ```
 
 The natural logarithm of 10.
 
-## Num.LN2
+## Float64.LN2
 
 ```tomo
-Num.LN2 : Num
+Float64.LN2 : Float64
 ```
 
 The natural logarithm of 2.
 
-## Num.LOG2E
+## Float64.LOG2E
 
 ```tomo
-Num.LOG2E : Num
+Float64.LOG2E : Float64
 ```
 
 The base 2 logarithm of $e$
 
-## Num.PI
+## Float64.PI
 
 ```tomo
-Num.PI : Num
+Float64.PI : Float64
 ```
 
 Pi ($\pi$).
 
-## Num.PI_2
+## Float64.PI_2
 
 ```tomo
-Num.PI_2 : Num
+Float64.PI_2 : Float64
 ```
 
 $\frac{\pi}{2}$
 
-## Num.PI_4
+## Float64.PI_4
 
 ```tomo
-Num.PI_4 : Num
+Float64.PI_4 : Float64
 ```
 
 $\frac{\pi}{4}$
 
-## Num.SQRT1_2
+## Float64.SQRT1_2
 
 ```tomo
-Num.SQRT1_2 : Num
+Float64.SQRT1_2 : Float64
 ```
 
 $\sqrt{\frac{1}{2}}$
 
-## Num.SQRT2
+## Float64.SQRT2
 
 ```tomo
-Num.SQRT2 : Num
+Float64.SQRT2 : Float64
 ```
 
 $\sqrt{2}$
 
-## Num.TAU
+## Float64.TAU
 
 ```tomo
-Num.TAU : Num
+Float64.TAU : Float64
 ```
 
 Tau ($2 \times \pi$)
 
-## Num.abs
+## Float64.abs
 
 ```tomo
-Num.abs : func(n: Num -> Num)
+Float64.abs : func(n: Float64 -> Float64)
 ```
 
 Calculates the absolute value of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number whose absolute value is to be computed.  | -
+n | `Float64` | The number whose absolute value is to be computed.  | -
 
 **Return:** The absolute value of `n`.
 
@@ -1573,17 +1573,17 @@ n | `Num` | The number whose absolute value is to be computed.  | -
 assert (-3.5).abs() == 3.5
 
 ```
-## Num.acos
+## Float64.acos
 
 ```tomo
-Num.acos : func(x: Num -> Num)
+Float64.acos : func(x: Float64 -> Float64)
 ```
 
 Computes the arc cosine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the arc cosine is to be calculated.  | -
+x | `Float64` | The number for which the arc cosine is to be calculated.  | -
 
 **Return:** The arc cosine of `x` in radians.
 
@@ -1593,17 +1593,17 @@ x | `Num` | The number for which the arc cosine is to be calculated.  | -
 assert (0.0).acos().near(1.5707963267948966)
 
 ```
-## Num.acosh
+## Float64.acosh
 
 ```tomo
-Num.acosh : func(x: Num -> Num)
+Float64.acosh : func(x: Float64 -> Float64)
 ```
 
 Computes the inverse hyperbolic cosine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the inverse hyperbolic cosine is to be calculated.  | -
+x | `Float64` | The number for which the inverse hyperbolic cosine is to be calculated.  | -
 
 **Return:** The inverse hyperbolic cosine of `x`.
 
@@ -1613,17 +1613,17 @@ x | `Num` | The number for which the inverse hyperbolic cosine is to be calculat
 assert (1.0).acosh() == 0
 
 ```
-## Num.asin
+## Float64.asin
 
 ```tomo
-Num.asin : func(x: Num -> Num)
+Float64.asin : func(x: Float64 -> Float64)
 ```
 
 Computes the arc sine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the arc sine is to be calculated.  | -
+x | `Float64` | The number for which the arc sine is to be calculated.  | -
 
 **Return:** The arc sine of `x` in radians.
 
@@ -1633,17 +1633,17 @@ x | `Num` | The number for which the arc sine is to be calculated.  | -
 assert (0.5).asin().near(0.5235987755982989)
 
 ```
-## Num.asinh
+## Float64.asinh
 
 ```tomo
-Num.asinh : func(x: Num -> Num)
+Float64.asinh : func(x: Float64 -> Float64)
 ```
 
 Computes the inverse hyperbolic sine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the inverse hyperbolic sine is to be calculated.  | -
+x | `Float64` | The number for which the inverse hyperbolic sine is to be calculated.  | -
 
 **Return:** The inverse hyperbolic sine of `x`.
 
@@ -1653,17 +1653,17 @@ x | `Num` | The number for which the inverse hyperbolic sine is to be calculated
 assert (0.0).asinh() == 0
 
 ```
-## Num.atan
+## Float64.atan
 
 ```tomo
-Num.atan : func(x: Num -> Num)
+Float64.atan : func(x: Float64 -> Float64)
 ```
 
 Computes the arc tangent of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the arc tangent is to be calculated.  | -
+x | `Float64` | The number for which the arc tangent is to be calculated.  | -
 
 **Return:** The arc tangent of `x` in radians.
 
@@ -1673,38 +1673,38 @@ x | `Num` | The number for which the arc tangent is to be calculated.  | -
 assert (1.0).atan().near(0.7853981633974483)
 
 ```
-## Num.atan2
+## Float64.atan2
 
 ```tomo
-Num.atan2 : func(x: Num, y: Num -> Num)
+Float64.atan2 : func(x: Float64, y: Float64 -> Float64)
 ```
 
 Computes the arc tangent of the quotient of two numbers.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The numerator.  | -
-y | `Num` | The denominator.  | -
+x | `Float64` | The numerator.  | -
+y | `Float64` | The denominator.  | -
 
 **Return:** The arc tangent of `x/y` in radians.
 
 
 **Example:**
 ```tomo
-assert Num.atan2(1, 1).near(0.7853981633974483)
+assert Float64.atan2(1, 1).near(0.7853981633974483)
 
 ```
-## Num.atanh
+## Float64.atanh
 
 ```tomo
-Num.atanh : func(x: Num -> Num)
+Float64.atanh : func(x: Float64 -> Float64)
 ```
 
 Computes the inverse hyperbolic tangent of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the inverse hyperbolic tangent is to be calculated.  | -
+x | `Float64` | The number for which the inverse hyperbolic tangent is to be calculated.  | -
 
 **Return:** The inverse hyperbolic tangent of `x`.
 
@@ -1714,17 +1714,17 @@ x | `Num` | The number for which the inverse hyperbolic tangent is to be calcula
 assert (0.5).atanh().near(0.5493061443340549)
 
 ```
-## Num.cbrt
+## Float64.cbrt
 
 ```tomo
-Num.cbrt : func(x: Num -> Num)
+Float64.cbrt : func(x: Float64 -> Float64)
 ```
 
 Computes the cube root of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the cube root is to be calculated.  | -
+x | `Float64` | The number for which the cube root is to be calculated.  | -
 
 **Return:** The cube root of `x`.
 
@@ -1734,17 +1734,17 @@ x | `Num` | The number for which the cube root is to be calculated.  | -
 assert (27.0).cbrt() == 3
 
 ```
-## Num.ceil
+## Float64.ceil
 
 ```tomo
-Num.ceil : func(x: Num -> Num)
+Float64.ceil : func(x: Float64 -> Float64)
 ```
 
 Rounds a number up to the nearest integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded up.  | -
+x | `Float64` | The number to be rounded up.  | -
 
 **Return:** The smallest integer greater than or equal to `x`.
 
@@ -1754,19 +1754,19 @@ x | `Num` | The number to be rounded up.  | -
 assert (3.2).ceil() == 4
 
 ```
-## Num.clamped
+## Float64.clamped
 
 ```tomo
-Num.clamped : func(x: Num, low: Num, high: Num -> Num)
+Float64.clamped : func(x: Float64, low: Float64, high: Float64 -> Float64)
 ```
 
 Returns the given number clamped between two values so that it is within that range.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to clamp.  | -
-low | `Num` | The lowest value the result can take.  | -
-high | `Num` | The highest value the result can take.  | -
+x | `Float64` | The number to clamp.  | -
+low | `Float64` | The lowest value the result can take.  | -
+high | `Float64` | The highest value the result can take.  | -
 
 **Return:** The first argument clamped between the other two arguments.
 
@@ -1776,18 +1776,18 @@ high | `Num` | The highest value the result can take.  | -
 assert (2.5).clamped(5.5, 10.5) == 5.5
 
 ```
-## Num.copysign
+## Float64.copysign
 
 ```tomo
-Num.copysign : func(x: Num, y: Num -> Num)
+Float64.copysign : func(x: Float64, y: Float64 -> Float64)
 ```
 
 Copies the sign of one number to another.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number whose magnitude will be copied.  | -
-y | `Num` | The number whose sign will be copied.  | -
+x | `Float64` | The number whose magnitude will be copied.  | -
+y | `Float64` | The number whose sign will be copied.  | -
 
 **Return:** A number with the magnitude of `x` and the sign of `y`.
 
@@ -1797,17 +1797,17 @@ y | `Num` | The number whose sign will be copied.  | -
 assert (3.0).copysign(-1) == -3
 
 ```
-## Num.cos
+## Float64.cos
 
 ```tomo
-Num.cos : func(x: Num -> Num)
+Float64.cos : func(x: Float64 -> Float64)
 ```
 
 Computes the cosine of a number (angle in radians).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The angle in radians.  | -
+x | `Float64` | The angle in radians.  | -
 
 **Return:** The cosine of `x`.
 
@@ -1817,17 +1817,17 @@ x | `Num` | The angle in radians.  | -
 assert (0.0).cos() == 1
 
 ```
-## Num.cosh
+## Float64.cosh
 
 ```tomo
-Num.cosh : func(x: Num -> Num)
+Float64.cosh : func(x: Float64 -> Float64)
 ```
 
 Computes the hyperbolic cosine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the hyperbolic cosine is to be calculated.  | -
+x | `Float64` | The number for which the hyperbolic cosine is to be calculated.  | -
 
 **Return:** The hyperbolic cosine of `x`.
 
@@ -1837,17 +1837,17 @@ x | `Num` | The number for which the hyperbolic cosine is to be calculated.  | -
 assert (0.0).cosh() == 1
 
 ```
-## Num.erf
+## Float64.erf
 
 ```tomo
-Num.erf : func(x: Num -> Num)
+Float64.erf : func(x: Float64 -> Float64)
 ```
 
 Computes the error function of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the error function is to be calculated.  | -
+x | `Float64` | The number for which the error function is to be calculated.  | -
 
 **Return:** The error function of `x`.
 
@@ -1857,17 +1857,17 @@ x | `Num` | The number for which the error function is to be calculated.  | -
 assert (0.0).erf() == 0
 
 ```
-## Num.erfc
+## Float64.erfc
 
 ```tomo
-Num.erfc : func(x: Num -> Num)
+Float64.erfc : func(x: Float64 -> Float64)
 ```
 
 Computes the complementary error function of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the complementary error function is to be calculated.  | -
+x | `Float64` | The number for which the complementary error function is to be calculated.  | -
 
 **Return:** The complementary error function of `x`.
 
@@ -1877,17 +1877,17 @@ x | `Num` | The number for which the complementary error function is to be calcu
 assert (0.0).erfc() == 1
 
 ```
-## Num.exp
+## Float64.exp
 
 ```tomo
-Num.exp : func(x: Num -> Num)
+Float64.exp : func(x: Float64 -> Float64)
 ```
 
 Computes the exponential function $e^x$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The exponent.  | -
+x | `Float64` | The exponent.  | -
 
 **Return:** The value of $e^x$.
 
@@ -1897,17 +1897,17 @@ x | `Num` | The exponent.  | -
 assert (1.0).exp().near(2.718281828459045)
 
 ```
-## Num.exp2
+## Float64.exp2
 
 ```tomo
-Num.exp2 : func(x: Num -> Num)
+Float64.exp2 : func(x: Float64 -> Float64)
 ```
 
 Computes $2^x$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The exponent.  | -
+x | `Float64` | The exponent.  | -
 
 **Return:** The value of $2^x$.
 
@@ -1917,17 +1917,17 @@ x | `Num` | The exponent.  | -
 assert (3.0).exp2() == 8
 
 ```
-## Num.expm1
+## Float64.expm1
 
 ```tomo
-Num.expm1 : func(x: Num -> Num)
+Float64.expm1 : func(x: Float64 -> Float64)
 ```
 
 Computes $e^x - 1$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The exponent.  | -
+x | `Float64` | The exponent.  | -
 
 **Return:** The value of $e^x - 1$.
 
@@ -1937,18 +1937,18 @@ x | `Num` | The exponent.  | -
 assert (1.0).expm1().near(1.7182818284590453)
 
 ```
-## Num.fdim
+## Float64.fdim
 
 ```tomo
-Num.fdim : func(x: Num, y: Num -> Num)
+Float64.fdim : func(x: Float64, y: Float64 -> Float64)
 ```
 
 Computes the positive difference between two numbers.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The first number.  | -
-y | `Num` | The second number.  | -
+x | `Float64` | The first number.  | -
+y | `Float64` | The second number.  | -
 
 **Return:** The positive difference $\max(0, x - y)$.
 
@@ -1958,17 +1958,17 @@ y | `Num` | The second number.  | -
 assert (5.0).fdim(3) == 2
 
 ```
-## Num.floor
+## Float64.floor
 
 ```tomo
-Num.floor : func(x: Num -> Num)
+Float64.floor : func(x: Float64 -> Float64)
 ```
 
 Rounds a number down to the nearest integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded down.  | -
+x | `Float64` | The number to be rounded down.  | -
 
 **Return:** The largest integer less than or equal to `x`.
 
@@ -1978,40 +1978,40 @@ x | `Num` | The number to be rounded down.  | -
 assert (3.7).floor() == 3
 
 ```
-## Num.hypot
+## Float64.hypot
 
 ```tomo
-Num.hypot : func(x: Num, y: Num -> Num)
+Float64.hypot : func(x: Float64, y: Float64 -> Float64)
 ```
 
 Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The first number.  | -
-y | `Num` | The second number.  | -
+x | `Float64` | The first number.  | -
+y | `Float64` | The second number.  | -
 
 **Return:** The Euclidean norm of `x` and `y`.
 
 
 **Example:**
 ```tomo
-assert Num.hypot(3, 4) == 5
+assert Float64.hypot(3, 4) == 5
 
 ```
-## Num.is_between
+## Float64.is_between
 
 ```tomo
-Num.is_between : func(x: Num, low: Num, high: Num -> Bool)
+Float64.is_between : func(x: Float64, low: Float64, high: Float64 -> Bool)
 ```
 
 Determines if a number is between two numbers (inclusive).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The integer to be checked.  | -
-low | `Num` | One end of the range to check (inclusive).  | -
-high | `Num` | The other end of the range to check (inclusive).  | -
+x | `Float64` | The integer to be checked.  | -
+low | `Float64` | One end of the range to check (inclusive).  | -
+high | `Float64` | The other end of the range to check (inclusive).  | -
 
 **Return:** `yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
 
@@ -2024,17 +2024,17 @@ assert not (7.5).is_between(100, 200)
 assert (7.5).is_between(1, 7.5)
 
 ```
-## Num.isfinite
+## Float64.isfinite
 
 ```tomo
-Num.isfinite : func(n: Num -> Bool)
+Float64.isfinite : func(n: Float64 -> Bool)
 ```
 
 Checks if a number is finite.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be checked.  | -
+n | `Float64` | The number to be checked.  | -
 
 **Return:** `yes` if `n` is finite, `no` otherwise.
 
@@ -2042,41 +2042,41 @@ n | `Num` | The number to be checked.  | -
 **Example:**
 ```tomo
 assert (1.0).isfinite()
-assert not Num.INF.isfinite()
+assert not Float64.INF.isfinite()
 
 ```
-## Num.isinf
+## Float64.isinf
 
 ```tomo
-Num.isinf : func(n: Num -> Bool)
+Float64.isinf : func(n: Float64 -> Bool)
 ```
 
 Checks if a number is infinite.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be checked.  | -
+n | `Float64` | The number to be checked.  | -
 
 **Return:** `yes` if `n` is infinite, `no` otherwise.
 
 
 **Example:**
 ```tomo
-assert Num.INF.isinf()
+assert Float64.INF.isinf()
 assert not (1.0).isinf()
 
 ```
-## Num.j0
+## Float64.j0
 
 ```tomo
-Num.j0 : func(x: Num -> Num)
+Float64.j0 : func(x: Float64 -> Float64)
 ```
 
 Computes the Bessel function of the first kind of order 0.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | -
+x | `Float64` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the first kind of order 0 of `x`.
 
@@ -2086,17 +2086,17 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 assert (0.0).j0() == 1
 
 ```
-## Num.j1
+## Float64.j1
 
 ```tomo
-Num.j1 : func(x: Num -> Num)
+Float64.j1 : func(x: Float64 -> Float64)
 ```
 
 Computes the Bessel function of the first kind of order 1.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | -
+x | `Float64` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the first kind of order 1 of `x`.
 
@@ -2106,37 +2106,37 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 assert (0.0).j1() == 0
 
 ```
-## Num.log
+## Float64.log
 
 ```tomo
-Num.log : func(x: Num -> Num)
+Float64.log : func(x: Float64 -> Float64)
 ```
 
 Computes the natural logarithm (base $e$) of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the natural logarithm is to be calculated.  | -
+x | `Float64` | The number for which the natural logarithm is to be calculated.  | -
 
 **Return:** The natural logarithm of `x`.
 
 
 **Example:**
 ```tomo
-assert Num.E.log() == 1
+assert Float64.E.log() == 1
 
 ```
-## Num.log10
+## Float64.log10
 
 ```tomo
-Num.log10 : func(x: Num -> Num)
+Float64.log10 : func(x: Float64 -> Float64)
 ```
 
 Computes the base-10 logarithm of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the base-10 logarithm is to be calculated.  | -
+x | `Float64` | The number for which the base-10 logarithm is to be calculated.  | -
 
 **Return:** The base-10 logarithm of `x`.
 
@@ -2146,17 +2146,17 @@ x | `Num` | The number for which the base-10 logarithm is to be calculated.  | -
 assert (100.0).log10() == 2
 
 ```
-## Num.log1p
+## Float64.log1p
 
 ```tomo
-Num.log1p : func(x: Num -> Num)
+Float64.log1p : func(x: Float64 -> Float64)
 ```
 
 Computes $\log(1 + x)$ for a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | -
+x | `Float64` | The number for which $\log(1 + x)$ is to be calculated.  | -
 
 **Return:** The value of $\log(1 + x)$.
 
@@ -2166,17 +2166,17 @@ x | `Num` | The number for which $\log(1 + x)$ is to be calculated.  | -
 assert (1.0).log1p().near(0.6931471805599453)
 
 ```
-## Num.log2
+## Float64.log2
 
 ```tomo
-Num.log2 : func(x: Num -> Num)
+Float64.log2 : func(x: Float64 -> Float64)
 ```
 
 Computes the base-2 logarithm of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the base-2 logarithm is to be calculated.  | -
+x | `Float64` | The number for which the base-2 logarithm is to be calculated.  | -
 
 **Return:** The base-2 logarithm of `x`.
 
@@ -2186,17 +2186,17 @@ x | `Num` | The number for which the base-2 logarithm is to be calculated.  | -
 assert (8.0).log2() == 3
 
 ```
-## Num.logb
+## Float64.logb
 
 ```tomo
-Num.logb : func(x: Num -> Num)
+Float64.logb : func(x: Float64 -> Float64)
 ```
 
 Computes the binary exponent (base-2 logarithm) of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the binary exponent is to be calculated.  | -
+x | `Float64` | The number for which the binary exponent is to be calculated.  | -
 
 **Return:** The binary exponent of `x`.
 
@@ -2206,19 +2206,19 @@ x | `Num` | The number for which the binary exponent is to be calculated.  | -
 assert (8.0).logb() == 3
 
 ```
-## Num.mix
+## Float64.mix
 
 ```tomo
-Num.mix : func(amount: Num, x: Num, y: Num -> Num)
+Float64.mix : func(amount: Float64, x: Float64, y: Float64 -> Float64)
 ```
 
 Interpolates between two numbers based on a given amount.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-amount | `Num` | The interpolation factor (between `0` and `1`).  | -
-x | `Num` | The starting number.  | -
-y | `Num` | The ending number.  | -
+amount | `Float64` | The interpolation factor (between `0` and `1`).  | -
+x | `Float64` | The starting number.  | -
+y | `Float64` | The ending number.  | -
 
 **Return:** The interpolated number between `x` and `y` based on `amount`.
 
@@ -2229,20 +2229,20 @@ assert (0.5).mix(10, 20) == 15
 assert (0.25).mix(10, 20) == 12.5
 
 ```
-## Num.near
+## Float64.near
 
 ```tomo
-Num.near : func(x: Num, y: Num, ratio: Num = 1e-9, min_epsilon: Num = 1e-9 -> Bool)
+Float64.near : func(x: Float64, y: Float64, ratio: Float64 = 1e-9, min_epsilon: Float64 = 1e-9 -> Bool)
 ```
 
 Checks if two numbers are approximately equal within specified tolerances. If two numbers are within an absolute difference or the ratio between the two is small enough, they are considered near each other.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The first number.  | -
-y | `Num` | The second number.  | -
-ratio | `Num` | The relative tolerance. Default is `1e-9`.  | `1e-9`
-min_epsilon | `Num` | The absolute tolerance. Default is `1e-9`.  | `1e-9`
+x | `Float64` | The first number.  | -
+y | `Float64` | The second number.  | -
+ratio | `Float64` | The relative tolerance. Default is `1e-9`.  | `1e-9`
+min_epsilon | `Float64` | The absolute tolerance. Default is `1e-9`.  | `1e-9`
 
 **Return:** `yes` if `x` and `y` are approximately equal within the specified tolerances, `no` otherwise.
 
@@ -2254,18 +2254,18 @@ assert (100.0).near(110, ratio=0.1)
 assert (5.0).near(5.1, min_epsilon=0.1)
 
 ```
-## Num.nextafter
+## Float64.nextafter
 
 ```tomo
-Num.nextafter : func(x: Num, y: Num -> Num)
+Float64.nextafter : func(x: Float64, y: Float64 -> Float64)
 ```
 
 Computes the next representable value after a given number towards a specified direction.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The starting number.  | -
-y | `Num` | The direction towards which to find the next representable value.  | -
+x | `Float64` | The starting number.  | -
+y | `Float64` | The direction towards which to find the next representable value.  | -
 
 **Return:** The next representable value after `x` in the direction of `y`.
 
@@ -2275,10 +2275,10 @@ y | `Num` | The direction towards which to find the next representable value.  |
 assert (1.0).nextafter(1.1) == 1.0000000000000002
 
 ```
-## Num.parse
+## Float64.parse
 
 ```tomo
-Num.parse : func(text: Text, remainder: &Text? = none -> Num?)
+Float64.parse : func(text: Text, remainder: &Text? = none -> Float64?)
 ```
 
 Converts a text representation of a number into a floating-point number.
@@ -2293,26 +2293,26 @@ remainder | `&Text?` | If non-none, this argument will be set to the remainder o
 
 **Example:**
 ```tomo
-assert Num.parse("3.14") == 3.14
-assert Num.parse("1e3") == 1000
-assert Num.parse("1.5junk") == none
+assert Float64.parse("3.14") == 3.14
+assert Float64.parse("1e3") == 1000
+assert Float64.parse("1.5junk") == none
 remainder : Text
-assert Num.parse("1.5junk", &remainder) == 1.5
+assert Float64.parse("1.5junk", &remainder) == 1.5
 assert remainder == "junk"
 
 ```
-## Num.percent
+## Float64.percent
 
 ```tomo
-Num.percent : func(n: Num, precision: Num = 0.01 -> Text)
+Float64.percent : func(n: Float64, precision: Float64 = 0.01 -> Text)
 ```
 
 Convert a number into a percentage text with a percent sign.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be converted to a percent.  | -
-precision | `Num` | Round the percentage to this precision level.  | `0.01`
+n | `Float64` | The number to be converted to a percent.  | -
+precision | `Float64` | Round the percentage to this precision level.  | `0.01`
 
 **Return:** A text representation of the number as a percentage with a percent sign.
 
@@ -2325,17 +2325,17 @@ assert (1./3.).percent(precision=0.0001) == "33.3333%"
 assert (1./3.).percent(precision=10.) == "30%"
 
 ```
-## Num.rint
+## Float64.rint
 
 ```tomo
-Num.rint : func(x: Num -> Num)
+Float64.rint : func(x: Float64 -> Float64)
 ```
 
 Rounds a number to the nearest integer, with ties rounded to the nearest even integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded.  | -
+x | `Float64` | The number to be rounded.  | -
 
 **Return:** The nearest integer value of `x`.
 
@@ -2346,17 +2346,17 @@ assert (3.5).rint() == 4
 assert (2.5).rint() == 2
 
 ```
-## Num.round
+## Float64.round
 
 ```tomo
-Num.round : func(x: Num -> Num)
+Float64.round : func(x: Float64 -> Float64)
 ```
 
 Rounds a number to the nearest whole number integer.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be rounded.  | -
+x | `Float64` | The number to be rounded.  | -
 
 **Return:** The nearest integer value of `x`.
 
@@ -2367,17 +2367,17 @@ assert (2.3).round() == 2
 assert (2.7).round() == 3
 
 ```
-## Num.significand
+## Float64.significand
 
 ```tomo
-Num.significand : func(x: Num -> Num)
+Float64.significand : func(x: Float64 -> Float64)
 ```
 
 Extracts the significand (or mantissa) of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number from which to extract the significand.  | -
+x | `Float64` | The number from which to extract the significand.  | -
 
 **Return:** The significand of `x`.
 
@@ -2387,17 +2387,17 @@ x | `Num` | The number from which to extract the significand.  | -
 assert (1234.567).significand() == 1.2056318359375
 
 ```
-## Num.sin
+## Float64.sin
 
 ```tomo
-Num.sin : func(x: Num -> Num)
+Float64.sin : func(x: Float64 -> Float64)
 ```
 
 Computes the sine of a number (angle in radians).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The angle in radians.  | -
+x | `Float64` | The angle in radians.  | -
 
 **Return:** The sine of `x`.
 
@@ -2407,17 +2407,17 @@ x | `Num` | The angle in radians.  | -
 assert (0.0).sin() == 0
 
 ```
-## Num.sinh
+## Float64.sinh
 
 ```tomo
-Num.sinh : func(x: Num -> Num)
+Float64.sinh : func(x: Float64 -> Float64)
 ```
 
 Computes the hyperbolic sine of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the hyperbolic sine is to be calculated.  | -
+x | `Float64` | The number for which the hyperbolic sine is to be calculated.  | -
 
 **Return:** The hyperbolic sine of `x`.
 
@@ -2427,17 +2427,17 @@ x | `Num` | The number for which the hyperbolic sine is to be calculated.  | -
 assert (0.0).sinh() == 0
 
 ```
-## Num.sqrt
+## Float64.sqrt
 
 ```tomo
-Num.sqrt : func(x: Num -> Num)
+Float64.sqrt : func(x: Float64 -> Float64)
 ```
 
 Computes the square root of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the square root is to be calculated.  | -
+x | `Float64` | The number for which the square root is to be calculated.  | -
 
 **Return:** The square root of `x`.
 
@@ -2447,17 +2447,17 @@ x | `Num` | The number for which the square root is to be calculated.  | -
 assert (16.0).sqrt() == 4
 
 ```
-## Num.tan
+## Float64.tan
 
 ```tomo
-Num.tan : func(x: Num -> Num)
+Float64.tan : func(x: Float64 -> Float64)
 ```
 
 Computes the tangent of a number (angle in radians).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The angle in radians.  | -
+x | `Float64` | The angle in radians.  | -
 
 **Return:** The tangent of `x`.
 
@@ -2467,17 +2467,17 @@ x | `Num` | The angle in radians.  | -
 assert (0.0).tan() == 0
 
 ```
-## Num.tanh
+## Float64.tanh
 
 ```tomo
-Num.tanh : func(x: Num -> Num)
+Float64.tanh : func(x: Float64 -> Float64)
 ```
 
 Computes the hyperbolic tangent of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the hyperbolic tangent is to be calculated.  | -
+x | `Float64` | The number for which the hyperbolic tangent is to be calculated.  | -
 
 **Return:** The hyperbolic tangent of `x`.
 
@@ -2487,17 +2487,17 @@ x | `Num` | The number for which the hyperbolic tangent is to be calculated.  | 
 assert (0.0).tanh() == 0
 
 ```
-## Num.tgamma
+## Float64.tgamma
 
 ```tomo
-Num.tgamma : func(x: Num -> Num)
+Float64.tgamma : func(x: Float64 -> Float64)
 ```
 
 Computes the gamma function of a number.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the gamma function is to be calculated.  | -
+x | `Float64` | The number for which the gamma function is to be calculated.  | -
 
 **Return:** The gamma function of `x`.
 
@@ -2507,17 +2507,17 @@ x | `Num` | The number for which the gamma function is to be calculated.  | -
 assert (1.0).tgamma() == 1
 
 ```
-## Num.trunc
+## Float64.trunc
 
 ```tomo
-Num.trunc : func(x: Num -> Num)
+Float64.trunc : func(x: Float64 -> Float64)
 ```
 
 Truncates a number to the nearest integer towards zero.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number to be truncated.  | -
+x | `Float64` | The number to be truncated.  | -
 
 **Return:** The integer part of `x` towards zero.
 
@@ -2528,18 +2528,18 @@ assert (3.7).trunc() == 3
 assert (-3.7).trunc() == -3
 
 ```
-## Num.with_precision
+## Float64.with_precision
 
 ```tomo
-Num.with_precision : func(n: Num, precision: Num -> Num)
+Float64.with_precision : func(n: Float64, precision: Float64 -> Float64)
 ```
 
 Round a number to the given precision level (specified as `10`, `.1`, `.001` etc).
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-n | `Num` | The number to be rounded to a given precision.  | -
-precision | `Num` | The precision to which the number should be rounded.  | -
+n | `Float64` | The number to be rounded to a given precision.  | -
+precision | `Float64` | The precision to which the number should be rounded.  | -
 
 **Return:** The number, rounded to the given precision level.
 
@@ -2551,17 +2551,17 @@ assert (123456.).with_precision(100) == 123500
 assert (1234567.).with_precision(5) == 1234565
 
 ```
-## Num.y0
+## Float64.y0
 
 ```tomo
-Num.y0 : func(x: Num -> Num)
+Float64.y0 : func(x: Float64 -> Float64)
 ```
 
 Computes the Bessel function of the second kind of order 0.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | -
+x | `Float64` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the second kind of order 0 of `x`.
 
@@ -2571,17 +2571,17 @@ x | `Num` | The number for which the Bessel function is to be calculated.  | -
 assert (1.0).y0().near(0.08825696421567698)
 
 ```
-## Num.y1
+## Float64.y1
 
 ```tomo
-Num.y1 : func(x: Num -> Num)
+Float64.y1 : func(x: Float64 -> Float64)
 ```
 
 Computes the Bessel function of the second kind of order 1.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-x | `Num` | The number for which the Bessel function is to be calculated.  | -
+x | `Float64` | The number for which the Bessel function is to be calculated.  | -
 
 **Return:** The Bessel function of the second kind of order 1 of `x`.
 
@@ -4180,7 +4180,7 @@ assert "Amélie".codepoint_names() == [
 ## Text.distance
 
 ```tomo
-Text.distance : func(a: Text, b: Text, language: Text = "C" -> Num)
+Text.distance : func(a: Text, b: Text, language: Text = "C" -> Float64)
 ```
 
 Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar.

@@ -1,7 +1,7 @@
 # Nums
 
-Tomo has two floating point number types: `Num` (64-bit, AKA `double`) and
-`Num32` (32-bit, AKA `float`). Num literals can have a decimal point (e.g.
+Tomo has two floating point number types: `Float64` (64-bit, AKA `double`) and
+`Float32` (32-bit, AKA `float`). Float64 literals can have a decimal point (e.g.
 `5.`), a scientific notation suffix (e.g. `1e8`) or a percent sign. Numbers
 that end in a percent sign are divided by 100 at compile time (i.e. `5% ==
 0.05`). Numbers can also use the `deg` suffix to represent degrees, which
@@ -10,7 +10,7 @@ are converted to radians at compile time (i.e. `180deg == Nums.PI`).
 Nums support the standard math operations (`x+y`, `x-y`, `x*y`, `x/y`) as well as
 powers/exponentiation (`x^y`) and modulus (`x mod y` and `x mod1 y`).
 
-32-bit numbers can be constructed using the type name: `Num32(123.456)`.
+32-bit numbers can be constructed using the type name: `Float32(123.456)`.
 
 ## NaN
 
@@ -26,11 +26,11 @@ differentiate between possibly-NaN values and definitely-not-NaN values.
 
 Tomo has a separate concept for expressing the lack of a defined value:
 optional types. Consequently, Tomo has merged these two concepts, so `NaN` is
-called `none` and has the type `Num?` or `Num32?`. In this way, it's no
+called `none` and has the type `Float64?` or `Float32?`. In this way, it's no
 different from optional integers or optional lists. This means that if a
-variable has type `Num`, it is guaranteed to not hold a NaN value. This also
+variable has type `Float64`, it is guaranteed to not hold a NaN value. This also
 means that operations which may produce NaN values have a result type of
-`Num?`. For example, division can take two non-NaN values and return a result
+`Float64?`. For example, division can take two non-NaN values and return a result
 that is NaN (zero divided by zero). Similarly, multiplication can produce NaN
 values (zero times infinity), and many math functions like `sqrt()` can return
 NaN for some inputs.
@@ -65,7 +65,7 @@ assert (zero/y)! == 0
 # implicit `!`:
 zero = zero/y
 
-func doop(x:Num -> Num)
+func doop(x:Float64 -> Float64)
     # If a function's return type is non-optional and an optional value is
     # used in a return statement, an implicit none check will be inserted and
     # will error if the value is none:
@@ -89,4 +89,4 @@ provided are not NaN.
 
 # API
 
-[API documentation](../api/nums.md)
+[API documentation](../api/floats.md)

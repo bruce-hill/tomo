@@ -1,7 +1,7 @@
 
 struct Foo{x:Int, y:Int}
-	func len(f:Foo->Num)
-		return Num.sqrt(Num(f.x*f.x + f.y*f.y))!
+	func len(f:Foo->Float64)
+		return Float64.sqrt(Float64(f.x*f.x + f.y*f.y))!
 
 test "min and max operators"
 	>> (3 _min_ 5)

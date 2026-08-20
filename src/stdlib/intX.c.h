@@ -202,20 +202,20 @@ PUREFUNC OPT_T NAMESPACED(parse)(Text_t text, OptionalInt_t base, Text_t *remain
 }
 
 public
-PUREFUNC INT_T NAMESPACED(from_num64)(Num_t n, bool truncate) {
+PUREFUNC INT_T NAMESPACED(from_float64)(Float64_t n, bool truncate) {
     INT_T i = (INT_T)n;
-    if (!truncate && unlikely((Num_t)i != n))
+    if (!truncate && unlikely((Float64_t)i != n))
         fail_text(
-            Text$concat(Text("Could not convert Num to an " NAME_STR " without truncation: "), Num$value_as_text(n)));
+            Text$concat(Text("Could not convert Num to an " NAME_STR " without truncation: "), Float64$value_as_text(n)));
     return i;
 }
 
 public
-PUREFUNC INT_T NAMESPACED(from_num32)(Num32_t n, bool truncate) {
+PUREFUNC INT_T NAMESPACED(from_float32)(Float32_t n, bool truncate) {
     INT_T i = (INT_T)n;
-    if (!truncate && unlikely((Num32_t)i != n))
-        fail_text(Text$concat(Text("Could not convert Num32 to an " NAME_STR " without truncation: "),
-                              Num32$value_as_text(n)));
+    if (!truncate && unlikely((Float32_t)i != n))
+        fail_text(Text$concat(Text("Could not convert Float32 to an " NAME_STR " without truncation: "),
+                              Float32$value_as_text(n)));
     return i;
 }
 

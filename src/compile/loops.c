@@ -66,7 +66,7 @@ static bool cow_type_ok(type_t *t) {
     switch (t->tag) {
     case IntType:
     case BigIntType:
-    case NumType:
+    case FloatType:
     case BoolType:
     case ByteType: return true;
     case OptionalType: return cow_type_ok(Match(t, OptionalType)->type);

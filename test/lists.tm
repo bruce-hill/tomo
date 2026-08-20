@@ -1,11 +1,11 @@
 struct Vec{x,y:Int}
 
 test "empty list literal with type"
-	>> nums : [Num32] = []
+	>> nums : [Float32] = []
 	assert nums == []
 
 test "empty list declaration with type"
-	nums : [Num32]
+	nums : [Float32]
 	>> nums
 	assert nums == []
 

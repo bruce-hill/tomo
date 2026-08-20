@@ -34,13 +34,13 @@ _LINE := Int64(60)
 _BATCH_LINES := Int64(1024)
 
 # A cumulative probability paired with the byte to emit if it's selected.
-struct Freq{cutoff:Num, code:Byte}
+struct Freq{cutoff:Float64, code:Byte}
 
-# In-order cumulative sums, accumulated in Num (double) exactly as the C
+# In-order cumulative sums, accumulated in Float64 (double) exactly as the C
 # reference does, so the `r < cutoff` selection picks identical characters.
 # Each cutoff is paired with its output byte so the linear search below can be
 # a plain element iteration.
-func make_freqs(ps:[Num], codes:[Byte] -> [Freq])
+func make_freqs(ps:[Float64], codes:[Byte] -> [Freq])
     freqs : &[Freq] = &[]
     total := 0.0
     for p at i in ps
@@ -90,7 +90,7 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
     s := seed
     for _ in n
         s = (s * _IA + _IC) mod _IM
-        r := Num(s) / Num(_IM)
+        r := Float64(s) / Float64(_IM)
         b := last_code
         for f in freqs # linear search over cumulative probabilities
             if r < f.cutoff

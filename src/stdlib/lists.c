@@ -394,7 +394,7 @@ Table_t List$counts(List_t list, const TypeInfo_t *type) {
 static double _default_random_num(void *userdata) {
     (void)userdata;
     union {
-        Num_t num;
+        Float64_t num;
         uint64_t bits;
     } r = {.bits = 0}, one = {.num = 1.0};
     assert(getrandom((uint8_t *)&r, sizeof(r), 0) == sizeof(r));

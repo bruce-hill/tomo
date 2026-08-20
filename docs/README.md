@@ -25,7 +25,7 @@ Information about Tomo's built-in types can be found here:
 - [Booleans](booleans.md)
 - [Bytes](bytes.md)
 - [Enums](enums.md)
-- [Floating point numbers](nums.md)
+- [Floating point numbers](floats.md)
 - [Integers](integers.md)
 - [Languages](langs.md)
 - [Paths](paths.md)

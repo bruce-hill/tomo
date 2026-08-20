@@ -125,7 +125,7 @@ Field accesses work through the reference, which makes updating lists of
 structs concise:
 
 ```tomo
-struct Vec{x, y: Num}
+struct Vec{x, y: Float64}
 
 vecs := @[Vec{1.0, 2.0}, Vec{3.0, 4.0}]
 for &v in vecs

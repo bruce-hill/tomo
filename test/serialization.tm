@@ -1,7 +1,7 @@
 
 struct Foo{name:Text, next:@Foo?=none}
 
-enum MyEnum(Zero, One{x:Int}, Two{x:Num, y:Text})
+enum MyEnum(Zero, One{x:Int}, Two{x:Float64, y:Text})
 
 test "Int64 roundtrip"
     >> obj := Int64(123)
@@ -76,9 +76,9 @@ test "optional Text roundtrip"
     assert roundtrip == obj
 
 test "optional none roundtrip"
-    >> obj : Num? = none
+    >> obj : Float64? = none
     >> bytes : [Byte] = obj
-    >> roundtrip : Num? = bytes
+    >> roundtrip : Float64? = bytes
     assert roundtrip == obj
 
 test "Int cases roundtrip"

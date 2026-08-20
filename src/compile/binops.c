@@ -162,14 +162,14 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
 
     switch (ast->tag) {
     case Power: {
-        if (overall_t->tag != NumType)
+        if (overall_t->tag != FloatType)
             code_err(ast, "Exponentiation is only supported for Num types, not ", type_to_text(overall_t));
-        if (overall_t->tag == NumType && Match(overall_t, NumType)->bits == TYPE_NBITS32)
+        if (overall_t->tag == FloatType && Match(overall_t, FloatType)->bits == TYPE_NBITS32)
             return Texts("powf(", lhs, ", ", rhs, ")");
         else return Texts("pow(", lhs, ", ", rhs, ")");
     }
     case Multiply: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
@@ -177,7 +177,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         return Texts("(", lhs, " * ", rhs, ")");
     }
     case Divide: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
@@ -185,7 +185,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         return Texts("(", lhs, " / ", rhs, ")");
     }
     case Mod: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
@@ -193,7 +193,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         return Texts("(", lhs, " % ", rhs, ")");
     }
     case Mod1: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
@@ -201,7 +201,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         return Texts("((((", lhs, ")-1) % (", rhs, ")) + 1)");
     }
     case Plus: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
@@ -209,7 +209,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         return Texts("(", lhs, " + ", rhs, ")");
     }
     case Minus: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
@@ -217,7 +217,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         return Texts("(", lhs, " - ", rhs, ")");
     }
     case LeftShift: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
@@ -225,7 +225,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         return Texts("(", lhs, " << ", rhs, ")");
     }
     case RightShift: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
@@ -233,7 +233,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         return Texts("(", lhs, " >> ", rhs, ")");
     }
     case UnsignedLeftShift: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",
@@ -241,7 +241,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         return Texts("(", compile_type(overall_t), ")((", compile_unsigned_type(lhs_t), ")", lhs, " << ", rhs, ")");
     }
     case UnsignedRightShift: {
-        if (overall_t->tag != IntType && overall_t->tag != NumType && overall_t->tag != ByteType)
+        if (overall_t->tag != IntType && overall_t->tag != FloatType && overall_t->tag != ByteType)
             code_err(ast,
                      "Math operations are only supported for values of the same "
                      "numeric type, not ",

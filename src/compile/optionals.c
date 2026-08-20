@@ -69,7 +69,7 @@ Text_t compile_none(type_t *t) {
     case PathType: return Text("NONE_PATH");
     case PointerType: return Texts("((", compile_type(t), ")NULL)");
     case ClosureType: return Text("NONE_CLOSURE");
-    case NumType: return Text("nan(\"none\")");
+    case FloatType: return Text("nan(\"none\")");
     case StructType: return Texts("((", compile_type(Type(OptionalType, .type = t)), "){.has_value=false})");
     case EnumType: {
         env_t *enum_env = Match(t, EnumType)->env;
@@ -92,9 +92,9 @@ Text_t check_none(type_t *t, Text_t value) {
     case PathType: return Texts("(", value, " == NULL)");
     case BigIntType: return Texts("((", value, ").small == 0)");
     case ClosureType: return Texts("((", value, ").fn == NULL)");
-    // __builtin_isnan compiles to an inline comparison; Num$isnan is an
+    // __builtin_isnan compiles to an inline comparison; Float64$isnan is an
     // out-of-line call (via fpclassify), too slow for hot-loop `!` unwraps.
-    case NumType: return Texts("__builtin_isnan(", value, ")");
+    case FloatType: return Texts("__builtin_isnan(", value, ")");
     case ListType: return Texts("((", value, ").data == NULL)");
     case TableType: return Texts("((", value, ").entries.data == NULL)");
     case BoolType: return Texts("((", value, ") == NONE_BOOL)");

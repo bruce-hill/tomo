@@ -35,7 +35,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wfloat-equal"
 public
-PUREFUNC Int_t Int$from_num64(double n, bool truncate) {
+PUREFUNC Int_t Int$from_float64(double n, bool truncate) {
     mpz_t result;
     mpz_init_set_d(result, n);
     if (!truncate && unlikely(mpz_get_d(result) != n)) fail("Could not convert to an integer without truncation: ", n);

@@ -21,26 +21,26 @@
 #
 # Usage: nbody <steps>   (e.g. ./nbody 50000000)
 
-struct Vec3{x, y, z: Num}
+struct Vec3{x, y, z: Float64}
     func plus(a, b: Vec3 -> Vec3; inline)
         return Vec3{a.x + b.x, a.y + b.y, a.z + b.z}
 
     func minus(a, b: Vec3 -> Vec3; inline)
         return Vec3{a.x - b.x, a.y - b.y, a.z - b.z}
 
-    func scaled_by(v:Vec3, k:Num -> Vec3; inline)
+    func scaled_by(v:Vec3, k:Float64 -> Vec3; inline)
         return Vec3{v.x*k, v.y*k, v.z*k}
 
-    func len2(a: Vec3 -> Num; inline)
+    func len2(a: Vec3 -> Float64; inline)
         return a.x*a.x + a.y*a.y + a.z*a.z
 
-struct Body{pos, vel: Vec3, mass: Num}
+struct Body{pos, vel: Vec3, mass: Float64}
 
-func print9(x:Num)
+func print9(x:Float64)
     # Format-only inline C: print `x` with %.9f, matching the reference output.
     C_code `printf("%.9f", @x); putchar(10);`
 
-func advance(bodies:&[Body], steps:Int64, dt:Num)
+func advance(bodies:&[Body], steps:Int64, dt:Float64)
     n := Int64(bodies.length)
     for _ in Int64(1).to(steps)
         # The outer body is held by reference (`&bi`): direct field reads and a
@@ -60,24 +60,24 @@ func advance(bodies:&[Body], steps:Int64, dt:Num)
                 bj := bodies[j]!
                 d := pos_i - bj.pos
                 d2 := d.len2()
-                mag := dt / (d2 * Num.sqrt(d2)!)
+                mag := dt / (d2 * Float64.sqrt(d2)!)
                 vi -= d * (bj.mass * mag)
                 bodies[j] = Body{bj.pos, bj.vel + d * (mass_i * mag), bj.mass}
             bi.vel = vi
         for &b in bodies
             b.pos += b.vel * dt
 
-func energy(bodies:[Body] -> Num)
+func energy(bodies:[Body] -> Float64)
     e := (+: 0.5 * b.mass * b.vel.len2() for b in bodies) or 0.0
     # Potential energy over each distinct pair of bodies:
     for bi, bj in bodies.pairs()
         d := bi.pos - bj.pos
-        e -= (bi.mass * bj.mass) / Num.sqrt(d.len2())!
+        e -= (bi.mass * bj.mass) / Float64.sqrt(d.len2())!
     return e
 
 func main(steps:Int64)
     dpy := 365.24
-    sm := 4.0 * Num.PI * Num.PI
+    sm := 4.0 * Float64.PI * Float64.PI
 
     # Bodies: sun, jupiter, saturn, uranus, neptune.
     bodies := &[

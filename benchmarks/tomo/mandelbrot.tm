@@ -10,7 +10,7 @@
 # i.e. escapes only when strictly greater).
 #
 # Design notes:
-#   - All arithmetic is native `Num` (double) and the packing uses `Int64`, so
+#   - All arithmetic is native `Float64` (double) and the packing uses `Int64`, so
 #     the hot per-pixel loop stays in registers.
 #   - A whole row of packed bytes is filled into one reusable stack buffer and
 #     written raw through a `byte_writer` — no per-pixel or per-line Text.
@@ -19,19 +19,19 @@
 
 func main(n:Int64)
     size := n
-    inv := 2.0 / Num(size)  # maps a 0..size pixel index into the -2..0 range
+    inv := 2.0 / Float64(size)  # maps a 0..size pixel index into the -2..0 range
     emit := (/dev/stdout).byte_writer(append=yes)
     emit("P4\n$size $size\n".utf8())!
 
     row_bytes := (size + 7) / 8
     buf := &[Byte(0) for _ in row_bytes]  # one packed row; reused each y
     for y in Int64(0).to(size - 1)
-        ci := inv * Num(y) - 1.0
+        ci := inv * Float64(y) - 1.0
         p := Int64(0)         # write cursor into buf (0-based; buf is 1-indexed)
         bit_num := Int64(7)   # next bit to set within the current byte (MSB=7)
         byte_acc := Int64(0)
         for x in Int64(0).to(size - 1)
-            cr := inv * Num(x) - 1.5
+            cr := inv * Float64(x) - 1.5
             zr := 0.0
             zi := 0.0
             zr2 := 0.0

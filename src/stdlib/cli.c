@@ -16,7 +16,7 @@
 #include "cli.h"
 #include "integers.h"
 #include "metamethods.h"
-#include "nums.h"
+#include "floats.h"
 #include "optionals.h"
 #include "paths.h"
 #include "print.h"
@@ -165,7 +165,7 @@ static Text_t flag_value_options(const char *metavar, const TypeInfo_t *type) {
     if (type == &Bool$info) return Text("yes|no");
     if (type == &Path$info) return Text("path");
     if (type == &Int$info || type == &Int64$info || type == &Int32$info || type == &Int16$info || type == &Int8$info
-        || type == &Byte$info || type == &Num$info || type == &Num32$info)
+        || type == &Byte$info || type == &Float64$info || type == &Float32$info)
         return Text("N");
     if (type == &CString$info || type->tag == TextInfo) return Text("text");
     if (type->tag == OptionalInfo) return flag_value_options(NULL, type->OptionalInfo.type);
@@ -426,13 +426,13 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
     if (type->tag == OptionalInfo) {
         const TypeInfo_t *nonnull = type->OptionalInfo.type;
         if (streq(arg, "none")) {
-            if (nonnull == &Num$info) *(double *)dest = (double)NAN;
-            else if (nonnull == &Num32$info) *(float *)dest = (float)NAN;
+            if (nonnull == &Float64$info) *(double *)dest = (double)NAN;
+            else if (nonnull == &Float32$info) *(float *)dest = (float)NAN;
             else memset(dest, 0, (size_t)type->size);
             return List$from(args, I(2));
         } else {
             args = parse_arg_list(args, flag, dest, nonnull, allow_dashes);
-            if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Num$info || nonnull == &Num32$info
+            if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Float64$info || nonnull == &Float32$info
                 || nonnull->tag == TextInfo || nonnull->tag == EnumInfo)
                 return args;
             else if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
@@ -478,14 +478,14 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
         OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
         if (parsed == NONE_BOOL) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Bool_t *)dest = parsed;
-    } else if (type == &Num$info) {
-        OptionalNum_t parsed = Num$parse(Text$from_str(arg), NULL);
+    } else if (type == &Float64$info) {
+        OptionalFloat64_t parsed = Float64$parse(Text$from_str(arg), NULL);
         if (isnan(parsed)) print_err("Could not parse argument for ", flag, ": ", arg);
-        *(Num_t *)dest = parsed;
-    } else if (type == &Num32$info) {
-        OptionalNum32_t parsed = Num32$parse(Text$from_str(arg), NULL);
+        *(Float64_t *)dest = parsed;
+    } else if (type == &Float32$info) {
+        OptionalFloat32_t parsed = Float32$parse(Text$from_str(arg), NULL);
         if (isnan(parsed)) print_err("Could not parse argument for ", flag, ": ", arg);
-        *(Num32_t *)dest = parsed;
+        *(Float32_t *)dest = parsed;
     } else if (type->tag == PointerInfo) {
         // For pointers, we can just allocate memory for the value and then parse the value
         void *value = GC_MALLOC((size_t)type->PointerInfo.pointed->size);

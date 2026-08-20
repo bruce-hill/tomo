@@ -102,8 +102,8 @@ MACROLIKE PUREFUNC INTX_T NAMESPACED(unsigned_right_shifted)(INTX_T x, INTX_T y)
 void NAMESPACED(serialize)(const void *obj, FILE *out, Table_t *, const TypeInfo_t *);
 void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *, const TypeInfo_t *);
 
-PUREFUNC INTX_T NAMESPACED(from_num64)(Num_t n, bool truncate);
-PUREFUNC INTX_T NAMESPACED(from_num32)(Num32_t n, bool truncate);
+PUREFUNC INTX_T NAMESPACED(from_float64)(Float64_t n, bool truncate);
+PUREFUNC INTX_T NAMESPACED(from_float32)(Float32_t n, bool truncate);
 PUREFUNC INTX_T NAMESPACED(from_int)(Int_t i, bool truncate);
 
 #if INTX_H__INT_BITS < 64

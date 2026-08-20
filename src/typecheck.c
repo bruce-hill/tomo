@@ -735,7 +735,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         return Type(BigIntType);
     }
     case Num: {
-        return Type(NumType, .bits = TYPE_NBITS64);
+        return Type(FloatType, .bits = TYPE_NBITS64);
     }
     case HeapAllocate: {
         type_t *pointed = get_type(env, Match(ast, HeapAllocate)->value);
@@ -970,7 +970,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
                 code_err(ast, "There's no constructor for ", type_to_text(t),
                          " that takes these arguments. If you meant to build one from its fields, use curly braces: ",
                          Match(t, StructType)->name, "{...}");
-            else if (t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == ByteType
+            else if (t->tag == IntType || t->tag == BigIntType || t->tag == FloatType || t->tag == ByteType
                      || t->tag == TextType || t->tag == CStringType)
                 return t; // Constructor
             arg_t *arg_types = NULL;
@@ -1196,7 +1196,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
         type_t *t = get_type(env, value);
-        if (t->tag == IntType || t->tag == NumType) return t;
+        if (t->tag == IntType || t->tag == FloatType) return t;
 
         binding_t *b = get_namespace_binding(env, value, "negative");
         if (b && b->type->tag == FunctionType) {
@@ -1208,7 +1208,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case Not: {
         type_t *t = get_type(env, Match(ast, Not)->value);
-        if (t->tag == IntType || t->tag == NumType || t->tag == BoolType) return t;
+        if (t->tag == IntType || t->tag == FloatType || t->tag == BoolType) return t;
         if (t->tag == OptionalType) return Type(BoolType);
 
         ast_t *value = Match(ast, Not)->value;
@@ -1253,8 +1253,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
             non_opt = most_complete_type(non_opt, rhs_t);
             if (non_opt != NULL) return non_opt;
         } else if ((is_numeric_type(lhs_t) || lhs_t->tag == BoolType)
-                   && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType) && lhs_t->tag != NumType
-                   && rhs_t->tag != NumType) {
+                   && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType) && lhs_t->tag != FloatType
+                   && rhs_t->tag != FloatType) {
             if (can_compile_to_type(env, binop.rhs, lhs_t)) return lhs_t;
             else if (can_compile_to_type(env, binop.lhs, rhs_t)) return rhs_t;
         } else if (lhs_t->tag == TableType && rhs_t->tag == TableType && type_eq(lhs_t, rhs_t)) {
@@ -1284,7 +1284,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
         // Bitwise AND:
         if ((is_numeric_type(lhs_t) || lhs_t->tag == BoolType) && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType)
-            && lhs_t->tag != NumType && rhs_t->tag != NumType) {
+            && lhs_t->tag != FloatType && rhs_t->tag != FloatType) {
             if (can_compile_to_type(env, binop.rhs, lhs_t)) return lhs_t;
             else if (can_compile_to_type(env, binop.lhs, rhs_t)) return rhs_t;
         } else if (lhs_t->tag == TableType && rhs_t->tag == TableType && type_eq(lhs_t, rhs_t)) {
@@ -1314,7 +1314,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
         // Bitwise XOR:
         if ((is_numeric_type(lhs_t) || lhs_t->tag == BoolType) && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType)
-            && lhs_t->tag != NumType && rhs_t->tag != NumType) {
+            && lhs_t->tag != FloatType && rhs_t->tag != FloatType) {
             if (can_compile_to_type(env, binop.rhs, lhs_t)) return lhs_t;
             else if (can_compile_to_type(env, binop.lhs, rhs_t)) return rhs_t;
         } else if (lhs_t->tag == TableType && rhs_t->tag == TableType && type_eq(lhs_t, rhs_t)) {
@@ -1816,7 +1816,7 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         // literal is constant (the I_small() compound literal); a larger one
         // compiles to a runtime Int$from_str/from_int64 call.
         type_t *t = EXPECTED_OR_INFERRED;
-        if (t->tag == IntType || t->tag == NumType || t->tag == ByteType) return true;
+        if (t->tag == IntType || t->tag == FloatType || t->tag == ByteType) return true;
         DeclareMatch(info, ast, Int);
         Int_t int_val = Int$parse(Text$from_str(info->str), NONE_INT, NULL);
         if (int_val.small == 0) return false; // Failed to parse
@@ -1870,7 +1870,7 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         // Codegen doesn't push a target type through `-`, so gate on the value's
         // own type.
         type_t *nt = get_type(env, ast);
-        if (nt->tag != IntType && nt->tag != NumType && nt->tag != ByteType) return false;
+        if (nt->tag != IntType && nt->tag != FloatType && nt->tag != ByteType) return false;
         return is_constant(env, Match(ast, Negative)->value, NULL);
     }
     case BINOP_CASES: {
@@ -1886,8 +1886,8 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         switch (ast->tag) {
         case Plus:
         case Minus:
-        case Multiply: native = (t->tag == IntType || t->tag == ByteType || t->tag == NumType); break;
-        case Divide: native = (t->tag == NumType); break; // fixed-width int '/' is a checked block
+        case Multiply: native = (t->tag == IntType || t->tag == ByteType || t->tag == FloatType); break;
+        case Divide: native = (t->tag == FloatType); break; // fixed-width int '/' is a checked block
         case LeftShift:
         case RightShift:
         case UnsignedLeftShift:
@@ -1913,7 +1913,7 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
             type_t *ctor_t = Match(fn_t, TypeInfoType)->type;
             ast_t *arg = call->args->value;
             if (is_numeric_type(ctor_t) && arg->tag == Int && is_constant(env, arg, ctor_t)) return true;
-            if (ctor_t->tag == NumType && arg->tag == Num) return true;
+            if (ctor_t->tag == FloatType && arg->tag == Num) return true;
         }
         return false;
     }
@@ -1973,7 +1973,7 @@ bool embed_is_constant(ast_t *ast, type_t *t) {
 // only supports `Num`. `target == NULL` means "no target constraint".
 PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target) {
     switch (ast->tag) {
-    case Power: return target == NULL || target->tag == NumType;
+    case Power: return target == NULL || target->tag == FloatType;
     case Multiply:
     case Divide:
     case Mod:
@@ -1986,7 +1986,7 @@ PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target) {
     case UnsignedRightShift:
     case And:
     case Or:
-    case Xor: return target == NULL || target->tag != NumType;
+    case Xor: return target == NULL || target->tag != FloatType;
     default: return false;
     }
 }
@@ -2004,7 +2004,7 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     // wrapped in an Optional (e.g. comparing a `(+.length: ...)` reduction's
     // `Int64?` result against the literal `6`).
     if (is_numeric_type(non_optional_needed) && ast->tag == Int) return true;
-    if (needed->tag == NumType && ast->tag == Num) return true;
+    if (needed->tag == FloatType && ast->tag == Num) return true;
     // Untyped-int-literal arithmetic (inferred as bignum `Int`) can compile to
     // any numeric type its operands can, by pushing the type into them.
     if (is_numeric_type(non_optional_needed) && is_pushdown_arithmetic(ast, non_optional_needed)

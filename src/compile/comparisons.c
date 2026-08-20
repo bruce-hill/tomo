@@ -67,7 +67,7 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         case BoolType:
         case ByteType:
         case IntType:
-        case NumType:
+        case FloatType:
         case PointerType:
         case FunctionType: return Texts("(", lhs, ast->tag == Equals ? " == " : " != ", rhs, ")");
         default:
@@ -111,7 +111,7 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         case BoolType:
         case ByteType:
         case IntType:
-        case NumType:
+        case FloatType:
         case PointerType:
         case FunctionType: return Texts("(", lhs, " ", op, " ", rhs, ")");
         default:
