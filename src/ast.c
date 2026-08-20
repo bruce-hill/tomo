@@ -81,7 +81,7 @@ const binop_info_t binop_info[NUM_AST_TAGS] = {
 static Text_t ast_list_to_sexp(ast_list_t *asts);
 static Text_t arg_list_to_sexp(arg_ast_t *args);
 static Text_t arg_defs_to_sexp(arg_ast_t *args);
-static Text_t when_clauses_to_sexp(when_clause_t *clauses);
+static Text_t match_clauses_to_sexp(match_clause_t *clauses);
 static Text_t tags_to_sexp(tag_ast_t *tags);
 static Text_t optional_sexp(const char *tag, ast_t *ast);
 static Text_t optional_type_sexp(const char *tag, type_ast_t *ast);
@@ -117,7 +117,7 @@ Text_t arg_list_to_sexp(arg_ast_t *args) {
     return c;
 }
 
-Text_t when_clauses_to_sexp(when_clause_t *clauses) {
+Text_t match_clauses_to_sexp(match_clause_t *clauses) {
     Text_t c = EMPTY_TEXT;
     for (; clauses; clauses = clauses->next) {
         c = Texts(c, " (case ", ast_to_sexp(clauses->pattern), " ", ast_to_sexp(clauses->body), ")");
@@ -258,7 +258,7 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Repeat, "(Repeat ", ast_to_sexp(data.body), ")");
         T(If, "(If ", ast_to_sexp(data.condition), " ", ast_to_sexp(data.body), optional_sexp("else", data.else_body),
           ")");
-        T(When, "(When ", ast_to_sexp(data.subject), when_clauses_to_sexp(data.clauses),
+        T(Match, "(Match ", ast_to_sexp(data.subject), match_clauses_to_sexp(data.clauses),
           optional_sexp("else", data.else_body), ")");
         T(Reduction, "(Reduction ", quoted_text(binop_info[data.op].operator), " ", ast_to_sexp(data.key), " ",
           ast_to_sexp(data.iter), ")");
@@ -621,14 +621,14 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
         ast_visit(if_->else_body, visitor, userdata);
         return;
     }
-    case When: {
-        DeclareMatch(when, ast, When);
-        ast_visit(when->subject, visitor, userdata);
-        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+    case Match: {
+        DeclareMatch(match, ast, Match);
+        ast_visit(match->subject, visitor, userdata);
+        for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
             ast_visit(clause->pattern, visitor, userdata);
             ast_visit(clause->body, visitor, userdata);
         }
-        ast_visit(when->else_body, visitor, userdata);
+        ast_visit(match->else_body, visitor, userdata);
         return;
     }
     case Reduction: {

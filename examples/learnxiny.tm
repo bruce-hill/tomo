@@ -245,7 +245,7 @@ func demo_structs()
     # Comparisons, conversion to text, and hashing are all handled
     # automatically when you create a struct:
     bob := Person{"Bob", 30}
-    assert not alice == bob
+    assert alice != bob
     assert "$alice" == 'Person{name="Alice", age=30}'
     table := {alice: "first", bob: "second"}
     assert table[alice]! == "first"
@@ -258,17 +258,17 @@ enum Shape(Point, Circle{radius:Num}, Rectangle{width:Num, height:Num})
     # Just like with structs, you define methods and constants inside a level
     # of indentation:
     func get_area(self:Shape -> Num)
-        # In order to work with an enum, it's most often handy to use a 'when'
+        # In order to work with an enum, it's most often handy to use a 'match'
         # statement to get the internal values:
-        when self
-        is Point
+        match self
+        case Point
             return 0
-        is Circle{r}
+        case Circle{r}
             return Num.PI*r^2
-        is Rectangle{w, h}
+        case Rectangle{w, h}
             return w*h
 
-        # 'when' statements are checked for exhaustiveness, so the compiler
+        # 'match' statements are checked for exhaustiveness, so the compiler
         # will give an error if you forgot any cases. You can also use 'else:'
         # if you want a fallback to handle other cases.
 
@@ -282,7 +282,7 @@ func demo_enums()
 
     # Similar to structs, enums automatically define comparisons, conversion
     # to text, and hashing:
-    assert not my_shape == other_shape
+    assert my_shape != other_shape
     assert "$my_shape" == "Circle{1}"
     assert {my_shape: "nice"} == {Shape.Circle{1}: "nice"}
 

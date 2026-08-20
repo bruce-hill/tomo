@@ -31,4 +31,4 @@
 #include "tables.h" // IWYU pragma: export
 #include "text.h" // IWYU pragma: export
 #include "types.h" // IWYU pragma: export
-#include "whens.h" // IWYU pragma: export
+#include "matches.h" // IWYU pragma: export

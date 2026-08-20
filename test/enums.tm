@@ -3,15 +3,16 @@ enum OnlyTags(A, B, C, D)
 
 func choose_text(f:Foo->Text)
 	>> f
-	when f is Zero
+	match f
+	case Zero
 		return "Zero"
-	is One{one}
+	case One{one}
 		return "One: $one"
-	is Two{x, y}
+	case Two{x, y}
 		return "Two: x=$x, y=$y"
-	is Three{three}
+	case Three{three}
 		return "Three: $three"
-	is Four
+	case Four
 		return "Four"
 	else
 		return "else: $f"
@@ -50,7 +51,7 @@ test "enum values as table keys"
 	assert t.has(x)
 	assert not t.has(Foo.Zero)
 
-test "pattern matching with when"
+test "pattern matching with match"
 	>> choose_text(Foo.Zero)
 	>> choose_text(Foo.One{123})
 	>> choose_text(Foo.Two{123, 456})
@@ -62,29 +63,32 @@ test "pattern matching with when"
 	assert choose_text(Foo.Four{1,2,3,4}) == "Four"
 	assert choose_text(Foo.Last{"XX"}) == 'else: Last{"XX"}'
 
-test "repeat when over a list"
+test "repeat match over a list"
 	>> i := 1
 	>> cases := [Foo.One{1}, Foo.One{2}, Foo.Zero]
-	repeat when cases[i]! is One{x}
+	repeat match cases[i]!
+	case One{x}
 		>> x
 		i += 1
 	else break
 
-test "when in a comprehension"
+test "match in a comprehension"
 	assert [
 		(
-			when x is One{y}, Two{y,_}
+			match x
+			case One{y}, Two{y,_}
 				"Small $y"
-			is Zero
+			case Zero
 				"Zero"
 			else
 				"Other"
 		) for x in [Foo.Zero, Foo.One{1}, Foo.Two{2,2}, Foo.Three{3,"",no}]
 	] == ["Zero", "Small 1", "Small 2", "Other"]
 
-test "when as an expression"
+test "match as an expression"
 	>> cases := [Foo.One{1}, Foo.One{2}, Foo.Zero]
-	>> expr := when cases[1]! is One{y}
+	>> expr := match cases[1]!
+	case One{y}
 		y + 1
 	else
 		-1
@@ -98,9 +102,10 @@ test "inline enum argument type"
 test "inline enum local variable"
 	e : enum(One, Two) = One
 	e = Two
-	when e is One
+	match e
+	case One
 		say("one")
-	is Two
+	case Two
 		say("two")
 
 test "inline enum return type"
@@ -150,7 +155,8 @@ test "tag accessor extraction"
 	assert ep.One == none
 	assert ep.Two != none
 	>> two := e.Two!
-	when e is Two{x,y}
+	match e
+	case Two{x,y}
 		assert two.x == x
 		assert two.y == y
 	else fail("Unreachable")

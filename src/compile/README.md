@@ -31,4 +31,4 @@ This directory contains the source files for actual cross-compilation
 - Tables (`{1=10, 2=20}`): [tables.c](tables.c)
 - Text: [text.c](text.c)
 - Types and type metadata: [types.c](types.c)
-- Pattern matching (`when x is ...`): [whens.c](whens.c)
+- Pattern matching (`match x case ...`): [matches.c](matches.c)

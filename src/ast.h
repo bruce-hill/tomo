@@ -77,10 +77,10 @@ typedef struct arg_ast_s {
     struct arg_ast_s *next;
 } arg_ast_t;
 
-typedef struct when_clause_s {
+typedef struct match_clause_s {
     ast_t *pattern, *body;
-    struct when_clause_s *next;
-} when_clause_t;
+    struct match_clause_s *next;
+} match_clause_t;
 
 typedef enum {
     UnknownTypeAST,
@@ -261,7 +261,7 @@ typedef enum {
     For,
     While,
     If,
-    When,
+    Match,
     Repeat,
     Reduction,
     Skip,
@@ -418,9 +418,9 @@ struct ast_s {
         } If;
         struct {
             ast_t *subject;
-            when_clause_t *clauses;
+            match_clause_t *clauses;
             ast_t *else_body;
-        } When;
+        } Match;
         struct {
             ast_t *iter, *key;
             ast_e op;

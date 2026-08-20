@@ -7,7 +7,8 @@ represent this case using enums like so:
 enum MaybeInt(AnInt{x:Int}, NoInt)
 
 func maybe_takes_int(maybe_x:MaybeInt)
-    when maybe_x is AnInt{x}
+    match maybe_x
+    case AnInt{x}
         say("Got an int: $x")
     else
         say("Got nothing")

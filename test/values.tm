@@ -58,7 +58,8 @@ test "struct passed by reference is mutable"
 
 test "enum field value semantics"
     >> x := HoldsList.HasList{[10, 20, 30]}
-    when x is HasList{list}
+    match x
+    case HasList{list}
         (&list)[1] = 99
 
     >> x

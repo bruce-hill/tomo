@@ -181,18 +181,18 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         if (if_->else_body) code = Texts(code, " else ", fmt_inline(if_->else_body, comments));
         return code;
     }
-    /*inline*/ case When: {
-        DeclareMatch(when, ast, When);
-        Text_t code = Texts("when ", fmt_inline(when->subject, comments));
-        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
-            code = Texts(code, " is ", fmt_inline(clause->pattern, comments));
+    /*inline*/ case Match: {
+        DeclareMatch(match, ast, Match);
+        Text_t code = Texts("match ", fmt_inline(match->subject, comments));
+        for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
+            code = Texts(code, " case ", fmt_inline(clause->pattern, comments));
             while (clause->next && clause->next->body == clause->body) {
                 clause = clause->next;
                 code = Texts(code, ", ", fmt_inline(clause->pattern, comments));
             }
             code = Texts(code, " then ", fmt_inline(clause->body, comments));
         }
-        if (when->else_body) code = Texts(code, " else ", fmt_inline(when->else_body, comments));
+        if (match->else_body) code = Texts(code, " else ", fmt_inline(match->else_body, comments));
         return code;
     }
     /*inline*/ case Repeat:
@@ -401,10 +401,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             return Texts(lhs, " ", Text$from_str(op), " ", rhs);
         }
 
-        if ((operands.lhs->tag == If || operands.lhs->tag == When)
+        if ((operands.lhs->tag == If || operands.lhs->tag == Match)
             || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
             lhs = parenthesize(lhs, EMPTY_TEXT);
-        if ((operands.rhs->tag == If || operands.rhs->tag == When)
+        if ((operands.rhs->tag == If || operands.rhs->tag == Match)
             || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
             rhs = parenthesize(rhs, EMPTY_TEXT);
 
@@ -523,19 +523,19 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         }
         return code;
     }
-    /*multiline*/ case When: {
-        DeclareMatch(when, ast, When);
-        Text_t code = Texts("when ", fmt(when->subject, comments, indent));
-        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
-            code = Texts(code, "\n", indent, "is ", fmt(clause->pattern, comments, indent));
+    /*multiline*/ case Match: {
+        DeclareMatch(match, ast, Match);
+        Text_t code = Texts("match ", fmt(match->subject, comments, indent));
+        for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
+            code = Texts(code, "\n", indent, "case ", fmt(clause->pattern, comments, indent));
             while (clause->next && clause->next->body == clause->body) {
                 clause = clause->next;
                 code = Texts(code, ", ", fmt(clause->pattern, comments, indent));
             }
             code = Texts(code, format_namespace(clause->body, comments, indent));
         }
-        if (when->else_body)
-            code = Texts(code, "\n", indent, "else", format_namespace(when->else_body, comments, indent));
+        if (match->else_body)
+            code = Texts(code, "\n", indent, "else", format_namespace(match->else_body, comments, indent));
         return code;
     }
     /*multiline*/ case Repeat: {
@@ -894,10 +894,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             return Texts(lhs, " ", Text$from_str(op), " ", rhs);
         }
 
-        if ((operands.lhs->tag == If || operands.lhs->tag == When)
+        if ((operands.lhs->tag == If || operands.lhs->tag == Match)
             || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
             lhs = parenthesize(lhs, indent);
-        if ((operands.lhs->tag == If || operands.lhs->tag == When)
+        if ((operands.lhs->tag == If || operands.lhs->tag == Match)
             || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
             rhs = parenthesize(rhs, indent);
 

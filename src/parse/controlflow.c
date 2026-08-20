@@ -213,34 +213,34 @@ ast_t *parse_if(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, If, .condition = condition, .body = body, .else_body = else_body);
 }
 
-ast_t *parse_when(parse_ctx_t *ctx, const char *pos) {
-    // when <expr> (is var : Tag <body>)* [else <body>]
+ast_t *parse_match(parse_ctx_t *ctx, const char *pos) {
+    // match <expr> (case var : Tag <body>)* [else <body>]
     const char *start = pos;
     int64_t starting_indent = get_indent(ctx, pos);
 
-    if (!match_word(&pos, "when")) return NULL;
+    if (!match_word(&pos, "match")) return NULL;
 
     ast_t *subject = optional(ctx, &pos, parse_declaration);
-    if (!subject) subject = expect(ctx, start, &pos, parse_expr, "I expected to find an expression for this 'when'");
+    if (!subject) subject = expect(ctx, start, &pos, parse_expr, "I expected to find an expression for this 'match'");
 
-    when_clause_t *clauses = NULL;
+    match_clause_t *clauses = NULL;
     const char *tmp = pos;
     whitespace(ctx, &tmp);
-    while (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "is")) {
+    while (get_indent(ctx, tmp) == starting_indent && match_word(&tmp, "case")) {
         pos = tmp;
         spaces(&pos);
         if (match(&pos, ":")) parser_err(ctx, pos - 1, pos, "There shouldn't be a colon here.");
         ast_t *pattern = expect(ctx, start, &pos, parse_expr, "I expected a pattern to match here");
         spaces(&pos);
-        when_clause_t *new_clauses = new (when_clause_t, .pattern = pattern, .next = clauses);
+        match_clause_t *new_clauses = new (match_clause_t, .pattern = pattern, .next = clauses);
         while (match(&pos, ",")) {
             pattern = expect(ctx, start, &pos, parse_expr, "I expected a pattern to match here");
-            new_clauses = new (when_clause_t, .pattern = pattern, .next = new_clauses);
+            new_clauses = new (match_clause_t, .pattern = pattern, .next = new_clauses);
             spaces(&pos);
         }
         (void)match_word(&pos, "then"); // Optional 'then'
-        ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'when' clause");
-        for (when_clause_t *c = new_clauses; c && c != clauses; c = c->next) {
+        ast_t *body = expect(ctx, start, &pos, parse_block, "I expected a body for this 'match' clause");
+        for (match_clause_t *c = new_clauses; c && c != clauses; c = c->next) {
             c->body = body;
         }
         clauses = new_clauses;
@@ -255,7 +255,7 @@ ast_t *parse_when(parse_ctx_t *ctx, const char *pos) {
         pos = tmp;
         else_body = expect(ctx, else_start, &pos, parse_block, "I expected a body for this 'else'");
     }
-    return NewAST(ctx->file, start, pos, When, .subject = subject, .clauses = clauses, .else_body = else_body);
+    return NewAST(ctx->file, start, pos, Match, .subject = subject, .clauses = clauses, .else_body = else_body);
 }
 
 ast_t *parse_for(parse_ctx_t *ctx, const char *pos) {

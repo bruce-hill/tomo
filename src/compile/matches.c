@@ -1,4 +1,4 @@
-// This file defines how to compile 'when' statements/expressions
+// This file defines how to compile 'match' statements/expressions
 
 #include "../ast.h"
 #include "../config.h"
@@ -11,40 +11,40 @@
 #include "compilation.h"
 
 public
-Text_t compile_when_statement(env_t *env, ast_t *ast) {
+Text_t compile_match_statement(env_t *env, ast_t *ast) {
     // Typecheck to verify exhaustiveness:
     type_t *result_t = get_type(env, ast);
     (void)result_t;
 
-    DeclareMatch(when, ast, When);
-    type_t *subject_t = get_type(env, when->subject);
+    DeclareMatch(match, ast, Match);
+    type_t *subject_t = get_type(env, match->subject);
 
     if (subject_t->tag != EnumType) {
         Text_t prefix = EMPTY_TEXT, suffix = EMPTY_TEXT;
-        ast_t *subject = when->subject;
-        if (!is_idempotent(when->subject)) {
-            prefix = Texts("{\n", compile_declaration(subject_t, Text("_when_subject")), " = ", compile(env, subject),
+        ast_t *subject = match->subject;
+        if (!is_idempotent(match->subject)) {
+            prefix = Texts("{\n", compile_declaration(subject_t, Text("_match_subject")), " = ", compile(env, subject),
                            ";\n");
             suffix = Text("}\n");
-            subject = LiteralCode(Text("_when_subject"), .type = subject_t);
+            subject = LiteralCode(Text("_match_subject"), .type = subject_t);
         }
 
         Text_t code = EMPTY_TEXT;
-        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+        for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
             ast_t *comparison = WrapAST(clause->pattern, Equals, .lhs = subject, .rhs = clause->pattern);
             (void)get_type(env, comparison);
             if (code.length > 0) code = Texts(code, "else ");
             code = Texts(code, "if (", compile(env, comparison), ")", compile_statement(env, clause->body));
         }
-        if (when->else_body) code = Texts(code, "else ", compile_statement(env, when->else_body));
+        if (match->else_body) code = Texts(code, "else ", compile_statement(env, match->else_body));
         code = Texts(prefix, code, suffix);
         return code;
     }
 
     DeclareMatch(enum_t, subject_t, EnumType);
 
-    Text_t code = Texts("WHEN(", compile_type(subject_t), ", ", compile(env, when->subject), ", _when_subject, {\n");
-    for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+    Text_t code = Texts("MATCH(", compile_type(subject_t), ", ", compile(env, match->subject), ", _match_subject, {\n");
+    for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
         if (clause->pattern->tag == Var) {
             const char *clause_tag_name = Match(clause->pattern, Var)->name;
             type_t *clause_type = clause->body ? get_type(env, clause->body) : Type(VoidType);
@@ -80,7 +80,7 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
             if (!streq(var_name, "_")) {
                 Text_t var = Texts("_$", var_name);
                 ast_t *member =
-                    WrapLiteralCode(ast, Texts("_when_subject.", valid_c_name(clause_tag_name)), .type = tag_type);
+                    WrapLiteralCode(ast, Texts("_match_subject.", valid_c_name(clause_tag_name)), .type = tag_type);
                 code = Texts(code, compile_declaration(tag_type, var), " = ",
                              compile_maybe_incref(env, member, tag_type), ";\n");
                 scope = fresh_scope(scope);
@@ -100,7 +100,7 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
                 if (!streq(var_name, "_")) {
                     Text_t var = Texts("_$", var_name);
                     ast_t *member =
-                        WrapLiteralCode(ast, Texts("_when_subject.", valid_c_name(clause_tag_name)), .type = tag_type);
+                        WrapLiteralCode(ast, Texts("_match_subject.", valid_c_name(clause_tag_name)), .type = tag_type);
                     code = Texts(code, compile_declaration(field->type, var), " = ",
                                  compile_maybe_incref(env, member, tag_type), ".", valid_c_name(field->name), ";\n");
                     set_binding(scope, Match(arg->value, Var)->name, field->type, var);
@@ -116,14 +116,14 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
             code = Texts(code, compile_statement(scope, clause->body), "\nbreak;\n}\n");
         }
     }
-    if (when->else_body) {
-        if (when->else_body->tag == Block) {
-            ast_list_t *statements = Match(when->else_body, Block)->statements;
+    if (match->else_body) {
+        if (match->else_body->tag == Block) {
+            ast_list_t *statements = Match(match->else_body, Block)->statements;
             if (!statements || (statements->ast->tag == Pass && !statements->next))
                 code = Texts(code, "default: break;");
-            else code = Texts(code, "default: {\n", compile_inline_block(env, when->else_body), "\nbreak;\n}\n");
+            else code = Texts(code, "default: {\n", compile_inline_block(env, match->else_body), "\nbreak;\n}\n");
         } else {
-            code = Texts(code, "default: {\n", compile_statement(env, when->else_body), "\nbreak;\n}\n");
+            code = Texts(code, "default: {\n", compile_statement(env, match->else_body), "\nbreak;\n}\n");
         }
     } else {
         code = Texts(code, "default: errx(1, \"Invalid tag!\");\n");
@@ -133,19 +133,19 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
 }
 
 public
-Text_t compile_when_expression(env_t *env, ast_t *ast) {
-    DeclareMatch(original, ast, When);
-    ast_t *when_var = WrapAST(ast, Var, .name = "when");
-    when_clause_t *new_clauses = NULL;
+Text_t compile_match_expression(env_t *env, ast_t *ast) {
+    DeclareMatch(original, ast, Match);
+    ast_t *match_var = WrapAST(ast, Var, .name = "match");
+    match_clause_t *new_clauses = NULL;
     type_t *subject_t = get_type(env, original->subject);
-    for (when_clause_t *clause = original->clauses; clause; clause = clause->next) {
+    for (match_clause_t *clause = original->clauses; clause; clause = clause->next) {
         type_t *clause_type = get_clause_type(env, subject_t, clause);
         if (clause_type->tag == AbortType || clause_type->tag == ReturnType) {
-            new_clauses = new (when_clause_t, .pattern = clause->pattern, .body = clause->body, .next = new_clauses);
+            new_clauses = new (match_clause_t, .pattern = clause->pattern, .body = clause->body, .next = new_clauses);
         } else {
-            ast_t *assign = WrapAST(clause->body, Assign, .targets = new (ast_list_t, .ast = when_var),
+            ast_t *assign = WrapAST(clause->body, Assign, .targets = new (ast_list_t, .ast = match_var),
                                     .values = new (ast_list_t, .ast = clause->body));
-            new_clauses = new (when_clause_t, .pattern = clause->pattern, .body = assign, .next = new_clauses);
+            new_clauses = new (match_clause_t, .pattern = clause->pattern, .body = assign, .next = new_clauses);
         }
     }
     REVERSE_LIST(new_clauses);
@@ -153,16 +153,16 @@ Text_t compile_when_expression(env_t *env, ast_t *ast) {
     if (else_body) {
         type_t *clause_type = get_type(env, else_body);
         if (clause_type->tag != AbortType && clause_type->tag != ReturnType) {
-            else_body = WrapAST(else_body, Assign, .targets = new (ast_list_t, .ast = when_var),
+            else_body = WrapAST(else_body, Assign, .targets = new (ast_list_t, .ast = match_var),
                                 .values = new (ast_list_t, .ast = else_body));
         }
     }
 
     type_t *t = get_type(env, ast);
-    env_t *when_env = fresh_scope(env);
-    set_binding(when_env, "when", t, Text("when"));
-    return Texts("({ ", compile_declaration(t, Text("when")), ";\n",
-                 compile_statement(when_env, WrapAST(ast, When, .subject = original->subject, .clauses = new_clauses,
+    env_t *match_env = fresh_scope(env);
+    set_binding(match_env, "match", t, Text("match"));
+    return Texts("({ ", compile_declaration(t, Text("match")), ";\n",
+                 compile_statement(match_env, WrapAST(ast, Match, .subject = original->subject, .clauses = new_clauses,
                                                      .else_body = else_body)),
-                 "when; })");
+                 "match; })");
 }

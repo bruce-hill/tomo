@@ -73,7 +73,7 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
 
     switch (first->tag) {
     case If:
-    case When:
+    case Match:
     case Repeat:
     case While:
     case For:
@@ -94,7 +94,7 @@ CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
 
     switch (second->tag) {
     case If:
-    case When:
+    case Match:
     case Repeat:
     case While:
     case For:
@@ -138,7 +138,7 @@ OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
     case Negative:
     case HeapAllocate:
     case If:
-    case When:
+    case Match:
     case StackReference: return parenthesize(format_inline_code(ast, comments), EMPTY_TEXT);
     default: return format_inline_code(ast, comments);
     }
@@ -151,7 +151,7 @@ Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
     case Negative:
     case HeapAllocate:
     case If:
-    case When:
+    case Match:
     case StackReference: return parenthesize(format_code(ast, comments, indent), indent);
     default: {
         Text_t inlined = format_inline_code(ast, comments);

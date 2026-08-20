@@ -459,30 +459,30 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         }
         break;
     }
-    case When: {
-        DeclareMatch(when, ast, When);
-        add_closed_vars(closed_vars, enclosing_scope, env, when->subject);
-        type_t *subject_t = get_type(env, when->subject);
+    case Match: {
+        DeclareMatch(match, ast, Match);
+        add_closed_vars(closed_vars, enclosing_scope, env, match->subject);
+        type_t *subject_t = get_type(env, match->subject);
 
         if (subject_t->tag != EnumType) {
-            for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+            for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
                 add_closed_vars(closed_vars, enclosing_scope, env, clause->pattern);
                 add_closed_vars(closed_vars, enclosing_scope, env, clause->body);
             }
 
-            if (when->else_body) add_closed_vars(closed_vars, enclosing_scope, env, when->else_body);
+            if (match->else_body) add_closed_vars(closed_vars, enclosing_scope, env, match->else_body);
             return;
         }
 
-        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+        for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
             if (clause->pattern->tag != Var
                 && !(clause->pattern->tag == RecordLiteral && Match(clause->pattern, RecordLiteral)->type->tag == Var))
                 code_err(clause->pattern, "This is not a valid pattern for a ", type_to_text(subject_t), " enum");
 
-            env_t *scope = when_clause_scope(env, subject_t, clause);
+            env_t *scope = match_clause_scope(env, subject_t, clause);
             add_closed_vars(closed_vars, enclosing_scope, scope, clause->body);
         }
-        if (when->else_body) add_closed_vars(closed_vars, enclosing_scope, env, when->else_body);
+        if (match->else_body) add_closed_vars(closed_vars, enclosing_scope, env, match->else_body);
         break;
     }
     case Repeat: {

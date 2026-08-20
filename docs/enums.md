@@ -18,11 +18,12 @@ c := VariousThings.Nothing
 The values inside an enum can be accessed with pattern matching
 
 ```tomo
-when x is AnInteger{i}
+match x
+case AnInteger{i}
     say("It was $i")
-is TwoWords{x, y}
+case TwoWords{x, y}
     say("It was $x and $y")
-is Nothing
+case Nothing
     say("It was nothing")
 ```
 
@@ -53,9 +54,10 @@ enum ArgumentType(AnInt{x:Int}, SomeText{text:Text})
 enum ReturnType(AnInt{x:Int}, Nothing)
 
 func increment(arg:ArgumentType -> ReturnType)
-    when arg is AnInt{x}
+    match arg
+    case AnInt{x}
         return AnInt{x + 1}
-    is SomeText
+    case SomeText
         return Nothing
 
 ...
@@ -144,7 +146,7 @@ fit.
 
 ## Field Access
 
-In some cases, a full `when` block is overkill when a value is assumed to have
+In some cases, a full `match` block is overkill when a value is assumed to have
 a certain tag. In those cases, you can access the enum's tag value using field
 access. The resulting value is `none` if the enum value is not the expected tag,
 otherwise it will hold the struct contents of the enum value for the given tag.
@@ -172,9 +174,10 @@ beyond reporting the error to the user and closing the program.
 
 ```tomo
 result := (/tmp/log.txt).append(msg)
-when result is Failure{msg}
+match result
+case Failure{msg}
     fail(msg)
-is Success
+case Success
     pass
 ```
 

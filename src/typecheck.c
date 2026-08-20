@@ -668,13 +668,13 @@ PUREFUNC public binding_t *get_variant_constructor(env_t *env, ast_t *type_expr)
     return (b && b->is_variant_constructor) ? b : NULL;
 }
 
-env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause) {
+env_t *match_clause_scope(env_t *env, type_t *subject_t, match_clause_t *clause) {
     if (clause->pattern->tag == Var || subject_t->tag != EnumType) return env;
 
     if (clause->pattern->tag != RecordLiteral || Match(clause->pattern, RecordLiteral)->type->tag != Var)
-        code_err(clause->pattern, "I only support variables and variant patterns like 'is Tag{x, y}' for pattern "
+        code_err(clause->pattern, "I only support variables and variant patterns like 'case Tag{x, y}' for pattern "
                                   "matching ",
-                 type_to_text(subject_t), " types in a 'when' block");
+                 type_to_text(subject_t), " types in a 'match' block");
 
     DeclareMatch(fn, clause->pattern, RecordLiteral);
     const char *tag_name = Match(fn->type, Var)->name;
@@ -715,8 +715,8 @@ env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause) {
     return scope;
 }
 
-type_t *get_clause_type(env_t *env, type_t *subject_t, when_clause_t *clause) {
-    env_t *scope = when_clause_scope(env, subject_t, clause);
+type_t *get_clause_type(env_t *env, type_t *subject_t, match_clause_t *clause) {
+    env_t *scope = match_clause_scope(env, subject_t, clause);
     return get_type(scope, clause->body);
 }
 
@@ -1529,15 +1529,15 @@ type_t *get_type(env_t *env, ast_t *ast) {
         return t_either;
     }
 
-    case When: {
-        DeclareMatch(when, ast, When);
-        type_t *subject_t = get_type(env, when->subject);
+    case Match: {
+        DeclareMatch(match, ast, Match);
+        type_t *subject_t = get_type(env, match->subject);
         if (subject_t->tag != EnumType) {
             type_t *t = NULL;
-            for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+            for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
                 t = type_or_type(t, get_type(env, clause->body));
             }
-            if (when->else_body) t = type_or_type(t, get_type(env, when->else_body));
+            if (match->else_body) t = type_or_type(t, get_type(env, match->else_body));
             else if (t && t->tag != OptionalType) t = Type(OptionalType, .type = t);
             return t;
         }
@@ -1545,16 +1545,16 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *overall_t = NULL;
         tag_t *const tags = Match(subject_t, EnumType)->tags;
 
-        typedef struct match_s {
+        typedef struct tag_coverage_s {
             tag_t *tag;
             bool handled;
-            struct match_s *next;
-        } match_t;
-        match_t *matches = NULL;
+            struct tag_coverage_s *next;
+        } tag_coverage_t;
+        tag_coverage_t *tag_coverage = NULL;
         for (tag_t *tag = tags; tag; tag = tag->next)
-            matches = new (match_t, .tag = tag, .handled = false, .next = matches);
+            tag_coverage = new (tag_coverage_t, .tag = tag, .handled = false, .next = tag_coverage);
 
-        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
+        for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
             const char *tag_name;
             if (clause->pattern->tag == Var) tag_name = Match(clause->pattern, Var)->name;
             else if (clause->pattern->tag == RecordLiteral && Match(clause->pattern, RecordLiteral)->type->tag == Var)
@@ -1562,14 +1562,14 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else code_err(clause->pattern, "This is not a valid pattern for a ", type_to_text(subject_t), " enum");
 
             Text_t valid_tags = EMPTY_TEXT;
-            for (match_t *m = matches; m; m = m->next) {
-                if (streq(m->tag->name, tag_name)) {
-                    if (m->handled) code_err(clause->pattern, "This tag was already handled earlier");
-                    m->handled = true;
+            for (tag_coverage_t *c = tag_coverage; c; c = c->next) {
+                if (streq(c->tag->name, tag_name)) {
+                    if (c->handled) code_err(clause->pattern, "This tag was already handled earlier");
+                    c->handled = true;
                     goto found_matching_tag;
                 }
                 if (valid_tags.length > 0) valid_tags = Texts(valid_tags, ", ");
-                valid_tags = Texts(valid_tags, m->tag->name);
+                valid_tags = Texts(valid_tags, c->tag->name);
             }
 
             code_err(clause->pattern, "There is no tag '", tag_name, "' for the type ", type_to_text(subject_t),
@@ -1577,8 +1577,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         found_matching_tag:;
         }
 
-        for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
-            env_t *clause_scope = when_clause_scope(env, subject_t, clause);
+        for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
+            env_t *clause_scope = match_clause_scope(env, subject_t, clause);
             type_t *clause_type = get_type(clause_scope, clause->body);
             type_t *merged = type_or_type(overall_t, clause_type);
             if (!merged)
@@ -1587,33 +1587,33 @@ type_t *get_type(env_t *env, ast_t *ast) {
             overall_t = merged;
         }
 
-        if (when->else_body) {
+        if (match->else_body) {
             bool any_unhandled = false;
-            for (match_t *m = matches; m; m = m->next) {
-                if (!m->handled) {
+            for (tag_coverage_t *c = tag_coverage; c; c = c->next) {
+                if (!c->handled) {
                     any_unhandled = true;
                     break;
                 }
             }
-            // HACK: `while when ...` is handled by the parser adding an implicit
+            // HACK: `while match ...` is handled by the parser adding an implicit
             // `else: break`, which has an empty source code span.
-            if (!any_unhandled && when->else_body->end > when->else_body->start)
-                code_err(when->else_body, "This 'else' block will never run because every tag is handled");
+            if (!any_unhandled && match->else_body->end > match->else_body->start)
+                code_err(match->else_body, "This 'else' block will never run because every tag is handled");
 
-            type_t *else_t = get_type(env, when->else_body);
+            type_t *else_t = get_type(env, match->else_body);
             type_t *merged = type_or_type(overall_t, else_t);
             if (!merged)
-                code_err(when->else_body, "I was expecting this block to have a ", type_to_text(overall_t),
+                code_err(match->else_body, "I was expecting this block to have a ", type_to_text(overall_t),
                          " value (based on earlier clauses), but it actually has a ", type_to_text(else_t), " value.");
             return merged;
         } else {
             Text_t unhandled = EMPTY_TEXT;
-            for (match_t *m = matches; m; m = m->next) {
-                if (!m->handled)
+            for (tag_coverage_t *c = tag_coverage; c; c = c->next) {
+                if (!c->handled)
                     unhandled =
-                        unhandled.length > 0 ? Texts(unhandled, ", ", m->tag->name) : Text$from_str(m->tag->name);
+                        unhandled.length > 0 ? Texts(unhandled, ", ", c->tag->name) : Text$from_str(c->tag->name);
             }
-            if (unhandled.length > 0) code_err(ast, "This 'when' statement doesn't handle the tags: ", unhandled);
+            if (unhandled.length > 0) code_err(ast, "This 'match' statement doesn't handle the tags: ", unhandled);
             return overall_t;
         }
     }

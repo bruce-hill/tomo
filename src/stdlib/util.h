@@ -18,7 +18,7 @@
         &var;                                                                                                          \
     })
 
-#define WHEN(type, subj, var, body)                                                                                    \
+#define MATCH(type, subj, var, body)                                                                                   \
     {                                                                                                                  \
         type var = subj;                                                                                               \
         switch (var.$tag)                                                                                              \

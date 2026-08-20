@@ -209,7 +209,7 @@ ast_t *parse_extended_expr(parse_ctx_t *ctx, const char *pos) {
     ast_t *expr = NULL;
 
     if (false || (expr = optional(ctx, &pos, parse_for)) || (expr = optional(ctx, &pos, parse_while))
-        || (expr = optional(ctx, &pos, parse_if)) || (expr = optional(ctx, &pos, parse_when))
+        || (expr = optional(ctx, &pos, parse_if)) || (expr = optional(ctx, &pos, parse_match))
         || (expr = optional(ctx, &pos, parse_repeat)) || (expr = optional(ctx, &pos, parse_do)))
         return expr;
 
