@@ -194,7 +194,7 @@ env_t *global_env(bool source_mapping) {
             {"negative", "Num$negative", "func(x:Num -> Num)"}, //
             {"plus", "Num$plus", "func(x,y:Num -> Num)"}, //
             {"power", "Num$power", "func(base:Num,exponent:Num -> Num)"}, //
-            {"round", "Num$round", "func(x:Num -> Num)"}, //
+            {"round", "Num$round", "func(x:Num, increment:Num=1 -> Num)"}, //
             {"sin", "Num$sin", "func(x:Num -> Num)"}, //
             {"sinh", "Num$sinh", "func(x:Num -> Num)"}, //
             {"sqrt", "Num$sqrt", "func(x:Num -> Num?)"}, //

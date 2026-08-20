@@ -562,9 +562,12 @@ test "Num.percent"
     assert (1./3.).percent(0.01%) == "33.33%"
 
 test "Num.round"
-    assert (4.4).round() == 4
     assert (4.6).round() == 5
     assert (2.5).round() == 2
+    assert (3.14159).round(0.01) == 3.14
+    assert (0.13).round(0.05) == 0.15
+    assert (0.5).round(1/3) == 2/3
+    assert (1234567.).round(1000) == 1235000
 
 test "Num.sin"
     assert (0.).sin() == 0

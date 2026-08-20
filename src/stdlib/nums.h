@@ -77,7 +77,7 @@ Num_t Num$exp(Num_t x);
 // on one side of the boundary, which no symbolic form ever hits).
 Num_t Num$floor(Num_t x);
 Num_t Num$ceil(Num_t x);
-Num_t Num$round(Num_t x);
+Num_t Num$round(Num_t x, Num_t increment);
 Num_t Num$trunc(Num_t x);
 
 // Methods with a restricted domain: out of domain is `none`.

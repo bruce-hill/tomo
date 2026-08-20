@@ -79,6 +79,21 @@ assert (2.).sqrt()!.symbolic() == "sqrt(2)"
 assert (1./3.).tex() == "\\frac{1}{3}"
 ```
 
+## Rounding
+
+`:floor()`, `:ceil()`, `:trunc()`, and `:round()` are exact. `:round()` takes
+an increment and gives the nearest multiple of it -- a penny, a nickel, a
+third, a thousand -- with ties going to the even multiple; the default
+increment of 1 means the nearest whole number:
+
+```tomo
+assert (2.5).round() == 2
+assert (3.14159).round(0.01) == 3.14
+assert (0.13).round(0.05) == 0.15
+assert (0.5).round(1/3) == 2/3
+assert (1234567.).round(1000) == 1235000
+```
+
 ## Errors
 
 Operators fail immediately on an undefined result, so a `Num` you are holding

@@ -614,23 +614,27 @@ assert (1./3.).percent(0.01%) == "33.33%"
 ## Num.round
 
 ```tomo
-Num.round : func(x: Num -> Num)
+Num.round : func(x: Num, increment: Num = 1 -> Num)
 ```
 
-The nearest whole number, with halves going to the even one.
+The nearest multiple of an increment, exactly: the nearest penny, nickel, third, or thousand are all one argument away, and the default increment of 1 gives the nearest whole number. Ties go to the even multiple.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 x | `Num` | The number to round.  | -
+increment | `Num` | The step to round to a multiple of. Rounding to zero is an error.  | `1`
 
-**Return:** `x` rounded.
+**Return:** `x` rounded to the nearest multiple of `increment`.
 
 
 **Example:**
 ```tomo
-assert (4.4).round() == 4
 assert (4.6).round() == 5
 assert (2.5).round() == 2
+assert (3.14159).round(0.01) == 3.14
+assert (0.13).round(0.05) == 0.15
+assert (0.5).round(1/3) == 2/3
+assert (1234567.).round(1000) == 1235000
 
 ```
 ## Num.sin

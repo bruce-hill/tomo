@@ -160,6 +160,21 @@ test "rounding"
 	assert (3.5).round() == 4
 	assert Num.PI.floor() == 3
 
+test "rounding to an increment"
+	# The nearest multiple of anything: a penny, a nickel, a third, a thousand.
+	assert (3.14159).round(0.01) == 3.14
+	assert (0.13).round(0.05) == 0.15
+	assert (0.5).round(1/3) == 2/3
+	assert (1234567.).round(1000) == 1235000
+	assert Num.PI.round(0.001) == 3.142
+	assert (-3.14159).round(0.01) == -3.14
+	# Ties go to the even multiple, same as the integer default:
+	assert (0.125).round(0.05) == 0.1
+
+test "rounding to a zero increment panics"
+	_ := (1.5).round(0.)
+fails "Can't round to the nearest zero"
+
 test "comparisons"
 	assert 0.1 + 0.2 <= 0.3
 	assert 0.1 + 0.2 >= 0.3

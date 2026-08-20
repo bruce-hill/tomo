@@ -87,8 +87,24 @@ UNARY(exp, number_exp)
 
 UNARY_ROUNDING(floor, number_floor)
 UNARY_ROUNDING(ceil, number_ceil)
-UNARY_ROUNDING(round, number_round)
 UNARY_ROUNDING(trunc, number_trunc)
+
+// Rounding to the nearest multiple of an arbitrary increment, exactly:
+// x.round(0.01) is the nearest penny, x.round(1/3) the nearest third,
+// x.round(1000) the nearest thousand, and the default increment of 1 is the
+// nearest integer. Ties go to the even multiple, and the undecidable-boundary
+// case falls back the same way the other roundings do (see UNARY_ROUNDING).
+public
+Num_t Num$round(Num_t x, Num_t increment) {
+    if (unlikely(number_is_zero(increment))) fail("Can't round to the nearest zero");
+    Num_t q = number_div(x, increment);
+    Num_t nearest = number_round(q);
+    if (unlikely(NUMBER_IS_ERROR(nearest))) {
+        nearest = number_round(rounded_for_equality(q));
+        if (unlikely(NUMBER_IS_ERROR(nearest))) Num$arithmetic_error(nearest);
+    }
+    return number_mul(nearest, increment);
+}
 
 // --- Methods with a restricted domain (out of domain is `none`) ---
 
@@ -217,9 +233,7 @@ Text_t Num$percent(Num_t n, Num_t precision) {
     if (unlikely(number_is_zero(precision))) fail("Percentage precision can't be zero");
     // Round to the nearest multiple of `precision`, then render the result as
     // a percentage: exact input in, exact percentage out.
-    Num_t scaled = number_div(n, precision);
-    Num_t rounded = number_mul(Num$round(scaled), precision);
-    Num_t percent = number_mul(rounded, number_from_int(100));
+    Num_t percent = number_mul(Num$round(n, precision), number_from_int(100));
     return Texts(Num$value_as_text(percent), Text("%"));
 }
 
