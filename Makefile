@@ -508,6 +508,58 @@ man/man1/tomo.1: docs/tomo.1.md
 examples:
 	./local-tomo examples/learnxiny.tm
 
+# --- Cross-language benchmarks (benchmarks/) ------------------------------
+# `make benchmarks` re-times every language, re-measures static binary sizes,
+# and re-renders every graph (results*.png/svg + sizes.png/svg) from the fresh
+# numbers. The suite compiles the Tomo ports with ./local-tomo, so the
+# compiler is rebuilt first. Reference programs for the other languages are
+# downloaded into benchmarks/fetched/ (git-ignored) on first use, so that step
+# needs network access; afterwards `make benchmark-run` skips it.
+#
+# The BENCH_* knobs documented in benchmarks/README.md are forwarded when set,
+# either as environment or as make variables:
+#   make benchmarks BENCH_LANGS=tomo           # re-time Tomo only, keep the
+#                                              # other languages' stored rows
+#   make benchmarks BENCH_ARGS=1000 BENCH_REPEATS=1   # quick smoke run
+#   make benchmark-graphs                      # just re-render from the JSON
+BENCH_DIR = benchmarks
+BENCH_VARS = BENCH_LANGS BENCH_ARGS BENCH_REPEATS BENCH_CPU BENCH_BUILD_TIMEOUT \
+             BENCH_ALLOW_BATTERY ZIG
+# Only forward the ones that actually have a value: exporting e.g. BENCH_CPU=""
+# would override the driver's default with an empty string.
+BENCH_ENV = $(foreach v,$(BENCH_VARS),$(if $($(v)),$(v)='$($(v))'))
+PYTHON ?= python3
+
+benchmarks: benchmark-run benchmark-sizes benchmark-graphs
+	@printf '\033[92;7m Benchmark graphs regenerated in %s/ \033[m\n' "$(BENCH_DIR)"
+
+# Download the other languages' reference programs, once. The stamp is just
+# the fetched/ directory itself; force a re-download with `make benchmark-refetch`.
+benchmark-fetch: $(BENCH_DIR)/fetched
+$(BENCH_DIR)/fetched:
+	$(PYTHON) $(BENCH_DIR)/bench.py fetch
+
+benchmark-refetch:
+	$(PYTHON) $(BENCH_DIR)/bench.py fetch
+
+benchmark-run: build benchmark-fetch
+	$(BENCH_ENV) $(PYTHON) $(BENCH_DIR)/bench.py run
+
+benchmark-sizes: build benchmark-fetch
+	$(BENCH_ENV) $(PYTHON) $(BENCH_DIR)/bench.py sizes
+
+# Re-render the graphs from whatever results.json/sizes.json are on disk.
+benchmark-graphs:
+	$(PYTHON) $(BENCH_DIR)/plot.py
+	@if [ -f $(BENCH_DIR)/sizes.json ]; then \
+	    $(PYTHON) $(BENCH_DIR)/plot.py --sizes; \
+	else \
+	    echo "(no $(BENCH_DIR)/sizes.json yet; skipping the size graph)"; \
+	fi
+
+benchmark-list:
+	@$(PYTHON) $(BENCH_DIR)/bench.py list
+
 deps: $(VENDORED_LIBS) $(VENDOR_LICENSES)
 
 # "&:" (grouped targets) tells make that ONE invocation of this recipe produces
@@ -547,4 +599,5 @@ uninstall:
 	"$(PREFIX)/bin/tomo@$(TOMO_VERSION)" uninstall --yes
 
 .SUFFIXES:
-.PHONY: test-number all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version
+.PHONY: test-number all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version \
+	benchmarks benchmark-fetch benchmark-refetch benchmark-run benchmark-sizes benchmark-graphs benchmark-list

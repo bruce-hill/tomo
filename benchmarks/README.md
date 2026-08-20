@@ -184,6 +184,24 @@ benchmarks/
 
 ## Usage
 
+From the repository root, `make benchmarks` does the whole thing — rebuild the
+compiler, fetch anything missing, re-time every language, re-measure binary
+sizes, and re-render every graph:
+
+```sh
+make benchmarks                          # everything, end to end
+make benchmarks BENCH_LANGS=tomo         # re-time Tomo only, keep other rows
+make benchmarks BENCH_ARGS=1000 BENCH_REPEATS=1   # quick smoke run
+make benchmark-run                       # just re-time (no sizes, no graphs)
+make benchmark-sizes                     # just re-measure binary sizes
+make benchmark-graphs                    # just re-render from existing JSON
+make benchmark-list                      # benchmarks + toolchain status
+make benchmark-refetch                   # re-download reference programs
+```
+
+Every `BENCH_*` variable below works either as an environment variable or as a
+`make` variable. The underlying scripts can also be run directly:
+
 ```sh
 ./fetch.sh                 # download reference implementations for all benchmarks
 python3 bench.py list      # show benchmarks + which toolchains are installed
