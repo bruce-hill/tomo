@@ -144,6 +144,26 @@ write("Hello\n".utf8())!
 write("world\n".utf8(), close=yes)!
 
 ```
+## Path.bytes
+
+```tomo
+Path.bytes : func(path: Path -> [Byte])
+```
+
+Convert a path to a list of the raw bytes that make up its text representation. This does not read the file at the given path; see `Path.read_bytes` for that.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path.  | -
+
+**Return:** A list of bytes (`[Byte]`) representing the path's text.
+
+
+**Example:**
+```tomo
+assert (/foo/bar).bytes() == [47, 102, 111, 111, 47, 98, 97, 114]
+
+```
 ## Path.can_execute
 
 ```tomo

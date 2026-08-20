@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH CString.bytes 3 2026-08-20 "Tomo man-pages"
+.SH NAME
+CString.bytes \- get the raw bytes
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI CString.bytes\ :\ func(str:\ CString\ ->\ [Byte])
+.fi
+.SH DESCRIPTION
+Convert a C string to a list of its raw bytes.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+str	CString	The C string. 
+.TE
+.SH RETURN
+A list of bytes (`[Byte]`) representing the C string's contents.
+
+.SH EXAMPLES
+.EX
+assert CString("Hi").bytes() == [72, 105]
+.EE
+.SH SEE ALSO
+.BR Tomo-CString (3)

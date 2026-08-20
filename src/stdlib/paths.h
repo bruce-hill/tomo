@@ -12,6 +12,7 @@
 Path_t Path$from_str(const char *str);
 Path_t Path$from_text(Text_t text);
 const char *Path$as_c_string(Path_t path);
+List_t Path$bytes(Path_t path);
 #define Path(str) Path$from_str(str)
 Path_t Path$_concat(int n, Path_t items[n]);
 #define Path$concat(...) Path$_concat((int)sizeof((Path_t[]){__VA_ARGS__}) / sizeof(Path_t), ((Path_t[]){__VA_ARGS__}))

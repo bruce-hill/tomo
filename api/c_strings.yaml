@@ -14,6 +14,22 @@ CString.as_text:
   example: |
     assert CString("Hello").as_text() == "Hello"
 
+CString.bytes:
+  short: get the raw bytes
+  description: >
+    Convert a C string to a list of its raw bytes.
+  return:
+    type: '[Byte]'
+    description: >
+      A list of bytes (`[Byte]`) representing the C string's contents.
+  args:
+    str:
+      type: 'CString'
+      description: >
+        The C string.
+  example: |
+    assert CString("Hi").bytes() == [72, 105]
+
 CString.join:
   short: join a list of C strings
   description: >

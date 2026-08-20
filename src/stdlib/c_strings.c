@@ -9,6 +9,7 @@
 
 #include "fail.h"
 #include "integers.h"
+#include "lists.h"
 #include "siphash.h"
 #include "stdlib.h"
 #include "text.h"
@@ -45,6 +46,15 @@ PUREFUNC public uint64_t CString$hash(const void *c_str, const TypeInfo_t *info)
 PUREFUNC public bool CString$is_none(const void *c_str, const TypeInfo_t *info) {
     (void)info;
     return *(const char **)c_str == NULL;
+}
+
+public
+List_t CString$bytes(const char *str) {
+    if (!str || str[0] == '\0') return EMPTY_ATOMIC_LIST;
+    size_t len = strlen(str);
+    uint8_t *buf = GC_MALLOC_ATOMIC(sizeof(uint8_t[len]));
+    memcpy(buf, str, len);
+    return (List_t){.data = buf, .length = (uint64_t)len, .stride = 1, .atomic = 1};
 }
 
 public

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.bytes 3 2026-08-20 "Tomo man-pages"
+.SH NAME
+Path.bytes \- get the raw bytes of a path
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.bytes\ :\ func(path:\ Path\ ->\ [Byte])
+.fi
+.SH DESCRIPTION
+Convert a path to a list of the raw bytes that make up its text representation. This does not read the file at the given path; see `Path.read_bytes` for that.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+path	Path	The path. 
+.TE
+.SH RETURN
+A list of bytes (`[Byte]`) representing the path's text.
+
+.SH EXAMPLES
+.EX
+assert (/foo/bar).bytes() == [47, 102, 111, 111, 47, 98, 97, 114]
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

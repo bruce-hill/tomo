@@ -23,6 +23,26 @@ str | `CString` | The C string.  | -
 assert CString("Hello").as_text() == "Hello"
 
 ```
+## CString.bytes
+
+```tomo
+CString.bytes : func(str: CString -> [Byte])
+```
+
+Convert a C string to a list of its raw bytes.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+str | `CString` | The C string.  | -
+
+**Return:** A list of bytes (`[Byte]`) representing the C string's contents.
+
+
+**Example:**
+```tomo
+assert CString("Hi").bytes() == [72, 105]
+
+```
 ## CString.join
 
 ```tomo

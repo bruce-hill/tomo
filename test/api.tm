@@ -48,6 +48,9 @@ test "Byte.to"
 test "CString.as_text"
     assert CString("Hello").as_text() == "Hello"
 
+test "CString.bytes"
+    assert CString("Hi").bytes() == [72, 105]
+
 test "CString.join"
     assert CString(",").join([CString("a"), CString("b")]) == CString("a,b")
 
@@ -481,6 +484,10 @@ test "Path.byte_writer"
         write := (./file.txt).byte_writer()
         write("Hello\n".utf8())!
         write("world\n".utf8(), close=yes)!
+
+test "Path.bytes"
+    if no
+        assert (/foo/bar).bytes() == [47, 102, 111, 111, 47, 98, 97, 114]
 
 test "Path.can_execute"
     if no

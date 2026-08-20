@@ -389,6 +389,26 @@ str | `CString` | The C string.  | -
 assert CString("Hello").as_text() == "Hello"
 
 ```
+## CString.bytes
+
+```tomo
+CString.bytes : func(str: CString -> [Byte])
+```
+
+Convert a C string to a list of its raw bytes.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+str | `CString` | The C string.  | -
+
+**Return:** A list of bytes (`[Byte]`) representing the C string's contents.
+
+
+**Example:**
+```tomo
+assert CString("Hi").bytes() == [72, 105]
+
+```
 ## CString.join
 
 ```tomo
@@ -2712,6 +2732,26 @@ permissions | `Int32` | The permissions to set on the file if it is created.  | 
 write := (./file.txt).byte_writer()
 write("Hello\n".utf8())!
 write("world\n".utf8(), close=yes)!
+
+```
+## Path.bytes
+
+```tomo
+Path.bytes : func(path: Path -> [Byte])
+```
+
+Convert a path to a list of the raw bytes that make up its text representation. This does not read the file at the given path; see `Path.read_bytes` for that.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path.  | -
+
+**Return:** A list of bytes (`[Byte]`) representing the path's text.
+
+
+**Example:**
+```tomo
+assert (/foo/bar).bytes() == [47, 102, 111, 111, 47, 98, 97, 114]
 
 ```
 ## Path.can_execute

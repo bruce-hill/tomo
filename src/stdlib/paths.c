@@ -1026,6 +1026,11 @@ const char *Path$as_c_string(Path_t path) {
 }
 
 public
+List_t Path$bytes(Path_t path) {
+    return CString$bytes(path);
+}
+
+public
 Text_t Path$as_text(const void *obj, bool color, const TypeInfo_t *type) {
     (void)type;
     if (!obj) return Text("Path");

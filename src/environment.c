@@ -302,6 +302,7 @@ env_t *global_env(bool source_mapping) {
         MAKE_TYPE( //
             "CString", Type(CStringType), Text("char*"), Text("CString$info"), //
             {"as_text", "Text$from_str", "func(str:CString -> Text)"},
+            {"bytes", "CString$bytes", "func(str:CString -> [Byte])"},
             {"join", "CString$join", "func(glue:CString, pieces:[CString] -> CString)"}),
 #undef F2
 #undef F_opt
@@ -314,6 +315,7 @@ env_t *global_env(bool source_mapping) {
             {"append_bytes", "Path$append_bytes",
              "func(path:Path, bytes:[Byte], permissions=Int32(0o644) -> Result)"}, //
             {"base_name", "Path$base_name", "func(path:Path -> Text)"}, //
+            {"bytes", "Path$bytes", "func(path:Path -> [Byte])"}, //
             {"by_line", "Path$by_line", "func(path:Path -> func(->Text?)?)"}, //
             {"can_execute", "Path$can_execute", "func(path:Path -> Bool)"}, //
             {"can_read", "Path$can_read", "func(path:Path -> Bool)"}, //

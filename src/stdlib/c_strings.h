@@ -5,10 +5,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "datatypes.h"
 #include "types.h"
 #include "util.h"
 
 Text_t CString$as_text(const char **str, bool colorize, const TypeInfo_t *info);
+List_t CString$bytes(const char *str);
 PUREFUNC int CString$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool CString$equal(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC uint64_t CString$hash(const void *str, const TypeInfo_t *type);
