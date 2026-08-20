@@ -264,8 +264,15 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
                      type_to_text(rhs_t), " values");
     }
     case FloorDivide: {
-        code_err(ast, "Floored division (`//`) is only supported for integer and Num values, not ",
-                 type_to_text(overall_t));
+        // Integer and Num floor division is Euclidean and was handled above
+        // (the checked-divmod path and the floor_divided_by metamethods); for
+        // hardware floats `//` is plain floor(x/y), keeping the whole
+        // operation in floating point.
+        if (overall_t->tag != FloatType)
+            code_err(ast, "Floored division (`//`) is only supported for numeric values, not ",
+                     type_to_text(overall_t));
+        if (Match(overall_t, FloatType)->bits == TYPE_NBITS32) return Texts("floorf(", lhs, " / ", rhs, ")");
+        return Texts("floor(", lhs, " / ", rhs, ")");
     }
     case Compare: {
         return Texts("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(overall_t), ")");

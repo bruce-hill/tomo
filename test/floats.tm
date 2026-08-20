@@ -13,6 +13,16 @@ test "float literals are inexact"
 	assert Float64(0.1) + Float64(0.2) != Float64(0.3)
 	assert (Float64(0.1) + Float64(0.2)).near(0.3)
 
+test "floored division"
+	# `/` is ordinary float division; `//` is floor(x/y) -- plain floor, not
+	# the Euclidean quotient the integer types and Num use, so for a negative
+	# divisor it rounds down rather than keeping the remainder non-negative.
+	assert Float64(7.5) / Float64(2) == 3.75
+	assert Float64(7.5) // Float64(2) == 3.
+	assert Float64(-7.5) // Float64(2) == -4.
+	assert Float64(7.5) // Float64(-2) == -4.
+	assert Float32(7.5) // Float32(2) == Float32(3)
+
 test "constants"
 	>> Float64.PI
 	>> Float64.PI.with_precision(0.01)
