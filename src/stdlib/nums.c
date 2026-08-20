@@ -343,13 +343,21 @@ PUREFUNC bool Num$is_none(const void *n, const TypeInfo_t *info) {
     return ((Num_t *)n)->bits == NONE_NUM.bits;
 }
 
-// Serialized as the exact symbolic form -- the one representation that
-// round-trips every tier, irrationals included. A binary encoding of the
-// tagged word wouldn't: the heap tiers are pointers, and a decimal expansion
-// would be a lie for anything without a finite one.
+// Serialized as exact text -- an integer or a fraction -- rather than a binary
+// encoding of the tagged word, whose heap tiers are pointers. A decimal
+// expansion won't do either: it doesn't terminate for most fractions.
+//
+// Irrationals are refused rather than approximated. Their exact form is a
+// symbolic expression ("sqrt(2)", "1 + pi"), and reading one back would take
+// an expression parser this type doesn't have; writing an approximation
+// instead would quietly turn an exact value into a wrong one, which is the
+// failure mode Num exists to prevent.
 static void Num$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
     (void)pointers, (void)info;
-    const char *symbolic = number_to_symbolic(*(Num_t *)obj);
+    Num_t n = *(Num_t *)obj;
+    if (unlikely(!number_is_rational(n)))
+        fail("This Num can't be serialized, because it's irrational: ", number_to_symbolic(n));
+    const char *symbolic = number_to_symbolic(n);
     size_t len = strlen(symbolic);
     Int64$serialize(&(int64_t){(int64_t)len}, out, pointers, &Int64$info);
     fwrite(symbolic, 1, len, out);

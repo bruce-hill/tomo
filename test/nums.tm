@@ -162,6 +162,12 @@ test "converting a fraction to a Float64 without truncating panics"
 	_ := Float64(1./3., truncate=no)
 fails "Could not convert this Num to a Float64 without losing precision"
 
+test "serialization round-trips exact rationals"
+	>> obj := [0.5, 1./3., 0.1 + 0.2, (2.).power(100), -7./2., 0.]
+	>> bytes : [Byte] = obj
+	>> roundtrip : [Num] = bytes
+	assert roundtrip == obj
+
 test "dividing by zero panics"
 	_ := 1.0 / 0.0
 fails "division by zero"
@@ -169,6 +175,14 @@ fails "division by zero"
 test "the modulo of zero panics"
 	_ := 1.0 mod 0.0
 fails "division by zero"
+
+test "serializing an irrational panics"
+	# Reading one back would need an expression parser; approximating it
+	# would quietly turn an exact value into a wrong one.
+	x := (2.).sqrt()!
+	bytes : [Byte] = x
+	say("$(bytes)")
+fails "can't be serialized, because it's irrational"
 
 test "force-unwrapping the square root of a negative panics"
 	_ := (-1.).sqrt()!
