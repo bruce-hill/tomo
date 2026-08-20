@@ -45,7 +45,7 @@ static Text_t index_counter_step(Text_t index) {
 // that the body provably contains none of those operations. We establish that
 // with a strict whitelist scan: the body may contain only scalar-typed
 // declarations/assignments/updates, reads and writes of list elements whose
-// items are scalar-typed, arithmetic/comparison operators, if/skip/stop/pass,
+// items are scalar-typed, arithmetic/comparison operators, if/continue/break/pass,
 // and nested loops over integer ranges. Any function call, method call,
 // lambda, return (deferred blocks could run arbitrary code), list-typed
 // value, iteration over a container, comprehension, or anything else not
@@ -689,7 +689,7 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
     }
 
     env_t *body_scope = for_scope(env, ast);
-    // `skip`/`stop` can target any loop variable by name, including the `at` counter:
+    // `continue`/`break` can target any loop variable by name, including the `at` counter:
     ast_list_t *ctx_vars = for_->at ? new (ast_list_t, .ast = for_->at, .next = for_->vars) : for_->vars;
     loop_ctx_t loop_ctx = (loop_ctx_t){
         .loop_name = "for",

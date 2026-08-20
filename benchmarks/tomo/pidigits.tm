@@ -39,10 +39,10 @@ func main(n:Int64)
         den = den * k2
         num = num * k
         if num > acc
-            skip
+            continue
         d := extract_digit(num, acc, den, 3)
         if d != extract_digit(num, acc, den, 4)
-            skip
+            continue
 
         col += 1
         row[col] = Byte(48 + d)

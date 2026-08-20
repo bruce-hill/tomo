@@ -1596,7 +1596,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
                 }
             }
             // HACK: `while when ...` is handled by the parser adding an implicit
-            // `else: stop`, which has an empty source code span.
+            // `else: break`, which has an empty source code span.
             if (!any_unhandled && when->else_body->end > when->else_body->start)
                 code_err(when->else_body, "This 'else' block will never run because every tag is handled");
 

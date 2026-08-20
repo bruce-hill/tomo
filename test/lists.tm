@@ -122,14 +122,14 @@ test "heap operations"
 	>> heap
 	heap_order : @[Int]
 	repeat
-		heap_order.insert(heap.heap_pop() or stop)
+		heap_order.insert(heap.heap_pop() or break)
 	assert heap_order[] == heap_order.sorted()
 	heap_order[] = []
 	for i in 10
 		heap.heap_push((i*13337) mod 37)
 	>> heap
 	repeat
-		heap_order.insert(heap.heap_pop() or stop)
+		heap_order.insert(heap.heap_pop() or break)
 	assert heap_order[] == heap_order.sorted()
 
 test "slicing with from, to, and by"
@@ -263,13 +263,13 @@ test "in-place iteration preserves snapshots taken before the loop"
 	assert xs[] == [10, 20, 30]
 	assert snapshot == [1, 2, 3]
 
-test "in-place iteration supports skip and stop"
+test "in-place iteration supports continue and break"
 	xs := @[1, 2, 3, 4, 5]
 	for &x at i in xs
 		if i == 2
-			skip
+			continue
 		if i == 4
-			stop
+			break
 		x[] += 100
 	assert xs[] == [101, 2, 103, 4, 5]
 
@@ -319,13 +319,13 @@ test "a copy made during the FINAL iteration of a 'for &' loop still fails"
 		x[] += 100
 fails "A copy of the list was made while a 'for &' loop"
 
-test "a copy made before a 'stop' exit of a 'for &' loop still fails"
+test "a copy made before a 'break' exit of a 'for &' loop still fails"
 	xs := @[1, 2, 3, 4]
 	ref_loop_alias = xs
 	for &x at i in xs
 		if i == 2
 			_ := copy_ref_loop_alias()
-			stop
+			break
 		x[] += 10
 fails "A copy of the list was made while a 'for &' loop"
 

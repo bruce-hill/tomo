@@ -85,7 +85,7 @@ doop(none)
 
 In addition to using conditionals to check for `none`, you can also use `or` to
 get a non-none value by either providing an alternative non-none value or by
-providing an early out statement like `return`/`skip`/`stop` or a function with
+providing an early out statement like `return`/`continue`/`break` or a function with
 an `Abort` type like `fail()` or `exit()`:
 
 ```tomo
@@ -102,8 +102,8 @@ func do_stuff(matches:[Text])
     pass
 
 for line in lines
-    matches := line.matches($/{..},{..}/) or skip
-    # The `or skip` above means that if we're here, `matches` is non-none:
+    matches := line.matches($/{..},{..}/) or continue
+    # The `or continue` above means that if we're here, `matches` is non-none:
     do_stuff(matches)
 ```
 

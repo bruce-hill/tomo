@@ -334,12 +334,12 @@ test "concatenating text with a non-text value is rejected"
 	x := "hello" ++ 5
 fails_compile "I don't know how to do operations between Text and Int"
 
-test "skip and stop work in text loops"
+test "continue and break work in text loops"
 	out := ""
 	for c in "abcd"
 		if c == "b"
-			skip
+			continue
 		if c == "d"
-			stop
+			break
 		out ++= c
 	assert out == "ac"

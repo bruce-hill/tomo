@@ -63,7 +63,7 @@ test "integer-count loops can have an Int64 index"
         _ : Int = x
         big_hits += 1
         if big_hits == 3
-            stop
+            break
     assert big_hits == 3
 
 test "ranges and iterator functions can have an Int64 index"
@@ -79,7 +79,7 @@ test "ranges and iterator functions can have an Int64 index"
     for x at i in Int(100).onward()
         total += x
         if i == Int64(3)
-            stop
+            break
     assert total == 100 + 101 + 102
     # `for x at i in iterfn`
     got := ""
@@ -182,13 +182,13 @@ test "multi-value iterators yield through & out-parameters"
     # comprehensions and reducers
     assert [a*10 + b for a, b in int_pairs(xs)] == [12, 13, 14, 23, 24, 34]
     assert (+: a*b for a, b in int_pairs(xs) if a != 1)! == 6 + 8 + 12
-    # skip and stop
+    # continue and break
     got4 := ""
     for a, b at i in int_pairs(xs)
         if i == 2
-            skip
+            continue
         if i == 4
-            stop
+            break
         got4 ++= "$(a)$(b) "
     assert got4 == "12 14 "
     # else clause runs when the iterator yields nothing
@@ -248,15 +248,15 @@ test "lockstep iterables are evaluated left to right, exactly once"
         pass
     assert order[] == ["first", "second"]
 
-test "lockstep loops support skip, stop, and else"
+test "lockstep loops support continue, break, and else"
     xs := [10, 20, 30]
     ys := ["a", "b", "c"]
     got := ""
     for x, y at i in xs, ys
         if i == 1
-            skip
+            continue
         if i == 3
-            stop
+            break
         got ++= "$(x)$(y)"
     assert got == "20b"
     ran_else := no

@@ -15,7 +15,7 @@
 static const char *keywords[] = {
     "C_code", "_embed_", "_max_", "_min_",  "and",  "assert", "break", "continue", "defer", "do",  "else", "enum",
     "for",    "func",    "if",    "in",     "mod",  "mod1",   "no",    "none",     "not",   "or",  "pass", "return",
-    "skip",   "skip",    "stop",  "struct", "then", "unless", "use",   "when",     "while", "xor", "yes",
+    "struct", "then",    "unless", "use",   "when", "while",  "xor",   "yes",
 };
 
 CONSTFUNC bool is_keyword(const char *word) {

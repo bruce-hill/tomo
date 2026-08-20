@@ -68,7 +68,7 @@ test "repeat when over a list"
 	repeat when cases[i]! is One{x}
 		>> x
 		i += 1
-	else stop
+	else break
 
 test "when in a comprehension"
 	assert [

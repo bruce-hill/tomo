@@ -21,10 +21,10 @@ test "defer in loops"
 
         if word == "second"
             say("<skipped>")
-            skip
+            continue
         else if word == "third"
             say("<stopped>")
-            stop
+            break
 
         for i in 3
             defer
@@ -32,10 +32,10 @@ test "defer in loops"
 
             if i == 2
                 say("<skipped inner>")
-                skip
+                continue
             else if i == 3
                 say("<stopped inner>")
-                stop
+                break
 
             say("Made it through inner loop")
 

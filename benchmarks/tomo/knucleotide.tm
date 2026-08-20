@@ -35,7 +35,7 @@ func nucleotide_for_code(code:Int64 -> Text)
 func pct3(x:Num -> Text)
     return C_code:Text`({ char buf[32]; snprintf(buf, sizeof(buf), "%.3f", @x); Text$from_str(buf); })`
 
-# Read all of stdin, then collect the codes of the ">THREE" sequence: skip to
+# Read all of stdin, then collect the codes of the ">THREE" sequence: continue to
 # just past that header line, then map every non-newline byte until the next
 # header (or EOF) to its 2-bit code.
 func read_third_sequence(-> [Byte])
@@ -53,7 +53,7 @@ func read_third_sequence(-> [Byte])
                 while j <= n and Int64(data[j]!) != 10
                     j += 1
                 start = j + 1
-                stop
+                break
         i += 1
 
     if start == 0

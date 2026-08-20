@@ -95,7 +95,7 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
         for f in freqs # linear search over cumulative probabilities
             if r < f.cutoff
                 b = f.code
-                stop
+                break
         p += 1
         buf[p] = b
         col += 1

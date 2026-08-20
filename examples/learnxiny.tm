@@ -81,21 +81,19 @@ func main()
     assert [x*10 for x in my_numbers] == [100, 200, 300]
     assert [x*10 for x in my_numbers if x != 20] == [100, 300]
 
-    # Loop control flow uses "skip"/"continue" and "stop"/"break"
+    # Loop control flow uses "continue" and "break"
     for x in my_numbers
         for y in my_numbers
             if x == y
-                skip
-                continue # This is the same as `skip`
+                continue
 
             # For readability, you can also use postfix conditionals:
-            skip if x == y
+            continue if x == y
 
             if x + y == 60
-                # Skip or stop can specify a loop variable if you want to
+                # Continue or break can specify a loop variable if you want to
                 # affect an enclosing loop:
-                stop x
-                break x # This is the same as `stop x`
+                break x
 
     # Tables are efficient hash maps
     table := {"one": 1, "two": 2}

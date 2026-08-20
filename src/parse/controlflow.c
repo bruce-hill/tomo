@@ -105,11 +105,9 @@ ast_t *parse_defer(parse_ctx_t *ctx, const char *pos) {
 
 ast_t *parse_skip(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    const char *keyword = "skip";
+    const char *keyword = "continue";
     if (match_word(&pos, "continue")) {
         keyword = "continue";
-    } else if (match_word(&pos, "skip")) {
-        keyword = "skip";
     } else {
         return NULL;
     }
@@ -124,10 +122,8 @@ ast_t *parse_skip(parse_ctx_t *ctx, const char *pos) {
 
 ast_t *parse_stop(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    const char *keyword = "stop";
-    if (match_word(&pos, "stop")) {
-        keyword = "stop";
-    } else if (match_word(&pos, "break")) {
+    const char *keyword = "break";
+    if (match_word(&pos, "break")) {
         keyword = "break";
     } else {
         return NULL;

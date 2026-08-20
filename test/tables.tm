@@ -159,13 +159,13 @@ test "table values must match the declared type"
 	t : {Text:Int} = {"a": "b"}
 fails_compile "I expected a Int here, but this is a Text"
 
-test "skip and stop work in table loops"
+test "continue and break work in table loops"
 	t := {"a": 1, "b": 2, "c": 3}
 	n := 0
 	for k, v in t.entries()
 		if k == "a"
-			skip
+			continue
 		n += v
 		if n >= 5
-			stop
+			break
 	assert n == 5

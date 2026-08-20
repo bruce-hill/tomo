@@ -67,7 +67,7 @@ func fannkuchredux(n:Int64 -> Int64)
                     pp[p0+1] = p0
                     p0 = t
                     if pp[p0+1]! == 0
-                        stop
+                        break
             if flips > max_flips
                 max_flips = flips
             if sign
@@ -77,7 +77,7 @@ func fannkuchredux(n:Int64 -> Int64)
 
         idx += 1
         if idx == total
-            stop
+            break
 
         # Advance to the next permutation:
         if sign
@@ -88,7 +88,7 @@ func fannkuchredux(n:Int64 -> Int64)
             repeat
                 count[k] = count[k]! + 1
                 if count[k]! < k
-                    stop
+                    break
                 count[k] = 0
                 # Rotate the prefix [1 .. k+1] left by one:
                 for j in Int64(1).to(k)

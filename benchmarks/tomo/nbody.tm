@@ -51,7 +51,7 @@ func advance(bodies:&[Body], steps:Int64, dt:Num)
         # mid-loop is (loudly) disallowed.
         for &bi at i in bodies
             if i == n
-                stop
+                break
             # Hoist body i's fields into locals; accumulate velocity locally.
             pos_i := bi.pos
             mass_i := bi.mass

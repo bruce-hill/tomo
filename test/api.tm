@@ -92,7 +92,7 @@ test "Int.onward"
     nums : &[Int] = &[]
     for i in 5.onward()
         nums.insert(i)
-        stop if i == 10
+        break if i == 10
     assert nums[] == [5, 6, 7, 8, 9, 10]
 
 test "Int.parse"
