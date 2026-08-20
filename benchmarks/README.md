@@ -17,6 +17,14 @@ everything locally and regenerates these PNGs.
 
 ![Tomo vs. other languages across nine benchmarks](results.png)
 
+Where a handful of entries are far slower than the rest of the field, the
+panel's x-axis is **broken**: the pack keeps a linear scale and the runaways
+are compressed into a band at the right, marked with a zigzag on the axis and
+on each bar that crosses it. Without it, Python's 182s on spectral-norm would
+squash the other eleven languages into slivers. Every bar keeps its real time
+and slowdown as a label, and where to break is picked from the data (`break_at`
+in `plot.py`), not hardcoded per benchmark.
+
 With the field now up to ~17 languages across all nine of the CLBG's
 library-free benchmarks, the useful summary is that **Tomo sits inside the
 compiled-language cluster and beats every scripting language on every single
@@ -103,9 +111,8 @@ what `memchr` computes), instead of a scalar per-element loop. Measured on a
 .find(...)` calls — the same technique Go and C# use, expressed in pure Tomo
 with no inline C — brought it to **0.25s, closing most of that gap: clearly
 ahead of Java and Python, and within striking distance of C#/Swift**.
-`List.find`'s
-new memchr fast path is a general win too, not specific to this benchmark:
-it speeds up any byte/int8-list search in any Tomo program.
+`List.find`'s new memchr fast path is a general win too, not specific to this
+benchmark: it speeds up any byte/int8-list search in any Tomo program.
 
 We tried one more restructuring first that *didn't* pan out, worth recording
 honestly: mimicking Go's exact technique of transforming line-by-line into a
