@@ -6,6 +6,7 @@
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
+#include "../stdlib/number.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"
@@ -52,6 +53,13 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
     if (target->tag == ByteType) {
         if (mpz_cmp_si(i, UINT8_MAX) <= 0 && mpz_cmp_si(i, 0) >= 0) return Texts("(Byte_t)(", c_literal, ")");
         code_err(ast, "This integer cannot fit in a byte");
+    } else if (target->tag == NumType) {
+        // An integer is always an exact Num, so this only ever loses the
+        // literal's base: `0xFF` becomes 255. Big ones fall back to a runtime
+        // constructor, since only the immediate tier is a C constant.
+        char *decimal = mpz_get_str(NULL, 10, i);
+        return compile_num_value(number_from_decimal(decimal),
+                                 Texts("number_from_decimal(\"", decimal, "\")"));
     } else if (target->tag == FloatType) {
         if (Match(target, FloatType)->bits == TYPE_NBITS64) {
             return Texts("N64(", c_literal, ")");

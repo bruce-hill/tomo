@@ -39,6 +39,10 @@ Text_t compile_assertion(env_t *env, ast_t *ast) {
             operand_t = rhs_t;
         } else if (cmp.rhs->tag == Int && is_numeric_type(lhs_t)) {
             operand_t = lhs_t;
+        } else if (cmp.lhs->tag == Num && is_numeric_type(non_optional(rhs_t))) {
+            operand_t = rhs_t;
+        } else if (cmp.rhs->tag == Num && is_numeric_type(non_optional(lhs_t))) {
+            operand_t = lhs_t;
         } else if (can_compile_to_type(with_enum_scope(env, lhs_t), cmp.rhs, lhs_t)) {
             operand_t = lhs_t;
         } else if (can_compile_to_type(env, cmp.lhs, rhs_t)) {

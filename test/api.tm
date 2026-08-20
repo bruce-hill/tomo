@@ -55,117 +55,117 @@ test "CString.join"
     assert CString(",").join([CString("a"), CString("b")]) == CString("a,b")
 
 test "Float64.abs"
-    assert (-3.5).abs() == 3.5
+    assert Float64(-3.5).abs() == 3.5
 
 test "Float64.acos"
-    assert (0.0).acos().near(1.5707963267948966)
+    assert Float64(0.0).acos().near(1.5707963267948966)
 
 test "Float64.acosh"
-    assert (1.0).acosh() == 0
+    assert Float64(1.0).acosh() == 0
 
 test "Float64.asin"
-    assert (0.5).asin().near(0.5235987755982989)
+    assert Float64(0.5).asin().near(0.5235987755982989)
 
 test "Float64.asinh"
-    assert (0.0).asinh() == 0
+    assert Float64(0.0).asinh() == 0
 
 test "Float64.atan"
-    assert (1.0).atan().near(0.7853981633974483)
+    assert Float64(1.0).atan().near(0.7853981633974483)
 
 test "Float64.atan2"
     assert Float64.atan2(1, 1).near(0.7853981633974483)
 
 test "Float64.atanh"
-    assert (0.5).atanh().near(0.5493061443340549)
+    assert Float64(0.5).atanh().near(0.5493061443340549)
 
 test "Float64.cbrt"
-    assert (27.0).cbrt() == 3
+    assert Float64(27.0).cbrt() == 3
 
 test "Float64.ceil"
-    assert (3.2).ceil() == 4
+    assert Float64(3.2).ceil() == 4
 
 test "Float64.clamped"
-    assert (2.5).clamped(5.5, 10.5) == 5.5
+    assert Float64(2.5).clamped(5.5, 10.5) == 5.5
 
 test "Float64.copysign"
-    assert (3.0).copysign(-1) == -3
+    assert Float64(3.0).copysign(-1) == -3
 
 test "Float64.cos"
-    assert (0.0).cos() == 1
+    assert Float64(0.0).cos() == 1
 
 test "Float64.cosh"
-    assert (0.0).cosh() == 1
+    assert Float64(0.0).cosh() == 1
 
 test "Float64.erf"
-    assert (0.0).erf() == 0
+    assert Float64(0.0).erf() == 0
 
 test "Float64.erfc"
-    assert (0.0).erfc() == 1
+    assert Float64(0.0).erfc() == 1
 
 test "Float64.exp"
-    assert (1.0).exp().near(2.718281828459045)
+    assert Float64(1.0).exp().near(2.718281828459045)
 
 test "Float64.exp2"
-    assert (3.0).exp2() == 8
+    assert Float64(3.0).exp2() == 8
 
 test "Float64.expm1"
-    assert (1.0).expm1().near(1.7182818284590453)
+    assert Float64(1.0).expm1().near(1.7182818284590453)
 
 test "Float64.fdim"
-    assert (5.0).fdim(3) == 2
+    assert Float64(5.0).fdim(3) == 2
 
 test "Float64.floor"
-    assert (3.7).floor() == 3
+    assert Float64(3.7).floor() == 3
 
 test "Float64.hypot"
     assert Float64.hypot(3, 4) == 5
 
 test "Float64.is_between"
-    assert (7.5).is_between(1, 10)
-    assert (7.5).is_between(10, 1)
-    assert not (7.5).is_between(100, 200)
-    assert (7.5).is_between(1, 7.5)
+    assert Float64(7.5).is_between(1, 10)
+    assert Float64(7.5).is_between(10, 1)
+    assert not Float64(7.5).is_between(100, 200)
+    assert Float64(7.5).is_between(1, 7.5)
 
 test "Float64.isfinite"
-    assert (1.0).isfinite()
+    assert Float64(1.0).isfinite()
     assert not Float64.INF.isfinite()
 
 test "Float64.isinf"
     assert Float64.INF.isinf()
-    assert not (1.0).isinf()
+    assert not Float64(1.0).isinf()
 
 test "Float64.j0"
-    assert (0.0).j0() == 1
+    assert Float64(0.0).j0() == 1
 
 test "Float64.j1"
-    assert (0.0).j1() == 0
+    assert Float64(0.0).j1() == 0
 
 test "Float64.log"
     assert Float64.E.log() == 1
 
 test "Float64.log10"
-    assert (100.0).log10() == 2
+    assert Float64(100.0).log10() == 2
 
 test "Float64.log1p"
-    assert (1.0).log1p().near(0.6931471805599453)
+    assert Float64(1.0).log1p().near(0.6931471805599453)
 
 test "Float64.log2"
-    assert (8.0).log2() == 3
+    assert Float64(8.0).log2() == 3
 
 test "Float64.logb"
-    assert (8.0).logb() == 3
+    assert Float64(8.0).logb() == 3
 
 test "Float64.mix"
-    assert (0.5).mix(10, 20) == 15
-    assert (0.25).mix(10, 20) == 12.5
+    assert Float64(0.5).mix(10, 20) == 15
+    assert Float64(0.25).mix(10, 20) == 12.5
 
 test "Float64.near"
-    assert (1.0).near(1.000000001)
-    assert (100.0).near(110, ratio=0.1)
-    assert (5.0).near(5.1, min_epsilon=0.1)
+    assert Float64(1.0).near(1.000000001)
+    assert Float64(100.0).near(110, ratio=0.1)
+    assert Float64(5.0).near(5.1, min_epsilon=0.1)
 
 test "Float64.nextafter"
-    assert (1.0).nextafter(1.1) == 1.0000000000000002
+    assert Float64(1.0).nextafter(1.1) == 1.0000000000000002
 
 test "Float64.parse"
     assert Float64.parse("3.14") == 3.14
@@ -176,54 +176,54 @@ test "Float64.parse"
     assert remainder == "junk"
 
 test "Float64.percent"
-    assert (0.5).percent() == "50%"
-    assert (1./3.).percent(2) == "34%"
-    assert (1./3.).percent(precision=0.0001) == "33.3333%"
-    assert (1./3.).percent(precision=10.) == "30%"
+    assert Float64(0.5).percent() == "50%"
+    assert (Float64(1.) / Float64(3.)).percent(2) == "34%"
+    assert (Float64(1.) / Float64(3.)).percent(precision=0.0001) == "33.3333%"
+    assert (Float64(1.) / Float64(3.)).percent(precision=10.) == "30%"
 
 test "Float64.rint"
-    assert (3.5).rint() == 4
-    assert (2.5).rint() == 2
+    assert Float64(3.5).rint() == 4
+    assert Float64(2.5).rint() == 2
 
 test "Float64.round"
-    assert (2.3).round() == 2
-    assert (2.7).round() == 3
+    assert Float64(2.3).round() == 2
+    assert Float64(2.7).round() == 3
 
 test "Float64.significand"
-    assert (1234.567).significand() == 1.2056318359375
+    assert Float64(1234.567).significand() == 1.2056318359375
 
 test "Float64.sin"
-    assert (0.0).sin() == 0
+    assert Float64(0.0).sin() == 0
 
 test "Float64.sinh"
-    assert (0.0).sinh() == 0
+    assert Float64(0.0).sinh() == 0
 
 test "Float64.sqrt"
-    assert (16.0).sqrt() == 4
+    assert Float64(16.0).sqrt() == 4
 
 test "Float64.tan"
-    assert (0.0).tan() == 0
+    assert Float64(0.0).tan() == 0
 
 test "Float64.tanh"
-    assert (0.0).tanh() == 0
+    assert Float64(0.0).tanh() == 0
 
 test "Float64.tgamma"
-    assert (1.0).tgamma() == 1
+    assert Float64(1.0).tgamma() == 1
 
 test "Float64.trunc"
-    assert (3.7).trunc() == 3
-    assert (-3.7).trunc() == -3
+    assert Float64(3.7).trunc() == 3
+    assert Float64(-3.7).trunc() == -3
 
 test "Float64.with_precision"
-    assert (0.1234567).with_precision(0.01) == 0.12
-    assert (123456.).with_precision(100) == 123500
-    assert (1234567.).with_precision(5) == 1234565
+    assert Float64(0.1234567).with_precision(0.01) == 0.12
+    assert Float64(123456.).with_precision(100) == 123500
+    assert Float64(1234567.).with_precision(5) == 1234565
 
 test "Float64.y0"
-    assert (1.0).y0().near(0.08825696421567698)
+    assert Float64(1.0).y0().near(0.08825696421567698)
 
 test "Float64.y1"
-    assert (1.0).y1().near(-0.7812128213002887)
+    assert Float64(1.0).y1().near(-0.7812128213002887)
 
 test "Int.abs"
     assert (-10).abs() == 10

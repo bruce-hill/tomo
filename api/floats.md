@@ -132,7 +132,7 @@ n | `Float64` | The number whose absolute value is to be computed.  | -
 
 **Example:**
 ```tomo
-assert (-3.5).abs() == 3.5
+assert Float64(-3.5).abs() == 3.5
 
 ```
 ## Float64.acos
@@ -152,7 +152,7 @@ x | `Float64` | The number for which the arc cosine is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (0.0).acos().near(1.5707963267948966)
+assert Float64(0.0).acos().near(1.5707963267948966)
 
 ```
 ## Float64.acosh
@@ -172,7 +172,7 @@ x | `Float64` | The number for which the inverse hyperbolic cosine is to be calc
 
 **Example:**
 ```tomo
-assert (1.0).acosh() == 0
+assert Float64(1.0).acosh() == 0
 
 ```
 ## Float64.asin
@@ -192,7 +192,7 @@ x | `Float64` | The number for which the arc sine is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (0.5).asin().near(0.5235987755982989)
+assert Float64(0.5).asin().near(0.5235987755982989)
 
 ```
 ## Float64.asinh
@@ -212,7 +212,7 @@ x | `Float64` | The number for which the inverse hyperbolic sine is to be calcul
 
 **Example:**
 ```tomo
-assert (0.0).asinh() == 0
+assert Float64(0.0).asinh() == 0
 
 ```
 ## Float64.atan
@@ -232,7 +232,7 @@ x | `Float64` | The number for which the arc tangent is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).atan().near(0.7853981633974483)
+assert Float64(1.0).atan().near(0.7853981633974483)
 
 ```
 ## Float64.atan2
@@ -273,7 +273,7 @@ x | `Float64` | The number for which the inverse hyperbolic tangent is to be cal
 
 **Example:**
 ```tomo
-assert (0.5).atanh().near(0.5493061443340549)
+assert Float64(0.5).atanh().near(0.5493061443340549)
 
 ```
 ## Float64.cbrt
@@ -293,7 +293,7 @@ x | `Float64` | The number for which the cube root is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (27.0).cbrt() == 3
+assert Float64(27.0).cbrt() == 3
 
 ```
 ## Float64.ceil
@@ -313,7 +313,7 @@ x | `Float64` | The number to be rounded up.  | -
 
 **Example:**
 ```tomo
-assert (3.2).ceil() == 4
+assert Float64(3.2).ceil() == 4
 
 ```
 ## Float64.clamped
@@ -335,7 +335,7 @@ high | `Float64` | The highest value the result can take.  | -
 
 **Example:**
 ```tomo
-assert (2.5).clamped(5.5, 10.5) == 5.5
+assert Float64(2.5).clamped(5.5, 10.5) == 5.5
 
 ```
 ## Float64.copysign
@@ -356,7 +356,7 @@ y | `Float64` | The number whose sign will be copied.  | -
 
 **Example:**
 ```tomo
-assert (3.0).copysign(-1) == -3
+assert Float64(3.0).copysign(-1) == -3
 
 ```
 ## Float64.cos
@@ -376,7 +376,7 @@ x | `Float64` | The angle in radians.  | -
 
 **Example:**
 ```tomo
-assert (0.0).cos() == 1
+assert Float64(0.0).cos() == 1
 
 ```
 ## Float64.cosh
@@ -396,7 +396,7 @@ x | `Float64` | The number for which the hyperbolic cosine is to be calculated. 
 
 **Example:**
 ```tomo
-assert (0.0).cosh() == 1
+assert Float64(0.0).cosh() == 1
 
 ```
 ## Float64.erf
@@ -416,7 +416,7 @@ x | `Float64` | The number for which the error function is to be calculated.  | 
 
 **Example:**
 ```tomo
-assert (0.0).erf() == 0
+assert Float64(0.0).erf() == 0
 
 ```
 ## Float64.erfc
@@ -436,7 +436,7 @@ x | `Float64` | The number for which the complementary error function is to be c
 
 **Example:**
 ```tomo
-assert (0.0).erfc() == 1
+assert Float64(0.0).erfc() == 1
 
 ```
 ## Float64.exp
@@ -456,7 +456,7 @@ x | `Float64` | The exponent.  | -
 
 **Example:**
 ```tomo
-assert (1.0).exp().near(2.718281828459045)
+assert Float64(1.0).exp().near(2.718281828459045)
 
 ```
 ## Float64.exp2
@@ -476,7 +476,7 @@ x | `Float64` | The exponent.  | -
 
 **Example:**
 ```tomo
-assert (3.0).exp2() == 8
+assert Float64(3.0).exp2() == 8
 
 ```
 ## Float64.expm1
@@ -496,7 +496,7 @@ x | `Float64` | The exponent.  | -
 
 **Example:**
 ```tomo
-assert (1.0).expm1().near(1.7182818284590453)
+assert Float64(1.0).expm1().near(1.7182818284590453)
 
 ```
 ## Float64.fdim
@@ -517,7 +517,7 @@ y | `Float64` | The second number.  | -
 
 **Example:**
 ```tomo
-assert (5.0).fdim(3) == 2
+assert Float64(5.0).fdim(3) == 2
 
 ```
 ## Float64.floor
@@ -537,7 +537,7 @@ x | `Float64` | The number to be rounded down.  | -
 
 **Example:**
 ```tomo
-assert (3.7).floor() == 3
+assert Float64(3.7).floor() == 3
 
 ```
 ## Float64.hypot
@@ -580,10 +580,10 @@ high | `Float64` | The other end of the range to check (inclusive).  | -
 
 **Example:**
 ```tomo
-assert (7.5).is_between(1, 10)
-assert (7.5).is_between(10, 1)
-assert not (7.5).is_between(100, 200)
-assert (7.5).is_between(1, 7.5)
+assert Float64(7.5).is_between(1, 10)
+assert Float64(7.5).is_between(10, 1)
+assert not Float64(7.5).is_between(100, 200)
+assert Float64(7.5).is_between(1, 7.5)
 
 ```
 ## Float64.isfinite
@@ -603,7 +603,7 @@ n | `Float64` | The number to be checked.  | -
 
 **Example:**
 ```tomo
-assert (1.0).isfinite()
+assert Float64(1.0).isfinite()
 assert not Float64.INF.isfinite()
 
 ```
@@ -625,7 +625,7 @@ n | `Float64` | The number to be checked.  | -
 **Example:**
 ```tomo
 assert Float64.INF.isinf()
-assert not (1.0).isinf()
+assert not Float64(1.0).isinf()
 
 ```
 ## Float64.j0
@@ -645,7 +645,7 @@ x | `Float64` | The number for which the Bessel function is to be calculated.  |
 
 **Example:**
 ```tomo
-assert (0.0).j0() == 1
+assert Float64(0.0).j0() == 1
 
 ```
 ## Float64.j1
@@ -665,7 +665,7 @@ x | `Float64` | The number for which the Bessel function is to be calculated.  |
 
 **Example:**
 ```tomo
-assert (0.0).j1() == 0
+assert Float64(0.0).j1() == 0
 
 ```
 ## Float64.log
@@ -705,7 +705,7 @@ x | `Float64` | The number for which the base-10 logarithm is to be calculated. 
 
 **Example:**
 ```tomo
-assert (100.0).log10() == 2
+assert Float64(100.0).log10() == 2
 
 ```
 ## Float64.log1p
@@ -725,7 +725,7 @@ x | `Float64` | The number for which $\log(1 + x)$ is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (1.0).log1p().near(0.6931471805599453)
+assert Float64(1.0).log1p().near(0.6931471805599453)
 
 ```
 ## Float64.log2
@@ -745,7 +745,7 @@ x | `Float64` | The number for which the base-2 logarithm is to be calculated.  
 
 **Example:**
 ```tomo
-assert (8.0).log2() == 3
+assert Float64(8.0).log2() == 3
 
 ```
 ## Float64.logb
@@ -765,7 +765,7 @@ x | `Float64` | The number for which the binary exponent is to be calculated.  |
 
 **Example:**
 ```tomo
-assert (8.0).logb() == 3
+assert Float64(8.0).logb() == 3
 
 ```
 ## Float64.mix
@@ -787,8 +787,8 @@ y | `Float64` | The ending number.  | -
 
 **Example:**
 ```tomo
-assert (0.5).mix(10, 20) == 15
-assert (0.25).mix(10, 20) == 12.5
+assert Float64(0.5).mix(10, 20) == 15
+assert Float64(0.25).mix(10, 20) == 12.5
 
 ```
 ## Float64.near
@@ -811,9 +811,9 @@ min_epsilon | `Float64` | The absolute tolerance. Default is `1e-9`.  | `1e-9`
 
 **Example:**
 ```tomo
-assert (1.0).near(1.000000001)
-assert (100.0).near(110, ratio=0.1)
-assert (5.0).near(5.1, min_epsilon=0.1)
+assert Float64(1.0).near(1.000000001)
+assert Float64(100.0).near(110, ratio=0.1)
+assert Float64(5.0).near(5.1, min_epsilon=0.1)
 
 ```
 ## Float64.nextafter
@@ -834,7 +834,7 @@ y | `Float64` | The direction towards which to find the next representable value
 
 **Example:**
 ```tomo
-assert (1.0).nextafter(1.1) == 1.0000000000000002
+assert Float64(1.0).nextafter(1.1) == 1.0000000000000002
 
 ```
 ## Float64.parse
@@ -881,10 +881,10 @@ precision | `Float64` | Round the percentage to this precision level.  | `0.01`
 
 **Example:**
 ```tomo
-assert (0.5).percent() == "50%"
-assert (1./3.).percent(2) == "34%"
-assert (1./3.).percent(precision=0.0001) == "33.3333%"
-assert (1./3.).percent(precision=10.) == "30%"
+assert Float64(0.5).percent() == "50%"
+assert (Float64(1.) / Float64(3.)).percent(2) == "34%"
+assert (Float64(1.) / Float64(3.)).percent(precision=0.0001) == "33.3333%"
+assert (Float64(1.) / Float64(3.)).percent(precision=10.) == "30%"
 
 ```
 ## Float64.rint
@@ -904,8 +904,8 @@ x | `Float64` | The number to be rounded.  | -
 
 **Example:**
 ```tomo
-assert (3.5).rint() == 4
-assert (2.5).rint() == 2
+assert Float64(3.5).rint() == 4
+assert Float64(2.5).rint() == 2
 
 ```
 ## Float64.round
@@ -925,8 +925,8 @@ x | `Float64` | The number to be rounded.  | -
 
 **Example:**
 ```tomo
-assert (2.3).round() == 2
-assert (2.7).round() == 3
+assert Float64(2.3).round() == 2
+assert Float64(2.7).round() == 3
 
 ```
 ## Float64.significand
@@ -946,7 +946,7 @@ x | `Float64` | The number from which to extract the significand.  | -
 
 **Example:**
 ```tomo
-assert (1234.567).significand() == 1.2056318359375
+assert Float64(1234.567).significand() == 1.2056318359375
 
 ```
 ## Float64.sin
@@ -966,7 +966,7 @@ x | `Float64` | The angle in radians.  | -
 
 **Example:**
 ```tomo
-assert (0.0).sin() == 0
+assert Float64(0.0).sin() == 0
 
 ```
 ## Float64.sinh
@@ -986,7 +986,7 @@ x | `Float64` | The number for which the hyperbolic sine is to be calculated.  |
 
 **Example:**
 ```tomo
-assert (0.0).sinh() == 0
+assert Float64(0.0).sinh() == 0
 
 ```
 ## Float64.sqrt
@@ -1006,7 +1006,7 @@ x | `Float64` | The number for which the square root is to be calculated.  | -
 
 **Example:**
 ```tomo
-assert (16.0).sqrt() == 4
+assert Float64(16.0).sqrt() == 4
 
 ```
 ## Float64.tan
@@ -1026,7 +1026,7 @@ x | `Float64` | The angle in radians.  | -
 
 **Example:**
 ```tomo
-assert (0.0).tan() == 0
+assert Float64(0.0).tan() == 0
 
 ```
 ## Float64.tanh
@@ -1046,7 +1046,7 @@ x | `Float64` | The number for which the hyperbolic tangent is to be calculated.
 
 **Example:**
 ```tomo
-assert (0.0).tanh() == 0
+assert Float64(0.0).tanh() == 0
 
 ```
 ## Float64.tgamma
@@ -1066,7 +1066,7 @@ x | `Float64` | The number for which the gamma function is to be calculated.  | 
 
 **Example:**
 ```tomo
-assert (1.0).tgamma() == 1
+assert Float64(1.0).tgamma() == 1
 
 ```
 ## Float64.trunc
@@ -1086,8 +1086,8 @@ x | `Float64` | The number to be truncated.  | -
 
 **Example:**
 ```tomo
-assert (3.7).trunc() == 3
-assert (-3.7).trunc() == -3
+assert Float64(3.7).trunc() == 3
+assert Float64(-3.7).trunc() == -3
 
 ```
 ## Float64.with_precision
@@ -1108,9 +1108,9 @@ precision | `Float64` | The precision to which the number should be rounded.  | 
 
 **Example:**
 ```tomo
-assert (0.1234567).with_precision(0.01) == 0.12
-assert (123456.).with_precision(100) == 123500
-assert (1234567.).with_precision(5) == 1234565
+assert Float64(0.1234567).with_precision(0.01) == 0.12
+assert Float64(123456.).with_precision(100) == 123500
+assert Float64(1234567.).with_precision(5) == 1234565
 
 ```
 ## Float64.y0
@@ -1130,7 +1130,7 @@ x | `Float64` | The number for which the Bessel function is to be calculated.  |
 
 **Example:**
 ```tomo
-assert (1.0).y0().near(0.08825696421567698)
+assert Float64(1.0).y0().near(0.08825696421567698)
 
 ```
 ## Float64.y1
@@ -1150,6 +1150,6 @@ x | `Float64` | The number for which the Bessel function is to be calculated.  |
 
 **Example:**
 ```tomo
-assert (1.0).y1().near(-0.7812128213002887)
+assert Float64(1.0).y1().near(-0.7812128213002887)
 
 ```

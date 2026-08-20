@@ -1335,7 +1335,11 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *rhs_t = get_type(env, binop.rhs);
         if (type_eq(lhs_t, rhs_t)) return ast->tag == Compare ? Type(IntType, .bits = TYPE_IBITS32) : Type(BoolType);
 
+        // A bare numeric literal is untyped: it takes the other side's type,
+        // even through an optional (`x : Float64? = none; x == 0.0`).
         if ((binop.lhs->tag == Int && is_numeric_type(rhs_t)) || (binop.rhs->tag == Int && is_numeric_type(lhs_t))
+            || (binop.lhs->tag == Num && is_numeric_type(non_optional(rhs_t)))
+            || (binop.rhs->tag == Num && is_numeric_type(non_optional(lhs_t)))
             || can_compile_to_type(env, binop.rhs, lhs_t) || can_compile_to_type(env, binop.lhs, rhs_t))
             return ast->tag == Compare ? Type(IntType, .bits = TYPE_IBITS32) : Type(BoolType);
 

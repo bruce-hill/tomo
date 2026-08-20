@@ -294,9 +294,9 @@ env_t *global_env(bool source_mapping) {
 #define F2(name) {#name, #name, "func(x,y:Float64 -> Float64)"}
         MAKE_TYPE( //
             "Float64", Type(FloatType, .bits = TYPE_NBITS64), Text("Float64_t"), Text("Float64$info"),
-            {"near", "Float64$near", "func(x,y:Float64, ratio=1e-9, min_epsilon=1e-9 -> Bool)"}, //
+            {"near", "Float64$near", "func(x,y:Float64, ratio=Float64(1e-9), min_epsilon=Float64(1e-9) -> Bool)"}, //
             {"clamped", "Float64$clamped", "func(x,low,high:Float64 -> Float64)"}, //
-            {"percent", "Float64$percent", "func(n:Float64,precision=0.01 -> Text)"}, //
+            {"percent", "Float64$percent", "func(n:Float64,precision=Float64(0.01) -> Text)"}, //
             {"with_precision", "Float64$with_precision", "func(n:Float64,precision:Float64 -> Float64)"}, //
             {"is_between", "Float64$is_between", "func(x:Float64, a:Float64, b:Float64 -> Bool)"}, //
             {"isinf", "Float64$isinf", "func(n:Float64 -> Bool)"}, //
