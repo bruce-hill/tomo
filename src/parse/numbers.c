@@ -70,8 +70,11 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     else if (*pos == '.' && !isdigit(pos[1])) return NULL;
 
     size_t len = strspn(pos, "0123456789_");
-    if (strncmp(pos + len, "..", 2) == 0) return NULL;
-    else if (pos[len] == '.' && is_xid_start_next(pos + len + 1)) return NULL;
+    // Digits followed by `.identifier` are an Int with a method/field, not a
+    // Num: `12.sqrt()` calls sqrt on the integer 12. But a SECOND dot ends
+    // that reading -- `12..round()` is the Num `12.` with `.round()` called
+    // on it, since `12.` followed by a path literal would be nonsense.
+    if (pos[len] == '.' && pos[len + 1] != '.' && is_xid_start_next(pos + len + 1)) return NULL;
     else if (pos[len] == '.') len += 1 + strspn(pos + len + 1, "0123456789");
     else if (pos[len] != 'e' && pos[len] != 'f' && pos[len] != '%') return NULL;
     if (pos[len] == 'e') {

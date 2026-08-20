@@ -160,6 +160,14 @@ test "rounding"
 	assert (3.5).round() == 4
 	assert Num.PI.floor() == 3
 
+test "a number ending in a dot takes methods"
+	# `12.` is a Num, so `12..round()` reads as `(12.).round()`. One dot then
+	# an identifier stays an Int method: `12.sqrt()` is sqrt of the integer.
+	assert 12..round() == 12
+	assert 5..sqrt()! == (5.).sqrt()!
+	assert 12.5.round() == 12
+	assert 12.sqrt()! == 3
+
 test "rounding to an increment"
 	# The nearest multiple of anything: a penny, a nickel, a third, a thousand.
 	assert (3.14159).round(0.01) == 3.14
