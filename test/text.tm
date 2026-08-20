@@ -44,6 +44,12 @@ test "escape sequences"
 	>> "\[31;1]"
 	assert "\[31;1]" == "\e[31;1m"
 	assert "\{UE9}" == "\{U65}\{U301}"
+	>> "\x41\x42\x43"
+	assert "\x41\x42\x43" == "ABC"
+	>> "\101\102\103"
+	assert "\101\102\103" == "ABC"
+	>> "\1"
+	assert "\1".utf32() == [1]
 
 test "grapheme splitting and utf encodings"
 	>> amelie := "Am\{UE9}lie"

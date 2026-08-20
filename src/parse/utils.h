@@ -21,7 +21,7 @@ bool comment(parse_ctx_t *ctx, const char **pos);
 bool indent(parse_ctx_t *ctx, const char **pos);
 const char *eol(const char *str);
 PUREFUNC int64_t get_indent(parse_ctx_t *ctx, const char *pos);
-const char *unescape(parse_ctx_t *ctx, const char **out);
+const char *unescape(parse_ctx_t *ctx, const char **out, size_t *len_out);
 bool is_xid_start_next(const char *pos);
 bool is_xid_continue_next(const char *pos);
 bool newline_with_indentation(const char **out, int64_t target);

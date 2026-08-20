@@ -204,7 +204,7 @@ bool newline_with_indentation(const char **out, int64_t target) {
 //
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wstack-protector"
-const char *unescape(parse_ctx_t *ctx, const char **out) {
+const char *unescape(parse_ctx_t *ctx, const char **out, size_t *len_out) {
     const char **endpos = out;
     const char *escape = *out;
     static const char *unescapes[256] = {['a'] = "\a", ['b'] = "\b", ['e'] = "\x1b", ['f'] = "\f", ['n'] = "\n",
@@ -212,13 +212,16 @@ const char *unescape(parse_ctx_t *ctx, const char **out) {
     assert(*escape == '\\');
     if (unescapes[(int)escape[1]]) {
         *endpos = escape + 2;
+        *len_out = 1;
         return GC_strdup(unescapes[(int)escape[1]]);
     } else if (escape[1] == '[') {
         // ANSI Control Sequence Indicator: \033 [ ... m
         size_t len = strcspn(&escape[2], "\r\n]");
         if (escape[2 + len] != ']') parser_err(ctx, escape, escape + 2 + len, "Missing closing ']'");
         *endpos = escape + 3 + len;
-        return String("\033[", string_slice(&escape[2], len), "m");
+        const char *result = String("\033[", string_slice(&escape[2], len), "m");
+        *len_out = strlen(result);
+        return result;
     } else if (escape[1] == '{') {
         // Unicode codepoints by name
         size_t len = strcspn(&escape[2], "\r\n}");
@@ -234,12 +237,15 @@ const char *unescape(parse_ctx_t *ctx, const char **out) {
             // Unicode codepoints by hex
             char *endptr = NULL;
             long codepoint = strtol(name + 1, &endptr, 16);
-            uint32_t ustr[2] = {codepoint, 0};
+            uint32_t ustr[1] = {codepoint};
             size_t bufsize = 8;
             uint8_t buf[bufsize];
-            (void)u32_to_u8(ustr, bufsize, buf, &bufsize);
+            (void)u32_to_u8(ustr, 1, buf, &bufsize);
             *endpos = escape + 3 + len;
-            return GC_strndup((char *)buf, bufsize);
+            char *result = GC_MALLOC_ATOMIC(bufsize);
+            memcpy(result, buf, bufsize);
+            *len_out = bufsize;
+            return result;
         }
 
     look_up_unicode_name:;
@@ -251,22 +257,32 @@ const char *unescape(parse_ctx_t *ctx, const char **out) {
         char *str = GC_MALLOC_ATOMIC(16);
         size_t u8_len = 16;
         (void)u32_to_u8(&codepoint, 1, (uint8_t *)str, &u8_len);
-        str[u8_len] = '\0';
+        *len_out = u8_len;
         return str;
     } else if (escape[1] == 'x' && escape[2] && escape[3]) {
         // ASCII 2-digit hex
         char buf[] = {escape[2], escape[3], 0};
         char c = (char)strtol(buf, NULL, 16);
         *endpos = escape + 4;
-        return GC_strndup(&c, 1);
-    } else if ('0' <= escape[1] && escape[1] <= '7' && '0' <= escape[2] && escape[2] <= '7' && '0' <= escape[3]
-               && escape[3] <= '7') {
-        char buf[] = {escape[1], escape[2], escape[3], 0};
+        char *result = GC_MALLOC_ATOMIC(1);
+        result[0] = c;
+        *len_out = 1;
+        return result;
+    } else if ('0' <= escape[1] && escape[1] <= '7') {
+        // Octal escape: \n, \nn, or \nnn (1 to 3 octal digits)
+        int digits = 1;
+        while (digits < 3 && '0' <= escape[1 + digits] && escape[1 + digits] <= '7') digits++;
+        char buf[4] = {0};
+        memcpy(buf, &escape[1], (size_t)digits);
         char c = (char)strtol(buf, NULL, 8);
-        *endpos = escape + 4;
-        return GC_strndup(&c, 1);
+        *endpos = escape + 1 + digits;
+        char *result = GC_MALLOC_ATOMIC(1);
+        result[0] = c;
+        *len_out = 1;
+        return result;
     } else {
         *endpos = escape + 2;
+        *len_out = 1;
         return GC_strndup(escape + 1, 1);
     }
 }

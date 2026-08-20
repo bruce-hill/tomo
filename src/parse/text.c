@@ -79,8 +79,12 @@ static ast_list_t *_parse_text_helper(parse_ctx_t *ctx, const char **out_pos, bo
             chunk_start = pos;
         } else if (allow_escapes && *pos == '\\') {
             FLUSH_PLAIN_SPAN();
-            const char *c = unescape(ctx, &pos);
-            chunk = Texts(chunk, Text$from_str(c));
+            const char *escape_start = pos;
+            size_t escaped_len = 0;
+            const char *c = unescape(ctx, &pos, &escaped_len);
+            if (memchr(c, '\0', escaped_len))
+                parser_err(ctx, escape_start, pos, "NUL bytes are not allowed in text literals");
+            chunk = Texts(chunk, Text$from_strn(c, escaped_len));
         } else if (!leading_newline && strncmp(pos, quote, strlen(quote)) == 0) { // Nested pair end
             if (get_indent(ctx, pos) == starting_indent) break;
             plain_span_len += 1;
