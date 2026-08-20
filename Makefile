@@ -460,7 +460,26 @@ test/results/%.tm.testresult: test/%.tm build
 		false; \
 	fi
 
-test: $(TESTS)
+# The `number` type's C-level test suite. Built with the *host* compiler
+# rather than `zig cc`, because it runs under ASan/UBSan -- the static musl
+# builds everything else uses can't host the sanitizer runtimes. It needs
+# only number.c, so it links the host's gmp/gc rather than the vendored ones.
+$(BUILD_BASE)/number_test: test/c/number_test.c src/stdlib/number.c src/stdlib/number.h
+	@mkdir -p $(dir $@)
+	@$(ECHO) cc -fsanitize=address,undefined -o $@ test/c/number_test.c src/stdlib/number.c
+	@# -iquote, not -I: src/stdlib/ has its own stdlib.h, which -I would make
+	@# `#include <stdlib.h>` resolve to. -iquote only affects "..." includes.
+	@cc -std=gnu23 -O1 -g -fsanitize=address,undefined -iquote src/stdlib \
+	    -o $@ test/c/number_test.c src/stdlib/number.c -lm -lgmp -lgc
+
+# detect_leaks=0: `number` is garbage collected, and LeakSanitizer's model
+# (every allocation must be reached by a free) can't express that -- it would
+# report every live GC-owned object, and GMP's own limb buffers besides, as a
+# leak. ASan's use-after-free/overflow checks and all of UBSan still apply.
+test-number: $(BUILD_BASE)/number_test
+	@ASAN_OPTIONS=detect_leaks=0 $(BUILD_BASE)/number_test
+
+test: $(TESTS) test-number
 	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
 
 # Remove just the (target-specific) Tomo object files:
@@ -532,4 +551,4 @@ uninstall:
 	"$(PREFIX)/bin/tomo@$(TOMO_VERSION)" uninstall --yes
 
 .SUFFIXES:
-.PHONY: all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version
+.PHONY: test-number all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version
