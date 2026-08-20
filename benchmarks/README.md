@@ -12,34 +12,35 @@ fetched from the community [Programming-Language-Benchmarks][plb] repo instead.
 The PNG graphs below are a checked-in snapshot from one x86-64 Linux box (best
 of 3 runs, each pinned to a single core, every output validated against the
 reference). Timings are machine-specific — `results.json` and the vector
-graphs are git-ignored; run the three commands below to reproduce everything
-locally and regenerate these PNGs.
+graphs are git-ignored; `make benchmarks` (see [Usage](#usage)) reproduces
+everything locally and regenerates these PNGs.
 
 ![Tomo vs. other languages across nine benchmarks](results.png)
 
 With the field now up to ~17 languages across all nine of the CLBG's
 library-free benchmarks, the useful summary is that **Tomo sits inside the
 compiled-language cluster and beats every scripting language on every single
-benchmark, with no exceptions**. On the tight compute loops it lands in the
-middle of that cluster: **fannkuch-redux** puts it at 0.17s, within 1.8× of the
-fastest and jostling with C++, Fortran, and C; **n-body** at 0.27s is ~1.9×
-the leaders (Zig/Rust), just ahead of C#, Go, and Java. On the hash-table-heavy
-**k-nucleotide** it takes 3rd at 0.24s — behind only C and C++, and ahead of
+benchmark, with no exceptions** — and on four of the nine it is at or ahead of
+C. On the tight compute loops: **fannkuch-redux** puts it at 0.16s, 6th of 15
+and a shade *faster* than C++, Fortran, and C; **n-body** at 0.26s is ~1.9×
+the leaders (Rust/Zig), just ahead of C#, Go, and Java. On the hash-table-heavy
+**k-nucleotide** it takes 3rd at 0.23s — behind only C and C++, and ahead of
 Go, LuaJIT, Java, Rust, and every scripting language. **binary-trees** (an
-allocation/GC stress test) has it at 0.29s, mid-pack and ahead of Go, Odin,
-and every scripting language. **fasta** at 0.36s is ~4.9× C (C's SIMD-friendly
-byte tables set a high bar here), still ahead of Java, Rust, C#, LuaJIT,
-Fortran, and every scripting language.
+allocation/GC stress test) has it 4th of 16 at 0.20s, *ahead of C, C++, Zig,
+Fortran, Go, and Odin*, trailing only Nim, Java, and C#. **fasta** at 0.34s is
+1.4× C and 4.6× the leader (Zig's byte tables set a high bar here), still ahead
+of Java, Rust, LuaJIT, Fortran, C#, and every scripting language.
 
 Of the four newer benchmarks, **mandelbrot** is a standout: at 0.70s Tomo
 *beats* the (multithreaded, core-pinned) C and Go entries outright, trailing
-only Rust, C++, and Java. **reverse-complement** at 0.23s (2.3× C) is ahead of
-Python, Java, LuaJIT, JavaScript, C++, PyPy, and Lua, and closing in on
-C#/Swift (0.13s). **spectral-norm** at 1.15s is ~1.9× C, ahead of Go, C#,
-Java, and every scripting language. **pidigits** — a pure GMP bignum stress
-test — is Tomo's weakest relative showing at ~4.7× C, but still 4th of 9,
-comfortably ahead of Python, PyPy, Java, C#, and JavaScript. Several runtime
-and compiler improvements came out of chasing these numbers down — see below.
+only Rust, C++, and Java. **reverse-complement** at 0.16s (1.6× C) is 5th of
+12, ahead of Java, Python, LuaJIT, JavaScript, PyPy, C++, and Lua, and closing
+in on C#/Swift (0.13s/0.11s). **spectral-norm** at 1.15s is ~1.9× C, ahead of
+Go, LuaJIT, C#, Java, and every scripting language. **pidigits** — a pure GMP
+bignum stress test — is Tomo's weakest relative showing at ~4.5× C, but still
+4th of 9, comfortably ahead of Python, PyPy, C#, Java, and JavaScript. Several
+runtime and compiler improvements came out of chasing these numbers down — see
+below.
 
 The top of each compute chart is crowded with fast natives — Zig, Nim,
 Fortran, and Rust routinely lead — but no garbage-collected, memory-safe
@@ -48,6 +49,10 @@ trail it everywhere, often by one or two orders of magnitude (Python is
 50–300× slower than the fastest entry on several benchmarks here).
 
 ### Runtime improvements this benchmark suite found
+
+Each before/after time below is the pair measured when that change was made,
+on this same box; they're a record of the improvement, not of where the
+benchmark stands today (see the current numbers above).
 
 Timing **pidigits** turned up a genuine bug: every `Int` bignum's GMP limb
 storage was allocated with GMP's default (plain `malloc`) allocator, so the
@@ -96,8 +101,9 @@ what `memchr` computes), instead of a scalar per-element loop. Measured on a
 50M-byte worst-case search (value absent, forces a full scan): 1.59s → 0.37s,
 ~4.3x. Rewriting reverse-complement's two boundary scans as `data.from(i)
 .find(...)` calls — the same technique Go and C# use, expressed in pure Tomo
-with no inline C — brought it to **0.25s: 2.4x C, now clearly ahead of
-Python and Java (0.30s), and closing in on C#/Swift (0.13s)**. `List.find`'s
+with no inline C — brought it to **0.25s, closing most of that gap: clearly
+ahead of Java and Python, and within striking distance of C#/Swift**.
+`List.find`'s
 new memchr fast path is a general win too, not specific to this benchmark:
 it speeds up any byte/int8-list search in any Tomo program.
 
@@ -125,8 +131,8 @@ The inlined-append fast path lives in `List.insert` itself (keyed on appending
 at the end), so *all* append-in-a-loop code benefits, not just comprehensions.
 (3) **Unsigned-int lists (including `[Byte]`) are now GC-atomic**, so the
 collector no longer scans their payload for pointers. With all three, a
-comprehension port of reverse-complement runs at ~0.29s — impressively close
-for fully idiomatic code, but still ~15% behind the hand-tuned index loop,
+comprehension port of reverse-complement lands within ~15% of the hand-tuned
+index loop — impressively close for fully idiomatic code, but still behind it,
 because a comprehension is at most 1:1 and so can't also insert the wrap
 newlines in the same pass (it must materialize the sequence and re-wrap it
 separately). The benchmark keeps the faster single-pass version; the compiler
@@ -150,10 +156,12 @@ produce a standalone statically-linked executable — is generated by
 
 Every binary here is statically linked and stripped, so the number is the whole
 self-contained footprint (code + language runtime), not a stub that leans on a
-system `libc`. Tomo's binary is **~640 KB and near-constant across every
-benchmark** — the runtime dominates and the program itself is noise — making it
-the smallest self-contained binary after Zig's minimal-runtime musl builds, and
-smaller than C, C++, Rust, Go, and Nim. (Interpreted and bytecode languages have
+system `libc`. Tomo's binary is **~770 KB and near-constant across every
+benchmark** (761–787 KB over all nine) — the runtime dominates and the program
+itself is noise. Only Zig's minimal-runtime musl builds (15–38 KB) are in a
+different league; Tomo lands within a few percent of C's static binaries either
+way (smaller on binary-trees and fasta, slightly larger elsewhere) and well
+under Nim (~810 KB), Rust (~1.2–1.4 MB), Go (~1.6 MB), and C++ (up to 2.2 MB). (Interpreted and bytecode languages have
 no such binary; Swift, Odin, and Fortran can't statically link on the test box;
 and pidigits/spectral-norm's C/C++ drop out where static `libgmp`/`libgomp`
 aren't installed.)
