@@ -100,3 +100,11 @@ test "path concatenation"
     assert /foo ++ ./baz//qux == /foo/baz/qux
     assert /foo/bar/baz ++ ./.././qux/./../quux == /foo/bar/quux
     >> (./*.tm).glob()
+
+test "a path literal at the end of the file parses without hanging"
+	# parse_path's scan loop used to exit at the end-of-file boundary without
+	# advancing, producing a zero-width AST that every enclosing parse loop
+	# re-parsed forever: `x := 12..round()` hung the compiler. The trailing
+	# path below sits against the end of this file to pin the fix.
+	p := ..
+	assert p == ..
