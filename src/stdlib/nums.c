@@ -343,21 +343,17 @@ PUREFUNC bool Num$is_none(const void *n, const TypeInfo_t *info) {
     return ((Num_t *)n)->bits == NONE_NUM.bits;
 }
 
-// Serialized as exact text -- an integer or a fraction -- rather than a binary
-// encoding of the tagged word, whose heap tiers are pointers. A decimal
-// expansion won't do either: it doesn't terminate for most fractions.
+// Serialized as the exact symbolic form -- "1/3", "sqrt(2)", "1 + pi" -- and
+// read back by parsing it. That form is the only representation that covers
+// every tier: a binary encoding of the tagged word would be writing out
+// pointers, and a decimal expansion doesn't terminate for most fractions and
+// doesn't exist at all for an irrational.
 //
-// Irrationals are refused rather than approximated. Their exact form is a
-// symbolic expression ("sqrt(2)", "1 + pi"), and reading one back would take
-// an expression parser this type doesn't have; writing an approximation
-// instead would quietly turn an exact value into a wrong one, which is the
-// failure mode Num exists to prevent.
+// It also keeps the format readable and independent of the engine's
+// internals, so stored data survives changes to how a value is represented.
 static void Num$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
     (void)pointers, (void)info;
-    Num_t n = *(Num_t *)obj;
-    if (unlikely(!number_is_rational(n)))
-        fail("This Num can't be serialized, because it's irrational: ", number_to_symbolic(n));
-    const char *symbolic = number_to_symbolic(n);
+    const char *symbolic = number_to_symbolic(*(Num_t *)obj);
     size_t len = strlen(symbolic);
     Int64$serialize(&(int64_t){(int64_t)len}, out, pointers, &Int64$info);
     fwrite(symbolic, 1, len, out);
@@ -371,7 +367,7 @@ static void Num$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInf
     char *buf = GC_MALLOC_ATOMIC((size_t)len + 1);
     if (fread(buf, 1, (size_t)len, in) != (size_t)len) fail("Corrupted Num in serialized data");
     buf[len] = '\0';
-    Num_t n = number_from_string(buf);
+    Num_t n = number_from_symbolic(buf);
     if (unlikely(number_is_error(n))) fail("Couldn't deserialize this Num: ", buf);
     *(Num_t *)obj = n;
 }

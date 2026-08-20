@@ -168,6 +168,22 @@ test "serialization round-trips exact rationals"
 	>> roundtrip : [Num] = bytes
 	assert roundtrip == obj
 
+test "serialization round-trips irrationals"
+	# Compared by symbolic form rather than ==, because two separately built
+	# general irrationals can't be *proven* equal, so == reports no. Closed
+	# forms like sqrt(2) and pi do compare equal.
+	irrationals := [(2.).sqrt()!, Num.PI, Num.PI * 2, (2.).sin(), (2.).exp(), (3.).log()!, Num.PI + (2.).sqrt()!, Num.PI * Num.PI * Num.PI, (1. + Num.PI) * (2.).sin(), (1.).atan()]
+	for x in irrationals
+		bytes : [Byte] = x
+		roundtrip : Num = bytes
+		assert roundtrip.symbolic() == x.symbolic()
+
+test "closed symbolic forms round-trip to equal values"
+	for x in [(2.).sqrt()!, Num.PI, Num.PI * 2, (2.).exp(), 0.5, 1./3.]
+		bytes : [Byte] = x
+		roundtrip : Num = bytes
+		assert roundtrip == x
+
 test "dividing by zero panics"
 	_ := 1.0 / 0.0
 fails "division by zero"
@@ -175,14 +191,6 @@ fails "division by zero"
 test "the modulo of zero panics"
 	_ := 1.0 mod 0.0
 fails "division by zero"
-
-test "serializing an irrational panics"
-	# Reading one back would need an expression parser; approximating it
-	# would quietly turn an exact value into a wrong one.
-	x := (2.).sqrt()!
-	bytes : [Byte] = x
-	say("$(bytes)")
-fails "can't be serialized, because it's irrational"
 
 test "force-unwrapping the square root of a negative panics"
 	_ := (-1.).sqrt()!

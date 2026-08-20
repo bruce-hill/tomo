@@ -506,6 +506,12 @@ char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact);
 // Returns a GC-allocated string (do not free it).
 char *number_to_symbolic(number x);
 
+// The inverse of number_to_symbolic: reads back the exact expression it
+// prints ("1/3", "sqrt(2)", "1 + pi", "sin(2)*pi", "pi^3"), so an exact
+// value can round-trip through text. Whitespace around operators is
+// optional. Anything outside that grammar -> error.
+number number_from_symbolic(const char *str);
+
 // The same exact forms as number_to_symbolic, rendered as TeX math-mode
 // source: "42", "-\frac{7}{2}", "\pi", "2\pi", "\sqrt{6}", "3 - \sqrt{2}",
 // "\frac{1}{2} + \frac{\sqrt{5}}{2}" for the closed forms; an

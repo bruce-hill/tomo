@@ -4458,6 +4458,189 @@ number number_from_decimal(const char *str)
 }
 
 // ---------------------------------------------------------------------------
+// Parsing the symbolic form
+//
+// The inverse of number_to_symbolic: reads back the exact expression it
+// prints, so an exact value -- irrationals included -- can round-trip through
+// text. The grammar is exactly what that printer emits:
+//
+//   expr   := term ((' + ' | ' - ') term)*
+//   term   := unary (('*' | '/') unary)*
+//   unary  := '-' unary | power
+//   power  := atom ('^' digits)?
+//   atom   := '(' expr ')' | digits | 'pi' | fn '(' expr ')'
+//   fn     := 'sin' | 'cos' | 'exp' | 'ln' | 'atan' | 'sqrt'
+//
+// A rational prints as "p/q", which parses as a division of two integers and
+// evaluates back to exactly p/q, so it needs no separate rule. Whitespace is
+// skipped rather than required, so the spacing the printer chooses per
+// operator ("1/2 + sqrt(5)/2") is not something a reader has to reproduce.
+//
+// Every production builds its result with the ordinary public constructors,
+// so the parse is exact by the same rules the original computation was.
+
+typedef struct {
+    const char *pos;
+    bool failed;
+} sym_parser;
+
+static number sym_expr(sym_parser *p);
+
+static void sym_skip_space(sym_parser *p)
+{
+    while (*p->pos == ' ' || *p->pos == '\t')
+        p->pos++;
+}
+
+// Consumes `word` only when it isn't a prefix of a longer identifier, so
+// "sin" doesn't match inside a hypothetical "sinh".
+static bool sym_word(sym_parser *p, const char *word)
+{
+    size_t n = strlen(word);
+    if (strncmp(p->pos, word, n) != 0) return false;
+    char after = p->pos[n];
+    if (isalnum((unsigned char)after) || after == '_') return false;
+    p->pos += n;
+    return true;
+}
+
+static number sym_fail(sym_parser *p)
+{
+    p->failed = true;
+    return NUMBER_ERROR;
+}
+
+static number sym_atom(sym_parser *p)
+{
+    sym_skip_space(p);
+
+    if (*p->pos == '(') {
+        p->pos++;
+        number inner = sym_expr(p);
+        sym_skip_space(p);
+        if (*p->pos != ')') return sym_fail(p);
+        p->pos++;
+        return inner;
+    }
+
+    if (isdigit((unsigned char)*p->pos)) {
+        const char *start = p->pos;
+        while (isdigit((unsigned char)*p->pos))
+            p->pos++;
+        size_t len = (size_t)(p->pos - start);
+        char *digits = xmalloc(len + 1);
+        memcpy(digits, start, len);
+        digits[len] = '\0';
+        number value = number_from_decimal(digits);
+        if (number_is_error(value)) return sym_fail(p);
+        return value;
+    }
+
+    if (sym_word(p, "pi")) return number_pi();
+
+    static const struct {
+        const char *name;
+        number (*fn)(number);
+    } fns[] = {
+        {"sqrt", number_sqrt}, {"sin", number_sin}, {"cos", number_cos},
+        {"exp", number_exp},   {"ln", number_ln},   {"atan", number_atan},
+    };
+    for (size_t i = 0; i < sizeof(fns) / sizeof(fns[0]); i++) {
+        if (!sym_word(p, fns[i].name)) continue;
+        sym_skip_space(p);
+        if (*p->pos != '(') return sym_fail(p);
+        p->pos++;
+        number arg = sym_expr(p);
+        sym_skip_space(p);
+        if (*p->pos != ')') return sym_fail(p);
+        p->pos++;
+        if (p->failed) return NUMBER_ERROR;
+        number value = fns[i].fn(arg);
+        if (number_is_error(value)) return sym_fail(p);
+        return value;
+    }
+
+    return sym_fail(p);
+}
+
+static number sym_power(sym_parser *p)
+{
+    number base = sym_atom(p);
+    if (p->failed) return NUMBER_ERROR;
+    sym_skip_space(p);
+    if (*p->pos != '^') return base;
+    p->pos++;
+    sym_skip_space(p);
+    if (!isdigit((unsigned char)*p->pos)) return sym_fail(p);
+    // The printer only ever emits a small unsigned exponent (a repeat count
+    // from a product chain), so this doesn't need the general atom rule.
+    uint64_t exponent = 0;
+    while (isdigit((unsigned char)*p->pos)) {
+        if (exponent > (UINT64_MAX - 9) / 10) return sym_fail(p);
+        exponent = exponent * 10 + (uint64_t)(*p->pos++ - '0');
+    }
+    number value = number_pow(base, number_from_int((int64_t)exponent));
+    if (number_is_error(value)) return sym_fail(p);
+    return value;
+}
+
+static number sym_unary(sym_parser *p)
+{
+    sym_skip_space(p);
+    if (*p->pos == '-') {
+        p->pos++;
+        number inner = sym_unary(p);
+        return p->failed ? NUMBER_ERROR : number_neg(inner);
+    }
+    return sym_power(p);
+}
+
+static number sym_term(sym_parser *p)
+{
+    number acc = sym_unary(p);
+    for (;;) {
+        if (p->failed) return NUMBER_ERROR;
+        sym_skip_space(p);
+        char op = *p->pos;
+        if (op != '*' && op != '/') return acc;
+        p->pos++;
+        number rhs = sym_unary(p);
+        if (p->failed) return NUMBER_ERROR;
+        number value = op == '*' ? number_mul(acc, rhs) : number_div(acc, rhs);
+        if (number_is_error(value)) return sym_fail(p);
+        acc = value;
+    }
+}
+
+static number sym_expr(sym_parser *p)
+{
+    number acc = sym_term(p);
+    for (;;) {
+        if (p->failed) return NUMBER_ERROR;
+        sym_skip_space(p);
+        char op = *p->pos;
+        if (op != '+' && op != '-') return acc;
+        p->pos++;
+        number rhs = sym_term(p);
+        if (p->failed) return NUMBER_ERROR;
+        number value = op == '+' ? number_add(acc, rhs) : number_sub(acc, rhs);
+        if (number_is_error(value)) return sym_fail(p);
+        acc = value;
+    }
+}
+
+number number_from_symbolic(const char *str)
+{
+    if (!str) return err(ERR_PARSE);
+    sym_parser p = {.pos = str, .failed = false};
+    number value = sym_expr(&p);
+    if (p.failed) return err(ERR_PARSE);
+    sym_skip_space(&p);
+    if (*p.pos != '\0') return err(ERR_PARSE); // trailing garbage
+    return value;
+}
+
+// ---------------------------------------------------------------------------
 // Fuzz harness: the checks that still carry independent information now
 // that the arithmetic substrate is GMP. Two things survive: the GCD
 // cross-check (a plain Euclidean gcd built on division, an algorithm
