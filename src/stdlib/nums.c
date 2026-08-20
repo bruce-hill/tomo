@@ -18,13 +18,21 @@
 #include "types.h"
 
 // A Num that a Tomo program can actually hold is never the `number` library's
-// error value: an operator that would produce one fails immediately (below),
-// and a method that would produce one answers `none` instead. So error
+// error value: an operator that would produce one fails immediately, and a
+// method that would produce one answers `none` instead. So error
 // *propagation* -- the reason the library has an error value at all -- can't
 // arise here, and only operations that can error from valid operands need
 // checking. The rest are wrapped with no test at all.
+
+// Out-of-line and noreturn, so the operators in nums.h can carry the error
+// check inline without dragging fail()'s machinery into every call site.
+public
+_Noreturn void Num$arithmetic_error(Num_t bad) {
+    fail("Arithmetic error: ", number_error_message(bad));
+}
+
 static Num_t check(Num_t n) {
-    if (unlikely(number_is_error(n))) fail("Arithmetic error: ", number_error_message(n));
+    if (unlikely(NUMBER_IS_ERROR(n))) Num$arithmetic_error(n);
     return n;
 }
 
@@ -32,7 +40,7 @@ static Num_t check(Num_t n) {
 // `(0):log()`) answers `none` rather than aborting, so callers can handle it
 // with `or`/`!`. Same underlying error value, different policy.
 static OptionalNum_t opt(Num_t n) {
-    return number_is_error(n) ? NONE_NUM : n;
+    return NUMBER_IS_ERROR(n) ? NONE_NUM : n;
 }
 
 #define UNARY(name, fn)                                                                                                \
@@ -47,28 +55,10 @@ static OptionalNum_t opt(Num_t n) {
     public OptionalNum_t Num$##name(Num_t x) {                                                                         \
         return opt(fn(x));                                                                                             \
     }
-#define BINARY(name, fn)                                                                                               \
-    public Num_t Num$##name(Num_t x, Num_t y) {                                                                        \
-        return fn(x, y);                                                                                               \
-    }
-#define BINARY_CHECKED(name, fn)                                                                                       \
-    public Num_t Num$##name(Num_t x, Num_t y) {                                                                        \
-        return check(fn(x, y));                                                                                        \
-    }
 #define BINARY_OPT(name, fn)                                                                                           \
     public OptionalNum_t Num$##name(Num_t x, Num_t y) {                                                                \
         return opt(fn(x, y));                                                                                          \
     }
-
-// --- Operators ---
-
-BINARY(plus, number_add)
-BINARY(minus, number_sub)
-BINARY(times, number_mul)
-UNARY(negative, number_neg)
-BINARY_CHECKED(divided_by, number_div) // y == 0
-BINARY_CHECKED(modulo, number_mod)     // y == 0
-BINARY_CHECKED(power, number_pow)      // 0^negative, or negative^non-integer
 
 // --- Methods that cannot fail ---
 
@@ -111,8 +101,6 @@ BINARY_OPT(lcm, number_lcm)        // an irrational operand
 #undef UNARY
 #undef UNARY_CHECKED
 #undef UNARY_OPT
-#undef BINARY
-#undef BINARY_CHECKED
 #undef BINARY_OPT
 
 // --- Constructors ---
@@ -316,15 +304,11 @@ static Num_t rounded_for_equality(Num_t n) {
     return number_is_error(rounded) ? n : rounded;
 }
 
+// Reached only when number_compare answers 2 -- "couldn't decide" -- which
+// means two general irrationals whose difference it can neither prove zero
+// nor prove nonzero. Two answers are still available, in order of cost.
 public
-PUREFUNC int32_t Num$compare_value(Num_t x, Num_t y) {
-    int cmp = number_compare(x, y);
-    if (likely(cmp != 2)) return (int32_t)cmp;
-
-    // 2 means the engine couldn't decide: two general irrationals whose
-    // difference it can neither prove zero nor prove nonzero. Two answers are
-    // still available, in order of cost.
-
+PUREFUNC int32_t Num$undecided_compare(Num_t x, Num_t y) {
     // Identical expressions are the same value, whatever that value is --
     // sin(2) and sin(2) need no refinement to be equal. The symbolic form is
     // canonical for structure, and is linear even for a heavily shared
@@ -333,7 +317,7 @@ PUREFUNC int32_t Num$compare_value(Num_t x, Num_t y) {
 
     // Otherwise decide it numerically: agreement to EQUALITY_DIGITS counts as
     // equality. Rounding both to rationals first makes the comparison total.
-    cmp = number_compare(rounded_for_equality(x), rounded_for_equality(y));
+    int cmp = number_compare(rounded_for_equality(x), rounded_for_equality(y));
     return cmp == 2 ? 0 : (int32_t)cmp;
 }
 
@@ -341,13 +325,6 @@ public
 PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t *info) {
     (void)info;
     return Num$compare_value(*(Num_t *)x, *(Num_t *)y);
-}
-
-public
-PUREFUNC bool Num$equal_value(Num_t x, Num_t y) {
-    // number_equal reports the undecidable case as not-equal; Num$compare_value
-    // resolves it instead (see there), so route through it.
-    return likely(number_equal(x, y)) ? true : Num$compare_value(x, y) == 0;
 }
 
 public

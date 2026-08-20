@@ -123,6 +123,12 @@ number number_from_decimal(const char *str);
 
 // --- Predicates ---
 
+// Whether x is the error value: the same test number_is_error does, spelled
+// as a macro for callers that can't afford a call. The low two bits are the
+// tag and 11 is the error tag (see "Tagging" above and number-design.md), so
+// this is one mask-and-compare on a value already in a register.
+#define NUMBER_IS_ERROR(x) (((x).bits & 0x3) == 0x3)
+
 bool number_is_error(number x);
 // A static, human-readable description of why x is the error value, e.g.
 // "division by zero" or "square root of a negative number" -- NULL if x is

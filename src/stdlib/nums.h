@@ -17,15 +17,52 @@
 // widening, same 8 bytes as a Num.
 #define NONE_NUM ((OptionalNum_t){.bits = 0})
 
-// Operators. A domain error (1/0, 0^-1, ...) fails immediately rather than
-// propagating, so a Num a program can hold is never an error value.
-Num_t Num$plus(Num_t x, Num_t y);
-Num_t Num$minus(Num_t x, Num_t y);
-Num_t Num$times(Num_t x, Num_t y);
-Num_t Num$divided_by(Num_t x, Num_t y);
-Num_t Num$modulo(Num_t x, Num_t y);
-Num_t Num$power(Num_t base, Num_t exponent);
-Num_t Num$negative(Num_t x);
+// --- Operators ---
+//
+// Defined inline, for the same reason Int$plus is (see bigint.h): these are
+// the hot path, and the part worth duplicating at a call site is small. The
+// arithmetic they wrap is itself an inline fast path over the immediate tier
+// falling through to an out-of-line general case (see number.h), so an
+// operator on two small rationals -- the overwhelmingly common case --
+// compiles to a few instructions in the caller with no call at all.
+//
+// A domain error (1/0, 0^-1, ...) fails immediately rather than propagating,
+// so a Num a program can hold is never an error value. The reporting is
+// out-of-line and noreturn, which keeps the inline body to one predicted-
+// not-taken branch.
+
+_Noreturn void Num$arithmetic_error(Num_t bad);
+
+// These three cannot produce an error from valid operands, so they carry no
+// check whatsoever.
+MACROLIKE Num_t Num$plus(Num_t x, Num_t y) {
+    return number_add(x, y);
+}
+MACROLIKE Num_t Num$minus(Num_t x, Num_t y) {
+    return number_sub(x, y);
+}
+MACROLIKE Num_t Num$times(Num_t x, Num_t y) {
+    return number_mul(x, y);
+}
+MACROLIKE Num_t Num$negative(Num_t x) {
+    return number_neg(x);
+}
+
+MACROLIKE Num_t Num$divided_by(Num_t x, Num_t y) { // y == 0
+    Num_t result = number_div(x, y);
+    if (unlikely(NUMBER_IS_ERROR(result))) Num$arithmetic_error(result);
+    return result;
+}
+MACROLIKE Num_t Num$modulo(Num_t x, Num_t y) { // y == 0
+    Num_t result = number_mod(x, y);
+    if (unlikely(NUMBER_IS_ERROR(result))) Num$arithmetic_error(result);
+    return result;
+}
+MACROLIKE Num_t Num$power(Num_t base, Num_t exponent) { // 0^negative, negative^non-integer
+    Num_t result = number_pow(base, exponent);
+    if (unlikely(NUMBER_IS_ERROR(result))) Num$arithmetic_error(result);
+    return result;
+}
 
 // Methods that cannot fail.
 Num_t Num$abs(Num_t x);
@@ -91,9 +128,26 @@ Text_t Num$as_text(const void *n, bool colorize, const TypeInfo_t *type);
 Text_t Num$value_as_text(Num_t n);
 PUREFUNC uint64_t Num$hash(const void *n, const TypeInfo_t *type);
 PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t *type);
-PUREFUNC int32_t Num$compare_value(Num_t x, Num_t y);
+PUREFUNC int32_t Num$undecided_compare(Num_t x, Num_t y);
+
+// number_compare answers 2 for "couldn't decide", which happens only for two
+// general irrationals; everything else -- every rational, every closed
+// symbolic form -- decides here, inline.
+MACROLIKE PUREFUNC int32_t Num$compare_value(Num_t x, Num_t y) {
+    int cmp = number_compare(x, y);
+    if (unlikely(cmp == 2)) return Num$undecided_compare(x, y);
+    return (int32_t)cmp;
+}
 PUREFUNC bool Num$equal(const void *x, const void *y, const TypeInfo_t *type);
-PUREFUNC bool Num$equal_value(Num_t x, Num_t y);
+// When either side is a small rational immediate, bit equality settles it
+// outright, whatever the other side is: small rationals are canonical, so
+// equal ones are bit-identical, and no other value can be reported equal to
+// one (see number_equal in number.h, which this mirrors). Only two heap
+// values need the general path.
+MACROLIKE PUREFUNC bool Num$equal_value(Num_t x, Num_t y) {
+    if (likely((x.bits & 0x3) == 0x1 || (y.bits & 0x3) == 0x1)) return x.bits == y.bits;
+    return Num$compare_value(x, y) == 0;
+}
 PUREFUNC bool Num$is_none(const void *n, const TypeInfo_t *type);
 
 extern const TypeInfo_t Num$info;
