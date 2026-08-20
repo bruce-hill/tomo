@@ -8,9 +8,10 @@ construction (one accent vs. gray). Each bar is directly labeled with its
 wall-clock time and slowdown relative to the fastest language.
 
 Where a few entries are far slower than the rest of the field (Python is 300x
-the leader on spectral-norm), the panel's x-axis is cut short of them: one cut
-per panel, the same scale on every bar, and a bar that runs into the cut ends
-in a zigzag and keeps its real time as its label. See break_at() for where.
+the leader on spectral-norm), the panel's x-axis is truncated to the rest of
+the field: an ordinary axis, just a shorter one. The entries that don't fit run
+off the end of it, marked with an arrowhead and labeled with their real time.
+See truncate_at() for where.
 
 Writes a combined overview (<out>.svg/.png, all benchmarks stacked) plus one
 standalone graph per benchmark (<out>-<benchmark>.svg/.png).
@@ -39,24 +40,20 @@ GRID = "#e6e8eb"
 
 # A few very slow entries squash everyone else: on spectral-norm Python takes
 # 182s against a 0.61s leader, so every other bar is a sliver. The panel then
-# cuts its x-axis: the segment past the cut is not drawn at all, and a bar that
-# runs into it ends in a zigzag and keeps its real time as its label. The scale
-# never changes -- every bar on the chart, cut or not, is drawn at the same
-# seconds-per-inch, so bar lengths stay comparable. Where to cut is derived
-# from the data rather than fixed at some number of seconds: sort the times and
-# cut above the *lowest* neighbor-to-neighbor jump that is big enough to matter
-# and leaves only a few entries above it -- the lowest such jump, not the
-# biggest, because it is the one that wins back the most axis for the pack
-# (mandelbrot's biggest jump is Lua->Python at the very top, where cutting
-# would leave the field just as squashed).
-BREAK_JUMP = 2.5        # a jump this large can host the cut...
+# truncates its x-axis to the rest of the field -- an ordinary axis, ordinary
+# linear scale, ordinary ticks, just a shorter one -- and the entries that do
+# not fit run off the end of it, marked with an arrowhead and labeled with
+# their real time inside the bar. Where to truncate is derived from the data
+# rather than fixed at some number of seconds: sort the times and truncate
+# above the *lowest* neighbor-to-neighbor jump that is big enough to matter and
+# leaves only a few entries above it -- the lowest such jump, not the biggest,
+# because it is the one that wins back the most axis for the pack (mandelbrot's
+# biggest jump is Lua->Python at the very top, where truncating there would
+# leave the field just as squashed).
+BREAK_JUMP = 2.5        # a jump this large can host the truncation...
 BREAK_MAX_SHARE = 0.25  # ...if at most this fraction of the field is above it
 BREAK_MIN_SQUASH = 0.4  # ...and the rest is squashed into this fraction of the
                         #    axis, i.e. there is real room to be won back
-# Clear space (as a share of the pack's own range) left between the longest bar
-# that fits and the cut, so a cut bar plainly outruns it rather than looking a
-# hair longer.
-BREAK_CLEARANCE = 0.18
 
 
 def load(path):
@@ -64,11 +61,11 @@ def load(path):
         return json.load(f)
 
 
-def break_at(times):
-    """Cut the axis at this value, or None to draw every bar in full.
+def truncate_at(times):
+    """The slowest time the panel still shows, or None to show them all.
 
-    `times` must be sorted ascending. The cut sits above the last bar that
-    fits, never right against it.
+    `times` must be sorted ascending. Everything above the returned value runs
+    off the end of the axis.
     """
     slowest = times[-1] if times else 0.0
     if len(times) < 4 or slowest <= 0:
@@ -80,27 +77,16 @@ def break_at(times):
         # ...but only if the field really is being squashed; if it already
         # fills a decent share of the axis there is nothing to win back.
         if times[i - 1] / slowest <= BREAK_MIN_SQUASH:
-            return times[i - 1] * (1 + BREAK_CLEARANCE)
+            return times[i - 1]
     return None
 
 
-def draw_bar_break(ax, x, yi, height, dx):
-    """Zigzag the end of a bar that runs into the cut."""
+def draw_offchart(ax, xlim, yi, height, color):
+    """Arrowhead at the axis edge: this bar keeps going past the chart."""
     h = height / 2
-    # A white wedge eats the bar's end, with a slash fencing off each side.
-    ax.fill([x - 2.5 * dx, x - 0.5 * dx, x + 2.5 * dx, x + 0.5 * dx],
-            [yi + h, yi - h, yi - h, yi + h], color="white", zorder=4, linewidth=0)
-    for off in (-2 * dx, 2 * dx):
-        ax.plot([x + off, x + off + 2 * dx], [yi + h, yi - h], color=MUTED,
-                linewidth=0.9, zorder=5, solid_capstyle="butt")
-
-
-def draw_axis_break(ax, x, dx):
-    """The same zigzag on the x-axis itself, where it is cut."""
-    for off in (-2 * dx, 2 * dx):
-        ax.plot([x + off, x + off + 2 * dx], [-0.012, 0.012],
-                transform=ax.get_xaxis_transform(), color=MUTED, linewidth=0.9,
-                clip_on=False, zorder=5)
+    tip = xlim * 1.022
+    ax.fill([xlim, tip, xlim], [yi + h, yi, yi - h], color=color, zorder=4,
+            linewidth=0, clip_on=False)
 
 
 def panel(ax, bname, block):
@@ -125,9 +111,15 @@ def panel(ax, bname, block):
             colors.append(NEUTRAL)
 
     # A few runaway entries would squash the rest of the field into slivers, so
-    # the axis is cut short of them (see break_at); the scale is unchanged.
-    cut = break_at(times)
-    widths = [min(s, cut) for s in times] if cut else times
+    # the axis stops at the rest of the field (see truncate_at) and they run off
+    # the end of it. The axis is an ordinary one either way -- same linear
+    # scale, same ticks -- so bar lengths mean the same thing throughout.
+    shown = truncate_at(times)
+    xmax = shown if shown is not None else (max(times) if times else 1.0)
+    # The usual headroom past the longest bar is where its label goes; an
+    # off-chart bar fills it and carries its label inside itself instead.
+    xlim = xmax * 1.18
+    widths = [min(s, xlim) for s in times]
 
     # Draw top (fastest) at the top of the panel.
     ax.barh(y, widths, color=colors, height=0.68, zorder=3)
@@ -141,8 +133,7 @@ def panel(ax, bname, block):
             tick.set_color(ACCENT)
             tick.set_fontweight("bold")
 
-    xmax = max(widths) if widths else 1.0
-    ax.set_xlim(0, xmax * 1.18)
+    ax.set_xlim(0, xlim)
     for spine in ("top", "right", "left"):
         ax.spines[spine].set_visible(False)
     ax.spines["bottom"].set_color(GRID)
@@ -150,23 +141,22 @@ def panel(ax, bname, block):
     ax.tick_params(axis="y", length=0)
     ax.xaxis.grid(True, color=GRID, linewidth=1, zorder=0)
     ax.set_axisbelow(True)
-    if cut is not None:
-        # Ticks stop at the cut: past it, the axis simply isn't there.
-        ax.set_xticks([t for t in ax.get_xticks() if 0 <= t <= cut])
-        draw_axis_break(ax, cut, xmax * 0.006)
-
-    for yi, (lang, _, s, valid), w in zip(y, rows, widths):
+    for yi, (lang, _, s, valid), w, color in zip(y, rows, widths, colors):
         rel = s / fastest if fastest else 1.0
         txt = f"{s:.2f}s" + (f"  ({rel:.1f}×)" if rel >= 1.005 else "  (fastest)")
         if not valid:
             txt += "  ✗ output"
-        pad = xmax * 0.012
-        if cut is not None and s > cut:
-            draw_bar_break(ax, cut, yi, 0.68, xmax * 0.006)
-            pad = xmax * 0.030  # clear of the zigzag
-        ax.text(w + pad, yi, txt, va="center", ha="left",
-                fontsize=9, color=INK if lang == "tomo" else MUTED,
-                fontweight="bold" if lang == "tomo" else "normal", zorder=4)
+        if w >= xlim:  # runs off the chart
+            draw_offchart(ax, xlim, yi, 0.68, color)
+            # The arrowhead already says "keeps going"; the label just needs
+            # to be inside the bar, since there is no room past it.
+            ax.text(w - xmax * 0.016, yi, txt, va="center", ha="right",
+                    fontsize=9, color="white" if lang == "tomo" else INK,
+                    fontweight="bold" if lang == "tomo" else "normal", zorder=5)
+        else:
+            ax.text(w + xmax * 0.012, yi, txt, va="center", ha="left",
+                    fontsize=9, color=INK if lang == "tomo" else MUTED,
+                    fontweight="bold" if lang == "tomo" else "normal", zorder=4)
 
     args = " ".join(block.get("args", []))
     ax.set_title(f"{bname}   (n = {args})", loc="left", fontsize=13,
