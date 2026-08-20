@@ -228,10 +228,12 @@ non-numeric and `b` is numeric, or `b.scaled_by(a)` if `b` is non-numeric and
 
 ```tomo
 func divided_by(T, N -> T)
+func floor_divided_by(T, N -> T)
 ```
 
 In a division expression `a / b` the method `a.divided_by(b)` will be invoked
-if `a` has type `T` and `b` has a numeric type `N`.
+if `a` has type `T` and `b` has a numeric type `N`. A floored division
+expression `a // b` invokes `a.floor_divided_by(b)` the same way.
 
 #### Exponentiation
 

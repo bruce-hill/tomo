@@ -13,6 +13,7 @@ const int op_tightness[NUM_AST_TAGS] = {
     [Power] = 9,
     [Multiply] = 8,
     [Divide] = 8,
+    [FloorDivide] = 8,
     [Mod] = 8,
     [Mod1] = 8,
     [Plus] = 7,
@@ -43,6 +44,8 @@ const binop_info_t binop_info[NUM_AST_TAGS] = {
     [MultiplyUpdate] = {"times", "*="},
     [Divide] = {"divided_by", "/"},
     [DivideUpdate] = {"divided_by", "/="},
+    [FloorDivide] = {"floor_divided_by", "//"},
+    [FloorDivideUpdate] = {"floor_divided_by", "//="},
     [Mod] = {"modulo", "mod"},
     [ModUpdate] = {"modulo", "mod="},
     [Mod1] = {"modulo1", "mod1"},
@@ -197,6 +200,8 @@ Text_t ast_to_sexp(ast_t *ast) {
         BINOP(MultiplyUpdate);
         BINOP(Divide);
         BINOP(DivideUpdate);
+        BINOP(FloorDivide);
+        BINOP(FloorDivideUpdate);
         BINOP(Mod);
         BINOP(ModUpdate);
         BINOP(Mod1);
@@ -425,6 +430,7 @@ CONSTFUNC bool is_update_assignment(ast_t *ast) {
     case PowerUpdate:
     case MultiplyUpdate:
     case DivideUpdate:
+    case FloorDivideUpdate:
     case ModUpdate:
     case Mod1Update:
     case PlusUpdate:
@@ -446,6 +452,7 @@ CONSTFUNC ast_e binop_tag(ast_e tag) {
     case PowerUpdate: return Power;
     case MultiplyUpdate: return Multiply;
     case DivideUpdate: return Divide;
+    case FloorDivideUpdate: return FloorDivide;
     case ModUpdate: return Mod;
     case Mod1Update: return Mod1;
     case PlusUpdate: return Plus;

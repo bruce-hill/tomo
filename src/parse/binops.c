@@ -22,7 +22,10 @@ ast_e match_binary_operator(const char **pos) {
         return Minus;
     }
     case '*': *pos += 1; return Multiply;
-    case '/': *pos += 1; return Divide;
+    case '/': {
+        *pos += 1;
+        return match(pos, "/") ? FloorDivide : Divide;
+    }
     case '^': *pos += 1; return Power;
     case '<': {
         *pos += 1;

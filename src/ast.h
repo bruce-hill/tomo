@@ -141,6 +141,7 @@ struct type_ast_s {
     Power:                                                                                                             \
     case Multiply:                                                                                                     \
     case Divide:                                                                                                       \
+    case FloorDivide:                                                                                                  \
     case Mod:                                                                                                          \
     case Mod1:                                                                                                         \
     case Plus:                                                                                                         \
@@ -163,6 +164,7 @@ struct type_ast_s {
     case PowerUpdate:                                                                                                  \
     case MultiplyUpdate:                                                                                               \
     case DivideUpdate:                                                                                                 \
+    case FloorDivideUpdate:                                                                                            \
     case ModUpdate:                                                                                                    \
     case Mod1Update:                                                                                                   \
     case PlusUpdate:                                                                                                   \
@@ -179,6 +181,7 @@ struct type_ast_s {
     PowerUpdate:                                                                                                       \
     case MultiplyUpdate:                                                                                               \
     case DivideUpdate:                                                                                                 \
+    case FloorDivideUpdate:                                                                                            \
     case ModUpdate:                                                                                                    \
     case Mod1Update:                                                                                                   \
     case PlusUpdate:                                                                                                   \
@@ -207,6 +210,7 @@ typedef enum {
     Power,
     Multiply,
     Divide,
+    FloorDivide,
     Mod,
     Mod1,
     Plus,
@@ -229,6 +233,7 @@ typedef enum {
     PowerUpdate,
     MultiplyUpdate,
     DivideUpdate,
+    FloorDivideUpdate,
     ModUpdate,
     Mod1Update,
     PlusUpdate,
@@ -341,9 +346,11 @@ struct ast_s {
         struct {
             ast_list_t *targets, *values;
         } Assign;
-        binary_operands_t Power, Multiply, Divide, Mod, Mod1, Plus, Minus, Concat, LeftShift, UnsignedLeftShift,
+        binary_operands_t Power, Multiply, Divide, FloorDivide, Mod, Mod1, Plus, Minus, Concat, LeftShift,
+            UnsignedLeftShift,
             RightShift, UnsignedRightShift, Equals, NotEquals, LessThan, LessThanOrEquals, GreaterThan,
-            GreaterThanOrEquals, Compare, And, Or, Xor, PowerUpdate, MultiplyUpdate, DivideUpdate, ModUpdate,
+            GreaterThanOrEquals, Compare, And, Or, Xor, PowerUpdate, MultiplyUpdate, DivideUpdate,
+            FloorDivideUpdate, ModUpdate,
             Mod1Update, PlusUpdate, MinusUpdate, ConcatUpdate, LeftShiftUpdate, UnsignedLeftShiftUpdate,
             RightShiftUpdate, UnsignedRightShiftUpdate, AndUpdate, OrUpdate, XorUpdate;
         struct {

@@ -59,7 +59,7 @@ func main()
     # slack for a wrap-width mismatch between input and output, is always
     # enough room. Sliced (not copied) from `data` — the first indexed write
     # below triggers one bulk copy-on-write compact, not a per-byte cost.
-    out := &(data ++ [Byte(0) for _ in n / 60 + 64])
+    out := &(data ++ [Byte(0) for _ in n // 60 + 64])
     p := Int64(0)  # write cursor into `out`, shared across all records
 
     i := Int64(1)

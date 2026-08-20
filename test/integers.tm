@@ -65,7 +65,10 @@ test "division and modulo identity"
 	>> interesting_denominators := [-99, -20, -17, -1, 1, 17, 20, 99]
 	for n in interesting_numerators
 		for d in interesting_denominators
-			assert (n/d)*d + (n mod d) == n
+			assert (n//d)*d + (n mod d) == n
+			assert (n mod d) >= 0
+			# `/` is exact division, so its identity needs no modulus:
+			assert (n/d)*d == n
 
 test "primes"
 	>> 0.next_prime()
@@ -168,8 +171,14 @@ fails_compile "I don't know how to do math operations between Int and Text"
 test "dividing an integer by zero panics"
 	x := 10
 	y := 0
-	_ := x / y
+	_ := x // y
 fails "Cannot divide 10 by zero"
+
+test "exactly dividing an integer by zero panics"
+	x := 10
+	y := 0
+	_ := x / y
+fails "division by zero"
 
 test "integer modulo by zero panics"
 	x := 10
@@ -180,16 +189,16 @@ fails "Cannot take 10 modulo zero"
 test "dividing a fixed-width integer by zero panics"
 	x := Int64(10)
 	y := Int64(0)
-	_ := x / y
+	_ := x // y
 fails "Cannot divide 10 by zero"
 
 test "dividing a byte by zero panics"
 	x := Byte(10)
 	y := Byte(0)
-	_ := x / y
+	_ := x // y
 fails "Cannot divide 10 by zero"
 
 test "compound divide-assignment by zero panics"
 	x := 10
-	x /= 0
+	x //= 0
 fails "Cannot divide 10 by zero"

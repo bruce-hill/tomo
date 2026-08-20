@@ -9,8 +9,8 @@
 # Design notes:
 #   - acc/den/num/k are all `Int` (bignum). Only the digit counters (`i`, `n`)
 #     and the column index are native `Int64`, since they never grow.
-#   - Tomo integer division is Euclidean, but every operand here is
-#     non-negative, so `/` matches the reference's truncating `mpz_tdiv_q`.
+#   - Tomo's `//` is Euclidean integer division, but every operand here is
+#     non-negative, so it matches the reference's truncating `mpz_tdiv_q`.
 #   - Output is written as raw bytes through a `byte_writer` (like fasta): the
 #     ten digits of a line go into a small stack buffer, then the "\t:<count>\n"
 #     tail is appended, so there's no per-digit Text allocation. This matches
@@ -19,7 +19,7 @@
 # Usage: pidigits <n>   (n a multiple of 10, e.g. ./pidigits 10000)
 
 func extract_digit(num:Int, acc:Int, den:Int, nth:Int -> Int)
-    return (num*nth + acc) / den
+    return (num*nth + acc) // den
 
 func main(n:Int64)
     acc := Int(0)

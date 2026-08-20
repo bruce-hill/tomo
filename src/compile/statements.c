@@ -57,9 +57,14 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
     case PlusUpdate: return compile_simple_update_assignment(env, ast, "+");
     case MinusUpdate: return compile_simple_update_assignment(env, ast, "-");
     case MultiplyUpdate: return compile_simple_update_assignment(env, ast, "*");
-    case DivideUpdate: return compile_simple_update_assignment(env, ast, "/");
-    case ModUpdate: return compile_simple_update_assignment(env, ast, "%");
-
+    // No raw-C fast path for these: C's `/` and `%` truncate, but Tomo's `//`
+    // and `mod` are Euclidean, so they must go through the guarded
+    // (zero-checked, Euclidean) reconstructed binop in
+    // compile_update_assignment. (`/=` additionally changes the value's type
+    // for integer lvalues -- `/` is exact division -- which that path reports.)
+    case DivideUpdate:
+    case FloorDivideUpdate:
+    case ModUpdate:
     case PowerUpdate:
     case Mod1Update:
     case ConcatUpdate:

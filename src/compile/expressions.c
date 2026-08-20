@@ -148,6 +148,7 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Power:
     case Multiply:
     case Divide:
+    case FloorDivide:
     case Mod:
     case Mod1:
     case Plus:

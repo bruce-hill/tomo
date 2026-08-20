@@ -68,13 +68,22 @@ fit in the specified integer size (e.g. `Int8(99999)`).
 
 ## A Note on Division
 
-Unlike some other languages (including C), Tomo uses a mathematically
-consistent definition of division called [Euclidean
+Dividing two integers with `/` gives the **exact** answer as a
+[`Num`](nums.md), because that's what division means: `7/2` is `3.5` and
+`1/3` is exactly a third. The *integer* quotient is spelled `//`:
+
+```tomo
+assert 7/2 == 3.5
+assert 7//2 == 3
+```
+
+For `//` and `mod`, unlike some other languages (including C), Tomo uses a
+mathematically consistent definition called [Euclidean
 Division](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf)
 that upholds the following invariants for all inputs:
 
 ```tomo
-quotient := numerator / denominator
+quotient := numerator // denominator
 remainder := numerator mod denominator
 
 # Modulus always gives a non-negative result:
@@ -88,11 +97,11 @@ Importantly, these invariants hold for both positive and negative numerators
 and denominators. When the numerator and denominator are both positive, you
 will not notice any difference from how integer division and modulus work in
 other programming languages. However, the behavior is a bit different when
-negative numbers are involved. Integer division rounds _down_ instead of
-rounding _towards zero_, and modulus never gives negative results:
+negative numbers are involved. Floored integer division rounds _down_ instead
+of rounding _towards zero_, and modulus never gives negative results:
 
 ```tomo
-quotient := -1 / 5
+quotient := -1 // 5
 assert quotient == -1
 
 remainder := -1 mod 5
@@ -102,14 +111,18 @@ assert -1 == 5 * -1 + 4
 ```
 
 ```tomo
-quotient := 16 / -5
+quotient := 16 // -5
 assert quotient == -3
 
-remainder := -1 mod 5
+remainder := 16 mod -5
 assert remainder == 1
 
 assert 16 == -5 * -3 + 1
 ```
+
+The same two operators work on `Num`s, where `//` gives the (exact,
+integer-valued) Euclidean quotient and `mod` the non-negative remainder:
+`7.5 // 2 == 3` and `7.5 mod 2 == 1.5`.
 
 # API
 

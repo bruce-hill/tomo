@@ -131,7 +131,7 @@ env_t *global_env(bool source_mapping) {
             {"bit_xor", "Int$bit_xor", "func(x,y:Int -> Int)"}, //
             {"choose", "Int$choose", "func(x,y:Int -> Int)"}, //
             {"clamped", "Int$clamped", "func(x,low,high:Int -> Int)"}, //
-            {"divided_by", "Int$divided_by", "func(x,y:Int -> Int)"}, //
+            {"floor_divided_by", "Int$divided_by", "func(x,y:Int -> Int)"}, //
             {"factorial", "Int$factorial", "func(x:Int -> Int)"}, //
             {"gcd", "Int$gcd", "func(x,y:Int -> Int)"}, //
             {"get_bit", "Int$get_bit", "func(x,bit_index:Int -> Bool)"}, //
@@ -177,6 +177,7 @@ env_t *global_env(bool source_mapping) {
             {"cosh", "Num$cosh", "func(x:Num -> Num)"}, //
             {"digits", "Num$digits", "func(n:Num, digits=15 -> Text)"}, //
             {"divided_by", "Num$divided_by", "func(x,y:Num -> Num)"}, //
+            {"floor_divided_by", "Num$floor_divided_by", "func(x,y:Num -> Num)"}, //
             {"exp", "Num$exp", "func(x:Num -> Num)"}, //
             {"floor", "Num$floor", "func(x:Num -> Num)"}, //
             {"gcd", "Num$gcd", "func(x,y:Num -> Num?)"}, //
@@ -210,7 +211,7 @@ env_t *global_env(bool source_mapping) {
             {"abs", "labs", "func(i:Int64 -> Int64)"}, //
             {"bits", "Int64$bits", "func(x:Int64 -> [Bool])"}, //
             {"clamped", "Int64$clamped", "func(x,low,high:Int64 -> Int64)"}, //
-            {"divided_by", "Int64$divided_by", "func(x,y:Int64 -> Int64)"}, //
+            {"floor_divided_by", "Int64$divided_by", "func(x,y:Int64 -> Int64)"}, //
             {"gcd", "Int64$gcd", "func(x,y:Int64 -> Int64)"}, //
             {"parse", "Int64$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int64?)"}, //
             {"get_bit", "Int64$get_bit", "func(x:Int64, bit_index:Int -> Bool)"}, //
@@ -232,7 +233,7 @@ env_t *global_env(bool source_mapping) {
             {"abs", "abs", "func(i:Int32 -> Int32)"}, //
             {"bits", "Int32$bits", "func(x:Int32 -> [Bool])"}, //
             {"clamped", "Int32$clamped", "func(x,low,high:Int32 -> Int32)"}, //
-            {"divided_by", "Int32$divided_by", "func(x,y:Int32 -> Int32)"}, //
+            {"floor_divided_by", "Int32$divided_by", "func(x,y:Int32 -> Int32)"}, //
             {"gcd", "Int32$gcd", "func(x,y:Int32 -> Int32)"}, //
             {"parse", "Int32$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int32?)"}, //
             {"get_bit", "Int32$get_bit", "func(x:Int32, bit_index:Int -> Bool)"}, //
@@ -254,7 +255,7 @@ env_t *global_env(bool source_mapping) {
             {"abs", "abs", "func(i:Int16 -> Int16)"}, //
             {"bits", "Int16$bits", "func(x:Int16 -> [Bool])"}, //
             {"clamped", "Int16$clamped", "func(x,low,high:Int16 -> Int16)"}, //
-            {"divided_by", "Int16$divided_by", "func(x,y:Int16 -> Int16)"}, //
+            {"floor_divided_by", "Int16$divided_by", "func(x,y:Int16 -> Int16)"}, //
             {"gcd", "Int16$gcd", "func(x,y:Int16 -> Int16)"}, //
             {"parse", "Int16$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int16?)"}, //
             {"get_bit", "Int16$get_bit", "func(x:Int16, bit_index:Int -> Bool)"}, //
@@ -276,7 +277,7 @@ env_t *global_env(bool source_mapping) {
             {"abs", "abs", "func(i:Int8 -> Int8)"}, //
             {"bits", "Int8$bits", "func(x:Int8 -> [Bool])"}, //
             {"clamped", "Int8$clamped", "func(x,low,high:Int8 -> Int8)"}, //
-            {"divided_by", "Int8$divided_by", "func(x,y:Int8 -> Int8)"}, //
+            {"floor_divided_by", "Int8$divided_by", "func(x,y:Int8 -> Int8)"}, //
             {"gcd", "Int8$gcd", "func(x,y:Int8 -> Int8)"}, //
             {"parse", "Int8$parse", "func(text:Text, base:Int?=none, remainder:&Text?=none -> Int8?)"}, //
             {"get_bit", "Int8$get_bit", "func(x:Int8, bit_index:Int -> Bool)"}, //

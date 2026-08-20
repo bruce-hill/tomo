@@ -5,6 +5,31 @@ test "numeric literals are exact"
 	assert 1.1 * 3 == 3.3
 	assert 3.15 == 63/20.
 
+test "integer division with `/` is exact"
+	>> 1/3
+	assert 1/3 == 1./3.
+	assert 7/2 == 3.5
+	assert (1/3) * 3 == 1
+	assert Int64(1) / Int64(3) == 1/3
+	# The integer quotient is spelled `//`:
+	assert 7//2 == 3
+	assert 7//2 + 7 mod 2 * 0 == 3
+
+test "Euclidean division and modulus on Num"
+	# Same invariants as the integer types: x == y*(x//y) + (x mod y), with
+	# the remainder always non-negative.
+	assert 7.5 // 2 == 3
+	assert 7.5 mod 2 == 1.5
+	assert -7.5 // 2 == -4
+	assert -7.5 mod 2 == 0.5
+	assert 7.5 // -2 == -3
+	assert 7.5 mod -2 == 1.5
+	for pair in [[7.5, 2.], [-7.5, 2.], [7.5, -2.], [-7.5, -2.], [1./3., 0.25]]
+		x := pair[1]!
+		y := pair[2]!
+		assert x == y * (x // y) + (x mod y)
+		assert (x mod y) >= 0
+
 test "fractions stay exact"
 	>> 1./3.
 	assert 1./3. == 1./3.

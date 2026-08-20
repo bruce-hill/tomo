@@ -53,11 +53,9 @@ MACROLIKE Num_t Num$divided_by(Num_t x, Num_t y) { // y == 0
     if (unlikely(NUMBER_IS_ERROR(result))) Num$arithmetic_error(result);
     return result;
 }
-MACROLIKE Num_t Num$modulo(Num_t x, Num_t y) { // y == 0
-    Num_t result = number_mod(x, y);
-    if (unlikely(NUMBER_IS_ERROR(result))) Num$arithmetic_error(result);
-    return result;
-}
+// Out-of-line (nums.c): Euclidean, built on floor_divided_by, so it's not a
+// single-call wrapper like the others here.
+Num_t Num$modulo(Num_t x, Num_t y); // y == 0
 MACROLIKE Num_t Num$power(Num_t base, Num_t exponent) { // 0^negative, negative^non-integer
     Num_t result = number_pow(base, exponent);
     if (unlikely(NUMBER_IS_ERROR(result))) Num$arithmetic_error(result);
@@ -65,6 +63,7 @@ MACROLIKE Num_t Num$power(Num_t base, Num_t exponent) { // 0^negative, negative^
 }
 
 // Methods that cannot fail.
+Num_t Num$floor_divided_by(Num_t x, Num_t y);
 Num_t Num$abs(Num_t x);
 Num_t Num$sin(Num_t x);
 Num_t Num$cos(Num_t x);

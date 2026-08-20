@@ -163,6 +163,24 @@ OptionalNum_t Num$parse(Text_t text) {
     return opt(number_from_string(Text$as_c_string(text)));
 }
 
+// Euclidean division, matching the integer types: the unique integer q with
+// x == y*q + r and 0 <= r < |y|. For y > 0 that's floor(x/y); for y < 0 it's
+// ceil(x/y) (rounding down would leave a negative remainder).
+public
+Num_t Num$floor_divided_by(Num_t x, Num_t y) {
+    Num_t q = number_div(x, y);
+    if (unlikely(NUMBER_IS_ERROR(q))) Num$arithmetic_error(q);
+    return number_is_negative(y) ? Num$ceil(q) : Num$floor(q);
+}
+
+// Euclidean modulus, matching the integer types: always non-negative,
+// upholding x == y*(x//y) + (x mod y) exactly. (number_mod is *floored* --
+// its result takes the divisor's sign -- so it can't be used directly.)
+public
+Num_t Num$modulo(Num_t x, Num_t y) {
+    return Num$minus(x, Num$times(y, Num$floor_divided_by(x, y)));
+}
+
 // --- Comparison helpers ---
 
 public

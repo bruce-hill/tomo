@@ -1348,6 +1348,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     case Power:
     case Multiply:
     case Divide:
+    case FloorDivide:
     case Mod:
     case Mod1:
     case Plus:
@@ -1365,6 +1366,11 @@ type_t *get_type(env_t *env, ast_t *ast) {
             if (!is_int_type(rhs_t))
                 code_err(binop.rhs, "I only know how to do bit shifting by integer amounts, not ", type_to_text(rhs_t));
         }
+
+        // `/` is exact division: dividing two integers gives the exact answer
+        // (a Num), not a rounded-down integer. The integer quotient is spelled
+        // `//` (Euclidean division), which keeps its operands' type.
+        if (ast->tag == Divide && is_int_type(lhs_t) && is_int_type(rhs_t)) return Type(NumType);
 
         if (is_numeric_type(lhs_t) && binop.rhs->tag == Int) {
             return lhs_t;
@@ -1404,7 +1410,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
                     if (is_valid_call(env, fn->args, args, (call_opts_t){.promotion = true})) return lhs_t;
                 }
             }
-        } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
+        } else if ((ast->tag == Divide || ast->tag == FloorDivide || ast->tag == Mod || ast->tag == Mod1)
+                   && is_numeric_type(rhs_t)) {
             binding_t *b = get_namespace_binding(env, binop.lhs, binop_info[ast->tag].method_name);
             if (b && b->type->tag == FunctionType) {
                 DeclareMatch(fn, b->type, FunctionType);
@@ -1996,6 +2003,7 @@ PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target) {
     case Power: return target == NULL || target->tag == FloatType;
     case Multiply:
     case Divide:
+    case FloorDivide:
     case Mod:
     case Mod1:
     case Plus:

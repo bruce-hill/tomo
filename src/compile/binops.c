@@ -36,7 +36,7 @@ static Text_t compile_checked_int_divmod(env_t *env, ast_t *ast, type_t *overall
 
     Text_t op_code;
     if (overall_t->tag == ByteType) {
-        op_code = ast->tag == Divide ? Text("($numerator / $divisor)")
+        op_code = ast->tag == FloorDivide ? Text("($numerator / $divisor)")
                 : ast->tag == Mod    ? Text("($numerator % $divisor)")
                                      : Text("((($numerator - 1) % $divisor) + 1)");
     } else {
@@ -46,8 +46,8 @@ static Text_t compile_checked_int_divmod(env_t *env, ast_t *ast, type_t *overall
 
     // Report the numerator in the error message, matching the detail of other runtime errors:
     Text_t numerator = overall_t->tag == BigIntType ? Text("$numerator") : Text("(int64_t)($numerator)");
-    const char *prefix = ast->tag == Divide ? "Cannot divide " : "Cannot take ";
-    const char *suffix = ast->tag == Divide ? " by zero\\n" : " modulo zero\\n";
+    const char *prefix = ast->tag == FloorDivide ? "Cannot divide " : "Cannot take ";
+    const char *suffix = ast->tag == FloorDivide ? " by zero\\n" : " modulo zero\\n";
     Text_t message = Texts("Texts(Text(\"", prefix, "\"), ", numerator, ", Text(\"", suffix, "\"))");
 
     return Texts("({ ", compile_declaration(overall_t, Text("$numerator")), " = ", lhs, ";\n",
@@ -73,9 +73,16 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
     type_t *lhs_t = get_type(env, binop.lhs);
     type_t *rhs_t = get_type(env, binop.rhs);
 
-    if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1)
+    if ((ast->tag == FloorDivide || ast->tag == Mod || ast->tag == Mod1)
         && (overall_t->tag == IntType || overall_t->tag == BigIntType || overall_t->tag == ByteType))
         return compile_checked_int_divmod(env, ast, overall_t);
+
+    // `/` on integers is exact: both operands convert to Num (losslessly) and
+    // the division happens there. The typechecker picked NumType for exactly
+    // this case; Num/Num operands take the metamethod path below instead.
+    if (ast->tag == Divide && overall_t->tag == NumType && (get_type(env, binop.lhs)->tag != NumType || get_type(env, binop.rhs)->tag != NumType))
+        return Texts("Num$divided_by(", compile_to_type(env, binop.lhs, overall_t), ", ",
+                     compile_to_type(env, binop.rhs, overall_t), ")");
 
     binding_t *b = get_metamethod_binding(env, ast->tag, binop.lhs, binop.rhs, overall_t);
     if (!b) b = get_metamethod_binding(env, ast->tag, binop.rhs, binop.lhs, overall_t);
@@ -115,7 +122,8 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
                     return Texts(b->code, "(", compile_arguments(env, ast, fn->args, args), ")");
             }
         }
-    } else if ((ast->tag == Divide || ast->tag == Mod || ast->tag == Mod1) && is_numeric_type(rhs_t)) {
+    } else if ((ast->tag == Divide || ast->tag == FloorDivide || ast->tag == Mod || ast->tag == Mod1)
+               && is_numeric_type(rhs_t)) {
         b = get_namespace_binding(env, binop.lhs, binop_info[ast->tag].method_name);
         if (b && b->type->tag == FunctionType) {
             DeclareMatch(fn, b->type, FunctionType);
@@ -254,6 +262,10 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         else
             code_err(ast, "The 'and' operator isn't supported between ", type_to_text(lhs_t), " and ",
                      type_to_text(rhs_t), " values");
+    }
+    case FloorDivide: {
+        code_err(ast, "Floored division (`//`) is only supported for integer and Num values, not ",
+                 type_to_text(overall_t));
     }
     case Compare: {
         return Texts("generic_compare(stack(", lhs, "), stack(", rhs, "), ", compile_type_info(overall_t), ")");

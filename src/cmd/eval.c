@@ -42,6 +42,7 @@ static bool prints_a_value(ast_e tag) {
     case PowerUpdate:
     case MultiplyUpdate:
     case DivideUpdate:
+    case FloorDivideUpdate:
     case ModUpdate:
     case Mod1Update:
     case PlusUpdate:

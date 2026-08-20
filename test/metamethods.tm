@@ -15,7 +15,7 @@ struct Vec2{x,y:Int}
         return Vec2{a.x*b.x, a.y*b.y}
 
     func divided_by(a:Vec2, k:Int -> Vec2; inline)
-        return Vec2{a.x/k, a.y/k}
+        return Vec2{a.x//k, a.y//k}
 
     func negative(v:Vec2 -> Vec2; inline)
         return Vec2{-v.x, -v.y}

@@ -82,6 +82,7 @@ ast_t *parse_update(parse_ctx_t *ctx, const char *pos) {
     else if (match(&pos, "++=")) op = ConcatUpdate;
     else if (match(&pos, "-=")) op = MinusUpdate;
     else if (match(&pos, "*=")) op = MultiplyUpdate;
+    else if (match(&pos, "//=")) op = FloorDivideUpdate;
     else if (match(&pos, "/=")) op = DivideUpdate;
     else if (match(&pos, "^=")) op = PowerUpdate;
     else if (match(&pos, "<<=")) op = LeftShiftUpdate;

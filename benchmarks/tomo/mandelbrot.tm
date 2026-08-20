@@ -23,7 +23,7 @@ func main(n:Int64)
     emit := (/dev/stdout).byte_writer(append=yes)
     emit("P4\n$size $size\n".utf8())!
 
-    row_bytes := (size + 7) / 8
+    row_bytes := (size + 7) // 8
     buf := &[Byte(0) for _ in row_bytes]  # one packed row; reused each y
     for y in Int64(0).to(size - 1)
         ci := inv * Float64(y) - 1.0
