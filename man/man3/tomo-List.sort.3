@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.sort 3 2026-03-08 "Tomo man-pages"
+.TH List.sort 3 2026-08-20 "Tomo man-pages"
 .SH NAME
 List.sort \- sort a list
 .SH LIBRARY
@@ -34,7 +34,7 @@ list := &[40, 10, -30, 20]
 list.sort()
 assert list == [-30, 10, 20, 40]
 
-list.sort(func(a,b:&Int) a.abs() <> b.abs())
+list.sort(func(a,b:Int) a.abs() <> b.abs())
 assert list == [10, 20, -30, 40]
 .EE
 .SH SEE ALSO

@@ -153,7 +153,7 @@ target | `T` | The element to check for.  | -
 
 **Example:**
 ```tomo
-assert [10, 20, 30].has(20) == yes
+assert [10, 20, 30].has(20)
 
 ```
 ## List.heap_pop

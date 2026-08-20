@@ -389,8 +389,8 @@ Num.isfinite:
       description: >
         The number to be checked.
   example: |
-    assert (1.0).isfinite() == yes
-    assert Num.INF.isfinite() == no
+    assert (1.0).isfinite()
+    assert not Num.INF.isfinite()
 
 Num.is_between:
   short: check if a number is in a range
@@ -414,10 +414,10 @@ Num.is_between:
       description: >
         The other end of the range to check (inclusive).
   example: |
-    assert (7.5).is_between(1, 10) == yes
-    assert (7.5).is_between(10, 1) == yes
-    assert (7.5).is_between(100, 200) == no
-    assert (7.5).is_between(1, 7.5) == yes
+    assert (7.5).is_between(1, 10)
+    assert (7.5).is_between(10, 1)
+    assert not (7.5).is_between(100, 200)
+    assert (7.5).is_between(1, 7.5)
 
 Num.isinf:
   short: check for infinite number
@@ -433,8 +433,8 @@ Num.isinf:
       description: >
         The number to be checked.
   example: |
-    assert Num.INF.isinf() == yes
-    assert (1.0).isinf() == no
+    assert Num.INF.isinf()
+    assert not (1.0).isinf()
 
 Num.j0:
   short: Bessel function
@@ -603,9 +603,9 @@ Num.near:
       description: >
         The absolute tolerance. Default is `1e-9`.
   example: |
-    assert (1.0).near(1.000000001) == yes
-    assert (100.0).near(110, ratio=0.1) == yes
-    assert (5.0).near(5.1, min_epsilon=0.1) == yes
+    assert (1.0).near(1.000000001)
+    assert (100.0).near(110, ratio=0.1)
+    assert (5.0).near(5.1, min_epsilon=0.1)
 
 Num.nextafter:
   short: next floating point number

@@ -29,8 +29,8 @@ n	Num	The number to be checked.
 
 .SH EXAMPLES
 .EX
-assert (1.0).isfinite() == yes
-assert Num.INF.isfinite() == no
+assert (1.0).isfinite()
+assert not Num.INF.isfinite()
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

@@ -40,10 +40,10 @@ assert (+: [10, 20, 30])! == 60
 assert (*: [2, 3, 4])! == 24
 
 # Any:
-assert (or: [no, yes, no])! == yes
+assert (or: [no, yes, no])!
 
 # All:
-assert (and: [no, yes, no])! == no
+assert not (and: [no, yes, no])!
 ```
 
 ## Minimum and Maximum
@@ -76,8 +76,8 @@ You can also use suffixes on other operators:
 
 ```tomo
 texts := ["x", "y", "z"]
-assert (==: texts) == no
-assert (==.length: texts) == yes
+assert not (==: texts)
+assert (==.length: texts)
 assert (+.length: texts) == 3
 
 nums := [1, 2, -3]

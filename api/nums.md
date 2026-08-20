@@ -580,10 +580,10 @@ high | `Num` | The other end of the range to check (inclusive).  | -
 
 **Example:**
 ```tomo
-assert (7.5).is_between(1, 10) == yes
-assert (7.5).is_between(10, 1) == yes
-assert (7.5).is_between(100, 200) == no
-assert (7.5).is_between(1, 7.5) == yes
+assert (7.5).is_between(1, 10)
+assert (7.5).is_between(10, 1)
+assert not (7.5).is_between(100, 200)
+assert (7.5).is_between(1, 7.5)
 
 ```
 ## Num.isfinite
@@ -603,8 +603,8 @@ n | `Num` | The number to be checked.  | -
 
 **Example:**
 ```tomo
-assert (1.0).isfinite() == yes
-assert Num.INF.isfinite() == no
+assert (1.0).isfinite()
+assert not Num.INF.isfinite()
 
 ```
 ## Num.isinf
@@ -624,8 +624,8 @@ n | `Num` | The number to be checked.  | -
 
 **Example:**
 ```tomo
-assert Num.INF.isinf() == yes
-assert (1.0).isinf() == no
+assert Num.INF.isinf()
+assert not (1.0).isinf()
 
 ```
 ## Num.j0
@@ -811,9 +811,9 @@ min_epsilon | `Num` | The absolute tolerance. Default is `1e-9`.  | `1e-9`
 
 **Example:**
 ```tomo
-assert (1.0).near(1.000000001) == yes
-assert (100.0).near(110, ratio=0.1) == yes
-assert (5.0).near(5.1, min_epsilon=0.1) == yes
+assert (1.0).near(1.000000001)
+assert (100.0).near(110, ratio=0.1)
+assert (5.0).near(5.1, min_epsilon=0.1)
 
 ```
 ## Num.nextafter

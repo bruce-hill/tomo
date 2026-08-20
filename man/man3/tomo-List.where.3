@@ -2,14 +2,14 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.where 3 2026-03-08 "Tomo man-pages"
+.TH List.where 3 2026-08-20 "Tomo man-pages"
 .SH NAME
 List.where \- find an index where a predicate matches
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI List.where\ :\ func(list:\ [T],\ predicate:\ func(item:&T\ ->\ Bool)\ ->\ Int)
+.BI List.where\ :\ func(list:\ [T],\ predicate:\ func(item:T\ ->\ Bool)\ ->\ Int)
 .fi
 .SH DESCRIPTION
 Find the index of the first item that matches a predicate function (if any).
@@ -23,15 +23,15 @@ lb lb lbx
 l l l.
 Name	Type	Description
 list	[T]	The list to search through. 
-predicate	func(item:&T -> Bool)	A function that returns \fByes\fR if the item's index should be returned or \fBno\fR if it should not. 
+predicate	func(item:T -> Bool)	A function that returns \fByes\fR if the item's index should be returned or \fBno\fR if it should not. 
 .TE
 .SH RETURN
 Returns the index of the first item where the predicate is true or `none` if no item matches.
 
 .SH EXAMPLES
 .EX
-assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("A")) == 2
-assert ["BC", "ABC", "CD"].where(func(t:&Text) t.starts_with("X")) == none
+assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("A")) == 2
+assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("X")) == none
 .EE
 .SH SEE ALSO
 .BR Tomo-List (3)

@@ -30,8 +30,8 @@ target	Text	The text to search for.
 
 .SH EXAMPLES
 .EX
-assert "hello world".has("wo") == yes
-assert "hello world".has("xxx") == no
+assert "hello world".has("wo")
+assert not "hello world".has("xxx")
 .EE
 .SH SEE ALSO
 .BR Tomo-Text (3)

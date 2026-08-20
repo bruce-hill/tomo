@@ -31,10 +31,10 @@ language	Text	The ISO 639 language code for which casing rules to use. 	"C"
 
 .SH EXAMPLES
 .EX
-assert "A".caseless_equals("a") == yes
+assert "A".caseless_equals("a")
 
 # Turkish lowercase "I" is "ı" (dotless I), not "i"
-assert "I".caseless_equals("i", language="tr_TR") == no
+assert not "I".caseless_equals("i", language="tr_TR")
 .EE
 .SH SEE ALSO
 .BR Tomo-Text (3)

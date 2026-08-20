@@ -23,10 +23,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed, range 1-8).  | -
 
 **Example:**
 ```tomo
-assert Byte(6).get_bit(1) == no
-assert Byte(6).get_bit(2) == yes
-assert Byte(6).get_bit(3) == yes
-assert Byte(6).get_bit(4) == no
+assert not Byte(6).get_bit(1)
+assert Byte(6).get_bit(2)
+assert Byte(6).get_bit(3)
+assert not Byte(6).get_bit(4)
 
 ```
 ## Byte.hex
@@ -70,10 +70,10 @@ high | `Byte` | The other end of the range to check (inclusive);  | -
 
 **Example:**
 ```tomo
-assert Byte(7).is_between(1, 10) == yes
-assert Byte(7).is_between(10, 1) == yes
-assert Byte(7).is_between(100, 200) == no
-assert Byte(7).is_between(1, 7) == yes
+assert Byte(7).is_between(1, 10)
+assert Byte(7).is_between(10, 1)
+assert not Byte(7).is_between(100, 200)
+assert Byte(7).is_between(1, 7)
 
 ```
 ## Byte.parse

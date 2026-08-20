@@ -30,7 +30,7 @@ A unique directory path after creating the directory.
 .SH EXAMPLES
 .EX
 created := (/tmp/my-dir.XXXXXX).unique_directory()
-assert created.is_directory() == yes
+assert created.is_directory()
 created.remove()!
 .EE
 .SH SEE ALSO

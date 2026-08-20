@@ -31,10 +31,10 @@ b	Int	The other end of the range to check (inclusive).
 
 .SH EXAMPLES
 .EX
-assert 7.is_between(1, 10) == yes
-assert 7.is_between(10, 1) == yes
-assert 7.is_between(100, 200) == no
-assert 7.is_between(1, 7) == yes
+assert 7.is_between(1, 10)
+assert 7.is_between(10, 1)
+assert not 7.is_between(100, 200)
+assert 7.is_between(1, 7)
 .EE
 .SH SEE ALSO
 .BR Tomo-Int (3)

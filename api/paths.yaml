@@ -165,9 +165,9 @@ Path.can_execute:
       description: >
         The path of the file to check.
   example: |
-    assert (/bin/sh).can_execute() == yes
-    assert (/usr/include/stdlib.h).can_execute() == no
-    assert (/non/existant/file).can_execute() == no
+    assert (/bin/sh).can_execute()
+    assert not (/usr/include/stdlib.h).can_execute()
+    assert not (/non/existant/file).can_execute()
 
 Path.can_read:
   short: check read permissions
@@ -183,9 +183,9 @@ Path.can_read:
       description: >
         The path of the file to check.
   example: |
-    assert (/usr/include/stdlib.h).can_read() == yes
-    assert (/etc/shadow).can_read() == no
-    assert (/non/existant/file).can_read() == no
+    assert (/usr/include/stdlib.h).can_read()
+    assert not (/etc/shadow).can_read()
+    assert not (/non/existant/file).can_read()
 
 Path.can_write:
   short: check write permissions
@@ -201,9 +201,9 @@ Path.can_write:
       description: >
         The path of the file to check.
   example: |
-    assert (/tmp).can_write() == yes
-    assert (/etc/passwd).can_write() == no
-    assert (/non/existant/file).can_write() == no
+    assert (/tmp).can_write()
+    assert not (/etc/passwd).can_write()
+    assert not (/non/existant/file).can_write()
 
 Path.changed:
   short: get the last changed time
@@ -378,7 +378,7 @@ Path.exists:
       description: >
         The path to check.
   example: |
-    assert (/).exists() == yes
+    assert (/).exists()
 
 Path.expand_home:
   short: 'expand ~ to $HOME'
@@ -523,10 +523,10 @@ Path.has_extension:
         A file extension (leading `.` is optional). If empty, the check will
         test if the file does not have any file extension.
   example: |
-    assert (/foo.txt).has_extension("txt") == yes
-    assert (/foo.txt).has_extension(".txt") == yes
-    assert (/foo.tar.gz).has_extension("gz") == yes
-    assert (/foo.tar.gz).has_extension("zip") == no
+    assert (/foo.txt).has_extension("txt")
+    assert (/foo.txt).has_extension(".txt")
+    assert (/foo.tar.gz).has_extension("gz")
+    assert not (/foo.tar.gz).has_extension("zip")
 
 Path.is_directory:
   short: check if a path is a directory
@@ -546,8 +546,8 @@ Path.is_directory:
       description: >
         Whether to follow symbolic links.
   example: |
-    assert (./directory/).is_directory() == yes
-    assert (./file.txt).is_directory() == no
+    assert (./directory/).is_directory()
+    assert not (./file.txt).is_directory()
 
 Path.is_file:
   short: check if a path is a file
@@ -567,8 +567,8 @@ Path.is_file:
       description: >
         Whether to follow symbolic links.
   example: |
-    assert (./file.txt).is_file() == yes
-    assert (./directory/).is_file() == no
+    assert (./file.txt).is_file()
+    assert not (./directory/).is_file()
 
 Path.is_socket:
   short: check if a path is a socket
@@ -588,7 +588,7 @@ Path.is_socket:
       description: >
         Whether to follow symbolic links.
   example: |
-    assert (./socket).is_socket() == yes
+    assert (./socket).is_socket()
 
 Path.is_symlink:
   short: check if a path is a symbolic link
@@ -604,7 +604,7 @@ Path.is_symlink:
       description: >
         The path to check.
   example: |
-    assert (./link).is_symlink() == yes
+    assert (./link).is_symlink()
 
 Path.matches_glob:
   short: check if a path matches a glob
@@ -906,7 +906,7 @@ Path.unique_directory:
         The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.
   example: |
     created := (/tmp/my-dir.XXXXXX).unique_directory()
-    assert created.is_directory() == yes
+    assert created.is_directory()
     created.remove()!
 
 Path.walk:

@@ -144,8 +144,8 @@ key | `K` | The key to check for presence.  | -
 
 **Example:**
 ```tomo
-assert {"A": 1, "B": 2}.has("A") == yes
-assert {"A": 1, "B": 2}.has("xxx") == no
+assert {"A": 1, "B": 2}.has("A")
+assert not {"A": 1, "B": 2}.has("xxx")
 
 ```
 ## Table.intersection

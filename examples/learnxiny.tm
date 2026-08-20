@@ -245,8 +245,8 @@ func demo_structs()
     # Comparisons, conversion to text, and hashing are all handled
     # automatically when you create a struct:
     bob := Person{"Bob", 30}
-    assert alice == bob == no
-    assert "$alice" == 'Person{name="Alice", age=30}' == yes
+    assert not alice == bob
+    assert "$alice" == 'Person{name="Alice", age=30}'
     table := {alice: "first", bob: "second"}
     assert table[alice]! == "first"
 
@@ -282,8 +282,8 @@ func demo_enums()
 
     # Similar to structs, enums automatically define comparisons, conversion
     # to text, and hashing:
-    assert my_shape == other_shape == no
-    assert "$my_shape" == "Circle{1}" == yes
+    assert not my_shape == other_shape
+    assert "$my_shape" == "Circle{1}"
     assert {my_shape: "nice"} == {Shape.Circle{1}: "nice"}
 
 func demo_lambdas()

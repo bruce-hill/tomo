@@ -30,8 +30,8 @@ follow_symlinks		Whether to follow symbolic links. 	yes
 
 .SH EXAMPLES
 .EX
-assert (./file.txt).is_file() == yes
-assert (./directory/).is_file() == no
+assert (./file.txt).is_file()
+assert not (./directory/).is_file()
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

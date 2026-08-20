@@ -144,10 +144,10 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
-assert "A".caseless_equals("a") == yes
+assert "A".caseless_equals("a")
 
 # Turkish lowercase "I" is "ı" (dotless I), not "i"
-assert "I".caseless_equals("i", language="tr_TR") == no
+assert not "I".caseless_equals("i", language="tr_TR")
 
 ```
 ## Text.codepoint_names
@@ -223,9 +223,9 @@ remainder | `&Text?` | If non-none, this value will be set to the rest of the te
 
 **Example:**
 ```tomo
-assert "hello world".ends_with("world") == yes
+assert "hello world".ends_with("world")
 remainder : Text
-assert "hello world".ends_with("world", &remainder) == yes
+assert "hello world".ends_with("world", &remainder)
 assert remainder == "hello "
 
 ```
@@ -410,8 +410,8 @@ target | `Text` | The text to search for.  | -
 
 **Example:**
 ```tomo
-assert "hello world".has("wo") == yes
-assert "hello world".has("xxx") == no
+assert "hello world".has("wo")
+assert not "hello world".has("xxx")
 
 ```
 ## Text.join
@@ -753,9 +753,9 @@ remainder | `&Text?` | If non-none, this value will be set to the rest of the te
 
 **Example:**
 ```tomo
-assert "hello world".starts_with("hello") == yes
+assert "hello world".starts_with("hello")
 remainder : Text
-assert "hello world".starts_with("hello", &remainder) == yes
+assert "hello world".starts_with("hello", &remainder)
 assert remainder == " world"
 
 ```

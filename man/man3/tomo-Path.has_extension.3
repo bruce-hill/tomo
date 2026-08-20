@@ -30,10 +30,10 @@ Whether or not the path has the given extension.
 
 .SH EXAMPLES
 .EX
-assert (/foo.txt).has_extension("txt") == yes
-assert (/foo.txt).has_extension(".txt") == yes
-assert (/foo.tar.gz).has_extension("gz") == yes
-assert (/foo.tar.gz).has_extension("zip") == no
+assert (/foo.txt).has_extension("txt")
+assert (/foo.txt).has_extension(".txt")
+assert (/foo.tar.gz).has_extension("gz")
+assert not (/foo.tar.gz).has_extension("zip")
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

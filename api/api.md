@@ -256,10 +256,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed, range 1-8).  | -
 
 **Example:**
 ```tomo
-assert Byte(6).get_bit(1) == no
-assert Byte(6).get_bit(2) == yes
-assert Byte(6).get_bit(3) == yes
-assert Byte(6).get_bit(4) == no
+assert not Byte(6).get_bit(1)
+assert Byte(6).get_bit(2)
+assert Byte(6).get_bit(3)
+assert not Byte(6).get_bit(4)
 
 ```
 ## Byte.hex
@@ -303,10 +303,10 @@ high | `Byte` | The other end of the range to check (inclusive);  | -
 
 **Example:**
 ```tomo
-assert Byte(7).is_between(1, 10) == yes
-assert Byte(7).is_between(10, 1) == yes
-assert Byte(7).is_between(100, 200) == no
-assert Byte(7).is_between(1, 7) == yes
+assert Byte(7).is_between(1, 10)
+assert Byte(7).is_between(10, 1)
+assert not Byte(7).is_between(100, 200)
+assert Byte(7).is_between(1, 7)
 
 ```
 ## Byte.parse
@@ -515,10 +515,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed).  | -
 
 **Example:**
 ```tomo
-assert 6.get_bit(1) == no
-assert 6.get_bit(2) == yes
-assert 6.get_bit(3) == yes
-assert 6.get_bit(4) == no
+assert not 6.get_bit(1)
+assert 6.get_bit(2)
+assert 6.get_bit(3)
+assert not 6.get_bit(4)
 
 ```
 ## Int.hex
@@ -563,10 +563,10 @@ b | `Int` | The other end of the range to check (inclusive).  | -
 
 **Example:**
 ```tomo
-assert 7.is_between(1, 10) == yes
-assert 7.is_between(10, 1) == yes
-assert 7.is_between(100, 200) == no
-assert 7.is_between(1, 7) == yes
+assert 7.is_between(1, 10)
+assert 7.is_between(10, 1)
+assert not 7.is_between(100, 200)
+assert 7.is_between(1, 7)
 
 ```
 ## Int.is_prime
@@ -589,8 +589,8 @@ reps | `Int` | The number of repetitions for primality tests.  | `50`
 
 **Example:**
 ```tomo
-assert 7.is_prime() == yes
-assert 6.is_prime() == no
+assert 7.is_prime()
+assert not 6.is_prime()
 
 ```
 ## Int.next_prime
@@ -658,7 +658,7 @@ step | `Int` | The increment step size.  | `1`
 nums : &[Int] = &[]
 for i in 5.onward()
     nums.insert(i)
-    stop if i == 10
+    break if i == 10
 assert nums[] == [5, 6, 7, 8, 9, 10]
 
 ```
@@ -902,7 +902,7 @@ target | `T` | The element to check for.  | -
 
 **Example:**
 ```tomo
-assert [10, 20, 30].has(20) == yes
+assert [10, 20, 30].has(20)
 
 ```
 ## List.heap_pop
@@ -1998,10 +1998,10 @@ high | `Num` | The other end of the range to check (inclusive).  | -
 
 **Example:**
 ```tomo
-assert (7.5).is_between(1, 10) == yes
-assert (7.5).is_between(10, 1) == yes
-assert (7.5).is_between(100, 200) == no
-assert (7.5).is_between(1, 7.5) == yes
+assert (7.5).is_between(1, 10)
+assert (7.5).is_between(10, 1)
+assert not (7.5).is_between(100, 200)
+assert (7.5).is_between(1, 7.5)
 
 ```
 ## Num.isfinite
@@ -2021,8 +2021,8 @@ n | `Num` | The number to be checked.  | -
 
 **Example:**
 ```tomo
-assert (1.0).isfinite() == yes
-assert Num.INF.isfinite() == no
+assert (1.0).isfinite()
+assert not Num.INF.isfinite()
 
 ```
 ## Num.isinf
@@ -2042,8 +2042,8 @@ n | `Num` | The number to be checked.  | -
 
 **Example:**
 ```tomo
-assert Num.INF.isinf() == yes
-assert (1.0).isinf() == no
+assert Num.INF.isinf()
+assert not (1.0).isinf()
 
 ```
 ## Num.j0
@@ -2229,9 +2229,9 @@ min_epsilon | `Num` | The absolute tolerance. Default is `1e-9`.  | `1e-9`
 
 **Example:**
 ```tomo
-assert (1.0).near(1.000000001) == yes
-assert (100.0).near(110, ratio=0.1) == yes
-assert (5.0).near(5.1, min_epsilon=0.1) == yes
+assert (1.0).near(1.000000001)
+assert (100.0).near(110, ratio=0.1)
+assert (5.0).near(5.1, min_epsilon=0.1)
 
 ```
 ## Num.nextafter
@@ -2731,9 +2731,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
-assert (/bin/sh).can_execute() == yes
-assert (/usr/include/stdlib.h).can_execute() == no
-assert (/non/existant/file).can_execute() == no
+assert (/bin/sh).can_execute()
+assert not (/usr/include/stdlib.h).can_execute()
+assert not (/non/existant/file).can_execute()
 
 ```
 ## Path.can_read
@@ -2753,9 +2753,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
-assert (/usr/include/stdlib.h).can_read() == yes
-assert (/etc/shadow).can_read() == no
-assert (/non/existant/file).can_read() == no
+assert (/usr/include/stdlib.h).can_read()
+assert not (/etc/shadow).can_read()
+assert not (/non/existant/file).can_read()
 
 ```
 ## Path.can_write
@@ -2775,9 +2775,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
-assert (/tmp).can_write() == yes
-assert (/etc/passwd).can_write() == no
-assert (/non/existant/file).can_write() == no
+assert (/tmp).can_write()
+assert not (/etc/passwd).can_write()
+assert not (/non/existant/file).can_write()
 
 ```
 ## Path.changed
@@ -2968,7 +2968,7 @@ path | `Path` | The path to check.  | -
 
 **Example:**
 ```tomo
-assert (/).exists() == yes
+assert (/).exists()
 
 ```
 ## Path.expand_home
@@ -3112,10 +3112,10 @@ extension | `Text` | A file extension (leading `.` is optional). If empty, the c
 
 **Example:**
 ```tomo
-assert (/foo.txt).has_extension("txt") == yes
-assert (/foo.txt).has_extension(".txt") == yes
-assert (/foo.tar.gz).has_extension("gz") == yes
-assert (/foo.tar.gz).has_extension("zip") == no
+assert (/foo.txt).has_extension("txt")
+assert (/foo.txt).has_extension(".txt")
+assert (/foo.tar.gz).has_extension("gz")
+assert not (/foo.tar.gz).has_extension("zip")
 
 ```
 ## Path.is_directory
@@ -3136,8 +3136,8 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./directory/).is_directory() == yes
-assert (./file.txt).is_directory() == no
+assert (./directory/).is_directory()
+assert not (./file.txt).is_directory()
 
 ```
 ## Path.is_file
@@ -3158,8 +3158,8 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).is_file() == yes
-assert (./directory/).is_file() == no
+assert (./file.txt).is_file()
+assert not (./directory/).is_file()
 
 ```
 ## Path.is_socket
@@ -3180,7 +3180,7 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./socket).is_socket() == yes
+assert (./socket).is_socket()
 
 ```
 ## Path.is_symlink
@@ -3200,7 +3200,7 @@ path | `Path` | The path to check.  | -
 
 **Example:**
 ```tomo
-assert (./link).is_symlink() == yes
+assert (./link).is_symlink()
 
 ```
 ## Path.lines
@@ -3523,7 +3523,7 @@ path | `Path` | The base path for generating the unique directory. The last six 
 **Example:**
 ```tomo
 created := (/tmp/my-dir.XXXXXX).unique_directory()
-assert created.is_directory() == yes
+assert created.is_directory()
 created.remove()!
 
 ```
@@ -3816,8 +3816,8 @@ key | `K` | The key to check for presence.  | -
 
 **Example:**
 ```tomo
-assert {"A": 1, "B": 2}.has("A") == yes
-assert {"A": 1, "B": 2}.has("xxx") == no
+assert {"A": 1, "B": 2}.has("A")
+assert not {"A": 1, "B": 2}.has("xxx")
 
 ```
 ## Table.intersection
@@ -4104,10 +4104,10 @@ language | `Text` | The ISO 639 language code for which casing rules to use.  | 
 
 **Example:**
 ```tomo
-assert "A".caseless_equals("a") == yes
+assert "A".caseless_equals("a")
 
 # Turkish lowercase "I" is "ı" (dotless I), not "i"
-assert "I".caseless_equals("i", language="tr_TR") == no
+assert not "I".caseless_equals("i", language="tr_TR")
 
 ```
 ## Text.codepoint_names
@@ -4183,9 +4183,9 @@ remainder | `&Text?` | If non-none, this value will be set to the rest of the te
 
 **Example:**
 ```tomo
-assert "hello world".ends_with("world") == yes
+assert "hello world".ends_with("world")
 remainder : Text
-assert "hello world".ends_with("world", &remainder) == yes
+assert "hello world".ends_with("world", &remainder)
 assert remainder == "hello "
 
 ```
@@ -4370,8 +4370,8 @@ target | `Text` | The text to search for.  | -
 
 **Example:**
 ```tomo
-assert "hello world".has("wo") == yes
-assert "hello world".has("xxx") == no
+assert "hello world".has("wo")
+assert not "hello world".has("xxx")
 
 ```
 ## Text.join
@@ -4713,9 +4713,9 @@ remainder | `&Text?` | If non-none, this value will be set to the rest of the te
 
 **Example:**
 ```tomo
-assert "hello world".starts_with("hello") == yes
+assert "hello world".starts_with("hello")
 remainder : Text
-assert "hello world".starts_with("hello", &remainder) == yes
+assert "hello world".starts_with("hello", &remainder)
 assert remainder == " world"
 
 ```

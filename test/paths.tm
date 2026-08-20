@@ -54,7 +54,7 @@ test "reading and writing files"
     >> tmpfile.remove()!
 
     >> tmpdir.files().has(tmpfile)
-    assert tmpdir.files().has(tmpfile) == no
+    assert not tmpdir.files().has(tmpfile)
 
     >> tmpdir.remove()!
 
@@ -68,14 +68,14 @@ test "path components"
     assert p.parent() == /foo/baz.x
     assert p.extension() == "tar.gz"
     assert p.extension(full=no) == "gz"
-    assert p.has_extension("gz") == yes
-    assert p.has_extension(".gz") == yes
-    assert p.has_extension("tar.gz") == yes
-    assert p.has_extension("txt") == no
-    assert p.has_extension("") == no
-    assert (./foo).has_extension("") == yes
-    assert (..).has_extension("") == yes
-    assert (~/.foo).has_extension("foo") == no
+    assert p.has_extension("gz")
+    assert p.has_extension(".gz")
+    assert p.has_extension("tar.gz")
+    assert not p.has_extension("txt")
+    assert not p.has_extension("")
+    assert (./foo).has_extension("")
+    assert (..).has_extension("")
+    assert not (~/.foo).has_extension("foo")
     assert (~/.foo).extension() == ""
     assert (~/foo).extension() == ""
     assert (~/.foo.baz.qux).extension() == "baz.qux"

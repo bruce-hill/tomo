@@ -31,9 +31,9 @@ remainder	&Text?	If non-none, this value will be set to the rest of the text up 
 
 .SH EXAMPLES
 .EX
-assert "hello world".ends_with("world") == yes
+assert "hello world".ends_with("world")
 remainder : Text
-assert "hello world".ends_with("world", &remainder) == yes
+assert "hello world".ends_with("world", &remainder)
 assert remainder == "hello "
 .EE
 .SH SEE ALSO

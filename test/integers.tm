@@ -114,24 +114,24 @@ test "is_between"
 	>> 3.is_between(1, 3)
 	>> 3.is_between(5, 1)
 	>> 3.is_between(100, 200)
-	assert 3.is_between(1, 5) == yes
-	assert 3.is_between(1, 3) == yes
-	assert 3.is_between(5, 1) == yes
-	assert 3.is_between(100, 200) == no
+	assert 3.is_between(1, 5)
+	assert 3.is_between(1, 3)
+	assert 3.is_between(5, 1)
+	assert not 3.is_between(100, 200)
 
 test "get_bit"
 	>> 6.get_bit(1)
 	>> 6.get_bit(2)
 	>> 6.get_bit(3)
 	>> 6.get_bit(4)
-	assert 6.get_bit(1) == no
-	assert 6.get_bit(2) == yes
-	assert 6.get_bit(3) == yes
-	assert 6.get_bit(4) == no
-	assert Int64(6).get_bit(1) == no
-	assert Int64(6).get_bit(2) == yes
-	assert Int64(6).get_bit(3) == yes
-	assert Int64(6).get_bit(4) == no
+	assert not 6.get_bit(1)
+	assert 6.get_bit(2)
+	assert 6.get_bit(3)
+	assert not 6.get_bit(4)
+	assert not Int64(6).get_bit(1)
+	assert Int64(6).get_bit(2)
+	assert Int64(6).get_bit(3)
+	assert not Int64(6).get_bit(4)
 
 test "parsing integers"
 	>> Int.parse("123")

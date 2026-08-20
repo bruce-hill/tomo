@@ -106,10 +106,10 @@ bit_index | `Int` | The index of the bit to check (1-indexed).  | -
 
 **Example:**
 ```tomo
-assert 6.get_bit(1) == no
-assert 6.get_bit(2) == yes
-assert 6.get_bit(3) == yes
-assert 6.get_bit(4) == no
+assert not 6.get_bit(1)
+assert 6.get_bit(2)
+assert 6.get_bit(3)
+assert not 6.get_bit(4)
 
 ```
 ## Int.hex
@@ -154,10 +154,10 @@ b | `Int` | The other end of the range to check (inclusive).  | -
 
 **Example:**
 ```tomo
-assert 7.is_between(1, 10) == yes
-assert 7.is_between(10, 1) == yes
-assert 7.is_between(100, 200) == no
-assert 7.is_between(1, 7) == yes
+assert 7.is_between(1, 10)
+assert 7.is_between(10, 1)
+assert not 7.is_between(100, 200)
+assert 7.is_between(1, 7)
 
 ```
 ## Int.is_prime
@@ -180,8 +180,8 @@ reps | `Int` | The number of repetitions for primality tests.  | `50`
 
 **Example:**
 ```tomo
-assert 7.is_prime() == yes
-assert 6.is_prime() == no
+assert 7.is_prime()
+assert not 6.is_prime()
 
 ```
 ## Int.next_prime
@@ -249,7 +249,7 @@ step | `Int` | The increment step size.  | `1`
 nums : &[Int] = &[]
 for i in 5.onward()
     nums.insert(i)
-    stop if i == 10
+    break if i == 10
 assert nums[] == [5, 6, 7, 8, 9, 10]
 
 ```

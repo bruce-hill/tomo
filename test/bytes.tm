@@ -17,10 +17,10 @@ test "byte hex formatting"
 test "byte get_bit"
     >> Byte(0x06)
     >> Byte(0x06).get_bit(1)
-    assert Byte(0x06).get_bit(1) == no
+    assert not Byte(0x06).get_bit(1)
     >> Byte(0x06).get_bit(2)
-    assert Byte(0x06).get_bit(2) == yes
+    assert Byte(0x06).get_bit(2)
     >> Byte(0x06).get_bit(3)
-    assert Byte(0x06).get_bit(3) == yes
+    assert Byte(0x06).get_bit(3)
     >> Byte(0x06).get_bit(4)
-    assert Byte(0x06).get_bit(4) == no
+    assert not Byte(0x06).get_bit(4)

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH List.pairs 3 2026-08-20 "Tomo man-pages"
+.SH NAME
+List.pairs \- iterate over pairs of elements
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI List.pairs\ :\ func(list:\ [T]\ ->\ func(a:&T,\ b:&T\ ->\ Bool))
+.fi
+.SH DESCRIPTION
+Returns an iterator that yields each unordered pair of distinct elements exactly once (equivalent to iterating `a` at index `i` and `b` at every later index `j > i`). The iterator yields two values per iteration, so a loop over it binds two variables: `for a, b in list.pairs()`. Mutating the list after making the iterator does not affect what it yields.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+list	[T]	The list whose element pairs will be iterated. 
+.TE
+.SH RETURN
+An iterator function that yields each pair of elements.
+
+.SH EXAMPLES
+.EX
+assert ["$a$b" for a, b in [1, 2, 3].pairs()] == ["12", "13", "23"]
+.EE
+.SH SEE ALSO
+.BR Tomo-List (3)

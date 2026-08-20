@@ -33,10 +33,10 @@ For fixed-size integers, the bit index must be between 1 and the number of bits 
 
 .SH EXAMPLES
 .EX
-assert 6.get_bit(1) == no
-assert 6.get_bit(2) == yes
-assert 6.get_bit(3) == yes
-assert 6.get_bit(4) == no
+assert not 6.get_bit(1)
+assert 6.get_bit(2)
+assert 6.get_bit(3)
+assert not 6.get_bit(4)
 .EE
 .SH SEE ALSO
 .BR Tomo-Int (3)

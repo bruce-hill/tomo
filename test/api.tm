@@ -11,19 +11,19 @@ test "Bool.parse"
     assert remainder == "JUNK"
 
 test "Byte.get_bit"
-    assert Byte(6).get_bit(1) == no
-    assert Byte(6).get_bit(2) == yes
-    assert Byte(6).get_bit(3) == yes
-    assert Byte(6).get_bit(4) == no
+    assert not Byte(6).get_bit(1)
+    assert Byte(6).get_bit(2)
+    assert Byte(6).get_bit(3)
+    assert not Byte(6).get_bit(4)
 
 test "Byte.hex"
     assert Byte(18).hex(prefix=yes) == "0x12"
 
 test "Byte.is_between"
-    assert Byte(7).is_between(1, 10) == yes
-    assert Byte(7).is_between(10, 1) == yes
-    assert Byte(7).is_between(100, 200) == no
-    assert Byte(7).is_between(1, 7) == yes
+    assert Byte(7).is_between(1, 10)
+    assert Byte(7).is_between(10, 1)
+    assert not Byte(7).is_between(100, 200)
+    assert Byte(7).is_between(1, 7)
 
 test "Byte.parse"
     assert Byte.parse("5") == Byte(5)
@@ -64,23 +64,23 @@ test "Int.factorial"
     assert 10.factorial() == 3628800
 
 test "Int.get_bit"
-    assert 6.get_bit(1) == no
-    assert 6.get_bit(2) == yes
-    assert 6.get_bit(3) == yes
-    assert 6.get_bit(4) == no
+    assert not 6.get_bit(1)
+    assert 6.get_bit(2)
+    assert 6.get_bit(3)
+    assert not 6.get_bit(4)
 
 test "Int.hex"
     assert 255.hex(digits=4, uppercase=yes, prefix=yes) == "0x00FF"
 
 test "Int.is_between"
-    assert 7.is_between(1, 10) == yes
-    assert 7.is_between(10, 1) == yes
-    assert 7.is_between(100, 200) == no
-    assert 7.is_between(1, 7) == yes
+    assert 7.is_between(1, 10)
+    assert 7.is_between(10, 1)
+    assert not 7.is_between(100, 200)
+    assert 7.is_between(1, 7)
 
 test "Int.is_prime"
-    assert 7.is_prime() == yes
-    assert 6.is_prime() == no
+    assert 7.is_prime()
+    assert not 6.is_prime()
 
 test "Int.next_prime"
     assert 11.next_prime() == 13
@@ -155,7 +155,7 @@ test "List.from"
     assert [10, 20, 30, 40, 50].from(3) == [30, 40, 50]
 
 test "List.has"
-    assert [10, 20, 30].has(20) == yes
+    assert [10, 20, 30].has(20)
 
 test "List.heap_pop"
     my_heap := &[30, 10, 20]
@@ -342,18 +342,18 @@ test "Num.hypot"
     assert Num.hypot(3, 4) == 5
 
 test "Num.is_between"
-    assert (7.5).is_between(1, 10) == yes
-    assert (7.5).is_between(10, 1) == yes
-    assert (7.5).is_between(100, 200) == no
-    assert (7.5).is_between(1, 7.5) == yes
+    assert (7.5).is_between(1, 10)
+    assert (7.5).is_between(10, 1)
+    assert not (7.5).is_between(100, 200)
+    assert (7.5).is_between(1, 7.5)
 
 test "Num.isfinite"
-    assert (1.0).isfinite() == yes
-    assert Num.INF.isfinite() == no
+    assert (1.0).isfinite()
+    assert not Num.INF.isfinite()
 
 test "Num.isinf"
-    assert Num.INF.isinf() == yes
-    assert (1.0).isinf() == no
+    assert Num.INF.isinf()
+    assert not (1.0).isinf()
 
 test "Num.j0"
     assert (0.0).j0() == 1
@@ -381,9 +381,9 @@ test "Num.mix"
     assert (0.25).mix(10, 20) == 12.5
 
 test "Num.near"
-    assert (1.0).near(1.000000001) == yes
-    assert (100.0).near(110, ratio=0.1) == yes
-    assert (5.0).near(5.1, min_epsilon=0.1) == yes
+    assert (1.0).near(1.000000001)
+    assert (100.0).near(110, ratio=0.1)
+    assert (5.0).near(5.1, min_epsilon=0.1)
 
 test "Num.nextafter"
     assert (1.0).nextafter(1.1) == 1.0000000000000002
@@ -484,21 +484,21 @@ test "Path.byte_writer"
 
 test "Path.can_execute"
     if no
-        assert (/bin/sh).can_execute() == yes
-        assert (/usr/include/stdlib.h).can_execute() == no
-        assert (/non/existant/file).can_execute() == no
+        assert (/bin/sh).can_execute()
+        assert not (/usr/include/stdlib.h).can_execute()
+        assert not (/non/existant/file).can_execute()
 
 test "Path.can_read"
     if no
-        assert (/usr/include/stdlib.h).can_read() == yes
-        assert (/etc/shadow).can_read() == no
-        assert (/non/existant/file).can_read() == no
+        assert (/usr/include/stdlib.h).can_read()
+        assert not (/etc/shadow).can_read()
+        assert not (/non/existant/file).can_read()
 
 test "Path.can_write"
     if no
-        assert (/tmp).can_write() == yes
-        assert (/etc/passwd).can_write() == no
-        assert (/non/existant/file).can_write() == no
+        assert (/tmp).can_write()
+        assert not (/etc/passwd).can_write()
+        assert not (/non/existant/file).can_write()
 
 test "Path.changed"
     if no
@@ -537,7 +537,7 @@ test "Path.each_child"
 
 test "Path.exists"
     if no
-        assert (/).exists() == yes
+        assert (/).exists()
 
 test "Path.expand_home"
     if no
@@ -575,28 +575,28 @@ test "Path.group"
 
 test "Path.has_extension"
     if no
-        assert (/foo.txt).has_extension("txt") == yes
-        assert (/foo.txt).has_extension(".txt") == yes
-        assert (/foo.tar.gz).has_extension("gz") == yes
-        assert (/foo.tar.gz).has_extension("zip") == no
+        assert (/foo.txt).has_extension("txt")
+        assert (/foo.txt).has_extension(".txt")
+        assert (/foo.tar.gz).has_extension("gz")
+        assert not (/foo.tar.gz).has_extension("zip")
 
 test "Path.is_directory"
     if no
-        assert (./directory/).is_directory() == yes
-        assert (./file.txt).is_directory() == no
+        assert (./directory/).is_directory()
+        assert not (./file.txt).is_directory()
 
 test "Path.is_file"
     if no
-        assert (./file.txt).is_file() == yes
-        assert (./directory/).is_file() == no
+        assert (./file.txt).is_file()
+        assert not (./directory/).is_file()
 
 test "Path.is_socket"
     if no
-        assert (./socket).is_socket() == yes
+        assert (./socket).is_socket()
 
 test "Path.is_symlink"
     if no
-        assert (./link).is_symlink() == yes
+        assert (./link).is_symlink()
 
 test "Path.lines"
     if no
@@ -665,7 +665,7 @@ test "Path.subdirectories"
 test "Path.unique_directory"
     if no
         created := (/tmp/my-dir.XXXXXX).unique_directory()
-        assert created.is_directory() == yes
+        assert created.is_directory()
         created.remove()!
 
 test "Path.walk"
@@ -734,8 +734,8 @@ test "Table.get_or_set"
     assert t.get_or_set("C", @[0, 0, 0])[] == [0, 0, 0]
 
 test "Table.has"
-    assert {"A": 1, "B": 2}.has("A") == yes
-    assert {"A": 1, "B": 2}.has("xxx") == no
+    assert {"A": 1, "B": 2}.has("A")
+    assert not {"A": 1, "B": 2}.has("xxx")
 
 test "Table.intersection"
     t1 := {"A": 1, "B": 2, "C": 3}
@@ -792,10 +792,10 @@ test "Text.by_split_any"
     assert chunks == ["one", "two", "three"]
 
 test "Text.caseless_equals"
-    assert "A".caseless_equals("a") == yes
+    assert "A".caseless_equals("a")
     
     # Turkish lowercase "I" is "ı" (dotless I), not "i"
-    assert "I".caseless_equals("i", language="tr_TR") == no
+    assert not "I".caseless_equals("i", language="tr_TR")
 
 test "Text.codepoint_names"
     assert "Amélie".codepoint_names() == [
@@ -814,9 +814,9 @@ test "Text.distance"
     assert texts == ["hello", "hallo", "goodbye"]
 
 test "Text.ends_with"
-    assert "hello world".ends_with("world") == yes
+    assert "hello world".ends_with("world")
     remainder : Text
-    assert "hello world".ends_with("world", &remainder) == yes
+    assert "hello world".ends_with("world", &remainder)
     assert remainder == "hello "
 
 test "Text.find"
@@ -851,8 +851,8 @@ test "Text.from_utf8"
     assert Text.from_utf8([195, 133, 107, 101]) == "Åke"
 
 test "Text.has"
-    assert "hello world".has("wo") == yes
-    assert "hello world".has("xxx") == no
+    assert "hello world".has("wo")
+    assert not "hello world".has("xxx")
 
 test "Text.join"
     assert ", ".join(["one", "two", "three"]) == "one, two, three"
@@ -908,9 +908,9 @@ test "Text.split_any"
     assert "one, two,,three".split_any(", ") == ["one", "two", "three"]
 
 test "Text.starts_with"
-    assert "hello world".starts_with("hello") == yes
+    assert "hello world".starts_with("hello")
     remainder : Text
-    assert "hello world".starts_with("hello", &remainder) == yes
+    assert "hello world".starts_with("hello", &remainder)
     assert remainder == " world"
 
 test "Text.title"

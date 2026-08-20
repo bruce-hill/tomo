@@ -2,14 +2,14 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List.binary_search 3 2026-04-26 "Tomo man-pages"
+.TH List.binary_search 3 2026-08-20 "Tomo man-pages"
 .SH NAME
 List.binary_search \- binary search
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI List.binary_search\ :\ func(list:\ [T],\ predicate:\ func(x:&T->Bool)\ ->\ Int)
+.BI List.binary_search\ :\ func(list:\ [T],\ predicate:\ func(x:T->Bool)\ ->\ Int)
 .fi
 .SH DESCRIPTION
 Performs a binary search on a sorted list.
@@ -23,7 +23,7 @@ lb lb lbx
 l l l.
 Name	Type	Description
 list	[T]	The sorted list to search. 
-predicate	func(x:&T->Bool)	The predicate to look for in the list. 
+predicate	func(x:T->Bool)	The predicate to look for in the list. 
 .TE
 .SH RETURN
 Find the first item in the list where the predicate function is true and return its index (or `none` if no such item exists). This assumes that the predicate function is monotonic over the list's contents. In other words, the predicate is false for the first zero or more items in the list and then true for the remainder of the list.
@@ -31,11 +31,11 @@ Find the first item in the list where the predicate function is true and return 
 .SH EXAMPLES
 .EX
 # Find an item:
-assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 30) == 3
+assert [10, 20, 30, 40].binary_search(func(x:Int) x == 30) == 3
 # No such item:
-assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] == 25) == none
+assert [10, 20, 30, 40].binary_search(func(x:Int) x == 25) == none
 # Find an insertion point (where an item would go to preserve sort order):
-assert [10, 20, 30, 40].binary_search(func(x:&Int) x[] >= 25) == 3
+assert [10, 20, 30, 40].binary_search(func(x:Int) x >= 25) == 3
 .EE
 .SH SEE ALSO
 .BR Tomo-List (3)

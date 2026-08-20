@@ -27,8 +27,7 @@ test "struct literals"
 test "struct metamethods"
 	>> x := Pair{10, 20}
 	>> y := Pair{100, 200}
-	>> x == y
-	assert x == y == no
+	assert x != y
 	assert x == Pair{10, 20}
 	assert x != Pair{10, 30}
 
@@ -36,23 +35,22 @@ test "struct metamethods"
 	assert x < Pair{11, 20}
 	>> set := {x: yes}
 	>> set.has(x)
-	assert set.has(x) == yes
+	assert set.has(x)
 	>> set.has(y)
-	assert set.has(y) == no
+	assert not set.has(y)
 
 test "mixed struct"
 	>> x := Mixed{10, "Hello"}
 	>> y := Mixed{99, "Hello"}
-	>> x == y
-	assert x == y == no
+	assert x != y
 	assert x == Mixed{10, "Hello"}
 	assert x != Mixed{10, "Bye"}
 	assert x < Mixed{11, "Hello"}
 	>> set := {x: yes}
 	>> set.has(x)
-	assert set.has(x) == yes
+	assert set.has(x)
 	>> set.has(y)
-	assert set.has(y) == no
+	assert not set.has(y)
 
 test "corecursive struct text"
 	>> b := @CorecursiveB{}

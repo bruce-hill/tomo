@@ -31,10 +31,10 @@ high	Byte	The other end of the range to check (inclusive);
 
 .SH EXAMPLES
 .EX
-assert Byte(7).is_between(1, 10) == yes
-assert Byte(7).is_between(10, 1) == yes
-assert Byte(7).is_between(100, 200) == no
-assert Byte(7).is_between(1, 7) == yes
+assert Byte(7).is_between(1, 10)
+assert Byte(7).is_between(10, 1)
+assert not Byte(7).is_between(100, 200)
+assert Byte(7).is_between(1, 7)
 .EE
 .SH SEE ALSO
 .BR Tomo-Byte (3)

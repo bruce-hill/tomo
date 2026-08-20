@@ -29,9 +29,9 @@ path	Path	The path of the file to check.
 
 .SH EXAMPLES
 .EX
-assert (/bin/sh).can_execute() == yes
-assert (/usr/include/stdlib.h).can_execute() == no
-assert (/non/existant/file).can_execute() == no
+assert (/bin/sh).can_execute()
+assert not (/usr/include/stdlib.h).can_execute()
+assert not (/non/existant/file).can_execute()
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

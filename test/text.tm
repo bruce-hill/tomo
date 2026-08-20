@@ -23,9 +23,9 @@ test "language-specific case conversion"
 	>> "ian".title(language="tr_TR")
 	assert "ian".title(language="tr_TR") == "İan"
 	>> "I".caseless_equals("ı")
-	assert "I".caseless_equals("ı") == no
+	assert not "I".caseless_equals("ı")
 	>> "I".caseless_equals("ı", language="tr_TR")
-	assert "I".caseless_equals("ı", language="tr_TR") == yes
+	assert "I".caseless_equals("ı", language="tr_TR")
 
 test "indexing accented and out-of-bounds characters"
 	>> str := "Hello Amélie!"
@@ -77,9 +77,9 @@ test "replace, has, and normalized equality"
 	>> "Hello".replace("e", "X")
 	assert "Hello".replace("e", "X") == "HXllo"
 	>> "Hello".has("l")
-	assert "Hello".has("l") == yes
+	assert "Hello".has("l")
 	>> "Hello".has("x")
-	assert "Hello".has("x") == no
+	assert not "Hello".has("x")
 	>> "Hello".replace("l", "")
 	assert "Hello".replace("l", "") == "Heo"
 	>> "xxxx".replace("x", "")
@@ -95,7 +95,7 @@ test "replace, has, and normalized equality"
 	>> amelie := "Am\{UE9}lie"
 	>> amelie2 := "Am\{U65}\{U301}lie"
 	>> amelie.has(amelie2)
-	assert amelie.has(amelie2) == yes
+	assert amelie.has(amelie2)
 
 test "multiline text literals"
 	>> multiline := "
@@ -206,13 +206,13 @@ test "replace, translate, repeat, affixes, and reversed"
 	>> "Abc".repeat(3)
 	assert "Abc".repeat(3) == "AbcAbcAbc"
 	>> "abcde".starts_with("ab")
-	assert "abcde".starts_with("ab") == yes
+	assert "abcde".starts_with("ab")
 	>> "abcde".starts_with("bc")
-	assert "abcde".starts_with("bc") == no
+	assert not "abcde".starts_with("bc")
 	>> "abcde".ends_with("de")
-	assert "abcde".ends_with("de") == yes
+	assert "abcde".ends_with("de")
 	>> "abcde".starts_with("cd")
-	assert "abcde".starts_with("cd") == no
+	assert not "abcde".starts_with("cd")
 	>> "abcde".without_prefix("ab")
 	assert "abcde".without_prefix("ab") == "cde"
 	>> "abcde".without_suffix("ab")

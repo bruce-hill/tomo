@@ -49,7 +49,7 @@ reducers in action:
 ```tomo
 nums := [10, 20, 30]
 assert (+: nums)! == 60
-assert (or: n > 15 for n in nums)! == yes
+assert (or: n > 15 for n in nums)!
 
 texts := ["one", "two", "three"]
 assert (++: texts)! == "onetwothree"
@@ -101,9 +101,9 @@ assert (+.x: foos) == -9
 // Shorthand for:
 assert (+: f.x for f in foos) == -9
 
-assert (or).is_even() foos == yes
+assert (or).is_even() foos
 // Shorthand for:
-assert ((or) f.is_even() for f in foos) == yes
+assert ((or) f.is_even() for f in foos)
 
 assert (+.x.abs(): foos) == 11
 ```

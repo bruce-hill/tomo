@@ -63,13 +63,13 @@ test "plain table and fallback lookup"
 	assert plain[2]! == 20
 	assert plain[2]! == 20
 	assert plain[456] or -999 == -999
-	assert plain.has(2) == yes
-	assert plain.has(456) == no
+	assert plain.has(2)
+	assert not plain.has(456)
 
 	>> fallback := {4: 40; fallback=plain}
 	>> fallback.has(1)
 	>> fallback[1] or -999
-	assert fallback.has(1) == yes
+	assert fallback.has(1)
 	assert fallback[1] or -999 == 10
 
 test "mutating a heap-allocated table"
@@ -97,8 +97,8 @@ test "default values"
 	>> counter.has("y")
 	assert counter["x"] == 10
 	assert counter["y"] == 0
-	assert counter.has("x") == yes
-	assert counter.has("y") == no
+	assert counter.has("x")
+	assert not counter.has("y")
 	counter["y"] += 1
 	>> counter["y"]
 	assert counter["y"] == 1

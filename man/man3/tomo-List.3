@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH List 3 2026-04-26 "Tomo man-pages"
+.TH List 3 2026-08-20 "Tomo man-pages"
 .SH NAME
 List \- a Tomo type
 .SH LIBRARY
@@ -11,7 +11,7 @@ Tomo Standard Library
 .SH METHODS
 
 .TP
-.BI List.binary_search\ :\ func(list:\ [T],\ predicate:\ func(x:&T->Bool)\ ->\ Int)
+.BI List.binary_search\ :\ func(list:\ [T],\ predicate:\ func(x:T->Bool)\ ->\ Int)
 Performs a binary search on a sorted list. 
 
 For more, see:
@@ -67,7 +67,7 @@ For more, see:
 
 
 .TP
-.BI List.heap_pop\ :\ func(list:\ @[T],\ by:\ func(x,y:&T->Int32)\ =\ T.compare\ ->\ T?)
+.BI List.heap_pop\ :\ func(list:\ @[T],\ by:\ func(x,y:T->Int32)\ =\ T.compare\ ->\ T?)
 Removes and returns the top element of a heap or \fBnone\fR if the list is empty. By default, this is the *minimum* value in the heap. 
 
 For more, see:
@@ -83,7 +83,7 @@ For more, see:
 
 
 .TP
-.BI List.heapify\ :\ func(list:\ @[T],\ by:\ func(x,y:&T->Int32)\ =\ T.compare\ ->\ Void)
+.BI List.heapify\ :\ func(list:\ @[T],\ by:\ func(x,y:T->Int32)\ =\ T.compare\ ->\ Void)
 Converts a list into a heap. 
 
 For more, see:
@@ -104,6 +104,14 @@ Inserts a list of items at a specified position in the list.
 
 For more, see:
 .BR Tomo-List.insert_all (3)
+
+
+.TP
+.BI List.pairs\ :\ func(list:\ [T]\ ->\ func(a:&T,\ b:&T\ ->\ Bool))
+Returns an iterator that yields each unordered pair of distinct elements exactly once (equivalent to iterating \fBa\fR at index \fBi\fR and \fBb\fR at every later index \fBj > i\fR). The iterator yields two values per iteration, so a loop over it binds two variables: \fBfor a, b in list.pairs()\fR. Mutating the list after making the iterator does not affect what it yields. 
+
+For more, see:
+.BR Tomo-List.pairs (3)
 
 
 .TP
@@ -195,6 +203,14 @@ For more, see:
 
 
 .TP
+.BI List.swap\ :\ func(list:\ @[T],\ i:\ Int,\ j:\ Int\ ->\ Void)
+Swaps the elements at two indices in place. Compiles inline, so a swap costs one bounds check per index and a single copy-on-write check (a two-element multi-assignment swap pays both twice). Swapping an index with itself is a no-op. Negative indices count from the back of the list, and an out-of-bounds index is a runtime error. 
+
+For more, see:
+.BR Tomo-List.swap (3)
+
+
+.TP
 .BI List.to\ :\ func(list:\ [T],\ last:\ Int\ ->\ [T])
 Returns a slice of the list from the start of the original list up to a specified index (inclusive). 
 
@@ -211,7 +227,7 @@ For more, see:
 
 
 .TP
-.BI List.where\ :\ func(list:\ [T],\ predicate:\ func(item:&T\ ->\ Bool)\ ->\ Int)
+.BI List.where\ :\ func(list:\ [T],\ predicate:\ func(item:T\ ->\ Bool)\ ->\ Int)
 Find the index of the first item that matches a predicate function (if any). 
 
 For more, see:

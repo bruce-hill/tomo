@@ -161,9 +161,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
-assert (/bin/sh).can_execute() == yes
-assert (/usr/include/stdlib.h).can_execute() == no
-assert (/non/existant/file).can_execute() == no
+assert (/bin/sh).can_execute()
+assert not (/usr/include/stdlib.h).can_execute()
+assert not (/non/existant/file).can_execute()
 
 ```
 ## Path.can_read
@@ -183,9 +183,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
-assert (/usr/include/stdlib.h).can_read() == yes
-assert (/etc/shadow).can_read() == no
-assert (/non/existant/file).can_read() == no
+assert (/usr/include/stdlib.h).can_read()
+assert not (/etc/shadow).can_read()
+assert not (/non/existant/file).can_read()
 
 ```
 ## Path.can_write
@@ -205,9 +205,9 @@ path | `Path` | The path of the file to check.  | -
 
 **Example:**
 ```tomo
-assert (/tmp).can_write() == yes
-assert (/etc/passwd).can_write() == no
-assert (/non/existant/file).can_write() == no
+assert (/tmp).can_write()
+assert not (/etc/passwd).can_write()
+assert not (/non/existant/file).can_write()
 
 ```
 ## Path.changed
@@ -398,7 +398,7 @@ path | `Path` | The path to check.  | -
 
 **Example:**
 ```tomo
-assert (/).exists() == yes
+assert (/).exists()
 
 ```
 ## Path.expand_home
@@ -542,10 +542,10 @@ extension | `Text` | A file extension (leading `.` is optional). If empty, the c
 
 **Example:**
 ```tomo
-assert (/foo.txt).has_extension("txt") == yes
-assert (/foo.txt).has_extension(".txt") == yes
-assert (/foo.tar.gz).has_extension("gz") == yes
-assert (/foo.tar.gz).has_extension("zip") == no
+assert (/foo.txt).has_extension("txt")
+assert (/foo.txt).has_extension(".txt")
+assert (/foo.tar.gz).has_extension("gz")
+assert not (/foo.tar.gz).has_extension("zip")
 
 ```
 ## Path.is_directory
@@ -566,8 +566,8 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./directory/).is_directory() == yes
-assert (./file.txt).is_directory() == no
+assert (./directory/).is_directory()
+assert not (./file.txt).is_directory()
 
 ```
 ## Path.is_file
@@ -588,8 +588,8 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./file.txt).is_file() == yes
-assert (./directory/).is_file() == no
+assert (./file.txt).is_file()
+assert not (./directory/).is_file()
 
 ```
 ## Path.is_socket
@@ -610,7 +610,7 @@ follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
 
 **Example:**
 ```tomo
-assert (./socket).is_socket() == yes
+assert (./socket).is_socket()
 
 ```
 ## Path.is_symlink
@@ -630,7 +630,7 @@ path | `Path` | The path to check.  | -
 
 **Example:**
 ```tomo
-assert (./link).is_symlink() == yes
+assert (./link).is_symlink()
 
 ```
 ## Path.lines
@@ -953,7 +953,7 @@ path | `Path` | The base path for generating the unique directory. The last six 
 **Example:**
 ```tomo
 created := (/tmp/my-dir.XXXXXX).unique_directory()
-assert created.is_directory() == yes
+assert created.is_directory()
 created.remove()!
 
 ```

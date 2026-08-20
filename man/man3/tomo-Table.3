@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Table 3 2025-11-29 "Tomo man-pages"
+.TH Table 3 2026-08-20 "Tomo man-pages"
 .SH NAME
 Table \- a Tomo type
 .SH LIBRARY
@@ -24,6 +24,14 @@ Return a table whose key/value pairs correspond to keys only present in one tabl
 
 For more, see:
 .BR Tomo-Table.difference (3)
+
+
+.TP
+.BI Table.entries\ :\ func(t:\ {K:V}\ ->\ func(key:&K,\ value:&V\ ->\ Bool))
+Returns an iterator that yields each key/value pair in the table, in insertion order. The iterator yields two values per iteration, so a loop over it binds two variables: \fBfor k, v in table.entries()\fR. This is the only way to iterate a table's pairs (\fBfor k, v in table\fR is a compile error); use the \fB.keys\fR or \fB.values\fR fields to iterate just one side. Mutating the table after making the iterator does not affect what it yields. 
+
+For more, see:
+.BR Tomo-Table.entries (3)
 
 
 .TP

@@ -244,10 +244,10 @@ test "printing a none optional in if/else"
 test "negation and 'or' with optionals"
     >> optional : Int? = 5
     >> not optional
-    assert not optional == no
+    assert (not optional) == no
     >> nah : Int? = none
     >> not nah
-    assert not nah == yes
+    assert (not nah) == yes
     assert [none, Struct{5,"A"}, Struct{6,"B"}, Struct{7,"C"}] == [none, Struct{x=5, y="A"}, Struct{x=6, y="B"}, Struct{x=7, y="C"}]
     if optional or no
         say("Binary op 'or' works with optionals")

@@ -38,8 +38,8 @@ test "enum equality and comparison"
 	assert Foo.One{123} == Foo.One{123}
 	assert Foo.Two{123, 456} == Foo.Two{x=123, y=456}
 	assert Foo.One{10} == Foo.One{10}
-	assert Foo.One{10} == Foo.Zero == no
-	assert Foo.One{10} == Foo.One{-1} == no
+	assert Foo.One{10} != Foo.Zero
+	assert Foo.One{10} != Foo.One{-1}
 	assert Foo.One{10} < Foo.Two{1, 2}
 
 test "enum values as table keys"
@@ -47,8 +47,8 @@ test "enum values as table keys"
 	>> t := {x: yes}
 	>> t.has(x)
 	>> t.has(Foo.Zero)
-	assert t.has(x) == yes
-	assert t.has(Foo.Zero) == no
+	assert t.has(x)
+	assert not t.has(Foo.Zero)
 
 test "pattern matching with when"
 	>> choose_text(Foo.Zero)

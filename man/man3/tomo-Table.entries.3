@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Table.entries 3 2026-08-20 "Tomo man-pages"
+.SH NAME
+Table.entries \- iterate over key/value pairs
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Table.entries\ :\ func(t:\ {K:V}\ ->\ func(key:&K,\ value:&V\ ->\ Bool))
+.fi
+.SH DESCRIPTION
+Returns an iterator that yields each key/value pair in the table, in insertion order. The iterator yields two values per iteration, so a loop over it binds two variables: `for k, v in table.entries()`. This is the only way to iterate a table's pairs (`for k, v in table` is a compile error); use the `.keys` or `.values` fields to iterate just one side. Mutating the table after making the iterator does not affect what it yields.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+t	{K:V}	The table whose entries will be iterated. 
+.TE
+.SH RETURN
+An iterator function that yields each key/value pair.
+
+.SH EXAMPLES
+.EX
+t := {"A": 1, "B": 2}
+assert ["$k=$v" for k, v in t.entries()] == ["A=1", "B=2"]
+.EE
+.SH SEE ALSO
+.BR Tomo-Table (3)

@@ -23,13 +23,13 @@ test "optional none nums"
 	>> none_num
 	assert none_num == none
 	assert none_num == none_num
-	assert (none_num < none_num) == no
-	assert (none_num > none_num) == no
-	assert (none_num != none_num) == no
+	assert not (none_num < none_num)
+	assert not (none_num > none_num)
+	assert not (none_num != none_num)
 	assert (none_num <> none_num) == Int32(0)
-	assert (none_num == 0.0) == no
+	assert not (none_num == 0.0)
 	assert none_num < 0.0
-	assert (none_num > 0.0) == no
+	assert not (none_num > 0.0)
 	assert none_num != 0.0
 	assert (none_num <> 0.0) == Int32(-1)
 
@@ -44,7 +44,7 @@ test "math functions"
 	>> (0.5).percent()
 	assert Num.PI.cos()!.near(-1)
 	assert Num.PI.sin()!.near(0)
-	assert Num.INF.near(-Num.INF) == no
+	assert not Num.INF.near(-Num.INF)
 	assert Num32.sqrt(16) == Num32(4)
 	assert Num32.sqrt(-1) == none
 	assert (0.25).mix(10, 20) == 12.5
