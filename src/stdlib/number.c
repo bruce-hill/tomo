@@ -991,7 +991,12 @@ int number_compare_general(number a, number b)
         return fast;
     }
     mpq_view va, vb;
-    return mpq_cmp(number_mpq_view(a, &va), number_mpq_view(b, &vb));
+    // GMP only guarantees the *sign* of mpq_cmp, not its magnitude (it often
+    // returns the cross products' limb-count difference), so normalize to
+    // -1/0/+1. Returning it raw would leak values outside the documented
+    // range -- and a raw 2 would be misread as the reserved "unordered" code.
+    int c = mpq_cmp(number_mpq_view(a, &va), number_mpq_view(b, &vb));
+    return (c > 0) - (c < 0);
 }
 int number_compare(number a, number b) { return number_compare_general(a, b); } // see comment above number_add_general
 
@@ -1098,6 +1103,13 @@ number number_mul_general(number a, number b)
         // small immediate, so one bit-compare decides it.
         if (a.bits == NUMBER_ONE.bits) return b;
         if (b.bits == NUMBER_ONE.bits) return a;
+        // ... and multiplying by exactly 0 is exactly 0, whatever the other
+        // operand is. real_mul already does this (number_is_zero -> zero), but
+        // an IRRATIONAL operand never reaches real_mul, so without this
+        // `0 * sin(2)` would build an IRR_MUL node that no later refinement can
+        // ever prove is zero -- leaving a value that isn't number_is_zero, that
+        // compares "unordered" against 0, and that floor/mod reject.
+        if (a.bits == NUMBER_ZERO.bits || b.bits == NUMBER_ZERO.bits) return small_zero();
         number result = (is_irrational_kind(a) || is_irrational_kind(b)) ?
                              NUMBER_ERROR : real_mul(a, b);
         if (number_is_error(result))
@@ -1898,6 +1910,10 @@ number number_asin(number x)
     number neg_one = number_neg(one);
     int cmp_hi = number_compare(x, one);
     int cmp_lo = number_compare(x, neg_one);
+    // 2 is "unordered" (see number_compare), not "greater": an in-domain value
+    // whose comparison against +-1 refinement can't settle is undecidable, not
+    // a domain violation, and must not be reported as one.
+    if (cmp_hi == 2 || cmp_lo == 2) return err(ERR_UNDECIDABLE);
     if (cmp_hi > 0 || cmp_lo < 0) {
         return err(ERR_ASIN_ACOS_DOMAIN); // |x| > 1: outside asin's domain
     }
@@ -2221,6 +2237,19 @@ static number real_div(number x, number y)
         return res;
     }
     num_real *ry = as_real(y);
+    if (is_real_kind(x)) {
+        num_real *rx = as_real(x);
+        // (bx*F) / (by*F) = bx/by exactly, for any F. This is the only rule
+        // that covers FN_PI and FN_LN, which have no general inverse form
+        // below: without it, pi/pi, tau/pi and ln(4)/ln(2) fall through to an
+        // opaque IRR_DIV node that no later refinement can prove equal to its
+        // rational value, so `pi/pi == 1` would answer no (and number_mod,
+        // number_floor and is_rational would all follow it into the weeds).
+        // FN_PI ignores arg, so only the other fns need it compared.
+        if (rx->fn == ry->fn && number_is_zero(rx->a) && number_is_zero(ry->a)
+            && (ry->fn == FN_PI || number_equal(rx->arg, ry->arg)))
+            return number_div(rx->b, ry->b);
+    }
     if (ry->fn == FN_EXP && number_is_zero(ry->a)) {
         // 1/(b*exp(e)) = (1/b)*exp(-e): only the pure (no rational addend)
         // form inverts inside this closed set -- 1/(a+b*exp(e)) with a != 0
@@ -2968,9 +2997,58 @@ static number make_irr(int op, number x, number y)
 // irr_fixed's IRR_EXP case and factor_appr's FN_EXP case.
 static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out)
 {
-    int32_t ex = approx_exponent(x);
+    // A single low-precision (64-bit) probe of |x| serves two purposes: k
+    // (how many squarings undo the range reduction) below, and -- see
+    // `extra` -- how many guard bits those squarings cost.
+    int s0;
+    bigint *v0;
+    if (!value_fixed(x, 64, &s0, &v0)) return false;
+    int32_t ex = (int32_t)bi_bitlen(v0) - 64; // ~floor(log2(|x|)); matches approx_exponent
     uint32_t k = ex > 0 ? (uint32_t)ex + 1 : 0;
-    uint32_t P = w + 32 + k;
+
+    // Each of the k squarings below roughly DOUBLES exp(r)'s *relative*
+    // error, so after k of them the ABSOLUTE error at exp(x)'s own scale is
+    // roughly (exp(r)'s absolute error) * exp(x) -- not amplified by k
+    // alone, but by exp(x) itself, which for x > 0 is exponentially larger
+    // than the O(1) scale exp(r) starts at. The |error|<=4 contract is
+    // stated at the OUTPUT's scale (2^w), so exp(x)'s own bit width --
+    // roughly x*log2(e), nowhere close to k (~log2(x)) -- has to be
+    // budgeted as guard bits up front: precision lost partway through a
+    // chain of squarings can't be recovered by truncating at the very end.
+    // Concretely, without this, number_to_string(number_exp(number_from_int(120)),
+    // 0, ...) is wrong starting around its 49th digit (checked against an
+    // independent 100-digit reference), and number_to_double of the same
+    // value is off in its last few bits. Only matters for x > 0: for x < 0,
+    // exp(x) < 1 shrinks through the squarings rather than growing, so the
+    // final absolute error is smaller than exp(r)'s, not larger.
+    uint32_t extra = 0;
+    if (ex > 0) {
+        // LOG2E_Q31 = ceil(log2(e) * 2^31): a uint32_t fixed-point constant
+        // (log2(e) > 1, so a Q32 one would overflow uint32_t). v0 is
+        // |x|*2^64 (error <= 4), so v0*LOG2E_Q31 is |x|*log2(e) scaled by
+        // 2^95 -- exp(x)'s bit width, at that scale.
+        const uint32_t LOG2E_Q31 = 3098164010u; // ceil(log2(e) * 2^31)
+        bigint *scaled = bi_mul_u32(v0, LOG2E_Q31);
+        bigint *bits = bi_shr(scaled, 95);
+        bi_free(scaled);
+        uint64_t needed;
+        if (!bi_fits_u64(bits, &needed) || needed > (1u << 24)) {
+            // exp(x) would need more than 16M bits (2MB) just to state its
+            // magnitude -- infeasible to compute exactly regardless of this
+            // budget, so give up rather than attempt an allocation this size.
+            bi_free(bits);
+            bi_free(v0);
+            return false;
+        }
+        bi_free(bits);
+        // +64: slack for v0's own +-4 error, LOG2E_Q31's rounding, the
+        // floor (not ceil) shift above, and the k squarings' own
+        // truncation (each bi_shr(sq, P) below loses <1 count).
+        extra = (uint32_t)needed + 64;
+    }
+    bi_free(v0);
+
+    uint32_t P = w + 32 + k + extra;
     int sx;
     bigint *X;
     if (!value_fixed(x, P, &sx, &X)) return false;
@@ -2993,23 +3071,49 @@ static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out
 
 // ln(x) * 2^w with |error| <= 4. ln(x) = ln(m) + e*ln(2), m = x/2^e in
 // [1,2), ln(m) = 2*atanh(z) with z = (m-1)/(m+1) (|z| <= 1/3, fast
-// convergence). e comes from a coarse magnitude probe and is corrected by
-// at most a step or two if it's off (the probe is approximate). False if
-// x <= 0 (shouldn't happen: every caller has already checked positivity --
-// number_ln directly, or make_real's arg > 1 canonicalization for
-// factor_appr's FN_EXP case). Shared by irr_fixed's IRR_LN case and
-// factor_appr's FN_LN case.
+// convergence). e is x's own bit-exponent, read off the fixed-point X this
+// function fetches anyway (exact, unlike approx_exponent's separate
+// precision-64 probe -- see below). False if x <= 0 (shouldn't happen:
+// every caller has already checked positivity -- number_ln directly, or
+// make_real's arg > 1 canonicalization for factor_appr's FN_EXP case) or
+// if x's magnitude can't be resolved within IRR_MAX_PREC bits (see that
+// macro's doc comment). Shared by irr_fixed's IRR_LN case and factor_appr's
+// FN_LN case.
 static bool ln_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out)
 {
-    int32_t e = approx_exponent(x);
     uint32_t P = w + 32;
     int sx;
     bigint *X;
     if (!value_fixed(x, P, &sx, &X)) return false;
-    if (sx < 0 || bi_is_zero(X)) { // ln(x<=0): shouldn't reach here
+    if (sx < 0) { // ln(x<=0): shouldn't reach here
         bi_free(X);
         return false;
     }
+    // X == 0 here does NOT mean x <= 0 -- value_fixed already ruled that out
+    // via sx -- it means P wasn't enough to resolve x's magnitude at all: a
+    // sufficiently tiny x (e.g. ln(sqrt(exp(-750))), whose operand is
+    // ~2^-542) needs P past a thousand bits before its leading bit is even
+    // visible. approx_exponent can't help size that P up front -- it probes
+    // at a fixed precision of 64 bits, so for an x this tiny it always sees
+    // 0 too and returns its own capped floor. Treating a 0 magnitude as a
+    // hard failure here (as this function used to) doesn't just mishandle
+    // this case: it makes every caller (irr_to_string_digits, refine_sign,
+    // refine_to_double) that retries value_fixed at doubled precision give
+    // up on the FIRST attempt, because irr_fixed's IRR_LN case just forwards
+    // this function's false straight out -- indistinguishable from a
+    // genuinely-undecidable value. So widen P here and retry directly,
+    // instead of reporting a failure a wider P could have resolved.
+    while (bi_is_zero(X)) {
+        bi_free(X);
+        if (P > IRR_MAX_PREC) return false; // gave up: see IRR_MAX_PREC's doc comment
+        P *= 2;
+        if (!value_fixed(x, P, &sx, &X)) return false;
+        if (sx < 0) { // shouldn't happen (x's sign can't flip as P grows)
+            bi_free(X);
+            return false;
+        }
+    }
+    int32_t e = (int32_t)bi_bitlen(X) - (int32_t)P; // exact: X's own leading bit
     bigint *M = e >= 0 ? bi_shr(X, (uint32_t)e) : bi_shl(X, (uint32_t)-e);
     bi_free(X);
     int32_t blen = (int32_t)bi_bitlen(M);
@@ -3361,6 +3465,24 @@ static double refine_to_double(number x)
         bigint *v;
         if (!value_fixed(x, w, &s, &v)) return (double)NAN;
         bigint *four = bi_from_u64(4);
+        // |value| <= 8*2^-w (v's own +-4 error band). Once w is past 1078
+        // bits, that bound is below 2^-1075 -- half the smallest positive
+        // subnormal double, the round-to-nearest-even threshold below which
+        // every double rounds to (signed) zero -- so the correctly rounded
+        // result is certain without ever computing rat_to_double on a value
+        // this close to its own error band. Without this, a value that's
+        // genuinely nonzero but far smaller than any double (e.g.
+        // exp(-20000), or pi times a googol-scale negative power of ten)
+        // never gets a decisive d1==d2 verdict below and the loop exhausts
+        // IRR_MAX_PREC still undecided, wrongly reporting NAN ("the error
+        // value") for an ordinary, if tiny, exact number. real_to_string and
+        // irr_to_string_digits (this function's siblings for the decimal
+        // path) already special-case exactly this; this mirrors them.
+        if (bi_cmp(v, four) <= 0 && w > 1078) {
+            bi_free(four);
+            bi_free(v);
+            return s < 0 ? -0.0 : 0.0;
+        }
         if (bi_cmp(v, four) > 0) {
             bigint *lo = bi_sub(v, four);
             bigint *hi = bi_add(v, four);
@@ -3679,6 +3801,21 @@ static char *number_to_string_small(number x, uint32_t max_frac_digits, bool *is
     }
     bool carried = digits[0] != '0';
 
+    // A negative value whose printed digits all round down to zero (e.g.
+    // -1/1000000 at 2 fractional digits) must print "0", not "-0": the
+    // rounding, not the sign, decides what's shown, and a value that reads
+    // as zero shouldn't display a sign it doesn't have. format_scaled_decimal
+    // (the irrational path) already guards this the same way; mirror it here.
+    if (neg && !carried) {
+        neg = false;
+        for (size_t i = 1; i <= ilen + fn; i++) {
+            if (digits[i] != '0') {
+                neg = true;
+                break;
+            }
+        }
+    }
+
     char *out = xmalloc(neg + carried + ilen + (fn ? 1 + fn : 0) + 1);
     size_t pos = 0;
     if (neg) out[pos++] = '-';
@@ -3780,6 +3917,18 @@ char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact)
         digits[i]++;
     }
     bool carried = digits[0] != '0';
+
+    // See number_to_string_small's identical guard: a negative value whose
+    // printed digits all round down to zero prints "0", not "-0".
+    if (neg && !carried) {
+        neg = false;
+        for (size_t i = 1; i <= ilen + fn; i++) {
+            if (digits[i] != '0') {
+                neg = true;
+                break;
+            }
+        }
+    }
 
     char *out = xmalloc(neg + carried + ilen + (fn ? 1 + fn : 0) + 1);
     size_t pos = 0;
@@ -4631,9 +4780,17 @@ number number_from_decimal(const char *str)
 
 #define SYM_MAX_LABELS 4096
 
+// The grammar recurses (a parenthesized group, a function's argument, a chain
+// of unary minuses), and the text being parsed is untrusted -- Num
+// deserialization feeds this whatever bytes it was handed. Each level costs a
+// C stack frame, so "((((((..." (one byte per level) would otherwise walk off
+// the stack. Far deeper than any nesting the printer emits, which stays flat.
+#define SYM_MAX_DEPTH 256
+
 typedef struct {
     const char *pos;
     bool failed;
+    int depth;
     number labels[SYM_MAX_LABELS]; // labels[i] is #(i+1); bits 0 means unbound
     int label_count;
 } sym_parser;
@@ -4664,7 +4821,25 @@ static number sym_fail(sym_parser *p)
     return NUMBER_ERROR;
 }
 
+// The two productions that can recurse once per input character -- a '('
+// group and a '-' chain -- go through this, so a hostile input hits a parse
+// error instead of a stack overflow. See SYM_MAX_DEPTH.
+#define SYM_RECURSE(body_fn)                                                                                           \
+    if (++p->depth > SYM_MAX_DEPTH) {                                                                                  \
+        p->depth--;                                                                                                    \
+        return sym_fail(p);                                                                                            \
+    }                                                                                                                  \
+    number sym_recurse_result = body_fn(p);                                                                            \
+    p->depth--;                                                                                                        \
+    return sym_recurse_result
+
+static number sym_atom_body(sym_parser *p);
 static number sym_atom(sym_parser *p)
+{
+    SYM_RECURSE(sym_atom_body);
+}
+
+static number sym_atom_body(sym_parser *p)
 {
     sym_skip_space(p);
 
@@ -4745,15 +4920,25 @@ static number sym_power(sym_parser *p)
     // from a product chain), so this doesn't need the general atom rule.
     uint64_t exponent = 0;
     while (isdigit((unsigned char)*p->pos)) {
-        if (exponent > (UINT64_MAX - 9) / 10) return sym_fail(p);
+        // Bounded by INT64_MAX, not UINT64_MAX: the cast to int64_t below
+        // would otherwise wrap a larger exponent into a negative one and
+        // silently accept it ("2^9223372036854775808" would parse as 2^-2^63).
+        if (exponent > ((uint64_t)INT64_MAX - 9) / 10) return sym_fail(p);
         exponent = exponent * 10 + (uint64_t)(*p->pos++ - '0');
+        if (exponent > (uint64_t)INT64_MAX) return sym_fail(p);
     }
     number value = number_pow(base, number_from_int((int64_t)exponent));
     if (number_is_error(value)) return sym_fail(p);
     return value;
 }
 
+static number sym_unary_body(sym_parser *p);
 static number sym_unary(sym_parser *p)
+{
+    SYM_RECURSE(sym_unary_body);
+}
+
+static number sym_unary_body(sym_parser *p)
 {
     sym_skip_space(p);
     if (*p->pos == '-') {
