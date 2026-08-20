@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "number.h" // IWYU pragma: export
+
 #define LIST_LENGTH_BITS 64
 #define LIST_FREE_BITS 48
 #define LIST_ATOMIC_BITS 1
@@ -33,6 +35,12 @@ typedef union {
 } Int_t;
 
 #define OptionalInt_t Int_t
+
+// Num is an exact computable real: a tagged 64-bit word (see number.h). The
+// all-zeroes word is never a valid one, so it doubles as `none` and an
+// optional Num is the same 8 bytes as a Num.
+#define Num_t number
+#define OptionalNum_t Num_t
 
 typedef struct {
     void *data;

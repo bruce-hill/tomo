@@ -47,6 +47,7 @@ struct type_s {
         ByteType,
         BigIntType,
         IntType,
+        NumType,
         FloatType,
         CStringType,
         TextType,
@@ -76,6 +77,8 @@ struct type_s {
         } IntType;
         struct {
         } ByteType;
+        struct {
+        } NumType;
         struct {
             enum { TYPE_NBITS32 = 32, TYPE_NBITS64 = 64 } bits;
         } FloatType;
@@ -134,6 +137,7 @@ struct type_s {
 #define INT_TYPE Type(BigIntType)
 #define INT64_TYPE Type(IntType, .bits = TYPE_IBITS64)
 #define FLOAT_TYPE Type(FloatType, .bits = TYPE_NBITS64)
+#define NUM_TYPE Type(NumType)
 #define NewFunctionType(ret, ...)                                                                                      \
     _make_function_type(ret, sizeof((arg_t[]){__VA_ARGS__}) / sizeof(arg_t), (arg_t[]){__VA_ARGS__})
 
