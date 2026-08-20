@@ -41,6 +41,7 @@ Text_t type_to_text(type_t *t) {
     case TextType: return Match(t, TextType)->lang ? Text$from_str(Match(t, TextType)->lang) : Text("Text");
     case BigIntType: return Text("Int");
     case IntType: return Texts("Int", (int32_t)Match(t, IntType)->bits);
+    case NumType: return Text("Num");
     case FloatType: return Match(t, FloatType)->bits == TYPE_NBITS32 ? Text("Float32") : Text("Float64");
     case ListType: {
         DeclareMatch(list, t, ListType);
@@ -121,6 +122,7 @@ PUREFUNC const char *get_type_name(type_t *t) {
     case ByteType: return "Byte";
     case CStringType: return "CString";
     case PathType: return "Path";
+    case NumType:
     case FloatType:
     case IntType: return Text$as_c_string(type_to_text(t));
     default: return NULL;
@@ -235,6 +237,9 @@ static PUREFUNC INLINE double type_max_magnitude(type_t *t) {
 
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b) {
     if (a == NULL || b == NULL) return NUM_PRECISION_INCOMPARABLE;
+
+    if (a->tag == NumType && b->tag != NumType && is_numeric_type(b)) return NUM_PRECISION_MORE;
+    else if (b->tag == NumType && a->tag != NumType && is_numeric_type(a)) return NUM_PRECISION_LESS;
 
     if (is_int_type(a) && b->tag == FloatType) return NUM_PRECISION_LESS;
     else if (a->tag == FloatType && is_int_type(b)) return NUM_PRECISION_MORE;
@@ -375,6 +380,9 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
 
     if (actual->tag == FloatType && needed->tag == IntType) return false;
 
+    if (needed->tag == NumType) return is_int_type(actual);
+    if (actual->tag == NumType) return false;
+
     if (actual->tag == IntType && (needed->tag == FloatType || needed->tag == BigIntType)) return true;
 
     if (actual->tag == BigIntType && needed->tag == FloatType) return true;
@@ -479,7 +487,8 @@ PUREFUNC bool is_int_type(type_t *t) {
 }
 
 PUREFUNC bool is_numeric_type(type_t *t) {
-    return t->tag == IntType || t->tag == BigIntType || t->tag == FloatType || t->tag == ByteType;
+    return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == FloatType
+           || t->tag == ByteType;
 }
 
 PUREFUNC bool is_packed_data(type_t *t) {
@@ -565,6 +574,7 @@ PUREFUNC size_t type_size(type_t *t) {
         default: errx(1, "Invalid integer bit size");
         }
     }
+    case NumType: return sizeof(Num_t);
     case FloatType: return Match(t, FloatType)->bits == TYPE_NBITS64 ? sizeof(double) : sizeof(float);
     case TextType: return sizeof(Text_t);
     case ListType: return sizeof(List_t);
@@ -649,6 +659,7 @@ PUREFUNC size_t type_align(type_t *t) {
         default: return 0;
         }
     }
+    case NumType: return __alignof__(Num_t);
     case FloatType: return Match(t, FloatType)->bits == TYPE_NBITS64 ? __alignof__(double) : __alignof__(float);
     case TextType: return __alignof__(Text_t);
     case ListType: return __alignof__(List_t);

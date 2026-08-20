@@ -154,6 +154,52 @@ env_t *global_env(bool source_mapping) {
             {"sqrt", "Int$sqrt", "func(x:Int -> Int?)"}, //
             {"times", "Int$times", "func(x,y:Int -> Int)"}, //
             {"to", "Int$to", "func(first:Int,last:Int,step:Int?=none -> func(->Int?))"}),
+        // Num: an exact computable real, and the type of a numeric literal
+        // like `1.1`. Arithmetic resolves through the plus/minus/times/...
+        // metamethods below rather than raw C operators, the same way Int's
+        // does -- see compile_binary_op_to_type.
+        MAKE_TYPE( //
+            "Num", Type(NumType), Text("Num_t"), Text("Num$info"), //
+            {"abs", "Num$abs", "func(x:Num -> Num)"}, //
+            {"acos", "Num$acos", "func(x:Num -> Num?)"}, //
+            {"asin", "Num$asin", "func(x:Num -> Num?)"}, //
+            {"atan", "Num$atan", "func(x:Num -> Num)"}, //
+            {"atan2", "Num$atan2", "func(y,x:Num -> Num?)"}, //
+            {"ceil", "Num$ceil", "func(x:Num -> Num)"}, //
+            {"cos", "Num$cos", "func(x:Num -> Num)"}, //
+            {"cosh", "Num$cosh", "func(x:Num -> Num)"}, //
+            {"digits", "Num$digits", "func(n:Num, digits=15 -> Text)"}, //
+            {"divided_by", "Num$divided_by", "func(x,y:Num -> Num)"}, //
+            {"exp", "Num$exp", "func(x:Num -> Num)"}, //
+            {"floor", "Num$floor", "func(x:Num -> Num)"}, //
+            {"gcd", "Num$gcd", "func(x,y:Num -> Num?)"}, //
+            {"inverse", "Num$inverse", "func(x:Num -> Num?)"}, //
+            {"is_exact", "Num$is_exact", "func(n:Num, digits=15 -> Bool)"}, //
+            {"is_integer", "Num$is_integer", "func(n:Num -> Bool)"}, //
+            {"is_rational", "Num$is_rational", "func(n:Num -> Bool)"}, //
+            {"lcm", "Num$lcm", "func(x,y:Num -> Num?)"}, //
+            {"log", "Num$log", "func(x:Num -> Num?)"}, //
+            {"log10", "Num$log10", "func(x:Num -> Num?)"}, //
+            {"log2", "Num$log2", "func(x:Num -> Num?)"}, //
+            {"minus", "Num$minus", "func(x,y:Num -> Num)"}, //
+            {"modulo", "Num$modulo", "func(x,y:Num -> Num)"}, //
+            {"negative", "Num$negative", "func(x:Num -> Num)"}, //
+            {"plus", "Num$plus", "func(x,y:Num -> Num)"}, //
+            {"power", "Num$power", "func(base:Num,exponent:Num -> Num)"}, //
+            {"round", "Num$round", "func(x:Num -> Num)"}, //
+            {"sin", "Num$sin", "func(x:Num -> Num)"}, //
+            {"sinh", "Num$sinh", "func(x:Num -> Num)"}, //
+            {"sqrt", "Num$sqrt", "func(x:Num -> Num?)"}, //
+            {"symbolic", "Num$symbolic", "func(n:Num -> Text)"}, //
+            {"tan", "Num$tan", "func(x:Num -> Num?)"}, //
+            {"tanh", "Num$tanh", "func(x:Num -> Num)"}, //
+            {"tex", "Num$tex", "func(n:Num -> Text)"}, //
+            {"times", "Num$times", "func(x,y:Num -> Num)"}, //
+            {"to_float64", "Num$to_float64", "func(n:Num -> Float64)"}, //
+            {"to_int", "Num$to_int", "func(n:Num -> Int?)"}, //
+            {"trunc", "Num$trunc", "func(x:Num -> Num)"}, //
+            {"PI", "Num$pi()", "Num"}, //
+            {"TAU", "Num$tau()", "Num"}),
         MAKE_TYPE( //
             "Int64", Type(IntType, .bits = TYPE_IBITS64), Text("Int64_t"), Text("Int64$info"),
             {"abs", "labs", "func(i:Int64 -> Int64)"}, //

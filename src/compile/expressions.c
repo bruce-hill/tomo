@@ -107,7 +107,7 @@ Text_t compile(env_t *env, ast_t *ast) {
     }
     case Int: return compile_int(ast);
     case Num: {
-        return Text$from_str(String(hex_double(Match(ast, Num)->n)));
+        return Text$from_str(String(hex_double(num_literal_double(ast))));
     }
     case Not: {
         ast_t *value = Match(ast, Not)->value;

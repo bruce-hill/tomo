@@ -14,8 +14,6 @@
 #include "errors.h"
 #include "utils.h"
 
-static const double RADIANS_PER_DEGREE = 0.0174532925199432957692369076848861271344287188854172545609719144;
-
 ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     (void)match(&pos, "-");
@@ -38,13 +36,10 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     if (match(&pos, "e") || match(&pos, "f")) // floating point literal
         return NULL;
 
-    if (match(&pos, "%")) {
-        double n = strtod(str, NULL) / 100.;
-        return NewAST(ctx->file, start, pos, Num, .n = n);
-    } else if (match(&pos, "deg")) {
-        double n = strtod(str, NULL) * RADIANS_PER_DEGREE;
-        return NewAST(ctx->file, start, pos, Num, .n = n);
-    }
+    // `50%` and `90deg` are numeric literals, not integers: both scale the
+    // written digits by an exact factor (1/100, and pi/180 respectively).
+    if (match(&pos, "%")) return NewAST(ctx->file, start, pos, Num, .str = str, .suffix = NUM_PERCENT);
+    else if (match(&pos, "deg")) return NewAST(ctx->file, start, pos, Num, .str = str, .suffix = NUM_DEGREES);
 
     return NewAST(ctx->file, start, pos, Int, .str = str);
 }
@@ -70,13 +65,16 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     for (char *src = (char *)pos, *dest = buf; src < pos + len; ++src) {
         if (*src != '_') *(dest++) = *src;
     }
-    double d = strtod(buf, NULL);
     pos += len;
 
-    if (negative) d *= -1;
+    if (negative) buf = String("-", buf);
 
-    if (match(&pos, "%")) d /= 100.;
-    else if (match(&pos, "deg")) d *= RADIANS_PER_DEGREE;
+    // The digits are kept verbatim rather than converted here: a Num literal
+    // is exact, and going through a double first would round `3.15` to
+    // 3.14999999999999991... before the exact value was ever built.
+    int suffix = NUM_PLAIN;
+    if (match(&pos, "%")) suffix = NUM_PERCENT;
+    else if (match(&pos, "deg")) suffix = NUM_DEGREES;
 
-    return NewAST(ctx->file, start, pos, Num, .n = d);
+    return NewAST(ctx->file, start, pos, Num, .str = buf, .suffix = suffix);
 }

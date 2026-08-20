@@ -46,7 +46,7 @@ static bool is_zero_valued_literal(env_t *env, ast_t *ast, type_t *item_type) {
     }
     if (ast->tag == Num) {
         if (item_type->tag != FloatType) return false;
-        double n = Match(ast, Num)->n;
+        double n = num_literal_double(ast);
         return n == 0.0 && !signbit(n);
     }
     if (ast->tag == Bool) return item_type->tag == BoolType && Match(ast, Bool)->b == false;

@@ -13,29 +13,29 @@
 #include "text.h"
 #include "types.h"
 
-// The `number` library reports domain errors (1/0, sqrt(-1), ln(0), ...) with
-// a distinguished error value that propagates through arithmetic the way NaN
-// does. Tomo's convention for arithmetic is to fail loudly at the point of the
-// mistake instead, so operators check here and abort with the library's own
-// explanation of what went wrong. Methods take the other route and return
-// `none` -- see the `Num$opt_*` wrappers below.
+// A Num that a Tomo program can actually hold is never the `number` library's
+// error value: an operator that would produce one fails immediately (below),
+// and a method that would produce one answers `none` instead. So error
+// *propagation* -- the reason the library has an error value at all -- can't
+// arise here, and only operations that can error from valid operands need
+// checking. The rest are wrapped with no test at all.
 static Num_t check(Num_t n) {
     if (unlikely(number_is_error(n))) fail("Arithmetic error: ", number_error_message(n));
     return n;
 }
 
-// The other route: a method whose argument can legitimately be out of domain
-// (`(-1).sqrt()`, `(0).log()`) answers `none` rather than aborting, so callers
-// can handle it with `or`/`!`. Same underlying error value, different policy.
+// A method whose argument can legitimately be out of domain (`(-1):sqrt()`,
+// `(0):log()`) answers `none` rather than aborting, so callers can handle it
+// with `or`/`!`. Same underlying error value, different policy.
 static OptionalNum_t opt(Num_t n) {
     return number_is_error(n) ? NONE_NUM : n;
 }
 
-// The wrappers below are all the same two shapes, so they're generated:
-// UNARY/BINARY abort on a domain error (operators, and methods that are total
-// over the reals), UNARY_OPT/BINARY_OPT answer `none` instead (methods with a
-// restricted domain).
 #define UNARY(name, fn)                                                                                                \
+    public Num_t Num$##name(Num_t x) {                                                                                 \
+        return fn(x);                                                                                                  \
+    }
+#define UNARY_CHECKED(name, fn)                                                                                        \
     public Num_t Num$##name(Num_t x) {                                                                                 \
         return check(fn(x));                                                                                           \
     }
@@ -45,6 +45,10 @@ static OptionalNum_t opt(Num_t n) {
     }
 #define BINARY(name, fn)                                                                                               \
     public Num_t Num$##name(Num_t x, Num_t y) {                                                                        \
+        return fn(x, y);                                                                                               \
+    }
+#define BINARY_CHECKED(name, fn)                                                                                       \
+    public Num_t Num$##name(Num_t x, Num_t y) {                                                                        \
         return check(fn(x, y));                                                                                        \
     }
 #define BINARY_OPT(name, fn)                                                                                           \
@@ -52,23 +56,19 @@ static OptionalNum_t opt(Num_t n) {
         return opt(fn(x, y));                                                                                          \
     }
 
-// --- Operators (a domain error aborts) ---
+// --- Operators ---
 
 BINARY(plus, number_add)
 BINARY(minus, number_sub)
 BINARY(times, number_mul)
-BINARY(divided_by, number_div)
-BINARY(modulo, number_mod)
-BINARY(power, number_pow)
 UNARY(negative, number_neg)
+BINARY_CHECKED(divided_by, number_div) // y == 0
+BINARY_CHECKED(modulo, number_mod)     // y == 0
+BINARY_CHECKED(power, number_pow)      // 0^negative, or negative^non-integer
 
-// --- Methods that are total over the reals (a domain error aborts) ---
+// --- Methods that cannot fail ---
 
 UNARY(abs, number_abs)
-UNARY(floor, number_floor)
-UNARY(ceil, number_ceil)
-UNARY(round, number_round)
-UNARY(trunc, number_trunc)
 UNARY(sin, number_sin)
 UNARY(cos, number_cos)
 UNARY(atan, number_atan)
@@ -76,24 +76,39 @@ UNARY(sinh, number_sinh)
 UNARY(cosh, number_cosh)
 UNARY(tanh, number_tanh)
 UNARY(exp, number_exp)
-BINARY(gcd, number_gcd)
-BINARY(lcm, number_lcm)
+
+// --- Methods that can fail only on an irrational the library can't place ---
+//
+// Rounding an irrational means deciding which side of an integer it falls on,
+// which is undecidable in general: a value sitting exactly on the boundary
+// with no identity proving it does so refines forever, so the library gives up
+// past a precision cap. Every value with a known symbolic form (a rational,
+// pi, sqrt(n), ...) decides immediately, so this is unreachable in practice.
+
+UNARY_CHECKED(floor, number_floor)
+UNARY_CHECKED(ceil, number_ceil)
+UNARY_CHECKED(round, number_round)
+UNARY_CHECKED(trunc, number_trunc)
 
 // --- Methods with a restricted domain (out of domain is `none`) ---
 
-UNARY_OPT(sqrt, number_sqrt)    // x < 0
-UNARY_OPT(log, number_ln)       // x <= 0
-UNARY_OPT(log10, number_log10)  // x <= 0
-UNARY_OPT(log2, number_log2)    // x <= 0
-UNARY_OPT(tan, number_tan)      // poles at pi/2 + k*pi
-UNARY_OPT(asin, number_asin)    // |x| > 1
-UNARY_OPT(acos, number_acos)    // |x| > 1
+UNARY_OPT(sqrt, number_sqrt)       // x < 0
+UNARY_OPT(log, number_ln)          // x <= 0
+UNARY_OPT(log10, number_log10)     // x <= 0
+UNARY_OPT(log2, number_log2)       // x <= 0
+UNARY_OPT(tan, number_tan)         // poles at pi/2 + k*pi
+UNARY_OPT(asin, number_asin)       // |x| > 1
+UNARY_OPT(acos, number_acos)       // |x| > 1
 UNARY_OPT(inverse, number_inverse) // x == 0
-BINARY_OPT(atan2, number_atan2) // (0, 0)
+BINARY_OPT(atan2, number_atan2)    // (0, 0)
+BINARY_OPT(gcd, number_gcd)        // an irrational operand
+BINARY_OPT(lcm, number_lcm)        // an irrational operand
 
 #undef UNARY
+#undef UNARY_CHECKED
 #undef UNARY_OPT
 #undef BINARY
+#undef BINARY_CHECKED
 #undef BINARY_OPT
 
 // --- Constants ---

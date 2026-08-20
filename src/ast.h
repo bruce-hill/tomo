@@ -306,7 +306,12 @@ struct ast_s {
             const char *str;
         } Int;
         struct {
-            double n;
+            // The literal's digits, as written (minus `_` separators), so the
+            // exact value survives to codegen: a Num is exact, and `3.15`
+            // means 63/20, not the nearest double to it. `suffix` records a
+            // trailing `%` or `deg`, both of which scale the value exactly.
+            const char *str;
+            enum { NUM_PLAIN, NUM_PERCENT, NUM_DEGREES } suffix;
         } Num;
         struct {
             Text_t text;
@@ -506,6 +511,7 @@ typedef struct {
 extern const binop_info_t binop_info[NUM_AST_TAGS];
 
 OptionalText_t ast_source(ast_t *ast);
+double num_literal_double(ast_t *ast);
 
 Text_t ast_to_sexp(ast_t *ast);
 const char *ast_to_sexp_str(ast_t *ast);

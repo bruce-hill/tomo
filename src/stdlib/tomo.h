@@ -21,6 +21,7 @@
 #include "memory.h" // IWYU pragma: export
 #include "metamethods.h" // IWYU pragma: export
 #include "floats.h" // IWYU pragma: export
+#include "nums.h" // IWYU pragma: export
 #include "optionals.h" // IWYU pragma: export
 #include "paths.h" // IWYU pragma: export
 #include "pointers.h" // IWYU pragma: export
