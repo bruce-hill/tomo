@@ -5,6 +5,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <gc.h>
+#include <gmp.h>
+#include <stdio.h>
+
 #include "fail.h"
 #include "integers.h"
 #include "nums.h"
@@ -111,6 +115,99 @@ BINARY_OPT(lcm, number_lcm)        // an irrational operand
 #undef BINARY_CHECKED
 #undef BINARY_OPT
 
+// --- Constructors ---
+//
+// Every one of these is exact. Converting *from* a Float64 is exact too --
+// every finite double is a rational -- but it converts the double's actual
+// value, so Float64(0.1) becomes 3602879701896397/36028797018963968 rather
+// than 1/10. Writing `0.1` directly gives the tenth.
+
+public
+PUREFUNC Num_t Num$from_bool(Bool_t b) {
+    return b ? NUMBER_ONE : NUMBER_ZERO;
+}
+public
+PUREFUNC Num_t Num$from_byte(Byte_t b) {
+    return number_from_int((int64_t)b);
+}
+public
+PUREFUNC Num_t Num$from_int8(Int8_t i) {
+    return number_from_int((int64_t)i);
+}
+public
+PUREFUNC Num_t Num$from_int16(Int16_t i) {
+    return number_from_int((int64_t)i);
+}
+public
+PUREFUNC Num_t Num$from_int32(Int32_t i) {
+    return number_from_int((int64_t)i);
+}
+public
+PUREFUNC Num_t Num$from_int64(Int64_t i) {
+    return number_from_int(i);
+}
+public
+Num_t Num$from_int(Int_t i) {
+    // An Int is unbounded, so route through its decimal form rather than
+    // int64: `Int(10)**30` has no int64 to go through.
+    if (likely(i.small & 1L)) return number_from_int(i.small >> 2L);
+    return number_from_string(mpz_get_str(NULL, 10, *(mpz_t *)i.big));
+}
+public
+PUREFUNC Num_t Num$from_float64(Float64_t n) {
+    return number_from_double(n);
+}
+public
+PUREFUNC Num_t Num$from_float32(Float32_t n) {
+    return number_from_double((double)n);
+}
+
+// Parses the exact value the text denotes: "0.1" is a tenth, and "22/7" is
+// that fraction, not either one's nearest double. `none` if it isn't a number.
+public
+OptionalNum_t Num$parse(Text_t text) {
+    return opt(number_from_string(Text$as_c_string(text)));
+}
+
+// --- Comparison helpers ---
+
+public
+PUREFUNC Num_t Num$clamped(Num_t x, Num_t low, Num_t high) {
+    return Num$compare_value(x, low) < 0 ? low : (Num$compare_value(x, high) > 0 ? high : x);
+}
+public
+PUREFUNC bool Num$is_between(Num_t x, Num_t low, Num_t high) {
+    return Num$compare_value(x, low) >= 0 && Num$compare_value(x, high) <= 0;
+}
+public
+PUREFUNC Num_t Num$min(Num_t x, Num_t y) {
+    return Num$compare_value(y, x) < 0 ? y : x;
+}
+public
+PUREFUNC Num_t Num$max(Num_t x, Num_t y) {
+    return Num$compare_value(y, x) > 0 ? y : x;
+}
+
+// Linear interpolation, exact: mix(0.5, x, y) is the true midpoint, and
+// mix(1/3, 0, 1) is exactly a third rather than 0.3333333333333333.
+public
+Num_t Num$mix(Num_t amount, Num_t x, Num_t y) {
+    return number_add(x, number_mul(amount, number_sub(y, x)));
+}
+
+// The value as a percentage, rounded to `precision` (a fraction, so 1% means
+// whole percents and 0.01% means two decimal places).
+public
+Text_t Num$percent(Num_t n, Num_t precision) {
+    if (unlikely(number_is_zero(precision))) fail("Percentage precision can't be zero");
+    // Round to the nearest multiple of `precision`, then render the result as
+    // a percentage: exact input in, exact percentage out.
+    Num_t scaled = number_div(n, precision);
+    Num_t rounded = check(number_mul(check(number_round(scaled)), precision));
+    Num_t percent = number_mul(rounded, number_from_int(100));
+    return Texts(Num$value_as_text(percent), Text("%"));
+}
+
 // --- Constants ---
 
 public
@@ -161,23 +258,6 @@ Text_t Num$symbolic(Num_t n) {
 public
 Text_t Num$tex(Num_t n) {
     return Text$from_str(number_to_tex(n));
-}
-
-// The nearest Float64, correctly rounded (half-to-even), with overflow going
-// to infinity. Lossy by nature: this is the point where exactness is traded
-// for hardware speed.
-public
-PUREFUNC Float64_t Num$to_float64(Num_t n) {
-    return number_to_double(n);
-}
-
-// The value as an Int, or `none` if it isn't a whole number (or doesn't fit
-// an Int64). Never rounds -- use :floor()/:ceil()/:round()/:trunc() first.
-public
-PUREFUNC OptionalInt_t Num$to_int(Num_t n) {
-    bool ok = false;
-    int64_t i = number_to_int64(n, &ok);
-    return ok ? Int$from_int64(i) : NONE_INT;
 }
 
 // Whether the value is an exact rational (as opposed to an irrational like
@@ -263,6 +343,31 @@ PUREFUNC bool Num$is_none(const void *n, const TypeInfo_t *info) {
     return ((Num_t *)n)->bits == NONE_NUM.bits;
 }
 
+// Serialized as the exact symbolic form -- the one representation that
+// round-trips every tier, irrationals included. A binary encoding of the
+// tagged word wouldn't: the heap tiers are pointers, and a decimal expansion
+// would be a lie for anything without a finite one.
+static void Num$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
+    (void)pointers, (void)info;
+    const char *symbolic = number_to_symbolic(*(Num_t *)obj);
+    size_t len = strlen(symbolic);
+    Int64$serialize(&(int64_t){(int64_t)len}, out, pointers, &Int64$info);
+    fwrite(symbolic, 1, len, out);
+}
+
+static void Num$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *info) {
+    (void)pointers, (void)info;
+    int64_t len = 0;
+    Int64$deserialize(in, &len, pointers, &Int64$info);
+    if (unlikely(len < 0)) fail("Corrupted Num in serialized data");
+    char *buf = GC_MALLOC_ATOMIC((size_t)len + 1);
+    if (fread(buf, 1, (size_t)len, in) != (size_t)len) fail("Corrupted Num in serialized data");
+    buf[len] = '\0';
+    Num_t n = number_from_string(buf);
+    if (unlikely(number_is_error(n))) fail("Couldn't deserialize this Num: ", buf);
+    *(Num_t *)obj = n;
+}
+
 public
 const TypeInfo_t Num$info = {
     .size = sizeof(Num_t),
@@ -274,5 +379,7 @@ const TypeInfo_t Num$info = {
             .hash = Num$hash,
             .as_text = Num$as_text,
             .is_none = Num$is_none,
+            .serialize = Num$serialize,
+            .deserialize = Num$deserialize,
         },
 };

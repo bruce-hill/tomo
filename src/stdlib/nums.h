@@ -57,6 +57,24 @@ OptionalNum_t Num$atan2(Num_t y, Num_t x);
 OptionalNum_t Num$gcd(Num_t x, Num_t y);
 OptionalNum_t Num$lcm(Num_t x, Num_t y);
 
+PUREFUNC Num_t Num$clamped(Num_t x, Num_t low, Num_t high);
+PUREFUNC bool Num$is_between(Num_t x, Num_t low, Num_t high);
+PUREFUNC Num_t Num$min(Num_t x, Num_t y);
+PUREFUNC Num_t Num$max(Num_t x, Num_t y);
+Num_t Num$mix(Num_t amount, Num_t x, Num_t y);
+Text_t Num$percent(Num_t n, Num_t precision);
+
+PUREFUNC Num_t Num$from_bool(Bool_t b);
+PUREFUNC Num_t Num$from_byte(Byte_t b);
+PUREFUNC Num_t Num$from_int8(Int8_t i);
+PUREFUNC Num_t Num$from_int16(Int16_t i);
+PUREFUNC Num_t Num$from_int32(Int32_t i);
+PUREFUNC Num_t Num$from_int64(Int64_t i);
+Num_t Num$from_int(Int_t i);
+PUREFUNC Num_t Num$from_float64(Float64_t n);
+PUREFUNC Num_t Num$from_float32(Float32_t n);
+OptionalNum_t Num$parse(Text_t text);
+
 Num_t Num$pi(void);
 Num_t Num$tau(void);
 
@@ -66,8 +84,6 @@ Text_t Num$digits(Num_t n, Int_t digits);
 PUREFUNC bool Num$is_exact(Num_t n, Int_t digits);
 Text_t Num$symbolic(Num_t n);
 Text_t Num$tex(Num_t n);
-PUREFUNC Float64_t Num$to_float64(Num_t n);
-PUREFUNC OptionalInt_t Num$to_int(Num_t n);
 PUREFUNC bool Num$is_rational(Num_t n);
 PUREFUNC bool Num$is_integer(Num_t n);
 

@@ -34,6 +34,24 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wfloat-equal"
+// Truncating toward zero, so 1.9 becomes 1 and -1.9 becomes -1. With
+// truncate=no the value must already be a whole number -- which for an
+// irrational like sqrt(2) it provably isn't.
+public
+Int_t Int$from_num(Num_t n, bool truncate) {
+    if unlikely (!truncate && !number_is_integer(n))
+        fail("Could not convert this Num to an Int without truncation: ", number_to_symbolic(n));
+    Num_t whole = number_trunc(n);
+    if unlikely (number_is_error(whole))
+        fail("Could not convert this Num to an Int: ", number_error_message(whole));
+    // Via the decimal expansion rather than int64: an Int has no width limit,
+    // and neither does a Num.
+    OptionalInt_t i = Int$from_str(number_to_string(whole, 0, NULL));
+    if unlikely (i.small == 0)
+        fail("Could not convert this Num to an Int: ", number_to_symbolic(n));
+    return i;
+}
+
 public
 PUREFUNC Int_t Int$from_float64(double n, bool truncate) {
     mpz_t result;

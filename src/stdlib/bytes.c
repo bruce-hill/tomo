@@ -102,6 +102,10 @@ Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t step) {
     return (Closure_t){.fn = _next_Byte, .userdata = range};
 }
 
+Byte_t Byte$from_num(Num_t n, bool truncate) {
+    return Byte$from_int(Int$from_num(n, truncate), truncate);
+}
+
 public
 PUREFUNC Byte_t Byte$from_int(Int_t i, bool truncate) {
     if unlikely (!truncate && Int$compare_value(i, I_small(0xFF)) > 0)

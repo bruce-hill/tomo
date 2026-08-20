@@ -185,6 +185,7 @@ MACROLIKE PUREFUNC bool Int$is_negative(Int_t x) {
 
 // Int constructors:
 PUREFUNC Int_t Int$from_float64(double n, bool truncate);
+Int_t Int$from_num(Num_t n, bool truncate);
 MACROLIKE PUREFUNC Int_t Int$from_float32(float n, bool truncate) {
     return Int$from_float64((double)n, truncate);
 }

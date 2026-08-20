@@ -161,6 +161,13 @@ env_t *global_env(bool source_mapping) {
         MAKE_TYPE( //
             "Num", Type(NumType), Text("Num_t"), Text("Num$info"), //
             {"abs", "Num$abs", "func(x:Num -> Num)"}, //
+            {"parse", "Num$parse", "func(text:Text -> Num?)"}, //
+            {"clamped", "Num$clamped", "func(x,low,high:Num -> Num)"}, //
+            {"is_between", "Num$is_between", "func(x:Num, a:Num, b:Num -> Bool)"}, //
+            {"mix", "Num$mix", "func(amount,x,y:Num -> Num)"}, //
+            {"min", "Num$min", "func(x,y:Num -> Num)"}, //
+            {"max", "Num$max", "func(x,y:Num -> Num)"}, //
+            {"percent", "Num$percent", "func(n:Num, precision=1% -> Text)"}, //
             {"acos", "Num$acos", "func(x:Num -> Num?)"}, //
             {"asin", "Num$asin", "func(x:Num -> Num?)"}, //
             {"atan", "Num$atan", "func(x:Num -> Num)"}, //
@@ -195,8 +202,6 @@ env_t *global_env(bool source_mapping) {
             {"tanh", "Num$tanh", "func(x:Num -> Num)"}, //
             {"tex", "Num$tex", "func(n:Num -> Text)"}, //
             {"times", "Num$times", "func(x,y:Num -> Num)"}, //
-            {"to_float64", "Num$to_float64", "func(n:Num -> Float64)"}, //
-            {"to_int", "Num$to_int", "func(n:Num -> Int?)"}, //
             {"trunc", "Num$trunc", "func(x:Num -> Num)"}, //
             {"PI", "Num$pi()", "Num"}, //
             {"TAU", "Num$tau()", "Num"}),
@@ -524,7 +529,8 @@ env_t *global_env(bool source_mapping) {
                      {"Byte$from_int16", "func(i:Int16, truncate=no -> Byte)"}, //
                      {"Byte$from_int32", "func(i:Int32, truncate=no -> Byte)"}, //
                      {"Byte$from_int64", "func(i:Int64, truncate=no -> Byte)"}, //
-                     {"Byte$from_int", "func(i:Int, truncate=no -> Byte)"});
+                     {"Byte$from_int", "func(i:Int, truncate=no -> Byte)"}, //
+                     {"Byte$from_num", "func(n:Num, truncate=no -> Byte)"});
     ADD_CONSTRUCTORS("Int", //
                      {"Int$from_bool", "func(b:Bool -> Int)"}, //
                      {"Int$from_byte", "func(b:Byte -> Int)"}, //
@@ -533,7 +539,8 @@ env_t *global_env(bool source_mapping) {
                      {"Int$from_int32", "func(i:Int32 -> Int)"}, //
                      {"Int$from_int64", "func(i:Int64 -> Int)"}, //
                      {"Int$from_float64", "func(n:Float64, truncate=no -> Int)"}, //
-                     {"Int$from_float32", "func(n:Float32, truncate=no -> Int)"});
+                     {"Int$from_float32", "func(n:Float32, truncate=no -> Int)"}, //
+                     {"Int$from_num", "func(n:Num, truncate=no -> Int)"});
     ADD_CONSTRUCTORS("Int64", //
                      {"Int64$from_bool", "func(b:Bool -> Int64)"}, //
                      {"Int64$from_byte", "func(b:Byte -> Int64)"}, //
@@ -542,7 +549,8 @@ env_t *global_env(bool source_mapping) {
                      {"Int64$from_int32", "func(i:Int32 -> Int64)"}, //
                      {"Int64$from_int", "func(i:Int, truncate=no -> Int64)"}, //
                      {"Int64$from_float64", "func(n:Float64, truncate=no -> Int64)"}, //
-                     {"Int64$from_float32", "func(n:Float32, truncate=no -> Int64)"});
+                     {"Int64$from_float32", "func(n:Float32, truncate=no -> Int64)"}, //
+                     {"Int64$from_num", "func(n:Num, truncate=no -> Int64)"});
     ADD_CONSTRUCTORS("Int32", //
                      {"Int32$from_bool", "func(b:Bool -> Int32)"}, //
                      {"Int32$from_byte", "func(b:Byte -> Int32)"}, //
@@ -551,7 +559,8 @@ env_t *global_env(bool source_mapping) {
                      {"Int32$from_int64", "func(i:Int64, truncate=no -> Int32)"}, //
                      {"Int32$from_int", "func(i:Int, truncate=no -> Int32)"}, //
                      {"Int32$from_float64", "func(n:Float64, truncate=no -> Int32)"}, //
-                     {"Int32$from_float32", "func(n:Float32, truncate=no -> Int32)"});
+                     {"Int32$from_float32", "func(n:Float32, truncate=no -> Int32)"}, //
+                     {"Int32$from_num", "func(n:Num, truncate=no -> Int32)"});
     ADD_CONSTRUCTORS("Int16", //
                      {"Int16$from_bool", "func(b:Bool -> Int16)"}, //
                      {"Int16$from_byte", "func(b:Byte -> Int16)"}, //
@@ -560,7 +569,8 @@ env_t *global_env(bool source_mapping) {
                      {"Int16$from_int64", "func(i:Int64, truncate=no -> Int16)"}, //
                      {"Int16$from_int", "func(i:Int, truncate=no -> Int16)"}, //
                      {"Int16$from_float64", "func(n:Float64, truncate=no -> Int16)"}, //
-                     {"Int16$from_float32", "func(n:Float32, truncate=no -> Int16)"});
+                     {"Int16$from_float32", "func(n:Float32, truncate=no -> Int16)"}, //
+                     {"Int16$from_num", "func(n:Num, truncate=no -> Int16)"});
     ADD_CONSTRUCTORS("Int8", //
                      {"Int8$from_bool", "func(b:Bool -> Int8)"}, //
                      {"Int8$from_byte", "func(b:Byte -> Int8)"}, //
@@ -569,7 +579,18 @@ env_t *global_env(bool source_mapping) {
                      {"Int8$from_int64", "func(i:Int64, truncate=no -> Int8)"}, //
                      {"Int8$from_int", "func(i:Int, truncate=no -> Int8)"}, //
                      {"Int8$from_float64", "func(n:Float64, truncate=no -> Int8)"}, //
-                     {"Int8$from_float32", "func(n:Float32, truncate=no -> Int8)"});
+                     {"Int8$from_float32", "func(n:Float32, truncate=no -> Int8)"}, //
+                     {"Int8$from_num", "func(n:Num, truncate=no -> Int8)"});
+    ADD_CONSTRUCTORS("Num", //
+                     {"Num$from_bool", "func(b:Bool -> Num)"}, //
+                     {"Num$from_byte", "func(b:Byte -> Num)"}, //
+                     {"Num$from_int8", "func(i:Int8 -> Num)"}, //
+                     {"Num$from_int16", "func(i:Int16 -> Num)"}, //
+                     {"Num$from_int32", "func(i:Int32 -> Num)"}, //
+                     {"Num$from_int64", "func(i:Int64 -> Num)"}, //
+                     {"Num$from_int", "func(i:Int -> Num)"}, //
+                     {"Num$from_float64", "func(n:Float64 -> Num)"}, //
+                     {"Num$from_float32", "func(n:Float32 -> Num)"});
     ADD_CONSTRUCTORS("Float64", //
                      {"Float64$from_bool", "func(b:Bool -> Float64)"}, //
                      {"Float64$from_byte", "func(b:Byte -> Float64)"}, //
@@ -578,7 +599,8 @@ env_t *global_env(bool source_mapping) {
                      {"Float64$from_int32", "func(i:Int32 -> Float64)"}, //
                      {"Float64$from_int64", "func(i:Int64, truncate=no -> Float64)"}, //
                      {"Float64$from_int", "func(i:Int, truncate=no -> Float64)"}, //
-                     {"Float64$from_float32", "func(n:Float32 -> Float64)"});
+                     {"Float64$from_float32", "func(n:Float32 -> Float64)"}, //
+                     {"Float64$from_num", "func(n:Num, truncate=yes -> Float64)"});
     ADD_CONSTRUCTORS("Float32", //
                      {"Float32$from_bool", "func(b:Bool -> Float32)"}, //
                      {"Float32$from_byte", "func(b:Byte -> Float32)"}, //
@@ -587,7 +609,8 @@ env_t *global_env(bool source_mapping) {
                      {"Float32$from_int32", "func(i:Int32, truncate=no -> Float32)"}, //
                      {"Float32$from_int64", "func(i:Int64, truncate=no -> Float32)"}, //
                      {"Float32$from_int", "func(i:Int, truncate=no -> Float32)"}, //
-                     {"Float32$from_float64", "func(n:Float64 -> Float32)"});
+                     {"Float32$from_float64", "func(n:Float64 -> Float32)"}, //
+                     {"Float32$from_num", "func(n:Num, truncate=yes -> Float32)"});
     ADD_CONSTRUCTORS("Path", //
                      {"Path$from_text", "func(text:Text -> Path)"}, //
                      {"Path$escape_path", "func(path:Path -> Path)"}, //

@@ -61,6 +61,7 @@ MACROLIKE CONSTFUNC FLOAT_T NAMESPACED(from_float64)(double n) {
 }
 #endif
 
+FLOAT_T NAMESPACED(from_num)(Num_t n, bool truncate);
 CONSTFUNC FLOAT_T NAMESPACED(from_int)(Int_t i, bool truncate);
 CONSTFUNC FLOAT_T NAMESPACED(from_int64)(Int64_t i, bool truncate);
 MACROLIKE CONSTFUNC FLOAT_T NAMESPACED(from_int32)(Int32_t i) {

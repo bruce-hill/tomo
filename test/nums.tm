@@ -71,14 +71,38 @@ test "symbolic and TeX forms"
 	assert (1./3.).tex() == "\\frac{1}{3}"
 	assert (2.).sqrt()!.tex() == "\\sqrt{2}"
 
-test "conversions"
-	>> (0.5).to_float64()
-	assert (0.5).to_float64() == Float64(0.5)
-	assert (4.).to_int() == 4
-	assert (4.5).to_int() == none
-	assert (2.).sqrt()!.to_int() == none
-	assert (4.5).floor().to_int() == 4
-	assert (4.5).ceil().to_int() == 5
+test "converting to a float approximates by default"
+	>> Float64(1./3.)
+	assert Float64(0.5) == 0.5
+	assert Float64(1./3.) == Float64(1) / Float64(3)
+	assert Float32(0.5) == Float32(0.5)
+	# A float that happens to be exact converts under truncate=no too:
+	assert Float64(0.5, truncate=no) == 0.5
+
+test "converting to an integer is strict by default"
+	>> Int(4.)
+	assert Int(4.) == 4
+	assert Int(4.9, truncate=yes) == 4
+	assert Int(-4.9, truncate=yes) == -4
+	assert Int((2.).power(100)) == 1267650600228229401496703205376
+	assert Int64(4.) == 4
+	assert Byte(255.) == Byte(0xff)
+	assert Int((4.5).floor()) == 4
+	assert Int((4.5).ceil()) == 5
+
+test "constructing a Num is always exact"
+	assert Num(5) == 5
+	assert Num(Int64(5)) == 5
+	assert Num(Float64(0.5)) == 0.5
+	assert Num(yes) == 1
+	# Float64(0.1) is the double, not a tenth -- so this is not 0.1:
+	assert Num(Float64(0.1)) != 0.1
+
+test "parsing"
+	assert Num.parse("1.5")! == 1.5
+	assert Num.parse("0.1")! == 0.1
+	assert Num.parse("22/7")! == 22./7.
+	assert Num.parse("nope") == none
 
 test "rounding"
 	assert (4.5).floor() == 4
@@ -129,6 +153,14 @@ test "lists of exact values"
 	assert xs.sorted() == [0.25, 1./3., 0.5]
 	assert xs.reversed() == [0.25, 0.5, 1./3.]
 	assert xs.has(0.5)
+
+test "converting a fraction to an Int without truncating panics"
+	_ := Int(1./3.)
+fails "Could not convert this Num to an Int without truncation"
+
+test "converting a fraction to a Float64 without truncating panics"
+	_ := Float64(1./3., truncate=no)
+fails "Could not convert this Num to a Float64 without losing precision"
 
 test "dividing by zero panics"
 	_ := 1.0 / 0.0

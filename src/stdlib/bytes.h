@@ -15,6 +15,7 @@
 PUREFUNC Text_t Byte$as_text(const void *b, bool colorize, const TypeInfo_t *type);
 
 Byte_t Byte$from_int(Int_t i, bool truncate);
+Byte_t Byte$from_num(Num_t n, bool truncate);
 Byte_t Byte$from_int64(int64_t i, bool truncate);
 Byte_t Byte$from_int32(int32_t i, bool truncate);
 Byte_t Byte$from_int16(int16_t i, bool truncate);

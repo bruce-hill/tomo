@@ -103,6 +103,7 @@ void NAMESPACED(serialize)(const void *obj, FILE *out, Table_t *, const TypeInfo
 void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *, const TypeInfo_t *);
 
 PUREFUNC INTX_T NAMESPACED(from_float64)(Float64_t n, bool truncate);
+INTX_T NAMESPACED(from_num)(Num_t n, bool truncate);
 PUREFUNC INTX_T NAMESPACED(from_float32)(Float32_t n, bool truncate);
 PUREFUNC INTX_T NAMESPACED(from_int)(Int_t i, bool truncate);
 

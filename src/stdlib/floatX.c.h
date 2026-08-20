@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 #include "fail.h"
+#include "number.h"
 #include "text.h"
 #include "types.h"
 
@@ -92,6 +93,19 @@ PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInf
     return (rx > ry) - (rx < ry);
 }
 #endif
+
+// Approximating an exact real as a float is lossy for most values -- 1/3 and
+// sqrt(2) have no float at all -- so unlike the integer conversions this
+// defaults to truncate=yes: asking for a float is asking for the
+// approximation. truncate=no demands the float be the exact value.
+public
+FLOAT_T NAMESPACED(from_num)(Num_t n, bool truncate) {
+    FLOAT_T ret = (FLOAT_T)number_to_double(n);
+    if unlikely (!truncate && !number_equal(number_from_double((double)ret), n))
+        fail_text(Text$concat(Text("Could not convert this Num to a " TYPE_STR " without losing precision: "),
+                              Text$from_str(number_to_symbolic(n))));
+    return ret;
+}
 
 public
 CONSTFUNC FLOAT_T NAMESPACED(from_int)(Int_t i, bool truncate) {
