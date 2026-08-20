@@ -1249,9 +1249,13 @@ type_t *get_type(env_t *env, ast_t *ast) {
             } else if (rhs_t->tag == AbortType || rhs_t->tag == ReturnType) {
                 return Match(lhs_t, OptionalType)->type;
             }
-            type_t *non_opt = Match(lhs_t, OptionalType)->type;
-            non_opt = most_complete_type(non_opt, rhs_t);
+            type_t *inner = Match(lhs_t, OptionalType)->type;
+            type_t *non_opt = most_complete_type(inner, rhs_t);
             if (non_opt != NULL) return non_opt;
+            // An untyped literal fallback takes the optional's own type, so
+            // `x or 0` works for any numeric `x` (an `Int64?` and the bignum
+            // `Int` literal `0` have no type in common otherwise).
+            if (can_compile_to_type(env, binop.rhs, inner)) return inner;
         } else if ((is_numeric_type(lhs_t) || lhs_t->tag == BoolType)
                    && (is_numeric_type(rhs_t) || rhs_t->tag == BoolType) && lhs_t->tag != FloatType
                    && rhs_t->tag != FloatType) {
@@ -1372,7 +1376,18 @@ type_t *get_type(env_t *env, ast_t *ast) {
         // `//` (Euclidean division), which keeps its operands' type.
         if (ast->tag == Divide && is_int_type(lhs_t) && is_int_type(rhs_t)) return Type(NumType);
 
-        if (is_numeric_type(lhs_t) && binop.rhs->tag == Int) {
+        // A bare float literal is untyped, the same way a bare int literal is:
+        // next to a `Float32`/`Float64` it takes that type instead of dragging
+        // the whole operation into the exact-real `Num`, so `0.5 * x` is
+        // Float64 math when `x` is a Float64. This mirrors what comparisons do
+        // above. Only literals qualify -- a `Num` *value* never promotes to a
+        // float (see can_promote), so `can_compile_to_type` only says yes for
+        // an expression built entirely out of literals.
+        if (lhs_t->tag == FloatType && rhs_t->tag == NumType && can_compile_to_type(env, binop.rhs, lhs_t)) {
+            return lhs_t;
+        } else if (rhs_t->tag == FloatType && lhs_t->tag == NumType && can_compile_to_type(env, binop.lhs, rhs_t)) {
+            return rhs_t;
+        } else if (is_numeric_type(lhs_t) && binop.rhs->tag == Int) {
             return lhs_t;
         } else if (is_numeric_type(rhs_t) && binop.lhs->tag == Int) {
             return rhs_t;
@@ -2044,6 +2059,16 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     // any numeric type its operands can, by pushing the type into them.
     if (is_numeric_type(non_optional_needed) && is_pushdown_arithmetic(ast, non_optional_needed)
         && get_type(env, ast)->tag == BigIntType) {
+        binary_operands_t binop = BINARY_OPERANDS(ast);
+        return can_compile_to_type(env, binop.lhs, non_optional_needed)
+               && can_compile_to_type(env, binop.rhs, non_optional_needed);
+    }
+    // ...and so can literal float arithmetic (inferred as the exact `Num`),
+    // when the target is a float: `0.5*x`, `1.0/3.0*x`. A `Num` value never
+    // promotes to a float, so this recursion only succeeds when every leaf is
+    // itself a literal (or already float-compatible).
+    if (non_optional_needed->tag == FloatType && is_pushdown_arithmetic(ast, non_optional_needed)
+        && get_type(env, ast)->tag == NumType) {
         binary_operands_t binop = BINARY_OPERANDS(ast);
         return can_compile_to_type(env, binop.lhs, non_optional_needed)
                && can_compile_to_type(env, binop.rhs, non_optional_needed);

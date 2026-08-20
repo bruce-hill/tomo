@@ -13,6 +13,38 @@ test "float literals are inexact"
 	assert Float64(0.1) + Float64(0.2) != Float64(0.3)
 	assert (Float64(0.1) + Float64(0.2)).near(0.3)
 
+test "float literals in arithmetic take the float's type"
+	# A bare literal is untyped: in arithmetic with a float it becomes that
+	# float type rather than pulling the operation into the exact-real `Num`
+	# (a `Num` value can't be assigned to a `Float64`, so these declarations
+	# only typecheck if the arithmetic really is Float64/Float32 arithmetic).
+	x := Float64(1.5)
+	>> half : Float64 = 0.5 * x
+	scaled : Float64 = x * 0.5
+	shifted : Float64 = x + 1.0
+	dropped : Float64 = x - 0.5
+	quotient : Float64 = x / 2.0
+	powered : Float64 = 2.0 ^ x
+	assert half == 0.75
+	assert scaled == 0.75
+	assert shifted == 2.5
+	assert dropped == 1.
+	assert quotient == 0.75
+	assert powered == Float64(2) ^ Float64(1.5)
+	f32 := Float32(1.5)
+	small : Float32 = 0.5 * f32
+	assert small == Float32(0.75)
+	# Literal-only subexpressions push down the same way, however deep:
+	nested : Float64 = (1.0/2.0) * x
+	deeper : Float64 = x * (1.0 + 1.0/2.0)
+	assert nested == 0.75
+	assert deeper == 2.25
+	# ...but only literals do: an actual `Num` value stays exact and does not
+	# silently become a float.
+	n := 1./3.
+	assert n * 3 == 1
+	assert Int64(3) * (1./3.) == 1
+
 test "floored division"
 	# `/` is ordinary float division; `//` is floor(x/y) -- plain floor, not
 	# the Euclidean quotient the integer types and Num use, so for a negative

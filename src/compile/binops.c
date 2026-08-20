@@ -165,9 +165,15 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         if (rhs_t->tag == OptionalType && type_eq(lhs_t, rhs_t)) {
             return Texts("({ ", compile_declaration(lhs_t, Text("lhs")), " = ", compile(env, binop.lhs), "; ",
                          check_none(lhs_t, Text("lhs")), " ? ", compile(env, binop.rhs), " : lhs; })");
-        } else if (rhs_t->tag != OptionalType && type_eq(Match(lhs_t, OptionalType)->type, rhs_t)) {
+        } else if (rhs_t->tag != OptionalType
+                   && (type_eq(Match(lhs_t, OptionalType)->type, rhs_t)
+                       || can_compile_to_type(env, binop.rhs, Match(lhs_t, OptionalType)->type))) {
+            // The fallback is compiled to the optional's own type, so an
+            // untyped literal (`x or 0`) becomes a value of that type rather
+            // than its own inferred one.
+            type_t *inner = Match(lhs_t, OptionalType)->type;
             return Texts("({ ", compile_declaration(lhs_t, Text("lhs")), " = ", compile(env, binop.lhs), "; ",
-                         check_none(lhs_t, Text("lhs")), " ? ", compile(env, binop.rhs), " : ",
+                         check_none(lhs_t, Text("lhs")), " ? ", compile_to_type(env, binop.rhs, inner), " : ",
                          optional_into_nonnone(lhs_t, Text("lhs")), "; })");
         } else if (rhs_t->tag == BoolType) {
             return Texts("((!", check_none(lhs_t, compile(env, binop.lhs)), ") || ", compile(env, binop.rhs), ")");

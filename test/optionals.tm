@@ -241,6 +241,27 @@ test "printing a none optional in if/else"
     else
         >> opt
 
+test "'or' fallbacks can be untyped literals"
+    # The fallback takes the optional's own type, so a bare literal works for
+    # any of them -- not just the bignum `Int`, whose type a literal already
+    # has on its own.
+    none_i64 : Int64? = none
+    none_byte : Byte? = none
+    none_f64 : Float64? = none
+    none_f32 : Float32? = none
+    none_num : Num? = none
+    >> none_i64 or 0
+    assert (none_i64 or 0) == Int64(0)
+    assert (none_byte or 3) == Byte(3)
+    assert (none_f64 or 0.0) == Float64(0)
+    assert (none_f64 or 1.5) == Float64(1.5)
+    assert (none_f32 or 1.5) == Float32(1.5)
+    assert (none_num or 1./3.) == 1./3.
+    # A present value still wins, and still comes out at that type:
+    some_f64 : Float64? = 2.5
+    >> kept : Float64 = some_f64 or 0.0
+    assert kept == 2.5
+
 test "negation and 'or' with optionals"
     >> optional : Int? = 5
     >> not optional
