@@ -8,7 +8,7 @@
 #   - Vectors are flat `&[Float64]` buffers reused across iterations; the two
 #     matrix-vector products fill a shared scratch vector.
 #   - eval_A's denominator is computed inline in the hot loops as native
-#     Int64 arithmetic ((i+j)(i+j+1) is always even, so the /2 is exact) and
+#     Int64 arithmetic ((i+j)(i+j+1) is always even, so the `// 2` is exact) and
 #     converted to `Float64` for the divide, avoiding a per-element call.
 #   - The only inline C is the final `%.9f` formatting (Tomo has no
 #     zero-padded float format), matching k-nucleotide's precedent and the
@@ -25,8 +25,8 @@
 # element, so there is no bounds check or optional unwrap either.
 func mult_Av(u:&[Float64], out:&[Float64], n:Int64)
     for i in Int64(0).to(n - 1)
-        s := 0.0
-        d := Float64(i * (i + 1) / 2 + i + 1)  # denominator at column 0
+        s : Float64 = 0.0
+        d := Float64(i * (i + 1) // 2 + i + 1)  # denominator at column 0
         inc := Float64(i + 1)                  # d(j+1) - d(j) at column 0
         for u_j in u[]
             s += u_j / d
@@ -37,8 +37,8 @@ func mult_Av(u:&[Float64], out:&[Float64], n:Int64)
 # (Aᵀ·u)_i = Σ_j u_j / ((i+j)(i+j+1)/2 + j + 1)
 func mult_Atv(u:&[Float64], out:&[Float64], n:Int64)
     for i in Int64(0).to(n - 1)
-        s := 0.0
-        d := Float64(i * (i + 1) / 2 + 1)  # denominator at column 0
+        s : Float64 = 0.0
+        d := Float64(i * (i + 1) // 2 + 1)  # denominator at column 0
         inc := Float64(i + 2)              # d(j+1) - d(j) at column 0
         for u_j in u[]
             s += u_j / d
@@ -52,16 +52,16 @@ func mult_AtAv(u:&[Float64], out:&[Float64], tmp:&[Float64], n:Int64)
     mult_Atv(tmp, out, n)
 
 func main(n:Int64)
-    u := &[1.0 for _ in n]
-    v := &[0.0 for _ in n]
-    tmp := &[0.0 for _ in n]
+    u := &[Float64(1) for _ in n]
+    v := &[Float64(0) for _ in n]
+    tmp := &[Float64(0) for _ in n]
 
     for _ in 10
         mult_AtAv(u, v, tmp, n)
         mult_AtAv(v, u, tmp, n)
 
-    vBv := 0.0
-    vv := 0.0
+    vBv : Float64 = 0.0
+    vv : Float64 = 0.0
     for i in Int64(0).to(n - 1)
         vBv += u[i + 1]! * v[i + 1]!
         vv += v[i + 1]! * v[i + 1]!

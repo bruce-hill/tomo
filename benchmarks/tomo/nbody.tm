@@ -76,7 +76,7 @@ func energy(bodies:[Body] -> Float64)
     return e
 
 func main(steps:Int64)
-    dpy := 365.24
+    dpy : Float64 = 365.24
     sm := 4.0 * Float64.PI * Float64.PI
 
     # Bodies: sun, jupiter, saturn, uranus, neptune.

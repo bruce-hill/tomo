@@ -32,10 +32,10 @@ func main(n:Int64)
         byte_acc := Int64(0)
         for x in Int64(0).to(size - 1)
             cr := inv * Float64(x) - 1.5
-            zr := 0.0
-            zi := 0.0
-            zr2 := 0.0
-            zi2 := 0.0
+            zr : Float64 = 0.0
+            zi : Float64 = 0.0
+            zr2 : Float64 = 0.0
+            zi2 : Float64 = 0.0
             i := Int64(0)
             while i < 50 and zr2 + zi2 <= 4.0
                 zi = 2.0 * zr * zi + ci

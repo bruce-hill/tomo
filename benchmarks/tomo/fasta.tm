@@ -42,7 +42,7 @@ struct Freq{cutoff:Float64, code:Byte}
 # a plain element iteration.
 func make_freqs(ps:[Float64], codes:[Byte] -> [Freq])
     freqs : &[Freq] = &[]
-    total := 0.0
+    total : Float64 = 0.0
     for p at i in ps
         total += p
         freqs.insert(Freq{total, codes[i]!})
