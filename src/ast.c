@@ -5,6 +5,8 @@
 
 #include "ast.h"
 #include "stdlib/datatypes.h"
+#include "stdlib/integers.h"
+#include "stdlib/nums.h"
 #include "stdlib/optionals.h"
 #include "stdlib/tables.h"
 #include "stdlib/text.h"
@@ -292,6 +294,76 @@ Text_t ast_to_sexp(ast_t *ast) {
           Text$quoted(data.value, false, Text("\"")), ")");
     default: errx(1, "S-expressions are not implemented for this AST");
 #undef T
+    }
+}
+
+// Constant-folds an arithmetic expression of numeric literals into the exact
+// Num value it denotes, so `1/3` compiles to NUMBER_SMALL(1, 3) and
+// `0.1 + 0.1` to NUMBER_SMALL(1, 5) rather than a runtime call chain. The
+// compiler links the same number library the runtime uses, so "fold" here
+// means "run the actual arithmetic" -- the folded value is bit-identical to
+// what the runtime would have produced, Euclidean division/modulus included.
+//
+// Deliberately narrow: literals, negation, and the binary operators, folding
+// only when every step stays exact and rational. An error value (1/0: the
+// runtime should report it, at the site, with its own message) or an
+// irrational result (2^0.5: no constant-expression form exists) returns
+// false and leaves the expression to compile the ordinary way.
+bool fold_num_constant(ast_t *ast, Num_t *out) {
+    switch (ast->tag) {
+    case Num: *out = Match(ast, Num)->n; return true;
+    case Int: {
+        OptionalInt_t i = Int$from_str(Match(ast, Int)->str);
+        if (i.small == 0) return false; // parse failure sentinel
+        *out = Num$from_int(i);
+        return true;
+    }
+    case Negative: {
+        Num_t inner;
+        if (!fold_num_constant(Match(ast, Negative)->value, &inner)) return false;
+        *out = number_neg(inner);
+        return true;
+    }
+    case Plus:
+    case Minus:
+    case Multiply:
+    case Divide:
+    case FloorDivide:
+    case Mod:
+    case Power: {
+        binary_operands_t binop = BINARY_OPERANDS(ast);
+        Num_t lhs, rhs;
+        if (!fold_num_constant(binop.lhs, &lhs) || !fold_num_constant(binop.rhs, &rhs)) return false;
+        Num_t result;
+        switch (ast->tag) {
+        case Plus: result = number_add(lhs, rhs); break;
+        case Minus: result = number_sub(lhs, rhs); break;
+        case Multiply: result = number_mul(lhs, rhs); break;
+        case Divide: result = number_div(lhs, rhs); break;
+        case FloorDivide: {
+            // The Euclidean quotient, exactly as Num$floor_divided_by
+            // computes it at runtime (see nums.c).
+            Num_t q = number_div(lhs, rhs);
+            if (NUMBER_IS_ERROR(q)) return false;
+            result = number_is_negative(rhs) ? number_ceil(q) : number_floor(q);
+            break;
+        }
+        case Mod: {
+            // Euclidean, matching Num$modulo: x - y*(x//y).
+            Num_t q = number_div(lhs, rhs);
+            if (NUMBER_IS_ERROR(q)) return false;
+            q = number_is_negative(rhs) ? number_ceil(q) : number_floor(q);
+            if (NUMBER_IS_ERROR(q)) return false;
+            result = number_sub(lhs, number_mul(rhs, q));
+            break;
+        }
+        default: result = number_pow(lhs, rhs); break;
+        }
+        if (NUMBER_IS_ERROR(result) || !number_is_rational(result)) return false;
+        *out = result;
+        return true;
+    }
+    default: return false;
     }
 }
 

@@ -77,6 +77,18 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         && (overall_t->tag == IntType || overall_t->tag == BigIntType || overall_t->tag == ByteType))
         return compile_checked_int_divmod(env, ast, overall_t);
 
+    // Arithmetic on compile-time-constant Nums folds to the constant it
+    // denotes: `1/3` is NUMBER_SMALL(1, 3), not a runtime division, and
+    // `0.1 + 0.1` is NUMBER_SMALL(1, 5). A folded value outside the immediate
+    // tier (2^100) still collapses the whole expression to one runtime parse
+    // of its exact form.
+    if (overall_t->tag == NumType) {
+        Num_t folded;
+        if (fold_num_constant(ast, &folded))
+            return compile_num_value(
+                folded, Texts("number_from_string(\"", Text$from_str(number_to_symbolic(folded)), "\")"));
+    }
+
     // `/` on integers is exact: both operands convert to Num (losslessly) and
     // the division happens there. The typechecker picked NumType for exactly
     // this case; Num/Num operands take the metamethod path below instead.

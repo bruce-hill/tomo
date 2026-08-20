@@ -524,6 +524,7 @@ extern const binop_info_t binop_info[NUM_AST_TAGS];
 
 OptionalText_t ast_source(ast_t *ast);
 double num_literal_double(ast_t *ast);
+bool fold_num_constant(ast_t *ast, Num_t *out);
 
 Text_t ast_to_sexp(ast_t *ast);
 const char *ast_to_sexp_str(ast_t *ast);

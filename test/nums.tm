@@ -15,6 +15,20 @@ test "integer division with `/` is exact"
 	assert 7//2 == 3
 	assert 7//2 + 7 mod 2 * 0 == 3
 
+test "constant arithmetic folds exactly"
+	# These all compile to a single Num constant (usually a NUMBER_SMALL
+	# immediate) rather than runtime arithmetic -- see fold_num_constant.
+	# The values must be identical to what the runtime would compute.
+	assert 1/3 + 1/6 == 0.5
+	assert 0.1 + 0.1 == 1/5
+	assert 22/7 > 3
+	assert (1/3) * 3 == 1
+	assert -7/2 == -3.5
+	assert 2 ^ 100 + 0. == (2.).power(100)
+	assert 7.5 mod 2 == 1.5
+	assert 7.5 // 2 == 3
+	assert 1/3 - 1/3 == 0
+
 test "Euclidean division and modulus on Num"
 	# Same invariants as the integer types: x == y*(x//y) + (x mod y), with
 	# the remainder always non-negative.

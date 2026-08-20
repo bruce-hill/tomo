@@ -1903,6 +1903,13 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         // type-dependent: fixed-width int `/`,`%` compile to *checked* blocks
         // (division-by-zero), `**` and bignum arithmetic to function calls --
         // none are constants. Operands are checked against the same target `t`.
+        // Constant Num arithmetic folds to a single value at compile time
+        // (see fold_num_constant); it's a C constant when that value fits the
+        // immediate tier.
+        if (t->tag == NumType) {
+            Num_t folded;
+            return fold_num_constant(ast, &folded) && (folded.bits & 0x3) == 0x1;
+        }
         bool native;
         switch (ast->tag) {
         case Plus:
