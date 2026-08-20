@@ -449,6 +449,153 @@ test "List.where"
     assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("A")) == 2
     assert ["BC", "ABC", "CD"].where(func(t:Text) t.starts_with("X")) == none
 
+test "Num.PI"
+    assert Num.PI.sin() == 0
+    assert Num.PI.digits(10) == "3.1415926536"
+
+test "Num.TAU"
+    assert Num.TAU == 2 * Num.PI
+
+test "Num.abs"
+    assert (-3.5).abs() == 3.5
+
+test "Num.acos"
+    assert (1.).acos()! == 0
+    assert (2.).acos() == none
+
+test "Num.asin"
+    assert (0.).asin()! == 0
+    assert (2.).asin() == none
+
+test "Num.atan"
+    assert (0.).atan() == 0
+    assert (1.).atan() == Num.PI / 4
+
+test "Num.atan2"
+    assert (1.).atan2(1)! == Num.PI / 4
+    assert (0.).atan2(0) == none
+
+test "Num.ceil"
+    assert (4.2).ceil() == 5
+    assert (-4.2).ceil() == -4
+
+test "Num.clamped"
+    assert (1.5).clamped(0, 1) == 1
+    assert (0.5).clamped(0, 1) == 0.5
+
+test "Num.cos"
+    assert (0.).cos() == 1
+    assert Num.PI.cos() == -1
+
+test "Num.cosh"
+    assert (0.).cosh() == 1
+
+test "Num.digits"
+    assert (1./3.).digits(10) == "0.3333333333"
+    assert Num.PI.digits(10) == "3.1415926536"
+    assert (0.25).digits(10) == "0.25"
+
+test "Num.exp"
+    assert (0.).exp() == 1
+
+test "Num.floor"
+    assert (4.8).floor() == 4
+    assert (-4.2).floor() == -5
+
+test "Num.gcd"
+    assert (12.).gcd(18)! == 6
+    assert (1./2.).gcd(1./3.)! == 1./6.
+
+test "Num.inverse"
+    assert (4.).inverse()! == 0.25
+    assert (0.).inverse() == none
+
+test "Num.is_between"
+    assert (0.5).is_between(0, 1)
+    assert not (1.5).is_between(0, 1)
+
+test "Num.is_exact"
+    assert (0.25).is_exact(10)
+    assert not (1./3.).is_exact(10)
+
+test "Num.is_integer"
+    assert (4.).is_integer()
+    assert not (4.5).is_integer()
+
+test "Num.is_rational"
+    assert (1./3.).is_rational()
+    assert not (2.).sqrt()!.is_rational()
+
+test "Num.lcm"
+    assert (4.).lcm(6)! == 12
+
+test "Num.log"
+    assert (1.).log()! == 0
+    assert (0.).log() == none
+
+test "Num.log10"
+    assert (100.).log10()! == 2
+
+test "Num.log2"
+    assert (8.).log2()! == 3
+    assert (1./4.).log2()! == -2
+
+test "Num.max"
+    assert (0.3).max(0.5) == 0.5
+
+test "Num.min"
+    assert (0.3).min(0.5) == 0.3
+
+test "Num.mix"
+    assert (0.25).mix(10, 20) == 12.5
+    assert (1./3.).mix(0, 1) == 1./3.
+
+test "Num.parse"
+    assert Num.parse("0.1")! == 0.1
+    assert Num.parse("22/7")! == 22./7.
+    assert Num.parse("nope") == none
+
+test "Num.percent"
+    assert (0.5).percent() == "50%"
+    assert (1./3.).percent() == "33%"
+    assert (1./3.).percent(0.01%) == "33.33%"
+
+test "Num.round"
+    assert (4.4).round() == 4
+    assert (4.6).round() == 5
+    assert (2.5).round() == 2
+
+test "Num.sin"
+    assert (0.).sin() == 0
+    assert Num.PI.sin() == 0
+
+test "Num.sinh"
+    assert (0.).sinh() == 0
+
+test "Num.sqrt"
+    assert (16.).sqrt()! == 4
+    assert (2.).sqrt()! * (2.).sqrt()! == 2
+    assert (-1.).sqrt() == none
+
+test "Num.symbolic"
+    assert (1./3.).symbolic() == "1/3"
+    assert (2.).sqrt()!.symbolic() == "sqrt(2)"
+    assert Num.PI.symbolic() == "pi"
+
+test "Num.tan"
+    assert (0.).tan()! == 0
+
+test "Num.tanh"
+    assert (0.).tanh() == 0
+
+test "Num.tex"
+    assert (1./3.).tex() == "\\frac{1}{3}"
+    assert (2.).sqrt()!.tex() == "\\sqrt{2}"
+
+test "Num.trunc"
+    assert (4.8).trunc() == 4
+    assert (-4.8).trunc() == -4
+
 test "Path.accessed"
     if no
         assert (./file.txt).accessed() == Int64(1704221100)

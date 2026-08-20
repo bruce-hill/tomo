@@ -1,16 +1,37 @@
-# Nums
+# Floating point numbers
 
-Tomo has two floating point number types: `Float64` (64-bit, AKA `double`) and
-`Float32` (32-bit, AKA `float`). Float64 literals can have a decimal point (e.g.
-`5.`), a scientific notation suffix (e.g. `1e8`) or a percent sign. Numbers
-that end in a percent sign are divided by 100 at compile time (i.e. `5% ==
-0.05`). Numbers can also use the `deg` suffix to represent degrees, which
-are converted to radians at compile time (i.e. `180deg == Nums.PI`).
+Tomo has two hardware floating point types: `Float64` (64-bit, AKA `double`)
+and `Float32` (32-bit, AKA `float`). They are what to reach for when speed
+matters more than exactness; the default numeric type is [`Num`](nums.md),
+which is exact.
 
-Nums support the standard math operations (`x+y`, `x-y`, `x*y`, `x/y`) as well as
-powers/exponentiation (`x^y`) and modulus (`x mod y` and `x mod1 y`).
+Floats support the standard math operations (`x+y`, `x-y`, `x*y`, `x/y`) as
+well as powers/exponentiation (`x^y`) and modulus (`x mod y` and `x mod1 y`).
 
-32-bit numbers can be constructed using the type name: `Float32(123.456)`.
+Because a bare numeric literal like `1.5` is a `Num`, a float is written by
+naming the type: `Float64(1.5)` or `Float32(123.456)`. In any position where
+the type is already known -- a typed variable, a function argument, a
+comparison against a float -- a literal is compiled directly to a float with
+no `Num` involved:
+
+```tomo
+x : Float64 = 1.5      # compiled as a float64 literal
+
+func doop(n:Float64 -> Float64)
+    return n * 2
+
+assert doop(0.5) == 1.0    # 0.5 is compiled as a float64 literal
+```
+
+Converting a `Num` to a float approximates it, which is what asking for a
+float means, so `truncate` defaults to `yes`. Pass `truncate=no` to demand
+that the float be the exact value:
+
+```tomo
+assert Float64(1./3.).near(0.333333)
+assert Float64(0.5, truncate=no) == 0.5   # a half is exactly a float
+# Float64(1./3., truncate=no) would fail: a third is not
+```
 
 ## NaN
 
@@ -36,7 +57,7 @@ values (zero times infinity), and many math functions like `sqrt()` can return
 NaN for some inputs.
 
 Unfortunately, one of the big downsides of optional types is that explicit
-`none` handling can be very verbose. To make Nums actually usable, Tomo applies
+`none` handling can be very verbose. To make floats actually usable, Tomo applies
 very liberal use of type coercion and implicit `none` checks when values are
 required to be non-none. Here are a few examples:
 
@@ -54,7 +75,7 @@ assert zero / zero == none
 assert zero/y + 1 + 2 == 3
 assert zero/zero + 1 + 2 == none
 
-# Optional Nums can be handled explicitly using `or` and `!`:
+# Optional floats can be handled explicitly using `or` and `!`:
 assert zero/zero or -123 == -123
 
 # This would raise a runtime error if `zero` and `y` were zero:
@@ -90,3 +111,5 @@ provided are not NaN.
 # API
 
 [API documentation](../api/floats.md)
+
+See also [Num](nums.md), the exact default numeric type.

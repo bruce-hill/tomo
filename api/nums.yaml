@@ -1,0 +1,697 @@
+Num.PI:
+  short: the constant pi
+  type: 'Num'
+  description: >
+    The ratio of a circle's circumference to its diameter, held exactly rather
+    than as an approximation.
+  example: |
+    assert Num.PI.sin() == 0
+    assert Num.PI.digits(10) == "3.1415926536"
+
+Num.TAU:
+  short: the constant tau
+  type: 'Num'
+  description: >
+    Two times pi, held exactly.
+  example: |
+    assert Num.TAU == 2 * Num.PI
+
+Num.abs:
+  short: absolute value
+  description: >
+    The absolute value of a number.
+  return:
+    type: 'Num'
+    description: >
+      The absolute value of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose absolute value is to be computed.
+  example: |
+    assert (-3.5).abs() == 3.5
+
+Num.acos:
+  short: arc cosine
+  description: >
+    The arc cosine of a number, in radians.
+  return:
+    type: 'Num?'
+    description: >
+      The arc cosine of `x`, or `none` if `x` is outside [-1, 1].
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose arc cosine is to be computed.
+  example: |
+    assert (1.).acos()! == 0
+    assert (2.).acos() == none
+
+Num.asin:
+  short: arc sine
+  description: >
+    The arc sine of a number, in radians.
+  return:
+    type: 'Num?'
+    description: >
+      The arc sine of `x`, or `none` if `x` is outside [-1, 1].
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose arc sine is to be computed.
+  example: |
+    assert (0.).asin()! == 0
+    assert (2.).asin() == none
+
+Num.atan:
+  short: arc tangent
+  description: >
+    The arc tangent of a number, in radians. Defined for every number.
+  return:
+    type: 'Num'
+    description: >
+      The arc tangent of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose arc tangent is to be computed.
+  example: |
+    assert (0.).atan() == 0
+    assert (1.).atan() == Num.PI / 4
+
+Num.atan2:
+  short: arc tangent of two numbers
+  description: >
+    The angle of the point `(x, y)`, in radians, placed in the correct
+    quadrant by the signs of both arguments.
+  return:
+    type: 'Num?'
+    description: >
+      The angle in (-pi, pi], or `none` at the origin, where no angle is
+      defined.
+  args:
+    y:
+      type: 'Num'
+      description: >
+        The y coordinate.
+    x:
+      type: 'Num'
+      description: >
+        The x coordinate.
+  example: |
+    assert (1.).atan2(1)! == Num.PI / 4
+    assert (0.).atan2(0) == none
+
+Num.ceil:
+  short: round up
+  description: >
+    The smallest whole number greater than or equal to a number.
+  return:
+    type: 'Num'
+    description: >
+      `x` rounded up.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to round up.
+  example: |
+    assert (4.2).ceil() == 5
+    assert (-4.2).ceil() == -4
+
+Num.clamped:
+  short: clamp to a range
+  description: >
+    A number restricted to a range.
+  return:
+    type: 'Num'
+    description: >
+      `x`, or the nearer of `low` and `high` if `x` falls outside them.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to clamp.
+    low:
+      type: 'Num'
+      description: >
+        The lowest allowed value.
+    high:
+      type: 'Num'
+      description: >
+        The highest allowed value.
+  example: |
+    assert (1.5).clamped(0, 1) == 1
+    assert (0.5).clamped(0, 1) == 0.5
+
+Num.cos:
+  short: cosine
+  description: >
+    The cosine of an angle in radians.
+  return:
+    type: 'Num'
+    description: >
+      The cosine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The angle in radians.
+  example: |
+    assert (0.).cos() == 1
+    assert Num.PI.cos() == -1
+
+Num.cosh:
+  short: hyperbolic cosine
+  description: >
+    The hyperbolic cosine of a number.
+  return:
+    type: 'Num'
+    description: >
+      The hyperbolic cosine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose hyperbolic cosine is to be computed.
+  example: |
+    assert (0.).cosh() == 1
+
+Num.digits:
+  short: decimal expansion
+  description: >
+    The decimal expansion of a number, to at most the requested number of
+    fractional digits, correctly rounded. A value that needs fewer digits stops
+    early rather than padding with zeros.
+  return:
+    type: 'Text'
+    description: >
+      The decimal expansion as text.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to expand.
+    digits:
+      type: 'Int'
+      default: '15'
+      description: >
+        The maximum number of fractional digits.
+  example: |
+    assert (1./3.).digits(10) == "0.3333333333"
+    assert Num.PI.digits(10) == "3.1415926536"
+    assert (0.25).digits(10) == "0.25"
+
+Num.exp:
+  short: e raised to a power
+  description: >
+    e raised to the given power.
+  return:
+    type: 'Num'
+    description: >
+      e to the power of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The exponent.
+  example: |
+    assert (0.).exp() == 1
+
+Num.floor:
+  short: round down
+  description: >
+    The largest whole number less than or equal to a number.
+  return:
+    type: 'Num'
+    description: >
+      `x` rounded down.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to round down.
+  example: |
+    assert (4.8).floor() == 4
+    assert (-4.2).floor() == -5
+
+Num.gcd:
+  short: greatest common divisor
+  description: >
+    The greatest common divisor of two numbers, generalized to fractions: the
+    largest value by which both can be divided to give whole numbers.
+  return:
+    type: 'Num?'
+    description: >
+      The greatest common divisor, or `none` if either argument is irrational
+      and so has no such divisor.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The first number.
+    y:
+      type: 'Num'
+      description: >
+        The second number.
+  example: |
+    assert (12.).gcd(18)! == 6
+    assert (1./2.).gcd(1./3.)! == 1./6.
+
+Num.inverse:
+  short: reciprocal
+  description: >
+    One divided by a number.
+  return:
+    type: 'Num?'
+    description: >
+      The reciprocal of `x`, or `none` if `x` is zero.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to invert.
+  example: |
+    assert (4.).inverse()! == 0.25
+    assert (0.).inverse() == none
+
+Num.is_between:
+  short: range check
+  description: >
+    Whether a number lies within a range, inclusive.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `low <= x <= high`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to check.
+    low:
+      type: 'Num'
+      description: >
+        The lower bound.
+    high:
+      type: 'Num'
+      description: >
+        The upper bound.
+  example: |
+    assert (0.5).is_between(0, 1)
+    assert not (1.5).is_between(0, 1)
+
+Num.is_exact:
+  short: whether digits capture the value
+  description: >
+    Whether the requested number of fractional digits represents a number
+    exactly, rather than rounding it.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `:digits(digits)` is the value itself.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to check.
+    digits:
+      type: 'Int'
+      default: '15'
+      description: >
+        The number of fractional digits.
+  example: |
+    assert (0.25).is_exact(10)
+    assert not (1./3.).is_exact(10)
+
+Num.is_integer:
+  short: whether a number is whole
+  description: >
+    Whether a number is a whole number.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `n` has no fractional part.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to check.
+  example: |
+    assert (4.).is_integer()
+    assert not (4.5).is_integer()
+
+Num.is_rational:
+  short: whether a number is a fraction
+  description: >
+    Whether a number can be written exactly as a fraction, as opposed to an
+    irrational value like the square root of two.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if `n` is rational.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to check.
+  example: |
+    assert (1./3.).is_rational()
+    assert not (2.).sqrt()!.is_rational()
+
+Num.lcm:
+  short: least common multiple
+  description: >
+    The least common multiple of two numbers, generalized to fractions.
+  return:
+    type: 'Num?'
+    description: >
+      The least common multiple, or `none` if either argument is irrational.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The first number.
+    y:
+      type: 'Num'
+      description: >
+        The second number.
+  example: |
+    assert (4.).lcm(6)! == 12
+
+Num.log:
+  short: natural logarithm
+  description: >
+    The natural logarithm of a number.
+  return:
+    type: 'Num?'
+    description: >
+      The natural log of `x`, or `none` if `x` is not positive.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose logarithm is to be computed.
+  example: |
+    assert (1.).log()! == 0
+    assert (0.).log() == none
+
+Num.log10:
+  short: base-10 logarithm
+  description: >
+    The base-10 logarithm of a number.
+  return:
+    type: 'Num?'
+    description: >
+      The base-10 log of `x`, or `none` if `x` is not positive.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose logarithm is to be computed.
+  example: |
+    assert (100.).log10()! == 2
+
+Num.log2:
+  short: base-2 logarithm
+  description: >
+    The base-2 logarithm of a number.
+  return:
+    type: 'Num?'
+    description: >
+      The base-2 log of `x`, or `none` if `x` is not positive.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose logarithm is to be computed.
+  example: |
+    assert (8.).log2()! == 3
+    assert (1./4.).log2()! == -2
+
+Num.max:
+  short: larger of two numbers
+  description: >
+    The larger of two numbers.
+  return:
+    type: 'Num'
+    description: >
+      Whichever of `x` and `y` is larger.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The first number.
+    y:
+      type: 'Num'
+      description: >
+        The second number.
+  example: |
+    assert (0.3).max(0.5) == 0.5
+
+Num.min:
+  short: smaller of two numbers
+  description: >
+    The smaller of two numbers.
+  return:
+    type: 'Num'
+    description: >
+      Whichever of `x` and `y` is smaller.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The first number.
+    y:
+      type: 'Num'
+      description: >
+        The second number.
+  example: |
+    assert (0.3).min(0.5) == 0.3
+
+Num.mix:
+  short: linear interpolation
+  description: >
+    A point between two numbers, exactly. `amount` of zero gives `x`, one gives
+    `y`, and a half gives the true midpoint.
+  return:
+    type: 'Num'
+    description: >
+      The interpolated value.
+  args:
+    amount:
+      type: 'Num'
+      description: >
+        How far from `x` toward `y`.
+    x:
+      type: 'Num'
+      description: >
+        The value at `amount` zero.
+    y:
+      type: 'Num'
+      description: >
+        The value at `amount` one.
+  example: |
+    assert (0.25).mix(10, 20) == 12.5
+    assert (1./3.).mix(0, 1) == 1./3.
+
+Num.parse:
+  short: parse text as a number
+  description: >
+    The exact number a piece of text denotes. Both decimals and fractions are
+    accepted, and both are read exactly: "0.1" is a tenth, not the nearest
+    float to one.
+  return:
+    type: 'Num?'
+    description: >
+      The number, or `none` if the text isn't one.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to parse.
+  example: |
+    assert Num.parse("0.1")! == 0.1
+    assert Num.parse("22/7")! == 22./7.
+    assert Num.parse("nope") == none
+
+Num.percent:
+  short: format as a percentage
+  description: >
+    A number as a percentage, rounded to the given precision.
+  return:
+    type: 'Text'
+    description: >
+      The percentage, with a percent sign.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to format.
+    precision:
+      type: 'Num'
+      default: '1%'
+      description: >
+        Round the percentage to this precision.
+  example: |
+    assert (0.5).percent() == "50%"
+    assert (1./3.).percent() == "33%"
+    assert (1./3.).percent(0.01%) == "33.33%"
+
+Num.round:
+  short: round to the nearest whole number
+  description: >
+    The nearest whole number, with halves going to the even one.
+  return:
+    type: 'Num'
+    description: >
+      `x` rounded.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to round.
+  example: |
+    assert (4.4).round() == 4
+    assert (4.6).round() == 5
+    assert (2.5).round() == 2
+
+Num.sin:
+  short: sine
+  description: >
+    The sine of an angle in radians.
+  return:
+    type: 'Num'
+    description: >
+      The sine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The angle in radians.
+  example: |
+    assert (0.).sin() == 0
+    assert Num.PI.sin() == 0
+
+Num.sinh:
+  short: hyperbolic sine
+  description: >
+    The hyperbolic sine of a number.
+  return:
+    type: 'Num'
+    description: >
+      The hyperbolic sine of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose hyperbolic sine is to be computed.
+  example: |
+    assert (0.).sinh() == 0
+
+Num.sqrt:
+  short: square root
+  description: >
+    The square root of a number, exactly. The result of a non-square stays
+    symbolic, so identities like `sqrt(2) * sqrt(2) == 2` hold.
+  return:
+    type: 'Num?'
+    description: >
+      The square root of `x`, or `none` if `x` is negative.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose square root is to be computed.
+  example: |
+    assert (16.).sqrt()! == 4
+    assert (2.).sqrt()! * (2.).sqrt()! == 2
+    assert (-1.).sqrt() == none
+
+Num.symbolic:
+  short: exact form as text
+  description: >
+    The exact value written out: a whole number, a fraction, or a symbolic
+    expression for an irrational.
+  return:
+    type: 'Text'
+    description: >
+      The exact form.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to write out.
+  example: |
+    assert (1./3.).symbolic() == "1/3"
+    assert (2.).sqrt()!.symbolic() == "sqrt(2)"
+    assert Num.PI.symbolic() == "pi"
+
+Num.tan:
+  short: tangent
+  description: >
+    The tangent of an angle in radians.
+  return:
+    type: 'Num?'
+    description: >
+      The tangent of `x`, or `none` at a pole.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The angle in radians.
+  example: |
+    assert (0.).tan()! == 0
+
+Num.tanh:
+  short: hyperbolic tangent
+  description: >
+    The hyperbolic tangent of a number.
+  return:
+    type: 'Num'
+    description: >
+      The hyperbolic tangent of `x`.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number whose hyperbolic tangent is to be computed.
+  example: |
+    assert (0.).tanh() == 0
+
+Num.tex:
+  short: exact form as TeX
+  description: >
+    The exact value as TeX math-mode source.
+  return:
+    type: 'Text'
+    description: >
+      The TeX source.
+  args:
+    n:
+      type: 'Num'
+      description: >
+        The number to render.
+  example: |
+    assert (1./3.).tex() == "\\frac{1}{3}"
+    assert (2.).sqrt()!.tex() == "\\sqrt{2}"
+
+Num.trunc:
+  short: round toward zero
+  description: >
+    The whole part of a number, discarding the fraction.
+  return:
+    type: 'Num'
+    description: >
+      `x` with its fractional part removed.
+  args:
+    x:
+      type: 'Num'
+      description: >
+        The number to truncate.
+  example: |
+    assert (4.8).trunc() == 4
+    assert (-4.8).trunc() == -4
