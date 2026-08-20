@@ -80,7 +80,14 @@ func write_frequencies(seq:[Byte], k:Int64)
         counts[key] += 1
 
     entries := &[Count{kk, vv} for kk, vv in counts.entries()]
-    entries.sort(by_count_then_key)
+    entries.sort(
+        # Sort by count descending, then by key ascending (ties broken toward the
+        # smaller code, i.e. alphabetically).
+        func(a, b: Count -> Int32)
+            if a.count != b.count
+                return b.count <> a.count
+            return a.key <> b.key
+    )
 
     total := Num(n - k + 1)
     out := ""
