@@ -116,7 +116,10 @@ assert (3. + 2 * (2.).sqrt()!).sqrt()! == 1 + (2.).sqrt()!
 
 The 40-digit rule means two values differing only past the 40th digit are
 treated as the same. In exchange, comparison always terminates and always
-gives an answer.
+gives an answer. Rounding an irrational uses the same rule for the same
+reason: `:floor()` on a value that sits too close to a whole number to be
+placed by refinement decides from its 40-digit expansion rather than refusing
+to answer.
 
 ## Converting
 

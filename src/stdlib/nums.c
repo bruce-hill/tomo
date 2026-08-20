@@ -31,10 +31,9 @@ _Noreturn void Num$arithmetic_error(Num_t bad) {
     fail("Arithmetic error: ", number_error_message(bad));
 }
 
-static Num_t check(Num_t n) {
-    if (unlikely(NUMBER_IS_ERROR(n))) Num$arithmetic_error(n);
-    return n;
-}
+// The EQUALITY_DIGITS approximation, defined further down with the
+// comparison logic that names the constant.
+static Num_t rounded_for_equality(Num_t n);
 
 // A method whose argument can legitimately be out of domain (`(-1):sqrt()`,
 // `(0):log()`) answers `none` rather than aborting, so callers can handle it
@@ -47,9 +46,22 @@ static OptionalNum_t opt(Num_t n) {
     public Num_t Num$##name(Num_t x) {                                                                                 \
         return fn(x);                                                                                                  \
     }
-#define UNARY_CHECKED(name, fn)                                                                                        \
+// Rounding an irrational means deciding which side of an integer it falls
+// on, and one case is genuinely undecidable: a value sitting so close to the
+// boundary that no identity the engine recognizes places it, which refines
+// forever and gives up. Failing there would contradict how equality already
+// behaves -- agreement to EQUALITY_DIGITS settles what refinement can't -- so
+// decide it the same way, from that approximation, which is a rational and so
+// always rounds. The guard after it is unreachable: it would take a value
+// whose decimal expansion is itself undecidable at that precision.
+#define UNARY_ROUNDING(name, fn)                                                                                       \
     public Num_t Num$##name(Num_t x) {                                                                                 \
-        return check(fn(x));                                                                                           \
+        Num_t result = fn(x);                                                                                          \
+        if (unlikely(NUMBER_IS_ERROR(result))) {                                                                       \
+            result = fn(rounded_for_equality(x));                                                                      \
+            if (unlikely(NUMBER_IS_ERROR(result))) Num$arithmetic_error(result);                                       \
+        }                                                                                                              \
+        return result;                                                                                                 \
     }
 #define UNARY_OPT(name, fn)                                                                                            \
     public OptionalNum_t Num$##name(Num_t x) {                                                                         \
@@ -71,18 +83,12 @@ UNARY(cosh, number_cosh)
 UNARY(tanh, number_tanh)
 UNARY(exp, number_exp)
 
-// --- Methods that can fail only on an irrational the library can't place ---
-//
-// Rounding an irrational means deciding which side of an integer it falls on,
-// which is undecidable in general: a value sitting exactly on the boundary
-// with no identity proving it does so refines forever, so the library gives up
-// past a precision cap. Every value with a known symbolic form (a rational,
-// pi, sqrt(n), ...) decides immediately, so this is unreachable in practice.
+// --- Rounding (see UNARY_ROUNDING) ---
 
-UNARY_CHECKED(floor, number_floor)
-UNARY_CHECKED(ceil, number_ceil)
-UNARY_CHECKED(round, number_round)
-UNARY_CHECKED(trunc, number_trunc)
+UNARY_ROUNDING(floor, number_floor)
+UNARY_ROUNDING(ceil, number_ceil)
+UNARY_ROUNDING(round, number_round)
+UNARY_ROUNDING(trunc, number_trunc)
 
 // --- Methods with a restricted domain (out of domain is `none`) ---
 
@@ -99,7 +105,7 @@ BINARY_OPT(gcd, number_gcd)        // an irrational operand
 BINARY_OPT(lcm, number_lcm)        // an irrational operand
 
 #undef UNARY
-#undef UNARY_CHECKED
+#undef UNARY_ROUNDING
 #undef UNARY_OPT
 #undef BINARY_OPT
 
@@ -191,7 +197,7 @@ Text_t Num$percent(Num_t n, Num_t precision) {
     // Round to the nearest multiple of `precision`, then render the result as
     // a percentage: exact input in, exact percentage out.
     Num_t scaled = number_div(n, precision);
-    Num_t rounded = check(number_mul(check(number_round(scaled)), precision));
+    Num_t rounded = number_mul(Num$round(scaled), precision);
     Num_t percent = number_mul(rounded, number_from_int(100));
     return Texts(Num$value_as_text(percent), Text("%"));
 }
