@@ -91,7 +91,7 @@ type_ast_t *parse_pointer_type(parse_ctx_t *ctx, const char *pos) {
 }
 
 type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
-    // tagged union: enum(A, B(x:Int,y:Int)=5, ...)
+    // tagged union: enum(A, B{x:Int,y:Int}, ...)
     const char *start = pos;
     if (!match_word(&pos, "enum")) return NULL;
     spaces(&pos);
@@ -108,7 +108,7 @@ type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
         spaces(&pos);
         arg_ast_t *fields;
         bool secret = false;
-        if (match(&pos, "(")) {
+        if (match(&pos, "{")) {
             whitespace(ctx, &pos);
             fields = parse_args(ctx, &pos);
             whitespace(ctx, &pos);
@@ -117,7 +117,7 @@ type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
                 secret = match_word(&pos, "secret");
                 whitespace(ctx, &pos);
             }
-            expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this tagged union member");
+            expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this tagged union member");
         } else {
             fields = NULL;
         }

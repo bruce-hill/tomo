@@ -21,6 +21,8 @@ type_t *get_function_return_type(env_t *env, ast_t *ast);
 type_t *get_arg_type(env_t *env, arg_t *arg);
 type_t *get_arg_ast_type(env_t *env, arg_ast_t *arg);
 env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause);
+PUREFUNC const char *record_literal_name(ast_t *type_expr);
+PUREFUNC binding_t *get_variant_constructor(env_t *env, ast_t *type_expr);
 type_t *get_clause_type(env_t *env, type_t *subject_t, when_clause_t *clause);
 PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast);
 type_t *parse_type_string(env_t *env, const char *str);
@@ -35,7 +37,7 @@ List_t get_field_names(env_t *env, type_t *t);
 List_t get_method_names(env_t *env, type_t *t);
 
 typedef struct {
-    bool promotion : 1, underscores : 1;
+    bool promotion : 1;
     // When set, a `[Byte]` argument may NOT be matched to a differently-typed
     // parameter by implicit (de)serialization (nor a value serialized into a
     // `[Byte]` parameter). Constructors set this so that, e.g., a `[Byte]`

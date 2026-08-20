@@ -17,7 +17,7 @@ lang HTML
 	func paragraph(content:HTML->HTML)
 		return $HTML"<p>$content</p>"
 
-struct Bold(text:Text)
+struct Bold{text:Text}
 	convert(b:Bold -> HTML)
 		return $HTML"<b>$(b.text)</b>"
 
@@ -51,6 +51,6 @@ test "HTML paragraph helper and text conversion"
 	assert Text(html) == '\$HTML"Hello I &lt;3 hax!"'
 
 test "custom struct to HTML conversion"
-	>> b := Bold("Some <text> with junk")
+	>> b := Bold{"Some <text> with junk"}
 	>> $HTML"Your text: $b"
 	assert $HTML"Your text: $b" == $HTML"Your text: <b>Some &lt;text&gt; with junk</b>"

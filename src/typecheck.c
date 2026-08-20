@@ -140,7 +140,7 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
                 type_t *constructor_t =
                     Type(FunctionType, .args = Match(tag_type, StructType)->fields, .ret = enum_type);
                 Text_t tagged_name = namespace_name(env, env->namespace, Texts(enum_name, "$tagged$", tag_ast->name));
-                set_binding(ns_env, tag_ast->name, constructor_t, tagged_name);
+                set_variant_constructor_binding(ns_env, tag_ast->name, constructor_t, tagged_name);
                 binding_t binding = {.type = constructor_t, .code = tagged_name};
                 List$insert(&ns_env->namespace->constructors, &binding, I(1), sizeof(binding));
             } else { // Empty singleton value:
@@ -498,7 +498,7 @@ void bind_statement(env_t *env, ast_t *statement) {
             if (Match(tag->type, StructType)->fields) { // Constructor:
                 type_t *constructor_t = Type(FunctionType, .args = Match(tag->type, StructType)->fields, .ret = type);
                 Text_t tagged_name = namespace_name(env, env->namespace, Texts(def->name, "$tagged$", tag->name));
-                set_binding(ns_env, tag->name, constructor_t, tagged_name);
+                set_variant_constructor_binding(ns_env, tag->name, constructor_t, tagged_name);
                 binding_t binding = {.type = constructor_t, .code = tagged_name};
                 List$insert(&ns_env->namespace->constructors, &binding, I(1), sizeof(binding));
             } else { // Empty singleton value:
@@ -645,15 +645,39 @@ type_t *get_method_type(env_t *env, ast_t *self, const char *name) {
     return b->type;
 }
 
+// The name a record literal's type expression refers to: `Foo{...}` -> "Foo",
+// `Baz.A{...}` -> "A".
+PUREFUNC public const char *record_literal_name(ast_t *type_expr) {
+    if (type_expr->tag == Var) return Match(type_expr, Var)->name;
+    else if (type_expr->tag == FieldAccess) return Match(type_expr, FieldAccess)->field;
+    else return NULL;
+}
+
+// Enum variants aren't type infos: each one is bound in the enum's namespace as
+// a generated constructor function returning the enum. `type_expr` (a Var like
+// `A` or a FieldAccess like `Baz.A`) names a variant iff it resolves to a
+// binding explicitly marked as one -- matching by name and return type alone
+// would also catch an unrelated user function that happens to share a tag's
+// name and return type (e.g. a smart constructor `func A(x:Int -> Baz)`).
+PUREFUNC public binding_t *get_variant_constructor(env_t *env, ast_t *type_expr) {
+    binding_t *b;
+    if (type_expr->tag == Var) b = get_binding(env, Match(type_expr, Var)->name);
+    else if (type_expr->tag == FieldAccess)
+        b = get_namespace_binding(env, Match(type_expr, FieldAccess)->fielded, Match(type_expr, FieldAccess)->field);
+    else return NULL;
+    return (b && b->is_variant_constructor) ? b : NULL;
+}
+
 env_t *when_clause_scope(env_t *env, type_t *subject_t, when_clause_t *clause) {
     if (clause->pattern->tag == Var || subject_t->tag != EnumType) return env;
 
-    if (clause->pattern->tag != FunctionCall || Match(clause->pattern, FunctionCall)->fn->tag != Var)
-        code_err(clause->pattern, "I only support variables and constructors for pattern matching ",
+    if (clause->pattern->tag != RecordLiteral || Match(clause->pattern, RecordLiteral)->type->tag != Var)
+        code_err(clause->pattern, "I only support variables and variant patterns like 'is Tag{x, y}' for pattern "
+                                  "matching ",
                  type_to_text(subject_t), " types in a 'when' block");
 
-    DeclareMatch(fn, clause->pattern, FunctionCall);
-    const char *tag_name = Match(fn->fn, Var)->name;
+    DeclareMatch(fn, clause->pattern, RecordLiteral);
+    const char *tag_name = Match(fn->type, Var)->name;
     type_t *tag_type = NULL;
     tag_t *const tags = Match(subject_t, EnumType)->tags;
     for (tag_t *tag = tags; tag; tag = tag->next) {
@@ -938,11 +962,16 @@ type_t *get_type(env_t *env, ast_t *ast) {
         if (fn_type_t->tag == TypeInfoType) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
 
-            binding_t *constructor =
-                get_constructor(env, t, call->args, env->current_type != NULL && type_eq(env->current_type, t));
+            binding_t *constructor = get_constructor(env, t, call->args);
             if (constructor) return t;
-            else if (t->tag == StructType || t->tag == IntType || t->tag == BigIntType || t->tag == NumType
-                     || t->tag == ByteType || t->tag == TextType || t->tag == CStringType)
+            else if (t->tag == StructType)
+                // Parens on a type name mean "call a constructor function"; building a
+                // struct from its fields is a record literal instead.
+                code_err(ast, "There's no constructor for ", type_to_text(t),
+                         " that takes these arguments. If you meant to build one from its fields, use curly braces: ",
+                         Match(t, StructType)->name, "{...}");
+            else if (t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == ByteType
+                     || t->tag == TextType || t->tag == CStringType)
                 return t; // Constructor
             arg_t *arg_types = NULL;
             for (arg_ast_t *arg = call->args; arg; arg = arg->next)
@@ -952,11 +981,35 @@ type_t *get_type(env_t *env, ast_t *ast) {
             code_err(call->fn, "I couldn't find a type constructor for ",
                      type_to_text(Type(FunctionType, .args = arg_types, .ret = t)));
         }
+        if (get_variant_constructor(env, call->fn))
+            code_err(ast, "Enum variants are built with curly braces, not parentheses. Use ",
+                     record_literal_name(call->fn), "{...} instead");
         if (fn_type_t->tag == ClosureType) fn_type_t = Match(fn_type_t, ClosureType)->fn;
         if (fn_type_t->tag != FunctionType)
             code_err(call->fn, "This isn't a function, it's a ", type_to_text(fn_type_t));
         DeclareMatch(fn_type, fn_type_t, FunctionType);
         return fn_type->ret;
+    }
+    case RecordLiteral: {
+        DeclareMatch(record, ast, RecordLiteral);
+        type_t *type_t_ = get_type(env, record->type);
+        if (!type_t_) code_err(record->type, "I couldn't figure out what this refers to");
+
+        binding_t *variant = get_variant_constructor(env, record->type);
+        if (type_t_->tag == TypeInfoType) {
+            type_t *t = Match(type_t_, TypeInfoType)->type;
+            if (t->tag != StructType)
+                code_err(record->type, "Curly braces build structs and enum variants, but ", type_to_text(t),
+                         " is neither");
+            return t;
+        } else if (variant) {
+            return Match(variant->type, FunctionType)->ret;
+        } else if (type_t_->tag == EnumType) {
+            // A variant with no fields is bound to the enum value itself:
+            code_err(ast, "The variant ", record_literal_name(record->type),
+                     " doesn't have any fields, so write it without curly braces");
+        }
+        code_err(record->type, "This isn't a struct or an enum variant, it's a ", type_to_text(type_t_));
     }
     case MethodCall: {
         DeclareMatch(call, ast, MethodCall);
@@ -1504,8 +1557,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             const char *tag_name;
             if (clause->pattern->tag == Var) tag_name = Match(clause->pattern, Var)->name;
-            else if (clause->pattern->tag == FunctionCall && Match(clause->pattern, FunctionCall)->fn->tag == Var)
-                tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
+            else if (clause->pattern->tag == RecordLiteral && Match(clause->pattern, RecordLiteral)->type->tag == Var)
+                tag_name = Match(Match(clause->pattern, RecordLiteral)->type, Var)->name;
             else code_err(clause->pattern, "This is not a valid pattern for a ", type_to_text(subject_t), " enum");
 
             Text_t valid_tags = EMPTY_TEXT;
@@ -1676,7 +1729,7 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
         arg_ast_t *keyworded = Table$str_get(used_args, spec_arg->name);
         if (keyworded) continue;
 
-        if (spec_arg->name[0] != '_' || options.underscores) {
+        {
             type_t *spec_type = get_arg_type(env, spec_arg);
             env_t *arg_scope = with_enum_scope(env, spec_type);
             for (; unused_args; unused_args = unused_args->next) {

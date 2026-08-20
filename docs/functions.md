@@ -77,11 +77,11 @@ the following code:
 func _add(x, y:Int -> Int)
     return x + y
 
-struct add_args(x,y:Int)
+struct add_args{x,y:Int}
 add_cache : @{add_args: Int} = @{}
 
 func add(x, y:Int -> Int)
-    args := add_args(x, y)
+    args := add_args{x, y}
     if cached := add_cache[args]
         return cached
     ret := _add(x, y)

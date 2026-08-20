@@ -91,11 +91,11 @@ This simplifies things if you want to do a reduction without writing a full
 comprehension:
 
 ```tomo
-struct Foo(x,y:Int)
+struct Foo{x,y:Int}
     func is_even(f:Foo -> Bool)
         return (f.x + f.y) mod 2 == 0
 
-foos := [Foo(1, 2), Foo(-10, 20)]
+foos := [Foo{1, 2}, Foo{-10, 20}]
 
 assert (+.x: foos) == -9
 // Shorthand for:
@@ -133,10 +133,10 @@ Here's some examples:
 // Get the largest absolute value number:
 assert 3 _max_.abs() -15 == -15
 
-struct Person(name:Text, age:Int)
+struct Person{name:Text, age:Int}
 
 // Get the oldest of two people:
-assert Person("Alice", 33) _max_.age Person("Bob", 20) == Person(name="Alice", age=33)
+assert Person{"Alice", 33} _max_.age Person{"Bob", 20} == Person{name="Alice", age=33}
 
 // Get the longest of two lists:
 assert [10, 20, 30, 40] _max_.length [99, 1] == [10, 20, 30, 40]

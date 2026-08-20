@@ -244,6 +244,7 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Lambda: return compile_lambda(env, ast);
     case MethodCall: return compile_method_call(env, ast);
     case FunctionCall: return compile_function_call(env, ast);
+    case RecordLiteral: return compile_record_literal(env, ast);
     case ExplicitlyTyped: {
         return compile_to_type(env, Match(ast, ExplicitlyTyped)->ast, get_type(env, ast));
     }

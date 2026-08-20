@@ -98,14 +98,14 @@ field.
 
 ```tomo
 # foo.tm
-struct Pair(x,y:Int)
+struct Pair{x,y:Int}
 
 func main(pair:Pair)
     >> pair
 
 
 $ tomo foo.tm -- --pair 1 2
-Pair(x=1, y=2)
+Pair{x=1, y=2}
 ```
 
 Tomo does not currently support omitting fields with default values or passing
@@ -118,7 +118,7 @@ fields positionally (the same as for structs). Parsing is case-sensitive:
 
 ```tomo
 # foo.tm
-enum Foo(Nothing, AnInteger(i:Int), TwoThings(i:Int, text:Text))
+enum Foo(Nothing, AnInteger{i:Int}, TwoThings{i:Int, text:Text})
 func main(foo:Foo)
     >> foo
 
@@ -126,10 +126,10 @@ $ tomo foo.tm -- Nothing
 Nothing
 
 $ tomo foo.tm -- AnInteger 123
-AnInteger(123)
+AnInteger{123}
 
 $ tomo foo.tm -- TwoThings 123 hello
-TwoThings(i=123, text="hello")
+TwoThings{i=123, text="hello"}
 ```
 
 Like structs, enums do not currently support passing fields as flags or

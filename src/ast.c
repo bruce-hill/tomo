@@ -250,6 +250,7 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(FunctionCall, "(FunctionCall ", ast_to_sexp(data.fn), arg_list_to_sexp(data.args), ")");
         T(MethodCall, "(MethodCall ", ast_to_sexp(data.self), " ", quoted_text(data.name), arg_list_to_sexp(data.args),
           ")")
+        T(RecordLiteral, "(RecordLiteral ", ast_to_sexp(data.type), arg_list_to_sexp(data.args), ")");
         T(Block, "(Block", ast_list_to_sexp(data.statements), ")");
         T(For, "(For (vars", ast_list_to_sexp(data.vars), ") (iters", ast_list_to_sexp(data.iters), ") ",
           ast_to_sexp(data.body), " ", ast_to_sexp(data.empty), ")");
@@ -582,6 +583,12 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
         DeclareMatch(call, ast, MethodCall);
         ast_visit(call->self, visitor, userdata);
         ast_visit_args(call->args, visitor, userdata);
+        return;
+    }
+    case RecordLiteral: {
+        DeclareMatch(record, ast, RecordLiteral);
+        ast_visit(record->type, visitor, userdata);
+        ast_visit_args(record->args, visitor, userdata);
         return;
     }
     case Block: {

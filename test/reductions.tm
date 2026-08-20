@@ -1,4 +1,4 @@
-struct Foo(x,y:Int)
+struct Foo{x,y:Int}
 
 test "sum reduction"
 	>> (+: [10, 20, 30])
@@ -16,12 +16,12 @@ test "max reduction with field and method keys"
 	assert (_max_: [3, 5, 2, 1, 4]) == 5
 	>> (_max_.abs(): [1, -10, 5])
 	assert (_max_.abs(): [1, -10, 5]) == -10
-	>> (_max_: [Foo(0, 0), Foo(1, 0), Foo(0, 10)])
-	assert (_max_: [Foo(0, 0), Foo(1, 0), Foo(0, 10)])! == Foo(x=1, y=0)
-	>> (_max_.y: [Foo(0, 0), Foo(1, 0), Foo(0, 10)])
-	assert (_max_.y: [Foo(0, 0), Foo(1, 0), Foo(0, 10)])! == Foo(x=0, y=10)
-	>> (_max_.y.abs(): [Foo(0, 0), Foo(1, 0), Foo(0, 10), Foo(0, -999)])
-	assert (_max_.y.abs(): [Foo(0, 0), Foo(1, 0), Foo(0, 10), Foo(0, -999)])! == Foo(x=0, y=-999)
+	>> (_max_: [Foo{0, 0}, Foo{1, 0}, Foo{0, 10}])
+	assert (_max_: [Foo{0, 0}, Foo{1, 0}, Foo{0, 10}])! == Foo{x=1, y=0}
+	>> (_max_.y: [Foo{0, 0}, Foo{1, 0}, Foo{0, 10}])
+	assert (_max_.y: [Foo{0, 0}, Foo{1, 0}, Foo{0, 10}])! == Foo{x=0, y=10}
+	>> (_max_.y.abs(): [Foo{0, 0}, Foo{1, 0}, Foo{0, 10}, Foo{0, -999}])
+	assert (_max_.y.abs(): [Foo{0, 0}, Foo{1, 0}, Foo{0, 10}, Foo{0, -999}])! == Foo{x=0, y=-999}
 
 test "or and and have early-out behavior"
 	say("(or) and (and) have early out behavior:")

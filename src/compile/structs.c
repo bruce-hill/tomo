@@ -123,19 +123,9 @@ Text_t compile_struct_literal(env_t *env, ast_t *ast, type_t *t, arg_ast_t *args
 
     // no_serialization: a `[Byte]` field value must not silently (de)serialize
     // to fill a differently-typed field (that's what `x : T = bytes` is for).
-    call_opts_t constructor_opts = {
-        .promotion = true,
-        .underscores = (env->current_type != NULL && type_eq(env->current_type, t)),
-        .no_serialization = true,
-    };
+    call_opts_t constructor_opts = {.promotion = true, .no_serialization = true};
     if (is_valid_call(env, struct_->fields, args, constructor_opts)) {
         return Texts("((", compile_type(t), "){", compile_arguments(env, ast, struct_->fields, args), "})");
-    } else if (!constructor_opts.underscores
-               && is_valid_call(env, struct_->fields, args,
-                                (call_opts_t){.promotion = true, .underscores = true, .no_serialization = true})) {
-        code_err(ast, "This constructor is passing private fields (those starting with underscores) as positional "
-                      "arguments, which is not allowed.\n"
-                      "If you need to pass these fields, use a keyword argument.");
     }
     code_err(ast, "I could not find a constructor matching these arguments for the struct ", type_to_text(t));
 }

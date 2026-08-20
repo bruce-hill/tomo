@@ -29,7 +29,7 @@ For this Tomo code:
 // File: foo.tm
 my_var := 123
 
-struct Baz(x:Int)
+struct Baz{x:Int}
     member := 5
     func frob(b:Baz -> Int)
         return b.x

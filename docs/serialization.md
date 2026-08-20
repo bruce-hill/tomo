@@ -26,9 +26,9 @@ because it's a small number.
 The same process works with more complicated data:
 
 ```tomo
-struct Foo(x:Int, y:Text)
+struct Foo{x:Int, y:Text}
 
-foo := Foo(123, "Hello")
+foo := Foo{123, "Hello"}
 serialized : [Byte] = foo
 assert serialized == [0x00, 0xf6, 0x01, 0x0a, 0x48, 0x65, 0x6c, 0x6c, 0x6f]
 ```
@@ -45,7 +45,7 @@ assert value == 5
 
 foo_bytes : [Byte] = [0x00, 0xf6, 0x01, 0x0a, 0x48, 0x65, 0x6c, 0x6c, 0x6f]
 foo : Foo = foo_bytes
-assert foo == Foo(123, "Hello")
+assert foo == Foo{123, "Hello"}
 ```
 
 ## Pointers
@@ -63,18 +63,18 @@ cyclic datastructures correctly, enabling you to serialize cyclic structures
 like circularly linked lists or graphs:
 
 ```tomo
-struct Cycle(name:Text, next:@Cycle?=none)
+struct Cycle{name:Text, next:@Cycle?=none}
 
-c := @Cycle("A")
-c.next = @Cycle("B", next=c)
+c := @Cycle{"A"}
+c.next = @Cycle{"B", next=c}
 say("$c")
-# @Cycle(name="A", next=@Cycle(name="B", next=@~1))
+# @Cycle{name="A", next=@Cycle{name="B", next=@~1}}
 bytes : [Byte] = c
 say("$bytes")
 # [0x02, 0x02, 0x41, 0x01, 0x04, 0x02, 0x42, 0x01, 0x02]
 roundtrip : @Cycle = bytes
 say("$roundtrip")
-# @Cycle(name="A", next=@Cycle(name="B", next=@~1))
+# @Cycle{name="A", next=@Cycle{name="B", next=@~1}}
 assert roundtrip.next.next == roundtrip
 ```
 

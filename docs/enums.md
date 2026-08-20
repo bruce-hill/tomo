@@ -4,12 +4,12 @@ Tomo supports tagged enumerations, also known as "sum types." Users
 can define their own using the `enum` keyword:
 
 ```tomo
-enum VariousThings(AnInteger(i:Int), TwoWords(word1, word2:Text), Nothing)
+enum VariousThings(AnInteger{i:Int}, TwoWords{word1, word2:Text}, Nothing)
 
 ...
 
-a := VariousThings.AnInteger(5)
-b := VariousThings.TwoWords("one", "two")
+a := VariousThings.AnInteger{5}
+b := VariousThings.TwoWords{"one", "two"}
 c := VariousThings.Nothing
 ```
 
@@ -18,9 +18,9 @@ c := VariousThings.Nothing
 The values inside an enum can be accessed with pattern matching
 
 ```tomo
-when x is AnInteger(i)
+when x is AnInteger{i}
     say("It was $i")
-is TwoWords(x, y)
+is TwoWords{x, y}
     say("It was $x and $y")
 is Nothing
     say("It was nothing")
@@ -49,19 +49,19 @@ when calling a function with an enum argument, nor when returning an enum value
 from a function with an explicit return type:
 
 ```tomo
-enum ArgumentType(AnInt(x:Int), SomeText(text:Text))
-enum ReturnType(AnInt(x:Int), Nothing)
+enum ArgumentType(AnInt{x:Int}, SomeText{text:Text})
+enum ReturnType(AnInt{x:Int}, Nothing)
 
 func increment(arg:ArgumentType -> ReturnType)
-    when arg is AnInt(x)
-        return AnInt(x + 1)
+    when arg is AnInt{x}
+        return AnInt{x + 1}
     is SomeText
         return Nothing
 
 ...
 
-assert increment(AnInt(5)) == AnInt(6)
-assert increment(SomeText("HI")) == Nothiing
+assert increment(AnInt{5}) == AnInt{6}
+assert increment(SomeText{"HI"}) == Nothiing
 ```
 
 This lets us have overlapping tag names for different types, but smartly infer
@@ -74,8 +74,8 @@ known.
 Enums can also define their own methods and variables inside their namespace:
 
 ```tomo
-enum VariousThings(AnInteger(i:Int), TwoWords(word1, word2:Text), Nothing)
-    meaningful_thing := AnInteger(42)
+enum VariousThings(AnInteger{i:Int}, TwoWords{word1, word2:Text}, Nothing)
+    meaningful_thing := AnInteger{42}
     func doop(v:VariousThings)
         say("$v")
 ```
@@ -105,8 +105,8 @@ Anonymous enums can be used in any place where a type is specified:
 
 - Declarations: `my_variable : enum(A, B, C) = A`
 - Function arguments: `func foo(arg:enum(A, B, C))`
-- Function return values: `func foo(x:Int -> enum(Valid(result:Int), Invalid(reason:Text)))`
-- Struct members: `struct Foo(x:enum(A,B,C))`, `enum Baz(Thing(type:enum(A,B,C)))`
+- Function return values: `func foo(x:Int -> enum(Valid{result:Int}, Invalid{reason:Text}))`
+- Struct members: `struct Foo{x:enum(A,B,C)}`, `enum Baz(Thing{type:enum(A,B,C)})`
 
 In general, anonymous enums should be used sparingly in cases where there are
 only a small number of options and the enum code is short. If you expect users
@@ -135,7 +135,7 @@ For this common pattern, Tomo includes a `Result` enum type in the standard
 library:
 
 ```tomo
-enum Result(Success, Failure(reason:Text))
+enum Result(Success, Failure{reason:Text})
 ```
 
 You're free to define your own similar enum type or reuse this one as you see
@@ -152,12 +152,12 @@ otherwise it will hold the struct contents of the enum value for the given tag.
 ```tomo
 func maybe_fail(should_fail:Bool -> Result)
     if should_fail
-        return Failure("It failed")
+        return Failure{"It failed"}
     else
         return Success
 
 >> maybe_fail(yes).Failure
-# Prints 'Failure("It failed")'
+# Prints 'Failure{"It failed"}'
 assert maybe_fail(yes).Failure!.text == "It failed"
 
 >> maybe_fail(no).Failure
@@ -172,7 +172,7 @@ beyond reporting the error to the user and closing the program.
 
 ```tomo
 result := (/tmp/log.txt).append(msg)
-when result is Failure(msg)
+when result is Failure{msg}
     fail(msg)
 is Success
     pass
@@ -192,7 +192,7 @@ look something like:
 
 ```
 This was expected to be Success, but it was:
-Failure("Could not write to file: /tmp/log.txt (Permission denied)")
+Failure{"Could not write to file: /tmp/log.txt (Permission denied)"}
 ```
 
 You can further reduce the verbosity of this code by applying the `!` directly
@@ -206,9 +206,9 @@ When the `!` operator is applied to an enum value, the effect is the same as
 applying `.Success!` or whatever the first tag in the enum definition is.
 
 ```tomo
-enum Foo(A(member:Int), B)
+enum Foo(A{member:Int}, B)
 
-f := Foo.A(123)
+f := Foo.A{123}
 assert f! == f.A!
 assert f!.member == 123
 ```

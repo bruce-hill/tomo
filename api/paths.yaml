@@ -29,7 +29,7 @@ Path.append:
   return:
     type: 'Result'
     description: >
-      Either `Success` or `Failure(reason)`.
+      Either `Success` or `Failure{reason}`.
   args:
     path:
       type: 'Path'
@@ -55,7 +55,7 @@ Path.append_bytes:
   return:
     type: 'Result'
     description: >
-      Either `Success` or `Failure(reason)`.
+      Either `Success` or `Failure{reason}`.
   args:
     path:
       type: 'Path'
@@ -282,7 +282,7 @@ Path.copy_to:
   return:
     type: 'Result'
     description: >
-      Either `Success` or `Failure(reason)`.
+      Either `Success` or `Failure{reason}`.
   args:
     path:
       type: 'Path'
@@ -308,7 +308,7 @@ Path.create_directory:
   return:
     type: 'Result'
     description: >
-      Either `Success` or `Failure(reason)`.
+      Either `Success` or `Failure{reason}`.
   args:
     path:
       type: 'Path'
@@ -657,7 +657,7 @@ Path.move:
   return:
     type: 'Result'
     description: >
-      Either `Success` or `Failure(reason)`.
+      Either `Success` or `Failure{reason}`.
   args:
     path:
       type: 'Path'
@@ -784,7 +784,7 @@ Path.remove:
   return:
     type: 'Result'
     description: >
-      Either `Success` or `Failure(reason)`.
+      Either `Success` or `Failure{reason}`.
   args:
     path:
       type: 'Path'
@@ -825,7 +825,7 @@ Path.set_owner:
   return:
     type: 'Result'
     description: >
-      Either `Success` or `Failure(reason)`.
+      Either `Success` or `Failure{reason}`.
   args:
     path:
       type: 'Path'
@@ -953,7 +953,7 @@ Path.write:
   return:
     type: 'Result'
     description: >
-      Either `Success` or `Failure(reason)`.
+      Either `Success` or `Failure{reason}`.
   args:
     path:
       type: 'Path'
@@ -1055,7 +1055,7 @@ Path.write_bytes:
   return:
     type: 'Result'
     description: >
-      Either `Success` or `Failure(reason)`.
+      Either `Success` or `Failure{reason}`.
   args:
     path:
       type: 'Path'

@@ -34,7 +34,7 @@ _LINE := Int64(60)
 _BATCH_LINES := Int64(1024)
 
 # A cumulative probability paired with the byte to emit if it's selected.
-struct Freq(cutoff:Num, code:Byte)
+struct Freq{cutoff:Num, code:Byte}
 
 # In-order cumulative sums, accumulated in Num (double) exactly as the C
 # reference does, so the `r < cutoff` selection picks identical characters.
@@ -45,7 +45,7 @@ func make_freqs(ps:[Num], codes:[Byte] -> [Freq])
     total := 0.0
     for p at i in ps
         total += p
-        freqs.insert(Freq(total, codes[i]!))
+        freqs.insert(Freq{total, codes[i]!})
     return freqs[]
 
 func repeat_fasta(header:Text, s:Text, n:Int64)

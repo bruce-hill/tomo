@@ -68,7 +68,10 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
     return code;
 }
 
-Text_t format_fncall(arg_ast_t *args, Table_t comments, Text_t indent) {
+// Shared by parenthesized calls and braced record literals, which differ only
+// in their delimiters.
+static Text_t format_delimited_args(arg_ast_t *args, Table_t comments, Text_t indent, const char *open,
+                                    const char *close) {
     bool multiline_required = false;
     for (arg_ast_t *arg = args; arg && !multiline_required; arg = arg->next) {
         if (arg->value) {
@@ -78,12 +81,20 @@ Text_t format_fncall(arg_ast_t *args, Table_t comments, Text_t indent) {
 
     if (!multiline_required) {
         OptionalText_t inline_args = format_inline_args(args, comments);
-        if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return Texts("(", inline_args, ")");
+        if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return Texts(open, inline_args, close);
     }
 
     if (args && args->next == NULL) {
-        return Texts("(", format_arg(args, comments, indent), ")");
+        return Texts(open, format_arg(args, comments, indent), close);
     }
 
-    return Texts("(", format_args(args, comments, indent), "\n", indent, ")");
+    return Texts(open, format_args(args, comments, indent), "\n", indent, close);
+}
+
+Text_t format_fncall(arg_ast_t *args, Table_t comments, Text_t indent) {
+    return format_delimited_args(args, comments, indent, "(", ")");
+}
+
+Text_t format_record_literal(arg_ast_t *args, Table_t comments, Text_t indent) {
+    return format_delimited_args(args, comments, indent, "{", "}");
 }

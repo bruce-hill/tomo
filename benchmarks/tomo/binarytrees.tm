@@ -16,12 +16,12 @@
 #
 # Usage: binarytrees <max-depth>   (e.g. ./binarytrees 21)
 
-struct Tree(left:@Tree?=none, right:@Tree?=none)
+struct Tree{left:@Tree?=none, right:@Tree?=none}
 
 func bottom_up_tree(depth:Int64 -> @Tree)
     if depth > 0
-        return @Tree(bottom_up_tree(depth-1), bottom_up_tree(depth-1))
-    return @Tree()
+        return @Tree{bottom_up_tree(depth-1), bottom_up_tree(depth-1)}
+    return @Tree{}
 
 func item_check(tree:@Tree -> Int64)
     if tree.left == none

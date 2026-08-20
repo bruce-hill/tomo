@@ -1,4 +1,4 @@
-struct Vec(x,y:Int)
+struct Vec{x,y:Int}
 
 test "empty list literal with type"
 	>> nums : [Num32] = []
@@ -183,9 +183,9 @@ test "find and where"
 
 test "by-value predicates and comparisons"
 	# By-value closures on struct elements:
-	pts := @[Vec(3, 1), Vec(1, 2), Vec(2, 0)]
+	pts := @[Vec{3, 1}, Vec{1, 2}, Vec{2, 0}]
 	pts.sort(func(a,b:Vec) a.x <> b.x)
-	assert pts[] == [Vec(1, 2), Vec(2, 0), Vec(3, 1)]
+	assert pts[] == [Vec{1, 2}, Vec{2, 0}, Vec{3, 1}]
 	assert pts.where(func(p:Vec) p.y == 0) == 2
 	# By-value closures on optional elements:
 	opts : [Int?] = [3, none, 1]

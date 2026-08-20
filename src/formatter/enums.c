@@ -11,9 +11,9 @@ OptionalText_t format_inline_tag(tag_ast_t *tag, Table_t comments) {
     if (range_has_comment(tag->start, tag->end, comments)) return NONE_TEXT;
     Text_t code = Text$from_str(tag->name);
     if (tag->fields || tag->secret) {
-        code = Texts(code, "(", must(format_inline_args(tag->fields, comments)));
+        code = Texts(code, "{", must(format_inline_args(tag->fields, comments)));
         if (tag->secret) code = Texts(code, "; secret");
-        code = Texts(code, ")");
+        code = Texts(code, "}");
     }
     return code;
 }
@@ -23,9 +23,9 @@ Text_t format_tag(tag_ast_t *tag, Table_t comments, Text_t indent) {
     if (inline_tag.tag != TEXT_NONE) return inline_tag;
     Text_t code = Text$from_str(tag->name);
     if (tag->fields || tag->secret) {
-        code = Texts(code, "(", format_args(tag->fields, comments, Texts(indent, single_indent)));
+        code = Texts(code, "{", format_args(tag->fields, comments, Texts(indent, single_indent)));
         if (tag->secret) code = Texts(code, "; secret");
-        code = Texts(code, ")");
+        code = Texts(code, "}");
     }
     return code;
 }

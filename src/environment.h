@@ -74,6 +74,12 @@ typedef struct env_s {
 typedef struct {
     type_t *type;
     Text_t code;
+    // Set only for the generated constructor function bound to a fielded enum
+    // variant's tag name (e.g. `A` in `enum Baz(A{x:Int}, B)`). Lets
+    // get_variant_constructor() tell an actual variant constructor apart from a
+    // user-defined function that merely happens to share a tag's name and
+    // return type -- see typecheck.c.
+    bool is_variant_constructor : 1;
 } binding_t;
 
 env_t *global_env(bool source_mapping);
@@ -124,9 +130,10 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
         exit(1);                                                                                                       \
     })
 binding_t *get_binding(env_t *env, const char *name);
-binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, bool allow_underscores);
+binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args);
 PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, ast_t *rhs, type_t *ret);
 void set_binding(env_t *env, const char *name, type_t *type, Text_t code);
+void set_variant_constructor_binding(env_t *env, const char *name, type_t *type, Text_t code);
 binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name);
 #define code_err(ast, ...) compiler_err((ast)->file, (ast)->start, (ast)->end, __VA_ARGS__)
 extern type_t *TEXT_TYPE;

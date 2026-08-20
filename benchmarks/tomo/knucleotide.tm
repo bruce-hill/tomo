@@ -16,7 +16,7 @@
 #
 # Usage: knucleotide < fasta_output   (e.g. ./fasta 250000 | ./knucleotide)
 
-struct Count(key:Int64, count:Int64)
+struct Count{key:Int64, count:Int64}
 
 # Sort by count descending, then by key ascending (ties broken toward the
 # smaller code, i.e. alphabetically).
@@ -79,7 +79,7 @@ func write_frequencies(seq:[Byte], k:Int64)
         key = ((key << 2) and mask) or Int64(seq[i]!)
         counts[key] += 1
 
-    entries := &[Count(kk, vv) for kk, vv in counts.entries()]
+    entries := &[Count{kk, vv} for kk, vv in counts.entries()]
     entries.sort(by_count_then_key)
 
     total := Num(n - k + 1)

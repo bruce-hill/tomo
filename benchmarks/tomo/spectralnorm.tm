@@ -1,7 +1,7 @@
 # spectral-norm — The Computer Language Benchmarks Game
 #
 # A Tomo port. Approximates the largest singular value of the infinite matrix
-# A(i,j) = 1 / ((i+j)(i+j+1)/2 + i + 1) by 10 rounds of the power method on
+# A{i,j} = 1 / ((i+j)(i+j+1)/2 + i + 1) by 10 rounds of the power method on
 # AᵀA, then prints sqrt(uᵀ(AᵀA)u / uᵀu) to nine decimals.
 #
 # Design notes:

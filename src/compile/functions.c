@@ -152,6 +152,9 @@ public
 Text_t compile_function_call(env_t *env, ast_t *ast) {
     DeclareMatch(call, ast, FunctionCall);
     type_t *fn_t = get_type(env, call->fn);
+    if (get_variant_constructor(env, call->fn))
+        code_err(ast, "Enum variants are built with curly braces, not parentheses. Use ",
+                 record_literal_name(call->fn), "{...} instead");
     if (fn_t->tag == FunctionType) {
         Text_t fn = compile(env, call->fn);
         // no_serialization: a `[Byte]` argument must not silently (de)serialize
@@ -159,24 +162,18 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
         // for). A signature mismatch is reported instead.
         if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args,
                            (call_opts_t){.promotion = true, .no_serialization = true})) {
-            if (is_valid_call(env, Match(fn_t, FunctionType)->args, call->args,
-                              (call_opts_t){.promotion = true, .underscores = true, .no_serialization = true})) {
-                code_err(ast, "You can't pass underscore arguments to this function as positional arguments. You must "
-                              "use keyword arguments.");
-            } else {
-                arg_t *args = NULL;
-                for (arg_ast_t *a = call->args; a; a = a->next)
-                    args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
-                REVERSE_LIST(args);
-                code_err(ast,
-                         "This function's signature doesn't match this call site.\n"
-                         "\n"
-                         "The function takes these args: (",
-                         arg_types_to_text(Match(fn_t, FunctionType)->args, ", "),
-                         ")\n"
-                         "But it's being called with:    (",
-                         arg_types_to_text(args, ", "), ")");
-            }
+            arg_t *args = NULL;
+            for (arg_ast_t *a = call->args; a; a = a->next)
+                args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
+            REVERSE_LIST(args);
+            code_err(ast,
+                     "This function's signature doesn't match this call site.\n"
+                     "\n"
+                     "The function takes these args: (",
+                     arg_types_to_text(Match(fn_t, FunctionType)->args, ", "),
+                     ")\n"
+                     "But it's being called with:    (",
+                     arg_types_to_text(args, ", "), ")");
         }
         return Texts(fn, "(", compile_arguments(env, ast, Match(fn_t, FunctionType)->args, call->args), ")");
     } else if (fn_t->tag == TypeInfoType) {
@@ -189,8 +186,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
         else if (t->tag == NumType && call->args && !call->args->next && call->args->value->tag == Num)
             return compile_to_type(env, call->args->value, t);
 
-        binding_t *constructor =
-            get_constructor(env, t, call->args, env->current_type != NULL && type_eq(env->current_type, t));
+        binding_t *constructor = get_constructor(env, t, call->args);
         if (constructor) {
             arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
             return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, call->args), ")");
@@ -219,7 +215,11 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
             type_t *actual = call->args ? get_type(env, call->args->value) : NULL;
             return Texts("Text$as_c_string(", expr_as_text(compile(env, call->args->value), actual, Text("no")), ")");
         } else if (t->tag == StructType) {
-            return compile_struct_literal(env, ast, t, call->args);
+            // Parens on a type name mean "call a constructor function"; building a
+            // struct from its fields is a record literal instead.
+            code_err(ast, "There's no constructor for ", type_to_text(t),
+                     " that takes these arguments. If you meant to build one from its fields, use curly braces: ",
+                     Match(t, StructType)->name, "{...}");
         }
         code_err(ast,
                  "I could not find a constructor matching these arguments "
@@ -251,6 +251,47 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
     } else {
         code_err(call->fn, "This is not a function, it's a ", type_to_text(fn_t));
     }
+}
+
+public
+Text_t compile_record_literal(env_t *env, ast_t *ast) {
+    DeclareMatch(record, ast, RecordLiteral);
+    type_t *type_t_ = get_type(env, record->type);
+
+    binding_t *variant = get_variant_constructor(env, record->type);
+    if (type_t_->tag == TypeInfoType) {
+        type_t *t = Match(type_t_, TypeInfoType)->type;
+        if (t->tag != StructType)
+            code_err(record->type, "Curly braces build structs and enum variants, but ", type_to_text(t),
+                     " is neither");
+        return compile_struct_literal(env, ast, t, record->args);
+    } else if (variant) {
+        // Each enum variant is a generated constructor function taking the
+        // variant's fields and returning the enum:
+        arg_t *arg_spec = Match(variant->type, FunctionType)->args;
+        // no_serialization: a `[Byte]` field value must not silently (de)serialize
+        // to fill a differently-typed field (that's what `x : T = bytes` is for).
+        call_opts_t constructor_opts = {.promotion = true, .no_serialization = true};
+        if (is_valid_call(env, arg_spec, record->args, constructor_opts)) {
+            return Texts(variant->code, "(", compile_arguments(env, ast, arg_spec, record->args), ")");
+        }
+        arg_t *given = NULL;
+        for (arg_ast_t *a = record->args; a; a = a->next)
+            given = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = given);
+        REVERSE_LIST(given);
+        code_err(ast,
+                 "This enum variant's fields don't match this value.\n"
+                 "\n"
+                 "The variant has these fields: (",
+                 arg_types_to_text(arg_spec, ", "),
+                 ")\n"
+                 "But it's being built with:    (",
+                 arg_types_to_text(given, ", "), ")");
+    } else if (type_t_->tag == EnumType) {
+        code_err(ast, "The variant ", record_literal_name(record->type),
+                 " doesn't have any fields, so write it without curly braces");
+    }
+    code_err(record->type, "This isn't a struct or an enum variant, it's a ", type_to_text(type_t_));
 }
 
 static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t *env, ast_t *ast) {
@@ -357,6 +398,11 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
             add_closed_vars(closed_vars, enclosing_scope, env, arg->value);
         break;
     }
+    case RecordLiteral: {
+        for (arg_ast_t *arg = Match(ast, RecordLiteral)->args; arg; arg = arg->next)
+            add_closed_vars(closed_vars, enclosing_scope, env, arg->value);
+        break;
+    }
     case MethodCall: {
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, MethodCall)->self);
         for (arg_ast_t *arg = Match(ast, MethodCall)->args; arg; arg = arg->next)
@@ -430,7 +476,7 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
 
         for (when_clause_t *clause = when->clauses; clause; clause = clause->next) {
             if (clause->pattern->tag != Var
-                && !(clause->pattern->tag == FunctionCall && Match(clause->pattern, FunctionCall)->fn->tag == Var))
+                && !(clause->pattern->tag == RecordLiteral && Match(clause->pattern, RecordLiteral)->type->tag == Var))
                 code_err(clause->pattern, "This is not a valid pattern for a ", type_to_text(subject_t), " enum");
 
             env_t *scope = when_clause_scope(env, subject_t, clause);

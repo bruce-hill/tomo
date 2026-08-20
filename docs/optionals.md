@@ -4,10 +4,10 @@ A very common use case is values that may or may not be present. You could
 represent this case using enums like so:
 
 ```tomo
-enum MaybeInt(AnInt(x:Int), NoInt)
+enum MaybeInt(AnInt{x:Int}, NoInt)
 
 func maybe_takes_int(maybe_x:MaybeInt)
-    when maybe_x is AnInt(x)
+    when maybe_x is AnInt{x}
         say("Got an int: $x")
     else
         say("Got nothing")

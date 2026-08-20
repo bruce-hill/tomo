@@ -60,7 +60,10 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
 
             if (match(pos, ":")) {
                 type = expect(ctx, *pos, pos, parse_type, "I expected a type here");
-                whitespace(ctx, pos);
+                // Only same-line whitespace here, not a newline: a bare `field:Type`
+                // followed by a newline should end this field so the newline can act
+                // as a separator before the next one (see match_separator() below).
+                spaces(pos);
                 if (match(pos, "=")) default_val = expect(ctx, *pos, pos, parse_term, "I expected a value here");
                 names = new (name_list_t, .start = name_start, .end = *pos, .name = name, .alias = alias, .next = names,
                              .comment = comments);

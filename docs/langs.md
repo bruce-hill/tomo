@@ -96,7 +96,7 @@ lang Sh
     convert(text:Text -> Sh)
         return Sh.from_text("'" ++ text.replace("'", "''") ++ "'")
 
-struct Foo(x,y:Int)
+struct Foo{x,y:Int}
     convert(f:Foo -> Sh)
         return Sh.from_text("$(f.x),$(f.y)")
 

@@ -11,3 +11,4 @@ ast_t *parse_index_suffix(parse_ctx_t *ctx, ast_t *lhs);
 ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self);
 ast_t *parse_non_optional_suffix(parse_ctx_t *ctx, ast_t *lhs);
 ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt);
+ast_t *parse_record_literal_suffix(parse_ctx_t *ctx, ast_t *type);

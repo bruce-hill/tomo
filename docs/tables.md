@@ -163,14 +163,14 @@ iterating over any of the new values.
 
 For an interface similar to Python's Sets, Tomo tables can be used with an
 empty struct as its value type. For convenience, if a value or value is
-omitted, Tomo will assign a default value type of `struct Present()` (an empty
+omitted, Tomo will assign a default value type of `struct Present{}` (an empty
 struct). This way, the values stored in the table take up no space, but you
 still have an easy way to represent Set-like data.
 
 ```tomo
 nums := {10, 20, 30, 10}
 assert nums.items == [10, 20, 30]
-assert nums[10] == Present()
+assert nums[10] == Present{}
 assert nums[99] == none
 ```
 

@@ -164,9 +164,7 @@ Text_t compile_text_ast(env_t *env, ast_t *ast) {
             if (chunk->ast->tag == TextLiteral || type_eq(chunk_t, text_t)) {
                 chunk_code = compile(env, chunk->ast);
             } else {
-                binding_t *constructor =
-                    get_constructor(env, text_t, new (arg_ast_t, .value = chunk->ast),
-                                    env->current_type != NULL && type_eq(env->current_type, text_t));
+                binding_t *constructor = get_constructor(env, text_t, new (arg_ast_t, .value = chunk->ast));
                 if (constructor) {
                     arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
                     arg_ast_t *args = new (arg_ast_t, .value = chunk->ast);

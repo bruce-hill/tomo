@@ -214,7 +214,7 @@ func takes_many_types(
     pass
 
 # Now let's define our own datastructure, a humble struct:
-struct Person(name:Text, age:Int)
+struct Person{name:Text, age:Int}
     # We can define constants here if we want to:
     max_age := 122
 
@@ -232,8 +232,8 @@ struct Person(name:Text, age:Int)
 
 func demo_structs()
     # Creating a struct:
-    alice := Person("Alice", 30)
-    assert alice == Person(name="Alice", age=30)
+    alice := Person{"Alice", 30}
+    assert alice == Person{name="Alice", age=30}
 
     # Accessing fields:
     assert alice.age == 30
@@ -246,9 +246,9 @@ func demo_structs()
 
     # Comparisons, conversion to text, and hashing are all handled
     # automatically when you create a struct:
-    bob := Person("Bob", 30)
+    bob := Person{"Bob", 30}
     assert alice == bob == no
-    assert "$alice" == 'Person(name="Alice", age=30)' == yes
+    assert "$alice" == 'Person{name="Alice", age=30}' == yes
     table := {alice: "first", bob: "second"}
     assert table[alice]! == "first"
 
@@ -256,7 +256,7 @@ func demo_structs()
 # known as "sum types". You enumerate all the different types of values
 # something could have, and it's stored internally as a small integer that
 # indicates which type it is, and any data you want to associate with it.
-enum Shape(Point, Circle(radius:Num), Rectangle(width:Num, height:Num))
+enum Shape(Point, Circle{radius:Num}, Rectangle{width:Num, height:Num})
     # Just like with structs, you define methods and constants inside a level
     # of indentation:
     func get_area(self:Shape -> Num)
@@ -265,9 +265,9 @@ enum Shape(Point, Circle(radius:Num), Rectangle(width:Num, height:Num))
         when self
         is Point
             return 0
-        is Circle(r)
+        is Circle{r}
             return Num.PI*r^2
-        is Rectangle(w, h)
+        is Rectangle{w, h}
             return w*h
 
         # 'when' statements are checked for exhaustiveness, so the compiler
@@ -276,7 +276,7 @@ enum Shape(Point, Circle(radius:Num), Rectangle(width:Num, height:Num))
 
 func demo_enums()
     # Enums are constructed like this:
-    my_shape := Shape.Circle(1.0)
+    my_shape := Shape.Circle{1.0}
 
     # If an enum type doesn't have any associated data, it is not invoked as a
     # function, but is just a static value:
@@ -285,8 +285,8 @@ func demo_enums()
     # Similar to structs, enums automatically define comparisons, conversion
     # to text, and hashing:
     assert my_shape == other_shape == no
-    assert "$my_shape" == "Circle(1)" == yes
-    assert {my_shape: "nice"} == {Shape.Circle(1): "nice"}
+    assert "$my_shape" == "Circle{1}" == yes
+    assert {my_shape: "nice"} == {Shape.Circle{1}: "nice"}
 
 func demo_lambdas()
     # Lambdas, or anonymous functions, can be used like this:

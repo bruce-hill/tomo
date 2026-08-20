@@ -56,10 +56,10 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
             continue;
         }
 
-        if (clause->pattern->tag != FunctionCall || Match(clause->pattern, FunctionCall)->fn->tag != Var)
+        if (clause->pattern->tag != RecordLiteral || Match(clause->pattern, RecordLiteral)->type->tag != Var)
             code_err(clause->pattern, "This is not a valid pattern for a ", type_to_text(subject_t), " enum type");
 
-        const char *clause_tag_name = Match(Match(clause->pattern, FunctionCall)->fn, Var)->name;
+        const char *clause_tag_name = Match(Match(clause->pattern, RecordLiteral)->type, Var)->name;
         code = Texts(code, "case ", namespace_name(enum_t->env, enum_t->env->namespace, Texts("tag$", clause_tag_name)),
                      ": {\n");
         type_t *tag_type = NULL;
@@ -73,7 +73,7 @@ Text_t compile_when_statement(env_t *env, ast_t *ast) {
         env_t *scope = env;
 
         DeclareMatch(tag_struct, tag_type, StructType);
-        arg_ast_t *args = Match(clause->pattern, FunctionCall)->args;
+        arg_ast_t *args = Match(clause->pattern, RecordLiteral)->args;
         if (args && !args->next && tag_struct->fields && tag_struct->fields->next) {
             if (args->value->tag != Var) code_err(args->value, "This is not a valid variable to bind to");
             const char *var_name = Match(args->value, Var)->name;

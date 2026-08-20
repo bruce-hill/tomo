@@ -21,20 +21,20 @@
 #
 # Usage: nbody <steps>   (e.g. ./nbody 50000000)
 
-struct Vec3(x, y, z: Num)
+struct Vec3{x, y, z: Num}
     func plus(a, b: Vec3 -> Vec3; inline)
-        return Vec3(a.x + b.x, a.y + b.y, a.z + b.z)
+        return Vec3{a.x + b.x, a.y + b.y, a.z + b.z}
 
     func minus(a, b: Vec3 -> Vec3; inline)
-        return Vec3(a.x - b.x, a.y - b.y, a.z - b.z)
+        return Vec3{a.x - b.x, a.y - b.y, a.z - b.z}
 
     func scaled_by(v:Vec3, k:Num -> Vec3; inline)
-        return Vec3(v.x*k, v.y*k, v.z*k)
+        return Vec3{v.x*k, v.y*k, v.z*k}
 
     func len2(a: Vec3 -> Num; inline)
         return a.x*a.x + a.y*a.y + a.z*a.z
 
-struct Body(pos, vel: Vec3, mass: Num)
+struct Body{pos, vel: Vec3, mass: Num}
 
 func print9(x:Num)
     # Format-only inline C: print `x` with %.9f, matching the reference output.
@@ -62,7 +62,7 @@ func advance(bodies:&[Body], steps:Int64, dt:Num)
                 d2 := d.len2()
                 mag := dt / (d2 * Num.sqrt(d2)!)
                 vi -= d * (bj.mass * mag)
-                bodies[j] = Body(bj.pos, bj.vel + d * (mass_i * mag), bj.mass)
+                bodies[j] = Body{bj.pos, bj.vel + d * (mass_i * mag), bj.mass}
             bi.vel = vi
         for &b in bodies
             b.pos += b.vel * dt
@@ -81,31 +81,31 @@ func main(steps:Int64)
 
     # Bodies: sun, jupiter, saturn, uranus, neptune.
     bodies := &[
-        Body(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0), sm),
-        Body(
-            Vec3(4.84143144246472090e00, -1.16032004402742839e00, -1.03622044471123109e-01),
-            Vec3(1.66007664274403694e-03*dpy, 7.69901118419740425e-03*dpy, -6.90460016972063023e-05*dpy),
-            9.54791938424326609e-04 * sm),
-        Body(
-            Vec3(8.34336671824457987e00, 4.12479856412430479e00, -4.03523417114321381e-01),
-            Vec3(-2.76742510726862411e-03*dpy, 4.99852801234917238e-03*dpy, 2.30417297573763929e-05*dpy),
-            2.85885980666130812e-04 * sm),
-        Body(
-            Vec3(1.28943695621391310e01, -1.51111514016986312e01, -2.23307578892655734e-01),
-            Vec3(2.96460137564761618e-03*dpy, 2.37847173959480950e-03*dpy, -2.96589568540237556e-05*dpy),
-            4.36624404335156298e-05 * sm),
-        Body(
-            Vec3(1.53796971148509165e01, -2.59193146099879641e01, 1.79258772950371181e-01),
-            Vec3(2.68067772490389322e-03*dpy, 1.62824170038242295e-03*dpy, -9.51592254519715870e-05*dpy),
-            5.15138902046611451e-05 * sm),
+        Body{Vec3{0.0, 0.0, 0.0}, Vec3{0.0, 0.0, 0.0}, sm},
+        Body{
+            Vec3{4.84143144246472090e00, -1.16032004402742839e00, -1.03622044471123109e-01},
+            Vec3{1.66007664274403694e-03*dpy, 7.69901118419740425e-03*dpy, -6.90460016972063023e-05*dpy},
+            9.54791938424326609e-04 * sm},
+        Body{
+            Vec3{8.34336671824457987e00, 4.12479856412430479e00, -4.03523417114321381e-01},
+            Vec3{-2.76742510726862411e-03*dpy, 4.99852801234917238e-03*dpy, 2.30417297573763929e-05*dpy},
+            2.85885980666130812e-04 * sm},
+        Body{
+            Vec3{1.28943695621391310e01, -1.51111514016986312e01, -2.23307578892655734e-01},
+            Vec3{2.96460137564761618e-03*dpy, 2.37847173959480950e-03*dpy, -2.96589568540237556e-05*dpy},
+            4.36624404335156298e-05 * sm},
+        Body{
+            Vec3{1.53796971148509165e01, -2.59193146099879641e01, 1.79258772950371181e-01},
+            Vec3{2.68067772490389322e-03*dpy, 1.62824170038242295e-03*dpy, -9.51592254519715870e-05*dpy},
+            5.15138902046611451e-05 * sm},
     ]
 
     # offset_momentum: pin the total momentum to zero via the sun's velocity.
-    p := Vec3(0.0, 0.0, 0.0)
+    p := Vec3{0.0, 0.0, 0.0}
     for b in bodies
         p += b.vel * b.mass
     sun := bodies[1]!
-    bodies[1] = Body(sun.pos, p * (-1.0 / sm), sun.mass)
+    bodies[1] = Body{sun.pos, p * (-1.0 / sm), sun.mass}
 
     print9(energy(bodies[]))
     advance(bodies, steps, 0.01)

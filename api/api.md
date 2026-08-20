@@ -2609,7 +2609,7 @@ path | `Path` | The path of the file to append to.  | -
 text | `Text` | The text to append to the file.  | -
 permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
-**Return:** Either `Success` or `Failure(reason)`.
+**Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**
@@ -2631,7 +2631,7 @@ path | `Path` | The path of the file to append to.  | -
 bytes | `[Byte]` | The bytes to append to the file.  | -
 permissions | `Int32` | The permissions to set on the file if it is being created.  | `Int32(0o644)`
 
-**Return:** Either `Success` or `Failure(reason)`.
+**Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**
@@ -2881,7 +2881,7 @@ path | `Path` | The path to copy.  | -
 dest | `Path` | The destination to copy the path to.  | -
 overwrite | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
 
-**Return:** Either `Success` or `Failure(reason)`.
+**Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**
@@ -2904,7 +2904,7 @@ path | `Path` | The path of the directory to create.  | -
 permissions | `` | The permissions to set on the new directory.  | `Int32(0o755)`
 recursive | `` | If set to `yes`, then recursively create any parent directories if they don't exist, otherwise fail if the parent directory does not exist. When set to `yes`, this function behaves like `mkdir -p`.  | `yes`
 
-**Return:** Either `Success` or `Failure(reason)`.
+**Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**
@@ -3281,7 +3281,7 @@ path | `Path` | The path to move.  | -
 dest | `Path` | The destination to move the path to.  | -
 overwrite | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
 
-**Return:** Either `Success` or `Failure(reason)`.
+**Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**
@@ -3409,7 +3409,7 @@ Argument | Type | Description | Default
 path | `Path` | The path to remove.  | -
 ignore_missing | `` | Whether to ignore errors if the file or directory does not exist.  | `no`
 
-**Return:** Either `Success` or `Failure(reason)`.
+**Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**
@@ -3454,7 +3454,7 @@ owner | `Text?` | If non-none, the new user to assign to be the owner of the fil
 group | `Text?` | If non-none, the new group to assign to be the owner of the file.  | `none`
 follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
-**Return:** Either `Success` or `Failure(reason)`.
+**Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**
@@ -3569,7 +3569,7 @@ path | `Path` | The path of the file to write to.  | -
 text | `Text` | The text to write to the file.  | -
 permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
-**Return:** Either `Success` or `Failure(reason)`.
+**Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**
@@ -3591,7 +3591,7 @@ path | `Path` | The path of the file to write to.  | -
 bytes | `[Byte]` | A list of bytes to write to the file.  | -
 permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
-**Return:** Either `Success` or `Failure(reason)`.
+**Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**

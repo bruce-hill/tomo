@@ -125,12 +125,12 @@ Field accesses work through the reference, which makes updating lists of
 structs concise:
 
 ```tomo
-struct Vec(x, y: Num)
+struct Vec{x, y: Num}
 
-vecs := @[Vec(1.0, 2.0), Vec(3.0, 4.0)]
+vecs := @[Vec{1.0, 2.0}, Vec{3.0, 4.0}]
 for &v in vecs
     v.x *= 2.0
-assert vecs[] == [Vec(2.0, 2.0), Vec(6.0, 4.0)]
+assert vecs[] == [Vec{2.0, 2.0}, Vec{6.0, 4.0}]
 ```
 
 Unlike ordinary iteration, a `for &` loop operates on the live list: reads and

@@ -40,10 +40,10 @@ they fall into three categories:
 - Path manipulation, e.g. `(./file.jpg).extension()`
 
 Operations that involve the filesystem will typically return a `Result` type,
-which is either `Success` or `Failure(reason)`. In the common case where you
+which is either `Success` or `Failure{reason}`. In the common case where you
 expect a file operation to succeed and do not want to explicitly account for
 the possibility of a file operation failing, you can use `!` as a suffix as a
-shorthand for "if this returns `Failure(reason)`, then fail and print the
+shorthand for "if this returns `Failure{reason}`, then fail and print the
 reason."
 
 ## Internal Representation

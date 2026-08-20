@@ -1,7 +1,7 @@
 
-struct Foo(name:Text, next:@Foo?=none)
+struct Foo{name:Text, next:@Foo?=none}
 
-enum MyEnum(Zero, One(x:Int), Two(x:Num, y:Text))
+enum MyEnum(Zero, One{x:Int}, Two{x:Num, y:Text})
 
 test "Int64 roundtrip"
     >> obj := Int64(123)
@@ -56,15 +56,15 @@ test "table with fallback roundtrip"
     assert roundtrip.fallback == obj.fallback
 
 test "cyclic struct roundtrip"
-    >> obj := @Foo("root")
-    >> obj.next = @Foo("abcdef", next=obj)
+    >> obj := @Foo{"root"}
+    >> obj.next = @Foo{"abcdef", next=obj}
     >> bytes : [Byte] = obj
     >> roundtrip : @Foo = bytes
     >> "$roundtrip"
     assert "$roundtrip" == "$obj"
 
 test "enum roundtrip"
-    >> obj := MyEnum.Two(123, "OKAY")
+    >> obj := MyEnum.Two{123, "OKAY"}
     >> bytes : [Byte] = obj
     >> roundtrip : MyEnum = bytes
     assert roundtrip == obj

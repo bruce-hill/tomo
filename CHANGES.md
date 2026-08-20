@@ -1,5 +1,29 @@
 # Changes
 
+## 2026-08-20
+
+- Removed the special restrictions on struct/enum fields (and function
+  arguments) whose names start with an underscore. Previously, such fields
+  couldn't be read from outside the type definition (`x._foo`) and couldn't be
+  passed positionally to a constructor or function call -- only by keyword.
+  None of that applies anymore; a leading underscore is just a regular,
+  unrestricted identifier character.
+
+## 2026-08-19
+
+- **Breaking:** structs and enum variants are now built with curly braces
+  instead of parentheses, so building a record is syntactically distinct from
+  calling a function. Struct definitions take a braced field list (`struct
+  Foo{x,y:Int}`), enum variants take braced fields while the variant list keeps
+  its parens (`enum Baz(A{foo:Foo}, B)`), and construction and pattern matching
+  both use braces (`Foo{1,2}`, `Baz.A{f}`, `when b is A{foo}`). Parentheses on a
+  type name now mean only "call a constructor function", so conversions like
+  `Int("5")` and `Text(5)` are unchanged, while `Foo(1,2)` on a struct or
+  variant is a compile error pointing at the brace form. A variant with no
+  fields is still written bare (`Baz.B`, `is B`). Struct and enum values also
+  convert to text using braces now (`Foo{x=1, y=2}`), so printed output
+  round-trips as source.
+
 ## 2026-08-18
 
 - `list.pairs()` and `table.entries()` used directly in for-position (a loop,

@@ -1,15 +1,15 @@
 
-struct Struct(x:Int, y:Text)
+struct Struct{x:Int, y:Text}
     func maybe(should_i:Bool->Struct?)
         if should_i
-            return Struct(123, "hello")
+            return Struct{123, "hello"}
         else
             return none
 
-enum Enum(X, Y(y:Int))
+enum Enum(X, Y{y:Int})
     func maybe(should_i:Bool->Enum?)
         if should_i
-            return Enum.Y(123)
+            return Enum.Y{123}
         else
             return none
 
@@ -162,21 +162,21 @@ test "optional Lambdas"
 
 test "optional Structs"
     >> yep := Struct.maybe(yes)
-    assert yep == Struct(x=123, y="hello")
+    assert yep == Struct{x=123, y="hello"}
     >> nope := Struct.maybe(no)
     assert nope == none
     if yep
-        assert yep == Struct(x=123, y="hello")
+        assert yep == Struct{x=123, y="hello"}
     if nope
         fail("Truthy: $nope")
 
 test "optional Enums"
     >> yep := Enum.maybe(yes)
-    assert yep == Enum.Y(123)
+    assert yep == Enum.Y{123}
     >> nope := Enum.maybe(no)
     assert nope == none
     if yep
-        assert yep == Enum.Y(123)
+        assert yep == Enum.Y{123}
     if nope
         fail("Truthy: $nope")
 
@@ -248,7 +248,7 @@ test "negation and 'or' with optionals"
     >> nah : Int? = none
     >> not nah
     assert not nah == yes
-    assert [none, Struct(5,"A"), Struct(6,"B"), Struct(7,"C")] == [none, Struct(x=5, y="A"), Struct(x=6, y="B"), Struct(x=7, y="C")]
+    assert [none, Struct{5,"A"}, Struct{6,"B"}, Struct{7,"C"}] == [none, Struct{x=5, y="A"}, Struct{x=6, y="B"}, Struct{x=7, y="C"}]
     if optional or no
         say("Binary op 'or' works with optionals")
     else

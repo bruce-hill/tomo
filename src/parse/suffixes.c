@@ -155,6 +155,47 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
     return NewAST(ctx->file, start, pos, MethodCall, .self = self, .name = fn, .args = args);
 }
 
+ast_t *parse_record_literal_suffix(parse_ctx_t *ctx, ast_t *type) {
+    // `Foo{...}` / `Baz.A{...}`: field-wise construction of a struct or enum
+    // variant. The '{' must follow the type name immediately (no space), so a
+    // table/set literal in an adjacent position is never swallowed.
+    if (!type) return NULL;
+    if (type->tag != Var && type->tag != FieldAccess) return NULL;
+
+    const char *start = type->start;
+    const char *pos = type->end;
+
+    if (!match(&pos, "{")) return NULL;
+
+    whitespace(ctx, &pos);
+
+    arg_ast_t *args = NULL;
+    for (;;) {
+        const char *arg_start = pos;
+        const char *name = get_id(&pos);
+        whitespace(ctx, &pos);
+        if (!name || !match(&pos, "=")) {
+            name = NULL;
+            pos = arg_start;
+        }
+
+        ast_t *arg = optional(ctx, &pos, parse_expr);
+        if (!arg) {
+            if (name) parser_err(ctx, arg_start, pos, "I expected a field value here");
+            break;
+        }
+        args = new (arg_ast_t, .start = arg_start, .end = arg->end, .name = name, .value = arg, .next = args);
+        if (!match_separator(ctx, &pos)) break;
+    }
+
+    whitespace(ctx, &pos);
+
+    if (!match(&pos, "}")) parser_err(ctx, start, pos, "This curly brace is unclosed");
+
+    REVERSE_LIST(args);
+    return NewAST(ctx->file, start, pos, RecordLiteral, .type = type, .args = args);
+}
+
 ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn) {
     if (!fn) return NULL;
 

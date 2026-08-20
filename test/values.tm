@@ -1,9 +1,9 @@
 # Tests for ensuring immutable value nature in various contexts
-struct Inner(xs:[Int32])
+struct Inner{xs:[Int32]}
 
-struct Outer(inner:Inner)
+struct Outer{inner:Inner}
 
-enum HoldsList(HasList(xs:[Int32]))
+enum HoldsList(HasList{xs:[Int32]})
 
 func sneaky(outer:Outer)
     (&outer.inner.xs)[1] = 99
@@ -30,7 +30,7 @@ test "table value semantics"
     assert copy == {"A":10, "B":20}
 
 test "nested struct field mutation"
-    >> foo := Outer(Inner([10, 20, 30]))
+    >> foo := Outer{Inner{[10, 20, 30]}}
     >> copy := foo
     (&foo.inner.xs)[1] = 99
     >> foo.inner.xs
@@ -39,7 +39,7 @@ test "nested struct field mutation"
     assert copy.inner.xs == [10, 20, 30]
 
 test "struct passed by value is immutable"
-    >> foo := Outer(Inner([10, 20, 30]))
+    >> foo := Outer{Inner{[10, 20, 30]}}
     >> copy := foo
     sneaky(foo)
     >> foo.inner.xs
@@ -48,7 +48,7 @@ test "struct passed by value is immutable"
     assert copy.inner.xs == [10, 20, 30]
 
 test "struct passed by reference is mutable"
-    >> foo := Outer(Inner([10, 20, 30]))
+    >> foo := Outer{Inner{[10, 20, 30]}}
     >> copy := foo
     sneaky2(&foo)
     >> foo.inner.xs
@@ -57,9 +57,9 @@ test "struct passed by reference is mutable"
     assert copy.inner.xs == [10, 20, 30]
 
 test "enum field value semantics"
-    >> x := HoldsList.HasList([10, 20, 30])
-    when x is HasList(list)
+    >> x := HoldsList.HasList{[10, 20, 30]}
+    when x is HasList{list}
         (&list)[1] = 99
 
     >> x
-    assert x == HoldsList.HasList([10, 20, 30])
+    assert x == HoldsList.HasList{[10, 20, 30]}

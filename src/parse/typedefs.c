@@ -46,7 +46,7 @@ ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos) {
 }
 
 ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
-    // struct Foo(...) [: \n body]
+    // struct Foo{...} [: \n body]
     const char *start = pos;
     if (!match_word(&pos, "struct")) return NULL;
 
@@ -57,7 +57,7 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
     if (!name) parser_err(ctx, start, pos, "I expected a name for this struct");
     spaces(&pos);
 
-    if (!match(&pos, "(")) parser_err(ctx, pos, pos, "I expected a '(' and a list of fields here");
+    if (!match(&pos, "{")) parser_err(ctx, pos, pos, "I expected a '{' and a list of fields here");
 
     arg_ast_t *fields = parse_args(ctx, &pos);
 
@@ -82,7 +82,7 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
         }
     }
 
-    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this struct");
+    expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this struct");
 
     spaces(&pos);
     if (match(&pos, ":")) {
@@ -103,7 +103,7 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
 }
 
 ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
-    // tagged union: enum Foo(a, b(x:Int,y:Int)=5, ...) [: \n namespace]
+    // tagged union: enum Foo(a, b{x:Int,y:Int}, ...) [: \n namespace]
     const char *start = pos;
     if (!match_word(&pos, "enum")) return NULL;
     int64_t starting_indent = get_indent(ctx, pos);
@@ -124,7 +124,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
         spaces(&pos);
         arg_ast_t *fields;
         bool secret = false;
-        if (match(&pos, "(")) {
+        if (match(&pos, "{")) {
             whitespace(ctx, &pos);
             fields = parse_args(ctx, &pos);
             whitespace(ctx, &pos);
@@ -133,7 +133,7 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
                 secret = match_word(&pos, "secret");
                 whitespace(ctx, &pos);
             }
-            expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this tagged union member");
+            expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this tagged union member");
         } else {
             fields = NULL;
         }

@@ -88,9 +88,9 @@ env_t *global_env(bool source_mapping) {
     (void)bind_type(env, "Int32", Type(IntType, .bits = TYPE_IBITS32));
     (void)bind_type(env, "Memory", Type(MemoryType));
     PATH_TYPE = bind_type(env, "Path", Type(PathType));
-    RESULT_TYPE = declare_type(env, "enum Result(Success, Failure(reason:Text))");
+    RESULT_TYPE = declare_type(env, "enum Result(Success, Failure{reason:Text})");
 
-    PRESENT_TYPE = declare_type(env, "struct Present()");
+    PRESENT_TYPE = declare_type(env, "struct Present{}");
 
     typedef struct {
         const char *name, *code, *type_str;
@@ -889,12 +889,12 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name) {
     return ns_env ? get_binding(ns_env, name) : NULL;
 }
 
-PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args, bool allow_underscores) {
+PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args) {
     env_t *type_env = get_namespace_by_type(env, t);
     if (!type_env) return NULL;
     List_t constructors = type_env->namespace->constructors;
     // Prioritize exact matches:
-    call_opts_t options = {.promotion = false, .underscores = allow_underscores};
+    call_opts_t options = {.promotion = false};
     for (int64_t i = (int64_t)constructors.length - 1; i >= 0; i--) {
         binding_t *constructor = constructors.data + i * constructors.stride;
         DeclareMatch(fn, constructor->type, FunctionType);
@@ -928,4 +928,9 @@ PUREFUNC binding_t *get_metamethod_binding(env_t *env, ast_e tag, ast_t *lhs, as
 void set_binding(env_t *env, const char *name, type_t *type, Text_t code) {
     assert(name);
     Table$str_set(env->locals, name, new (binding_t, .type = type, .code = code));
+}
+
+void set_variant_constructor_binding(env_t *env, const char *name, type_t *type, Text_t code) {
+    assert(name);
+    Table$str_set(env->locals, name, new (binding_t, .type = type, .code = code, .is_variant_constructor = true));
 }

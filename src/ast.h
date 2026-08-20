@@ -256,6 +256,7 @@ typedef enum {
     ConvertDef,
     FunctionCall,
     MethodCall,
+    RecordLiteral,
     Block,
     For,
     While,
@@ -388,6 +389,14 @@ struct ast_s {
             ast_t *self;
             arg_ast_t *args;
         } MethodCall;
+        // `Foo{...}` / `Baz.A{...}`: field-wise construction of a struct or an
+        // enum variant. Distinct from FunctionCall so that parens on a type name
+        // mean "call a convert/constructor function" and braces mean "build a
+        // record". `type` is the Var or FieldAccess naming the struct/variant.
+        struct {
+            ast_t *type;
+            arg_ast_t *args;
+        } RecordLiteral;
         struct {
             ast_list_t *statements;
         } Block;

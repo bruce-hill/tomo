@@ -106,8 +106,7 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
     // Numeric promotions/demotions
     if ((is_numeric_type(actual) || actual->tag == BoolType) && (is_numeric_type(needed) || needed->tag == BoolType)) {
         arg_ast_t *args = new (arg_ast_t, .value = LiteralCode(*code, .type = actual));
-        binding_t *constructor = get_constructor(
-            env, needed, args, env->current_type != NULL && type_eq(env->current_type, value_type(needed)));
+        binding_t *constructor = get_constructor(env, needed, args);
         if (constructor) {
             DeclareMatch(fn, constructor->type, FunctionType);
             if (fn->args->next == NULL) {
@@ -257,7 +256,7 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
     }
 
     arg_ast_t *constructor_args = new (arg_ast_t, .value = ast);
-    binding_t *constructor = get_constructor(env, t, constructor_args, true);
+    binding_t *constructor = get_constructor(env, t, constructor_args);
     if (constructor) {
         arg_t *arg_spec = Match(constructor->type, FunctionType)->args;
         return Texts(constructor->code, "(", compile_arguments(env, ast, arg_spec, constructor_args), ")");

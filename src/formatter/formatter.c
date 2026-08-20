@@ -379,6 +379,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         DeclareMatch(call, ast, FunctionCall);
         return Texts(fmt_inline(call->fn, comments), "(", must(format_inline_args(call->args, comments)), ")");
     }
+    /*inline*/ case RecordLiteral: {
+        DeclareMatch(record, ast, RecordLiteral);
+        return Texts(fmt_inline(record->type, comments), "{", must(format_inline_args(record->args, comments)), "}");
+    }
     /*inline*/ case MethodCall: {
         DeclareMatch(call, ast, MethodCall);
         Text_t self = fmt_inline(call->self, comments);
@@ -620,11 +624,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case StructDef: {
         DeclareMatch(def, ast, StructDef);
         Text_t args = format_args(def->fields, comments, indent);
-        Text_t code = Texts("struct ", Text$from_str(def->name), "(", args);
+        Text_t code = Texts("struct ", Text$from_str(def->name), "{", args);
         if (def->secret) code = Texts(code, "; secret");
         if (def->external) code = Texts(code, "; external");
         if (def->opaque) code = Texts(code, "; opaque");
-        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"));
+        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, "}") : Text("}"));
         const char *comment_pos = ast->start;
         Text_t comment_code =
             comment_range(&comment_pos, def->namespace->start, Texts(indent, single_indent), comments);
@@ -850,6 +854,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, FunctionCall);
         return Texts(fmt(call->fn, comments, indent), format_fncall(call->args, comments, indent));
+    }
+    /*multiline*/ case RecordLiteral: {
+        if (inlined_fits) return inlined;
+        DeclareMatch(record, ast, RecordLiteral);
+        return Texts(fmt(record->type, comments, indent), format_record_literal(record->args, comments, indent));
     }
     /*multiline*/ case MethodCall: {
         if (inlined_fits) return inlined;
