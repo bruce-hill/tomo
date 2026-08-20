@@ -139,13 +139,16 @@ MACROLIKE PUREFUNC int32_t Num$compare_value(Num_t x, Num_t y) {
     return (int32_t)cmp;
 }
 PUREFUNC bool Num$equal(const void *x, const void *y, const TypeInfo_t *type);
-// When either side is a small rational immediate, bit equality settles it
-// outright, whatever the other side is: small rationals are canonical, so
-// equal ones are bit-identical, and no other value can be reported equal to
-// one (see number_equal in number.h, which this mirrors). Only two heap
-// values need the general path.
+// When BOTH sides are small rational immediates, bit equality settles it
+// outright: small rationals are canonical, so equal ones are bit-identical.
+// Unlike number_equal in number.h -- whose equality is exactly the library's
+// own, so a *single* tag test suffices there -- equality here is whatever
+// Num$compare_value says, and that widens to "agrees to EQUALITY_DIGITS" for
+// an undecidable irrational (see Num$undecided_compare). A one-sided test
+// would let `sin(1):asin()! == 1.0` answer no while `<=` and `>=` both answer
+// yes, and while Num$hash puts the two in the same bucket.
 MACROLIKE PUREFUNC bool Num$equal_value(Num_t x, Num_t y) {
-    if (likely((x.bits & 0x3) == 0x1 || (y.bits & 0x3) == 0x1)) return x.bits == y.bits;
+    if (likely((x.bits & 0x3) == 0x1 && (y.bits & 0x3) == 0x1)) return x.bits == y.bits;
     return Num$compare_value(x, y) == 0;
 }
 PUREFUNC bool Num$is_none(const void *n, const TypeInfo_t *type);

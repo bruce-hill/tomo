@@ -102,6 +102,7 @@ Closure_t Byte$to(Byte_t first, Byte_t last, OptionalInt8_t step) {
     return (Closure_t){.fn = _next_Byte, .userdata = range};
 }
 
+public
 Byte_t Byte$from_num(Num_t n, bool truncate) {
     return Byte$from_int(Int$from_num(n, truncate), truncate);
 }

@@ -970,8 +970,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
                 code_err(ast, "There's no constructor for ", type_to_text(t),
                          " that takes these arguments. If you meant to build one from its fields, use curly braces: ",
                          Match(t, StructType)->name, "{...}");
-            else if (t->tag == IntType || t->tag == BigIntType || t->tag == FloatType || t->tag == ByteType
-                     || t->tag == TextType || t->tag == CStringType)
+            else if (t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == FloatType
+                     || t->tag == ByteType || t->tag == TextType || t->tag == CStringType)
                 return t; // Constructor
             arg_t *arg_types = NULL;
             for (arg_ast_t *arg = call->args; arg; arg = arg->next)
@@ -1811,8 +1811,18 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
 #define EXPECTED_OR_INFERRED (expected_type ? expected_type : get_type(env, ast))
     switch (ast->tag) {
     case Bool:
-    case Num:
     case None: return true;
+    case Num: {
+        // Compiled to a Float64/Float32 target, a numeric literal is a hex
+        // float constant. Compiled to a `Num`, only a value that fits the
+        // immediate tier is a C constant (a NUMBER_SMALL compound literal);
+        // anything else -- a big numerator/denominator, or an irrational like
+        // `90deg` -- needs a runtime constructor call (see compile_num).
+        type_t *t = EXPECTED_OR_INFERRED;
+        if (t->tag == FloatType) return true;
+        if (t->tag != NumType) return false;
+        return (Match(ast, Num)->n.bits & 0x3) == 0x1;
+    }
     case Int: {
         // Compiled to a native fixed-width int / Num / Byte target, any int
         // literal that fits is a plain cast -- a C constant (codegen errors if
@@ -1972,10 +1982,16 @@ bool embed_is_constant(ast_t *ast, type_t *t) {
 //
 // The op set is `target`-dependent, because the native C form only exists for
 // some (op, type) pairs (mirroring the native table in is_constant): bit shifts
-// and bitwise and/or/xor have no float form, so they can't push into a `Num`
-// target (`(3.0 << 1.0)` is invalid C); exponentiation compiles to `pow()` and
-// only supports `Num`. `target == NULL` means "no target constraint".
+// and bitwise and/or/xor have no float form, so they can't push into a
+// `Float64`/`Float32` target (`(3.0 << 1.0)` is invalid C); exponentiation
+// compiles to `pow()` and only supports floats. `Num` (the exact real) has no
+// native C operator form for *any* op -- its arithmetic goes through the
+// Num$plus/... metamethods, which compile_binary_op_to_type only finds when the
+// operands are already Nums -- so nothing pushes down into it; an int-literal
+// expression bound for a `Num` is computed as an `Int` and promoted.
+// `target == NULL` means "no target constraint".
 PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target) {
+    if (target != NULL && target->tag == NumType) return false;
     switch (ast->tag) {
     case Power: return target == NULL || target->tag == FloatType;
     case Multiply:

@@ -171,7 +171,10 @@ PUREFUNC Num_t Num$clamped(Num_t x, Num_t low, Num_t high) {
 }
 public
 PUREFUNC bool Num$is_between(Num_t x, Num_t low, Num_t high) {
-    return Num$compare_value(x, low) >= 0 && Num$compare_value(x, high) <= 0;
+    // The bounds may be given in either order, matching Int/Float/Byte's
+    // is_between (`(5):is_between(10, 1)` is yes for every other numeric type).
+    return (Num$compare_value(low, x) <= 0 && Num$compare_value(x, high) <= 0)
+           || (Num$compare_value(high, x) <= 0 && Num$compare_value(x, low) <= 0);
 }
 public
 PUREFUNC Num_t Num$min(Num_t x, Num_t y) {
@@ -380,6 +383,10 @@ static void Num$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInf
     Int64$deserialize(in, &len, pointers, &Int64$info);
     if (unlikely(len < 0)) fail("Corrupted Num in serialized data");
     char *buf = GC_MALLOC_ATOMIC((size_t)len + 1);
+    // A corrupt length prefix can ask for more than the collector can give;
+    // GC_MALLOC_ATOMIC answers NULL rather than aborting, and fread must not be
+    // handed that.
+    if (unlikely(buf == NULL)) fail("Corrupted Num in serialized data");
     if (fread(buf, 1, (size_t)len, in) != (size_t)len) fail("Corrupted Num in serialized data");
     buf[len] = '\0';
     Num_t n = number_from_symbolic(buf);

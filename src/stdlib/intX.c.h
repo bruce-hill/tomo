@@ -205,6 +205,8 @@ public
 INT_T NAMESPACED(from_num)(Num_t n, bool truncate) {
     return NAMESPACED(from_int)(Int$from_num(n, truncate), truncate);
 }
+
+public
 PUREFUNC INT_T NAMESPACED(from_float64)(Float64_t n, bool truncate) {
     INT_T i = (INT_T)n;
     if (!truncate && unlikely((Float64_t)i != n))

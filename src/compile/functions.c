@@ -183,7 +183,14 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
         // not go through any conversion, just a cast:
         if (is_numeric_type(t) && call->args && !call->args->next && call->args->value->tag == Int)
             return compile_to_type(env, call->args->value, t);
-        else if (t->tag == FloatType && call->args && !call->args->next && call->args->value->tag == Num)
+        // ... and so should a numeric literal wrapped in a float or `Num`
+        // constructor. `Num` especially: without this, get_constructor picks
+        // the last-registered overload whose parameter the literal can compile
+        // to, which is `Num$from_float32` -- so `Num(0.1)` would round the
+        // exact tenth through a *single*-precision float, the exact opposite of
+        // what the type is for.
+        else if ((t->tag == FloatType || t->tag == NumType) && call->args && !call->args->next
+                 && call->args->value->tag == Num)
             return compile_to_type(env, call->args->value, t);
 
         binding_t *constructor = get_constructor(env, t, call->args);

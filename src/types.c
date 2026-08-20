@@ -380,8 +380,14 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
 
     if (actual->tag == FloatType && needed->tag == IntType) return false;
 
-    if (needed->tag == NumType) return is_int_type(actual);
-    if (actual->tag == NumType) return false;
+    // An exact `Num` absorbs any integer type without loss, but nothing else
+    // promotes into it (a Float64 would smuggle in a rounded value) and it
+    // never promotes out (every target but `Num` is lossy). Optionals are the
+    // exception in both directions: `Num?` wraps a `Num` by the generic
+    // optional rule further down, so don't answer for a `needed`/`actual`
+    // that is only an optional *wrapper* around one.
+    if (needed->tag == NumType && actual->tag != OptionalType) return is_int_type(actual);
+    if (actual->tag == NumType && needed->tag != OptionalType) return false;
 
     if (actual->tag == IntType && (needed->tag == FloatType || needed->tag == BigIntType)) return true;
 
