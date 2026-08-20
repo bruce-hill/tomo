@@ -1,7 +1,6 @@
 // Some basic operations defined on AST nodes, mainly converting to
 // strings for debugging.
 
-#include <stdlib.h>
 #include <stdarg.h>
 
 #include "ast.h"
@@ -292,21 +291,11 @@ Text_t ast_to_sexp(ast_t *ast) {
 }
 
 // The value of a numeric literal as a double, for the paths that compile one
-// into a Float64/Float32 rather than a Num. Lossy by definition -- 3.15 has no
-// exact double -- which is exactly why the AST keeps the digits instead of
-// this. See the Num node in ast.h.
+// into a Float64/Float32 rather than a Num. Rounds the exact value once, so
+// `90deg` is the nearest double to pi/180*90 rather than the accumulation of
+// rounding a truncated pi/180 constant and then multiplying.
 double num_literal_double(ast_t *ast) {
-    // pi/180, to more digits than a double keeps, so the rounding happens once
-    // here rather than compounding through a shorter constant.
-    static const double RADIANS_PER_DEGREE =
-        0.0174532925199432957692369076848861271344287188854172545609719144;
-    DeclareMatch(num, ast, Num);
-    double d = strtod(num->str, NULL);
-    switch (num->suffix) {
-    case NUM_PERCENT: return d / 100.;
-    case NUM_DEGREES: return d * RADIANS_PER_DEGREE;
-    default: return d;
-    }
+    return number_to_double(Match(ast, Num)->n);
 }
 
 const char *ast_to_sexp_str(ast_t *ast) {

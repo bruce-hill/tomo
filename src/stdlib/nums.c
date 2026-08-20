@@ -193,12 +193,22 @@ PUREFUNC bool Num$is_integer(Num_t n) {
     return number_is_integer(n);
 }
 
+// How far to look for a terminating decimal before giving up and printing the
+// symbolic form. Generous enough to cover any decimal a person is likely to
+// have written, small enough that a value like 1/2^200 doesn't dump 200
+// digits when "1/1606938...9376" says the same thing more clearly.
+#define DISPLAY_DIGITS 30
+
 public
 Text_t Num$value_as_text(Num_t n) {
-    // The exact form, not a decimal expansion: 1/3 prints as "1/3", sqrt(2) as
-    // "sqrt(2)". A decimal would have to either terminate early (a lie about an
-    // exact value) or run forever. `:as_text(digits)` gives the approximation.
-    return Text$from_str(number_to_symbolic(n));
+    // Whatever is printed here is exact -- never a rounded decimal, which
+    // would quietly misreport the value. A terminating decimal is the
+    // friendliest exact form when one exists (0.1 + 0.2 prints as "0.3"), so
+    // try that first; otherwise fall back to the symbolic form, which is exact
+    // for values no decimal can express: "1/3", "sqrt(2)", "2*pi".
+    bool exact = false;
+    char *decimal = number_to_string(n, DISPLAY_DIGITS, &exact);
+    return Text$from_str(exact ? decimal : number_to_symbolic(n));
 }
 
 public

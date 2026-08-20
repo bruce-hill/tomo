@@ -890,6 +890,7 @@ env_t *get_namespace_by_type(env_t *env, type_t *t) {
     case BoolType:
     case IntType:
     case BigIntType:
+    case NumType:
     case FloatType:
     case ByteType: {
         binding_t *b = get_binding(env, Text$as_c_string(type_to_text(t)));

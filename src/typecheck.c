@@ -735,7 +735,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         return Type(BigIntType);
     }
     case Num: {
-        return Type(FloatType, .bits = TYPE_NBITS64);
+        return Type(NumType);
     }
     case HeapAllocate: {
         type_t *pointed = get_type(env, Match(ast, HeapAllocate)->value);

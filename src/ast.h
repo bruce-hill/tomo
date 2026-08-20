@@ -306,10 +306,15 @@ struct ast_s {
             const char *str;
         } Int;
         struct {
-            // The literal's digits, as written (minus `_` separators), so the
-            // exact value survives to codegen: a Num is exact, and `3.15`
-            // means 63/20, not the nearest double to it. `suffix` records a
-            // trailing `%` or `deg`, both of which scale the value exactly.
+            // The exact value, computed at parse time: `3.15` is 63/20, not
+            // the nearest double to it (3.14999999999999991...). Codegen picks
+            // the tightest encoding this value admits -- usually a
+            // NUMBER_SMALL immediate, costing nothing at runtime.
+            Num_t n;
+            // The digits as written (minus `_` separators) and any trailing
+            // `%`/`deg`, kept for the two things the value alone can't do:
+            // reconstruct the literal when it needs a runtime constructor
+            // (see compile_num_to_type), and print it back out (formatter).
             const char *str;
             enum { NUM_PLAIN, NUM_PERCENT, NUM_DEGREES } suffix;
         } Num;

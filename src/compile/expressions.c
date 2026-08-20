@@ -106,9 +106,7 @@ Text_t compile(env_t *env, ast_t *ast) {
         code_err(ast, "I don't know of any variable by this name");
     }
     case Int: return compile_int(ast);
-    case Num: {
-        return Text$from_str(String(hex_double(num_literal_double(ast))));
-    }
+    case Num: return compile_num(ast);
     case Not: {
         ast_t *value = Match(ast, Not)->value;
         type_t *t = get_type(env, value);

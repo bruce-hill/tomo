@@ -22,6 +22,7 @@ Text_t compile_type(type_t *t) {
     case PathType: return Text("Path_t");
     case BigIntType: return Text("Int_t");
     case IntType: return Texts("Int", (int32_t)Match(t, IntType)->bits, "_t");
+    case NumType: return Text("Num_t");
     case FloatType:
         return Texts("Float", (int32_t)Match(t, FloatType)->bits, "_t");
     case TextType: {
@@ -63,6 +64,7 @@ Text_t compile_type(type_t *t) {
         case TextType:
         case IntType:
         case BigIntType:
+        case NumType:
         case FloatType:
         case BoolType:
         case ByteType:
@@ -91,6 +93,7 @@ Text_t compile_type_info(type_t *t) {
     case ByteType:
     case IntType:
     case BigIntType:
+    case NumType:
     case FloatType:
     case CStringType: return Texts("&", type_to_text(t), "$info");
     case PathType: return Text("&Path$info");

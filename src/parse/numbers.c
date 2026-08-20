@@ -10,9 +10,24 @@
 #include <uniname.h>
 
 #include "../ast.h"
+#include "../stdlib/number.h"
 #include "context.h"
 #include "errors.h"
 #include "utils.h"
+
+// The exact value a numeric literal denotes. Built from the written digits
+// rather than a double, so `3.15` is 63/20 and not the nearest double to it,
+// and scaled exactly by any suffix: `%` is a division by 100, and `deg` a
+// multiplication by pi/180 -- which, pi being exact here, stays exact.
+static Num_t num_literal_value(parse_ctx_t *ctx, const char *pos, const char *digits, int suffix) {
+    Num_t n = number_from_decimal(digits);
+    if (number_is_error(n)) parser_err(ctx, pos, pos, "I couldn't parse this number");
+    switch (suffix) {
+    case NUM_PERCENT: return number_div(n, number_from_int(100));
+    case NUM_DEGREES: return number_mul(n, number_div(number_pi(), number_from_int(180)));
+    default: return n;
+    }
+}
 
 ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
@@ -38,8 +53,12 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
 
     // `50%` and `90deg` are numeric literals, not integers: both scale the
     // written digits by an exact factor (1/100, and pi/180 respectively).
-    if (match(&pos, "%")) return NewAST(ctx->file, start, pos, Num, .str = str, .suffix = NUM_PERCENT);
-    else if (match(&pos, "deg")) return NewAST(ctx->file, start, pos, Num, .str = str, .suffix = NUM_DEGREES);
+    if (match(&pos, "%"))
+        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_PERCENT), .str = str,
+                      .suffix = NUM_PERCENT);
+    else if (match(&pos, "deg"))
+        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_DEGREES), .str = str,
+                      .suffix = NUM_DEGREES);
 
     return NewAST(ctx->file, start, pos, Int, .str = str);
 }
@@ -69,12 +88,10 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
 
     if (negative) buf = String("-", buf);
 
-    // The digits are kept verbatim rather than converted here: a Num literal
-    // is exact, and going through a double first would round `3.15` to
-    // 3.14999999999999991... before the exact value was ever built.
     int suffix = NUM_PLAIN;
     if (match(&pos, "%")) suffix = NUM_PERCENT;
     else if (match(&pos, "deg")) suffix = NUM_DEGREES;
 
-    return NewAST(ctx->file, start, pos, Num, .str = buf, .suffix = suffix);
+    return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, buf, suffix), .str = buf,
+                  .suffix = suffix);
 }

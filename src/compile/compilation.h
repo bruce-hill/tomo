@@ -22,6 +22,7 @@
 #include "integers.h" // IWYU pragma: export
 #include "lists.h" // IWYU pragma: export
 #include "loops.h" // IWYU pragma: export
+#include "nums.h" // IWYU pragma: export
 #include "optionals.h" // IWYU pragma: export
 #include "pointers.h" // IWYU pragma: export
 #include "promotions.h" // IWYU pragma: export
