@@ -81,6 +81,7 @@ Text_t compile_empty(type_t *t) {
         return empty_pointed.length == 0 ? EMPTY_TEXT
                                          : Texts(ptr->is_stack ? Text("stack(") : Text("heap("), empty_pointed, ")");
     }
+    case NumType: return Text("NUMBER_ZERO");
     case FloatType: {
         return Match(t, FloatType)->bits == TYPE_NBITS32 ? Text("N32(0.0f)") : Text("N64(0.0)");
     }

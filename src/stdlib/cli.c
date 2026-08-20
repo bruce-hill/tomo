@@ -17,6 +17,7 @@
 #include "integers.h"
 #include "metamethods.h"
 #include "floats.h"
+#include "nums.h"
 #include "optionals.h"
 #include "paths.h"
 #include "print.h"
@@ -165,7 +166,7 @@ static Text_t flag_value_options(const char *metavar, const TypeInfo_t *type) {
     if (type == &Bool$info) return Text("yes|no");
     if (type == &Path$info) return Text("path");
     if (type == &Int$info || type == &Int64$info || type == &Int32$info || type == &Int16$info || type == &Int8$info
-        || type == &Byte$info || type == &Float64$info || type == &Float32$info)
+        || type == &Byte$info || type == &Num$info || type == &Float64$info || type == &Float32$info)
         return Text("N");
     if (type == &CString$info || type->tag == TextInfo) return Text("text");
     if (type->tag == OptionalInfo) return flag_value_options(NULL, type->OptionalInfo.type);
@@ -432,8 +433,8 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
             return List$from(args, I(2));
         } else {
             args = parse_arg_list(args, flag, dest, nonnull, allow_dashes);
-            if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Float64$info || nonnull == &Float32$info
-                || nonnull->tag == TextInfo || nonnull->tag == EnumInfo)
+            if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Num$info || nonnull == &Float64$info
+                || nonnull == &Float32$info || nonnull->tag == TextInfo || nonnull->tag == EnumInfo)
                 return args;
             else if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
             else if (nonnull == &Int32$info) ((OptionalInt32_t *)dest)->has_value = true;
@@ -478,6 +479,10 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
         OptionalBool_t parsed = Bool$parse(Text$from_str(arg), NULL);
         if (parsed == NONE_BOOL) print_err("Could not parse argument for ", flag, ": ", arg);
         *(Bool_t *)dest = parsed;
+    } else if (type == &Num$info) {
+        OptionalNum_t parsed = Num$parse(Text$from_str(arg));
+        if (parsed.bits == NONE_NUM.bits) print_err("Could not parse argument for ", flag, ": ", arg);
+        *(Num_t *)dest = parsed;
     } else if (type == &Float64$info) {
         OptionalFloat64_t parsed = Float64$parse(Text$from_str(arg), NULL);
         if (isnan(parsed)) print_err("Could not parse argument for ", flag, ": ", arg);
