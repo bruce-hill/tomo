@@ -4,6 +4,8 @@
 #include "number.h"
 
 #include <float.h>
+#include <gc.h>
+#include <gmp.h>
 #include <math.h>
 #include <stdalign.h>
 #include <stdio.h>
@@ -120,8 +122,21 @@ static number factorial(int n)
 // x is borrowed.
 static uint32_t tag_of(number x) { return (uint32_t)(x.bits & 3); }
 
+// What tomo_init() does for a real Tomo program: hand GMP the collector, so
+// its limb buffers are GC-owned like everything else here.
+static void *gc_gmp_alloc(size_t size) { return GC_MALLOC_ATOMIC(size); }
+static void *gc_gmp_realloc(void *ptr, size_t old_size, size_t new_size)
+{
+    (void)old_size;
+    return GC_REALLOC(ptr, new_size);
+}
+static void gc_gmp_free(void *ptr, size_t size) { (void)ptr, (void)size; }
+
 int main(void)
 {
+    GC_INIT();
+    mp_set_memory_functions(gc_gmp_alloc, gc_gmp_realloc, gc_gmp_free);
+
     // --- Basic integer arithmetic (integer sub-path) ---
     {
         number two = number_from_int(2);
