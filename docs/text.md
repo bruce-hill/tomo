@@ -151,11 +151,22 @@ str := "Sum: $(1 + 2)"
 // equivalent to "Sum: 3"
 ```
 
-Single-quoted text does not have interpolations:
+Single-quoted text interpolates with `$` in exactly the same way. Backtick text
+uses an at sign (`@`) instead, which is handy when the text itself is full of
+dollar signs:
 
 ```tomo
-// No interpolation here:
+// Also interpolation:
 str := 'Sum: $(1 + 2)'
+
+// Backticks interpolate with `@`, so `$` is an ordinary character:
+str := `@my_var costs $5`
+```
+
+To write a literal interpolation character, escape it with a backslash:
+
+```tomo
+str := "\$5"
 ```
 
 ### Text Escapes
@@ -171,69 +182,11 @@ str := "
 "
 ```
 
-### Customizable `$`-Text
-
-Sometimes you might need to use a lot of literal `$`s or quotation marks in
-text. In such cases, you can use the more customizable form of text. The
-customizable form lets you explicitly specify which character to use for
-interpolation and which characters to use for delimiting the text.
-
-The first character after the `$` is the custom interpolation character, which
-can be any of the following symbols: `~!@#$%^&*+=\?`. If none of these
-characters is used, the default interpolation character is `$`. Since this is
-the default, you can disable interpolation altogether by using `$` here (i.e. a
-double `$$`).
-
-The next thing in a customizable text is the character used to delimit the
-text. The text delimiter can be any of the following symbols: `` "'`|/;([{< ``
-If the text delimiter is one of `([{<`, then the text will continue until a
-matching `)]}>` is found, not terminating unless the delimiters are balanced
-(i.e. nested pairs of delimiters are considered part of the text).
-
-Here are some examples:
-
-```tomo
-$"Equivalent to normal text with dollar interps: $(1 + 2)"
-$@"The same, but the AT symbol interpolates: @(1 + 2)"
-$$"No interpolation here, $ is just a literal character"
-$|This text is pipe-delimited, so it can have "quotes" and 'single quotes' and interpolates with dollar sign: $(1+2)|
-$(This text is parens-delimited, so you can have (nested) parens without ending the text)
-$=[This text is square-bracket delimited [which can be nested] and uses equals for interps: =(1 + 2)]
-$@/look ma, regex literals!/
-```
-
-When text is delimited by matching pairs (`()`, `[]`, `{}`, or `<>`), they
-can only be closed by a matched closing character at the same indentation
-level, ignoring nested pairs:
-
-```tomo
-$$(Inside parens, you can have (nested ()) parens no problem)
-$$"But only (), [], {}, and <> are matching pairs, you can't have nested quotes"
-$$(
-    When indented, an unmatched ) won't close the text
-    An unmatched ( won't mess things up either
-    Only matching pairs on the same indentation level are counted:
-)
-$$(Multi-line text with nested (parens) and
-.. line continuation)
-```
-
-As a special case, when you use the same character for interpolation and text
-delimiting, no interpolations are allowed:
-
-```tomo
-plain := $""This text has {no interpolations}!"
-```
-
-**Note:** Normal doubly quoted text with no dollar sign (e.g. `"foo"`) are a
-shorthand for `${}"foo"`. Singly quoted text with no dollar sign (e.g.
-`'foo'`) are shorthand for `$''foo'`.
-
 ## Operations
 
 ### Concatenation
 
-Concatenation in the typical case is a fast operation: `"{x}{y}"` or `x ++ y`.
+Concatenation in the typical case is a fast operation: `"$x$y"` or `x ++ y`.
 
 Because text concatenation is typically fast, there is no need for a separate
 "string builder" class in the language and no need to use a list of text
