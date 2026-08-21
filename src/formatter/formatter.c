@@ -71,6 +71,14 @@ static Text_t quoted_label(const char *label) {
     return Text$quoted(Text$from_str(label), false, Text("\""));
 }
 
+// The flag is spelled `cached` or `cache_size=N` in source; a bare `cached`
+// parses to the sentinel size -1. There is no `cache=` flag: emitting one lost
+// the caching entirely and left a function definition that didn't parse.
+static Text_t format_cache_flag(ast_t *cache, Table_t comments, Text_t indent) {
+    if (cache->tag == Int && streq(Match(cache, Int)->str, "-1")) return Text("; cached");
+    return Texts("; cache_size=", fmt(cache, comments, indent));
+}
+
 static bool starts_with_id(Text_t text) {
     if (text.length <= 0) return false;
     List_t codepoints = Text$utf32(Text$slice(text, I_small(1), I_small(1)));
@@ -652,7 +660,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         DeclareMatch(func, ast, FunctionDef);
         Text_t code = Texts("func ", fmt(func->name, comments, indent), "(", format_args(func->args, comments, indent));
         if (func->ret_type) code = Texts(code, func->args ? Text(" -> ") : Text("-> "), format_type(func->ret_type));
-        if (func->cache) code = Texts(code, "; cache=", fmt(func->cache, comments, indent));
+        if (func->cache) code = Texts(code, format_cache_flag(func->cache, comments, indent));
         if (func->is_inline) code = Texts(code, "; inline");
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
                      single_indent, fmt(func->body, comments, Texts(indent, single_indent)));
@@ -673,7 +681,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         Text_t code = Texts("convert (", format_args(convert->args, comments, indent));
         if (convert->ret_type)
             code = Texts(code, convert->args ? Text(" -> ") : Text("-> "), format_type(convert->ret_type));
-        if (convert->cache) code = Texts(code, "; cache=", fmt(convert->cache, comments, indent));
+        if (convert->cache) code = Texts(code, format_cache_flag(convert->cache, comments, indent));
         if (convert->is_inline) code = Texts(code, "; inline");
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
                      single_indent, fmt(convert->body, comments, Texts(indent, single_indent)));
