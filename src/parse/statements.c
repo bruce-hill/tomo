@@ -61,10 +61,15 @@ ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos) {
     if (match(&pos, "=")) return NULL; // == comparison
 
     ast_list_t *values = NULL;
+    // The statement ends at its last value, not at wherever the separator scan
+    // stopped: trailing spaces inside the span would hide a `# comment` that
+    // follows them from anything that looks at what comes after this statement.
+    const char *end = pos;
     for (;;) {
         ast_t *rhs = optional(ctx, &pos, parse_extended_expr);
         if (!rhs) break;
         values = new (ast_list_t, .ast = rhs, .next = values);
+        end = rhs->end;
         spaces(&pos);
         if (!match(&pos, ",")) break;
         whitespace(ctx, &pos);
@@ -73,7 +78,7 @@ ast_t *parse_assignment(parse_ctx_t *ctx, const char *pos) {
     REVERSE_LIST(targets);
     REVERSE_LIST(values);
 
-    return NewAST(ctx->file, start, pos, Assign, .targets = targets, .values = values);
+    return NewAST(ctx->file, start, end, Assign, .targets = targets, .values = values);
 }
 
 ast_t *parse_update(parse_ctx_t *ctx, const char *pos) {
