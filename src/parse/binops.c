@@ -93,10 +93,13 @@ ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightness) {
         if (!rhs) break;
         pos = rhs->end;
 
+        // `_min_`/`_max_` keep going like any other operator: returning here
+        // abandoned whatever followed, so `a _min_ b == c` (and even
+        // `a _min_ b _min_ c`) failed to parse at all.
         if (op == Min) {
-            return NewAST(ctx->file, lhs->start, rhs->end, Min, .lhs = lhs, .rhs = rhs, .key = key);
+            lhs = NewAST(ctx->file, lhs->start, rhs->end, Min, .lhs = lhs, .rhs = rhs, .key = key);
         } else if (op == Max) {
-            return NewAST(ctx->file, lhs->start, rhs->end, Max, .lhs = lhs, .rhs = rhs, .key = key);
+            lhs = NewAST(ctx->file, lhs->start, rhs->end, Max, .lhs = lhs, .rhs = rhs, .key = key);
         } else {
             lhs = new (ast_t, .file = ctx->file, .start = lhs->start, .end = rhs->end, .tag = op,
                        .__data.Plus.lhs = lhs, .__data.Plus.rhs = rhs);

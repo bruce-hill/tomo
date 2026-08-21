@@ -19,3 +19,11 @@ test "min and max operators"
 	>> foos := [Foo{5, 1}, Foo{5, 99}, Foo{-999, -999}]
 	>> (_max_: foos)
 	assert (_max_: foos)! == Foo{x=5, y=99}
+
+# `_min_`/`_max_` are ordinary infix operators: whatever follows them stays part
+# of the same expression.
+test "min/max alongside other operators"
+	assert 3 _min_ 5 == 3
+	assert 1 _min_ 2 _min_ 3 == 1
+	assert 5 _max_ 2 _max_ 9 == 9
+	assert 2 + 3 _min_ 10 == 5
