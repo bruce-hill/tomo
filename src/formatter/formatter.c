@@ -64,6 +64,13 @@ PUREFUNC static bool is_word_operator(const char *op) {
     return op && (uc_is_property_xid_start((ucs4_t)(unsigned char)op[0]) || op[0] == '_');
 }
 
+// `test` labels and `fails` expectations are stored as plain strings (they're
+// parsed with interpolation disabled), so they have to be re-quoted from
+// scratch rather than formatted as a text literal.
+static Text_t quoted_label(const char *label) {
+    return Text$quoted(Text$from_str(label), false, Text("\""));
+}
+
 static bool starts_with_id(Text_t text) {
     if (text.length <= 0) return false;
     List_t codepoints = Text$utf32(Text$slice(text, I_small(1), I_small(1)));
@@ -165,6 +172,9 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         Text_t message = fmt_inline(assert->message, comments);
         return Texts("assert ", expr, ", ", message);
     }
+    /*inline*/ case Test:
+        // A test is a label plus an indented body: never a single line.
+        return NONE_TEXT;
     /*inline*/ case Defer:
         return Texts("defer ", fmt_inline(Match(ast, Defer)->body, comments));
     /*inline*/ case Lambda: {
@@ -914,6 +924,21 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             Text_t expr = fmt(value->ast, comments, indent);
             code = Texts(code, expr);
             if (value->next) code = Texts(code, ", ");
+        }
+        return code;
+    }
+    /*multiline*/ case Test: {
+        DeclareMatch(test, ast, Test);
+        Text_t code = Texts("test ", quoted_label(test->label), "\n", indent, single_indent,
+                            fmt(test->body, comments, Texts(indent, single_indent)));
+        // At most one outcome clause, dedented back to the `test` keyword's own
+        // indentation (that's where the parser looks for it):
+        const char *clause = test->expected_compile_error ? "fails_compile" : (test->expected_failure ? "fails" : NULL);
+        if (clause) {
+            const char *expected = test->expected_compile_error ?: test->expected_failure;
+            code = Texts(code, "\n", indent, Text$from_str(clause));
+            // An empty expectation is a bare clause meaning "any failure will do":
+            if (expected[0] != '\0') code = Texts(code, " ", quoted_label(expected));
         }
         return code;
     }
