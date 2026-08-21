@@ -235,9 +235,12 @@ void List$remove_at(List_t *list, Int_t int_index, Int_t int_count, int64_t padd
         list->free = 0;
         list->data_refcount = 0;
     } else {
+        // Shift down everything after the removed span: that's
+        // `length - (index-1+count)` items, not `length - index + count - 1`
+        // (the same thing only when count == 1).
         memmove((void *)list->data + (index - 1) * padded_item_size,
                 list->data + (index - 1 + count) * padded_item_size,
-                (size_t)(((int64_t)list->length - index + count - 1) * padded_item_size));
+                (size_t)(((int64_t)list->length - index - count + 1) * padded_item_size));
         list->free += count;
     }
     list->length -= (uint64_t)count;

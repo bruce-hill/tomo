@@ -383,3 +383,11 @@ test "mutating a constant-literal-backed list copies on write"
 	# proving the static const buffer was never written through:
 	assert snapshot == [10, 20, 30]
 	assert [10, 20, 30] == [10, 20, 30]
+
+test "remove_at() with a count shifts only the items after the removed span"
+	xs := @[1, 2, 3, 4, 5, 6]
+	xs.remove_at(2, count=3)
+	assert xs[] == [1, 5, 6]
+	ys := @["a", "b", "c", "d", "e"]
+	ys.remove_at(2, count=2)
+	assert ys[] == ["a", "d", "e"]
