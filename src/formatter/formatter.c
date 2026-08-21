@@ -465,7 +465,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case Use: {
         DeclareMatch(use, ast, Use);
-        return Texts("use ", use->path);
+        // `name := use ./module.tm` binds the module to a variable; dropping
+        // that half left every reference to the module unresolvable.
+        Text_t code = Texts("use ", use->path);
+        return use->var ? Texts(fmt_inline(use->var, comments), " := ", code) : code;
     }
     /*inline*/ case ExplicitlyTyped:
         fail("Explicitly typed AST nodes are only meant to be used internally.");
