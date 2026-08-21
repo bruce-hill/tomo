@@ -1,3 +1,5 @@
+struct Flagged{flag:Bool}
+
 
 struct Single{x:Int}
 struct Pair{x,y:Int}
@@ -91,3 +93,8 @@ fails_compile "use curly braces: Pair{...}"
 test "struct fields can be separated by newlines instead of commas"
 	>> Newlines{1, 2, tag="hi"}
 	assert Newlines{1, 2, tag="hi"} == Newlines{x=1, y=2, name="default", tag="hi"}
+
+test "comparisons as struct field values"
+	x := 3
+	assert Flagged{x == 3}.flag
+	assert not Flagged{x == 4}.flag

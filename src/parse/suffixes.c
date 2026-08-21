@@ -133,7 +133,9 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
         const char *arg_start = pos;
         const char *name = get_id(&pos);
         whitespace(ctx, &pos);
-        if (!name || !match(&pos, "=")) {
+        // A single '=' names an argument, but `==` is a comparison: `f(x == y)`
+        // passes one boolean, it doesn't name an argument `x`.
+        if (!name || !match(&pos, "=") || *pos == '=') {
             name = NULL;
             pos = arg_start;
         }
@@ -174,7 +176,9 @@ ast_t *parse_record_literal_suffix(parse_ctx_t *ctx, ast_t *type) {
         const char *arg_start = pos;
         const char *name = get_id(&pos);
         whitespace(ctx, &pos);
-        if (!name || !match(&pos, "=")) {
+        // A single '=' names an argument, but `==` is a comparison: `f(x == y)`
+        // passes one boolean, it doesn't name an argument `x`.
+        if (!name || !match(&pos, "=") || *pos == '=') {
             name = NULL;
             pos = arg_start;
         }
@@ -211,7 +215,9 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn) {
         const char *arg_start = pos;
         const char *name = get_id(&pos);
         whitespace(ctx, &pos);
-        if (!name || !match(&pos, "=")) {
+        // A single '=' names an argument, but `==` is a comparison: `f(x == y)`
+        // passes one boolean, it doesn't name an argument `x`.
+        if (!name || !match(&pos, "=") || *pos == '=') {
             name = NULL;
             pos = arg_start;
         }
