@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <gc.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -721,13 +722,15 @@ void Table$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeIn
 public
 void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type) {
     int64_t len;
-    Int64$deserialize(in, &len, pointers, &Int$info);
+    Int64$deserialize(in, &len, pointers, &Int64$info);
     // Each entry takes at least one byte, so a length longer than the rest of
     // the stream is corrupt data:
     if (len < 0 || len > deserialization_bytes_remaining(in)) deserialization_failed();
 
     Table_t t = EMPTY_TABLE;
-    char keybuf[256], valbuf[256];
+    // Aligned, because these hold values of arbitrary type (a plain `char`
+    // array is only byte-aligned, which faults on strict-alignment targets):
+    _Alignas(max_align_t) char keybuf[256], valbuf[256];
     char *key =
         (size_t)type->TableInfo.key->size <= sizeof(keybuf) ? keybuf : GC_MALLOC((size_t)type->TableInfo.key->size);
     char *value =
