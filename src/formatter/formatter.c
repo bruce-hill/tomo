@@ -417,8 +417,11 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         if ((operands.lhs->tag == If || operands.lhs->tag == Match)
             || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
             lhs = parenthesize(lhs, EMPTY_TEXT);
+        // `<=`, not `<`: every operator here is left-associative, so a
+        // right-hand operand that binds *equally* tightly still needs its
+        // parentheses -- `dt / (d2 * x)` is not `dt / d2 * x`.
         if ((operands.rhs->tag == If || operands.rhs->tag == Match)
-            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
+            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] <= op_tightness[ast->tag]))
             rhs = parenthesize(rhs, EMPTY_TEXT);
 
         Text_t space =
@@ -921,8 +924,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if ((operands.lhs->tag == If || operands.lhs->tag == Match)
             || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
             lhs = parenthesize(lhs, indent);
+        // See the inline case above: left-associativity means an equally-tight
+        // right-hand operand keeps its parentheses.
         if ((operands.lhs->tag == If || operands.lhs->tag == Match)
-            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
+            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] <= op_tightness[ast->tag]))
             rhs = parenthesize(rhs, indent);
 
         Text_t space =
