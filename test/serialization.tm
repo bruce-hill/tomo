@@ -121,3 +121,36 @@ test "Int cases roundtrip"
         >> bytes := serialize(i)
         >> roundtrip := deserialize:Int(bytes)!
         assert roundtrip == i
+
+# Optionals of types that carry an explicit `has_value` flag after the value
+# (structs, fixed-width ints, bytes) have to get that flag set on the way back
+# in, or every roundtrip answers `none`:
+test "optional struct roundtrip"
+    >> obj : Foo? = Foo{"Alice"}
+    >> roundtrip := deserialize:Foo?(serialize(obj))!
+    assert roundtrip == obj
+
+test "optional fixed-width int roundtrip"
+    >> obj : Int64? = 123
+    >> roundtrip := deserialize:Int64?(serialize(obj))!
+    assert roundtrip == obj
+
+test "optional Byte roundtrip"
+    >> obj : Byte? = Byte(3)
+    >> roundtrip := deserialize:Byte?(serialize(obj))!
+    assert roundtrip == obj
+
+test "optional Bool roundtrip"
+    some_bool : Bool? = no
+    >> deserialize:Bool?(serialize(some_bool))
+    assert deserialize:Bool?(serialize(some_bool)) == no
+    # `Bool??` collapses to `Bool?`, so a serialized `none` comes back as the
+    # same `none` a failed decode gives -- but never as `yes`/`no`:
+    none_bool : Bool? = none
+    >> deserialize:Bool?(serialize(none_bool))
+    assert deserialize:Bool?(serialize(none_bool)) == none
+
+test "lists of optionals roundtrip"
+    >> obj : [Int64?] = [Int64(1), none, Int64(3)]
+    >> roundtrip := deserialize:[Int64?](serialize(obj))!
+    assert roundtrip == obj

@@ -2,6 +2,7 @@
 
 #include <math.h>
 
+#include "bools.h"
 #include "datatypes.h"
 #include "metamethods.h"
 #include "floats.h"
@@ -61,17 +62,22 @@ void Optional$deserialize(FILE *in, void *outval, List_t *pointers, const TypeIn
     if (flag != 0 && flag != 1) deserialization_failed();
     bool has_value = (bool)flag;
     const TypeInfo_t *nonnull = type->OptionalInfo.type;
+    memset(outval, 0, (size_t)type->size);
     if (has_value) {
-        memset(outval, 0, (size_t)type->size);
         _deserialize(in, outval, pointers, nonnull);
+        // Types with no `is_none` metamethod (structs, sized ints, bytes)
+        // carry an explicit `has_value` flag right after the value, which
+        // the value's own deserializer doesn't write. See `is_none()`.
+        if (!nonnull->metamethods.is_none) *(bool *)(outval + nonnull->size) = true;
     } else {
+        // All-zero bytes are `none` for most types (empty list/table data,
+        // a cleared `has_value` flag, a zero enum tag, a NULL pointer); the
+        // rest spell `none` with a specific bit pattern:
         if (nonnull->tag == TextInfo) *(Text_t *)outval = NONE_TEXT;
         else if (nonnull->tag == ListInfo) *(List_t *)outval = NONE_LIST;
         else if (nonnull->tag == TableInfo) *(Table_t *)outval = NONE_TABLE;
         else if (nonnull == &Float64$info) *(double *)outval = (double)NAN;
         else if (nonnull == &Float32$info) *(float *)outval = (float)NAN;
-        else if (nonnull->tag == StructInfo || (nonnull->tag == OpaqueInfo && type->size > nonnull->size))
-            memset(outval + type->size, -1, (size_t)(type->size - nonnull->size));
-        else memset(outval, 0, (size_t)type->size);
+        else if (nonnull == &Bool$info) *(OptionalBool_t *)outval = NONE_BOOL;
     }
 }
