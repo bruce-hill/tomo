@@ -391,3 +391,14 @@ test "remove_at() with a count shifts only the items after the removed span"
 	ys := @["a", "b", "c", "d", "e"]
 	ys.remove_at(2, count=2)
 	assert ys[] == ["a", "d", "e"]
+
+# Fisher-Yates has to run all the way down to the first pair, or the first two
+# entries never swap with each other:
+test "shuffle() can reach every permutation"
+	always_min := func(lo,hi:Int64 -> Int64) lo
+	xs := @[1, 2, 3]
+	xs.shuffle(random=always_min)
+	assert xs[] == [2, 3, 1]
+	pair := @[1, 2]
+	pair.shuffle(random=always_min)
+	assert pair[] == [2, 1]

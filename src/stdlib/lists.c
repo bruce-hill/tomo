@@ -351,7 +351,10 @@ void List$shuffle(List_t *list, OptionalClosure_t random_int64, int64_t padded_i
     typedef int64_t (*rng_fn_t)(int64_t, int64_t, void *);
     rng_fn_t rng_fn = random_int64.fn ? (rng_fn_t)random_int64.fn : _default_random_int64;
     char tmp[padded_item_size];
-    for (int64_t i = (int64_t)list->length - 1; i > 1; i--) {
+    // Fisher-Yates runs down to i == 1: stopping at 2 never swaps the first
+    // two entries with each other, so e.g. a 2-item list never moves at all
+    // and only half of a 3-item list's permutations are reachable.
+    for (int64_t i = (int64_t)list->length - 1; i > 0; i--) {
         int64_t j = rng_fn(0, i, random_int64.userdata);
         if unlikely (j < 0 || j > (int64_t)list->length - 1)
             fail("The provided random number function returned an invalid value: ", j, " (not between 0 and ", i, ")");
