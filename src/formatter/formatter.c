@@ -392,7 +392,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         Text_t lhs = fmt_inline(ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs, comments);
         Text_t rhs = fmt_inline(ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs, comments);
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
-        return Texts(lhs, key ? fmt_inline(key, comments) : (ast->tag == Min ? Text(" _min_ ") : Text(" _max_ ")), rhs);
+        // The keyed form (`a _min_.x b`) needs its spaces just as much as the
+        // plain one; without them it ran together as `a_min_.xb`.
+        Text_t op = key ? fmt_inline(key, comments) : (ast->tag == Min ? Text("_min_") : Text("_max_"));
+        return Texts(lhs, " ", op, " ", rhs);
     }
     /*inline*/ case Reduction: {
         DeclareMatch(reduction, ast, Reduction);
