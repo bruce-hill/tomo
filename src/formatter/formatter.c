@@ -53,6 +53,12 @@ PUREFUNC text_opts_t choose_text_options(ast_list_t *chunks) {
     return opts;
 }
 
+// Word operators (`mod`, `and`, `_min_`, ...) always need surrounding spaces,
+// however tightly they bind: `(x + y)modlen` isn't parseable code.
+PUREFUNC static bool is_word_operator(const char *op) {
+    return op && (uc_is_property_xid_start((ucs4_t)(unsigned char)op[0]) || op[0] == '_');
+}
+
 static bool starts_with_id(Text_t text) {
     if (text.length <= 0) return false;
     List_t codepoints = Text$utf32(Text$slice(text, I_small(1), I_small(1)));
@@ -415,7 +421,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
             rhs = parenthesize(rhs, EMPTY_TEXT);
 
-        Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
+        Text_t space =
+            (!is_word_operator(op) && op_tightness[ast->tag] >= op_tightness[Multiply]) ? EMPTY_TEXT : Text(" ");
         return Texts(lhs, space, Text$from_str(binop_info[ast->tag].operator), space, rhs);
     }
     /*inline*/ case Use: {
@@ -918,7 +925,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] < op_tightness[ast->tag]))
             rhs = parenthesize(rhs, indent);
 
-        Text_t space = op_tightness[ast->tag] >= op_tightness[Multiply] ? EMPTY_TEXT : Text(" ");
+        Text_t space =
+            (!is_word_operator(op) && op_tightness[ast->tag] >= op_tightness[Multiply]) ? EMPTY_TEXT : Text(" ");
         return Texts(lhs, space, Text$from_str(binop_info[ast->tag].operator), space, rhs);
     }
     /*multiline*/ case Use: {
