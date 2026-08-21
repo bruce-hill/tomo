@@ -230,17 +230,21 @@ const char *unescape(parse_ctx_t *ctx, const char **out, size_t *len_out) {
         memcpy(name, &escape[2], len);
         name[len] = '\0';
 
-        if (name[0] == 'U') {
+        if (name[0] == 'U' && name[1] != '\0') {
             for (char *p = &name[1]; *p; p++) {
                 if (!isxdigit(*p)) goto look_up_unicode_name;
             }
             // Unicode codepoints by hex
             char *endptr = NULL;
             long codepoint = strtol(name + 1, &endptr, 16);
-            uint32_t ustr[1] = {codepoint};
+            uint32_t ustr[1] = {(uint32_t)codepoint};
             size_t bufsize = 8;
             uint8_t buf[bufsize];
-            (void)u32_to_u8(ustr, 1, buf, &bufsize);
+            // Out-of-range codepoints and surrogates aren't encodable: u32_to_u8()
+            // answers NULL and leaves both the buffer and the length alone, so
+            // using them anyway would emit uninitialized stack bytes.
+            if (codepoint < 0 || codepoint > 0x10FFFF || u32_to_u8(ustr, 1, buf, &bufsize) == NULL)
+                parser_err(ctx, escape, escape + 3 + len, "This is not a valid Unicode codepoint: ", quoted(name));
             *endpos = escape + 3 + len;
             char *result = GC_MALLOC_ATOMIC(bufsize);
             memcpy(result, buf, bufsize);
@@ -256,7 +260,8 @@ const char *unescape(parse_ctx_t *ctx, const char **out, size_t *len_out) {
         *endpos = escape + 3 + len;
         char *str = GC_MALLOC_ATOMIC(16);
         size_t u8_len = 16;
-        (void)u32_to_u8(&codepoint, 1, (uint8_t *)str, &u8_len);
+        if (u32_to_u8(&codepoint, 1, (uint8_t *)str, &u8_len) == NULL)
+            parser_err(ctx, escape, escape + 3 + len, "This is not a valid Unicode codepoint: ", quoted(name));
         *len_out = u8_len;
         return str;
     } else if (escape[1] == 'x' && escape[2] && escape[3]) {
