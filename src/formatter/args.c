@@ -8,6 +8,16 @@
 #include "types.h"
 #include "utils.h"
 
+// Whether the final line of `code` is indented further than `indent`, i.e. the
+// text ends inside an indented block rather than back at its own level.
+PUREFUNC static bool ends_deeper_than(Text_t code, Text_t indent) {
+    List_t lines = Text$lines(code);
+    if (lines.length <= 1) return false;
+    Text_t last = *(Text_t *)(lines.data + ((int64_t)lines.length - 1) * lines.stride);
+    Text_t body = Text$trim(last, Text(" \t"), true, false);
+    return (int64_t)last.length - (int64_t)body.length > (int64_t)indent.length;
+}
+
 OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
     if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;
     if (arg->name == NULL && arg->value) return must(format_inline_code(arg->value, comments));
@@ -63,7 +73,13 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
             code = Texts(code, Text$from_str(arg->name), ", ");
             arg = arg->next;
         }
-        code = Texts(code, format_arg(arg, comments, Texts(indent, single_indent)), ",");
+        Text_t arg_indent = Texts(indent, single_indent);
+        Text_t arg_code = format_arg(arg, comments, arg_indent);
+        // The separating comma goes on the same line as the end of the
+        // argument, which only works if that line is the argument's own level;
+        // when the argument ends inside an indented block, the newline is the
+        // separator instead.
+        code = Texts(code, arg_code, ends_deeper_than(arg_code, arg_indent) ? EMPTY_TEXT : Text(","));
     }
     return code;
 }
@@ -85,7 +101,12 @@ static Text_t format_delimited_args(arg_ast_t *args, Table_t comments, Text_t in
     }
 
     if (args && args->next == NULL) {
-        return Texts(open, format_arg(args, comments, indent), close);
+        Text_t arg_code = format_arg(args, comments, indent);
+        // A lone argument normally hugs the delimiters. It can't when its last
+        // line sits deeper than the call itself (a lambda body, an `if`): a
+        // closing paren tacked onto the end of an indented block reads as a
+        // second statement on that line and doesn't parse.
+        if (!ends_deeper_than(arg_code, indent)) return Texts(open, arg_code, close);
     }
 
     return Texts(open, format_args(args, comments, indent), "\n", indent, close);
