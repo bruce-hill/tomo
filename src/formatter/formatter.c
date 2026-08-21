@@ -31,6 +31,11 @@ Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent) {
 
 typedef struct {
     Text_t quote, unquote, interp;
+    // Inline C is parsed verbatim (no backslash escapes), so its text has to be
+    // written back out the same way: escaping it would turn `Text$from_str` in
+    // the C code into a literal `Text\$from_str`, growing a backslash on every
+    // reformat.
+    bool verbatim;
 } text_opts_t;
 
 PUREFUNC text_opts_t choose_text_options(ast_list_t *chunks) {
@@ -89,6 +94,13 @@ static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, T
     for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
         if (chunk->ast->tag == TextLiteral) {
             Text_t literal = Match(chunk->ast, TextLiteral)->text;
+            if (opts.verbatim) {
+                // Nothing can be escaped here, so anything that would need to be
+                // (a newline, or the quote character itself) has to go multiline.
+                if (Text$has(literal, Text("\n")) || Text$has(literal, opts.quote)) return NONE_TEXT;
+                code = Texts(code, literal);
+                continue;
+            }
             Text_t segment = Text$escaped(literal, false, Texts(opts.unquote, opts.interp));
             code = Texts(code, segment);
         } else {
@@ -112,10 +124,12 @@ static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments
             Text_t literal = Match(chunk->ast, TextLiteral)->text;
             List_t lines = Text$lines(literal);
             if (lines.length == 0) continue;
-            current_line = Texts(current_line, Text$escaped(*(Text_t *)lines.data, false, opts.interp));
+            current_line = Texts(current_line, opts.verbatim ? *(Text_t *)lines.data
+                                                             : Text$escaped(*(Text_t *)lines.data, false, opts.interp));
             for (int64_t i = 1; i < (int64_t)lines.length; i += 1) {
                 add_line(&code, current_line, Texts(indent, single_indent));
-                current_line = Text$escaped(*(Text_t *)(lines.data + i * lines.stride), false, opts.interp);
+                Text_t line = *(Text_t *)(lines.data + i * lines.stride);
+                current_line = opts.verbatim ? line : Text$escaped(line, false, opts.interp);
             }
         } else {
             current_line = Texts(current_line, opts.interp, "(", fmt(chunk->ast, comments, indent), ")");
@@ -331,7 +345,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case InlineCCode: {
         DeclareMatch(c_code, ast, InlineCCode);
         Text_t code = c_code->type_ast ? Texts("C_code:", format_type(c_code->type_ast)) : Text("C_code");
-        text_opts_t opts = {.quote = Text("`"), .unquote = Text("`"), .interp = Text("@")};
+        text_opts_t opts = {.quote = Text("`"), .unquote = Text("`"), .interp = Text("@"), .verbatim = true};
         return Texts(code, must(format_inline_text(opts, Match(ast, InlineCCode)->chunks, comments)));
     }
     /*inline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
@@ -825,7 +839,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         DeclareMatch(c_code, ast, InlineCCode);
         if (inlined_fits && c_code->type != NULL) return inlined;
         Text_t code = c_code->type_ast ? Texts("C_code:", format_type(c_code->type_ast)) : Text("C_code");
-        text_opts_t opts = {.quote = Text("`"), .unquote = Text("`"), .interp = Text("@")};
+        text_opts_t opts = {.quote = Text("`"), .unquote = Text("`"), .interp = Text("@"), .verbatim = true};
         return Texts(code, format_text(opts, Match(ast, InlineCCode)->chunks, comments, indent));
     }
     /*multiline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
