@@ -161,10 +161,10 @@ ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {
         spaces(&pos);
     }
 
-    static const char *quote_chars = "\"'`|/;([{<";
+    static const char *quote_chars = "\"'`";
     if (!strchr(quote_chars, *pos))
         parser_err(ctx, pos, pos + 1,
-                   "This is not a valid string quotation character. Valid characters are: \"'`|/;([{<");
+                   "This is not a valid string quotation character. Valid characters are: \"'`");
 
     // Inline C is verbatim: no backslash-escaping (so `\n` reaches the C
     // compiler as-is), though `@`-interpolation is still allowed.
