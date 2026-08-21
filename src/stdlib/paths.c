@@ -3,12 +3,12 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <limits.h>
 #include <fnmatch.h>
 #include <ftw.h>
 #include <gc.h>
 #include <glob.h>
 #include <grp.h>
+#include <limits.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdint.h>

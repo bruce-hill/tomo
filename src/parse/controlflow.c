@@ -103,36 +103,30 @@ ast_t *parse_defer(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, Defer, .body = body);
 }
 
-ast_t *parse_skip(parse_ctx_t *ctx, const char *pos) {
+ast_t *parse_continue(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    const char *keyword = "continue";
-    if (match_word(&pos, "continue")) {
-        keyword = "continue";
-    } else {
+    if (!match_word(&pos, "continue")) {
         return NULL;
     }
     const char *target;
     if (match_word(&pos, "for")) target = "for";
     else if (match_word(&pos, "while")) target = "while";
     else target = get_id(&pos);
-    ast_t *skip = NewAST(ctx->file, start, pos, Skip, .target = target, .keyword = keyword);
+    ast_t *skip = NewAST(ctx->file, start, pos, Continue, .target = target);
     skip = parse_optional_conditional_suffix(ctx, skip);
     return skip;
 }
 
-ast_t *parse_stop(parse_ctx_t *ctx, const char *pos) {
+ast_t *parse_break(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    const char *keyword = "break";
-    if (match_word(&pos, "break")) {
-        keyword = "break";
-    } else {
+    if (!match_word(&pos, "break")) {
         return NULL;
     }
     const char *target;
     if (match_word(&pos, "for")) target = "for";
     else if (match_word(&pos, "while")) target = "while";
     else target = get_id(&pos);
-    ast_t *stop = NewAST(ctx->file, start, pos, Stop, .target = target, .keyword = keyword);
+    ast_t *stop = NewAST(ctx->file, start, pos, Break, .target = target);
     stop = parse_optional_conditional_suffix(ctx, stop);
     return stop;
 }

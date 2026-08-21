@@ -269,8 +269,8 @@ Text_t ast_to_sexp(ast_t *ast) {
           optional_sexp("else", data.else_body), ")");
         T(Reduction, "(Reduction ", quoted_text(binop_info[data.op].operator), " ", ast_to_sexp(data.key), " ",
           ast_to_sexp(data.iter), ")");
-        T(Skip, "(Skip ", quoted_text(data.target), ")");
-        T(Stop, "(Stop ", quoted_text(data.target), ")");
+        T(Continue, "(Continue ", quoted_text(data.target), ")");
+        T(Break, "(Break ", quoted_text(data.target), ")");
         T(Pass, "(Pass)");
         T(Defer, "(Defer ", ast_to_sexp(data.body), ")");
         T(Return, "(Return ", ast_to_sexp(data.value), ")");
@@ -724,8 +724,8 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
         ast_visit(reduction->iter, visitor, userdata);
         return;
     }
-    case Skip:
-    case Stop:
+    case Continue:
+    case Break:
     case Pass: return;
     case Defer: {
         ast_visit(Match(ast, Defer)->body, visitor, userdata);

@@ -13,6 +13,6 @@ ast_t *parse_match(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_pass(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_repeat(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_return(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_skip(parse_ctx_t *ctx, const char *pos);
-ast_t *parse_stop(parse_ctx_t *ctx, const char *pos);
+ast_t *parse_continue(parse_ctx_t *ctx, const char *pos);
+ast_t *parse_break(parse_ctx_t *ctx, const char *pos);
 ast_t *parse_while(parse_ctx_t *ctx, const char *pos);

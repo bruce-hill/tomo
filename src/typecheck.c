@@ -1187,8 +1187,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         }
         return Type(ReturnType, .ret = (val ? get_type(env, val) : Type(VoidType)));
     }
-    case Stop:
-    case Skip: {
+    case Break:
+    case Continue: {
         return Type(AbortType);
     }
     case Pass:

@@ -273,8 +273,8 @@ Text_t compile(env_t *env, ast_t *ast) {
     case EnumDef:
     case FunctionDef:
     case ConvertDef:
-    case Skip:
-    case Stop:
+    case Continue:
+    case Break:
     case Pass:
     case Return:
     case DebugLog:

@@ -178,8 +178,8 @@ static bool cow_for_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
 static bool cow_stmt_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
     switch (ast->tag) {
     case Pass:
-    case Skip:
-    case Stop: return true;
+    case Continue:
+    case Break: return true;
     case Block: return cow_block_ok(env, ast, scan);
     case Declare: {
         DeclareMatch(decl, ast, Declare);
@@ -1179,8 +1179,8 @@ Text_t compile_while(env_t *env, ast_t *ast) {
 }
 
 public
-Text_t compile_skip(env_t *env, ast_t *ast) {
-    const char *target = Match(ast, Skip)->target;
+Text_t compile_continue(env_t *env, ast_t *ast) {
+    const char *target = Match(ast, Continue)->target;
     for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
         bool matched = !target || strcmp(target, ctx->loop_name) == 0;
         for (ast_list_t *var = ctx->loop_vars; var && !matched; var = var ? var->next : NULL) {
@@ -1207,8 +1207,8 @@ Text_t compile_skip(env_t *env, ast_t *ast) {
 }
 
 public
-Text_t compile_stop(env_t *env, ast_t *ast) {
-    const char *target = Match(ast, Stop)->target;
+Text_t compile_break(env_t *env, ast_t *ast) {
+    const char *target = Match(ast, Break)->target;
     for (loop_ctx_t *ctx = env->loop_ctx; ctx; ctx = ctx->next) {
         bool matched = !target || strcmp(target, ctx->loop_name) == 0;
         for (ast_list_t *var = ctx->loop_vars; var && !matched; var = var ? var->next : var) {

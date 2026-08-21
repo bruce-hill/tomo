@@ -171,8 +171,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             if (!stmt) return Texts("pass ", if_condition);
             switch (stmt->tag) {
             case Return:
-            case Skip:
-            case Stop: return Texts(fmt_inline(stmt, comments), " ", if_condition);
+            case Continue:
+            case Break: return Texts(fmt_inline(stmt, comments), " ", if_condition);
             default: break;
             }
         }
@@ -332,18 +332,14 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case Path: {
         return Texts("(", Text$escaped(Text$from_str(Match(ast, Path)->path), false, Text("()")), ")");
     }
-    /*inline*/ case Embed: {
-        return Texts("_embed_ ", fmt_inline(Match(ast, Embed)->path, comments));
+    /*inline*/ case Embed: { return Texts("_embed_ ", fmt_inline(Match(ast, Embed)->path, comments)); }
+    /*inline*/ case Break: {
+        const char *target = Match(ast, Break)->target;
+        return target ? Texts("break ", Text$from_str(target)) : Text("break");
     }
-    /*inline*/ case Stop: {
-        const char *target = Match(ast, Stop)->target;
-        Text_t keyword = Match(ast, Stop)->keyword ? Text$from_str(Match(ast, Stop)->keyword) : Text("break");
-        return target ? Texts(keyword, " ", Text$from_str(target)) : keyword;
-    }
-    /*inline*/ case Skip: {
-        const char *target = Match(ast, Skip)->target;
-        Text_t keyword = Match(ast, Skip)->keyword ? Text$from_str(Match(ast, Skip)->keyword) : Text("continue");
-        return target ? Texts(keyword, " ", Text$from_str(target)) : keyword;
+    /*inline*/ case Continue: {
+        const char *target = Match(ast, Continue)->target;
+        return target ? Texts("continue ", Text$from_str(target)) : Text("continue");
     }
     /*inline*/ case Min:
     /*inline*/ case Max: {
@@ -843,8 +839,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                          fmt(reduction->iter, comments, Texts(indent, single_indent)), ")");
         }
     }
-    /*multiline*/ case Stop:
-    /*multiline*/ case Skip:
+    /*multiline*/ case Break:
+    /*multiline*/ case Continue:
     /*multiline*/ case None:
     /*multiline*/ case Bool:
     /*multiline*/ case Int:

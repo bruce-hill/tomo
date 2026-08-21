@@ -64,8 +64,8 @@ static bool prints_a_value(ast_e tag) {
     case For:
     case While:
     case Repeat:
-    case Skip:
-    case Stop:
+    case Continue:
+    case Break:
     case Pass:
     case Defer:
     case Return:

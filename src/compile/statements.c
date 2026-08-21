@@ -84,8 +84,8 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
     case ConvertDef: {
         return EMPTY_TEXT;
     }
-    case Skip: return compile_skip(env, ast);
-    case Stop: return compile_stop(env, ast);
+    case Continue: return compile_continue(env, ast);
+    case Break: return compile_break(env, ast);
     case Pass: return Text(";");
     case Defer: {
         ast_t *body = Match(ast, Defer)->body;
