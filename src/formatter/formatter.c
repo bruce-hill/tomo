@@ -701,7 +701,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (def->external) code = Texts(code, "; external");
         if (def->opaque) code = Texts(code, "; opaque");
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, "}") : Text("}"));
+        // Comments inside the field list are emitted with their field, so pick
+        // up only what comes after it:
         const char *comment_pos = ast->start;
+        for (arg_ast_t *field = def->fields; field; field = field->next)
+            comment_pos = field->end;
         Text_t comment_code =
             comment_range(&comment_pos, def->namespace->start, Texts(indent, single_indent), comments);
         if (comment_code.length > 0) code = Texts(code, "\n", indent, single_indent, comment_code);
@@ -711,7 +715,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         DeclareMatch(def, ast, EnumDef);
         Text_t code = Texts("enum ", Text$from_str(def->name), "(", format_tags(def->tags, comments, indent));
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"));
+        // As in StructDef: a variant's field comments travel with the field.
         const char *comment_pos = ast->start;
+        for (tag_ast_t *tag = def->tags; tag; tag = tag->next)
+            for (arg_ast_t *field = tag->fields; field; field = field->next)
+                comment_pos = field->end;
         Text_t comment_code =
             comment_range(&comment_pos, def->namespace->start, Texts(indent, single_indent), comments);
         if (comment_code.length > 0) code = Texts(code, "\n", indent, single_indent, comment_code);

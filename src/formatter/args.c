@@ -19,6 +19,10 @@ PUREFUNC static bool ends_deeper_than(Text_t code, Text_t indent) {
 }
 
 OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
+    // A comment sitting in front of this argument (parse_args() hands it over
+    // in `arg->comment`) can only be written on a line of its own, so this
+    // argument list has to go multi-line rather than silently drop it.
+    if (arg->comment.length > 0) return NONE_TEXT;
     if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;
     if (arg->name == NULL && arg->value) return must(format_inline_code(arg->value, comments));
     Text_t code = Text$from_str(arg->name);
@@ -68,11 +72,19 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
 
     Text_t code = EMPTY_TEXT;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
-        code = Texts(code, "\n", indent, single_indent);
+        // Arguments that share a type and default (`x, y: Int`) are written on
+        // one line, so their comments are gathered onto the line above it:
+        Text_t comment = arg->comment;
+        Text_t names = EMPTY_TEXT;
         while (arg->name && arg->type && arg->next && arg->type == arg->next->type && arg->value == arg->next->value) {
-            code = Texts(code, Text$from_str(arg->name), ", ");
+            names = Texts(names, Text$from_str(arg->name), ", ");
             arg = arg->next;
+            if (arg->comment.length > 0)
+                comment = comment.length > 0 ? Texts(comment, " ", arg->comment) : arg->comment;
         }
+        code = Texts(code, "\n", indent, single_indent);
+        if (comment.length > 0) code = Texts(code, "# ", comment, "\n", indent, single_indent);
+        code = Texts(code, names);
         Text_t arg_indent = Texts(indent, single_indent);
         Text_t arg_code = format_arg(arg, comments, arg_indent);
         // The separating comma goes on the same line as the end of the
