@@ -608,28 +608,45 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Comprehension: {
         if (inlined_fits) return inlined;
         DeclareMatch(comp, ast, Comprehension);
-        Text_t code = Texts("(", fmt(comp->expr, comments, indent));
-        if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "for ");
-        else code = Texts(code, " for ");
+        // An expression that spans lines can't share the opening parenthesis's
+        // line: constructs like `match` need their continuation lines at their
+        // own starting column, which is one past `indent` there. Give it a line
+        // of its own instead.
+        Text_t inner_indent = Texts(indent, single_indent);
+        Text_t block_expr = fmt(comp->expr, comments, inner_indent);
+        bool block_layout = Text$has(block_expr, Text("\n"));
+        Text_t body_indent = block_layout ? inner_indent : indent;
+
+        Text_t code;
+        if (block_layout) {
+            code = Texts("(\n", inner_indent, block_expr, "\n", inner_indent, "for ");
+        } else {
+            code = Texts("(", fmt(comp->expr, comments, indent));
+            if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "for ");
+            else code = Texts(code, " for ");
+        }
 
         for (ast_list_t *var = comp->vars; var; var = var->next) {
-            code = Texts(code, fmt(var->ast, comments, indent));
+            code = Texts(code, fmt(var->ast, comments, body_indent));
             if (var->next) code = Texts(code, ", ");
         }
-        if (comp->at) code = Texts(code, " at ", fmt(comp->at, comments, indent));
+        if (comp->at) code = Texts(code, " at ", fmt(comp->at, comments, body_indent));
 
         code = Texts(code, " in ");
         for (ast_list_t *iter = comp->iters; iter; iter = iter->next) {
-            code = Texts(code, fmt(iter->ast, comments, indent));
+            code = Texts(code, fmt(iter->ast, comments, body_indent));
             if (iter->next) code = Texts(code, ", ");
         }
 
         if (comp->filter) {
-            if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "if ");
+            if (block_layout) code = Texts(code, "\n", inner_indent, "if ");
+            else if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "if ");
             else code = Texts(code, " if ");
-            code = Texts(code, fmt(comp->filter, comments, indent));
+            code = Texts(code, fmt(comp->filter, comments, body_indent));
         }
-        return code;
+        // The closing parenthesis was missing entirely: a comprehension that
+        // didn't fit on one line came out unparseable.
+        return Texts(code, block_layout ? Texts("\n", indent, ")") : Text(")"));
     }
     /*multiline*/ case FunctionDef: {
         DeclareMatch(func, ast, FunctionDef);
