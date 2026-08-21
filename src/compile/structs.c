@@ -121,9 +121,7 @@ Text_t compile_struct_literal(env_t *env, ast_t *ast, type_t *t, arg_ast_t *args
     DeclareMatch(struct_, t, StructType);
     if (struct_->opaque) code_err(ast, "This struct is opaque, so I don't know what's inside it!");
 
-    // no_serialization: a `[Byte]` field value must not silently (de)serialize
-    // to fill a differently-typed field (that's what `x : T = bytes` is for).
-    call_opts_t constructor_opts = {.promotion = true, .no_serialization = true};
+    call_opts_t constructor_opts = {.promotion = true};
     if (is_valid_call(env, struct_->fields, args, constructor_opts)) {
         return Texts("((", compile_type(t), "){", compile_arguments(env, ast, struct_->fields, args), "})");
     }

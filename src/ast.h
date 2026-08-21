@@ -286,6 +286,8 @@ typedef enum {
     Use,
     InlineCCode,
     Embed,
+    Serialize,
+    Deserialize,
     ExplicitlyTyped,
     Metadata,
 } ast_e;
@@ -500,6 +502,13 @@ struct ast_s {
             struct type_s *type;
             type_ast_t *type_ast;
         } InlineCCode;
+        struct {
+            ast_t *value;
+        } Serialize;
+        struct {
+            type_ast_t *type_ast;
+            ast_t *value;
+        } Deserialize;
         struct {
             ast_t *ast;
             struct type_s *type;

@@ -38,14 +38,8 @@ List_t get_method_names(env_t *env, type_t *t);
 
 typedef struct {
     bool promotion : 1;
-    // When set, a `[Byte]` argument may NOT be matched to a differently-typed
-    // parameter by implicit (de)serialization (nor a value serialized into a
-    // `[Byte]` parameter). Constructors set this so that, e.g., a `[Byte]`
-    // doesn't silently deserialize to fill a `Path`/`CString` argument -- which
-    // otherwise makes text interpolation of a byte list deserialize it. The
-    // explicit `x : T = bytes` conversion is unaffected (it goes through
-    // promote(), not constructor matching).
-    bool no_serialization : 1;
 } call_opts_t;
 
+void fail_if_serialize_shadowed(env_t *env, ast_t *ast);
+void fail_if_optional_field_access(ast_t *ast, type_t *fielded_t, const char *field);
 bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts_t options);

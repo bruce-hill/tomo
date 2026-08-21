@@ -13,6 +13,7 @@
 #include "../util.h"
 #include "datatypes.h"
 #include "integers.h"
+#include "metamethods.h"
 #include "optionals.h"
 #include "print.h"
 #include "siphash.h"
@@ -42,13 +43,11 @@ Int_t Int$from_num(Num_t n, bool truncate) {
     if unlikely (!truncate && !number_is_integer(n))
         fail("Could not convert this Num to an Int without truncation: ", number_to_symbolic(n));
     Num_t whole = number_trunc(n);
-    if unlikely (number_is_error(whole))
-        fail("Could not convert this Num to an Int: ", number_error_message(whole));
+    if unlikely (number_is_error(whole)) fail("Could not convert this Num to an Int: ", number_error_message(whole));
     // Via the decimal expansion rather than int64: an Int has no width limit,
     // and neither does a Num.
     OptionalInt_t i = Int$from_str(number_to_string(whole, 0, NULL));
-    if unlikely (i.small == 0)
-        fail("Could not convert this Num to an Int: ", number_to_symbolic(n));
+    if unlikely (i.small == 0) fail("Could not convert this Num to an Int: ", number_to_symbolic(n));
     return i;
 }
 
@@ -609,15 +608,30 @@ static void Int$serialize(const void *obj, FILE *out, Table_t *pointers, const T
 
 static void Int$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *info) {
     (void)info;
-    if (fgetc(in) == 0) {
+    int kind = fgetc(in);
+    if (kind == 0) {
         int64_t i = 0;
         Int64$deserialize(in, &i, pointers, &Int64$info);
         *(Int_t *)obj = (Int_t){.small = (i << 2L) | 1L};
-    } else {
+    } else if (kind == 1) {
+        // `mpz_inp_raw()` starts with a four-byte big-endian count of the bytes
+        // that follow (negated for a negative number) and then allocates that
+        // much, so vet the count against the data we actually have before
+        // handing the stream over to GMP:
+        long header_pos = ftell(in);
+        uint8_t header[4];
+        if (header_pos < 0 || fread(header, 1, sizeof(header), in) != sizeof(header)) deserialization_failed();
+        int32_t count = (int32_t)(((uint32_t)header[0] << 24) | ((uint32_t)header[1] << 16) | ((uint32_t)header[2] << 8)
+                                  | (uint32_t)header[3]);
+        int64_t magnitude = count < 0 ? -(int64_t)count : (int64_t)count;
+        if (magnitude > deserialization_bytes_remaining(in)) deserialization_failed();
+        if (fseek(in, header_pos, SEEK_SET) != 0) deserialization_failed();
         mpz_t n;
         mpz_init(n);
-        mpz_inp_raw(n, in);
+        if (mpz_inp_raw(n, in) == 0) deserialization_failed();
         *(Int_t *)obj = Int$from_mpz(n);
+    } else {
+        deserialization_failed();
     }
 }
 

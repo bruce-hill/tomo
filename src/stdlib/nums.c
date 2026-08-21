@@ -11,8 +11,8 @@
 
 #include "fail.h"
 #include "integers.h"
+#include "metamethods.h"
 #include "nums.h"
-#include "optionals.h"
 #include "siphash.h"
 #include "text.h"
 #include "types.h"
@@ -43,7 +43,8 @@ static OptionalNum_t opt(Num_t n) {
 }
 
 #define UNARY(name, fn)                                                                                                \
-    public Num_t Num$##name(Num_t x) {                                                                                 \
+  public                                                                                                               \
+    Num_t Num$##name(Num_t x) {                                                                                        \
         return fn(x);                                                                                                  \
     }
 // Rounding an irrational means deciding which side of an integer it falls
@@ -55,7 +56,8 @@ static OptionalNum_t opt(Num_t n) {
 // always rounds. The guard after it is unreachable: it would take a value
 // whose decimal expansion is itself undecidable at that precision.
 #define UNARY_ROUNDING(name, fn)                                                                                       \
-    public Num_t Num$##name(Num_t x) {                                                                                 \
+  public                                                                                                               \
+    Num_t Num$##name(Num_t x) {                                                                                        \
         Num_t result = fn(x);                                                                                          \
         if (unlikely(NUMBER_IS_ERROR(result))) {                                                                       \
             result = fn(rounded_for_equality(x));                                                                      \
@@ -64,11 +66,13 @@ static OptionalNum_t opt(Num_t n) {
         return result;                                                                                                 \
     }
 #define UNARY_OPT(name, fn)                                                                                            \
-    public OptionalNum_t Num$##name(Num_t x) {                                                                         \
+  public                                                                                                               \
+    OptionalNum_t Num$##name(Num_t x) {                                                                                \
         return opt(fn(x));                                                                                             \
     }
 #define BINARY_OPT(name, fn)                                                                                           \
-    public OptionalNum_t Num$##name(Num_t x, Num_t y) {                                                                \
+  public                                                                                                               \
+    OptionalNum_t Num$##name(Num_t x, Num_t y) {                                                                       \
         return opt(fn(x, y));                                                                                          \
     }
 
@@ -108,17 +112,17 @@ Num_t Num$round(Num_t x, Num_t increment) {
 
 // --- Methods with a restricted domain (out of domain is `none`) ---
 
-UNARY_OPT(sqrt, number_sqrt)       // x < 0
-UNARY_OPT(log, number_ln)          // x <= 0
-UNARY_OPT(log10, number_log10)     // x <= 0
-UNARY_OPT(log2, number_log2)       // x <= 0
-UNARY_OPT(tan, number_tan)         // poles at pi/2 + k*pi
-UNARY_OPT(asin, number_asin)       // |x| > 1
-UNARY_OPT(acos, number_acos)       // |x| > 1
+UNARY_OPT(sqrt, number_sqrt) // x < 0
+UNARY_OPT(log, number_ln) // x <= 0
+UNARY_OPT(log10, number_log10) // x <= 0
+UNARY_OPT(log2, number_log2) // x <= 0
+UNARY_OPT(tan, number_tan) // poles at pi/2 + k*pi
+UNARY_OPT(asin, number_asin) // |x| > 1
+UNARY_OPT(acos, number_acos) // |x| > 1
 UNARY_OPT(inverse, number_inverse) // x == 0
-BINARY_OPT(atan2, number_atan2)    // (0, 0)
-BINARY_OPT(gcd, number_gcd)        // an irrational operand
-BINARY_OPT(lcm, number_lcm)        // an irrational operand
+BINARY_OPT(atan2, number_atan2) // (0, 0)
+BINARY_OPT(gcd, number_gcd) // an irrational operand
+BINARY_OPT(lcm, number_lcm) // an irrational operand
 
 #undef UNARY
 #undef UNARY_ROUNDING
@@ -425,16 +429,16 @@ static void Num$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInf
     (void)pointers, (void)info;
     int64_t len = 0;
     Int64$deserialize(in, &len, pointers, &Int64$info);
-    if (unlikely(len < 0)) fail("Corrupted Num in serialized data");
+    if (unlikely(len < 0 || len > deserialization_bytes_remaining(in))) deserialization_failed();
     char *buf = GC_MALLOC_ATOMIC((size_t)len + 1);
     // A corrupt length prefix can ask for more than the collector can give;
     // GC_MALLOC_ATOMIC answers NULL rather than aborting, and fread must not be
     // handed that.
-    if (unlikely(buf == NULL)) fail("Corrupted Num in serialized data");
-    if (fread(buf, 1, (size_t)len, in) != (size_t)len) fail("Corrupted Num in serialized data");
+    if (unlikely(buf == NULL)) deserialization_failed();
+    if (fread(buf, 1, (size_t)len, in) != (size_t)len) deserialization_failed();
     buf[len] = '\0';
     Num_t n = number_from_symbolic(buf);
-    if (unlikely(number_is_error(n))) fail("Couldn't deserialize this Num: ", buf);
+    if (unlikely(number_is_error(n))) deserialization_failed();
     *(Num_t *)obj = n;
 }
 

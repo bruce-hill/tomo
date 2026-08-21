@@ -93,6 +93,7 @@ public
 void Enum$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type) {
     int32_t tag = 0;
     Int32$deserialize(in, &tag, pointers, &Int32$info);
+    if (tag < 1 || tag > type->EnumInfo.num_tags) deserialization_failed();
     *(int32_t *)outval = tag;
 
     NamedType_t value = type->EnumInfo.tags[tag - 1];

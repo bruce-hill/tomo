@@ -192,7 +192,9 @@ void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo
     for (int i = 0; i < type->StructInfo.num_fields; i++) {
         NamedType_t field = type->StructInfo.fields[i];
         if (field.type == &Bool$info) {
-            bool b = (bool)fgetc(in);
+            int c = fgetc(in);
+            if (c != 0 && c != 1) deserialization_failed();
+            bool b = (bool)c;
             *(char *)(outval + byte_offset) |= (b << bit_offset);
             bit_offset += 1;
             if (bit_offset >= 8) {

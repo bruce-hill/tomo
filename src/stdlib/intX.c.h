@@ -15,6 +15,7 @@
 #include "../util.h"
 #include "datatypes.h"
 #include "fail.h"
+#include "metamethods.h"
 #include "integers.h"
 #include "text.h"
 #include "types.h"
@@ -58,7 +59,7 @@ public
 void NAMESPACED(serialize)(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
     (void)info, (void)pointers;
 #if INTX_C_H__INT_BITS < 32
-    if (fwrite(obj, sizeof(INT_T), 1, out) != sizeof(INT_T)) fail_text(Text("Failed to write whole integer"));
+    if (fwrite(obj, sizeof(INT_T), 1, out) != 1) fail_text(Text("Failed to write whole integer"));
 #else
     INT_T i = *(INT_T *)obj;
     UINT_T z = (UINT_T)((i << 1L) ^ (i >> (INTX_C_H__INT_BITS - 1L))); // Zigzag encode
@@ -74,12 +75,13 @@ public
 void NAMESPACED(deserialize)(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info) {
     (void)info, (void)pointers;
 #if INTX_C_H__INT_BITS < 32
-    if (fread(outval, sizeof(INT_T), 1, in) != sizeof(INT_T)) fail_text(Text("Failed to read full integer"));
+    if (fread(outval, sizeof(INT_T), 1, in) != 1) deserialization_failed();
 #else
     UINT_T z = 0;
     for (size_t shift = 0;; shift += 7) {
+        if (shift >= 8 * sizeof(UINT_T)) deserialization_failed(); // Overlong varint
         int i = fgetc(in);
-        if (i == EOF) fail_text(Text("Failed to read whole integer"));
+        if (i == EOF) deserialization_failed();
         uint8_t byte = (uint8_t)i;
         z |= ((UINT_T)(byte & 0x7F)) << shift;
         if ((byte & 0x80) == 0) break;

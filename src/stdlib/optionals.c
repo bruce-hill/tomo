@@ -57,7 +57,9 @@ void Optional$serialize(const void *obj, FILE *out, Table_t *pointers, const Typ
 
 public
 void Optional$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type) {
-    bool has_value = (bool)fgetc(in);
+    int flag = fgetc(in);
+    if (flag != 0 && flag != 1) deserialization_failed();
+    bool has_value = (bool)flag;
     const TypeInfo_t *nonnull = type->OptionalInfo.type;
     if (has_value) {
         memset(outval, 0, (size_t)type->size);

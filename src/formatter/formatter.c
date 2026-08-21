@@ -333,6 +333,14 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         return Texts("(", Text$escaped(Text$from_str(Match(ast, Path)->path), false, Text("()")), ")");
     }
     /*inline*/ case Embed: { return Texts("_embed_ ", fmt_inline(Match(ast, Embed)->path, comments)); }
+    /*inline*/ case Serialize: {
+        return Texts("serialize(", fmt_inline(Match(ast, Serialize)->value, comments), ")");
+    }
+    /*inline*/ case Deserialize: {
+        DeclareMatch(deserialize, ast, Deserialize);
+        return Texts("deserialize:", format_type(deserialize->type_ast), "(", fmt_inline(deserialize->value, comments),
+                     ")");
+    }
     /*inline*/ case Break: {
         const char *target = Match(ast, Break)->target;
         return target ? Texts("break ", Text$from_str(target)) : Text("break");
@@ -818,6 +826,16 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Embed: {
         assert(inlined.length > 0);
         return inlined;
+    }
+    /*multiline*/ case Serialize: {
+        if (inlined_fits) return inlined;
+        return Texts("serialize(", fmt(Match(ast, Serialize)->value, comments, indent), ")");
+    }
+    /*multiline*/ case Deserialize: {
+        if (inlined_fits) return inlined;
+        DeclareMatch(deserialize, ast, Deserialize);
+        return Texts("deserialize:", format_type(deserialize->type_ast), "(",
+                     fmt(deserialize->value, comments, indent), ")");
     }
     /*multiline*/ case Min:
     /*multiline*/ case Max: {

@@ -1,5 +1,51 @@
 # Changes
 
+## 2026-08-21
+
+- **Breaking:** serialization and deserialization now have dedicated syntax,
+  and the implicit conversions to and from `[Byte]` are gone. Use
+  `serialize(value)` instead of `bytes : [Byte] = value`, and
+  `deserialize:T(bytes)` instead of `value : T = bytes`. Because the result
+  type depends on the type written after the colon, `deserialize:T(...)` is a
+  construct rather than a function call: the type has to be spelled out
+  literally there.
+  - `deserialize:T(...)` returns a `T?` instead of aborting the program on bad
+    input. It gives back `none` when the bytes aren't a well-formed encoding of
+    `T`: truncated data, a nonsensical length or enum tag, or leftover trailing
+    bytes. Since the encoding doesn't record which type it came from, a
+    well-formed encoding of some *other* type can still deserialize
+    successfully into a nonsensical value -- but corrupt or hostile input can
+    no longer read out of bounds or trigger an enormous allocation.
+  - Tomo has no nested optionals, so `deserialize:T?(...)` is still just a
+    `T?`, where `none` means either "this didn't decode" or "this decoded a
+    `none`". Serialize a list if you need to tell those apart.
+  - Serializing a type that has no byte representation (anything containing a
+    function, closure, or type object) is now a compile-time error instead of a
+    runtime failure.
+  - `serialize` and `deserialize` are soft keywords: `serialize` is only this
+    construct when it's directly followed by `(`, and `deserialize` only when
+    it's directly followed by `:`, so both remain usable as ordinary
+    identifiers elsewhere. A function or closure named `serialize` would be
+    unreachable through `serialize(...)`, so that's a compile error rather than
+    a silent shadowing; `deserialize` is unaffected, since `deserialize:T(...)`
+    can't be confused with a call.
+- Fixed a buffer overflow in `CString` deserialization, which wrote its
+  terminating NUL one byte past the end of its allocation.
+- Fixed `Int16` serialization and deserialization, which always failed because
+  they compared `fwrite()`/`fread()`'s return value (an item count) against a
+  byte count.
+- Deserializing a `Bool` now rejects any byte other than 0 or 1. A `2` would
+  previously decode into the in-memory representation of a `none` `Bool?`.
+- Deserializing a `Text` now rejects byte sequences that aren't valid UTF-8
+  (or that contain a NUL). Such a `Text` was previously constructed in an
+  invalid state, and using it later aborted the program.
+- Fixed a compiler segfault when reading a field through an optional value
+  (e.g. `p.next.name` where `next` is a `@Foo?`). Generating the "did you
+  mean?" suggestion dereferenced a null namespace, and the compiler died with
+  no diagnostic at all. Suggestions now look through the optional, and the
+  error explains that the value needs a `!` rather than claiming the field
+  doesn't exist.
+
 ## 2026-08-20
 
 - Removed the special restrictions on struct/enum fields (and function

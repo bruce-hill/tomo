@@ -157,11 +157,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
                  record_literal_name(call->fn), "{...} instead");
     if (fn_t->tag == FunctionType) {
         Text_t fn = compile(env, call->fn);
-        // no_serialization: a `[Byte]` argument must not silently (de)serialize
-        // to fill a differently-typed parameter (that's what `x : T = bytes` is
-        // for). A signature mismatch is reported instead.
-        if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args,
-                           (call_opts_t){.promotion = true, .no_serialization = true})) {
+        if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args, (call_opts_t){.promotion = true})) {
             arg_t *args = NULL;
             for (arg_ast_t *a = call->args; a; a = a->next)
                 args = new (arg_t, .name = a->name, .type = get_type(env, a->value), .next = args);
@@ -276,9 +272,7 @@ Text_t compile_record_literal(env_t *env, ast_t *ast) {
         // Each enum variant is a generated constructor function taking the
         // variant's fields and returning the enum:
         arg_t *arg_spec = Match(variant->type, FunctionType)->args;
-        // no_serialization: a `[Byte]` field value must not silently (de)serialize
-        // to fill a differently-typed field (that's what `x : T = bytes` is for).
-        call_opts_t constructor_opts = {.promotion = true, .no_serialization = true};
+        call_opts_t constructor_opts = {.promotion = true};
         if (is_valid_call(env, arg_spec, record->args, constructor_opts)) {
             return Texts(variant->code, "(", compile_arguments(env, ast, arg_spec, record->args), ")");
         }
@@ -527,6 +521,14 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
     }
     case NonOptional: {
         add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, NonOptional)->value);
+        break;
+    }
+    case Serialize: {
+        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Serialize)->value);
+        break;
+    }
+    case Deserialize: {
+        add_closed_vars(closed_vars, enclosing_scope, env, Match(ast, Deserialize)->value);
         break;
     }
     case DebugLog: {

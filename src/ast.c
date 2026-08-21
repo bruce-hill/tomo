@@ -290,6 +290,8 @@ Text_t ast_to_sexp(ast_t *ast) {
           " ", ast_to_sexp(data.body), ")");
         T(Use, "(Use ", optional_sexp("var", data.var), " ", quoted_text(data.path), ")");
         T(InlineCCode, "(InlineCCode ", ast_list_to_sexp(data.chunks), optional_type_sexp("type", data.type_ast), ")");
+        T(Serialize, "(Serialize ", ast_to_sexp(data.value), ")");
+        T(Deserialize, "(Deserialize ", optional_type_sexp("type", data.type_ast), " ", ast_to_sexp(data.value), ")");
         T(Metadata, "((Metadata ", Text$quoted(data.key, false, Text("\"")), " ",
           Text$quoted(data.value, false, Text("\"")), ")");
     default: errx(1, "S-expressions are not implemented for this AST");
@@ -789,6 +791,14 @@ void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *u
         ast_visit_list(Match(ast, InlineCCode)->chunks, visitor, userdata);
         return;
     }
+    case Serialize: {
+        ast_visit(Match(ast, Serialize)->value, visitor, userdata);
+        return;
+    }
+    case Deserialize: {
+        ast_visit(Match(ast, Deserialize)->value, visitor, userdata);
+        return;
+    }
     default: errx(1, "Visiting is not supported for this AST: %s", Text$as_c_string(ast_to_sexp(ast)));
 #undef T
     }
@@ -880,6 +890,10 @@ static visit_behavior_t _type_ast_visit(ast_t *ast, void *userdata) {
     }
     case InlineCCode: {
         _recursive_type_ast_visit(Match(ast, InlineCCode)->type_ast, userdata);
+        break;
+    }
+    case Deserialize: {
+        _recursive_type_ast_visit(Match(ast, Deserialize)->type_ast, userdata);
         break;
     }
     default: break;

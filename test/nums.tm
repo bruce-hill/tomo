@@ -221,8 +221,8 @@ test "a heavily shared expression stays small"
 	for i in 1.to(30)
 		x = x + x
 	assert x.symbolic().length < 1000
-	bytes : [Byte] = x
-	roundtrip : Num = bytes
+	bytes := serialize(x)
+	roundtrip := deserialize:Num(bytes)!
 	assert roundtrip == x
 
 test "methods with a restricted domain return none"
@@ -268,15 +268,15 @@ fails "Could not convert this Num to a Float64 without losing precision"
 
 test "serialization round-trips exact rationals"
 	>> obj := [0.5, 1./3., 0.1 + 0.2, (2.).power(100), -7./2., 0.]
-	>> bytes : [Byte] = obj
-	>> roundtrip : [Num] = bytes
+	>> bytes := serialize(obj)
+	>> roundtrip := deserialize:[Num](bytes)!
 	assert roundtrip == obj
 
 test "serialization round-trips irrationals"
 	irrationals := [(2.).sqrt()!, Num.PI, Num.PI * 2, (2.).sin(), (2.).exp(), (3.).log()!, Num.PI + (2.).sqrt()!, Num.PI * Num.PI * Num.PI, (1. + Num.PI) * (2.).sin(), (1.).atan()]
 	for x in irrationals
-		bytes : [Byte] = x
-		roundtrip : Num = bytes
+		bytes := serialize(x)
+		roundtrip := deserialize:Num(bytes)!
 		assert roundtrip.symbolic() == x.symbolic()
 		assert roundtrip == x
 

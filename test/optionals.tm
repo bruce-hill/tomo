@@ -284,3 +284,13 @@ test "dereferencing a maybe-none pointer is rejected"
     p : @Int? = none
     _ := p[]
 fails_compile "Only pointers can use the '[]' operator to dereference the entire value."
+
+test "reading a field through an optional is rejected"
+    s : Struct? = Struct{5, "A"}
+    _ := s.x
+fails_compile "This value is optional (Struct?), so it might be none and I can't read its 'x' field"
+
+test "a misspelled field on an optional still gets a suggestion"
+    xs : [Int]? = [10, 20]
+    n := xs.lenth
+fails_compile "Did you mean 'length'?"

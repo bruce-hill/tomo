@@ -6,6 +6,7 @@
 
 #include "bools.h"
 #include "integers.h"
+#include "metamethods.h"
 #include "optionals.h"
 #include "text.h"
 #include "util.h"
@@ -49,6 +50,20 @@ static bool Bool$is_none(const void *b, const TypeInfo_t *info) {
     return *(OptionalBool_t *)b == NONE_BOOL;
 }
 
+static void Bool$serialize(const void *obj, FILE *out, Table_t *pointers, const TypeInfo_t *info) {
+    (void)pointers, (void)info;
+    fputc(*(bool *)obj ? 1 : 0, out);
+}
+
+static void Bool$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *info) {
+    (void)pointers, (void)info;
+    // Only 0 and 1 are booleans. Reading the byte raw would let, e.g., a `2`
+    // through, which is the in-memory representation of a `none` `Bool?`.
+    int c = fgetc(in);
+    if (c != 0 && c != 1) deserialization_failed();
+    *(bool *)outval = (bool)c;
+}
+
 public
 const TypeInfo_t Bool$info = {
     .size = sizeof(bool),
@@ -57,5 +72,7 @@ const TypeInfo_t Bool$info = {
         {
             .as_text = Bool$as_text,
             .is_none = Bool$is_none,
+            .serialize = Bool$serialize,
+            .deserialize = Bool$deserialize,
         },
 };

@@ -8,6 +8,7 @@
 #include "../typecheck.h"
 #include "../util.h"
 #include "compilation.h"
+#include "optionals.h"
 
 public
 Text_t compile_maybe_incref(env_t *env, ast_t *ast, type_t *t) {
@@ -253,6 +254,30 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Reduction: return compile_reduction(env, ast);
     case FieldAccess: return compile_field_access(env, ast);
     case Index: return compile_indexing(env, ast, false);
+    case Serialize: {
+        fail_if_serialize_shadowed(env, ast);
+        ast_t *value = Match(ast, Serialize)->value;
+        type_t *t = get_type(env, value);
+        return Texts("generic_serialize((", compile_declaration(t, Text("[1]")), "){", compile(env, value), "}, ",
+                     compile_type_info(t), ")");
+    }
+    case Deserialize: {
+        ast_t *bytes = Match(ast, Deserialize)->value;
+        type_t *t = parse_type_ast(env, Match(ast, Deserialize)->type_ast);
+        Text_t bytes_code = compile_to_type(env, bytes, Type(ListType, .item_type = Type(ByteType)));
+        // On failure, `generic_deserialize()` leaves the output untouched and
+        // we produce `none`. If `t` is itself optional, `none` does double duty
+        // for "failed to decode" and "successfully decoded a `none`".
+        Text_t success = t->tag == OptionalType ? Text("deserialized") : promote_to_optional(t, Text("deserialized"));
+        // Zero-initialized rather than `compile_empty(t)`: the value is only
+        // read when deserialization succeeds and has overwritten it, and
+        // `compile_empty()` both recurses into struct field defaults (which
+        // needn't be compilable without a target type) and answers an empty
+        // string for some types, which would emit `= ;`.
+        return Texts("({ ", compile_declaration(t, Text("deserialized")), " = {};\n", "generic_deserialize(",
+                     bytes_code, ", &deserialized, ", compile_type_info(t), ") ? ", success, " : ",
+                     compile_none(non_optional(t)), "; })");
+    }
     case InlineCCode: {
         type_t *t = get_type(env, ast);
         if (Match(ast, InlineCCode)->type_ast != NULL) return Texts("({", compile_statement(env, ast), "; })");

@@ -352,8 +352,7 @@ void bind_statement(env_t *env, ast_t *statement) {
             type_t *tbl_type = value_type(type);
             if (tbl_val->tag == Table && Match(tbl_val, Table)->default_value && tbl_type->tag == TableType
                 && Match(tbl_type, TableType)->default_value == NULL)
-                code_err(tbl_val, "This table has a default value, but the type it's declared as (",
-                         type_to_text(type),
+                code_err(tbl_val, "This table has a default value, but the type it's declared as (", type_to_text(type),
                          ") doesn't. Move the default into the type annotation instead, like `{K:V; default=...}`.");
         }
         if (type->tag == FunctionType) type = Type(ClosureType, type);
@@ -672,8 +671,9 @@ env_t *match_clause_scope(env_t *env, type_t *subject_t, match_clause_t *clause)
     if (clause->pattern->tag == Var || subject_t->tag != EnumType) return env;
 
     if (clause->pattern->tag != RecordLiteral || Match(clause->pattern, RecordLiteral)->type->tag != Var)
-        code_err(clause->pattern, "I only support variables and variant patterns like 'case Tag{x, y}' for pattern "
-                                  "matching ",
+        code_err(clause->pattern,
+                 "I only support variables and variant patterns like 'case Tag{x, y}' for pattern "
+                 "matching ",
                  type_to_text(subject_t), " types in a 'match' block");
 
     DeclareMatch(fn, clause->pattern, RecordLiteral);
@@ -921,6 +921,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         }
         type_t *field_t = get_field_type(fielded_t, access->field);
         if (!field_t) {
+            fail_if_optional_field_access(ast, fielded_t, access->field);
             OptionalText_t suggestion = suggest_best_name(access->field, get_field_names(env, fielded_t));
             code_err(ast, type_to_text(fielded_t), " objects don't have a field called '", access->field, "'",
                      suggestion);
@@ -1076,15 +1077,15 @@ type_t *get_type(env_t *env, ast_t *ast) {
             else if (streq(call->name, "entries"))
                 // A multi-value iterator (see iterator_yield_args()) yielding
                 // each (key, value) pair of the table:
-                return Type(ClosureType,
-                            .fn = Type(FunctionType,
-                                       .args = new (arg_t, .name = "key",
-                                                    .type = Type(PointerType, .pointed = table->key_type,
-                                                                 .is_stack = true),
-                                                    .next = new (arg_t, .name = "value",
-                                                                 .type = Type(PointerType, .pointed = table->value_type,
-                                                                              .is_stack = true))),
-                                       .ret = Type(BoolType)));
+                return Type(
+                    ClosureType,
+                    .fn = Type(FunctionType,
+                               .args = new (arg_t, .name = "key",
+                                            .type = Type(PointerType, .pointed = table->key_type, .is_stack = true),
+                                            .next = new (arg_t, .name = "value",
+                                                         .type = Type(PointerType, .pointed = table->value_type,
+                                                                      .is_stack = true))),
+                               .ret = Type(BoolType)));
             else if (streq(call->name, "get")) return Type(OptionalType, .type = table->value_type);
             else if (streq(call->name, "get_or_set")) return table->value_type;
             else if (streq(call->name, "has")) return Type(BoolType);
@@ -1653,6 +1654,26 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_ast_t *type_ast = inline_code->type_ast;
         return type_ast ? parse_type_ast(env, type_ast) : Type(VoidType);
     }
+    case Serialize: {
+        fail_if_serialize_shadowed(env, ast);
+        type_t *t = get_type(env, Match(ast, Serialize)->value);
+        type_t *bad = unserializable_part(t);
+        if (bad)
+            code_err(Match(ast, Serialize)->value, "I can't serialize this ", type_to_text(t),
+                     " value, because values of type ", type_to_text(bad), " have no byte representation");
+        return Type(ListType, .item_type = Type(ByteType));
+    }
+    case Deserialize: {
+        type_t *t = parse_type_ast(env, Match(ast, Deserialize)->type_ast);
+        type_t *bad = unserializable_part(t);
+        if (bad)
+            code_err(ast, "I can't deserialize a ", type_to_text(t), " value, because values of type ",
+                     type_to_text(bad), " have no byte representation");
+        // Note: if `t` is already optional, the result stays a single optional
+        // (Tomo has no nested optionals), so `none` means either "the bytes
+        // didn't decode" or "the bytes encoded a `none`".
+        return t->tag == OptionalType ? t : Type(OptionalType, .type = t);
+    }
     case Unknown: code_err(ast, "I can't figure out the type of: ", ast_to_sexp_str(ast));
     case ExplicitlyTyped: return Match(ast, ExplicitlyTyped)->type;
     case Metadata: return Type(VoidType);
@@ -1691,33 +1712,6 @@ type_t *get_arg_type(env_t *env, arg_t *arg) {
     return get_type(env, arg->default_val);
 }
 
-// Would matching `arg` (of type `actual`) to a parameter of type `needed` rely
-// on implicit byte (de)serialization -- i.e. exactly one side is `[Byte]`?
-// (Both sides `[Byte]`, or neither, is not (de)serialization.) A list *literal*
-// whose items each coerce to the needed element type is exempt: that's per-item
-// literal coercion (e.g. `[1, 2, 3]` as shorthand for `[Byte(1), Byte(2),
-// Byte(3)]`), which goes through can_compile_to_type's list-literal branch, not
-// the serialization rule. Mirrors the serialize/deserialize rule in
-// promote()/can_promote().
-static bool is_byte_serialization_match(env_t *env, ast_t *arg, type_t *actual, type_t *needed) {
-    if (!actual || !needed || type_eq(actual, needed)) return false;
-    type_t *byte_list = Type(ListType, .item_type = Type(ByteType));
-    bool actual_bytes = type_eq(non_optional(value_type(actual)), byte_list);
-    bool needed_bytes = type_eq(non_optional(value_type(needed)), byte_list);
-    if (actual_bytes == needed_bytes) return false;
-    if (arg->tag == List) {
-        type_t *needed_list = non_optional(value_type(needed));
-        if (needed_list->tag == ListType) {
-            type_t *item_t = Match(needed_list, ListType)->item_type;
-            bool per_item = item_t != NULL;
-            for (ast_list_t *it = Match(arg, List)->items; per_item && it; it = it->next)
-                if (it->ast->tag == Comprehension || !can_compile_to_type(env, it->ast, item_t)) per_item = false;
-            if (per_item) return false; // per-item literal coercion, not serialization
-        }
-    }
-    return true;
-}
-
 bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts_t options) {
     Table_t used_args = EMPTY_TABLE;
 
@@ -1734,9 +1728,6 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
             if (options.promotion) {
                 if (!can_compile_to_type(arg_scope, call_arg->value, spec_type))
                     return false; // Positional arg trying to fill in
-                if (options.no_serialization
-                    && is_byte_serialization_match(arg_scope, call_arg->value, call_type, spec_type))
-                    return false;
             } else {
                 type_t *complete_call_type =
                     is_incomplete_type(call_type) ? most_complete_type(call_type, spec_type) : call_type;
@@ -1764,10 +1755,6 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
                     if (!can_compile_to_type(arg_scope, unused_args->value, spec_type)) {
                         return false; // Positional arg trying to fill in
                     }
-                    if (options.no_serialization
-                        && is_byte_serialization_match(arg_scope, unused_args->value,
-                                                       get_arg_ast_type(arg_scope, unused_args), spec_type))
-                        return false;
                 } else {
                     type_t *call_type = get_arg_ast_type(arg_scope, unused_args);
                     type_t *complete_call_type =
@@ -2132,10 +2119,31 @@ OptionalText_t suggest_best_name(const char *wrong, List_t names) {
     return Texts("\nDid you mean '", best, "'?");
 }
 
+// `serialize(...)` always parses as the built-in construct, so a callable
+// binding by that name is unreachable through it. Reject that rather than
+// quietly ignoring the function.
+void fail_if_serialize_shadowed(env_t *env, ast_t *ast) {
+    binding_t *shadowed = get_binding(env, "serialize");
+    if (shadowed && shadowed->type && (shadowed->type->tag == FunctionType || shadowed->type->tag == ClosureType))
+        code_err(ast, "This is the built-in `serialize(...)` construct, so it shadows the `serialize` function "
+                      "defined here. Please rename that function");
+}
+
+// A field access on an optional value is almost always a missing `!` rather
+// than a misspelled field, so say that instead of "no such field". Does nothing
+// if `fielded_t` isn't an optional whose underlying type has this field.
+void fail_if_optional_field_access(ast_t *ast, type_t *fielded_t, const char *field) {
+    if (fielded_t->tag != OptionalType) return;
+    if (get_field_type(non_optional(fielded_t), field) == NULL) return;
+    code_err(ast, "This value is optional (", type_to_text(fielded_t), "), so it might be none and I can't read its '",
+             field, "' field. Use '!' to assert that it has a value, or check it with an 'if' first");
+}
+
 List_t get_field_names(env_t *env, type_t *t) {
     t = value_type(t);
     switch (t->tag) {
     case PointerType: return get_field_names(env, Match(t, PointerType)->pointed);
+    case OptionalType: return get_field_names(env, Match(t, OptionalType)->type);
     case TextType: return List(Text("text"), Text("length"));
     case StructType: {
         DeclareMatch(struct_t, t, StructType);
@@ -2160,6 +2168,7 @@ List_t get_field_names(env_t *env, type_t *t) {
     default: {
         env_t *ns_env = get_namespace_by_type(env, t);
         List_t fields = EMPTY_LIST;
+        if (ns_env == NULL) return fields; // No namespace to draw suggestions from
         for (int64_t i = 0; i < (int64_t)ns_env->locals->entries.length; i++) {
             struct {
                 const char *key;
@@ -2178,6 +2187,7 @@ List_t get_method_names(env_t *env, type_t *t) {
     t = value_type(t);
     switch (t->tag) {
     case PointerType: return get_method_names(env, Match(t, PointerType)->pointed);
+    case OptionalType: return get_method_names(env, Match(t, OptionalType)->type);
     case ListType: {
         return List(Text("binary_search"), Text("by"), Text("clear"), Text("counts"), Text("find"), Text("where"),
                     Text("from"), Text("has"), Text("heap_pop"), Text("heap_push"), Text("heapify"), Text("insert"),
@@ -2193,6 +2203,7 @@ List_t get_method_names(env_t *env, type_t *t) {
     default: {
         env_t *ns_env = get_namespace_by_type(env, t);
         List_t methods = EMPTY_LIST;
+        if (ns_env == NULL) return methods; // No namespace to draw suggestions from
         for (int64_t i = 0; i < (int64_t)ns_env->locals->entries.length; i++) {
             struct {
                 const char *key;

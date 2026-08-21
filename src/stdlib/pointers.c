@@ -110,7 +110,9 @@ public
 void Pointer$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type) {
     int64_t id = 0;
     Int64$deserialize(in, &id, pointers, &Int64$info);
-    assert(id != 0);
+    // IDs are 1-indexed and are assigned in order, so anything outside
+    // `[1, len+1]` is a back-reference to a pointer that was never written:
+    if (id < 1 || id > (int64_t)pointers->length + 1) deserialization_failed();
 
     if (id > (int64_t)pointers->length) {
         void *obj = GC_MALLOC((size_t)type->PointerInfo.pointed->size);

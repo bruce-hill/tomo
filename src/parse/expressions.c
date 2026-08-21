@@ -16,6 +16,7 @@
 #include "path.h"
 #include "suffixes.h"
 #include "text.h"
+#include "types.h"
 #include "utils.h"
 
 ast_t *parse_parens(parse_ctx_t *ctx, const char *pos) {
@@ -53,11 +54,10 @@ ast_t *parse_reduction(parse_ctx_t *ctx, const char *pos) {
     ast_t *key = NewAST(ctx->file, pos, pos, Var, .name = op_str);
     for (bool progress = true; progress;) {
         ast_t *new_term;
-        progress = (false || (new_term = parse_index_suffix(ctx, key))
-                    || (new_term = parse_method_call_suffix(ctx, key)) || (new_term = parse_field_suffix(ctx, key))
-                    || (new_term = parse_fncall_suffix(ctx, key))
-                    || (new_term = parse_record_literal_suffix(ctx, key))
-                    || (new_term = parse_non_optional_suffix(ctx, key)));
+        progress =
+            (false || (new_term = parse_index_suffix(ctx, key)) || (new_term = parse_method_call_suffix(ctx, key))
+             || (new_term = parse_field_suffix(ctx, key)) || (new_term = parse_fncall_suffix(ctx, key))
+             || (new_term = parse_record_literal_suffix(ctx, key)) || (new_term = parse_non_optional_suffix(ctx, key)));
         if (progress) key = new_term;
     }
     if (key && key->tag == Var) key = NULL;
@@ -160,6 +160,42 @@ ast_t *parse_none(parse_ctx_t *ctx, const char *pos) {
     return NewAST(ctx->file, start, pos, None);
 }
 
+// serialize(<expr>)
+// `serialize` is a soft keyword: it only parses as this construct when it's
+// immediately followed by an open parenthesis, so it stays usable as an
+// ordinary identifier everywhere else.
+ast_t *parse_serialize(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    if (!match_word(&pos, "serialize")) return NULL;
+    spaces(&pos);
+    if (!match(&pos, "(")) return NULL;
+    whitespace(ctx, &pos);
+    ast_t *value = expect(ctx, start, &pos, parse_extended_expr, "I expected a value to serialize here");
+    whitespace(ctx, &pos);
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this serialization");
+    return NewAST(ctx->file, start, pos, Serialize, .value = value);
+}
+
+// deserialize:<type>(<expr>)
+// `deserialize` is a soft keyword: `deserialize` only parses as this construct when it's
+// followed by a colon, which can't otherwise begin an expression suffix.
+ast_t *parse_deserialize(parse_ctx_t *ctx, const char *pos) {
+    const char *start = pos;
+    if (!match_word(&pos, "deserialize")) return NULL;
+    spaces(&pos);
+    if (!match(&pos, ":")) return NULL;
+    spaces(&pos);
+    type_ast_t *type = expect(ctx, start, &pos, parse_type, "I expected a type to deserialize to here");
+    spaces(&pos);
+    if (!match(&pos, "("))
+        parser_err(ctx, start, pos, "I expected a parenthesized list of bytes to deserialize after this type");
+    whitespace(ctx, &pos);
+    ast_t *value = expect(ctx, start, &pos, parse_extended_expr, "I expected a list of bytes to deserialize here");
+    whitespace(ctx, &pos);
+    expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this deserialization");
+    return NewAST(ctx->file, start, pos, Deserialize, .type_ast = type, .value = value);
+}
+
 ast_t *parse_var(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     const char *name = get_id(&pos);
@@ -175,10 +211,11 @@ ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos) {
            || (term = parse_heap_alloc(ctx, pos)) || (term = parse_stack_reference(ctx, pos))
            || (term = parse_bool(ctx, pos)) || (term = parse_text(ctx, pos, true)) || (term = parse_path(ctx, pos))
            || (term = parse_lambda(ctx, pos)) || (term = parse_parens(ctx, pos)) || (term = parse_table(ctx, pos))
-           || (term = parse_var(ctx, pos)) || (term = parse_list(ctx, pos)) || (term = parse_reduction(ctx, pos))
-           || (term = parse_pass(ctx, pos)) || (term = parse_defer(ctx, pos)) || (term = parse_continue(ctx, pos))
-           || (term = parse_break(ctx, pos)) || (term = parse_return(ctx, pos)) || (term = parse_not(ctx, pos))
-           || (term = parse_inline_c(ctx, pos)) || (term = parse_embed(ctx, pos)));
+           || (term = parse_serialize(ctx, pos)) || (term = parse_deserialize(ctx, pos)) || (term = parse_var(ctx, pos))
+           || (term = parse_list(ctx, pos)) || (term = parse_reduction(ctx, pos)) || (term = parse_pass(ctx, pos))
+           || (term = parse_defer(ctx, pos)) || (term = parse_continue(ctx, pos)) || (term = parse_break(ctx, pos))
+           || (term = parse_return(ctx, pos)) || (term = parse_not(ctx, pos)) || (term = parse_inline_c(ctx, pos))
+           || (term = parse_embed(ctx, pos)));
     return term;
 }
 

@@ -838,6 +838,10 @@ public
 void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *type) {
     int64_t len = -1;
     Int64$deserialize(in, &len, pointers, &Int64$info);
+    if (len < 0) deserialization_failed();
+    // Every item takes at least one byte, so a length prefix bigger than the
+    // rest of the stream is corrupt data and must not reach GC_MALLOC():
+    if (type->ListInfo.item->size > 0 && len > deserialization_bytes_remaining(in)) deserialization_failed();
     int64_t padded_size = type->ListInfo.item->size;
     if (type->ListInfo.item->align > 0 && padded_size % type->ListInfo.item->align > 0)
         padded_size += type->ListInfo.item->align - (padded_size % type->ListInfo.item->align);
@@ -852,12 +856,11 @@ void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *t
             item_deserialize(in, list.data + i * list.stride, pointers, type->ListInfo.item);
     } else if (list.stride == type->ListInfo.item->size) {
         if (fread(list.data, (size_t)type->ListInfo.item->size, (size_t)len, in) != (size_t)len)
-            fail("Not enough data in stream to deserialize");
+            deserialization_failed();
     } else {
         size_t item_size = (size_t)type->ListInfo.item->size;
         for (int64_t i = 0; i < len; i++) {
-            if (fread(list.data + i * list.stride, item_size, 1, in) != 1)
-                fail("Not enough data in stream to deserialize");
+            if (fread(list.data + i * list.stride, item_size, 1, in) != 1) deserialization_failed();
         }
     }
     *(List_t *)obj = list;

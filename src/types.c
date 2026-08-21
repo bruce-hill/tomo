@@ -287,6 +287,61 @@ bool has_heap_memory(type_t *t) {
     return _has_heap_memory(t, &visited);
 }
 
+// Returns the first component of `t` that has no byte representation, or NULL
+// if the whole type can be serialized. Functions/closures can't be serialized
+// because their captured environment isn't portable, and type objects and
+// opaque memory have no contents to write out.
+static type_t *_unserializable_part(type_t *t, Table_t *visited) {
+    if (!t) return NULL;
+
+    switch (t->tag) {
+    case FunctionType:
+    case ClosureType:
+    case TypeInfoType:
+    case ModuleType:
+    case MemoryType:
+    case UnknownType:
+    case AbortType:
+    case ReturnType:
+    case VoidType: return t;
+    default: break;
+    }
+
+    Text_t type_text = type_to_text(t);
+    if (Table$get(*visited, &type_text, Set$info(&Text$info))) return NULL;
+    Table$set(visited, &type_text, NULL, Set$info(&Text$info));
+
+    switch (t->tag) {
+    case ListType: return _unserializable_part(Match(t, ListType)->item_type, visited);
+    case TableType: {
+        type_t *bad = _unserializable_part(Match(t, TableType)->key_type, visited);
+        return bad ? bad : _unserializable_part(Match(t, TableType)->value_type, visited);
+    }
+    case PointerType: return _unserializable_part(Match(t, PointerType)->pointed, visited);
+    case OptionalType: return _unserializable_part(Match(t, OptionalType)->type, visited);
+    case StructType: {
+        for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
+            type_t *bad = _unserializable_part(field->type, visited);
+            if (bad) return bad;
+        }
+        return NULL;
+    }
+    case EnumType: {
+        for (tag_t *tag = Match(t, EnumType)->tags; tag; tag = tag->next) {
+            type_t *bad = _unserializable_part(tag->type, visited);
+            if (bad) return bad;
+        }
+        return NULL;
+    }
+    default: return NULL;
+    }
+}
+
+type_t *unserializable_part(type_t *t) {
+    Table_t visited = EMPTY_TABLE;
+    return _unserializable_part(t, &visited);
+}
+
 bool _has_refcounts(type_t *t, Table_t *visited) {
     if (!t) return false;
     Text_t type_text = type_to_text(t);
@@ -375,9 +430,6 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
     // No promotion necessary:
     if (type_eq(actual, needed)) return true;
 
-    // Serialization/deserialization
-    if (type_eq(actual, Type(ListType, Type(ByteType))) || type_eq(needed, Type(ListType, Type(ByteType)))) return true;
-
     if (actual->tag == FloatType && needed->tag == IntType) return false;
 
     // An exact `Num` absorbs any integer type without loss, but nothing else
@@ -417,7 +469,8 @@ PUREFUNC bool can_promote(type_t *actual, type_t *needed) {
         if (Match(actual, OptionalType)->type == NULL) return (needed->tag == OptionalType);
 
         // Optional num -> num
-        if (needed->tag == FloatType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == FloatType)
+        if (needed->tag == FloatType && actual->tag == OptionalType
+            && Match(actual, OptionalType)->type->tag == FloatType)
             return can_promote(Match(actual, OptionalType)->type, needed);
     }
 
@@ -493,8 +546,7 @@ PUREFUNC bool is_int_type(type_t *t) {
 }
 
 PUREFUNC bool is_numeric_type(type_t *t) {
-    return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == FloatType
-           || t->tag == ByteType;
+    return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == FloatType || t->tag == ByteType;
 }
 
 PUREFUNC bool is_packed_data(type_t *t) {

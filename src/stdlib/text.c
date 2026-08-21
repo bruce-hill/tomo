@@ -114,6 +114,7 @@
 #include "datatypes.h"
 #include "integers.h"
 #include "lists.h"
+#include "metamethods.h"
 #include "optionals.h"
 #include "tables.h"
 #include "text.h"
@@ -1901,11 +1902,16 @@ void Text$deserialize(FILE *in, void *out, List_t *pointers, const TypeInfo_t *i
     (void)info;
     int64_t len = 0;
     Int64$deserialize(in, &len, pointers, &Int64$info);
-    if (len < 0) fail("Cannot deserialize text with a negative length!");
+    if (len < 0 || len > deserialization_bytes_remaining(in)) deserialization_failed();
     char *buf = GC_MALLOC_ATOMIC((size_t)len + 1);
-    if (fread(buf, sizeof(char), (size_t)len, in) != (size_t)len) fail("Not enough data in stream to deserialize");
+    if (buf == NULL) deserialization_failed();
+    if (fread(buf, sizeof(char), (size_t)len, in) != (size_t)len) deserialization_failed();
     buf[len] = '\0';
-    *(Text_t *)out = Text$from_strn(buf, (size_t)len);
+    // Not every byte sequence is text: `Text$from_strn()` rejects invalid UTF-8
+    // and embedded NULs by answering `none`.
+    OptionalText_t text = Text$from_strn(buf, (size_t)len);
+    if (text.tag == TEXT_NONE) deserialization_failed();
+    *(Text_t *)out = text;
 }
 
 public

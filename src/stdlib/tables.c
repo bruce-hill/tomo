@@ -722,6 +722,9 @@ public
 void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_t *type) {
     int64_t len;
     Int64$deserialize(in, &len, pointers, &Int$info);
+    // Each entry takes at least one byte, so a length longer than the rest of
+    // the stream is corrupt data:
+    if (len < 0 || len > deserialization_bytes_remaining(in)) deserialization_failed();
 
     Table_t t = EMPTY_TABLE;
     char keybuf[256], valbuf[256];

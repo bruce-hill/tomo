@@ -1,6 +1,7 @@
 // Metamethods are methods that all types share for hashing, equality, comparison, and textifying
 
 #include <gc.h>
+#include <setjmp.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -75,17 +76,56 @@ void _deserialize(FILE *input, void *outval, List_t *pointers, const TypeInfo_t 
         return;
     }
 
-    if (fread(outval, (size_t)type->size, 1, input) != 1) fail_text(Text("Not enough data in stream to deserialize"));
+    if (fread(outval, (size_t)type->size, 1, input) != 1) deserialization_failed();
+}
+
+// Where to jump when a deserializer discovers that its input isn't a
+// well-formed encoding of the type being read. This is set for the duration of
+// a `generic_deserialize()` call; outside of one (i.e. if a deserializer is
+// invoked directly), a malformed input is still a hard failure.
+static _Thread_local jmp_buf *deserialization_failure_handler = NULL;
+
+public
+_Noreturn void deserialization_failed(void) {
+    if (deserialization_failure_handler) longjmp(*deserialization_failure_handler, 1);
+    fail_text(Text("This data could not be deserialized"));
+}
+
+// How many bytes are left to be read. Deserializers use this to sanity-check
+// length prefixes *before* allocating, so that corrupt data can't ask for an
+// enormous allocation.
+public
+int64_t deserialization_bytes_remaining(FILE *in) {
+    long pos = ftell(in);
+    if (pos < 0 || fseek(in, 0, SEEK_END) != 0) return INT64_MAX;
+    long end = ftell(in);
+    if (end < 0 || fseek(in, pos, SEEK_SET) != 0) return INT64_MAX;
+    return (int64_t)(end - pos);
 }
 
 public
-void generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type) {
+bool generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type) {
     if (bytes.stride != 1) List$compact(&bytes, 1);
 
     FILE *input = fmemopen(bytes.data, (size_t)bytes.length, "r");
+    if (input == NULL) return false;
+
     List_t pointers = EMPTY_LIST;
-    _deserialize(input, outval, &pointers, type);
+    jmp_buf *prev_handler = deserialization_failure_handler;
+    jmp_buf on_failure;
+    bool success;
+    if (setjmp(on_failure) == 0) {
+        deserialization_failure_handler = &on_failure;
+        _deserialize(input, outval, &pointers, type);
+        // Leftover bytes mean this isn't an encoding of this type (or is an
+        // encoding of something bigger), so don't call it a success:
+        success = (fgetc(input) == EOF);
+    } else {
+        success = false;
+    }
+    deserialization_failure_handler = prev_handler;
     fclose(input);
+    return success;
 }
 
 __attribute__((noreturn)) public

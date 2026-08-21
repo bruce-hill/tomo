@@ -157,6 +157,7 @@ typedef enum {
 } precision_cmp_e;
 PUREFUNC precision_cmp_e compare_precision(type_t *a, type_t *b);
 bool has_heap_memory(type_t *t);
+type_t *unserializable_part(type_t *t);
 bool has_refcounts(type_t *t);
 bool has_stack_memory(type_t *t);
 PUREFUNC bool can_promote(type_t *actual, type_t *needed);
