@@ -402,3 +402,8 @@ test "shuffle() can reach every permutation"
 	pair := @[1, 2]
 	pair.shuffle(random=always_min)
 	assert pair[] == [2, 1]
+
+test "a list's .length is usable as an Int64 value"
+	xs := [10, 20, 30]
+	assert "$(xs.length)" == "3"
+	assert xs.length == Int64(3)

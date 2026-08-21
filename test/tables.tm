@@ -169,3 +169,8 @@ test "continue and break work in table loops"
 		if n >= 5
 			break
 	assert n == 5
+
+test "a table's .length is usable as an Int64 value"
+	t := {"a": 1, "b": 2}
+	assert "$(t.length)" == "2"
+	assert t.length == Int64(2)

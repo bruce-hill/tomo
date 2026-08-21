@@ -349,3 +349,8 @@ test "continue and break work in text loops"
 			break
 		out ++= c
 	assert out == "ac"
+
+test "a text's .length is usable as an Int64 value"
+	greeting := "hello"
+	assert "$(greeting.length)" == "5"
+	assert greeting.length == Int64(5)
