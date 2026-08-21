@@ -475,7 +475,12 @@ $(BUILD_BASE)/number_test: test/c/number_test.c src/stdlib/number.c src/stdlib/n
 test-number: $(BUILD_BASE)/number_test
 	@$(BUILD_BASE)/number_test
 
-test: $(TESTS) test-number
+# Round-trips every .tm file in the tree through `tomo fmt` and checks that the
+# formatter neither changes what the code means nor leaves it unsettled:
+test-format: build
+	@./scripts/check_format.sh
+
+test: $(TESTS) test-number test-format
 	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
 
 # Remove just the (target-specific) Tomo object files:
@@ -494,6 +499,8 @@ api/api.md: $(API_YAML)
 
 test/api.tm: $(API_YAML) | ./scripts/api_tests.py
 	./scripts/api_tests.py $^ >$@
+
+.PHONY: test-format
 
 .PHONY: api-docs
 api-docs: $(API_MD) api/api.md
