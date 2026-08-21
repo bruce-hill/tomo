@@ -49,7 +49,12 @@ static ast_t *nl_deciding_ast(ast_t *ast) {
             values = values->next;
         return values ? values->ast : ast;
     }
-    case Declare: return Match(ast, Declare)->value;
+    case Declare: {
+        // A bare `x : T` declaration has no value; fall back to the statement
+        // itself rather than answering NULL, which every caller dereferences.
+        ast_t *value = Match(ast, Declare)->value;
+        return value ? value : ast;
+    }
     case Assign: {
         ast_list_t *values = Match(ast, Assign)->values;
         while (values && values->next)
