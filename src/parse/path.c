@@ -29,10 +29,14 @@ ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
     size_t len = 1;
     bool terminated = false; // whether a break below already advanced pos
     while (pos + len < ctx->file->text + ctx->file->len - 1) {
+        // Indexed as an unsigned byte and range-checked: a `char` is signed
+        // here, so any non-ASCII byte (`./café.txt`) would index before the
+        // table and read whatever happened to be there.
+        unsigned char c = (unsigned char)pos[len];
         if (pos[len] == '\\') {
             len += 2;
             continue;
-        } else if (!inside_parens && paren_depth == 0 && needs_escaping[(int)pos[len]]) {
+        } else if (!inside_parens && paren_depth == 0 && c < sizeof(needs_escaping) / sizeof(needs_escaping[0]) && needs_escaping[c]) {
             pos += len;
             terminated = true;
             break;

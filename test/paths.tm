@@ -108,3 +108,10 @@ test "a path literal at the end of the file parses without hanging"
 	# path below sits against the end of this file to pin the fix.
 	p := ..
 	assert p == ..
+
+test "path literals with non-ASCII characters"
+    >> ./café.txt
+    assert (./café.txt) == ./café.txt
+    assert (./café.txt).base_name() == "café.txt"
+    >> ~/日本語/naïve.txt
+    assert (~/日本語/naïve.txt).base_name() == "naïve.txt"
