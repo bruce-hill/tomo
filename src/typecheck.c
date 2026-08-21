@@ -2046,9 +2046,14 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     // any numeric type its operands can, by pushing the type into them.
     if (is_numeric_type(non_optional_needed) && is_pushdown_arithmetic(ast, non_optional_needed)
         && get_type(env, ast)->tag == BigIntType) {
+        // Only an opportunity, not a requirement: if the operands can't take
+        // the target type (e.g. `x or 0`, whose `Or` is an optional fallback
+        // and not arithmetic at all), fall through to the ordinary checks
+        // below, where the expression's own type may already fit.
         binary_operands_t binop = BINARY_OPERANDS(ast);
-        return can_compile_to_type(env, binop.lhs, non_optional_needed)
-               && can_compile_to_type(env, binop.rhs, non_optional_needed);
+        if (can_compile_to_type(env, binop.lhs, non_optional_needed)
+            && can_compile_to_type(env, binop.rhs, non_optional_needed))
+            return true;
     }
     // ...and so can literal float arithmetic (inferred as the exact `Num`),
     // when the target is a float: `0.5*x`, `1.0/3.0*x`. A `Num` value never
@@ -2057,8 +2062,9 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (non_optional_needed->tag == FloatType && is_pushdown_arithmetic(ast, non_optional_needed)
         && get_type(env, ast)->tag == NumType) {
         binary_operands_t binop = BINARY_OPERANDS(ast);
-        return can_compile_to_type(env, binop.lhs, non_optional_needed)
-               && can_compile_to_type(env, binop.rhs, non_optional_needed);
+        if (can_compile_to_type(env, binop.lhs, non_optional_needed)
+            && can_compile_to_type(env, binop.rhs, non_optional_needed))
+            return true;
     }
 
     if (non_optional_needed->tag == ListType && ast->tag == List) {

@@ -294,3 +294,12 @@ test "a misspelled field on an optional still gets a suggestion"
     xs : [Int]? = [10, 20]
     n := xs.lenth
 fails_compile "Did you mean 'length'?"
+
+# `x or y` shares the `Or` AST node with bitwise-or, so it used to be mistaken
+# for arithmetic whose type could be pushed into its operands:
+test "an 'or' fallback can be used in arithmetic"
+    n : Int? = 5
+    assert (n or 0) + 1 == 6
+    missing : Int? = none
+    assert (missing or 0) + 1 == 1
+    assert 2 * (n or 0) == 10
