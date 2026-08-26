@@ -2,6 +2,7 @@
 // linking, and package builds
 
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <gc.h>
 #include <libgen.h>
@@ -660,6 +661,27 @@ void build_package_archive(Path_t pkg_dir, List_t tm_files, Path_t archive) {
     }
 }
 
+// ---- atomic build artifacts -----------------------------------------------
+//
+// Artifacts are keyed by source path, so two `tomo` processes only ever write
+// the same file when they're building a shared dependency -- but when they do,
+// an O_TRUNC-then-write leaves a window where a third process reads a truncated
+// header or links a half-written object. Every artifact is therefore written to
+// a sibling temp file and renamed into place: rename(2) within a directory is
+// atomic, so a reader sees the old artifact or the new one, never a partial
+// one. It also means an interrupted build can't leave behind a corrupt file
+// that a later staleness check mistakes for a good one.
+static Path_t artifact_temp(Path_t final) {
+    return (Path_t)String(final, ".tmp", (int64_t)getpid());
+}
+
+static void commit_artifact(Path_t temp, Path_t final) {
+    if (rename(Path$as_c_string(temp), Path$as_c_string(final)) != 0) {
+        unlink(Path$as_c_string(temp));
+        print_err("Failed to write ", final, ": ", strerror(errno));
+    }
+}
+
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs, compile_mode_t mode) {
     Table_t to_link = EMPTY_TABLE;
     Table_t dependency_files = EMPTY_TABLE;
@@ -698,7 +720,16 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             if (isalpha(c) || isdigit(c) || c == '_')
                 filename_id = Texts(filename_id, Text$from_strn((char[]){(char)c}, 1));
         }
-        Path$write(id_file, Texts(filename_id, Text("_"), Text$from_strn(id_str, sizeof(id_str))), 0644);
+        // The id is *random*, so two processes racing here would invent two different ones and each bake its own
+        // into the names it mangles -- a wrong build, not just a duplicated one. Write the id to a temp file and
+        // link() it into place: link is atomic and fails with EEXIST if someone else got there first, so everyone
+        // ends up agreeing on a single id. Linking after the content is written means a reader never sees a
+        // half-written id either.
+        Path_t id_temp = artifact_temp(id_file);
+        Path$write(id_temp, Texts(filename_id, Text("_"), Text$from_strn(id_str, sizeof(id_str))), 0644);
+        if (link(Path$as_c_string(id_temp), Path$as_c_string(id_file)) != 0 && errno != EEXIST)
+            print_err("Failed to create id file: ", id_file, ": ", Text$from_str(strerror(errno)));
+        unlink(Path$as_c_string(id_temp));
     }
 
     // (Re)compile header files, eagerly for explicitly passed in files, lazily
@@ -970,10 +1001,12 @@ void transpile_header(env_t *base_env, Path_t path) {
     env_t *module_env = load_module_env(base_env, ast);
     Text_t h_code = compile_file_header(module_env, Path$resolved(h_filename, Path$from_str(".")), ast);
 
-    FILE *header = fopen(Path$as_c_string(h_filename), "w");
-    if (!header) print_err("Failed to open header file: ", h_filename);
+    Path_t h_temp = artifact_temp(h_filename);
+    FILE *header = fopen(Path$as_c_string(h_temp), "w");
+    if (!header) print_err("Failed to open header file: ", h_temp);
     Text$print(header, h_code);
-    if (fclose(header) == -1) print_err("Failed to write header file: ", h_filename);
+    if (fclose(header) == -1) print_err("Failed to write header file: ", h_temp);
+    commit_artifact(h_temp, h_filename);
 
     LOG(LOG_BUILD, "Transpiled header:\t", Path$relative_to(h_filename, Path$current_dir()));
 }
@@ -986,11 +1019,6 @@ void transpile_code(env_t *base_env, Path_t path) {
     env_t *module_env = load_module_env(base_env, ast);
     Text_t c_code = compile_file(module_env, ast);
 
-    FILE *c_file = fopen(Path$as_c_string(c_filename), "w");
-    if (!c_file) print_err("Failed to write C file: ", c_filename);
-
-    Text$print(c_file, c_code);
-
     binding_t *main_binding = get_binding(module_env, "main");
     if (main_binding && main_binding->type->tag == FunctionType) {
         type_t *ret = Match(main_binding->type, FunctionType)->ret;
@@ -998,17 +1026,22 @@ void transpile_code(env_t *base_env, Path_t path) {
             compiler_err(ast->file, ast->start, ast->end, "The main() function in this file has a return type of ",
                          type_to_text(ret), ", but it should not have any return value!");
 
-        Text$print(c_file, Texts("int parse_and_run$$", main_binding->code, "(int argc, char *argv[]) {\n",
-                                 module_env->do_source_mapping ? Text("#line 1\n") : EMPTY_TEXT, "tomo_init();\n",
-                                 namespace_name(module_env, module_env->namespace, Text("$initialize")),
-                                 "();\n"
-                                 "\n",
-                                 compile_cli_arg_call(module_env, ast, main_binding->code, main_binding->type),
-                                 "return 0;\n"
-                                 "}\n"));
+        c_code = Texts(c_code, "int parse_and_run$$", main_binding->code, "(int argc, char *argv[]) {\n",
+                       module_env->do_source_mapping ? Text("#line 1\n") : EMPTY_TEXT, "tomo_init();\n",
+                       namespace_name(module_env, module_env->namespace, Text("$initialize")),
+                       "();\n"
+                       "\n",
+                       compile_cli_arg_call(module_env, ast, main_binding->code, main_binding->type),
+                       "return 0;\n"
+                       "}\n");
     }
 
-    if (fclose(c_file) == -1) print_err("Failed to output C code to ", c_filename);
+    Path_t c_temp = artifact_temp(c_filename);
+    FILE *c_file = fopen(Path$as_c_string(c_temp), "w");
+    if (!c_file) print_err("Failed to write C file: ", c_temp);
+    Text$print(c_file, c_code);
+    if (fclose(c_file) == -1) print_err("Failed to output C code to ", c_temp);
+    commit_artifact(c_temp, c_filename);
 
     LOG(LOG_BUILD, "Transpiled code:\t", Path$relative_to(c_filename, Path$current_dir()));
 }
@@ -1042,12 +1075,21 @@ void compile_object_file(Path_t path) {
     Path_t obj_file = build_file(path, ".o");
     Path_t c_file = build_file(path, ".c");
 
-    FILE *prog = run_cmd(cc, " ", cflags, " -O", optimization, " -c ", c_file, " -o ", obj_file);
+    Path_t obj_temp = artifact_temp(obj_file);
+    FILE *prog = run_cmd(cc, " ", cflags, " -O", optimization, " -c ", c_file, " -o ", obj_temp);
     if (!prog) print_err("Failed to run C compiler: ", cc);
     int status = pclose(prog);
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        unlink(Path$as_c_string(obj_temp)); // don't leave a partial object looking like a finished one
+        exit(EXIT_FAILURE);
+    }
+    commit_artifact(obj_temp, obj_file);
 
-    Path$write(build_file(path, ".config"), config_summary, 0644);
+    // After the object, so a reader that sees a fresh .config always finds a finished .o behind it:
+    Path_t config_file = build_file(path, ".config");
+    Path_t config_temp = artifact_temp(config_file);
+    Path$write(config_temp, config_summary, 0644);
+    commit_artifact(config_temp, config_file);
 
     LOG(LOG_BUILD, "Compiled object:\t", Path$relative_to(obj_file, Path$current_dir()));
 }
