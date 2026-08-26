@@ -24,7 +24,19 @@ typedef struct {
     int64_t stack_index;
 } TextIter_t;
 
-#define NEW_TEXT_ITER_STATE(t) (TextIter_t){.stack = {{t, 0}}, .stack_index = 0}
+// Only the first stack entry is live at creation; the designated-initializer
+// form ({.stack = {{t, 0}}}) would zero-fill the other MAX_TEXT_DEPTH-1 entries
+// too, memsetting ~1KB every time an iterator is made. Entries above
+// stack_index are always written before they are read, so leaving them
+// uninitialized is safe.
+#define NEW_TEXT_ITER_STATE(t)                                                                                         \
+    ({                                                                                                                 \
+        TextIter_t _state;                                                                                             \
+        _state.stack[0].text = (t);                                                                                    \
+        _state.stack[0].offset = 0;                                                                                    \
+        _state.stack_index = 0;                                                                                        \
+        _state;                                                                                                        \
+    })
 
 #define Text(str) ((Text_t){.length = sizeof(str) - 1, .tag = TEXT_ASCII, .ascii = "" str})
 
