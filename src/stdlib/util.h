@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <err.h>
+#include <gc.h> // IWYU pragma: export
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -55,12 +56,8 @@
 #define MACROLIKE extern inline __attribute__((gnu_inline, always_inline))
 #endif
 
-#ifndef GC_MALLOC
-extern void *GC_malloc(size_t);
-#define GC_MALLOC GC_malloc
 #define heap(x) (__typeof(x) *)memcpy(GC_malloc(sizeof(x)), (__typeof(x)[1]){x}, sizeof(x))
 #define stack(x) (__typeof(x) *)((__typeof(x)[1]){x})
-#endif
 
 // A single-item copy whose size is a runtime value (e.g. a container's
 // per-element `padded_item_size`), not a compile-time constant. libc's

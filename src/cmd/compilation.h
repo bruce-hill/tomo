@@ -13,6 +13,11 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
 Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t object_files, List_t extra_ldlibs,
                           bool embed_git_info);
 void compile_object_file(Path_t path);
+// Build (or find) the cached precompiled header of <tomo.h> that object
+// compiles preload. Callers that fork a worker per file should call this
+// first, so the parent builds the one shared PCH instead of every child
+// racing to build its own.
+void warm_precompiled_header(void);
 // Link a `tomo test` runner: `test_source` (the generated .test.c) plus the
 // module's object files and archives, into an executable. Returns its path.
 Path_t build_test_runner(Path_t path, List_t object_files, List_t extra_ldlibs, Text_t test_source);

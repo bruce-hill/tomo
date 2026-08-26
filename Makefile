@@ -603,6 +603,28 @@ install-files: build check-zig
 # owner), since the cache belongs to the user's home directory.
 install: install-files
 	@printf 'func main()\n\tsay("Tomo installation finished!")\n' | "$(PREFIX)/bin/tomo"
+	@$(MAKE) --no-print-directory pch
+
+# Pre-warm the precompiled-header cache. The first time tomo compiles at a
+# given optimization level it builds a PCH of tomo.h and caches it (see
+# get_precompiled_header() in src/cmd/compilation.c); doing that here spends
+# the one-time cost now rather than on the user's first program. -O0 is what
+# `tomo run` and `tomo test` compile at (already warmed by the hello-world
+# above, but cheap to confirm), -O3 what `tomo build` and `tomo package` use.
+# Runs as the invoking user, not the prefix owner, since the cache lives under
+# their XDG cache directory. Warming is only an optimization, so a failure here
+# warns rather than failing an installation that is otherwise complete.
+pch:
+	@tmp=$$(mktemp -d) || exit 0; \
+	printf 'func main()\n\tsay("")\n' > "$$tmp/warmup.tm"; \
+	status=0; \
+	for opt in 0 3; do \
+		"$(PREFIX)/bin/tomo@$(TOMO_VERSION)" build -O$$opt "$$tmp/warmup.tm" >/dev/null || status=1; \
+	done; \
+	rm -rf "$$tmp"; \
+	if [ $$status -ne 0 ]; then \
+		printf "\033[93;1mWarning: couldn't pre-warm the precompiled-header cache.\033[m\n" >&2; \
+	fi
 
 # Uninstalling is the compiler's job (`tomo uninstall` with no arguments): it
 # knows where every file of its version went and how to fix up the shared
@@ -611,5 +633,5 @@ uninstall:
 	"$(PREFIX)/bin/tomo@$(TOMO_VERSION)" uninstall --yes
 
 .SUFFIXES:
-.PHONY: test-number all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version \
+.PHONY: test-number all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version pch \
 	benchmarks benchmark-fetch benchmark-refetch benchmark-run benchmark-sizes benchmark-graphs benchmark-list

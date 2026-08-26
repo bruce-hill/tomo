@@ -32,11 +32,13 @@ int compile_and_exec(Path_t path, List_t extra_args) {
         print_err("Programs cross-compiled with --target can't run on this machine; "
                   "use `tomo build` to build them instead");
 
-    // run/eval compile for a quick single execution: default to a low
-    // optimization level (fast to compile) and skip the size-reducing link
-    // flags (fast to link), since this executable is discarded after one run.
+    // run/eval compile for a quick single execution: default to -O0 and skip
+    // the size-reducing link flags (fast to link), since this executable is
+    // discarded after one run. -O0 rather than -O1 because clang's -O1 runs
+    // nearly the whole optimization pipeline -- measured on examples/learnxiny.tm,
+    // `zig cc -O1` costs 232ms per object versus 231ms at -O3 and 127ms at -O0.
     // An explicit -O overrides the level but keeps the fast link path.
-    configure_codegen(opt_flag.tag == TEXT_NONE ? Text("1") : opt_flag, /*optimize=*/false);
+    configure_codegen(opt_flag.tag == TEXT_NONE ? Text("0") : opt_flag, /*optimize=*/false);
 
     List_t files = normalize_tm_paths(List(path));
     path = *(Path_t *)files.data;

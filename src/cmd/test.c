@@ -349,8 +349,9 @@ static int cmd_test(cli_command_t *self, List_t extra_args) {
     // For `tomo test`, --verbose means "show each test's output", not "show build/toolchain logs", so keep the
     // compiler-progress logs off even when verbose (set_default_logs turns them all on for --verbose):
     enabled_logs = 0;
-    // Tests are compiled once and run once; favor fast compilation:
-    configure_codegen(opt_flag.tag == TEXT_NONE ? Text("1") : opt_flag, /*optimize=*/false);
+    // Tests are compiled once and run once; favor fast compilation. -O0, not
+    // -O1: clang's -O1 costs nearly as much as -O3 (see cmd/run.c).
+    configure_codegen(opt_flag.tag == TEXT_NONE ? Text("0") : opt_flag, /*optimize=*/false);
 
     // A directory argument is not expanded here; use shell globbing to test many files at once.
     List_t paths = normalize_tm_paths(files);
@@ -361,6 +362,12 @@ static int cmd_test(cli_command_t *self, List_t extra_args) {
     if (max_jobs < 1) max_jobs = 1;
 
     build_shared_dependencies(global_env(source_mapping), paths);
+    // Every worker below compiles at least its own object and test runner, and
+    // they all preload the same precompiled header. Build it here, before the
+    // first fork, so a cold cache costs one compile of <tomo.h> rather than one
+    // per worker (build_shared_dependencies only warms it when the inputs
+    // actually share a dependency).
+    warm_precompiled_header();
 
     int64_t n = (int64_t)paths.length;
     job_t *job_list = GC_MALLOC((size_t)n * sizeof(job_t));

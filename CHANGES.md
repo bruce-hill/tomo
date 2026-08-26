@@ -2,6 +2,25 @@
 
 ## 2026-08-21
 
+- `tomo run`, `tomo eval`, and `tomo test` now compile at `-O0` instead of
+  `-O1`. Clang's `-O1` runs nearly the whole optimization pipeline, so it cost
+  as much to compile as `-O3` while these commands throw the executable away
+  after a single run. Generated code leans on precompiled library routines, so
+  the runtime penalty is small (measured at ~2% on an integer-heavy loop). As
+  before, `-O0` builds are instrumented with UBSan in trap mode, so undefined
+  behaviour -- including in hand-written `C_code` -- now aborts rather than
+  misbehaving silently on these paths. Pass `-O1` explicitly to get the old
+  behaviour.
+- Compiling a Tomo file now preloads a precompiled `tomo.h`, cached per
+  toolchain configuration under the XDG cache directory and rebuilt whenever
+  the installed headers change. This cuts the fixed per-file cost of parsing
+  the ~40 standard library headers out of every compile. Set `TOMO_NO_PCH=1` to
+  turn it off. Together with the `-O0` change, `tomo test` over the compiler's
+  own test suite went from 2.0s to 1.1s.
+- Fixed a `GC_MALLOC` macro redefinition between `tomo/util.h` and the bundled
+  `gc.h` that made compiling against the installed headers fail under
+  `-Werror`. It was usually masked by the Zig toolchain's compilation cache
+  returning an object built before the clash appeared.
 - **Breaking:** serialization and deserialization now have dedicated syntax,
   and the implicit conversions to and from `[Byte]` are gone. Use
   `serialize(value)` instead of `bytes : [Byte] = value`, and

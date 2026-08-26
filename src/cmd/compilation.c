@@ -25,10 +25,12 @@
 #include "../packages.h"
 #include "../parse/files.h"
 #include "../profile.h"
+#include "../sha256.h"
 #include "../stdlib/bytes.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/enums.h"
 #include "../stdlib/lists.h"
+#include "../stdlib/optionals.h"
 #include "../stdlib/paths.h"
 #include "../stdlib/print.h"
 #include "../stdlib/random.h"
@@ -682,6 +684,211 @@ static void commit_artifact(Path_t temp, Path_t final) {
     }
 }
 
+// --- Precompiled header -----------------------------------------------------
+// Every generated .c opens with `#include <tomo.h>`, which pulls in ~40 more
+// headers. Preprocessing and parsing them is a fixed per-translation-unit cost
+// that dwarfs the code Tomo actually generates: measured on
+// examples/learnxiny.tm, preloading a precompiled tomo.h instead cuts the
+// object compile from 136ms to 119ms at -O0, and from 228ms to 218ms at -O3
+// (where the optimizer, which a PCH does nothing for, dominates).
+//
+// A PCH is only usable by an invocation whose language and codegen options
+// match the ones it was built with -- clang rejects a mismatch outright rather
+// than falling back -- and Tomo's flags vary with the optimization level, the
+// target platform, and which headers the installation has. So rather than
+// shipping prebuilt ones (which cross-compiled distribution archives couldn't
+// produce anyway: their `tomo` doesn't run on the build host), the PCH is
+// built on demand and cached under a fingerprint covering everything that
+// could invalidate it. A miss costs one extra ~65ms compile, once.
+
+// Append each header matched by `pattern` to `fingerprint` with its size and
+// mtime, so that reinstalling Tomo (or editing a header in place) names a
+// different cache entry instead of tripping clang's "file has been modified
+// since the precompiled header was built" error.
+static const char *stamp_headers(const char *fingerprint, Path_t pattern) {
+    List_t files = Path$glob(pattern);
+    for (int64_t i = 0; i < (int64_t)files.length; i++) {
+        Path_t file = *(Path_t *)(files.data + i * files.stride);
+        struct stat sb;
+        if (stat(Path$as_c_string(file), &sb) != 0) continue;
+        fingerprint = String(fingerprint, "\n", file, ":", (int64_t)sb.st_size, ":", (int64_t)sb.st_mtime);
+    }
+    return fingerprint;
+}
+
+// Each reinstall of Tomo (or change of optimization level or target platform)
+// names a new cache entry, and nothing else ever removes the old one, so keep
+// only the most recently built few. Called on a cache miss, which is the only
+// time the directory grows. The cap is generous enough for the levels and
+// targets one checkout realistically compiles at.
+#define MAX_CACHED_PCHS 8
+
+static void prune_pch_cache(Path_t cache_dir, Path_t keep) {
+    List_t cached = Path$glob(Path$child(cache_dir, Text("*.pch")));
+    if ((int64_t)cached.length <= MAX_CACHED_PCHS) return;
+
+    // Drop the oldest entries first: repeatedly evict the least recently
+    // modified one that isn't the entry just built.
+    for (int64_t remaining = (int64_t)cached.length; remaining > MAX_CACHED_PCHS; remaining--) {
+        Path_t oldest = NONE_PATH;
+        time_t oldest_time = 0;
+        for (int64_t i = 0; i < (int64_t)cached.length; i++) {
+            Path_t file = *(Path_t *)(cached.data + i * cached.stride);
+            struct stat sb;
+            if (file == NONE_PATH || streq(file, keep) || stat(Path$as_c_string(file), &sb) != 0) continue;
+            if (oldest == NONE_PATH || sb.st_mtime < oldest_time) {
+                oldest = file;
+                oldest_time = sb.st_mtime;
+            }
+        }
+        if (oldest == NONE_PATH) break;
+        unlink(Path$as_c_string(oldest));
+        // Tombstone it so the next pass doesn't pick it again:
+        for (int64_t i = 0; i < (int64_t)cached.length; i++) {
+            Path_t *file = (Path_t *)(cached.data + i * cached.stride);
+            if (*file != NONE_PATH && streq(*file, oldest)) *file = NONE_PATH;
+        }
+    }
+}
+
+// The cached PCH to preload, or NONE if there isn't one to use. Memoized: the
+// answer is the same for every translation unit in a build.
+static OptionalPath_t precompiled_header = NONE_PATH;
+static bool precompiled_header_resolved = false;
+// A -D carrying the cache fingerprint, passed to both the PCH build and every
+// compile that preloads it (they must agree on macro definitions or clang
+// rejects the PCH). It exists to defeat `zig cc`'s own compilation cache,
+// which is content-addressed: without it, zig answers a PCH build with an
+// artifact it produced earlier from byte-identical headers, one that recorded
+// their *previous* mtimes -- and clang validates a PCH by mtime, so the reused
+// artifact is rejected by every compile that tries to load it. Since the
+// fingerprint changes whenever those mtimes do (a plain `cp` of the headers
+// during `make install` is enough), keying zig's cache on it too keeps the two
+// caches from disagreeing.
+static const char *precompiled_header_stamp = "";
+
+static OptionalPath_t get_precompiled_header(void) {
+    if (precompiled_header_resolved) return precompiled_header;
+    precompiled_header_resolved = true;
+
+    // Escape hatch: a user whose install has drifted (hand-edited headers, a
+    // partially-overwritten prefix) can turn the PCH off without reinstalling.
+    const char *disabled = getenv("TOMO_NO_PCH");
+    if (disabled && disabled[0] != '\0' && !streq(disabled, "0")) return NONE_PATH;
+
+    Path_t include_dir = Path$from_str(String(lib_root, "/include/tomo@", TOMO_VERSION));
+    Path_t umbrella = Path$child(include_dir, Text("tomo.h"));
+    if (!Path$is_file(umbrella, true)) return NONE_PATH;
+
+    // Everything that decides whether a given PCH is valid for this compile:
+    // the exact invocation, and the headers it would be built from.
+    const char *fingerprint = String(cc, " ", cflags, " -O", optimization);
+    fingerprint = stamp_headers(fingerprint, Path$child(include_dir, Text("*.h")));
+    // One level down covers every subdirectory tomo.h reaches into: tomo/ for
+    // the standard library's own headers, plus gc/ and unistring/, which the
+    // vendored gc.h and uni*.h pull in and which clang validates just as
+    // strictly as the rest.
+    fingerprint = stamp_headers(fingerprint, Path$child(Path$child(include_dir, Text("*")), Text("*.h")));
+
+    // 64 bits of the digest is plenty to keep configurations apart, the same
+    // truncation tomo_root_for() uses to name build-cache directories.
+    // siphash24() would not do here: its key is randomized per process, so it
+    // would name a different file every run.
+    char digest[SHA256_HEX_SIZE];
+    sha256_hex(fingerprint, strlen(fingerprint), digest);
+    digest[16] = '\0';
+    const char *name = String("tomo-", digest, ".pch");
+    // An identifier, not a number: the value is never expanded, and a bare hex
+    // digest would be a pp-number too wide for any integer type.
+    precompiled_header_stamp = String(" -D__TOMO_PCH__=pch_", digest);
+    Path_t cache_dir = Path$child(xdg_tomo_dir("XDG_CACHE_HOME", "~/.cache"), Text("pch"));
+    Path_t pch = Path$child(cache_dir, Text$from_str(name));
+    if (Path$is_file(pch, true)) {
+        precompiled_header = pch;
+        return precompiled_header;
+    }
+
+    // Cache miss: build it. A failure here is not fatal -- the same headers are
+    // about to be compiled the ordinary way, which will report any real error
+    // against the user's own source rather than against tomo.h.
+    (void)Path$create_directory(cache_dir, 0755, /*recursive=*/true);
+    Path_t temp = artifact_temp(pch);
+    profile_span_t span = profile_begin("cc precompile tomo.h");
+    FILE *prog =
+        run_cmd(cc, " ", cflags, " -O", optimization, precompiled_header_stamp, " -x c-header ", umbrella, " -o ", temp);
+    int status = prog ? pclose(prog) : -1;
+    profile_end(span);
+    if (!prog || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        unlink(Path$as_c_string(temp));
+        return NONE_PATH;
+    }
+    commit_artifact(temp, pch);
+    LOG(LOG_BUILD, "Precompiled header:\t", pch);
+    prune_pch_cache(cache_dir, pch);
+    precompiled_header = pch;
+    return precompiled_header;
+}
+
+// Build the precompiled header now, if it isn't cached already. Callers that
+// fork a worker per file use this to make sure the one shared PCH is built
+// once in the parent instead of N times in parallel children.
+void warm_precompiled_header(void) {
+    (void)get_precompiled_header();
+}
+
+// The `-include-pch <path>` fragment to splice into a compile command, or ""
+// when no precompiled header is available.
+static const char *pch_flag(void) {
+    OptionalPath_t pch = get_precompiled_header();
+    return pch == NONE_PATH ? "" : String(precompiled_header_stamp, " -include-pch '", pch, "'");
+}
+
+// Throw away the cached PCH and stop using one for the rest of this process.
+static void discard_precompiled_header(void) {
+    if (precompiled_header != NONE_PATH) unlink(Path$as_c_string(precompiled_header));
+    precompiled_header = NONE_PATH;
+    precompiled_header_resolved = true;
+}
+
+// Compile one translation unit: `cc <cflags> -O<level> [pch] <args>`. Returns
+// whether it succeeded.
+//
+// clang refuses a precompiled header whose input files have changed since it
+// was built, and that can happen underneath a build in progress: the cache
+// entry is chosen from the headers' sizes and mtimes, but a `make install` (or
+// anything else that rewrites the installed headers) landing between that
+// check and the moment clang reads them leaves the entry stale. A stale cache
+// must never be able to fail a compile that would otherwise succeed, so an
+// attempt that used a PCH holds its diagnostics back; if it fails, the PCH is
+// discarded and the compile re-run without one, which either succeeds or
+// reports the program's real error itself -- uncaptured, and in colour.
+static bool run_compile(const char *args, Path_t scratch) {
+    const char *pch = pch_flag();
+    if (pch[0] != '\0') {
+        Path_t captured = (Path_t)String(scratch, ".err");
+        FILE *prog = run_cmd(cc, " ", cflags, " -O", optimization, pch, " ", args, " 2>'", captured, "'");
+        int status = prog ? pclose(prog) : -1;
+        if (prog && WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            // It worked, so anything it printed is a warning worth showing:
+            FILE *diagnostics = fopen(Path$as_c_string(captured), "r");
+            if (diagnostics) {
+                for (int c; (c = fgetc(diagnostics)) != EOF;)
+                    fputc(c, stderr);
+                fclose(diagnostics);
+            }
+            unlink(Path$as_c_string(captured));
+            return true;
+        }
+        unlink(Path$as_c_string(captured));
+        discard_precompiled_header();
+    }
+
+    FILE *prog = run_cmd(cc, " ", cflags, " -O", optimization, " ", args);
+    if (!prog) print_err("Failed to run C compiler: ", cc);
+    int status = pclose(prog);
+    return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+}
+
 void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *extra_ldlibs, compile_mode_t mode) {
     Table_t to_link = EMPTY_TABLE;
     Table_t dependency_files = EMPTY_TABLE;
@@ -760,6 +967,31 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
     // a pipe to serialize their spans back over (merged into the parent below).
     int profile_pipe[2] = {-1, -1};
     if (profiling && pipe(profile_pipe) != 0) profile_pipe[0] = profile_pipe[1] = -1;
+
+    // Resolve (and, on a cold cache, build) the precompiled header here in the
+    // parent: the children below all need the same one, and each forking its
+    // own build would mean N redundant compiles of tomo.h. Only when there is
+    // actually something to compile, though -- an up-to-date build that forks
+    // no children at all shouldn't pay for a cold cache.
+    if (mode != COMPILE_C_FILES) {
+        for (int64_t i = 0; i < (int64_t)dependency_files.entries.length; i++) {
+            struct {
+                Path_t filename;
+                staleness_t staleness;
+            } *entry = (dependency_files.entries.data + i * dependency_files.entries.stride);
+            if (clean_build || entry->staleness.c || entry->staleness.h || entry->staleness.o
+                || is_config_outdated(entry->filename)) {
+                warm_precompiled_header();
+                break;
+            }
+        }
+    }
+
+    // Drain the parent's stdio buffers before forking. When output is a pipe
+    // rather than a tty it is block-buffered, so anything still buffered here
+    // would be inherited by every child and printed a second time when they
+    // flush on exit.
+    fflush(NULL);
 
     // (Re)transpile and compile object files, eagerly for files explicitly
     // specified and lazily for downstream dependencies:
@@ -1076,10 +1308,7 @@ void compile_object_file(Path_t path) {
     Path_t c_file = build_file(path, ".c");
 
     Path_t obj_temp = artifact_temp(obj_file);
-    FILE *prog = run_cmd(cc, " ", cflags, " -O", optimization, " -c ", c_file, " -o ", obj_temp);
-    if (!prog) print_err("Failed to run C compiler: ", cc);
-    int status = pclose(prog);
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    if (!run_compile(String("-c ", c_file, " -o ", obj_temp), obj_temp)) {
         unlink(Path$as_c_string(obj_temp)); // don't leave a partial object looking like a finished one
         exit(EXIT_FAILURE);
     }
@@ -1262,9 +1491,7 @@ Path_t build_test_runner(Path_t path, List_t object_files, List_t extra_ldlibs, 
     // below carries -nostdlib and other ldflags that break system-header search
     // (<math.h> etc.) if the .c were compiled inline like compile_executable's
     // trivial runner.c (which doesn't include <tomo.h>).
-    FILE *cc_obj = run_cmd(cc, " ", cflags, " -O", optimization, " -c ", test_c, " -o ", test_o);
-    int cc_status = pclose(cc_obj);
-    if (!WIFEXITED(cc_status) || WEXITSTATUS(cc_status) != 0) exit(EXIT_FAILURE);
+    if (!run_compile(String("-c ", test_c, " -o ", test_o), test_o)) exit(EXIT_FAILURE);
 
     // The runner TU already contains the module's full code (so tests can reach
     // its private helpers), so drop the module's own object file from the link
