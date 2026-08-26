@@ -224,7 +224,12 @@ static void run_tests_for_file(Path_t path, int msg_fd) {
     waitpid(pid, &run_status, 0);
     // A clean exit (0 = all passed, 1 = some failed) is expected; death by signal means the runner itself
     // crashed, so the records we forwarded may be truncated -- make sure that can't read as a green suite.
-    if (WIFSIGNALED(run_status)) _exit(WORKER_RUNNER_CRASHED);
+    if (WIFSIGNALED(run_status)) {
+        // Flush first: this worker's stdout is a pipe (fully buffered), so _exit() alone would throw away the
+        // build/diagnostic output that is the only explanation the driver has to show.
+        fflush(NULL);
+        _exit(WORKER_RUNNER_CRASHED);
+    }
 }
 
 // ---- the driver -----------------------------------------------------------
@@ -253,6 +258,9 @@ static void job_absorb_output(job_t *j) {
         j->out[j->out_len] = '\0';
         return;
     }
+    // Only a real end-of-stream closes this: an interrupted read is not EOF, and treating it as one would throw
+    // away the rest of a failing job's diagnostic.
+    if (n < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) return;
     close(j->out_fd);
     j->out_fd = -1;
 }
@@ -422,10 +430,12 @@ static int cmd_test(cli_command_t *self, List_t extra_args) {
             if (died) {
                 // The worker never finished: report it as one failed file rather than losing the whole run. Its
                 // captured output is the diagnostic that explains why.
-                if (WIFEXITED(status) && WEXITSTATUS(status) == WORKER_RUNNER_CRASHED) crashed = true;
+                bool runner_crashed = WIFEXITED(status) && WEXITSTATUS(status) == WORKER_RUNNER_CRASHED;
+                if (runner_crashed) crashed = true;
                 test_result_t r = {
                     .outcome = TEST_RESULT_UNEXPECTED_FAILURE,
-                    .label = WIFSIGNALED(status) ? "<the test job crashed>" : "<the test job could not be built>",
+                    .label = (WIFSIGNALED(status) || runner_crashed) ? "<the test job crashed>"
+                                                                     : "<the test job could not be built>",
                     .output = j->out_len ? j->out : (char *)"",
                     .file = j->label,
                 };

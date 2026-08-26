@@ -1,5 +1,6 @@
 // `tomo fmt`: format Tomo source code, or check that formatting is faithful.
 
+#include <errno.h>
 #include <gc.h>
 #include <setjmp.h>
 #include <string.h>
@@ -168,6 +169,13 @@ static int64_t check_all(List_t paths, int64_t max_jobs) {
                 fflush(NULL);
                 _exit(ok ? EXIT_SUCCESS : EXIT_FAILURE);
             }
+            if (pid < 0) {
+                // Out of processes: check this one here rather than dropping it on the floor and calling the run
+                // clean. A file that is never checked must never read as a file that passed.
+                if (log) fclose(log);
+                if (!check_file(path)) failures += 1;
+                continue;
+            }
             in_flight_jobs[in_flight].pid = pid;
             in_flight_jobs[in_flight].log = log;
             in_flight_jobs[in_flight].path = path;
@@ -176,8 +184,16 @@ static int64_t check_all(List_t paths, int64_t max_jobs) {
         }
 
         int status = 0;
-        pid_t done = wait(&status);
-        if (done < 0) break;
+        pid_t done;
+        // A signal (a window resize, say) interrupts wait(); retrying rather than breaking is what keeps the
+        // remaining jobs from being abandoned and the run from reporting "faithful on every file" anyway.
+        while ((done = wait(&status)) < 0 && errno == EINTR)
+            continue;
+        if (done < 0) {
+            // Nothing left to reap even though jobs are outstanding: count them rather than silently passing.
+            failures += in_flight;
+            break;
+        }
         bool ok = WIFEXITED(status) && WEXITSTATUS(status) == 0;
         for (int64_t i = 0; i < in_flight; i++) {
             if (in_flight_jobs[i].pid != done) continue;
