@@ -207,6 +207,12 @@ static int fputc_column(FILE *out, char c, char print_char, int *column) {
 public
 int highlight_error(file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines,
                     bool use_color) {
+    return highlight_error_to(stderr, 0, file, start, end, hl_color, context_lines, use_color);
+}
+
+public
+int highlight_error_to(FILE *out, int indent, file_t *file, const char *start, const char *end, const char *hl_color,
+                       int64_t context_lines, bool use_color) {
     if (!file) return 0;
 
     // Handle spans that come from multiple files:
@@ -223,7 +229,8 @@ int highlight_error(file_t *file, const char *start, const char *end, const char
         lineno_suffix = "\x1b(0\x78\x1b(B\x1b[m ";
         normal_color = "\x1b[m";
         empty_marker = "\x1b(0\x61\x1b(B";
-        printed += fprint(stderr, "\x1b[93;4;1m", file->relative_filename, "\x1b[m");
+        printed += fprint_inline(out, repeated_char(' ', indent));
+        printed += fprint(out, "\x1b[93;4;1m", file->relative_filename, "\x1b[m");
     } else {
         lineno_prefix = "";
         lineno_suffix = "| ";
@@ -231,10 +238,11 @@ int highlight_error(file_t *file, const char *start, const char *end, const char
         normal_color = "";
         empty_marker = " ";
         print_carets = true;
-        printed += fprint(stderr, file->relative_filename);
+        printed += fprint_inline(out, repeated_char(' ', indent));
+        printed += fprint(out, file->relative_filename);
     }
 
-    if (context_lines == 0) return fprint(stderr, hl_color, string_slice(start, (size_t)(end - start)), normal_color);
+    if (context_lines == 0) return fprint(out, hl_color, string_slice(start, (size_t)(end - start)), normal_color);
 
     int64_t start_line = get_line_number(file, start), end_line = get_line_number(file, end);
 
@@ -249,10 +257,11 @@ int highlight_error(file_t *file, const char *start, const char *end, const char
 
     for (int64_t line_no = first_line; line_no <= last_line; ++line_no) {
         if (line_no > first_line + 5 && line_no < last_line - 5) {
+            printed += fprint_inline(out, repeated_char(' ', indent));
             if (use_color)
-                printed += fprint(stderr, "\x1b[0;2;3;4m     ... ", (last_line - first_line) - 11,
+                printed += fprint(out, "\x1b[0;2;3;4m     ... ", (last_line - first_line) - 11,
                                   " lines omitted ...     \x1b[m");
-            else printed += fprint(stderr, "     ... ", (last_line - first_line) - 11, " lines omitted ...");
+            else printed += fprint(out, "     ... ", (last_line - first_line) - 11, " lines omitted ...");
             line_no = last_line - 6;
             continue;
         }
@@ -261,7 +270,8 @@ int highlight_error(file_t *file, const char *start, const char *end, const char
         for (int64_t n = line_no; n > 0; n /= 10)
             needed_spaces -= 1;
 
-        printed += fprint_inline(stderr, lineno_prefix, repeated_char(' ', needed_spaces), line_no, lineno_suffix);
+        printed += fprint_inline(out, repeated_char(' ', indent), lineno_prefix, repeated_char(' ', needed_spaces),
+                                 line_no, lineno_suffix);
         const char *line = get_line(file, line_no);
         if (!line) break;
 
@@ -269,33 +279,34 @@ int highlight_error(file_t *file, const char *start, const char *end, const char
         const char *p = line;
         // Before match
         for (; *p && *p != '\r' && *p != '\n' && p < start; ++p)
-            printed += fputc_column(stderr, *p, *p, &column);
+            printed += fputc_column(out, *p, *p, &column);
 
         // Zero-width matches
         if (p == start && start == end) {
-            printed += fprint_inline(stderr, hl_color, empty_marker, normal_color);
+            printed += fprint_inline(out, hl_color, empty_marker, normal_color);
             column += 1;
         }
 
         // Inside match
         if (start <= p && p < end) {
-            printed += fputs(hl_color, stderr);
+            printed += fputs(hl_color, out);
             for (; *p && *p != '\r' && *p != '\n' && p < end; ++p)
-                printed += fputc_column(stderr, *p, *p, &column);
-            printed += fputs(normal_color, stderr);
+                printed += fputc_column(out, *p, *p, &column);
+            printed += fputs(normal_color, out);
         }
 
         // After match
         for (; *p && *p != '\r' && *p != '\n'; ++p)
-            printed += fputc_column(stderr, *p, *p, &column);
+            printed += fputc_column(out, *p, *p, &column);
 
-        printed += fprint_inline(stderr, "\n");
+        printed += fprint_inline(out, "\n");
 
         const char *eol = line + strcspn(line, "\r\n");
         if (print_carets && start >= line && start < eol && line <= start) {
+            printed += fprint_inline(out, repeated_char(' ', indent));
             for (int num = 0; num < digits; num++)
-                printed += fputc(' ', stderr);
-            printed += fputs(": ", stderr);
+                printed += fputc(' ', out);
+            printed += fputs(": ", out);
             int col = 0;
             for (const char *sp = line; *sp && *sp != '\n'; ++sp) {
                 char print_char;
@@ -303,11 +314,11 @@ int highlight_error(file_t *file, const char *start, const char *end, const char
                 else if (sp == start && sp == end) print_char = '^';
                 else if (sp >= start && sp < end) print_char = '-';
                 else print_char = ' ';
-                printed += fputc_column(stderr, *sp, print_char, &col);
+                printed += fputc_column(out, *sp, print_char, &col);
             }
-            printed += fputs("\n", stderr);
+            printed += fputs("\n", out);
         }
     }
-    fflush(stderr);
+    fflush(out);
     return printed;
 }

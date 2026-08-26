@@ -5,6 +5,7 @@
 #include "stdlib/datatypes.h"
 #include "stdlib/print.h" // IWYU pragma: export
 #include "stdlib/stdlib.h" // IWYU pragma: export
+#include "stdlib/test_harness.h" // IWYU pragma: export
 #include "types.h"
 
 typedef struct {
@@ -111,11 +112,16 @@ env_t *namespace_env(env_t *env, const char *namespace_name);
         /* producing false matches. */                                                                                \
         if (getenv("TOMO_PLAIN_ERRORS")) {                                                                             \
             fprint(stderr, __VA_ARGS__);                                                                               \
+            /* Hand the offending span to the test driver so it can show the line (see TOMO_FAIL_SPAN_TAG): */        \
+            file_t *_pf = f;                                                                                           \
+            if (_pf && start && end)                                                                                   \
+                fprint(stderr, "\n" TOMO_FAIL_SPAN_TAG, _pf->filename, "\x1e", (int64_t)((const char *)(start) - _pf->text),        \
+                       "\x1e", (int64_t)((const char *)(end) - _pf->text), "\x1e");                                                 \
             exit(1);                                                                                                   \
         }                                                                                                              \
         file_t *_f = f;                                                                                                \
         if (USE_COLOR) fputs("\x1b[95;7;1m Compiler Error \x1b[m\n\n", stderr);                                        \
-        else fputs("Compiler Error:\n\n", stderr);                                                                     \
+        else fputs("Compiler Error\n\n", stderr);                                                                     \
         if (_f && start && end) {                                                                                      \
             highlight_error(_f, start, end, "\x1b[91;7;1m", 2, USE_COLOR);                                             \
             fputs("\n", stderr);                                                                                       \

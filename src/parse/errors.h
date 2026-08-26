@@ -19,7 +19,7 @@
     ({                                                                                                                 \
         if (USE_COLOR) fputs("\x1b[96;1;7m Parser Error \x1b[m\n\n", stderr);                                          \
         else fputs("Parser Error\n\n", stderr);                                                                        \
-        highlight_error((ctx)->file, (start), (end), "\x1b[91;1;7m", 2, USE_COLOR);                                    \
+        highlight_error((ctx)->file, (start), (end), "\x1b[91;7;1m", 2, USE_COLOR);                                    \
         fputs("\n", stderr);                                                                                           \
         if (getenv("TOMO_STACKTRACE")) print_stacktrace(stderr, 1);                                                    \
         if (USE_COLOR) fputs("\x1b[91;1m", stderr);                                                                    \
@@ -36,13 +36,11 @@
     ({                                                                                                                 \
         spaces(pos);                                                                                                   \
         if (!match(pos, target)) {                                                                                     \
-            if (USE_COLOR) fputs("\x1b[91;1;7m", stderr);                                                              \
             parser_err(ctx, start, *pos, __VA_ARGS__);                                                                 \
         }                                                                                                              \
         char _lastchar = target[strlen(target) - 1];                                                                   \
         if (isalpha(_lastchar) || isdigit(_lastchar) || _lastchar == '_') {                                            \
             if (is_xid_continue_next(*pos)) {                                                                          \
-                if (USE_COLOR) fputs("\x1b[91;1;7m", stderr);                                                          \
                 parser_err(ctx, start, *pos, __VA_ARGS__);                                                             \
             }                                                                                                          \
         }                                                                                                              \
@@ -59,7 +57,6 @@
             const char *_eol = strchr(*pos, '\n');                                                                     \
             const char *_next = strstr(*pos, (close_str));                                                             \
             const char *_end = _eol < _next ? _eol : _next;                                                            \
-            if (USE_COLOR) fputs("\x1b[91;1;7m", stderr);                                                              \
             parser_err(ctx, _start, _end, __VA_ARGS__);                                                                \
         }                                                                                                              \
     })
@@ -70,7 +67,6 @@
         spaces(_pos);                                                                                                  \
         __typeof(parser(ctx, *_pos)) _result = parser(ctx, *_pos);                                                     \
         if (!_result) {                                                                                                \
-            if (USE_COLOR) fputs("\x1b[91;1;7m", stderr);                                                              \
             parser_err(ctx, start, *_pos, __VA_ARGS__);                                                                \
         }                                                                                                              \
         *_pos = _result->end;                                                                                          \

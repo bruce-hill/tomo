@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <stdio.h>
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -22,5 +24,11 @@ __attribute__((pure, nonnull)) int64_t get_line_number(file_t *f, const char *p)
 __attribute__((pure, nonnull)) int64_t get_line_column(file_t *f, const char *p);
 __attribute__((pure, nonnull)) const char *get_line(file_t *f, int64_t line_number);
 __attribute__((pure, nonnull)) const char *get_file_pos(file_t *f, const char *p);
+// Render `file`'s source around the given span, highlighting it. `highlight_error`
+// writes to stderr flush-left (what the compiler and runtime error paths want);
+// `highlight_error_to` is the same renderer pointed at any stream and indented,
+// so `tomo test` can show an excerpt with exactly the same shape.
+int highlight_error_to(FILE *out, int indent, file_t *file, const char *start, const char *end, const char *hl_color,
+                       int64_t context_lines, bool use_color);
 int highlight_error(file_t *file, const char *start, const char *end, const char *hl_color, int64_t context_lines,
                     bool use_color);
