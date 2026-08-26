@@ -185,7 +185,11 @@ ast_t *parse_deserialize(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     if (!match(&pos, ":")) return NULL;
     spaces(&pos);
-    type_ast_t *type = expect(ctx, start, &pos, parse_type, "I expected a type to deserialize to here");
+    // A soft keyword has to be able to lose: if what follows the colon isn't a type, this is an ordinary
+    // identifier that happens to be called `deserialize` (a table key like `{deserialize: 1}`, say), so back out
+    // and let the other parsers have it rather than failing the whole file here.
+    type_ast_t *type = optional(ctx, &pos, parse_type);
+    if (!type) return NULL;
     spaces(&pos);
     if (!match(&pos, "("))
         parser_err(ctx, start, pos, "I expected a parenthesized list of bytes to deserialize after this type");
