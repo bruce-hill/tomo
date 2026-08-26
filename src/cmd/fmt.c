@@ -4,6 +4,7 @@
 #include <setjmp.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "../ast.h"
@@ -12,6 +13,7 @@
 #include "../stdlib/bools.h"
 #include "../stdlib/files.h"
 #include "../stdlib/lists.h"
+#include "../stdlib/report.h"
 #include "../stdlib/text.h"
 #include "commands.h"
 #include "common.h"
@@ -30,6 +32,7 @@ static cli_arg_t fmt_spec[] = {
      .description = "don't write anything; check that formatting each file is faithful and settled"},
     {"jobs", &jobs, &Int32$info, .short_flag = 'j', .metavar = "n",
      .description = "how many files to check at once (default: one per CPU)"},
+    QUIET_FLAG,
     VERBOSE_FLAG,
 };
 
@@ -140,7 +143,14 @@ static int64_t check_all(List_t paths, int64_t max_jobs) {
     struct {
         pid_t pid;
         FILE *log;
+        Path_t path;
+        struct timespec started;
     } *in_flight_jobs = GC_MALLOC((size_t)max_jobs * sizeof(*in_flight_jobs));
+
+    // Every file's line ends with an elapsed time, so size that column once up front rather than letting the dot
+    // leader absorb the difference between "9ms" and "1.83s" and wobble from row to row:
+    int time_w = (int)strlen("1m 03s"); // the widest report_duration() produces short of an hour
+    int indent = USE_COLOR ? 2 : 0;
 
     int64_t n = (int64_t)paths.length, next = 0, in_flight = 0, failures = 0;
     while (next < n || in_flight > 0) {
@@ -148,6 +158,8 @@ static int64_t check_all(List_t paths, int64_t max_jobs) {
             Path_t path = *(Path_t *)(paths.data + next * paths.stride);
             next += 1;
             FILE *log = tmpfile();
+            struct timespec started;
+            clock_gettime(CLOCK_MONOTONIC, &started);
             fflush(NULL);
             pid_t pid = fork();
             if (pid == 0) {
@@ -158,14 +170,33 @@ static int64_t check_all(List_t paths, int64_t max_jobs) {
             }
             in_flight_jobs[in_flight].pid = pid;
             in_flight_jobs[in_flight].log = log;
+            in_flight_jobs[in_flight].path = path;
+            in_flight_jobs[in_flight].started = started;
             in_flight += 1;
         }
 
         int status = 0;
         pid_t done = wait(&status);
         if (done < 0) break;
+        bool ok = WIFEXITED(status) && WEXITSTATUS(status) == 0;
         for (int64_t i = 0; i < in_flight; i++) {
             if (in_flight_jobs[i].pid != done) continue;
+            if (quiet != yes) {
+                struct timespec now;
+                clock_gettime(CLOCK_MONOTONIC, &now);
+                double elapsed = (double)(now.tv_sec - in_flight_jobs[i].started.tv_sec)
+                                 + 1e-9 * (double)(now.tv_nsec - in_flight_jobs[i].started.tv_nsec);
+                char time_str[32];
+                report_duration(time_str, sizeof(time_str), elapsed);
+                style_t style = report_style();
+                // cwd-relative, the way `tomo test` names its files:
+                const char *name =
+                    Path$as_c_string(Path$relative_to(in_flight_jobs[i].path, Path$current_dir()));
+                report_leader(stdout, indent, ok, name, time_w);
+                print(style.dim, time_str, style.reset);
+            }
+            // The diagnostic goes to stderr, so flush the line above it first or the two can cross:
+            fflush(stdout);
             if (in_flight_jobs[i].log) {
                 fflush(in_flight_jobs[i].log);
                 rewind(in_flight_jobs[i].log);
@@ -177,7 +208,7 @@ static int64_t check_all(List_t paths, int64_t max_jobs) {
             in_flight -= 1;
             break;
         }
-        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) failures += 1;
+        if (!ok) failures += 1;
     }
     return failures;
 }
@@ -224,7 +255,8 @@ cli_command_t fmt_command = {
     .description = "Formats Tomo source, printing to stdout (or rewriting the files with\n"
                    "--in-place). With --check, nothing is written: each file is checked to\n"
                    "make sure it parses, that the formatted source parses to the same syntax\n"
-                   "tree, and that formatting it again changes nothing.",
+                   "tree, and that formatting it again changes nothing. Files are checked in\n"
+                   "parallel and listed as they finish, unless --quiet.",
     .spec_len = sizeof(fmt_spec) / sizeof(fmt_spec[0]),
     .spec = fmt_spec,
     .handler = cmd_fmt,

@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "files.h" // highlight_error_to, load_file
+#include "report.h" // shared with `tomo fmt --check`
 #include "stdlib.h" // USE_COLOR
 #include "test_harness.h"
 
@@ -165,53 +166,6 @@ bool tomo_test_read_record(int fd, test_result_t *out) {
 // -- the plain version drops only decoration, never a detail you'd need to fix
 // a failure.
 
-#define REPORT_MAX_WIDTH 96
-
-// How wide to draw the report. Terminals narrower than the content get the
-// content anyway (wrapping is better than truncating a diagnostic):
-static int report_width(void) {
-    const char *cols = getenv("COLUMNS");
-    int w = cols ? atoi(cols) : 0;
-    if (w < 40) {
-        struct winsize ws;
-        if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0) w = (int)ws.ws_col;
-    }
-    if (w < 40) w = 80;
-    return w > REPORT_MAX_WIDTH ? REPORT_MAX_WIDTH : w;
-}
-
-typedef struct {
-    const char *green, *red, *dim, *bold, *reset, *hdr;
-    const char *pass_mark, *fail_mark, *gutter, *point, *dot, *rule, *under, *sep;
-} style_t;
-
-static style_t styling(void) {
-    if (USE_COLOR)
-        return (style_t){
-            .green = "\x1b[92m", .red = "\x1b[91m", .dim = "\x1b[2m", .bold = "\x1b[1m", .reset = "\x1b[m",
-            .hdr = "\x1b[93;1;4m",
-            .pass_mark = "✔", .fail_mark = "✘", .gutter = "│",
-            .point = "▸", .dot = "·", .rule = "─", .under = "━", .sep = "·",
-        };
-    return (style_t){
-        .green = "", .red = "", .dim = "", .bold = "", .reset = "", .hdr = "",
-        .pass_mark = "ok", .fail_mark = "FAIL", .gutter = "|",
-        .point = ">", .dot = ".", .rule = "-", .under = "^", .sep = ",",
-    };
-}
-
-// "0.42s" / "84ms" / "1m 03s" -- short enough to sit at the end of a line.
-static void fmt_duration(char *buf, size_t n, double seconds) {
-    if (seconds >= 60.0) snprintf(buf, n, "%dm %02ds", (int)(seconds / 60), (int)seconds % 60);
-    else if (seconds >= 1.0) snprintf(buf, n, "%.2fs", seconds);
-    else snprintf(buf, n, "%dms", (int)(seconds * 1000.0 + 0.5));
-}
-
-static void repeat(FILE *f, const char *s, int n) {
-    for (int i = 0; i < n; i++)
-        fputs(s, f);
-}
-
 // ---- source excerpts ------------------------------------------------------
 
 // Show the source around a failure. This hands off to the same renderer the
@@ -345,15 +299,6 @@ static file_group_t file_group_at(test_result_t *results, int64_t n, int64_t i) 
     return g;
 }
 
-// Columns, not bytes: the marks are multi-byte UTF-8 ("✔" is three bytes wide
-// but one column), so measuring with strlen would make every line come up short.
-static int display_width(const char *s) {
-    int w = 0;
-    for (; *s; s++)
-        if ((*s & 0xC0) != 0x80) w += 1;
-    return w;
-}
-
 static int digits_of(int64_t v) {
     int d = 1;
     for (; v >= 10; v /= 10)
@@ -365,7 +310,7 @@ static int digits_of(int64_t v) {
 // a first pass over the groups. Letting the dot leader absorb their variation
 // instead would slide "N passed" left and right from row to row, because both
 // the digit count and the time ("9ms" vs "513ms" vs "1.20s") vary.
-static void print_file_lines(FILE *f, test_result_t *results, int64_t n, int indent, int width, style_t s) {
+static void print_file_lines(FILE *f, test_result_t *results, int64_t n, int indent, style_t s) {
     int pass_digits = 1, fail_digits = 1, time_w = 0;
     bool any_failed = false;
     for (int64_t i = 0; i < n;) {
@@ -376,7 +321,7 @@ static void print_file_lines(FILE *f, test_result_t *results, int64_t n, int ind
             if (digits_of(g.failed) > fail_digits) fail_digits = digits_of(g.failed);
         }
         char time_str[32];
-        fmt_duration(time_str, sizeof(time_str), g.seconds);
+        report_duration(time_str, sizeof(time_str), g.seconds);
         if ((int)strlen(time_str) > time_w) time_w = (int)strlen(time_str);
         i = g.next;
     }
@@ -388,18 +333,10 @@ static void print_file_lines(FILE *f, test_result_t *results, int64_t n, int ind
     for (int64_t i = 0; i < n;) {
         file_group_t g = file_group_at(results, n, i);
         char time_str[32];
-        fmt_duration(time_str, sizeof(time_str), g.seconds);
+        report_duration(time_str, sizeof(time_str), g.seconds);
 
         const char *name = g.file ? g.file : "(unknown file)";
-        const char *mark = g.failed == 0 ? s.pass_mark : s.fail_mark;
-        int left = display_width(mark) + 1 + display_width(name);
-        int dots = width - 2 * indent - left - 2 - counts_w - 2 - time_w;
-        if (dots < 1) dots = 1;
-
-        fprintf(f, "%*s%s%s%s %s", indent, "", g.failed == 0 ? s.green : s.red, mark, s.reset, name);
-        fprintf(f, " %s", s.dim);
-        repeat(f, s.dot, dots);
-        fprintf(f, "%s ", s.reset);
+        report_leader(f, indent, g.failed == 0, name, counts_w + 2 + time_w);
 
         // The passed column is always the same width, so it lines up whether or not this file had failures:
         fprintf(f, "%s%*lld passed%s", g.failed == 0 ? s.green : s.dim, pass_digits, (long long)g.passed, s.reset);
@@ -408,7 +345,7 @@ static void print_file_lines(FILE *f, test_result_t *results, int64_t n, int ind
             fprintf(f, "  %s%*lld failed%s", s.red, fail_digits, (long long)g.failed, s.reset);
             used += 2 + fail_w;
         }
-        repeat(f, " ", counts_w - used);
+        report_repeat(f, " ", counts_w - used);
         fprintf(f, "  %s%*s%s\n", s.dim, time_w, time_str, s.reset);
         i = g.next;
     }
@@ -432,8 +369,7 @@ void tomo_test_render(test_result_t *results, int64_t n, bool verbose) {
         i = j;
     }
 
-    style_t s = styling();
-    int width = report_width();
+    style_t s = report_style();
     int indent = USE_COLOR ? 2 : 0;
     FILE *f = stdout;
 
@@ -464,7 +400,7 @@ void tomo_test_render(test_result_t *results, int64_t n, bool verbose) {
             char time_str[32] = "";
             if (r->seconds >= 0.001) {
                 char d[24];
-                fmt_duration(d, sizeof(d), r->seconds);
+                report_duration(d, sizeof(d), r->seconds);
                 snprintf(time_str, sizeof(time_str), " %s%s%s", s.dim, d, s.reset);
             }
             fprintf(f, "%*s%s%s%s %s%s%s%s\n", indent + 2, "", ok ? s.green : s.red, ok ? s.pass_mark : s.fail_mark,
@@ -485,7 +421,7 @@ void tomo_test_render(test_result_t *results, int64_t n, bool verbose) {
     }
 
     if (n > 0 && (verbose || failed > 0 || files > 1)) {
-        print_file_lines(f, results, n, indent, width, s);
+        print_file_lines(f, results, n, indent, s);
         fprintf(f, "\n");
     }
 
@@ -497,7 +433,7 @@ void tomo_test_render(test_result_t *results, int64_t n, bool verbose) {
     }
 
     char time_str[32];
-    fmt_duration(time_str, sizeof(time_str), seconds);
+    report_duration(time_str, sizeof(time_str), seconds);
     if (failed == 0) {
         // The payoff line. Everything above it is green, and so is this.
         fprintf(f, "%*s%s%s%s %lld passed%s %s%s %lld %s %s %s%s\n", indent, "", s.green, s.bold,
