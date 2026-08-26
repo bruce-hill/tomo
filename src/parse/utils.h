@@ -36,20 +36,20 @@ bool match_separator(parse_ctx_t *ctx, const char **pos);
 // however few characters it actually consumes -- which turned skipping one
 // newline between statements into a scan of the entire rest of the file, and
 // made parsing quadratic in file length. These scan only what they consume.
-__attribute__((pure)) static inline bool char_in_set(char c, const char *set) {
+PUREFUNC MACROLIKE bool char_in_set(char c, const char *set) {
     for (; *set; set++)
         if (*set == c) return true;
     return false;
 }
 
-__attribute__((pure)) static inline size_t span_of(const char *s, const char *accept) {
+PUREFUNC MACROLIKE size_t span_of(const char *s, const char *accept) {
     const char *p = s;
     while (*p && char_in_set(*p, accept))
         p += 1;
     return (size_t)(p - s);
 }
 
-__attribute__((pure)) static inline size_t span_not(const char *s, const char *reject) {
+PUREFUNC MACROLIKE size_t span_not(const char *s, const char *reject) {
     const char *p = s;
     while (*p && !char_in_set(*p, reject))
         p += 1;
@@ -59,7 +59,7 @@ __attribute__((pure)) static inline size_t span_not(const char *s, const char *r
 // GC_strndup() calls strlen() on its argument before clamping to `len`, so
 // copying a few characters out of a source file measures the whole rest of the
 // file first -- the same trap as strspn() above. This copies only `len` bytes.
-static inline char *strndup_bounded(const char *s, size_t len) {
+MACROLIKE char *strndup_bounded(const char *s, size_t len) {
     char *copy = GC_MALLOC_ATOMIC(len + 1);
     memcpy(copy, s, len);
     copy[len] = '\0';
