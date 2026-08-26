@@ -856,8 +856,15 @@ void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *t
         .data = GC_MALLOC((size_t)(len * padded_size)),
         .stride = padded_size,
     };
+    // A length that survives the bound above can still ask for far more memory than the input, since one encoded
+    // byte can stand for a much wider item. GC_MALLOC answers NULL rather than aborting, and nothing below may be
+    // handed that:
+    if (len > 0 && padded_size > 0 && list.data == NULL) deserialization_failed();
     deserialize_fn_t item_deserialize = type->ListInfo.item->metamethods.deserialize;
-    if (item_deserialize) {
+    if (padded_size == 0) {
+        // A zero-sized item holds nothing and reads nothing, so there is nothing to loop over -- and looping
+        // anyway would spin for as long as an unbounded (unbounded because the data can't bound it) count says.
+    } else if (item_deserialize) {
         for (int64_t i = 0; i < len; i++)
             item_deserialize(in, list.data + i * list.stride, pointers, type->ListInfo.item);
     } else if (list.stride == type->ListInfo.item->size) {
