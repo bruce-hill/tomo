@@ -34,13 +34,13 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     (void)match(&pos, "-");
     if (!isdigit(*pos)) return NULL;
     if (match(&pos, "0x")) { // Hex
-        pos += strspn(pos, "0123456789abcdefABCDEF_");
+        pos += span_of(pos, "0123456789abcdefABCDEF_");
     } else if (match(&pos, "0b")) { // Binary
-        pos += strspn(pos, "01_");
+        pos += span_of(pos, "01_");
     } else if (match(&pos, "0o")) { // Octal
-        pos += strspn(pos, "01234567_");
+        pos += span_of(pos, "01234567_");
     } else { // Decimal
-        pos += strspn(pos, "0123456789_");
+        pos += span_of(pos, "0123456789_");
     }
     char *str = GC_MALLOC_ATOMIC((size_t)(pos - start) + 1);
     memset(str, 0, (size_t)(pos - start) + 1);
@@ -69,18 +69,18 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     if (!isdigit(*pos) && *pos != '.') return NULL;
     else if (*pos == '.' && !isdigit(pos[1])) return NULL;
 
-    size_t len = strspn(pos, "0123456789_");
+    size_t len = span_of(pos, "0123456789_");
     // Digits followed by `.identifier` are an Int with a method/field, not a
     // Num: `12.sqrt()` calls sqrt on the integer 12. But a SECOND dot ends
     // that reading -- `12..round()` is the Num `12.` with `.round()` called
     // on it, since `12.` followed by a path literal would be nonsense.
     if (pos[len] == '.' && pos[len + 1] != '.' && is_xid_start_next(pos + len + 1)) return NULL;
-    else if (pos[len] == '.') len += 1 + strspn(pos + len + 1, "0123456789");
+    else if (pos[len] == '.') len += 1 + span_of(pos + len + 1, "0123456789");
     else if (pos[len] != 'e' && pos[len] != 'f' && pos[len] != '%') return NULL;
     if (pos[len] == 'e') {
         len += 1;
         if (pos[len] == '-' || pos[len] == '+') len += 1;
-        len += strspn(pos + len, "0123456789_");
+        len += span_of(pos + len, "0123456789_");
     }
     char *buf = GC_MALLOC_ATOMIC(len + 1);
     memset(buf, 0, len + 1);

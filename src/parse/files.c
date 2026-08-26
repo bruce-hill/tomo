@@ -107,7 +107,7 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
     if (path[0] == '<') {
         const char *endbracket = strchr(path, '>');
         if (!endbracket) return NULL;
-        file = spoof_file(GC_strndup(path, (size_t)(endbracket + 1 - path)), endbracket + 1);
+        file = spoof_file(strndup_bounded(path, (size_t)(endbracket + 1 - path)), endbracket + 1);
     } else {
         file = load_file(path);
         if (!file) return NULL;
@@ -160,9 +160,9 @@ ast_t *parse_use(parse_ctx_t *ctx, const char *pos) {
 
     if (!match_word(&pos, "use")) return NULL;
     spaces(&pos);
-    size_t name_len = strcspn(pos, " \t\r\n;");
+    size_t name_len = span_not(pos, " \t\r\n;");
     if (name_len < 1) parser_err(ctx, start, pos, "There is no module name here to use");
-    char *name = GC_strndup(pos, name_len);
+    char *name = strndup_bounded(pos, name_len);
     pos += name_len;
     while (match(&pos, ";"))
         continue;

@@ -31,13 +31,13 @@ CONSTFUNC bool is_keyword(const char *word) {
 }
 
 size_t some_of(const char **pos, const char *allow) {
-    size_t len = strspn(*pos, allow);
+    size_t len = span_of(*pos, allow);
     *pos += len;
     return len;
 }
 
 size_t some_not(const char **pos, const char *forbid) {
-    size_t len = strcspn(*pos, forbid);
+    size_t len = span_not(*pos, forbid);
     *pos += len;
     return len;
 }
@@ -103,15 +103,15 @@ const char *get_word(const char **inout) {
             break;
         }
     }
-    if (ascii_only) return GC_strndup(word, len);
+    if (ascii_only) return strndup_bounded(word, len);
 
     // Normalize non-ASCII identifiers to NFC (per Unicode UAX #31) so that
     // canonically-equivalent spellings (e.g. precomposed "é" vs. "e" + combining
     // accent) refer to the same variable.
     size_t norm_len = 0;
     uint8_t *normalized = u8_normalize(UNINORM_NFC, (const uint8_t *)word, len, NULL, &norm_len);
-    if (!normalized) return GC_strndup(word, len); // Fall back to the raw bytes on failure
-    const char *result = GC_strndup((const char *)normalized, norm_len);
+    if (!normalized) return strndup_bounded(word, len); // Fall back to the raw bytes on failure
+    const char *result = strndup_bounded((const char *)normalized, norm_len);
     free(normalized);
     return result;
 }
@@ -125,13 +125,13 @@ const char *get_id(const char **inout) {
 }
 
 PUREFUNC const char *eol(const char *str) {
-    return str + strcspn(str, "\r\n");
+    return str + span_not(str, "\r\n");
 }
 
 bool comment(parse_ctx_t *ctx, const char **pos) {
     if ((*pos)[0] == '#') {
         const char *start = *pos;
-        *pos += strcspn(*pos, "\r\n");
+        *pos += span_not(*pos, "\r\n");
         const char *end = *pos;
         Table$set(&ctx->comments, &start, &end, parse_comments_info);
         return true;
@@ -146,13 +146,13 @@ PUREFUNC int64_t get_indent(parse_ctx_t *ctx, const char *pos) {
     if (line == NULL) {
         return 0;
     } else if (*line == ' ') {
-        int64_t spaces = (int64_t)strspn(line, " ");
+        int64_t spaces = (int64_t)span_of(line, " ");
         if (line[spaces] == '\t')
             parser_err(ctx, line + spaces, line + spaces + 1,
                        "This is a tab following spaces, and you can't mix tabs and spaces");
         return spaces;
     } else if (*line == '\t') {
-        int64_t indent = (int64_t)strspn(line, "\t");
+        int64_t indent = (int64_t)span_of(line, "\t");
         if (line[indent] == ' ')
             parser_err(ctx, line + indent, line + indent + 1,
                        "This is a space following tabs, and you can't mix tabs and spaces");
@@ -172,7 +172,7 @@ bool indent(parse_ctx_t *ctx, const char **out) {
 
     if (get_indent(ctx, next_line) != starting_indent + SPACES_PER_INDENT) return false;
 
-    *out = next_line + strspn(next_line, " \t");
+    *out = next_line + span_of(next_line, " \t");
     return true;
 }
 
@@ -188,11 +188,11 @@ bool newline_with_indentation(const char **out, int64_t target) {
     }
 
     if (*pos == ' ') {
-        if ((int64_t)strspn(pos, " ") >= target) {
+        if ((int64_t)span_of(pos, " ") >= target) {
             *out = pos + target;
             return true;
         }
-    } else if ((int64_t)strspn(pos, "\t") * SPACES_PER_INDENT >= target) {
+    } else if ((int64_t)span_of(pos, "\t") * SPACES_PER_INDENT >= target) {
         *out = pos + target / SPACES_PER_INDENT;
         return true;
     }
@@ -216,7 +216,7 @@ const char *unescape(parse_ctx_t *ctx, const char **out, size_t *len_out) {
         return GC_strdup(unescapes[(int)escape[1]]);
     } else if (escape[1] == '[') {
         // ANSI Control Sequence Indicator: \033 [ ... m
-        size_t len = strcspn(&escape[2], "\r\n]");
+        size_t len = span_not(&escape[2], "\r\n]");
         if (escape[2 + len] != ']') parser_err(ctx, escape, escape + 2 + len, "Missing closing ']'");
         *endpos = escape + 3 + len;
         const char *result = String("\033[", string_slice(&escape[2], len), "m");
@@ -224,7 +224,7 @@ const char *unescape(parse_ctx_t *ctx, const char **out, size_t *len_out) {
         return result;
     } else if (escape[1] == '{') {
         // Unicode codepoints by name
-        size_t len = strcspn(&escape[2], "\r\n}");
+        size_t len = span_not(&escape[2], "\r\n}");
         if (escape[2 + len] != '}') parser_err(ctx, escape, escape + 2 + len, "Missing closing '}'");
         char name[len + 1];
         memcpy(name, &escape[2], len);
@@ -288,7 +288,7 @@ const char *unescape(parse_ctx_t *ctx, const char **out, size_t *len_out) {
     } else {
         *endpos = escape + 2;
         *len_out = 1;
-        return GC_strndup(escape + 1, 1);
+        return strndup_bounded(escape + 1, 1);
     }
 }
 #pragma clang diagnostic pop
