@@ -1028,6 +1028,18 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
 Text_t format_file(const char *path) {
     file_t *file = load_file(path);
     if (!file) return EMPTY_TEXT;
+    return format_source(file, NULL);
+}
+
+// Format an already-loaded file. `formatted` (when given) reports whether the
+// source actually made it through: every early return here hands back the
+// original text unchanged, which is the right thing for `tomo fmt` but is
+// indistinguishable from a no-op reformat, and `tomo fmt --check` has to tell
+// those apart.
+public
+Text_t format_source(file_t *file, bool *formatted) {
+    if (formatted) *formatted = false;
+    if (!file) return EMPTY_TEXT;
 
     jmp_buf on_err;
     if (setjmp(on_err) != 0) {
@@ -1069,5 +1081,6 @@ Text_t format_file(const char *path) {
     if (!Text$ends_with(code, Text("\n"), NULL)) {
         code = Text$concat(code, Text("\n"));
     }
+    if (formatted) *formatted = true;
     return code;
 }

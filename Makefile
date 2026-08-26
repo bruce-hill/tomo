@@ -478,9 +478,12 @@ test-number: $(BUILD_BASE)/number_test
 	@$(BUILD_BASE)/number_test
 
 # Round-trips every .tm file in the tree through `tomo fmt` and checks that the
-# formatter neither changes what the code means nor leaves it unsettled:
-test-format: build
-	@./scripts/check_format.sh
+# formatter neither changes what the code means nor leaves it unsettled. The
+# file list is gathered at recipe time, not parse time, so a generated file like
+# test/api.tm is picked up on a fresh checkout:
+test-format: build test/api.tm
+	@printf '\033[1m Testing formatter... \033[m\n'
+	@./local-tomo fmt --check $$(find test examples benchmarks -name '*.tm' | sort)
 
 test: test-tm test-number test-format
 	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
