@@ -15,6 +15,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+// When TOMO_PLAIN_ERRORS is set (i.e. under `tomo test`), a source-located
+// failure appends this trailer to its output so the driver can point at the
+// exact expression that blew up. It is stripped from the captured output
+// before any substring matching happens, so `fails "..."` is unaffected. The
+// separator is a raw RS byte, which no sane program prints.
+#define TOMO_FAIL_SPAN_TAG "\x1etomo-fail-span\x1e"
+
 // One test case, emitted by codegen:
 typedef struct {
     const char *label;
@@ -42,6 +49,11 @@ typedef struct {
     char *output;      // captured child output (never NULL; may be "")
     const char *file;  // source file this test came from (NULL if unknown), set by the `tomo test` driver
     int first_line, last_line; // source line range of the `test` block (0 if unknown)
+    // The exact span that failed, recovered from the TOMO_FAIL_SPAN_TAG trailer (NULL/0 if the failure had no
+    // source location, e.g. a bare `fail()` or a timeout):
+    const char *fail_file;
+    int fail_start, fail_end;
+    double seconds; // wall-clock time the test took
 } test_result_t;
 
 // Run every test in `tests`, forking per test. Returns 0 if all passed, else 1.
@@ -55,3 +67,7 @@ void tomo_test_render(test_result_t *results, int64_t n, bool verbose);
 // Record protocol between a driven runner and the `tomo test` driver:
 void tomo_test_write_record(int fd, const test_result_t *r);
 bool tomo_test_read_record(int fd, test_result_t *out); // false at EOF
+
+// Strip a TOMO_FAIL_SPAN_TAG trailer off `output` (truncating it in place) and
+// report the span it named. Safe to call on output with no trailer.
+void tomo_test_take_span(char *output, const char **file, int *start, int *end);

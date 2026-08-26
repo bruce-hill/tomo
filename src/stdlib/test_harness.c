@@ -1,11 +1,14 @@
 // The runtime test harness used by `tomo test`. See test_harness.h.
 #include <signal.h>
+#include <sys/ioctl.h>
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "files.h" // highlight_error_to, load_file
 #include "stdlib.h" // USE_COLOR
 #include "test_harness.h"
 
@@ -27,6 +30,29 @@ static char *drain_fd(int fd) {
     }
     buf[len] = '\0';
     return buf;
+}
+
+// Strip the TOMO_FAIL_SPAN_TAG trailer (if any) off the end of `output`, reporting the span it named. The trailer is
+// removed *before* classification so `fails "..."` substring matching never sees it.
+void tomo_test_take_span(char *output, const char **file, int *start, int *end) {
+    if (!output) return;
+    char *tag = NULL;
+    for (char *p = output; (p = strstr(p, TOMO_FAIL_SPAN_TAG)); p += 1)
+        tag = p; // the last one wins: an earlier one could only be program output faking the tag
+    if (!tag) return;
+    char *fields = tag + sizeof(TOMO_FAIL_SPAN_TAG) - 1;
+    char *sep1 = strchr(fields, '\x1e');
+    if (!sep1) return;
+    char *sep2 = strchr(sep1 + 1, '\x1e');
+    if (!sep2) return;
+    *sep1 = '\0';
+    *file = fields;
+    *start = atoi(sep1 + 1);
+    *end = atoi(sep2 + 1);
+    // Drop the trailer, plus the newline that separated it from the message:
+    while (tag > output && tag[-1] == '\n')
+        tag -= 1;
+    *tag = '\0';
 }
 
 static test_outcome_t classify(int status, const char *output, const tomo_test_t *t) {
@@ -79,6 +105,13 @@ void tomo_test_write_record(int fd, const test_result_t *r) {
     int32_t first = (int32_t)r->first_line, last = (int32_t)r->last_line;
     write_all(fd, &first, sizeof(first));
     write_all(fd, &last, sizeof(last));
+    int32_t flen = r->fail_file ? (int32_t)strlen(r->fail_file) : 0;
+    write_all(fd, &flen, sizeof(flen));
+    if (flen) write_all(fd, r->fail_file, (size_t)flen);
+    int32_t fstart = (int32_t)r->fail_start, fend = (int32_t)r->fail_end;
+    write_all(fd, &fstart, sizeof(fstart));
+    write_all(fd, &fend, sizeof(fend));
+    write_all(fd, &r->seconds, sizeof(r->seconds));
 }
 
 static char *read_str(int fd, int32_t len) {
@@ -105,149 +138,383 @@ bool tomo_test_read_record(int fd, test_result_t *out) {
     int32_t first = 0, last = 0;
     read_all(fd, &first, sizeof(first));
     read_all(fd, &last, sizeof(last));
+    int32_t flen = 0;
+    read_all(fd, &flen, sizeof(flen));
+    out->fail_file = flen ? read_str(fd, flen) : NULL;
+    int32_t fstart = 0, fend = 0;
+    read_all(fd, &fstart, sizeof(fstart));
+    read_all(fd, &fend, sizeof(fend));
+    double seconds = 0.0;
+    read_all(fd, &seconds, sizeof(seconds));
     out->outcome = (test_outcome_t)outcome;
     out->expect_failure = ef != 0;
     out->first_line = first;
     out->last_line = last;
+    out->fail_start = fstart;
+    out->fail_end = fend;
+    out->seconds = seconds;
     out->file = NULL;
     return true;
 }
 
 // ---- rendering ------------------------------------------------------------
+//
+// Two looks, chosen by USE_COLOR (a tty, or COLOR=1): a rich report with color,
+// box drawing and source excerpts; and a plain ASCII one that
+// stays greppable and log-friendly when piped. Both carry the same information
+// -- the plain version drops only decoration, never a detail you'd need to fix
+// a failure.
 
-// Print the captured output of a failing test, dimmed and indented by `indent`
-// spaces. Uses a box-drawing gutter on a terminal, a plain '|' when piped:
-static void print_output(FILE *f, const char *output, int indent, const char *dim, const char *reset) {
+#define REPORT_MAX_WIDTH 96
+
+// How wide to draw the report. Terminals narrower than the content get the
+// content anyway (wrapping is better than truncating a diagnostic):
+static int report_width(void) {
+    const char *cols = getenv("COLUMNS");
+    int w = cols ? atoi(cols) : 0;
+    if (w < 40) {
+        struct winsize ws;
+        if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0) w = (int)ws.ws_col;
+    }
+    if (w < 40) w = 80;
+    return w > REPORT_MAX_WIDTH ? REPORT_MAX_WIDTH : w;
+}
+
+typedef struct {
+    const char *green, *red, *dim, *bold, *reset, *hdr;
+    const char *pass_mark, *fail_mark, *gutter, *point, *dot, *rule, *under, *sep;
+} style_t;
+
+static style_t styling(void) {
+    if (USE_COLOR)
+        return (style_t){
+            .green = "\x1b[92m", .red = "\x1b[91m", .dim = "\x1b[2m", .bold = "\x1b[1m", .reset = "\x1b[m",
+            .hdr = "\x1b[93;1;4m",
+            .pass_mark = "✔", .fail_mark = "✘", .gutter = "│",
+            .point = "▸", .dot = "·", .rule = "─", .under = "━", .sep = "·",
+        };
+    return (style_t){
+        .green = "", .red = "", .dim = "", .bold = "", .reset = "", .hdr = "",
+        .pass_mark = "ok", .fail_mark = "FAIL", .gutter = "|",
+        .point = ">", .dot = ".", .rule = "-", .under = "^", .sep = ",",
+    };
+}
+
+// "0.42s" / "84ms" / "1m 03s" -- short enough to sit at the end of a line.
+static void fmt_duration(char *buf, size_t n, double seconds) {
+    if (seconds >= 60.0) snprintf(buf, n, "%dm %02ds", (int)(seconds / 60), (int)seconds % 60);
+    else if (seconds >= 1.0) snprintf(buf, n, "%.2fs", seconds);
+    else snprintf(buf, n, "%dms", (int)(seconds * 1000.0 + 0.5));
+}
+
+static void repeat(FILE *f, const char *s, int n) {
+    for (int i = 0; i < n; i++)
+        fputs(s, f);
+}
+
+// ---- source excerpts ------------------------------------------------------
+
+// Show the source around a failure. This hands off to the same renderer the
+// compiler and runtime error paths use, so a failing test's excerpt is shaped
+// exactly like every other diagnostic Tomo prints: the file name in bold
+// yellow, dim line numbers behind a box-drawing gutter, the offending span
+// highlighted inline (or underlined with carets when there's no color).
+static void print_excerpt(FILE *f, const test_result_t *r, int indent) {
+    file_t *file = NULL;
+    const char *start = NULL, *end = NULL;
+
+    if (r->fail_file && r->fail_end > r->fail_start) {
+        file = load_file(r->fail_file);
+        if (file && (int64_t)r->fail_end <= file->len) {
+            start = file->text + r->fail_start;
+            end = file->text + r->fail_end;
+        } else file = NULL;
+    }
+    if (!file && r->file && r->first_line > 0) {
+        // No precise span (a timeout, or a test that should have failed and didn't): point at the `test` line so
+        // there's still somewhere to look.
+        file = load_file(r->file);
+        if (file) {
+            start = get_line(file, r->first_line);
+            if (start) end = start + strcspn(start, "\r\n");
+            else file = NULL;
+        }
+    }
+    if (!file || !start) return;
+
+    highlight_error_to(f, indent, file, start, end, "\x1b[91;7;1m", 2, USE_COLOR);
+    fprintf(f, "\n");
+}
+
+// ---- failure details ------------------------------------------------------
+
+// The test's own stdout/stderr, behind a gutter so it can't be mistaken for
+// the report's own text.
+static void print_output(FILE *f, const char *output, int indent, style_t s, const char *color) {
     if (!output) return;
-    // Ignore trailing newlines so we don't render a dangling empty line:
     size_t end = strlen(output);
     while (end > 0 && output[end - 1] == '\n')
-        end -= 1;
+        end -= 1; // no dangling blank line
     if (end == 0) return;
-    const char *bar = USE_COLOR ? "\xe2\x94\x86" : "|";
-    fprintf(f, "%s", dim);
     for (const char *line = output; line < output + end;) {
         const char *nl = memchr(line, '\n', (size_t)(output + end - line));
         size_t len = nl ? (size_t)(nl - line) : (size_t)(output + end - line);
-        fprintf(f, "%*s%s %.*s\n", indent, "", bar, (int)len, line);
+        fprintf(f, "%*s%s%s%s %s%.*s%s\n", indent, "", s.dim, USE_COLOR ? "┆" : "|", s.reset, color, (int)len,
+                line, s.reset);
         if (!nl) break;
         line = nl + 1;
     }
-    fprintf(f, "%s", reset);
 }
 
-// Append a dim " file:first-last" location tag to the current line (editor-jumpable):
-static void print_location(FILE *f, const test_result_t *r, const char *dim, const char *reset) {
-    if (!r->file || r->first_line <= 0) return;
-    if (r->last_line > r->first_line)
-        fprintf(f, " %s%s:%d-%d%s", dim, r->file, r->first_line, r->last_line, reset);
-    else fprintf(f, " %s%s:%d%s", dim, r->file, r->first_line, reset);
+// The "-- expected / ++ got" pair used whenever a `fails` message didn't match.
+static void print_mismatch(FILE *f, const test_result_t *r, int indent, style_t s) {
+    fprintf(f, "%*s%s-%s %sexpected the failure to contain%s\n", indent, "", s.green, s.reset, s.dim, s.reset);
+    fprintf(f, "%*s  %s%s%s\n", indent, "", s.green, r->expected_msg ? r->expected_msg : "", s.reset);
+    fprintf(f, "%*s%s+%s %sbut it actually said%s\n", indent, "", s.red, s.reset, s.dim, s.reset);
+    print_output(f, r->output, indent + 2, s, s.red);
 }
 
-static void print_failure(FILE *f, const test_result_t *r, int indent, const char *red, const char *dim,
-                          const char *reset) {
-    // On a terminal use ❌; when piped (no color) use a plain "FAIL:" tag instead of an emoji:
-    const char *mark = USE_COLOR ? "\xe2\x9d\x8c" : "FAIL:";
-    int sub = indent + 4;
-    fprintf(f, "%*s%s%s %s%s", indent, "", red, mark, r->label, reset);
-    print_location(f, r, dim, reset);
-    fprintf(f, "\n");
-    // A failed test's output is the important part, so render it at normal brightness (not dimmed):
+static const char *outcome_headline(const test_result_t *r) {
+    switch (r->outcome) {
+    case TEST_RESULT_UNEXPECTED_FAILURE: return "this test was expected to pass, but it failed";
+    case TEST_RESULT_UNEXPECTED_SUCCESS: return "this test was expected to fail, but it passed";
+    case TEST_RESULT_WRONG_MESSAGE: return "this test failed with the wrong message";
+    case TEST_RESULT_TIMEOUT: return "this test never finished";
+    default: return "";
+    }
+}
+
+// Laid out like every other Tomo diagnostic: what went wrong, the source it went
+// wrong in, then the message -- the same order `parser_err` and `compiler_err`
+// use, with the test's name standing in for the error-kind badge.
+static void print_failure(FILE *f, const test_result_t *r, int indent, style_t s) {
+    int sub = indent + 2;
+    fprintf(f, "%*s%s%s%s %s%s%s\n", indent, "", s.red, s.fail_mark, s.reset, s.bold, r->label, s.reset);
+    print_excerpt(f, r, sub);
+    fprintf(f, "%*s%s%s%s%s\n", sub, "", s.red, s.bold, outcome_headline(r), s.reset);
+
     switch (r->outcome) {
     case TEST_RESULT_UNEXPECTED_FAILURE:
-        fprintf(f, "%*sexpected to pass, but it failed:\n", sub, "");
-        print_output(f, r->output, sub, "", "");
+        print_output(f, r->output, sub, s, "");
         break;
     case TEST_RESULT_UNEXPECTED_SUCCESS:
         if (r->expected_msg)
-            fprintf(f, "%*sexpected a failure matching \"%s\", but it passed\n", sub, "", r->expected_msg);
-        else fprintf(f, "%*sexpected a failure, but it passed\n", sub, "");
+            fprintf(f, "%*s%sit should have failed with a message containing%s\n", sub, "", s.dim, s.reset);
+        if (r->expected_msg) fprintf(f, "%*s  %s%s%s\n", sub, "", s.green, r->expected_msg, s.reset);
         break;
     case TEST_RESULT_WRONG_MESSAGE:
-        fprintf(f, "%*sexpected a failure matching \"%s\", but got:\n", sub, "",
-                r->expected_msg ? r->expected_msg : "");
-        print_output(f, r->output, sub, "", "");
+        print_mismatch(f, r, sub, s);
         break;
     case TEST_RESULT_TIMEOUT:
-        fprintf(f, "%*stimed out (exceeded the time limit; set TOMO_TEST_TIMEOUT to change it)\n", sub, "");
+        fprintf(f, "%*s%sit hit the time limit and was killed -- raise it with TOMO_TEST_TIMEOUT=<seconds>%s\n", sub,
+                "", s.dim, s.reset);
+        print_output(f, r->output, sub, s, "");
         break;
     case TEST_RESULT_PASS:
     default: break;
     }
+    fprintf(f, "\n");
 }
 
+// ---- per-file roll-up -----------------------------------------------------
+
+// Results are tagged with a per-file label; compare by text so the grouping
+// doesn't depend on the caller interning those strings.
+static bool same_file(const char *a, const char *b) {
+    if (a == b) return true;
+    return a && b && strcmp(a, b) == 0;
+}
+
+// Results arrive grouped by file (the driver appends a file at a time), so a
+// single pass over consecutive runs gives the per-file tallies.
+// One file's tallies, plus where the next group starts.
+typedef struct {
+    const char *file;
+    int64_t passed, failed;
+    double seconds;
+    int64_t next;
+} file_group_t;
+
+static file_group_t file_group_at(test_result_t *results, int64_t n, int64_t i) {
+    file_group_t g = {.file = results[i].file, .next = i};
+    for (; g.next < n && same_file(results[g.next].file, g.file); g.next++) {
+        if (results[g.next].outcome == TEST_RESULT_PASS) g.passed += 1;
+        else g.failed += 1;
+        g.seconds += results[g.next].seconds;
+    }
+    return g;
+}
+
+// Columns, not bytes: the marks are multi-byte UTF-8 ("✔" is three bytes wide
+// but one column), so measuring with strlen would make every line come up short.
+static int display_width(const char *s) {
+    int w = 0;
+    for (; *s; s++)
+        if ((*s & 0xC0) != 0x80) w += 1;
+    return w;
+}
+
+static int digits_of(int64_t v) {
+    int d = 1;
+    for (; v >= 10; v /= 10)
+        d += 1;
+    return d;
+}
+
+// The counts and the elapsed time are laid out as fixed-width columns, sized in
+// a first pass over the groups. Letting the dot leader absorb their variation
+// instead would slide "N passed" left and right from row to row, because both
+// the digit count and the time ("9ms" vs "513ms" vs "1.20s") vary.
+static void print_file_lines(FILE *f, test_result_t *results, int64_t n, int indent, int width, style_t s) {
+    int pass_digits = 1, fail_digits = 1, time_w = 0;
+    bool any_failed = false;
+    for (int64_t i = 0; i < n;) {
+        file_group_t g = file_group_at(results, n, i);
+        if (digits_of(g.passed) > pass_digits) pass_digits = digits_of(g.passed);
+        if (g.failed > 0) {
+            any_failed = true;
+            if (digits_of(g.failed) > fail_digits) fail_digits = digits_of(g.failed);
+        }
+        char time_str[32];
+        fmt_duration(time_str, sizeof(time_str), g.seconds);
+        if ((int)strlen(time_str) > time_w) time_w = (int)strlen(time_str);
+        i = g.next;
+    }
+
+    int pass_w = pass_digits + (int)strlen(" passed");
+    int fail_w = fail_digits + (int)strlen(" failed");
+    int counts_w = pass_w + (any_failed ? 2 + fail_w : 0);
+
+    for (int64_t i = 0; i < n;) {
+        file_group_t g = file_group_at(results, n, i);
+        char time_str[32];
+        fmt_duration(time_str, sizeof(time_str), g.seconds);
+
+        const char *name = g.file ? g.file : "(unknown file)";
+        const char *mark = g.failed == 0 ? s.pass_mark : s.fail_mark;
+        int left = display_width(mark) + 1 + display_width(name);
+        int dots = width - 2 * indent - left - 2 - counts_w - 2 - time_w;
+        if (dots < 1) dots = 1;
+
+        fprintf(f, "%*s%s%s%s %s", indent, "", g.failed == 0 ? s.green : s.red, mark, s.reset, name);
+        fprintf(f, " %s", s.dim);
+        repeat(f, s.dot, dots);
+        fprintf(f, "%s ", s.reset);
+
+        // The passed column is always the same width, so it lines up whether or not this file had failures:
+        fprintf(f, "%s%*lld passed%s", g.failed == 0 ? s.green : s.dim, pass_digits, (long long)g.passed, s.reset);
+        int used = pass_w;
+        if (g.failed > 0) {
+            fprintf(f, "  %s%*lld failed%s", s.red, fail_digits, (long long)g.failed, s.reset);
+            used += 2 + fail_w;
+        }
+        repeat(f, " ", counts_w - used);
+        fprintf(f, "  %s%*s%s\n", s.dim, time_w, time_str, s.reset);
+        i = g.next;
+    }
+}
+
+// ---- the whole report -----------------------------------------------------
+
 void tomo_test_render(test_result_t *results, int64_t n, bool verbose) {
-    const char *green = USE_COLOR ? "\x1b[92;1m" : "";
-    const char *red = USE_COLOR ? "\x1b[91;1m" : "";
-    const char *dim = USE_COLOR ? "\x1b[2m" : "";
-    const char *reset = USE_COLOR ? "\x1b[m" : "";
-    const char *file_hdr = USE_COLOR ? "\x1b[93;1;4m" : ""; // yellow, bold, underlined
-    const char *err_file_hdr = USE_COLOR ? "\x1b[91;1;4m" : ""; // yellow, bold, underlined
+    // Results arrive grouped by file, but within a file the compile-failure tests are checked before the runtime
+    // ones. Put each file's tests back in source order so the report reads top-to-bottom like the file does:
+    for (int64_t i = 0; i < n;) {
+        int64_t j = i;
+        while (j < n && same_file(results[j].file, results[i].file))
+            j += 1;
+        for (int64_t a = i + 1; a < j; a++) // insertion sort: stable, and these runs are short
+            for (int64_t b = a; b > i && results[b].first_line < results[b - 1].first_line; b--) {
+                test_result_t tmp = results[b];
+                results[b] = results[b - 1];
+                results[b - 1] = tmp;
+            }
+        i = j;
+    }
 
-    int64_t passed = 0, failed = 0;
-    for (int64_t i = 0; i < n; i++)
-        if (results[i].outcome == TEST_RESULT_PASS) passed += 1;
-        else failed += 1;
-
+    style_t s = styling();
+    int width = report_width();
+    int indent = USE_COLOR ? 2 : 0;
     FILE *f = stdout;
 
-    // Phase 1 (verbose only): the full per-file listing of every test. Passing tests are muted (dim ✓) with their
-    // captured output; failing tests get just a marker line here -- their details are consolidated below, right above
-    // the summary, so you never have to scroll back up through the logs to find them.
+    int64_t passed = 0, failed = 0, files = 0;
+    double seconds = 0.0;
+    for (int64_t i = 0; i < n; i++) {
+        if (results[i].outcome == TEST_RESULT_PASS) passed += 1;
+        else failed += 1;
+        seconds += results[i].seconds;
+        if (i == 0 || !same_file(results[i].file, results[i - 1].file)) files += 1;
+    }
+
+    // Verbose: the full roster, so you can see what actually ran (and what each
+    // test printed). Failures are only marked here -- their details come below,
+    // right above the summary, so you never scroll back up through the logs.
     if (verbose) {
-        const char *cur_file = NULL;
+        const char *cur = NULL;
         for (int64_t i = 0; i < n; i++) {
             test_result_t *r = &results[i];
-            if (r->file && (cur_file == NULL || strcmp(cur_file, r->file) != 0)) {
-                cur_file = r->file;
-                int64_t file_passed = 0, file_total = 0;
-                for (int64_t j = i; j < n && results[j].file && strcmp(results[j].file, cur_file) == 0; j++) {
-                    file_total += 1;
-                    if (results[j].outcome == TEST_RESULT_PASS) file_passed += 1;
-                }
-                fprintf(f, "%s%s%s%s %s%ld/%ld%s\n", i > 0 ? "\n" : "", file_hdr, r->file, reset, dim,
-                        (long)file_passed, (long)file_total, reset);
+            if (i == 0 || !same_file(r->file, cur)) {
+                cur = r->file;
+                fprintf(f, "%s%*s%s%s%s\n", i > 0 ? "\n" : "", indent, "", s.hdr, cur ? cur : "(unknown file)",
+                        s.reset);
             }
-            if (r->outcome == TEST_RESULT_PASS) {
-                const char *mark = USE_COLOR ? "\xe2\x9c\x93" : "PASS:"; // ✓
-                fprintf(f, "\x1b[32m%s%s %s%s", mark, dim, r->label, reset);
-                print_location(f, r, dim, reset);
-                fprintf(f, "\n");
-                print_output(f, r->output, 2, dim, reset); // the test's own stdout/stderr
-            } else {
-                const char *mark = USE_COLOR ? "\xe2\x9d\x8c" : "FAIL:"; // ❌
-                fprintf(f, "%s%s %s%s", red, mark, r->label, reset);
-                print_location(f, r, dim, reset);
-                fprintf(f, "\n");
+            bool ok = r->outcome == TEST_RESULT_PASS;
+            // Most tests finish in well under a millisecond; a column of "0ms" is just noise, so only the ones
+            // slow enough to be worth noticing get a time:
+            char time_str[32] = "";
+            if (r->seconds >= 0.001) {
+                char d[24];
+                fmt_duration(d, sizeof(d), r->seconds);
+                snprintf(time_str, sizeof(time_str), " %s%s%s", s.dim, d, s.reset);
             }
+            fprintf(f, "%*s%s%s%s %s%s%s%s\n", indent + 2, "", ok ? s.green : s.red, ok ? s.pass_mark : s.fail_mark,
+                    s.reset, ok ? s.dim : s.bold, r->label, s.reset, time_str);
+            if (ok) print_output(f, r->output, indent + 4, s, s.dim);
         }
+        fprintf(f, "\n");
     }
 
-    // Phase 2 (both modes): every failure with its full log output, grouped by file, immediately above the summary.
     if (failed > 0) {
-        if (verbose) fprintf(f, "\n"); // separate the failures section from the full listing above
-        const char *cur_file = NULL;
-        for (int64_t i = 0; i < n; i++) {
-            test_result_t *r = &results[i];
-            if (r->outcome == TEST_RESULT_PASS) continue;
-            if (r->file && (cur_file == NULL || strcmp(cur_file, r->file) != 0)) {
-                cur_file = r->file;
-                fprintf(f, "%s%s%s\n", err_file_hdr, r->file, reset);
-            }
-            print_failure(f, r, 0, red, dim, reset);
-        }
+        // A banner, so the eye lands on the failures even in a wall of build output:
+        if (USE_COLOR)
+            fprintf(f, "\n\x1b[91;7;1m %lld test%s failed \x1b[m\n\n", (long long)failed,
+                    failed == 1 ? "" : "s");
+        else fprintf(f, "\n%lld test%s failed\n\n", (long long)failed, failed == 1 ? "" : "s");
+        for (int64_t i = 0; i < n; i++)
+            if (results[i].outcome != TEST_RESULT_PASS) print_failure(f, &results[i], indent, s);
     }
 
-    // Separate the summary from any lines printed above, but avoid a stray leading
-    // blank line when nothing was printed (quiet, all passed):
-    const char *sep = (verbose || failed > 0) ? "\n" : "";
+    if (n > 0 && (verbose || failed > 0 || files > 1)) {
+        print_file_lines(f, results, n, indent, width, s);
+        fprintf(f, "\n");
+    }
+
+    if (n == 0) {
+        // Not a pass and not a failure -- say so plainly rather than reporting a triumphant "0 passed":
+        fprintf(f, "%*s%sno tests found%s\n", indent, "", s.dim, s.reset);
+        fflush(f);
+        return;
+    }
+
+    char time_str[32];
+    fmt_duration(time_str, sizeof(time_str), seconds);
     if (failed == 0) {
-        const char *mark = USE_COLOR ? "\xe2\x9c\x85" : "PASS:"; // ✅
-        fprintf(f, "%s %s%s %ld/%ld tests passed%s\n", sep, green, mark, (long)passed, (long)n, reset);
+        // The payoff line. Everything above it is green, and so is this.
+        fprintf(f, "%*s%s%s%s %lld passed%s %s%s %lld %s %s %s%s\n", indent, "", s.green, s.bold,
+                USE_COLOR ? s.pass_mark : "PASS:", (long long)passed, s.reset, s.dim, s.sep, (long long)files,
+                files == 1 ? "file" : "files", s.sep, time_str, s.reset);
     } else {
-        const char *mark = USE_COLOR ? "\xe2\x9d\x8c" : "FAIL:"; // ❌
-        fprintf(f, "%s %s%s %ld/%ld tests failed%s  (%ld passed)\n", sep, red, mark, (long)failed, (long)n, reset,
-                (long)passed);
+        fprintf(f, "%*s%s%s%s %lld failed%s %s%s %lld passed %s %s%s\n", indent, "", s.red, s.bold,
+                USE_COLOR ? s.fail_mark : "FAIL:", (long long)failed, s.reset, s.dim, s.sep, (long long)passed, s.sep,
+                time_str, s.reset);
+        // The single most useful next command, spelled out so it can be copied:
+        for (int64_t i = 0; i < n; i++) {
+            if (results[i].outcome == TEST_RESULT_PASS) continue;
+            if (!results[i].file) break;
+            fprintf(f, "%*s%srerun just this one:%s tomo test %s --filter \"%s\"%s\n", indent, "", s.dim, s.reset,
+                    results[i].file, results[i].label, s.reset);
+            break;
+        }
     }
     fflush(f);
 }
@@ -273,6 +540,8 @@ int _tomo_run_tests(tomo_test_t *tests, int64_t n) {
             return 2;
         }
         fflush(NULL);
+        struct timespec t0;
+        clock_gettime(CLOCK_MONOTONIC, &t0);
         pid_t pid = fork();
         if (pid == 0) { // ---- child ----
             dup2(pipes[1], STDOUT_FILENO);
@@ -280,10 +549,14 @@ int _tomo_run_tests(tomo_test_t *tests, int64_t n) {
             close(pipes[0]);
             close(pipes[1]);
             if (result_fd >= 0) close(result_fd);
-            USE_COLOR = false; // keep captured output clean for substring matching
-            // Emit only the failure message (no source echo, which would include the test's own source and cause
-            // false substring matches):
+            // Keep the compact failure message rather than the full runtime-error display: the report draws its
+            // own source excerpt, and a test's stacktrace is mostly test-runner scaffolding. This also keeps the
+            // echoed source (which contains the test's own text) from producing false substring matches below.
             setenv("TOMO_PLAIN_ERRORS", "1", 1);
+            // Only `fails "..."` matches its expected message against this output, and ANSI codes in the middle
+            // of the message would break that match. Every other test's output is shown to the user verbatim, so
+            // leave its syntax highlighting -- colorized `>>` values and types -- intact.
+            if (tests[i].expect_failure) USE_COLOR = false;
             alarm(timeout);
             tests[i].fn();
             fflush(NULL);
@@ -295,9 +568,20 @@ int _tomo_run_tests(tomo_test_t *tests, int64_t n) {
         close(pipes[0]);
         int status = 0;
         waitpid(pid, &status, 0);
+        struct timespec t1;
+        clock_gettime(CLOCK_MONOTONIC, &t1);
+
+        // Peel the span trailer off before classifying, so `fails "..."` matching never sees it:
+        const char *fail_file = NULL;
+        int fail_start = 0, fail_end = 0;
+        tomo_test_take_span(output, &fail_file, &fail_start, &fail_end);
 
         test_result_t r = {
             .outcome = classify(status, output, &tests[i]),
+            .fail_file = fail_file,
+            .fail_start = fail_start,
+            .fail_end = fail_end,
+            .seconds = (double)(t1.tv_sec - t0.tv_sec) + 1e-9 * (double)(t1.tv_nsec - t0.tv_nsec),
             .label = tests[i].label,
             .expected_msg = tests[i].expected_msg,
             .expect_failure = tests[i].expect_failure,
