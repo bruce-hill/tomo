@@ -744,7 +744,10 @@ void Table$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo_
 
     if (fgetc(in) != 0) {
         t.fallback = GC_MALLOC(sizeof(Table_t));
-        Table$deserialize(in, t.fallback, pointers, type);
+        // Through _deserialize() rather than straight back into this function,
+        // so the fallback chain counts against the nesting limit -- otherwise a
+        // few kilobytes of `00 01` repeated overflows the stack:
+        _deserialize(in, t.fallback, pointers, type);
     }
 
     *(Table_t *)outval = t;

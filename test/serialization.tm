@@ -1,6 +1,8 @@
 
 struct Foo{name:Text, next:@Foo?=none}
 
+struct Flag{flag:Bool}
+
 enum MyEnum(Zero, One{x:Int}, Two{x:Float64, y:Text})
 
 test "Int64 roundtrip"
@@ -153,4 +155,18 @@ test "optional Bool roundtrip"
 test "lists of optionals roundtrip"
     >> obj : [Int64?] = [Int64(1), none, Int64(3)]
     >> roundtrip := deserialize:[Int64?](serialize(obj))!
+    assert roundtrip == obj
+
+# A `Byte?` is a byte plus a `has_value` flag, so it's wider than a `Byte`; if
+# the compiler sizes it as one byte, the flags land on top of the next element:
+test "list of optional Bytes roundtrip"
+    >> obj : [Byte?] = [Byte(5), none, Byte(7)]
+    >> roundtrip := deserialize:[Byte?](serialize(obj))!
+    assert roundtrip == obj
+
+# Struct Bools are bit-packed, and the table deserializer decodes every entry
+# into one reused buffer, so a `no` after a `yes` must not inherit the set bit:
+test "table keyed by a Bool-carrying struct roundtrips every entry"
+    >> obj : {Flag:Int} = {Flag{yes}: 1, Flag{no}: 2}
+    >> roundtrip := deserialize:{Flag:Int}(serialize(obj))!
     assert roundtrip == obj

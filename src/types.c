@@ -643,6 +643,10 @@ PUREFUNC size_t type_size(type_t *t) {
     case OptionalType: {
         type_t *nonnull = Match(t, OptionalType)->type;
         switch (nonnull->tag) {
+        // A `Byte?` is an OptionalByte_t (a byte plus a `has_value` flag), not
+        // a bare byte; compile_type() names that struct, so type_size() has to
+        // agree or every container of `Byte?` gets the wrong stride.
+        case ByteType: return sizeof(OptionalByte_t);
         case IntType:
             switch (Match(nonnull, IntType)->bits) {
             case TYPE_IBITS64: return sizeof(OptionalInt64_t);

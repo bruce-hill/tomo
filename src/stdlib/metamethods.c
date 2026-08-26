@@ -69,14 +69,26 @@ List_t generic_serialize(const void *x, const TypeInfo_t *type) {
     return bytes;
 }
 
+// Deserializers recurse into their nested values, and a few encodings let one
+// level be spelled in as little as two bytes (an empty table plus a "has a
+// fallback" flag, say), so a small hostile input can otherwise nest deeply
+// enough to overflow the stack -- a crash, which is exactly what
+// deserialization_failed() exists to turn into a clean `none`. Cap the nesting
+// well below the shallowest stack Tomo runs on (a secondary thread on macOS
+// gets 512KB). Data this deeply nested can't be produced by _serialize()
+// either, which recurses the same way.
+#define MAX_DESERIALIZATION_DEPTH 1000
+static _Thread_local int deserialization_depth = 0;
+
 public
 void _deserialize(FILE *input, void *outval, List_t *pointers, const TypeInfo_t *type) {
-    if (type->metamethods.deserialize) {
-        type->metamethods.deserialize(input, outval, pointers, type);
-        return;
-    }
+    if (deserialization_depth >= MAX_DESERIALIZATION_DEPTH) deserialization_failed();
+    deserialization_depth += 1;
 
-    if (fread(outval, (size_t)type->size, 1, input) != 1) deserialization_failed();
+    if (type->metamethods.deserialize) type->metamethods.deserialize(input, outval, pointers, type);
+    else if (fread(outval, (size_t)type->size, 1, input) != 1) deserialization_failed();
+
+    deserialization_depth -= 1;
 }
 
 // Where to jump when a deserializer discovers that its input isn't a
@@ -112,6 +124,7 @@ bool generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type) {
 
     List_t pointers = EMPTY_LIST;
     jmp_buf *prev_handler = deserialization_failure_handler;
+    int prev_depth = deserialization_depth;
     jmp_buf on_failure;
     bool success;
     if (setjmp(on_failure) == 0) {
@@ -123,6 +136,9 @@ bool generic_deserialize(List_t bytes, void *outval, const TypeInfo_t *type) {
     } else {
         success = false;
     }
+    // A longjmp out of a nested deserializer skips every pending decrement, so
+    // restore the counter rather than leaving it stuck high for the next call:
+    deserialization_depth = prev_depth;
     deserialization_failure_handler = prev_handler;
     fclose(input);
     return success;

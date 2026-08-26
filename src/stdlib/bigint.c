@@ -612,7 +612,11 @@ static void Int$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInf
     if (kind == 0) {
         int64_t i = 0;
         Int64$deserialize(in, &i, pointers, &Int64$info);
-        *(Int_t *)obj = (Int_t){.small = (i << 2L) | 1L};
+        // Only values in the tagged-pointer range were ever *written* as a
+        // small int, and anything outside it would overflow the `<< 2` below
+        // into a silently wrong number:
+        if (i < SMALLEST_SMALL_INT || i > BIGGEST_SMALL_INT) deserialization_failed();
+        *(Int_t *)obj = Int$from_int64(i);
     } else if (kind == 1) {
         // `mpz_inp_raw()` starts with a four-byte big-endian count of the bytes
         // that follow (negated for a negative number) and then allocates that

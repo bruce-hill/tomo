@@ -195,7 +195,13 @@ void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo
             int c = fgetc(in);
             if (c != 0 && c != 1) deserialization_failed();
             bool b = (bool)c;
-            *(char *)(outval + byte_offset) |= (b << bit_offset);
+            // Clear the byte before filling its first bit: the OR below only
+            // ever *sets* bits, and `outval` is caller-supplied storage that
+            // may hold stale ones -- Table$deserialize reuses a single stack
+            // buffer for every entry, so without this a `no` read after a
+            // `yes` in the same bit position decodes as `yes`.
+            if (bit_offset == 0) *(char *)(outval + byte_offset) = 0;
+            *(char *)(outval + byte_offset) |= (char)(b << bit_offset);
             bit_offset += 1;
             if (bit_offset >= 8) {
                 byte_offset += 1;

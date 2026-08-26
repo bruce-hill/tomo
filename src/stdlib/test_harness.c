@@ -177,7 +177,10 @@ static void print_excerpt(FILE *f, const test_result_t *r, int indent) {
     file_t *file = NULL;
     const char *start = NULL, *end = NULL;
 
-    if (r->fail_file && r->fail_end > r->fail_start) {
+    // The span comes from a trailer the test's *own* output carries, so it is
+    // only as trustworthy as the program under test: bound both ends against
+    // the file before turning them into pointers.
+    if (r->fail_file && r->fail_start >= 0 && r->fail_end > r->fail_start) {
         file = load_file(r->fail_file);
         if (file && (int64_t)r->fail_end <= file->len) {
             start = file->text + r->fail_start;
