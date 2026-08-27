@@ -2,17 +2,17 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.asin 3 2026-03-08 "Tomo man-pages"
+.TH Num.asin 3 2026-08-27 "Tomo man-pages"
 .SH NAME
 Num.asin \- arc sine
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Num.asin\ :\ func(x:\ Num\ ->\ Num)
+.BI Num.asin\ :\ func(x:\ Num\ ->\ Num?)
 .fi
 .SH DESCRIPTION
-Computes the arc sine of a number.
+The arc sine of a number, in radians.
 
 
 .SH ARGUMENTS
@@ -22,14 +22,15 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-x	Num	The number for which the arc sine is to be calculated. 
+x	Num	The number whose arc sine is to be computed. 
 .TE
 .SH RETURN
-The arc sine of `x` in radians.
+The arc sine of `x`, or `none` if `x` is outside [-1, 1].
 
 .SH EXAMPLES
 .EX
-assert (0.5).asin().near(0.5235987755982989)
+assert (0.).asin()! == 0
+assert (2.).asin() == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

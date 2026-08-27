@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.gcd 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Num.gcd \- greatest common divisor
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Num.gcd\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num?)
+.fi
+.SH DESCRIPTION
+The greatest common divisor of two numbers, generalized to fractions: the largest value by which both can be divided to give whole numbers.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Num	The first number. 
+y	Num	The second number. 
+.TE
+.SH RETURN
+The greatest common divisor, or `none` if either argument is irrational and so has no such divisor.
+
+.SH EXAMPLES
+.EX
+assert (12.).gcd(18)! == 6
+assert (1./2.).gcd(1./3.)! == 1./6.
+.EE
+.SH SEE ALSO
+.BR Tomo-Num (3)

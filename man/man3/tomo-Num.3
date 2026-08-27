@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num 3 2025-11-29 "Tomo man-pages"
+.TH Num 3 2026-08-27 "Tomo man-pages"
 .SH NAME
 Num \- a Tomo type
 .SH LIBRARY
@@ -11,192 +11,64 @@ Tomo Standard Library
 .SH METHODS
 
 .TP
-.BI Num.1_PI\ :\ Num
-The constant $\frac{1}{\pi}$. 
-
-For more, see:
-.BR Tomo-Num.1_PI (3)
-
-
-.TP
-.BI Num.2_PI\ :\ Num
-The constant $2 \times \pi$. 
-
-For more, see:
-.BR Tomo-Num.2_PI (3)
-
-
-.TP
-.BI Num.2_SQRTPI\ :\ Num
-The constant $2 \times \sqrt{\pi}$. 
-
-For more, see:
-.BR Tomo-Num.2_SQRTPI (3)
-
-
-.TP
-.BI Num.E\ :\ Num
-The base of the natural logarithm ($e$). 
-
-For more, see:
-.BR Tomo-Num.E (3)
-
-
-.TP
-.BI Num.INF\ :\ Num
-Positive infinity. 
-
-For more, see:
-.BR Tomo-Num.INF (3)
-
-
-.TP
-.BI Num.LN10\ :\ Num
-The natural logarithm of 10. 
-
-For more, see:
-.BR Tomo-Num.LN10 (3)
-
-
-.TP
-.BI Num.LN2\ :\ Num
-The natural logarithm of 2. 
-
-For more, see:
-.BR Tomo-Num.LN2 (3)
-
-
-.TP
-.BI Num.LOG2E\ :\ Num
-The base 2 logarithm of $e$ 
-
-For more, see:
-.BR Tomo-Num.LOG2E (3)
-
-
-.TP
 .BI Num.PI\ :\ Num
-Pi ($\pi$). 
+The ratio of a circle's circumference to its diameter, held exactly rather than as an approximation. 
 
 For more, see:
 .BR Tomo-Num.PI (3)
 
 
 .TP
-.BI Num.PI_2\ :\ Num
-$\frac{\pi}{2}$ 
-
-For more, see:
-.BR Tomo-Num.PI_2 (3)
-
-
-.TP
-.BI Num.PI_4\ :\ Num
-$\frac{\pi}{4}$ 
-
-For more, see:
-.BR Tomo-Num.PI_4 (3)
-
-
-.TP
-.BI Num.SQRT1_2\ :\ Num
-$\sqrt{\frac{1}{2}}$ 
-
-For more, see:
-.BR Tomo-Num.SQRT1_2 (3)
-
-
-.TP
-.BI Num.SQRT2\ :\ Num
-$\sqrt{2}$ 
-
-For more, see:
-.BR Tomo-Num.SQRT2 (3)
-
-
-.TP
 .BI Num.TAU\ :\ Num
-Tau ($2 \times \pi$) 
+Two times pi, held exactly. 
 
 For more, see:
 .BR Tomo-Num.TAU (3)
 
 
 .TP
-.BI Num.abs\ :\ func(n:\ Num\ ->\ Num)
-Calculates the absolute value of a number. 
+.BI Num.abs\ :\ func(x:\ Num\ ->\ Num)
+The absolute value of a number. 
 
 For more, see:
 .BR Tomo-Num.abs (3)
 
 
 .TP
-.BI Num.acos\ :\ func(x:\ Num\ ->\ Num)
-Computes the arc cosine of a number. 
+.BI Num.acos\ :\ func(x:\ Num\ ->\ Num?)
+The arc cosine of a number, in radians. 
 
 For more, see:
 .BR Tomo-Num.acos (3)
 
 
 .TP
-.BI Num.acosh\ :\ func(x:\ Num\ ->\ Num)
-Computes the inverse hyperbolic cosine of a number. 
-
-For more, see:
-.BR Tomo-Num.acosh (3)
-
-
-.TP
-.BI Num.asin\ :\ func(x:\ Num\ ->\ Num)
-Computes the arc sine of a number. 
+.BI Num.asin\ :\ func(x:\ Num\ ->\ Num?)
+The arc sine of a number, in radians. 
 
 For more, see:
 .BR Tomo-Num.asin (3)
 
 
 .TP
-.BI Num.asinh\ :\ func(x:\ Num\ ->\ Num)
-Computes the inverse hyperbolic sine of a number. 
-
-For more, see:
-.BR Tomo-Num.asinh (3)
-
-
-.TP
 .BI Num.atan\ :\ func(x:\ Num\ ->\ Num)
-Computes the arc tangent of a number. 
+The arc tangent of a number, in radians. Defined for every number. 
 
 For more, see:
 .BR Tomo-Num.atan (3)
 
 
 .TP
-.BI Num.atan2\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num)
-Computes the arc tangent of the quotient of two numbers. 
+.BI Num.atan2\ :\ func(y:\ Num,\ x:\ Num\ ->\ Num?)
+The angle of the point \fB(x, y)\fR, in radians, placed in the correct quadrant by the signs of both arguments. 
 
 For more, see:
 .BR Tomo-Num.atan2 (3)
 
 
 .TP
-.BI Num.atanh\ :\ func(x:\ Num\ ->\ Num)
-Computes the inverse hyperbolic tangent of a number. 
-
-For more, see:
-.BR Tomo-Num.atanh (3)
-
-
-.TP
-.BI Num.cbrt\ :\ func(x:\ Num\ ->\ Num)
-Computes the cube root of a number. 
-
-For more, see:
-.BR Tomo-Num.cbrt (3)
-
-
-.TP
 .BI Num.ceil\ :\ func(x:\ Num\ ->\ Num)
-Rounds a number up to the nearest integer. 
+The smallest whole number greater than or equal to a number. 
 
 For more, see:
 .BR Tomo-Num.ceil (3)
@@ -204,23 +76,15 @@ For more, see:
 
 .TP
 .BI Num.clamped\ :\ func(x:\ Num,\ low:\ Num,\ high:\ Num\ ->\ Num)
-Returns the given number clamped between two values so that it is within that range. 
+A number restricted to a range. 
 
 For more, see:
 .BR Tomo-Num.clamped (3)
 
 
 .TP
-.BI Num.copysign\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num)
-Copies the sign of one number to another. 
-
-For more, see:
-.BR Tomo-Num.copysign (3)
-
-
-.TP
 .BI Num.cos\ :\ func(x:\ Num\ ->\ Num)
-Computes the cosine of a number (angle in radians). 
+The cosine of an angle in radians. 
 
 For more, see:
 .BR Tomo-Num.cos (3)
@@ -228,223 +92,167 @@ For more, see:
 
 .TP
 .BI Num.cosh\ :\ func(x:\ Num\ ->\ Num)
-Computes the hyperbolic cosine of a number. 
+The hyperbolic cosine of a number. 
 
 For more, see:
 .BR Tomo-Num.cosh (3)
 
 
 .TP
-.BI Num.erf\ :\ func(x:\ Num\ ->\ Num)
-Computes the error function of a number. 
+.BI Num.digits\ :\ func(n:\ Num,\ digits:\ Int\ =\ 15,\ ellipsis:\ Text\ =\ "…"\ ->\ Text)
+The decimal expansion of a number, to at most the requested number of fractional digits. A value that fits exactly stops early rather than padding with zeros, and gets no marker. A value that doesn't shows a truncated prefix of its true expansion with the ellipsis appended -- never a rounding: every digit shown is a digit the value actually has. To round, round first. 
 
 For more, see:
-.BR Tomo-Num.erf (3)
-
-
-.TP
-.BI Num.erfc\ :\ func(x:\ Num\ ->\ Num)
-Computes the complementary error function of a number. 
-
-For more, see:
-.BR Tomo-Num.erfc (3)
+.BR Tomo-Num.digits (3)
 
 
 .TP
 .BI Num.exp\ :\ func(x:\ Num\ ->\ Num)
-Computes the exponential function $e^x$ for a number. 
+e raised to the given power. 
 
 For more, see:
 .BR Tomo-Num.exp (3)
 
 
 .TP
-.BI Num.exp2\ :\ func(x:\ Num\ ->\ Num)
-Computes $2^x$ for a number. 
-
-For more, see:
-.BR Tomo-Num.exp2 (3)
-
-
-.TP
-.BI Num.expm1\ :\ func(x:\ Num\ ->\ Num)
-Computes $e^x - 1$ for a number. 
-
-For more, see:
-.BR Tomo-Num.expm1 (3)
-
-
-.TP
-.BI Num.fdim\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num)
-Computes the positive difference between two numbers. 
-
-For more, see:
-.BR Tomo-Num.fdim (3)
-
-
-.TP
 .BI Num.floor\ :\ func(x:\ Num\ ->\ Num)
-Rounds a number down to the nearest integer. 
+The largest whole number less than or equal to a number. 
 
 For more, see:
 .BR Tomo-Num.floor (3)
 
 
 .TP
-.BI Num.hypot\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num)
-Computes the Euclidean norm, $\sqrt{x^2 + y^2}$, of two numbers. 
+.BI Num.gcd\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num?)
+The greatest common divisor of two numbers, generalized to fractions: the largest value by which both can be divided to give whole numbers. 
 
 For more, see:
-.BR Tomo-Num.hypot (3)
+.BR Tomo-Num.gcd (3)
+
+
+.TP
+.BI Num.inverse\ :\ func(x:\ Num\ ->\ Num?)
+One divided by a number. 
+
+For more, see:
+.BR Tomo-Num.inverse (3)
 
 
 .TP
 .BI Num.is_between\ :\ func(x:\ Num,\ low:\ Num,\ high:\ Num\ ->\ Bool)
-Determines if a number is between two numbers (inclusive). 
+Whether a number lies within a range, inclusive. 
 
 For more, see:
 .BR Tomo-Num.is_between (3)
 
 
 .TP
-.BI Num.isfinite\ :\ func(n:\ Num\ ->\ Bool)
-Checks if a number is finite. 
+.BI Num.is_exact\ :\ func(n:\ Num,\ digits:\ Int\ =\ 15\ ->\ Bool)
+Whether the requested number of fractional digits represents a number exactly, rather than rounding it. 
 
 For more, see:
-.BR Tomo-Num.isfinite (3)
+.BR Tomo-Num.is_exact (3)
 
 
 .TP
-.BI Num.isinf\ :\ func(n:\ Num\ ->\ Bool)
-Checks if a number is infinite. 
+.BI Num.is_integer\ :\ func(n:\ Num\ ->\ Bool)
+Whether a number is a whole number. 
 
 For more, see:
-.BR Tomo-Num.isinf (3)
+.BR Tomo-Num.is_integer (3)
 
 
 .TP
-.BI Num.j0\ :\ func(x:\ Num\ ->\ Num)
-Computes the Bessel function of the first kind of order 0. 
+.BI Num.is_rational\ :\ func(n:\ Num\ ->\ Bool)
+Whether a number can be written exactly as a fraction, as opposed to an irrational value like the square root of two. 
 
 For more, see:
-.BR Tomo-Num.j0 (3)
+.BR Tomo-Num.is_rational (3)
 
 
 .TP
-.BI Num.j1\ :\ func(x:\ Num\ ->\ Num)
-Computes the Bessel function of the first kind of order 1. 
+.BI Num.lcm\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num?)
+The least common multiple of two numbers, generalized to fractions. 
 
 For more, see:
-.BR Tomo-Num.j1 (3)
+.BR Tomo-Num.lcm (3)
 
 
 .TP
-.BI Num.log\ :\ func(x:\ Num\ ->\ Num)
-Computes the natural logarithm (base $e$) of a number. 
+.BI Num.log\ :\ func(x:\ Num\ ->\ Num?)
+The natural logarithm of a number. 
 
 For more, see:
 .BR Tomo-Num.log (3)
 
 
 .TP
-.BI Num.log10\ :\ func(x:\ Num\ ->\ Num)
-Computes the base-10 logarithm of a number. 
+.BI Num.log10\ :\ func(x:\ Num\ ->\ Num?)
+The base-10 logarithm of a number. 
 
 For more, see:
 .BR Tomo-Num.log10 (3)
 
 
 .TP
-.BI Num.log1p\ :\ func(x:\ Num\ ->\ Num)
-Computes $\log(1 + x)$ for a number. 
-
-For more, see:
-.BR Tomo-Num.log1p (3)
-
-
-.TP
-.BI Num.log2\ :\ func(x:\ Num\ ->\ Num)
-Computes the base-2 logarithm of a number. 
+.BI Num.log2\ :\ func(x:\ Num\ ->\ Num?)
+The base-2 logarithm of a number. 
 
 For more, see:
 .BR Tomo-Num.log2 (3)
 
 
 .TP
-.BI Num.logb\ :\ func(x:\ Num\ ->\ Num)
-Computes the binary exponent (base-2 logarithm) of a number. 
+.BI Num.max\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num)
+The larger of two numbers. 
 
 For more, see:
-.BR Tomo-Num.logb (3)
+.BR Tomo-Num.max (3)
+
+
+.TP
+.BI Num.min\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num)
+The smaller of two numbers. 
+
+For more, see:
+.BR Tomo-Num.min (3)
 
 
 .TP
 .BI Num.mix\ :\ func(amount:\ Num,\ x:\ Num,\ y:\ Num\ ->\ Num)
-Interpolates between two numbers based on a given amount. 
+A point between two numbers, exactly. \fBamount\fR of zero gives \fBx\fR, one gives \fBy\fR, and a half gives the true midpoint. 
 
 For more, see:
 .BR Tomo-Num.mix (3)
 
 
 .TP
-.BI Num.near\ :\ func(x:\ Num,\ y:\ Num,\ ratio:\ Num\ =\ 1e-9,\ min_epsilon:\ Num\ =\ 1e-9\ ->\ Bool)
-Checks if two numbers are approximately equal within specified tolerances. If two numbers are within an absolute difference or the ratio between the two is small enough, they are considered near each other. 
-
-For more, see:
-.BR Tomo-Num.near (3)
-
-
-.TP
-.BI Num.nextafter\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num)
-Computes the next representable value after a given number towards a specified direction. 
-
-For more, see:
-.BR Tomo-Num.nextafter (3)
-
-
-.TP
-.BI Num.parse\ :\ func(text:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Num?)
-Converts a text representation of a number into a floating-point number. 
+.BI Num.parse\ :\ func(text:\ Text\ ->\ Num?)
+The exact number a piece of text denotes. Both decimals and fractions are accepted, and both are read exactly: "0.1" is a tenth, not the nearest float to one. 
 
 For more, see:
 .BR Tomo-Num.parse (3)
 
 
 .TP
-.BI Num.percent\ :\ func(n:\ Num,\ precision:\ Num\ =\ 0.01\ ->\ Text)
-Convert a number into a percentage text with a percent sign. 
+.BI Num.percent\ :\ func(n:\ Num,\ precision:\ Num\ =\ 1%\ ->\ Text)
+A number as a percentage, rounded to the given precision. 
 
 For more, see:
 .BR Tomo-Num.percent (3)
 
 
 .TP
-.BI Num.rint\ :\ func(x:\ Num\ ->\ Num)
-Rounds a number to the nearest integer, with ties rounded to the nearest even integer. 
-
-For more, see:
-.BR Tomo-Num.rint (3)
-
-
-.TP
-.BI Num.round\ :\ func(x:\ Num\ ->\ Num)
-Rounds a number to the nearest whole number integer. 
+.BI Num.round\ :\ func(x:\ Num,\ increment:\ Num\ =\ 1\ ->\ Num)
+The nearest multiple of an increment, exactly: the nearest penny, nickel, third, or thousand are all one argument away, and the default increment of 1 gives the nearest whole number. Ties go to the even multiple. 
 
 For more, see:
 .BR Tomo-Num.round (3)
 
 
 .TP
-.BI Num.significand\ :\ func(x:\ Num\ ->\ Num)
-Extracts the significand (or mantissa) of a number. 
-
-For more, see:
-.BR Tomo-Num.significand (3)
-
-
-.TP
 .BI Num.sin\ :\ func(x:\ Num\ ->\ Num)
-Computes the sine of a number (angle in radians). 
+The sine of an angle in radians. 
 
 For more, see:
 .BR Tomo-Num.sin (3)
@@ -452,23 +260,31 @@ For more, see:
 
 .TP
 .BI Num.sinh\ :\ func(x:\ Num\ ->\ Num)
-Computes the hyperbolic sine of a number. 
+The hyperbolic sine of a number. 
 
 For more, see:
 .BR Tomo-Num.sinh (3)
 
 
 .TP
-.BI Num.sqrt\ :\ func(x:\ Num\ ->\ Num)
-Computes the square root of a number. 
+.BI Num.sqrt\ :\ func(x:\ Num\ ->\ Num?)
+The square root of a number, exactly. The result of a non-square stays symbolic, so identities like \fBsqrt(2) * sqrt(2) == 2\fR hold. 
 
 For more, see:
 .BR Tomo-Num.sqrt (3)
 
 
 .TP
-.BI Num.tan\ :\ func(x:\ Num\ ->\ Num)
-Computes the tangent of a number (angle in radians). 
+.BI Num.symbolic\ :\ func(n:\ Num\ ->\ Text)
+The exact value written out: a whole number, a fraction, or a symbolic expression for an irrational. 
+
+For more, see:
+.BR Tomo-Num.symbolic (3)
+
+
+.TP
+.BI Num.tan\ :\ func(x:\ Num\ ->\ Num?)
+The tangent of an angle in radians. 
 
 For more, see:
 .BR Tomo-Num.tan (3)
@@ -476,48 +292,24 @@ For more, see:
 
 .TP
 .BI Num.tanh\ :\ func(x:\ Num\ ->\ Num)
-Computes the hyperbolic tangent of a number. 
+The hyperbolic tangent of a number. 
 
 For more, see:
 .BR Tomo-Num.tanh (3)
 
 
 .TP
-.BI Num.tgamma\ :\ func(x:\ Num\ ->\ Num)
-Computes the gamma function of a number. 
+.BI Num.tex\ :\ func(n:\ Num\ ->\ Text)
+The exact value as TeX math-mode source. 
 
 For more, see:
-.BR Tomo-Num.tgamma (3)
+.BR Tomo-Num.tex (3)
 
 
 .TP
 .BI Num.trunc\ :\ func(x:\ Num\ ->\ Num)
-Truncates a number to the nearest integer towards zero. 
+The whole part of a number, discarding the fraction. 
 
 For more, see:
 .BR Tomo-Num.trunc (3)
-
-
-.TP
-.BI Num.with_precision\ :\ func(n:\ Num,\ precision:\ Num\ ->\ Num)
-Round a number to the given precision level (specified as \fB10\fR, \fB.1\fR, \fB.001\fR etc). 
-
-For more, see:
-.BR Tomo-Num.with_precision (3)
-
-
-.TP
-.BI Num.y0\ :\ func(x:\ Num\ ->\ Num)
-Computes the Bessel function of the second kind of order 0. 
-
-For more, see:
-.BR Tomo-Num.y0 (3)
-
-
-.TP
-.BI Num.y1\ :\ func(x:\ Num\ ->\ Num)
-Computes the Bessel function of the second kind of order 1. 
-
-For more, see:
-.BR Tomo-Num.y1 (3)
 

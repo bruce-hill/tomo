@@ -1,18 +1,18 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.tan 3 2025-11-29 "Tomo man-pages"
+.TH Num.tan 3 2026-08-27 "Tomo man-pages"
 .SH NAME
 Num.tan \- tangent
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Num.tan\ :\ func(x:\ Num\ ->\ Num)
+.BI Num.tan\ :\ func(x:\ Num\ ->\ Num?)
 .fi
 .SH DESCRIPTION
-Computes the tangent of a number (angle in radians).
+The tangent of an angle in radians.
 
 
 .SH ARGUMENTS
@@ -25,11 +25,11 @@ Name	Type	Description
 x	Num	The angle in radians. 
 .TE
 .SH RETURN
-The tangent of `x`.
+The tangent of `x`, or `none` at a pole.
 
 .SH EXAMPLES
 .EX
-assert (0.0).tan() == 0
+assert (0.).tan()! == 0
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

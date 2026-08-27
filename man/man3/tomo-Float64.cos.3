@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.cos 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Float64.cos \- cosine
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.cos\ :\ func(x:\ Float64\ ->\ Float64)
+.fi
+.SH DESCRIPTION
+Computes the cosine of a number (angle in radians).
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The angle in radians. 
+.TE
+.SH RETURN
+The cosine of `x`.
+
+.SH EXAMPLES
+.EX
+assert Float64(0.0).cos() == 1
+.EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.min 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Num.min \- smaller of two numbers
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Num.min\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num)
+.fi
+.SH DESCRIPTION
+The smaller of two numbers.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Num	The first number. 
+y	Num	The second number. 
+.TE
+.SH RETURN
+Whichever of `x` and `y` is smaller.
+
+.SH EXAMPLES
+.EX
+assert (0.3).min(0.5) == 0.3
+.EE
+.SH SEE ALSO
+.BR Tomo-Num (3)

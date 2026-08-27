@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.is_integer 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Num.is_integer \- whether a number is whole
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Num.is_integer\ :\ func(n:\ Num\ ->\ Bool)
+.fi
+.SH DESCRIPTION
+Whether a number is a whole number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+n	Num	The number to check. 
+.TE
+.SH RETURN
+`yes` if `n` has no fractional part.
+
+.SH EXAMPLES
+.EX
+assert (4.).is_integer()
+assert not (4.5).is_integer()
+.EE
+.SH SEE ALSO
+.BR Tomo-Num (3)

@@ -1,10 +1,10 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.ceil 3 2025-11-29 "Tomo man-pages"
+.TH Num.ceil 3 2026-08-27 "Tomo man-pages"
 .SH NAME
-Num.ceil \- ceiling function
+Num.ceil \- round up
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Num.ceil\ :\ func(x:\ Num\ ->\ Num)
 .fi
 .SH DESCRIPTION
-Rounds a number up to the nearest integer.
+The smallest whole number greater than or equal to a number.
 
 
 .SH ARGUMENTS
@@ -22,14 +22,15 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-x	Num	The number to be rounded up. 
+x	Num	The number to round up. 
 .TE
 .SH RETURN
-The smallest integer greater than or equal to `x`.
+`x` rounded up.
 
 .SH EXAMPLES
 .EX
-assert (3.2).ceil() == 4
+assert (4.2).ceil() == 5
+assert (-4.2).ceil() == -4
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

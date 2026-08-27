@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.isfinite 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Float64.isfinite \- check for finite number
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.isfinite\ :\ func(n:\ Float64\ ->\ Bool)
+.fi
+.SH DESCRIPTION
+Checks if a number is finite.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+n	Float64	The number to be checked. 
+.TE
+.SH RETURN
+`yes` if `n` is finite, `no` otherwise.
+
+.SH EXAMPLES
+.EX
+assert Float64(1.0).isfinite()
+assert not Float64.INF.isfinite()
+.EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

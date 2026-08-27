@@ -2,17 +2,17 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.acos 3 2026-03-08 "Tomo man-pages"
+.TH Num.acos 3 2026-08-27 "Tomo man-pages"
 .SH NAME
 Num.acos \- arc cosine
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Num.acos\ :\ func(x:\ Num\ ->\ Num)
+.BI Num.acos\ :\ func(x:\ Num\ ->\ Num?)
 .fi
 .SH DESCRIPTION
-Computes the arc cosine of a number.
+The arc cosine of a number, in radians.
 
 
 .SH ARGUMENTS
@@ -22,14 +22,15 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-x	Num	The number for which the arc cosine is to be calculated. 
+x	Num	The number whose arc cosine is to be computed. 
 .TE
 .SH RETURN
-The arc cosine of `x` in radians.
+The arc cosine of `x`, or `none` if `x` is outside [-1, 1].
 
 .SH EXAMPLES
 .EX
-assert (0.0).acos().near(1.5707963267948966)
+assert (1.).acos()! == 0
+assert (2.).acos() == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

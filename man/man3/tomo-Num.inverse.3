@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.inverse 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Num.inverse \- reciprocal
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Num.inverse\ :\ func(x:\ Num\ ->\ Num?)
+.fi
+.SH DESCRIPTION
+One divided by a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Num	The number to invert. 
+.TE
+.SH RETURN
+The reciprocal of `x`, or `none` if `x` is zero.
+
+.SH EXAMPLES
+.EX
+assert (4.).inverse()! == 0.25
+assert (0.).inverse() == none
+.EE
+.SH SEE ALSO
+.BR Tomo-Num (3)

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.acos 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Float64.acos \- arc cosine
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.acos\ :\ func(x:\ Float64\ ->\ Float64)
+.fi
+.SH DESCRIPTION
+Computes the arc cosine of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The number for which the arc cosine is to be calculated. 
+.TE
+.SH RETURN
+The arc cosine of `x` in radians.
+
+.SH EXAMPLES
+.EX
+assert Float64(0.0).acos().near(1.5707963267948966)
+.EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

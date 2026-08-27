@@ -1,10 +1,10 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.is_between 3 2025-12-31 "Tomo man-pages"
+.TH Num.is_between 3 2026-08-27 "Tomo man-pages"
 .SH NAME
-Num.is_between \- check if a number is in a range
+Num.is_between \- range check
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Num.is_between\ :\ func(x:\ Num,\ low:\ Num,\ high:\ Num\ ->\ Bool)
 .fi
 .SH DESCRIPTION
-Determines if a number is between two numbers (inclusive).
+Whether a number lies within a range, inclusive.
 
 
 .SH ARGUMENTS
@@ -22,19 +22,17 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-x	Num	The integer to be checked. 
-low	Num	One end of the range to check (inclusive). 
-high	Num	The other end of the range to check (inclusive). 
+x	Num	The number to check. 
+low	Num	The lower bound. 
+high	Num	The upper bound. 
 .TE
 .SH RETURN
-`yes` if `a <= x and x <= b` or `b <= x and x <= a`, otherwise `no`
+`yes` if `low <= x <= high`.
 
 .SH EXAMPLES
 .EX
-assert (7.5).is_between(1, 10)
-assert (7.5).is_between(10, 1)
-assert not (7.5).is_between(100, 200)
-assert (7.5).is_between(1, 7.5)
+assert (0.5).is_between(0, 1)
+assert not (1.5).is_between(0, 1)
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.sin 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Float64.sin \- sine
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.sin\ :\ func(x:\ Float64\ ->\ Float64)
+.fi
+.SH DESCRIPTION
+Computes the sine of a number (angle in radians).
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The angle in radians. 
+.TE
+.SH RETURN
+The sine of `x`.
+
+.SH EXAMPLES
+.EX
+assert Float64(0.0).sin() == 0
+.EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

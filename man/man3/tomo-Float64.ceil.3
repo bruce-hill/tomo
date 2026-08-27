@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.ceil 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Float64.ceil \- ceiling function
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.ceil\ :\ func(x:\ Float64\ ->\ Float64)
+.fi
+.SH DESCRIPTION
+Rounds a number up to the nearest integer.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The number to be rounded up. 
+.TE
+.SH RETURN
+The smallest integer greater than or equal to `x`.
+
+.SH EXAMPLES
+.EX
+assert Float64(3.2).ceil() == 4
+.EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

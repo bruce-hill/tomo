@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.cos 3 2025-11-29 "Tomo man-pages"
+.TH Num.cos 3 2026-08-27 "Tomo man-pages"
 .SH NAME
 Num.cos \- cosine
 .SH LIBRARY
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Num.cos\ :\ func(x:\ Num\ ->\ Num)
 .fi
 .SH DESCRIPTION
-Computes the cosine of a number (angle in radians).
+The cosine of an angle in radians.
 
 
 .SH ARGUMENTS
@@ -29,7 +29,8 @@ The cosine of `x`.
 
 .SH EXAMPLES
 .EX
-assert (0.0).cos() == 1
+assert (0.).cos() == 1
+assert Num.PI.cos() == -1
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

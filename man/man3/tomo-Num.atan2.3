@@ -2,17 +2,17 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.atan2 3 2026-03-08 "Tomo man-pages"
+.TH Num.atan2 3 2026-08-27 "Tomo man-pages"
 .SH NAME
-Num.atan2 \- arc tangent from 2 variables
+Num.atan2 \- arc tangent of two numbers
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Num.atan2\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num)
+.BI Num.atan2\ :\ func(y:\ Num,\ x:\ Num\ ->\ Num?)
 .fi
 .SH DESCRIPTION
-Computes the arc tangent of the quotient of two numbers.
+The angle of the point `(x, y)`, in radians, placed in the correct quadrant by the signs of both arguments.
 
 
 .SH ARGUMENTS
@@ -22,15 +22,16 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-x	Num	The numerator. 
-y	Num	The denominator. 
+y	Num	The y coordinate. 
+x	Num	The x coordinate. 
 .TE
 .SH RETURN
-The arc tangent of `x/y` in radians.
+The angle in (-pi, pi], or `none` at the origin, where no angle is defined.
 
 .SH EXAMPLES
 .EX
-assert Num.atan2(1, 1).near(0.7853981633974483)
+assert (1.).atan2(1)! == Num.PI / 4
+assert (0.).atan2(0) == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

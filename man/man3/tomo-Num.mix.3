@@ -1,10 +1,10 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.mix 3 2025-11-29 "Tomo man-pages"
+.TH Num.mix 3 2026-08-27 "Tomo man-pages"
 .SH NAME
-Num.mix \- mix two numbers by an amount
+Num.mix \- linear interpolation
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Num.mix\ :\ func(amount:\ Num,\ x:\ Num,\ y:\ Num\ ->\ Num)
 .fi
 .SH DESCRIPTION
-Interpolates between two numbers based on a given amount.
+A point between two numbers, exactly. `amount` of zero gives `x`, one gives `y`, and a half gives the true midpoint.
 
 
 .SH ARGUMENTS
@@ -22,17 +22,17 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-amount	Num	The interpolation factor (between \fB0\fR and \fB1\fR). 
-x	Num	The starting number. 
-y	Num	The ending number. 
+amount	Num	How far from \fBx\fR toward \fBy\fR. 
+x	Num	The value at \fBamount\fR zero. 
+y	Num	The value at \fBamount\fR one. 
 .TE
 .SH RETURN
-The interpolated number between `x` and `y` based on `amount`.
+The interpolated value.
 
 .SH EXAMPLES
 .EX
-assert (0.5).mix(10, 20) == 15
 assert (0.25).mix(10, 20) == 12.5
+assert (1./3.).mix(0, 1) == 1./3.
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

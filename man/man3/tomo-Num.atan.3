@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.atan 3 2026-03-08 "Tomo man-pages"
+.TH Num.atan 3 2026-08-27 "Tomo man-pages"
 .SH NAME
 Num.atan \- arc tangent
 .SH LIBRARY
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Num.atan\ :\ func(x:\ Num\ ->\ Num)
 .fi
 .SH DESCRIPTION
-Computes the arc tangent of a number.
+The arc tangent of a number, in radians. Defined for every number.
 
 
 .SH ARGUMENTS
@@ -22,14 +22,15 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-x	Num	The number for which the arc tangent is to be calculated. 
+x	Num	The number whose arc tangent is to be computed. 
 .TE
 .SH RETURN
-The arc tangent of `x` in radians.
+The arc tangent of `x`.
 
 .SH EXAMPLES
 .EX
-assert (1.0).atan().near(0.7853981633974483)
+assert (0.).atan() == 0
+assert (1.).atan() == Num.PI / 4
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

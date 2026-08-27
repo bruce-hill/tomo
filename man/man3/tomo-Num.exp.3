@@ -2,9 +2,9 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.exp 3 2026-03-08 "Tomo man-pages"
+.TH Num.exp 3 2026-08-27 "Tomo man-pages"
 .SH NAME
-Num.exp \- base-e exponentiation
+Num.exp \- e raised to a power
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Num.exp\ :\ func(x:\ Num\ ->\ Num)
 .fi
 .SH DESCRIPTION
-Computes the exponential function $e^x$ for a number.
+e raised to the given power.
 
 
 .SH ARGUMENTS
@@ -25,11 +25,11 @@ Name	Type	Description
 x	Num	The exponent. 
 .TE
 .SH RETURN
-The value of $e^x$.
+e to the power of `x`.
 
 .SH EXAMPLES
 .EX
-assert (1.0).exp().near(2.718281828459045)
+assert (0.).exp() == 1
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

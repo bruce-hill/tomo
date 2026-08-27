@@ -1,0 +1,35 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.significand 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Float64.significand \- get mantissa
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.significand\ :\ func(x:\ Float64\ ->\ Float64)
+.fi
+.SH DESCRIPTION
+Extracts the significand (or mantissa) of a number.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Float64	The number from which to extract the significand. 
+.TE
+.SH RETURN
+The significand of `x`.
+
+.SH EXAMPLES
+.EX
+assert Float64(1234.567).significand() == 1.2056318359375
+.EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

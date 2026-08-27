@@ -1,18 +1,18 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.sqrt 3 2025-11-29 "Tomo man-pages"
+.TH Num.sqrt 3 2026-08-27 "Tomo man-pages"
 .SH NAME
 Num.sqrt \- square root
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Num.sqrt\ :\ func(x:\ Num\ ->\ Num)
+.BI Num.sqrt\ :\ func(x:\ Num\ ->\ Num?)
 .fi
 .SH DESCRIPTION
-Computes the square root of a number.
+The square root of a number, exactly. The result of a non-square stays symbolic, so identities like `sqrt(2) * sqrt(2) == 2` hold.
 
 
 .SH ARGUMENTS
@@ -22,14 +22,16 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-x	Num	The number for which the square root is to be calculated. 
+x	Num	The number whose square root is to be computed. 
 .TE
 .SH RETURN
-The square root of `x`.
+The square root of `x`, or `none` if `x` is negative.
 
 .SH EXAMPLES
 .EX
-assert (16.0).sqrt() == 4
+assert (16.).sqrt()! == 4
+assert (2.).sqrt()! * (2.).sqrt()! == 2
+assert (-1.).sqrt() == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

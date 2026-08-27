@@ -1,0 +1,39 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Float64.percent 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Float64.percent \- format as a percentage
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Float64.percent\ :\ func(n:\ Float64,\ precision:\ Float64\ =\ 0.01\ ->\ Text)
+.fi
+.SH DESCRIPTION
+Convert a number into a percentage text with a percent sign.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+n	Float64	The number to be converted to a percent. 	-
+precision	Float64	Round the percentage to this precision level. 	0.01
+.TE
+.SH RETURN
+A text representation of the number as a percentage with a percent sign.
+
+.SH EXAMPLES
+.EX
+assert Float64(0.5).percent() == "50%"
+assert (Float64(1.) / Float64(3.)).percent(2) == "34%"
+assert (Float64(1.) / Float64(3.)).percent(precision=0.0001) == "33.3333%"
+assert (Float64(1.) / Float64(3.)).percent(precision=10.) == "30%"
+.EE
+.SH SEE ALSO
+.BR Tomo-Float64 (3)

@@ -1,18 +1,18 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.log2 3 2025-11-29 "Tomo man-pages"
+.TH Num.log2 3 2026-08-27 "Tomo man-pages"
 .SH NAME
-Num.log2 \- logarithm base-2
+Num.log2 \- base-2 logarithm
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Num.log2\ :\ func(x:\ Num\ ->\ Num)
+.BI Num.log2\ :\ func(x:\ Num\ ->\ Num?)
 .fi
 .SH DESCRIPTION
-Computes the base-2 logarithm of a number.
+The base-2 logarithm of a number.
 
 
 .SH ARGUMENTS
@@ -22,14 +22,15 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-x	Num	The number for which the base-2 logarithm is to be calculated. 
+x	Num	The number whose logarithm is to be computed. 
 .TE
 .SH RETURN
-The base-2 logarithm of `x`.
+The base-2 log of `x`, or `none` if `x` is not positive.
 
 .SH EXAMPLES
 .EX
-assert (8.0).log2() == 3
+assert (8.).log2()! == 3
+assert (1./4.).log2()! == -2
 .EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

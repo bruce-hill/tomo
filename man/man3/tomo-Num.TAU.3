@@ -1,10 +1,10 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Num.TAU 3 2025-11-29 "Tomo man-pages"
+.TH Num.TAU 3 2026-08-27 "Tomo man-pages"
 .SH NAME
-Num.TAU \- 2*pi
+Num.TAU \- the constant tau
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
@@ -12,8 +12,12 @@ Tomo Standard Library
 .BI Num.TAU\ :\ Num
 .fi
 .SH DESCRIPTION
-Tau ($2 \times \pi$)
+Two times pi, held exactly.
 
 
+.SH EXAMPLES
+.EX
+assert Num.TAU == 2 * Num.PI
+.EE
 .SH SEE ALSO
 .BR Tomo-Num (3)

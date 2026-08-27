@@ -1,0 +1,36 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Num.lcm 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Num.lcm \- least common multiple
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Num.lcm\ :\ func(x:\ Num,\ y:\ Num\ ->\ Num?)
+.fi
+.SH DESCRIPTION
+The least common multiple of two numbers, generalized to fractions.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+x	Num	The first number. 
+y	Num	The second number. 
+.TE
+.SH RETURN
+The least common multiple, or `none` if either argument is irrational.
+
+.SH EXAMPLES
+.EX
+assert (4.).lcm(6)! == 12
+.EE
+.SH SEE ALSO
+.BR Tomo-Num (3)
