@@ -74,7 +74,11 @@ int Int$print(FILE *f, Int_t i) {
     if (likely(i.small & 1L)) {
         return Int64$print(f, (int64_t)((i.small) >> 2L));
     } else {
-        return gmp_fprintf(f, "%Zd", Int_mpz(i));
+        // Not gmp_fprintf(): its generic %-engine has to handle %Ff, so it
+        // drags mpf (and with it GMP's whole Toom/FFT multiply ladder) into
+        // every binary. mpz_out_str writes the digits straight to the stream
+        // and returns the byte count, which is all this needs.
+        return (int)mpz_out_str(f, 10, Int_mpz(i));
     }
 }
 
