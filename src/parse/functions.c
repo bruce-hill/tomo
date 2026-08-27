@@ -128,12 +128,57 @@ static void catch_common_errors_after_parens(parse_ctx_t *ctx, const char *start
     }
 }
 
+// Collect the contiguous `#` comment lines directly above a definition (no
+// blank line in between, and indented the same as the definition) as a single
+// space-joined doc comment:
+static Text_t doc_comment_above(parse_ctx_t *ctx, const char *start) {
+    const char *text = ctx->file->text;
+    const char *line_start = start;
+    while (line_start > text && line_start[-1] != '\n')
+        line_start--;
+    // The definition's own indentation: a comment has to match it exactly to
+    // count as a doc comment, otherwise a trailing comment at the end of the
+    // *previous* definition's body would be picked up as this one's summary.
+    size_t indent = (size_t)(start - line_start);
+    const char *region = line_start;
+    while (region > text && region[-1] == '\n') {
+        const char *prev = region - 1;
+        while (prev > text && prev[-1] != '\n')
+            prev--;
+        const char *p = prev;
+        while (*p == ' ' || *p == '\t')
+            p++;
+        if (*p != '#') break;
+        if ((size_t)(p - prev) != indent || strncmp(prev, line_start, indent) != 0) break;
+        region = prev;
+    }
+    Text_t comment = EMPTY_TEXT;
+    for (OptionalText_t com; (com = next_comment(ctx->comments, &region, line_start)).tag != TEXT_NONE;) {
+        if (comment.length > 0) comment = Texts(comment, " ");
+        comment = Texts(comment, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
+    }
+    return comment;
+}
+
 ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match_word(&pos, "func")) return NULL;
 
     ast_t *name = optional(ctx, &pos, parse_var);
     if (!name) return NULL;
+
+    // Subcommand functions: `func main.add(...)`, `func main.submodule.init(...)`
+    if (*pos == '.' && !streq(Match(name, Var)->name, "main"))
+        parser_err(ctx, pos, pos + 1,
+                   "Subcommand functions must be named `main.<something>`, other functions can't have dots in their "
+                   "names");
+    while (*pos == '.') {
+        const char *dot = pos;
+        pos += 1;
+        const char *word = get_id(&pos);
+        if (!word) parser_err(ctx, dot, pos, "I expected a subcommand name after this period");
+        name = NewAST(ctx->file, name->start, pos, Var, .name = String(Match(name, Var)->name, ".", word));
+    }
 
     spaces(&pos);
 
@@ -164,7 +209,7 @@ ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
 
     ast_t *body = expect(ctx, start, &pos, parse_block, "This function needs a body block");
     return NewAST(ctx->file, start, pos, FunctionDef, .name = name, .args = args, .ret_type = ret_type, .body = body,
-                  .cache = cache_ast, .is_inline = is_inline);
+                  .cache = cache_ast, .is_inline = is_inline, .comment = doc_comment_above(ctx, start));
 }
 
 ast_t *parse_convert_def(parse_ctx_t *ctx, const char *pos) {

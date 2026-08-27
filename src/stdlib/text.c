@@ -112,6 +112,7 @@
 #include "../util.h"
 #include "bytes.h"
 #include "datatypes.h"
+#include "number.h"
 #include "integers.h"
 #include "lists.h"
 #include "metamethods.h"
@@ -1462,8 +1463,10 @@ double Text$distance(Text_t a, Text_t b, Text_t language) {
     // of Damerau–Levenshtein distance that gives slightly lower distances
     // for letters with the same main grapheme and slightly lower distances
     // for letters that are the same, but with different casing.
-    double *distances = GC_MALLOC_ATOMIC(sizeof(uint32_t) * (a.length + 1) * (b.length + 1));
-#define DIST(x, y) distances[(x) * b.length + (y)]
+    double *distances = GC_MALLOC_ATOMIC(sizeof(double) * (size_t)(a.length + 1) * (size_t)(b.length + 1));
+    // Row stride is b.length+1, not b.length: each row holds columns 0..b.length,
+    // so a stride of b.length would make DIST(i, b.length) alias DIST(i+1, 0).
+#define DIST(x, y) distances[(x) * (b.length + 1) + (y)]
     for (int64_t i = 0; i <= (int64_t)a.length; i++)
         DIST(i, 0) = i;
     for (int64_t j = 0; j <= (int64_t)b.length; j++)
@@ -1498,8 +1501,8 @@ double Text$distance(Text_t a, Text_t b, Text_t language) {
             // Check for transposition:
             if (i >= 2 && j >= 2 && cost != 0) {
                 int32_t ai_prev = Text$get_grapheme_fast(&a_state, i - 2);
-                int32_t bi_prev = Text$get_grapheme_fast(&b_state, i - 2);
-                if (ai == bi_prev && bj == ai_prev) {
+                int32_t bj_prev = Text$get_grapheme_fast(&b_state, j - 2);
+                if (ai == bj_prev && bj == ai_prev) {
                     double transposition = cost + DIST(i - 2, j - 2);
                     dist = MIN(dist, transposition);
                 }
@@ -1509,7 +1512,7 @@ double Text$distance(Text_t a, Text_t b, Text_t language) {
     }
 #undef DIST
 
-    return (double)distances[a.length * b.length + b.length];
+    return (double)distances[a.length * (b.length + 1) + b.length];
 }
 
 public
@@ -1938,3 +1941,26 @@ const TypeInfo_t Text$info = {
     .TextInfo = {.lang = "Text"},
     .metamethods = Text$metamethods,
 };
+
+public
+OptionalText_t Text$nearest(Text_t text, List_t candidates, Num_t max_distance) {
+    // `max_distance` is a distance *per grapheme*, measured against the
+    // shorter of the two texts. A flat distance can't work: for a 9-letter
+    // word, being 2 edits off is a typo, but for a 3-letter word it's a
+    // different word entirely.
+    OptionalText_t nearest = NONE_TEXT;
+    double nearest_distance = 0.0;
+    Text_t lang = Text("C");
+    for (int64_t i = 0; i < (int64_t)candidates.length; i++) {
+        Text_t candidate = *(Text_t *)(candidates.data + i * candidates.stride);
+        double distance = Text$distance(text, candidate, lang);
+        int64_t shorter = MIN((int64_t)text.length, (int64_t)candidate.length);
+        Num_t limit = number_mul(max_distance, number_from_int(shorter));
+        if (number_compare(number_from_double(distance), limit) > 0) continue;
+        if (nearest.tag == TEXT_NONE || distance < nearest_distance) {
+            nearest = candidate;
+            nearest_distance = distance;
+        }
+    }
+    return nearest;
+}

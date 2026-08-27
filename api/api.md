@@ -5005,6 +5005,11 @@ assert "hello".distance("hello") == 0
 texts := &["goodbye", "hello", "hallo"]
 texts.sort(func(a,b:Text) a.distance("hello") <> b.distance("hello"))
 assert texts == ["hello", "hallo", "goodbye"]
+assert "kitten".distance("sitting") == 3
+assert "flaw".distance("lawn") == 2
+# A transposition costs one edit, even when the texts differ in length:
+assert "ab".distance("ba") == 1
+assert "xab".distance("ba") == 2
 
 ```
 ## Text.ends_with
@@ -5351,6 +5356,33 @@ language | `Text` | The ISO 639 language code for which character width to use. 
 ```tomo
 assert "x".middle_pad(6) == "  x   "
 assert "x".middle_pad(10, "ABC") == "ABCAxABCAB"
+
+```
+## Text.nearest
+
+```tomo
+Text.nearest : func(text: Text, candidates: [Text], max_distance: Num = 0.6 -> Text?)
+```
+
+Find which of `candidates` is most similar to this text, for suggesting a correction when a name isn't recognized. Similarity uses `Text.distance()`, and candidates that aren't close enough are ignored.
+
+`max_distance` is an edit distance *per grapheme*, measured against the shorter of the two texts, so short texts have to match more closely than long ones. The default (0.6) accepts ordinary typos while rejecting unrelated short words.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+text | `Text` | The text to find a match for.  | -
+candidates | `[Text]` | The candidate texts to choose from.  | -
+max_distance | `Num` | The maximum edit distance per grapheme of the shorter text.  | `0.6`
+
+**Return:** The closest candidate, or `none` if `candidates` is empty or nothing is within `max_distance`.
+
+
+**Example:**
+```tomo
+commands := ["build", "run", "test"]
+assert "bulid".nearest(commands) == "build"
+assert "frobnicate".nearest(commands) == none
+assert "x".nearest([]) == none
 
 ```
 ## Text.quoted

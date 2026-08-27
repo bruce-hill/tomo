@@ -1,5 +1,104 @@
 # Changes
 
+## 2026-08-27
+
+- Programs can now define git-style CLI subcommands by declaring functions
+  named `main.foo(...)` (nested arbitrarily deep, e.g. `main.submodule.init`).
+  Each subcommand gets the same automatic argument parsing, `--help` text, and
+  manpage documentation that `main()` gets, with doc comments above each
+  function used as its one-line summary in the generated command listings.
+  Running the program with no arguments (or an unknown command) prints a usage
+  listing of the available commands, unless the program defines `main()`.
+  A command can both do something itself and have sub-subcommands (like
+  `git stash`/`git stash pop`): dispatch descends
+  into the longest matching command path. A program with subcommands can also
+  define a plain `main()`, which runs when the first argument doesn't name a
+  subcommand (`./myprog` runs `main()`, `./myprog foo` runs `main.foo()`).
+  Subcommand functions are also ordinary functions: they can be called directly
+  (`main.add(...)`), used as function values, and accessed from other files
+  (`mod.main.add(...)`).
+- Fixed three bugs in command-line parsing of flags whose value is embedded in
+  the argument itself (`--flag=value`):
+  - `--flag=value` silently discarded every argument after it, so
+    `myprog --name=x --loud` parsed `name` and then ignored `--loud` entirely.
+    Only the flag's own token is consumed now.
+  - `--flag=a,b,c` and `-f=a,b,c` on a list- or table-valued flag crashed
+    (segfault or hang): the comma-separated values were appended to the list
+    being iterated instead of the output list, with a mismatched item size. The
+    space-separated forms were unaffected.
+  - As a result of the above, list and table flags given in the comma form
+    parsed as empty.
+- New `Text.nearest(candidates, max_distance=0.6)` method: the closest of
+  `candidates` to a text, or `none` when nothing is close enough. `max_distance`
+  is an edit distance *per grapheme* of the shorter text, so short words have to
+  match more exactly than long ones -- a flat distance can't tell `trasnpil`
+  (a typo for `transpile`) from `cat` (not a typo for `fmt`), since both are 2
+  edits away. This is the "Did you mean ...?" logic that compiler errors already
+  used, now available to Tomo code and shared with CLI parsing.
+- An unrecognized subcommand now suggests the closest match, in both generated
+  programs and `tomo` itself, alongside the full list of available commands.
+- Fixed three bugs in `Text.distance()`. They only ever ran in compiler error
+  paths just before exit, so the damage went unnoticed until CLI parsing
+  started using it:
+  - A heap buffer overflow: it allocated its distance matrix at
+    `sizeof(uint32_t)` per entry but stored `double`s in it, writing twice past
+    the end of the allocation and corrupting neighbouring heap objects.
+  - The matrix was indexed with a row stride of `b.length` when each row holds
+    `b.length + 1` columns, so every row overlapped the next one's first cell
+    and the results were wrong: `"flaw".distance("lawn")` returned 3 instead
+    of 2, and `"abcd".distance("bcda")` returned 3 instead of 2.
+  - The transposition check compared `b[i-2]` instead of `b[j-2]`, so
+    transpositions were detected at the wrong offset whenever the two texts
+    were different lengths.
+- Command-line help, usage, and error messages now respect `NO_COLOR` and
+  `COLOR=0`, and drop their color when output isn't a terminal. The escapes
+  were previously unconditional, so piping `--help` into a file or pager (or
+  setting `NO_COLOR`) still got them. This covers `tomo` and compiled programs
+  alike, and `print_err()` no longer hardcodes its red highlighting either.
+  The CLI's escapes now all come from one palette (`tomo_cli_style()`), which
+  returns empty strings when color is off -- the same approach `report_style()`
+  already used for `tomo test`/`tomo fmt` output.
+- The `tomo` compiler now runs the same `tomo_init()` startup that every
+  compiled Tomo program runs, instead of an inlined partial copy of it. Along
+  with removing the duplicated color and hash-key setup, this means the
+  compiler finally gets four things the copy was missing: GMP allocating
+  through the GC (its bigint allocations were never freed), `setlocale()`,
+  fatal-signal handlers that turn a compiler crash into a stack trace, and
+  `atexit` cleanup.
+- Fixed an argument-parsing error message that colorized its output
+  unconditionally (the "Unsupported type" path for an argument type the parser
+  doesn't handle).
+- The automatic `--help`/`--version` short aliases (`-h`, `-v`) are no longer
+  claimed when the command or a global flag already declares that letter, so a
+  program whose `main()` takes `verbose|v` still gets `-v` for its own flag.
+  They're popped before the command's own arguments are parsed, so without this
+  they would shadow it.
+- `tomo --version` now works; previously only `tomo version` did.
+- A mistyped `tomo` command (`tomo bulid foo.tm`) now reports the bad command
+  name and lists the available commands. Previously the whole command line was
+  shimmed to `tomo run`, so it failed with a confusing "path not found".
+  More generally, when a command has subcommands and the first word resembles
+  one of them, that's now mentioned in any argument-parsing error for that
+  command. The resemblance alone never blocks anything -- it's only reported
+  once parsing has failed on its own -- so an argument that happens to look
+  like a command name still works (`tomo tests` runs a directory called
+  `tests`, one edit away from the `test` command).
+- Command-line dispatch and help rendering are now one implementation, shared
+  by the `tomo` compiler and the programs it compiles. Previously the two had
+  only argument parsing in common: `tomo` dispatched at runtime from a
+  `cli_spec_t`, while generated programs got a separate tree of dispatch
+  functions and help text baked in by the compiler, and the two had already
+  drifted apart in what their help looked like. Commands now nest
+  (`cli_command_t` has children), a program's `cli_spec_t` has a root command
+  whose own arguments run when the first word isn't a subcommand, and the
+  compiler emits a static `cli_spec_t` instead of code. Two behaviours that
+  genuinely differ between the two are now explicit flags on `cli_spec_t`:
+  `strict_positionals` (whether only args marked positional can be filled
+  positionally) and `passthrough_after_double_dash` (whether `--` separates
+  relayed arguments, as in `tomo run prog.tm -- args...`, or just marks the
+  end of flags). As a result, generated programs' `--help` now uses the same
+  layout as `tomo`'s, with `Arguments:`/`Flags:`/`Commands:` sections.
+
 ## 2026-08-21
 
 - `tomo run`, `tomo eval`, and `tomo test` now compile at `-O0` instead of

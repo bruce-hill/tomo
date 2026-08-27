@@ -18,6 +18,7 @@
 
 #include "bigint.h" // IWYU pragma: export
 #include "datatypes.h" // IWYU pragma: export
+#include "stdlib.h" // IWYU pragma: export (USE_COLOR)
 #include "integers.h" // IWYU pragma: export
 #include "mapmacro.h"
 #include "paths.h" // IWYU pragma: export
@@ -159,8 +160,10 @@ char *gc_stream_finalize(FILE *stream, char **buf, size_t *size);
         _fprint(_stream, __VA_ARGS__);                                                                                 \
         gc_stream_finalize(_stream, &_buf, &_size);                                                                    \
     })
+// The highlighting is left out when output isn't colored (NO_COLOR, COLOR=0,
+// or not a terminal -- see tomo_init()):
 #define print_err(...)                                                                                                 \
     ({                                                                                                                 \
-        fprint(stderr, "\033[91;1m", __VA_ARGS__, "\033[m");                                                           \
+        fprint(stderr, USE_COLOR ? "\033[91;1m" : "", __VA_ARGS__, USE_COLOR ? "\033[m" : "");                          \
         exit(EXIT_FAILURE);                                                                                            \
     })

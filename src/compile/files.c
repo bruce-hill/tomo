@@ -115,8 +115,10 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
         }
     }
     case FunctionDef: {
-        Text_t name_code =
-            namespace_name(env, env->namespace, Text$from_str(Match(Match(ast, FunctionDef)->name, Var)->name));
+        // Dots in subcommand names (`main.add`) become `$`s in the C name:
+        Text_t name_code = namespace_name(
+            env, env->namespace,
+            Text$replace(Text$from_str(Match(Match(ast, FunctionDef)->name, Var)->name), Text("."), Text("$")));
         return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case ConvertDef: {

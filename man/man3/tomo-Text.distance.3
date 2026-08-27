@@ -2,14 +2,14 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.distance 3 2026-08-20 "Tomo man-pages"
+.TH Text.distance 3 2026-08-27 "Tomo man-pages"
 .SH NAME
 Text.distance \- distance between two texts
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Text.distance\ :\ func(a:\ Text,\ b:\ Text,\ language:\ Text\ =\ "C"\ ->\ Num)
+.BI Text.distance\ :\ func(a:\ Text,\ b:\ Text,\ language:\ Text\ =\ "C"\ ->\ Float64)
 .fi
 .SH DESCRIPTION
 Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar.
@@ -38,6 +38,11 @@ assert "hello".distance("hello") == 0
 texts := &["goodbye", "hello", "hallo"]
 texts.sort(func(a,b:Text) a.distance("hello") <> b.distance("hello"))
 assert texts == ["hello", "hallo", "goodbye"]
+assert "kitten".distance("sitting") == 3
+assert "flaw".distance("lawn") == 2
+# A transposition costs one edit, even when the texts differ in length:
+assert "ab".distance("ba") == 1
+assert "xab".distance("ba") == 2
 .EE
 .SH SEE ALSO
 .BR Tomo-Text (3)

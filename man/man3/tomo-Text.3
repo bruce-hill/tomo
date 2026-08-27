@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text 3 2026-03-14 "Tomo man-pages"
+.TH Text 3 2026-08-27 "Tomo man-pages"
 .SH NAME
 Text \- a Tomo type
 .SH LIBRARY
@@ -67,7 +67,7 @@ For more, see:
 
 
 .TP
-.BI Text.distance\ :\ func(a:\ Text,\ b:\ Text,\ language:\ Text\ =\ "C"\ ->\ Num)
+.BI Text.distance\ :\ func(a:\ Text,\ b:\ Text,\ language:\ Text\ =\ "C"\ ->\ Float64)
 Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar. 
 
 For more, see:
@@ -192,6 +192,14 @@ Pad some text on the left and right side so it reaches a target width.
 
 For more, see:
 .BR Tomo-Text.middle_pad (3)
+
+
+.TP
+.BI Text.nearest\ :\ func(text:\ Text,\ candidates:\ [Text],\ max_distance:\ Num\ =\ 0.6\ ->\ Text?)
+Find which of \fBcandidates\fR is most similar to this text, for suggesting a correction when a name isn't recognized. Similarity uses \fBText.distance()\fR, and candidates that aren't close enough are ignored. 
+
+For more, see:
+.BR Tomo-Text.nearest (3)
 
 
 .TP

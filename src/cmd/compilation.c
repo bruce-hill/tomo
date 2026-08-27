@@ -1252,20 +1252,18 @@ void transpile_code(env_t *base_env, Path_t path) {
     Text_t c_code = compile_file(module_env, ast);
 
     binding_t *main_binding = get_binding(module_env, "main");
-    if (main_binding && main_binding->type->tag == FunctionType) {
+    bool has_main = main_binding && main_binding->type->tag == FunctionType;
+    cli_command_def_t *subcommands = get_cli_subcommands(module_env, ast);
+    if (has_main) {
         type_t *ret = Match(main_binding->type, FunctionType)->ret;
         if (ret->tag != VoidType && ret->tag != AbortType)
             compiler_err(ast->file, ast->start, ast->end, "The main() function in this file has a return type of ",
                          type_to_text(ret), ", but it should not have any return value!");
+    }
 
-        c_code = Texts(c_code, "int parse_and_run$$", main_binding->code, "(int argc, char *argv[]) {\n",
-                       module_env->do_source_mapping ? Text("#line 1\n") : EMPTY_TEXT, "tomo_init();\n",
-                       namespace_name(module_env, module_env->namespace, Text("$initialize")),
-                       "();\n"
-                       "\n",
-                       compile_cli_arg_call(module_env, ast, main_binding->code, main_binding->type),
-                       "return 0;\n"
-                       "}\n");
+    if (has_main || subcommands) {
+        Text_t entry = namespace_name(module_env, module_env->namespace, Text("main"));
+        c_code = Texts(c_code, compile_cli_dispatch(module_env, ast, subcommands, entry));
     }
 
     Path_t c_temp = artifact_temp(c_filename);
@@ -1332,11 +1330,15 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     env_t *env;
     PROFILE("load module env", env = load_module_env(base_env, ast));
     binding_t *main_binding = get_binding(env, "main");
-    if (main_binding && main_binding->type->tag == FunctionType) {
+    cli_command_def_t *subcommands = get_cli_subcommands(env, ast);
+    if ((main_binding && main_binding->type->tag == FunctionType) || subcommands) {
         Path_t manpage_file = build_file(Path$with_extension(path, Text(".1"), true), "");
         if (clean_build || !Path$is_file(manpage_file, true) || is_stale(manpage_file, path, true)) {
-            Text_t manpage =
-                compile_manpage(Path$base_name(exe_path), ast, Match(main_binding->type, FunctionType)->args);
+            Text_t manpage = compile_manpage(Path$base_name(exe_path), ast,
+                                             main_binding && main_binding->type->tag == FunctionType
+                                                 ? Match(main_binding->type, FunctionType)->args
+                                                 : NULL,
+                                             subcommands);
             Path$write(manpage_file, manpage, 0644);
             LOG(LOG_BUILD, "Wrote manpage:\t", Path$relative_to(manpage_file, Path$current_dir()));
         } else {
@@ -1373,14 +1375,17 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     PROFILE("source blob", write_source_blob(env, path, source_blob));
 
     Text_t program;
-    if (main_binding && main_binding->type->tag == FunctionType) {
+    if ((main_binding && main_binding->type->tag == FunctionType) || subcommands) {
+        Text_t entry = main_binding && main_binding->type->tag == FunctionType
+                           ? main_binding->code
+                           : namespace_name(env, env->namespace, Text("main"));
         program =
-            Texts("extern int parse_and_run$$", main_binding->code,
+            Texts("extern int parse_and_run$$", entry,
                   "(int argc, char *argv[]);\n"
                   "__attribute__ ((noinline))\n"
                   "int main(int argc, char *argv[]) {\n"
                   "\treturn parse_and_run$$",
-                  main_binding->code,
+                  entry,
                   "(argc, argv);\n"
                   "}\n",
                   compile_build_info(env, "build_info"), link_macho ? EMPTY_TEXT : compile_source_asm(source_blob));

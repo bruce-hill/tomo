@@ -136,6 +136,11 @@ Text_t Text$left_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 Text_t Text$right_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 Text_t Text$middle_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 double Text$distance(Text_t a, Text_t b, Text_t language);
+
+// The closest of `candidates` to `text`, or none when `candidates` is empty or
+// nothing is close enough. `max_distance` is an edit distance per grapheme of
+// the shorter text, so short words have to match more exactly than long ones.
+OptionalText_t Text$nearest(Text_t text, List_t candidates, Num_t max_distance);
 int32_t Text$get_grapheme_fast(TextIter_t *state, int64_t index);
 uint32_t Text$get_main_grapheme_fast(TextIter_t *state, int64_t index);
 Int_t Text$memory_size(Text_t text);

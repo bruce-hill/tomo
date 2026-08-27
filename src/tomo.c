@@ -2,14 +2,10 @@
 // dispatch (each command's logic lives in src/cmd/)
 
 #include <err.h>
-#include <gc.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#if defined(__linux__)
-#include <sys/random.h>
-#endif
 #include <unistd.h>
 
 #include "cmd/commands.h"
@@ -22,7 +18,6 @@
 #include "stdlib/datatypes.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
-#include "stdlib/siphash.h"
 #include "stdlib/stdlib.h"
 #include "stdlib/text.h"
 #include "util.h"
@@ -147,9 +142,14 @@ static void after_globals(void) {
 }
 
 int main(int argc, char *argv[]) {
-    GC_INIT();
+    // Timestamp first, so --profile accounts for startup too:
     profile_mark_start();
-    tomo_configure();
+    // The same startup every compiled Tomo program runs: the GC, GMP's
+    // GC-backed allocator, the installation's paths, color detection, the
+    // hash key, the locale, and the fatal-signal handlers that turn a crash
+    // into a stack trace.
+    tomo_init();
+    style_run_command();
 
 #ifdef __linux__
     // Get the file modification time of the compiler, so we
@@ -159,19 +159,6 @@ int main(int argc, char *argv[]) {
     if (count == -1) err(1, "Could not find age of compiler");
     compiler_path[count] = '\0';
     if (stat(compiler_path, &compiler_stat) != 0) err(1, "Could not find age of compiler");
-#endif
-
-    const char *color_env = getenv("COLOR");
-    USE_COLOR = color_env ? strcmp(color_env, "1") == 0 : isatty(STDOUT_FILENO);
-    const char *no_color_env = getenv("NO_COLOR");
-    if (no_color_env && no_color_env[0] != '\0') USE_COLOR = false;
-
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
-    arc4random_buf(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY));
-#elif defined(__linux__)
-    assert(getrandom(TOMO_HASH_KEY, sizeof(TOMO_HASH_KEY), 0) == sizeof(TOMO_HASH_KEY));
-#else
-#error "Unsupported platform for secure random number generation"
 #endif
 
     if (getenv("TOMO_PATH")) TOMO_PATH = getenv("TOMO_PATH");
@@ -210,18 +197,36 @@ int main(int argc, char *argv[]) {
     const char *CPATH = getenv("CPATH");
     setenv("CPATH", CPATH ? String(include_dir, ":", CPATH) : include_dir, 1);
 
+    // Built here rather than as a literal so it picks up the palette (which is
+    // empty when the output isn't colored), the same as style_run_command():
+    cli_style_t style = tomo_cli_style();
     tomo_cli = (cli_spec_t){
         .name = "tomo",
         .summary = "a compiler for the Tomo programming language",
-        .description = "Running \x1b[1mtomo file.tm\x1b[m without a command runs the file, and bare\n"
-                       "\x1b[1mtomo\x1b[m opens a scratch file to edit and run.",
+        .description = String("Running ", style.bold, "tomo file.tm", style.reset,
+                              " without a command runs the file, and bare\n", style.bold, "tomo", style.reset,
+                              " opens a scratch file to edit and run."),
         .global_len = (int)(sizeof(global_spec) / sizeof(global_spec[0])),
         .global_spec = global_spec,
-        .num_commands = (int)(sizeof(commands) / sizeof(commands[0])),
-        .commands = commands,
+        // Long-only: `-v` already means --verbose for most commands. This is
+        // the same version `tomo version` prints:
+        .version = TOMO_VERSION,
         .after_globals = after_globals,
-        // Bare `tomo file.tm` (and `tomo` with no file) shims to `tomo run`:
-        .default_command = &run_command,
+        // Hand-written specs mark which args are positional, so only those get
+        // filled positionally:
+        .strict_positionals = true,
+        // `tomo run prog.tm -- args...` relays everything after `--` to the program:
+        .passthrough_after_double_dash = true,
+        // The root command takes the same arguments `tomo run` does, so bare
+        // `tomo file.tm` means `tomo run file.tm`. tomo_main() forwards to run
+        // after checking for a mistyped command name:
+        .root = {
+            .spec_len = run_command.spec_len,
+            .spec = run_command.spec,
+            .num_children = (int)(sizeof(commands) / sizeof(commands[0])),
+            .children = commands,
+            .handler = tomo_main,
+        },
     };
     // Print the profile (if --profile was given) on any normal exit; the
     // run/eval paths that exec a program call profile_report() themselves right

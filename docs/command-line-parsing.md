@@ -57,10 +57,39 @@ greet.tm -- --help` will pass the argument `--help` to your program, whereas
 
 ## Positional vs Default Arguments
 
-Any arguments with a default value must be specified with a `--flag=value` or
-`--flag value`. Arguments without a default value can be specified either by
-explicit `--flag` or positionally. If an argument does not have a default value
-it is required and the program will report a usage error if it is missing.
+Any argument can be given either by explicit `--flag value` (or `--flag=value`)
+or positionally. Positional values fill the arguments that no flag has already
+filled, in the order the arguments are declared:
+
+```tomo
+func main(name:Text, count:Int=1)
+    ...
+```
+```bash
+$ ./greet Zaphod        # name="Zaphod", count=1
+$ ./greet Zaphod 3      # name="Zaphod", count=3
+$ ./greet --count=3 Zaphod   # same thing: --count is filled first, so the
+                             # positional "Zaphod" goes to name
+```
+
+Note that this includes arguments that have a default value, like `count`
+above. If an argument does *not* have a default value it is required, and the
+program reports a usage error when nothing fills it.
+
+The same command-line machinery runs both your compiled programs and the
+`tomo` compiler itself, so `tomo --help` and `./yourprogram --help` are laid
+out the same way.
+
+A value that starts with `-` is rejected wherever it would be read as a value,
+since it looks like a flag. To pass a text value that really does start with a
+dash, either escape it with a backslash (`./greet '\-weird'`, which also
+works in the `--name='\-weird'` form) or put it after a bare `--`:
+
+```bash
+$ ./greet -weird        # error: Not a valid flag: -weird
+$ ./greet '\-weird'     # name="-weird"
+$ ./greet -- -weird     # name="-weird"
+```
 
 ## Supported Argument Types
 
@@ -179,6 +208,149 @@ func main(output|o:Path? = none, verbose|v:Bool = no)
 ```bash
 $ tomo build program.tm && ./program -vo outfile.txt`
 ```
+
+## Subcommands
+
+For git-style CLIs, you can define subcommands by declaring functions named
+`main.<command>` instead of a single `main()` function:
+
+```tomo
+# mygit.tm
+
+# Initialize a new repository
+func main.init(bare:Bool=no)
+    ...
+
+# Add file contents to the index
+func main.add(files:[Text], force|f:Bool=no)
+    ...
+
+# Initialize submodules
+func main.submodule.init(paths:[Text])
+    ...
+```
+
+Each subcommand function gets the same automatic argument parsing that
+`main()` gets, including flags, defaults, aliases, and `--help`:
+
+```bash
+$ tomo build mygit.tm
+
+$ ./mygit add --force a.txt b.txt
+$ ./mygit submodule init vendor/foo
+
+$ ./mygit add --help
+./mygit add: Add file contents to the index
+
+Usage: ./mygit add --files text1 text2... [--force|-f]
+
+Flags:
+  --files text1 text2...
+  -f, --force|--no-force (default:no)
+```
+
+Running the program with no command (or an unknown one) prints a listing of
+the available commands, using the comment above each function as its one-line
+summary:
+
+```bash
+$ ./mygit
+./mygit
+
+Usage: ./mygit <command> ...
+
+Commands:
+  init       Initialize a new repository
+  add        Add file contents to the index
+  submodule  <command> ...
+```
+
+Subcommands can be nested arbitrarily deep (`main.submodule.init` handles
+`mygit submodule init`), and a command can both do something itself *and* have
+sub-subcommands, like `git stash` and `git stash pop`:
+
+```tomo
+# Stash changes away
+func main.stash(message:Text? = none)
+    ...
+
+# Remove a stash entry
+func main.stash.pop(index:Int = 0)
+    ...
+```
+
+Dispatch descends into the longest matching command path: `mygit stash pop`
+runs `main.stash.pop()`, while `mygit stash` runs `main.stash()`.
+
+A program with subcommands can also define a plain `main()`, which runs when
+the first argument doesn't name a subcommand:
+
+```tomo
+# Greet someone by name
+func main(name:Text="world")
+    say("hello $name")
+
+# Initialize a new repository
+func main.init(bare:Bool=no)
+    ...
+```
+
+```bash
+$ ./myprog             # no subcommand: runs main()
+hello world
+$ ./myprog --name=Ford  # still main()
+hello Ford
+$ ./myprog init         # runs main.init()
+```
+
+This is the same longest-match rule used for nested commands: if the next word
+names a subcommand, dispatch descends into it, otherwise the current command's
+own handler runs with the remaining arguments. `main()`'s flags appear in the
+root `--help` above the command listing.
+
+If a positional argument's value happens to collide with a subcommand name,
+the subcommand wins; pass the value after `--` (`./myprog -- init`) or as an
+explicit flag (`./myprog --word=init`) to disambiguate.
+
+Each flag belongs to its own subcommand: `main()`'s flags are *not* accepted
+after a subcommand name, so there are no program-wide "global flags".
+
+Underscores in subcommand names are converted to dashes on the command line,
+the same as flag names: `func main.dry_run()` handles `myprogram dry-run`.
+
+### Subcommands Are Ordinary Functions
+
+Subcommand functions are regular functions that the compiler additionally
+wires into the command-line dispatcher. You can call them directly, use them
+as function values, and access them from other files:
+
+```tomo
+func main.commit(message:Text, all|a:Bool=no)
+    if all
+        main.add(files=modified_files(), force=no)
+    ...
+
+func main.show()
+    fn := main.add
+    fn(["via a function pointer"], yes)
+```
+
+Calling a subcommand function directly bypasses command-line parsing entirely:
+the arguments are ordinary typed function arguments. This also makes
+subcommands easy to test:
+
+```tomo
+# test.tm
+mygit := use ./mygit.tm
+
+test "adding files"
+    mygit.main.add([(./foo.txt)], force=yes)
+    ...
+```
+
+Subcommand functions are constants: assigning to `main.add` is a compile-time
+error, and a command path prefix like `main.submodule` is not a value by
+itself.
 
 ## Help and Manpages
 

@@ -970,6 +970,11 @@ test "Text.distance"
     texts := &["goodbye", "hello", "hallo"]
     texts.sort(func(a,b:Text) a.distance("hello") <> b.distance("hello"))
     assert texts == ["hello", "hallo", "goodbye"]
+    assert "kitten".distance("sitting") == 3
+    assert "flaw".distance("lawn") == 2
+    # A transposition costs one edit, even when the texts differ in length:
+    assert "ab".distance("ba") == 1
+    assert "xab".distance("ba") == 2
 
 test "Text.ends_with"
     assert "hello world".ends_with("world")
@@ -1036,6 +1041,12 @@ test "Text.matches_glob"
 test "Text.middle_pad"
     assert "x".middle_pad(6) == "  x   "
     assert "x".middle_pad(10, "ABC") == "ABCAxABCAB"
+
+test "Text.nearest"
+    commands := ["build", "run", "test"]
+    assert "bulid".nearest(commands) == "build"
+    assert "frobnicate".nearest(commands) == none
+    assert "x".nearest([]) == none
 
 test "Text.quoted"
     assert "one\ntwo".quoted() == "\"one\\ntwo\""

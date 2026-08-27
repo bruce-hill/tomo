@@ -366,8 +366,13 @@ void bind_statement(env_t *env, ast_t *statement) {
     case FunctionDef: {
         DeclareMatch(def, statement, FunctionDef);
         const char *name = Match(def->name, Var)->name;
+        if (strchr(name, '.') && env->namespace)
+            code_err(statement, "Subcommand functions like `func ", name,
+                     "(...)` can only be defined at the top level of a file");
         type_t *type = get_function_type(env, statement);
-        set_binding(env, name, type, namespace_name(env, env->namespace, Text$from_str(name)));
+        // Dots in subcommand names (`main.add`) become `$`s in the C name:
+        Text_t c_name = Text$replace(Text$from_str(name), Text("."), Text("$"));
+        set_binding(env, name, type, namespace_name(env, env->namespace, c_name));
         break;
     }
     case ConvertDef: {
@@ -661,9 +666,10 @@ PUREFUNC public const char *record_literal_name(ast_t *type_expr) {
 PUREFUNC public binding_t *get_variant_constructor(env_t *env, ast_t *type_expr) {
     binding_t *b;
     if (type_expr->tag == Var) b = get_binding(env, Match(type_expr, Var)->name);
-    else if (type_expr->tag == FieldAccess)
+    else if (type_expr->tag == FieldAccess) {
+        if (get_subcommand_binding(env, type_expr)) return NULL; // `main.add` is a subcommand, not a variant
         b = get_namespace_binding(env, Match(type_expr, FieldAccess)->fielded, Match(type_expr, FieldAccess)->field);
-    else return NULL;
+    } else return NULL;
     return (b && b->is_variant_constructor) ? b : NULL;
 }
 
@@ -718,6 +724,59 @@ env_t *match_clause_scope(env_t *env, type_t *subject_t, match_clause_t *clause)
 type_t *get_clause_type(env_t *env, type_t *subject_t, match_clause_t *clause) {
     env_t *scope = match_clause_scope(env, subject_t, clause);
     return get_type(scope, clause->body);
+}
+
+// A FieldAccess chain like `main.add` or `mymod.main.submodule.init` may name
+// a subcommand function, which is bound under its full dotted name:
+public
+binding_t *get_subcommand_binding(env_t *env, ast_t *ast) {
+    // Walk to the root of the chain first, without allocating: this runs for
+    // every field access and method call, and nearly all of them bail out here.
+    int n = 0;
+    const char *outermost_field = NULL; // The field applied to the root Var
+    ast_t *node = ast;
+    for (; node->tag == FieldAccess; node = Match(node, FieldAccess)->fielded) {
+        outermost_field = Match(node, FieldAccess)->field;
+        n += 1;
+    }
+    if (node->tag != Var || n == 0) return NULL;
+    const char *root = Match(node, Var)->name;
+    env_t *lookup_env = env;
+    int skip = 0; // Fields consumed by the `main` prefix itself
+    if (!streq(root, "main")) {
+        // Module-qualified subcommands: `mymod.main.add`
+        if (n < 2 || !streq(outermost_field, "main")) return NULL;
+        binding_t *rb = get_binding(env, root);
+        if (!rb || rb->type->tag != ModuleType) return NULL;
+        lookup_env = Table$str_get(*env->imports, Match(rb->type, ModuleType)->name);
+        if (!lookup_env) return NULL;
+        skip = 1;
+    }
+    const char **fields = GC_MALLOC(sizeof(const char *) * (size_t)n);
+    int f = 0;
+    for (node = ast; node->tag == FieldAccess; node = Match(node, FieldAccess)->fielded)
+        fields[f++] = Match(node, FieldAccess)->field;
+    const char *name = "main";
+    for (f = n - 1 - skip; f >= 0; f--)
+        name = String(name, ".", fields[f]);
+    binding_t *b = get_binding(lookup_env, name);
+    if (!b) {
+        // `main.submodule` isn't a value when only `main.submodule.init` etc.
+        // exist, so give a pointed error instead of a generic name-resolution one:
+        const char *prefix = String(name, ".");
+        for (Table_t *scope = lookup_env->locals; scope; scope = scope->fallback) {
+            for (int64_t i = 0; i < (int64_t)scope->entries.length; i++) {
+                struct {
+                    const char *key;
+                    binding_t *value;
+                } *entry = (scope->entries.data + i * scope->entries.stride);
+                if (strncmp(entry->key, prefix, strlen(prefix)) == 0)
+                    code_err(ast, quoted(name), " is a group of subcommands, not a value. Did you mean ",
+                             quoted(entry->key), "?");
+            }
+        }
+    }
+    return b;
 }
 
 type_t *get_type(env_t *env, ast_t *ast) {
@@ -906,6 +965,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case FieldAccess: {
         DeclareMatch(access, ast, FieldAccess);
+        binding_t *subcommand = get_subcommand_binding(env, ast);
+        if (subcommand) return subcommand->type;
         type_t *fielded_t = get_type(env, access->fielded);
         if (fielded_t->tag == ModuleType) {
             const char *name = Match(fielded_t, ModuleType)->name;
@@ -1014,6 +1075,9 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case MethodCall: {
         DeclareMatch(call, ast, MethodCall);
+        ast_t *as_field = WrapAST(call->self, FieldAccess, .fielded = call->self, .field = call->name);
+        if (get_subcommand_binding(env, as_field)) // Subcommand calls: `main.add(...)`
+            return get_type(env, WrapAST(ast, FunctionCall, .fn = as_field, .args = call->args));
         type_t *self_value_t = get_type(env, call->self);
         if (!self_value_t) code_err(call->self, "Couldn't get the type of this value");
         self_value_t = value_type(self_value_t);
@@ -1787,6 +1851,7 @@ PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast) {
     case InlineCCode: return true;
     case FieldAccess: {
         DeclareMatch(access, ast, FieldAccess);
+        if (get_subcommand_binding(env, ast)) return false; // Subcommand functions can't be reassigned
         type_t *fielded_type = get_type(env, access->fielded);
         if (fielded_type->tag == PointerType) {
             type_t *val = value_type(fielded_type);
@@ -2104,25 +2169,12 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     }
 }
 
+// "Did you mean 'x'?" for an unrecognized name, or nothing when no candidate
+// is close enough to be worth suggesting:
 OptionalText_t suggest_best_name(const char *wrong, List_t names) {
-    if (names.length == 0) return NONE_TEXT;
-    Text_t target = Text$from_str(wrong);
-    Text_t best = *(Text_t *)names.data;
-    Text_t lang = Text("C");
-    double best_dist = Text$distance(target, best, lang);
-    for (int64_t i = 1; i < (int64_t)names.length; i++) {
-        Text_t text = *(Text_t *)(names.data + i * names.stride);
-        double dist = Text$distance(target, text, lang);
-        if (dist < best_dist) {
-            best = text;
-            best_dist = dist;
-        }
-    }
-
-    // Too far away:
-    if (best_dist > 6.0 || best_dist > 0.6 * (double)target.length || best_dist > 0.6 * (double)best.length)
-        return NONE_TEXT;
-    return Texts("\nDid you mean '", best, "'?");
+    OptionalText_t nearest = Text$nearest(Text$from_str(wrong), names, NUMBER_SMALL(3, 5) /* 0.6 */);
+    if (nearest.tag == TEXT_NONE) return NONE_TEXT;
+    return Texts("\nDid you mean '", nearest, "'?");
 }
 
 // `serialize(...)` always parses as the built-in construct, so a callable

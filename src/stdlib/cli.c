@@ -18,6 +18,7 @@
 #include "metamethods.h"
 #include "floats.h"
 #include "nums.h"
+#include "number.h"
 #include "optionals.h"
 #include "paths.h"
 #include "print.h"
@@ -25,6 +26,21 @@
 #include "tables.h"
 #include "text.h"
 #include "util.h"
+
+// The palette, or an all-empty one when color is off:
+public
+cli_style_t tomo_cli_style(void) {
+    if (USE_COLOR)
+        return (cli_style_t){
+            .bold = "\x1b[1m",       .dim = "\x1b[2m",     .italic = "\x1b[3m",  .reset = "\x1b[m",
+            .heading = "\x1b[4;1m",  .usage = "\x1b[93;4;1m", .flag = "\x1b[93;1m", .value = "\x1b[1;94m",
+            .command = "\x1b[1;32m", .error = "\x1b[91;1m",
+        };
+    return (cli_style_t){
+        .bold = "",    .dim = "",   .italic = "", .reset = "",  .heading = "",
+        .usage = "",   .flag = "",  .value = "",  .command = "", .error = "",
+    };
+}
 
 static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag, bool *dest) {
     const char *no_flag = String("no-", flag);
@@ -103,14 +119,6 @@ void tomo_parse_arg_list(List_t args, cli_help_info_t info, int spec_len, cli_ar
         print(info.help);
         exit(0);
     }
-    if (info.version) {
-        bool show_version = false;
-        if (pop_boolean_cli_flag(&args, info.version_short, "version", &show_version) && show_version) {
-            print(info.version);
-            exit(0);
-        }
-    }
-
     List_t before_double_dash = args, after_double_dash = EMPTY_LIST;
     for (int i = 0; i < (int64_t)args.length; i++) {
         const char *arg = *(const char **)(args.data + i * args.stride);
@@ -139,24 +147,17 @@ void tomo_parse_arg_list(List_t args, cli_help_info_t info, int spec_len, cli_ar
     for (int i = 0; i < spec_len; i++) {
         if (!spec[i].populated && spec[i].required)
             print_err("Missing required ", spec[i].positional ? "argument" : "flag", ": ", spec[i].name, "\n",
-                      info.usage);
+                      info.usage, info.command_hint);
     }
 
     List_t remaining_args = List$concat(before_double_dash, after_double_dash, sizeof(const char *));
     if (remaining_args.length > 0) {
-        print_err("Unknown flag values: ", CString$join(" ", remaining_args));
+        // Show the usage too: leftovers usually mean an earlier word was
+        // consumed as something the user didn't intend (a mistyped command
+        // name swallowed as a positional argument, say).
+        print_err("Unknown flag values: ", CString$join(" ", remaining_args), "\n", info.usage,
+                  info.command_hint);
     }
-}
-
-public
-void tomo_parse_args(int argc, char *argv[], Text_t usage, Text_t help, const char *version, int spec_len,
-                     cli_arg_t spec[spec_len]) {
-    List_t args = EMPTY_LIST;
-    for (int i = 1; i < argc; i++) {
-        List$insert(&args, &argv[i], I(0), sizeof(const char *));
-    }
-    cli_help_info_t info = {.usage = usage, .help = help, .version = version, .help_short = 'h', .version_short = 'v'};
-    tomo_parse_arg_list(args, info, spec_len, spec);
 }
 
 // The value placeholder shown for a flag in usage/help text, derived from its
@@ -210,18 +211,19 @@ static Text_t positional_display(const cli_arg_t *arg) {
 // Generate a one-line "Usage: <prefix> [flags] positionals" from an arg spec:
 public
 Text_t tomo_generate_usage(Text_t prefix, int spec_len, cli_arg_t spec[spec_len]) {
-    Text_t usage = Texts("\x1b[93;4;1mUsage:\x1b[m ", prefix);
+    cli_style_t style = tomo_cli_style();
+    Text_t usage = Texts(style.usage, "Usage:", style.reset, " ", prefix);
     for (int i = 0; i < spec_len; i++) { // Flags first...
         if (spec[i].positional) continue;
-        Text_t flag = Texts("\x1b[1m--", spec[i].name, "\x1b[m");
+        Text_t flag = Texts(style.bold, "--", spec[i].name, style.reset);
         if (spec[i].short_flag)
-            flag = Texts(flag, "|\x1b[1m-", Text$from_strn((char[]){spec[i].short_flag}, 1), "\x1b[m");
+            flag = Texts(flag, "|", style.bold, "-", Text$from_strn((char[]){spec[i].short_flag}, 1), style.reset);
         if (!is_bool_arg(&spec[i])) flag = Texts(flag, " ", flag_value_options(spec[i].metavar, spec[i].type));
         usage = Texts(usage, " ", spec[i].required ? flag : Texts("[", flag, "]"));
     }
     for (int i = 0; i < spec_len; i++) { // ...then positionals
         if (!spec[i].positional) continue;
-        Text_t name = Texts("\x1b[1m", positional_display(&spec[i]), "\x1b[m");
+        Text_t name = Texts(style.bold, positional_display(&spec[i]), style.reset);
         usage = Texts(usage, " ", spec[i].required ? name : Texts("[", name, "]"));
     }
     return usage;
@@ -229,75 +231,199 @@ Text_t tomo_generate_usage(Text_t prefix, int spec_len, cli_arg_t spec[spec_len]
 
 // One "  --flag|-f value  description" line of help text for an arg:
 static Text_t arg_help_line(const cli_arg_t *arg) {
+    cli_style_t style = tomo_cli_style();
     Text_t line;
     if (arg->positional) {
-        line = Texts("  \x1b[1m", positional_display(arg), "\x1b[m");
+        line = Texts("  ", style.bold, positional_display(arg), style.reset);
     } else {
-        Text_t flags = Texts("\x1b[93;1m--", arg->name, "\x1b[m");
+        Text_t flags = Texts(style.flag, "--", arg->name, style.reset);
         if (arg->short_flag)
-            flags = Texts("\x1b[93;1m-", Text$from_strn((char[]){arg->short_flag}, 1), "\x1b[0;2m,\x1b[m ", flags);
-        if (is_bool_arg(arg)) flags = Texts(flags, "|\x1b[93;1m--no-", arg->name, "\x1b[m");
+            // reset before dim: the comma is dim on its own, not dim-on-top-of
+            // the flag color it follows
+            flags = Texts(style.flag, "-", Text$from_strn((char[]){arg->short_flag}, 1), style.reset, style.dim, ",",
+                          style.reset, " ", flags);
+        if (is_bool_arg(arg)) flags = Texts(flags, "|", style.flag, "--no-", arg->name, style.reset);
         line = Texts("  ", flags);
-        if (!is_bool_arg(arg)) line = Texts(line, " \x1b[1;94m", flag_value_options(arg->metavar, arg->type), "\x1b[m");
+        if (!is_bool_arg(arg))
+            line = Texts(line, " ", style.value, flag_value_options(arg->metavar, arg->type), style.reset);
     }
-    if (arg->description) line = Texts(line, " \x1b[3m", arg->description, "\x1b[m");
+    if (arg->description) line = Texts(line, " ", style.italic, arg->description, style.reset);
+    if (arg->default_text) line = Texts(line, " ", style.dim, "(default:", arg->default_text, ")", style.reset);
     return Texts(line, "\n");
 }
 
-// Generate a command's full help text: summary, usage, description, and its
-// arguments/flags (with an automatic --help entry):
-static Text_t generate_command_help(const char *prog, cli_command_t *command) {
-    Text_t help = Texts("\x1b[1m", prog, " ", command->name, "\x1b[m");
-    if (command->summary) help = Texts(help, ": ", command->summary);
-    help = Texts(help, "\n\n", command->usage);
-    if (command->description) help = Texts(help, "\n\n", command->description);
-
-    Text_t args_text = EMPTY_TEXT, flags_text = EMPTY_TEXT;
-    for (int i = 0; i < command->spec_len; i++) {
-        if (command->spec[i].positional) args_text = Texts(args_text, arg_help_line(&command->spec[i]));
-        else flags_text = Texts(flags_text, arg_help_line(&command->spec[i]));
+// The "Commands:" listing of a command's children, names column-aligned:
+static Text_t commands_listing(cli_command_t *command) {
+    int64_t width = 0;
+    for (int i = 0; i < command->num_children; i++) {
+        int64_t w = Text$from_str(command->children[i]->name).length;
+        if (w > width) width = w;
     }
-    if (args_text.length > 0)
-        help = Texts(help, "\n\n\x1b[1mArguments:\x1b[m\n", Text$trim(args_text, Text("\n"), false, true));
-    if (flags_text.length > 0)
-        help = Texts(help, "\n\n\x1b[1mFlags:\x1b[m\n", Text$trim(flags_text, Text("\n"), false, true));
-    return help;
+    cli_style_t style = tomo_cli_style();
+    Text_t listing = Texts("\n", style.heading, "Commands:", style.reset, "\n");
+    for (int i = 0; i < command->num_children; i++) {
+        cli_command_t *child = command->children[i];
+        Text_t name = Text$from_str(child->name);
+        listing = Texts(listing, "  ", style.command, name, style.reset);
+        // A pure namespace has no summary of its own to show:
+        const char *summary = child->summary ? child->summary : (child->num_children > 0 ? "<command> ..." : NULL);
+        if (summary) {
+            for (int64_t pad = name.length; pad < width; pad++)
+                listing = Texts(listing, " ");
+            listing = Texts(listing, "  ", style.italic, summary, style.reset);
+        }
+        listing = Texts(listing, "\n");
+    }
+    return listing;
 }
 
-// Fill in any usage/help text that wasn't explicitly provided, generating it
-// from the arg specs and command list:
+// Fill in a command's usage/help (and its children's, recursively). `prefix`
+// is how the parent is invoked, so each command can name itself in full.
+// Anything set explicitly by the program is left alone.
+static void materialize_command(cli_spec_t *cli, cli_command_t *command, Text_t prefix) {
+    cli_style_t style = tomo_cli_style();
+    // The full invocation of this command, e.g. "git submodule init":
+    Text_t invocation = command->name ? Texts(prefix, " ", command->name) : prefix;
+
+    if (command->usage.length == 0) {
+        Text_t subcommand_form = Texts(" ", style.bold, "<command>", style.reset, " ...");
+        if (command->handler)
+            command->usage = tomo_generate_usage(invocation, command->spec_len, command->spec);
+        else command->usage = Texts(style.usage, "Usage:", style.reset, " ", invocation, subcommand_form);
+        if (command->handler && command->num_children > 0)
+            // The spaces go outside the style, or they get underlined too:
+            command->usage =
+                Texts(command->usage, "\n   ", style.usage, "or:", style.reset, " ", invocation, subcommand_form);
+    }
+
+    if (command->help.length == 0) {
+        Text_t help = Texts(style.bold, invocation, style.reset);
+        if (command->summary) help = Texts(help, ": ", command->summary);
+        help = Texts(help, "\n\n", command->usage);
+        if (command->description) help = Texts(help, "\n\n", command->description);
+
+        Text_t args_text = EMPTY_TEXT, flags_text = EMPTY_TEXT;
+        for (int i = 0; i < command->spec_len; i++) {
+            if (command->spec[i].positional) args_text = Texts(args_text, arg_help_line(&command->spec[i]));
+            else flags_text = Texts(flags_text, arg_help_line(&command->spec[i]));
+        }
+        if (args_text.length > 0)
+            help = Texts(help, "\n\n", style.heading, "Arguments:", style.reset, "\n",
+                         Text$trim(args_text, Text("\n"), false, true));
+        if (flags_text.length > 0)
+            help = Texts(help, "\n\n", style.heading, "Flags:", style.reset, "\n",
+                         Text$trim(flags_text, Text("\n"), false, true));
+        // Trimmed like the sections above, so each section is separated from
+        // the next by exactly one blank line:
+        if (command->num_children > 0)
+            help = Texts(help, "\n", Text$trim(commands_listing(command), Text("\n"), false, true));
+        // Global flags apply at every level, so document them everywhere:
+        if (cli->global_len > 0) {
+            Text_t globals = EMPTY_TEXT;
+            for (int i = 0; i < cli->global_len; i++)
+                globals = Texts(globals, arg_help_line(&cli->global_spec[i]));
+            help = Texts(help, "\n\n", style.heading, "Global flags", style.reset,
+                         " (valid anywhere on the command line):\n", Text$trim(globals, Text("\n"), false, true));
+        }
+        command->help = help;
+    }
+
+    for (int i = 0; i < command->num_children; i++)
+        materialize_command(cli, command->children[i], invocation);
+}
+
 static void materialize_help_text(const char *prog, cli_spec_t *cli) {
-    for (int i = 0; i < cli->num_commands; i++) {
-        cli_command_t *command = cli->commands[i];
-        if (command->usage.length == 0)
-            command->usage = tomo_generate_usage(Texts(prog, " ", command->name), command->spec_len, command->spec);
-        if (command->help.length == 0) command->help = generate_command_help(prog, command);
-    }
-
-    if (cli->usage.length == 0) {
-        Text_t usage = Texts("\x1b[4;1mUsage:\x1b[m\n  ", prog,
-                             " [command] [flags...] [args...]\n"
-                             "\n\x1b[4;1mCommands:\x1b[m\n");
-        for (int i = 0; i < cli->num_commands; i++)
-            usage = Texts(usage, "  \x1b[1;32m", cli->commands[i]->name, "\x1b[m: ", cli->commands[i]->summary, "\n");
-        if (cli->description) usage = Texts(usage, "\n", cli->description, "\n");
-        usage = Texts(usage, "\n\x1b[4;1mGlobal flags\x1b[m (valid anywhere on the command line):\n");
-        for (int i = 0; i < cli->global_len; i++)
-            usage = Texts(usage, arg_help_line(&cli->global_spec[i]));
-        cli->usage = usage;
-    }
-    if (cli->help.length == 0) {
-        Text_t help = Texts("\x1b[1m", prog, "\x1b[m");
-        if (cli->summary) help = Texts(help, ": ", cli->summary);
-        cli->help = Texts(help, "\n\n", cli->usage);
-    }
+    cli->root.name = NULL; // the root is the program itself
+    if (cli->root.summary == NULL) cli->root.summary = cli->summary;
+    if (cli->root.description == NULL) cli->root.description = cli->description;
+    materialize_command(cli, &cli->root, Text$from_str(prog));
 }
 
-static cli_command_t *find_command(cli_spec_t *cli, const char *name) {
-    for (int i = 0; i < cli->num_commands; i++) {
-        if (streq(name, cli->commands[i]->name)) return cli->commands[i];
+static cli_command_t *find_child(cli_command_t *command, const char *name) {
+    for (int i = 0; i < command->num_children; i++) {
+        if (streq(name, command->children[i]->name)) return command->children[i];
     }
     return NULL;
+}
+
+// The closest of a command's subcommand names to `word`, if any is close
+// enough to be worth suggesting:
+static OptionalText_t nearest_command(cli_command_t *command, const char *word) {
+    List_t names = EMPTY_LIST;
+    for (int i = 0; i < command->num_children; i++) {
+        Text_t name = Text$from_str(command->children[i]->name);
+        List$insert(&names, &name, I(0), sizeof(Text_t));
+    }
+    return Text$nearest(Text$from_str(word), names, NUMBER_SMALL(3, 5) /* 0.6 */);
+}
+
+// The short alias to use for an automatic --help/--version flag, or 0 when the
+// command (or a global flag) already claims that letter for something else:
+// `-v` is far more often a program's own "verbose" than "version", and the
+// automatic flags are popped before the command's own spec is parsed, so
+// without this they would shadow it.
+static char unclaimed_short_flag(cli_spec_t *cli, cli_command_t *command, char flag) {
+    if (!flag) return 0;
+    for (int i = 0; i < command->spec_len; i++)
+        if (command->spec[i].short_flag == flag) return 0;
+    for (int i = 0; i < cli->global_len; i++)
+        if (cli->global_spec[i].short_flag == flag) return 0;
+    return flag;
+}
+
+// Report a first word that names neither a child command nor anything this
+// command can do, suggesting the closest command name:
+static int unrecognized_command(cli_command_t *command, const char *word) {
+    OptionalText_t nearest = nearest_command(command, word);
+    cli_style_t style = tomo_cli_style();
+    fprint(stderr, style.error, "Unrecognized command: ", word, style.reset,
+           nearest.tag == TEXT_NONE ? EMPTY_TEXT
+                                    : Texts("\nDid you mean ", style.bold, nearest, style.reset, "?"),
+           "\n", command->help);
+    return 1;
+}
+
+// Walk the command tree: descend into the longest matching command path, then
+// parse the remaining arguments against whatever command we landed on.
+static int dispatch_into(cli_spec_t *cli, cli_command_t *command, List_t head, List_t extra_args) {
+    const char *word = head.length > 0 ? *(const char **)head.data : NULL;
+    if (word) {
+        cli_command_t *child = find_child(command, word);
+        if (child) {
+            List$remove_at(&head, I(1), I(1), sizeof(const char *)); // drop the command name itself
+            return dispatch_into(cli, child, head, extra_args);
+        }
+    }
+
+    if (!command->handler) {
+        // A namespace with nothing to run itself:
+        if (word) return unrecognized_command(command, word);
+        fprint(stderr, command->help);
+        return 1;
+    }
+
+    // If this command has subcommands and the first word resembles one, say so
+    // when parsing fails. `tomo bulid file.tm` parses "bulid" as the file to
+    // run and then chokes on the leftover "file.tm"; the useful thing to say
+    // is that `bulid` looks like a typo for `build`. Held back until the parse
+    // actually fails, so `tomo tests` still runs a directory called `tests`
+    // even though it's one edit from the `test` command.
+    Text_t command_hint = EMPTY_TEXT;
+    cli_style_t style = tomo_cli_style();
+    if (word && command->num_children > 0) {
+        OptionalText_t nearest = nearest_command(command, word);
+        if (nearest.tag != TEXT_NONE)
+            command_hint = Texts("\n", style.bold, word, style.reset, " isn't a command -- did you mean ", style.bold,
+                                 nearest, style.reset, "?");
+    }
+
+    cli_help_info_t info = {.usage = command->usage,
+                            .help = command->help,
+                            .help_short = 'h',
+                            .strict_positionals = cli->strict_positionals,
+                            .command_hint = command_hint};
+    tomo_parse_arg_list(head, info, command->spec_len, command->spec);
+    return command->handler(command, extra_args);
 }
 
 public
@@ -310,14 +436,18 @@ int tomo_dispatch_command(int argc, char *argv[], cli_spec_t *cli) {
     }
 
     // Split at the first bare "--": everything after it is passed through to
-    // the handler raw (e.g. the arguments for the program `run` executes):
+    // the handler raw (e.g. the arguments for the program `run` executes).
+    // Programs that don't relay arguments leave "--" alone, so the argument
+    // parser can give it its usual "the rest are values" meaning:
     List_t head = args, extra_args = EMPTY_LIST;
-    for (int64_t i = 0; i < (int64_t)args.length; i++) {
-        const char *arg = *(const char **)(args.data + i * args.stride);
-        if (streq(arg, "--")) {
-            head = List$slice(args, I(1), I(i));
-            extra_args = List$slice(args, I(i + 2), I(-1));
-            break;
+    if (cli->passthrough_after_double_dash) {
+        for (int64_t i = 0; i < (int64_t)args.length; i++) {
+            const char *arg = *(const char **)(args.data + i * args.stride);
+            if (streq(arg, "--")) {
+                head = List$slice(args, I(1), I(i));
+                extra_args = List$slice(args, I(i + 2), I(-1));
+                break;
+            }
         }
     }
 
@@ -330,40 +460,32 @@ int tomo_dispatch_command(int argc, char *argv[], cli_spec_t *cli) {
         flag->populated = pop_cli_flag(&head, flag->short_flag, flag->name, flag->dest, flag->type);
     }
 
-    const char *cmd_name = head.length > 0 ? *(const char **)head.data : NULL;
-    cli_command_t *command = cmd_name ? find_command(cli, cmd_name) : NULL;
+    // --help/--version are answered for whichever command was named, so find
+    // it (without consuming anything) before looking for them:
+    cli_command_t *named = &cli->root;
+    for (int64_t i = 0; i < (int64_t)head.length; i++) {
+        cli_command_t *child = find_child(named, *(const char **)(head.data + i * head.stride));
+        if (!child) break;
+        named = child;
+    }
 
     bool show_help = false;
-    if (pop_boolean_cli_flag(&head, 'h', "help", &show_help) && show_help) {
-        print(command ? command->help : cli->help);
-        exit(0);
+    if (pop_boolean_cli_flag(&head, unclaimed_short_flag(cli, named, 'h'), "help", &show_help) && show_help) {
+        print(named->help);
+        return 0;
     }
     if (cli->version) {
         bool show_version = false;
-        if (pop_boolean_cli_flag(&head, 0, "version", &show_version) && show_version) {
+        if (pop_boolean_cli_flag(&head, unclaimed_short_flag(cli, named, cli->version_short), "version", &show_version)
+            && show_version) {
             print(cli->version);
-            exit(0);
+            return 0;
         }
     }
 
     if (cli->after_globals) cli->after_globals();
 
-    if (command) {
-        List$remove_at(&head, I(1), I(1), sizeof(const char *)); // drop the command name itself
-    } else if (cli->default_command) {
-        // Shim: `tomo <args>` behaves as `tomo <default_command> <args>`. There
-        // is no command-name token in `head` to strip -- head[0] is already an
-        // argument (typically the file to run) -- so fall through to the same
-        // spec-parse + dispatch path a named command uses.
-        command = cli->default_command;
-    }
-    if (command) {
-        cli_help_info_t info = {
-            .usage = command->usage, .help = command->help, .help_short = 'h', .strict_positionals = true};
-        tomo_parse_arg_list(head, info, command->spec_len, command->spec);
-        return command->handler(command, extra_args);
-    }
-    return cli->fallback(head, extra_args);
+    return dispatch_into(cli, &cli->root, head, extra_args);
 }
 
 static List_t parse_arg_list(List_t args, const char *flag, void *dest, const TypeInfo_t *type, bool allow_dashes) {
@@ -442,7 +564,7 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
             else if (nonnull == &Int8$info) ((OptionalInt8_t *)dest)->has_value = true;
             else if (nonnull == &Byte$info) ((OptionalByte_t *)dest)->has_value = true;
             else if (nonnull->tag == StructInfo && nonnull != &Path$info) *(bool *)(dest + nonnull->size) = true;
-            else print_err("Unsupported type: ", generic_as_text(NULL, true, nonnull));
+            else print_err("Unsupported type: ", generic_as_text(NULL, USE_COLOR, nonnull));
             return args;
         }
     }
@@ -559,13 +681,15 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                     List_t texts = Text$split(Text$from_str(arg_value), Text(","));
                     values = EMPTY_LIST;
                     for (int64_t j = 0; j < (int64_t)texts.length; j++)
-                        List$insert_value(&texts, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
+                        List$insert_value(&values, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
                                           sizeof(const char *));
                 } else {
                     values = List(arg_value);
                 }
-                List_t remaining_args = parse_arg_list(values, flag, dest, type, false);
-                *args = List$concat(List$to(*args, I(i)), remaining_args, sizeof(const char *));
+                (void)parse_arg_list(values, flag, dest, type, false);
+                // The value is inside this token, so only the token is
+                // consumed; everything after it is still to be parsed:
+                List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
                 return true;
             }
         } else if (short_flag && arg[0] == '-' && arg[1] != '-' && strchr(arg + 1, short_flag)) {
@@ -580,7 +704,7 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                     List_t texts = Text$split(Text$from_str(arg_value), Text(","));
                     values = EMPTY_LIST;
                     for (int64_t j = 0; j < (int64_t)texts.length; j++)
-                        List$insert_value(&texts, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
+                        List$insert_value(&values, Text$as_c_string(*(Text_t *)(texts.data + j * texts.stride)), I(0),
                                           sizeof(const char *));
                 } else {
                     // Case: -f=value

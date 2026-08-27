@@ -1,0 +1,43 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Text.nearest 3 2026-08-27 "Tomo man-pages"
+.SH NAME
+Text.nearest \- nearest match among candidates
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Text.nearest\ :\ func(text:\ Text,\ candidates:\ [Text],\ max_distance:\ Num\ =\ 0.6\ ->\ Text?)
+.fi
+.SH DESCRIPTION
+Find which of `candidates` is most similar to this text, for suggesting a correction when a name isn't recognized. Similarity uses `Text.distance()`, and candidates that aren't close enough are ignored.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+text	Text	The text to find a match for. 	-
+candidates	[Text]	The candidate texts to choose from. 	-
+max_distance	Num	The maximum edit distance per grapheme of the shorter text. 	0.6
+.TE
+.SH RETURN
+The closest candidate, or `none` if `candidates` is empty or nothing is within `max_distance`.
+
+.SH NOTES
+`max_distance` is an edit distance *per grapheme*, measured against the shorter of the two texts, so short texts have to match more closely than long ones. The default (0.6) accepts ordinary typos while rejecting unrelated short words.
+
+.SH EXAMPLES
+.EX
+commands := ["build", "run", "test"]
+assert "bulid".nearest(commands) == "build"
+assert "frobnicate".nearest(commands) == none
+assert "x".nearest([]) == none
+.EE
+.SH SEE ALSO
+.BR Tomo-Text (3)

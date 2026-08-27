@@ -383,6 +383,7 @@ struct ast_s {
             ast_t *body;
             ast_t *cache;
             bool is_inline;
+            Text_t comment; // Doc comment lines directly above the definition
         } FunctionDef;
         struct {
             arg_ast_t *args;

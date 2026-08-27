@@ -9,6 +9,8 @@
 #include "../profile.h"
 #include "../stdlib/fail.h"
 #include "../stdlib/lists.h"
+#include "../stdlib/paths.h"
+#include "../stdlib/text.h"
 #include "commands.h"
 #include "common.h"
 #include "compilation.h"
@@ -97,7 +99,7 @@ static int run_file(List_t extra_args) {
             file = path;
         } else if (!isatty(STDOUT_FILENO)) {
             // Not a TTY on either end: just print the help and exit
-            print(tomo_cli.help);
+            print(tomo_cli.root.help);
             return 0;
         } else {
             Path_t path =
@@ -128,22 +130,56 @@ static int run_file(List_t extra_args) {
     return compile_and_exec(file, extra_args);
 }
 
-// The command handler for both `tomo run file.tm` and the bare-`tomo` shim
-// (see the CLI's default_command). With no file, run_file() falls through to
-// the stdin-program / editor-scratch behavior:
+// The command handler for `tomo run file.tm`. With no file, run_file() falls
+// through to the stdin-program / editor-scratch behavior:
 static int cmd_run(cli_command_t *self, List_t extra_args) {
     (void)self;
     return run_file(extra_args);
 }
 
+// `tomo`'s root handler: what runs when the first word isn't a command name.
+// The root takes the same arguments `tomo run` does, so `tomo file.tm` means
+// `tomo run file.tm`. One bit of processing first: `tomo bulid` parses "bulid"
+// as the file to run, and a file that doesn't exist and has no `.` in its name
+// doesn't look like a filename at all, so it's much more likely a mistyped
+// command name.
+int tomo_main(cli_command_t *self, List_t extra_args) {
+    if (file != NULL && !Path$exists(file) && !Text$has(Path$base_name(file), Text("."))) {
+        Text_t name = Path$base_name(file);
+        List_t names = EMPTY_LIST;
+        Text_t listing = EMPTY_TEXT;
+        for (int i = 0; i < tomo_cli.root.num_children; i++) {
+            Text_t command = Text$from_str(tomo_cli.root.children[i]->name);
+            List$insert(&names, &command, I(0), sizeof(Text_t));
+            listing = Texts(listing, i > 0 ? Text(", ") : EMPTY_TEXT, command);
+        }
+        OptionalText_t nearest = Text$nearest(name, names, NUMBER_SMALL(3, 5) /* 0.6 */);
+        cli_style_t style = tomo_cli_style();
+        print_err("There's no command or file called ", style.bold, name, style.reset,
+                  nearest.tag == TEXT_NONE ? EMPTY_TEXT
+                                           : Texts("\nDid you mean ", style.bold, nearest, style.reset, "?"),
+                  "\nAvailable commands: ", listing, "\nSee `tomo --help` for full usage");
+    }
+    return cmd_run(self, extra_args);
+}
+
+// `run`'s usage and description are written by hand (the escape hatch from
+// autogeneration) to document the "--" separator. They're styled here rather
+// than in the struct below because the palette isn't known until tomo_init()
+// has decided whether the output is colored:
+void style_run_command(void) {
+    cli_style_t style = tomo_cli_style();
+    run_command.usage = Texts(style.usage, "Usage:", style.reset, " tomo run ", style.bold, "file.tm", style.reset,
+                              " [", style.bold, "--", style.reset, " program args...]");
+    run_command.description =
+        String("Anything after a ", style.bold, "--", style.reset,
+               " is passed to the program as its own arguments.\n"
+               "The command name is optional: `tomo file.tm` does the same thing.");
+}
+
 cli_command_t run_command = {
     .name = "run",
     .summary = "Compile and run a Tomo program",
-    // Explicit usage (the escape hatch from autogeneration) to document the
-    // "--" separator for program arguments:
-    .usage = Text("\x1b[93;4;1mUsage:\x1b[m tomo run \x1b[1mfile.tm\x1b[m [\x1b[1m--\x1b[m program args...]"),
-    .description = "Anything after a \x1b[1m--\x1b[m is passed to the program as its own arguments.\n"
-                   "The command name is optional: `tomo file.tm` does the same thing.",
     .spec_len = sizeof(run_spec) / sizeof(run_spec[0]),
     .spec = run_spec,
     .handler = cmd_run,

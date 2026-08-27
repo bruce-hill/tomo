@@ -430,6 +430,7 @@ env_t *global_env(bool source_mapping) {
             {"caseless_equals", "Text$equal_ignoring_case", "func(a,b:Text, language='C' -> Bool)"}, //
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"}, //
             {"distance", "Text$distance", "func(a,b:Text, language='C' -> Float64)"}, //
+            {"nearest", "Text$nearest", "func(text:Text, candidates:[Text], max_distance=0.6 -> Text?)"}, //
             {"ends_with", "Text$ends_with", "func(text,suffix:Text, remainder:&Text? = none -> Bool)"}, //
             {"find", "Text$find", "func(text,target:Text, start=1 -> Int?)"}, //
             {"from", "Text$from", "func(text:Text, first:Int -> Text)"}, //

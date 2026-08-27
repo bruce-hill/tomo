@@ -142,6 +142,8 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
             code_err(subject, "This is an immutable value, you can't mutate "
                               "its contents");
         } else if (ast->tag == FieldAccess) {
+            if (get_subcommand_binding(env, ast))
+                code_err(ast, "Subcommand functions are constants, you can't assign to them");
             ast_t *subject = Match(ast, FieldAccess)->fielded;
             type_t *t = get_type(env, subject);
             code_err(subject, "This is an immutable ", type_to_text(t), " value, you can't assign to its fields");

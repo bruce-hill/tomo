@@ -32,7 +32,8 @@ Text_t compile_function_declaration(env_t *env, ast_t *ast) {
     type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
     Text_t ret_type_code = compile_type(ret_t);
     if (ret_t->tag == AbortType) ret_type_code = Texts("__attribute__((noreturn)) _Noreturn ", ret_type_code);
-    Text_t name = namespace_name(env, env->namespace, Text$from_str(decl_name));
+    Text_t name =
+        namespace_name(env, env->namespace, Text$replace(Text$from_str(decl_name), Text("."), Text("$")));
     if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
         name = namespace_name(env, env->namespace, Texts(get_line_number(ast->file, ast->start)));
     return Texts(ret_type_code, " ", name, arg_signature, ";\n");
@@ -1006,6 +1007,9 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
 public
 Text_t compile_method_call(env_t *env, ast_t *ast) {
     DeclareMatch(call, ast, MethodCall);
+    ast_t *as_field = WrapAST(call->self, FieldAccess, .fielded = call->self, .field = call->name);
+    if (get_subcommand_binding(env, as_field)) // Subcommand calls: `main.add(...)`
+        return compile(env, WrapAST(ast, FunctionCall, .fn = as_field, .args = call->args));
     type_t *self_t = get_type(env, call->self);
     type_t *self_value_t = value_type(self_t);
     if (self_value_t->tag == TypeInfoType || self_value_t->tag == ModuleType) {

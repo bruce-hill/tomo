@@ -254,6 +254,47 @@ Text.distance:
     texts := &["goodbye", "hello", "hallo"]
     texts.sort(func(a,b:Text) a.distance("hello") <> b.distance("hello"))
     assert texts == ["hello", "hallo", "goodbye"]
+    assert "kitten".distance("sitting") == 3
+    assert "flaw".distance("lawn") == 2
+    # A transposition costs one edit, even when the texts differ in length:
+    assert "ab".distance("ba") == 1
+    assert "xab".distance("ba") == 2
+
+Text.nearest:
+  short: nearest match among candidates
+  description: >
+    Find which of `candidates` is most similar to this text, for suggesting a
+    correction when a name isn't recognized. Similarity uses `Text.distance()`,
+    and candidates that aren't close enough are ignored.
+  note: >
+    `max_distance` is an edit distance *per grapheme*, measured against the
+    shorter of the two texts, so short texts have to match more closely than
+    long ones. The default (0.6) accepts ordinary typos while rejecting
+    unrelated short words.
+  return:
+    type: 'Text?'
+    description: >
+      The closest candidate, or `none` if `candidates` is empty or nothing is
+      within `max_distance`.
+  args:
+    text:
+      type: 'Text'
+      description: >
+        The text to find a match for.
+    candidates:
+      type: '[Text]'
+      description: >
+        The candidate texts to choose from.
+    max_distance:
+      type: 'Num'
+      default: '0.6'
+      description: >
+        The maximum edit distance per grapheme of the shorter text.
+  example: |
+    commands := ["build", "run", "test"]
+    assert "bulid".nearest(commands) == "build"
+    assert "frobnicate".nearest(commands) == none
+    assert "x".nearest([]) == none
 
 Text.find:
   short: find a substring

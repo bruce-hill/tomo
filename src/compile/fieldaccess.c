@@ -11,6 +11,8 @@
 
 Text_t compile_field_access(env_t *env, ast_t *ast) {
     DeclareMatch(f, ast, FieldAccess);
+    binding_t *subcommand = get_subcommand_binding(env, ast);
+    if (subcommand) return subcommand->code;
     type_t *fielded_t = get_type(env, f->fielded);
     type_t *value_t = value_type(fielded_t);
     switch (value_t->tag) {
