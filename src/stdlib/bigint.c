@@ -82,28 +82,13 @@ int Int$print(FILE *f, Int_t i) {
     }
 }
 
-static Text_t _int64_to_text(int64_t n) {
-    if (n == INT64_MIN) return Text("-9223372036854775808");
-
-    char buf[21] = {[20] = 0}; // Big enough for INT64_MIN + '\0'
-    char *p = &buf[19];
-    bool negative = n < 0;
-    if (negative) n = -n; // Safe to do because we checked for INT64_MIN earlier
-
-    do {
-        *(p--) = '0' + (n % 10);
-        n /= 10;
-    } while (n > 0);
-
-    if (negative) *(p--) = '-';
-
-    return Text$from_strn(p + 1, (size_t)(&buf[19] - p));
-}
-
 public
 Text_t Int$value_as_text(Int_t i) {
     if (likely(i.small & 1L)) {
-        return _int64_to_text(i.small >> 2L);
+        char buf[INT64_DECIMAL_MAX];
+        size_t len;
+        char *digits = int64_to_decimal(i.small >> 2L, buf, &len);
+        return Text$from_strn(digits, len);
     } else {
         char *str = mpz_get_str(NULL, 10, Int_mpz(i));
         return Text$from_str(str);

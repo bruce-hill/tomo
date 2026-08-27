@@ -38,21 +38,10 @@
 #define NAMESPACED(method_name) CAT(CAT(Int, INTX_C_H__INT_BITS), CAT($, method_name))
 
 static Text_t _int64_to_text(int64_t n) {
-    if (n == INT64_MIN) return Text("-9223372036854775808");
-
-    char buf[21] = {[20] = 0}; // Big enough for INT64_MIN + '\0'
-    char *p = &buf[19];
-    bool negative = n < 0;
-    if (negative) n = -n; // Safe to do because we checked for INT64_MIN earlier
-
-    do {
-        *(p--) = '0' + (n % 10);
-        n /= 10;
-    } while (n > 0);
-
-    if (negative) *(p--) = '-';
-
-    return Text$from_strn(p + 1, (size_t)(&buf[19] - p));
+    char buf[INT64_DECIMAL_MAX];
+    size_t len;
+    char *digits = int64_to_decimal(n, buf, &len);
+    return Text$from_strn(digits, len);
 }
 
 public
