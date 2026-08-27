@@ -7,11 +7,14 @@ int Int64$print(FILE *f, int64_t n) {
     char buf[21] = {[20] = 0}; // Big enough for INT64_MIN + '\0'
     char *p = &buf[19];
     bool negative = n < 0;
+    // Take the magnitude in unsigned space: negating INT64_MIN overflows a
+    // signed int64, and C's truncating % yields negative digits otherwise.
+    uint64_t magnitude = negative ? -(uint64_t)n : (uint64_t)n;
 
     do {
-        *(p--) = '0' + (n % 10);
-        n /= 10;
-    } while (n > 0);
+        *(p--) = (char)('0' + (magnitude % 10));
+        magnitude /= 10;
+    } while (magnitude > 0);
 
     if (negative) *(p--) = '-';
 
