@@ -180,7 +180,7 @@ assert "Amélie".codepoint_names() == [
 ## Text.distance
 
 ```tomo
-Text.distance : func(a: Text, b: Text, language: Text = "C" -> Float64)
+Text.distance : func(a: Text, b: Text, language: Text = "C" -> Num)
 ```
 
 Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar.

@@ -10,6 +10,7 @@
 #include "bytes.h"
 #include "integers.h"
 #include "lists.h"
+#include "number.h"
 #include "math.h"
 #include "metamethods.h"
 #include "optionals.h"
@@ -397,7 +398,7 @@ Table_t List$counts(List_t list, const TypeInfo_t *type) {
     return counts;
 }
 
-static double _default_random_num(void *userdata) {
+static Num_t _default_random_num(void *userdata) {
     (void)userdata;
     union {
         Float64_t num;
@@ -408,7 +409,7 @@ static double _default_random_num(void *userdata) {
     // Set r.num to 1.<random-bits>
     r.bits &= ~(0xFFFULL << 52);
     r.bits |= (one.bits & (0xFFFULL << 52));
-    return r.num - 1.0;
+    return number_from_double(r.num - 1.0);
 }
 
 public
@@ -425,7 +426,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
 
     double total = 0.0;
     for (int64_t i = 0; i < (int64_t)weights.length && i < (int64_t)list.length; i++) {
-        double weight = *(double *)(weights.data + weights.stride * i);
+        double weight = number_to_double(*(Num_t *)(weights.data + weights.stride * i));
         if (isinf(weight)) fail("Infinite weight!");
         else if (isnan(weight)) fail("NaN weight!");
         else if (weight < 0.0) fail("Negative weight!");
@@ -470,7 +471,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
     for (int64_t i = small; i < (int64_t)list.length; i++)
         if (aliases[i].alias == -1) aliases[i].alias = i;
 
-    typedef double (*rng_fn_t)(void *);
+    typedef Num_t (*rng_fn_t)(void *);
     rng_fn_t rng_fn = random_num.fn ? (rng_fn_t)random_num.fn : _default_random_num;
 
     List_t selected = {.data = list.atomic ? GC_MALLOC_ATOMIC((size_t)(n * padded_item_size))
@@ -479,7 +480,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
                        .stride = padded_item_size,
                        .atomic = list.atomic};
     for (int64_t i = 0; i < n; i++) {
-        double r = rng_fn(random_num.userdata);
+        double r = number_to_double(rng_fn(random_num.userdata));
         if unlikely (r < 0.0 || r >= 1.0)
             fail("The random number function returned a value not between 0.0 (inclusive) and 1.0 (exclusive): ", r);
         r *= (double)list.length;

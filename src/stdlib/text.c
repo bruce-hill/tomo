@@ -1455,9 +1455,9 @@ Text_t Text$title(Text_t text, Text_t language) {
 }
 
 public
-double Text$distance(Text_t a, Text_t b, Text_t language) {
-    if (a.length <= 0) return (double)b.length;
-    if (b.length <= 0) return (double)a.length;
+Num_t Text$distance(Text_t a, Text_t b, Text_t language) {
+    if (a.length <= 0) return number_from_int((int64_t)b.length);
+    if (b.length <= 0) return number_from_int((int64_t)a.length);
 
     // The current implementation of text distance uses a modified form
     // of Damerau–Levenshtein distance that gives slightly lower distances
@@ -1512,7 +1512,9 @@ double Text$distance(Text_t a, Text_t b, Text_t language) {
     }
 #undef DIST
 
-    return (double)distances[a.length * (b.length + 1) + b.length];
+    // The matrix holds sums of 1, 0.5 and 0.25 -- all exact in binary floating
+    // point -- so converting the result to a Num is lossless:
+    return number_from_double(distances[a.length * (b.length + 1) + b.length]);
 }
 
 public
@@ -1949,15 +1951,15 @@ OptionalText_t Text$nearest(Text_t text, List_t candidates, Num_t max_distance) 
     // word, being 2 edits off is a typo, but for a 3-letter word it's a
     // different word entirely.
     OptionalText_t nearest = NONE_TEXT;
-    double nearest_distance = 0.0;
+    Num_t nearest_distance = number_from_int(0);
     Text_t lang = Text("C");
     for (int64_t i = 0; i < (int64_t)candidates.length; i++) {
         Text_t candidate = *(Text_t *)(candidates.data + i * candidates.stride);
-        double distance = Text$distance(text, candidate, lang);
+        Num_t distance = Text$distance(text, candidate, lang);
         int64_t shorter = MIN((int64_t)text.length, (int64_t)candidate.length);
         Num_t limit = number_mul(max_distance, number_from_int(shorter));
-        if (number_compare(number_from_double(distance), limit) > 0) continue;
-        if (nearest.tag == TEXT_NONE || distance < nearest_distance) {
+        if (number_compare(distance, limit) > 0) continue;
+        if (nearest.tag == TEXT_NONE || number_compare(distance, nearest_distance) < 0) {
             nearest = candidate;
             nearest_distance = distance;
         }

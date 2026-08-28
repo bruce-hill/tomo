@@ -2,6 +2,16 @@
 
 ## 2026-08-27
 
+- **Breaking:** `sleep()`, `Text.distance()`, and `List.sample()` now use `Num`
+  rather than `Float64`, so the default numeric type is what the standard
+  library reaches for. `sleep()` takes a `Num` (`sleep(1/100)` is exact now),
+  `Text.distance()` returns one, and `List.sample()` takes `[Num]` weights and
+  a `func(->Num)` random source. Code passing an explicitly-`Float64` value to
+  these needs a conversion; decimal literals like `sleep(1.5)` are unaffected,
+  since they were already `Num`. `Text.distance()` still computes in floating
+  point internally and converts at the end -- its costs are sums of 1, 0.5 and
+  0.25, all exact in binary floating point, so the result is lossless.
+
 - Programs can now define git-style CLI subcommands by declaring functions
   named `main.foo(...)` (nested arbitrarily deep, e.g. `main.submodule.init`).
   Each subcommand gets the same automatic argument parsing, `--help` text, and

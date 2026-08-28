@@ -135,7 +135,7 @@ Int_t Text$width(Text_t text, Text_t language);
 Text_t Text$left_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 Text_t Text$right_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
 Text_t Text$middle_pad(Text_t text, Int_t width, Text_t padding, Text_t language);
-double Text$distance(Text_t a, Text_t b, Text_t language);
+Num_t Text$distance(Text_t a, Text_t b, Text_t language);
 
 // The closest of `candidates` to `text`, or none when `candidates` is empty or
 // nothing is close enough. `max_distance` is an edit distance per grapheme of

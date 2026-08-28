@@ -328,12 +328,13 @@ cleanup:
 }
 
 public
-void sleep_seconds(double seconds) {
-    if (seconds < 0) fail("Cannot sleep for a negative amount of time: ", seconds);
-    else if (isnan(seconds)) fail("Cannot sleep for a time that is NaN");
+void sleep_seconds(Num_t seconds) {
+    double secs = number_to_double(seconds);
+    if (secs < 0) fail("Cannot sleep for a negative amount of time: ", secs);
+    else if (isnan(secs)) fail("Cannot sleep for a time that is NaN");
     struct timespec ts;
-    ts.tv_sec = (time_t)seconds;
-    ts.tv_nsec = (long)((seconds - (double)ts.tv_sec) * 1e9);
+    ts.tv_sec = (time_t)secs;
+    ts.tv_nsec = (long)((secs - (double)ts.tv_sec) * 1e9);
     while (nanosleep(&ts, NULL) != 0) {
         if (errno == EINTR) continue;
         fail("Failed to sleep for the requested time (", strerror(errno), ")");

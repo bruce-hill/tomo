@@ -187,14 +187,14 @@ setenv("FOOBAR", "xyz")
 ## sleep
 
 ```tomo
-sleep : func(seconds: Float64 -> Void)
+sleep : func(seconds: Num -> Void)
 ```
 
 Pause execution for a given number of seconds.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-seconds | `Float64` | How many seconds to sleep for.  | -
+seconds | `Num` | How many seconds to sleep for.  | -
 
 **Return:** Nothing.
 

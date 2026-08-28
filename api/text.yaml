@@ -232,7 +232,7 @@ Text.distance:
     The exact distance algorithm is not specified and may be subject to change
     over time.
   return:
-    type: 'Float64'
+    type: 'Num'
     description: >
       The distance between the two texts (larger means more dissimilar).
   args:

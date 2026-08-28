@@ -174,7 +174,7 @@ sleep:
       Nothing.
   args:
     seconds:
-      type: 'Float64'
+      type: 'Num'
       description: >
         How many seconds to sleep for.
   example: |

@@ -429,7 +429,7 @@ env_t *global_env(bool source_mapping) {
             {"by_split_any", "Text$by_split_any", "func(text:Text, delimiters=' \\t\\r\\n' -> func(->Text?))"}, //
             {"caseless_equals", "Text$equal_ignoring_case", "func(a,b:Text, language='C' -> Bool)"}, //
             {"codepoint_names", "Text$codepoint_names", "func(text:Text -> [Text])"}, //
-            {"distance", "Text$distance", "func(a,b:Text, language='C' -> Float64)"}, //
+            {"distance", "Text$distance", "func(a,b:Text, language='C' -> Num)"}, //
             {"nearest", "Text$nearest", "func(text:Text, candidates:[Text], max_distance=0.6 -> Text?)"}, //
             {"ends_with", "Text$ends_with", "func(text,suffix:Text, remainder:&Text? = none -> Bool)"}, //
             {"find", "Text$find", "func(text,target:Text, start=1 -> Int?)"}, //
@@ -641,7 +641,7 @@ env_t *global_env(bool source_mapping) {
         {"print", "say", "func(text:Text, newline=yes)"},
         {"say", "say", "func(text:Text, newline=yes)"},
         {"setenv", "setenv_text", "func(name:Text, value:Text?)"},
-        {"sleep", "sleep_seconds", "func(seconds:Float64)"},
+        {"sleep", "sleep_seconds", "func(seconds:Num)"},
     };
 
     for (size_t i = 0; i < sizeof(global_vars) / sizeof(global_vars[0]); i++) {
