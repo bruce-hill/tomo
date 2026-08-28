@@ -13,6 +13,7 @@
 #include "packages.h"
 #include "parse/files.h"
 #include "parse/types.h"
+#include "stdlib/number.h"
 #include "stdlib/optionals.h"
 #include "stdlib/paths.h"
 #include "stdlib/tables.h"
@@ -2172,8 +2173,13 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
 // "Did you mean 'x'?" for an unrecognized name, or nothing when no candidate
 // is close enough to be worth suggesting:
 OptionalText_t suggest_best_name(const char *wrong, List_t names) {
-    OptionalText_t nearest = Text$nearest(Text$from_str(wrong), names, NUMBER_SMALL(3, 5) /* 0.6 */);
+    Text_t target = Text$from_str(wrong);
+    OptionalText_t nearest = Text$nearest(target, names, NUMBER_SMALL(3, 5) /* 0.6 */);
     if (nearest.tag == TEXT_NONE) return NONE_TEXT;
+    // The per-grapheme ratio alone isn't enough at the long end: 0.6 of a
+    // 20-character identifier is 12 edits, which is a different name, not a
+    // typo. Cap the absolute distance too.
+    if (number_compare(Text$distance(target, nearest, Text("C")), number_from_int(6)) > 0) return NONE_TEXT;
     return Texts("\nDid you mean '", nearest, "'?");
 }
 
