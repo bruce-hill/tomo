@@ -371,6 +371,17 @@ static char unclaimed_short_flag(cli_spec_t *cli, cli_command_t *command, char f
     return flag;
 }
 
+// Same, for the long name: a program that declares its own `help` or `version`
+// argument means that one, so the automatic flag has to step aside entirely
+// rather than answer (and exit) before the command's spec is ever parsed.
+static bool claims_long_flag(cli_spec_t *cli, cli_command_t *command, const char *name) {
+    for (int i = 0; i < command->spec_len; i++)
+        if (!command->spec[i].positional && streq(command->spec[i].name, name)) return true;
+    for (int i = 0; i < cli->global_len; i++)
+        if (streq(cli->global_spec[i].name, name)) return true;
+    return false;
+}
+
 // Report a first word that names neither a child command nor anything this
 // command can do, suggesting the closest command name:
 static int unrecognized_command(cli_command_t *command, const char *word) {
@@ -469,12 +480,14 @@ int tomo_dispatch_command(int argc, char *argv[], cli_spec_t *cli) {
         named = child;
     }
 
-    bool show_help = false;
-    if (pop_boolean_cli_flag(&head, unclaimed_short_flag(cli, named, 'h'), "help", &show_help) && show_help) {
-        print(named->help);
-        return 0;
+    if (!claims_long_flag(cli, named, "help")) {
+        bool show_help = false;
+        if (pop_boolean_cli_flag(&head, unclaimed_short_flag(cli, named, 'h'), "help", &show_help) && show_help) {
+            print(named->help);
+            return 0;
+        }
     }
-    if (cli->version) {
+    if (cli->version && !claims_long_flag(cli, named, "version")) {
         bool show_version = false;
         if (pop_boolean_cli_flag(&head, unclaimed_short_flag(cli, named, cli->version_short), "version", &show_version)
             && show_version) {
