@@ -31,6 +31,7 @@ static cli_arg_t build_spec[] = {
     {"yes", &skip_confirm, &Bool$info, .short_flag = 'y',
      .description = "when installing, overwrite existing files without asking"}, //
     OPTIMIZATION_FLAG, //
+    INSTRUMENT_FLAG, //
     VERBOSE_FLAG, //
     QUIET_FLAG, //
 };
@@ -128,7 +129,7 @@ static int cmd_build(cli_command_t *self, List_t extra_args) {
         exe_path = Path$sibling(path, exe_name);
     }
 
-    env_t *env = global_env(source_mapping);
+    env_t *env = global_env(source_mapping, instrument);
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
     compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
     compile_executable(env, path, exe_path, object_files, extra_ldlibs, /*embed_git_info=*/true);

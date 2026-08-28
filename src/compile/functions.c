@@ -11,9 +11,11 @@
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
+#include "../stdlib/files.h"
 #include "../types.h"
 #include "../util.h"
 #include "compilation.h"
+#include "text.h"
 
 public
 Text_t compile_function_declaration(env_t *env, ast_t *ast) {
@@ -693,6 +695,30 @@ static void check_unused_vars(env_t *env, arg_ast_t *args, ast_t *body) {
     }
 }
 
+// The instrumentation `--instrument` adds to a generated function: a
+// file-scope site holding the function's Tomo-level name and location (out
+// param `site_def`), plus the TOMO_PROFILED() line that opens the body. The
+// cleanup attribute inside that macro stops the timer on every way out of the
+// function, so `return`s and deferred blocks need no special handling here.
+// Returns empty text (and leaves `site_def` alone) when profiling is off.
+static Text_t compile_profiling(env_t *env, ast_t *ast, Text_t name_code, Text_t display_name, Text_t *site_def) {
+    if (!env->do_profiling) return EMPTY_TEXT;
+    Text_t site = Texts("_tomo_profile$", name_code);
+    *site_def = Texts("static tomo_profile_site_t ", site, " = {.name=", quoted_text(display_name), ", .file=",
+                      quoted_str(ast->file->filename), ", .line=", (int64_t)get_line_number(ast->file, ast->start),
+                      "};\n");
+    return Texts("TOMO_PROFILED(&", site, ");\n");
+}
+
+// A function's name as a Tomo programmer would write it ("Foo.bar"), for the
+// profile report -- the C symbol name is an implementation detail.
+static Text_t profile_display_name(env_t *env, const char *function_name) {
+    Text_t name = Text$from_str(function_name);
+    for (namespace_t *ns = env->namespace; ns; ns = ns->parent)
+        if (ns->name) name = Texts(ns->name, ".", name);
+    return name;
+}
+
 // Compile a lambda to a `(Closure_t){fn, userdata}` value. When
 // `args_by_pointer` is set, every argument is received as a `void *` and copied
 // into a local of its declared type at function entry (`T _$x = *(T*)_$ptr$x;`).
@@ -791,7 +817,12 @@ static Text_t compile_lambda_ex(env_t *env, ast_t *ast, bool args_by_pointer) {
     Text_t userdata_cast = Table$length(closed_vars) > 0
                                ? Texts(name, "$userdata_t *userdata = $userdata;\n")
                                : EMPTY_TEXT;
-    env->code->lambdas = Texts(env->code->lambdas, code, " {\n", userdata_cast, arg_unpack, body, "\n}\n");
+    Text_t site_def = EMPTY_TEXT;
+    // Lambdas have no name of their own, so the report identifies them by the
+    // source location in the site (`lambda (file.tm:12)`):
+    Text_t instrumentation = compile_profiling(env, ast, name, Text("lambda"), &site_def);
+    env->code->lambdas = Texts(env->code->lambdas, site_def, code, " {\n", userdata_cast, arg_unpack, instrumentation,
+                               body, "\n}\n");
 
     check_unused_vars(env, lambda->args, lambda->body);
 
@@ -901,8 +932,11 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
                      "compiler out.");
     }
 
-    Text_t body_code = Texts("{\n", compile_inline_block(body_scope, body), "}\n");
-    Text_t definition = with_source_info(env, ast, Texts(code, " ", body_code, "\n"));
+    Text_t site_def = EMPTY_TEXT;
+    Text_t instrumentation =
+        compile_profiling(env, ast, name_code, profile_display_name(env, function_name), &site_def);
+    Text_t body_code = Texts("{\n", instrumentation, compile_inline_block(body_scope, body), "}\n");
+    Text_t definition = Texts(site_def, with_source_info(env, ast, Texts(code, " ", body_code, "\n")));
 
     if (cache && args == NULL) { // no-args cache just uses a static var
         Text_t wrapper =

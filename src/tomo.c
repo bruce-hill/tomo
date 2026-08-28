@@ -12,7 +12,7 @@
 #include "cmd/common.h"
 #include "config.h"
 #include "naming.h"
-#include "profile.h"
+#include "stdlib/profiling.h"
 #include "stdlib/bools.h"
 #include "stdlib/cli.h"
 #include "stdlib/datatypes.h"
@@ -44,6 +44,16 @@ static cli_command_t *commands[] = {
 // Runs after the global flags are popped, before command dispatch: sets up
 // the toolchain configuration every command compiles with.
 static void after_globals(void) {
+    // --profile times the compiler's own phases with the same profiler that
+    // `--instrument` builds into user programs (see stdlib/profiling.h). It
+    // prints on any normal exit; the run/eval paths that exec a program call
+    // tomo_profile_report() themselves right before execv, since that replaces
+    // the process and skips atexit handlers.
+    if (profiling) {
+        tomo_profile_noun = "phase";
+        tomo_profile_enable();
+    }
+
     // The compiler is always the bundled `zig cc` (a clang):
     cflags = Texts(cflags, Text(" -Wno-parentheses-equality"));
 
@@ -143,7 +153,7 @@ static void after_globals(void) {
 
 int main(int argc, char *argv[]) {
     // Timestamp first, so --profile accounts for startup too:
-    profile_mark_start();
+    tomo_profile_mark_start();
     // The same startup every compiled Tomo program runs: the GC, GMP's
     // GC-backed allocator, the installation's paths, color detection, the
     // hash key, the locale, and the fatal-signal handlers that turn a crash
@@ -228,9 +238,5 @@ int main(int argc, char *argv[]) {
             .handler = tomo_main,
         },
     };
-    // Print the profile (if --profile was given) on any normal exit; the
-    // run/eval paths that exec a program call profile_report() themselves right
-    // before execv, since that replaces the process and skips atexit handlers.
-    atexit(profile_report);
     return tomo_dispatch_command(argc, argv, &tomo_cli);
 }

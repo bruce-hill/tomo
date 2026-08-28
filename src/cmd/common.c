@@ -18,7 +18,8 @@
 #include "../stdlib/print.h"
 #include "common.h"
 
-OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false;
+OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false,
+              instrument = false, profiling = false;
 bool zig_cache_dir_from_env = false, cross_compiling = false, link_macho = false;
 uint32_t enabled_logs = 0;
 Text_t target_root = Text(""), lib_root = Text(""), zig_libc_dir = Text(""), cc = Text(""), ar = Text(""),
@@ -75,8 +76,13 @@ void configure_codegen(Text_t opt_level, bool optimize) {
     } else {
         link_optimizations = Text("");
     }
+    update_config_summary();
+}
+
+void update_config_summary(void) {
     config_summary = Texts("TOMO_VERSION=", TOMO_VERSION, "\n", "COMPILER=", cc, " ", cflags, " -O", optimization, "\n",
-                           "SOURCE_MAPPING=", source_mapping ? Text("yes") : Text("no"), "\n");
+                           "SOURCE_MAPPING=", source_mapping ? Text("yes") : Text("no"), "\n",
+                           "INSTRUMENTED=", instrument ? Text("yes") : Text("no"), "\n");
 }
 
 const char *paths_str(List_t paths) {

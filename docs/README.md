@@ -11,6 +11,7 @@ A few topics that are documented:
 - [Functions](functions.md)
 - [Identifiers (Unicode variable names)](identifiers.md)
 - [Packages](packages.md)
+- [Profiling](profiling.md)
 - [Namespacing](namespacing.md)
 - [Operator Overloading](operators.md)
 - [Special Methods](metamethods.md)

@@ -54,7 +54,7 @@ static type_t *bind_type(env_t *env, const char *name, type_t *type) {
     return type;
 }
 
-env_t *global_env(bool source_mapping) {
+env_t *global_env(bool source_mapping, bool profiling) {
     static env_t *_global_env = NULL;
     if (_global_env != NULL) return _global_env;
 
@@ -82,6 +82,7 @@ env_t *global_env(bool source_mapping) {
     Table$str_set(env->build_info, "Binary compiled at", timestamp);
 
     env->do_source_mapping = source_mapping;
+    env->do_profiling = profiling;
 
     TEXT_TYPE = bind_type(env, "Text", Type(TextType, .lang = "Text", .env = namespace_env(env, "Text")));
     (void)bind_type(env, "Int", Type(BigIntType));

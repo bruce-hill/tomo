@@ -69,6 +69,9 @@ typedef struct env_s {
     // NULL when no hoist is active.
     Table_t *cow_hoisted;
     bool do_source_mapping : 1;
+    // Emit TOMO_PROFILED() instrumentation at the top of every generated
+    // function (`tomo build --instrument`); see compile_function().
+    bool do_profiling : 1;
     type_t *current_type;
 } env_t;
 
@@ -83,7 +86,7 @@ typedef struct {
     bool is_variant_constructor : 1;
 } binding_t;
 
-env_t *global_env(bool source_mapping);
+env_t *global_env(bool source_mapping, bool profiling);
 env_t *load_module_env(env_t *env, ast_t *ast);
 env_t *get_namespace_by_type(env_t *env, type_t *t);
 env_t *fresh_scope(env_t *env);

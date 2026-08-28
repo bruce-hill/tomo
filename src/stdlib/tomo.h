@@ -26,6 +26,7 @@
 #include "paths.h" // IWYU pragma: export
 #include "pointers.h" // IWYU pragma: export
 #include "print.h" // IWYU pragma: export
+#include "profiling.h" // IWYU pragma: export
 #include "result.h" // IWYU pragma: export
 #include "siphash.h" // IWYU pragma: export
 #include "stacktrace.h" // IWYU pragma: export

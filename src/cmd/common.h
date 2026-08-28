@@ -42,6 +42,13 @@ void set_default_logs(uint32_t default_logs);
 // nonzero default, --quiet) flag; drop them into a command's spec array:
 #define VERBOSE_FLAG {"verbose", &verbose, &Bool$info, .short_flag = 'v', .description = "print verbose logs"}
 #define QUIET_FLAG {"quiet", &quiet, &Bool$info, .short_flag = 'q', .description = "suppress logs"}
+// Per-command instrumentation flag: compile the program with function-level
+// profiling, which it then prints at exit (see src/stdlib/profiling.h). It
+// changes the generated code, so it is part of config_summary and toggling it
+// rebuilds:
+#define INSTRUMENT_FLAG                                                                                                \
+    {"instrument", &instrument, &Bool$info,                                                                            \
+     .description = "compile with profiling instrumentation (report printed at exit)"}
 // Per-command optimization flag. Its dest (opt_flag) stays NONE when unset, so
 // each command can fall back to its own default (fast for run/eval, high for
 // build) via configure_codegen():
@@ -80,7 +87,12 @@ void set_default_logs(uint32_t default_logs);
 // install_target come from global CLI flags; verbose/quiet are the dests of
 // each command's own --verbose/--quiet flags (see VERBOSE_FLAG/QUIET_FLAG and
 // set_default_logs), no longer global flags:
-extern OptionalBool_t verbose, quiet, clean_build, source_mapping, install_target;
+extern OptionalBool_t verbose, quiet, clean_build, source_mapping, install_target,
+    // The dest of the global --profile flag: time the compiler's own phases
+    // (see tomo_profile_enable() in stdlib/profiling.h):
+    profiling,
+    // The dest of each compiling command's --instrument flag (see INSTRUMENT_FLAG):
+    instrument;
 
 // Whether ZIG_GLOBAL_CACHE_DIR came from the user's environment (true) or was
 // set by main() to point the bundled zig at Tomo's own cache directory
@@ -127,6 +139,12 @@ extern Text_t link_optimizations;
 // command before compiling: after_globals() applies a safe default, and the
 // run/eval/build handlers override it with their own level + speed tradeoff.
 void configure_codegen(Text_t opt_level, bool optimize);
+
+// Rebuild config_summary from the current flags. configure_codegen() does this
+// itself; commands that don't call it (`tomo transpile`) call this after their
+// own flags are parsed, so a config-affecting flag like --instrument still
+// invalidates artifacts built without it.
+void update_config_summary(void);
 
 extern Text_t config_summary;
 

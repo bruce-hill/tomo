@@ -24,7 +24,7 @@
 #include "../naming.h"
 #include "../packages.h"
 #include "../parse/files.h"
-#include "../profile.h"
+#include "../stdlib/profiling.h"
 #include "../sha256.h"
 #include "../stdlib/bytes.h"
 #include "../stdlib/datatypes.h"
@@ -633,7 +633,7 @@ void build_package(Path_t pkg_dir) {
 }
 
 void build_package_archive(Path_t pkg_dir, List_t tm_files, Path_t archive) {
-    env_t *env = fresh_scope(global_env(source_mapping));
+    env_t *env = fresh_scope(global_env(source_mapping, instrument));
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
@@ -813,11 +813,11 @@ static OptionalPath_t get_precompiled_header(void) {
     // against the user's own source rather than against tomo.h.
     (void)Path$create_directory(cache_dir, 0755, /*recursive=*/true);
     Path_t temp = artifact_temp(pch);
-    profile_span_t span = profile_begin("cc precompile tomo.h");
+    TOMO_PROFILE_SPAN_BEGIN(span, "cc precompile tomo.h");
     FILE *prog =
         run_cmd(cc, " ", cflags, " -O", optimization, precompiled_header_stamp, " -x c-header ", umbrella, " -o ", temp);
     int status = prog ? pclose(prog) : -1;
-    profile_end(span);
+    TOMO_PROFILE_SPAN_END(span);
     if (!prog || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         unlink(Path$as_c_string(temp));
         return NONE_PATH;
@@ -898,7 +898,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (!Path$has_extension(filename, Text("tm")))
             print_err("Not a valid .tm file: \x1b[91;1m", filename, "\x1b[m");
         if (!Path$is_file(filename, true)) print_err("Couldn't find file: ", filename);
-        PROFILE("dependency graph",
+        TOMO_PROFILE_SPAN("dependency graph",
                 build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link));
     }
 
@@ -948,7 +948,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         } *entry = (dependency_files.entries.data + i * dependency_files.entries.stride);
 
         if (entry->staleness.h || clean_build) {
-            PROFILE("transpile header", transpile_header(env, entry->filename));
+            TOMO_PROFILE_SPAN("transpile header", transpile_header(env, entry->filename));
             entry->staleness.o = true;
         } else {
             LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".h"));
@@ -1000,8 +1000,11 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             Path_t filename;
             staleness_t staleness;
         } *entry = (dependency_files.entries.data + i * dependency_files.entries.stride);
-        if (!clean_build && !entry->staleness.c && !entry->staleness.h && !entry->staleness.o
-            && !is_config_outdated(entry->filename)) {
+        // A stale config means retranspiling, not just recompiling: it covers
+        // flags that change the generated code (--instrument, --source-mapping),
+        // not only the ones passed to the C compiler.
+        bool config_outdated = is_config_outdated(entry->filename);
+        if (!clean_build && !entry->staleness.c && !entry->staleness.h && !entry->staleness.o && !config_outdated) {
             LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".c"));
             LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".o"));
             continue;
@@ -1011,11 +1014,19 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
         if (pid == 0) {
             // Start with a clean slate so we report only this child's work, not
             // the parent history inherited by copy-on-write:
-            profile_reset();
-            if (clean_build || entry->staleness.c) PROFILE("transpile code", transpile_code(env, entry->filename));
+            tomo_profile_reset();
+            if (clean_build || entry->staleness.c || config_outdated)
+                TOMO_PROFILE_SPAN("transpile code", transpile_code(env, entry->filename));
             else LOG(LOG_SKIP, "Unchanged: ", build_file(entry->filename, ".c"));
-            if (mode != COMPILE_C_FILES) PROFILE("cc compile object", compile_object_file(entry->filename));
-            if (profile_pipe[1] >= 0) profile_serialize(profile_pipe[1]);
+            if (mode != COMPILE_C_FILES) TOMO_PROFILE_SPAN("cc compile object", compile_object_file(entry->filename));
+            // `tomo transpile` writes a .c but no .o, so it never refreshes the
+            // .config that says which flags that .c was generated with. Drop
+            // the stale one instead, or a later `tomo build` would see an
+            // up-to-date .c with a matching .config and reuse code generated
+            // under different flags (e.g. a --instrument transpile leaking
+            // instrumentation into a plain build):
+            else unlink(Path$as_c_string(build_file(entry->filename, ".config")));
+            if (profile_pipe[1] >= 0) tomo_profile_serialize(profile_pipe[1]);
             fflush(NULL);
             _exit(EXIT_SUCCESS);
         }
@@ -1029,7 +1040,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
     for (; child_processes; child_processes = child_processes->next)
         wait_for_child_success(child_processes->pid);
 
-    if (profile_pipe[0] >= 0) profile_merge(profile_pipe[0]); // closes the read end
+    if (profile_pipe[0] >= 0) tomo_profile_merge(profile_pipe[0]); // closes the read end
 
     if (object_files) {
         for (int64_t i = 0; i < (int64_t)dependency_files.entries.length; i++) {
@@ -1325,10 +1336,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
                           bool embed_git_info) {
     warn_if_first_compile();
     ast_t *ast;
-    PROFILE("parse (main)", ast = parse_file(Path$as_c_string(path), NULL));
+    TOMO_PROFILE_SPAN("parse (main)", ast = parse_file(Path$as_c_string(path), NULL));
     if (!ast) print_err("Could not parse file ", path);
     env_t *env;
-    PROFILE("load module env", env = load_module_env(base_env, ast));
+    TOMO_PROFILE_SPAN("load module env", env = load_module_env(base_env, ast));
     binding_t *main_binding = get_binding(env, "main");
     cli_command_def_t *subcommands = get_cli_subcommands(env, ast);
     if ((main_binding && main_binding->type->tag == FunctionType) || subcommands) {
@@ -1368,11 +1379,18 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     // build_info. It costs a few git subprocesses, so skip it for ephemeral
     // `tomo run`/`eval` executables, where the metadata is thrown away with the
     // binary; only persistent `build`/`install` artifacts pay for it:
-    if (embed_git_info) PROFILE("git info", add_git_info(env, Path$parent(path)));
+    if (embed_git_info) TOMO_PROFILE_SPAN("git info", add_git_info(env, Path$parent(path)));
 
     // Zip up the program's sources for embedding into the executable:
     Path_t source_blob = build_file(path, ".source.zip");
-    PROFILE("source blob", write_source_blob(env, path, source_blob));
+    TOMO_PROFILE_SPAN("source blob", write_source_blob(env, path, source_blob));
+
+    // An `--instrument` binary starts profiling before anything else runs and
+    // prints its report at exit (PROFILE=0 opts out, PROFILE_FILE redirects).
+    // Its command-line arguments are left entirely alone. See
+    // tomo_profile_start() in src/stdlib/profiling.c.
+    Text_t profiler_decl = instrument ? Text("extern void tomo_profile_start(void);\n") : EMPTY_TEXT;
+    Text_t start_profiler = instrument ? Text("\ttomo_profile_start();\n") : EMPTY_TEXT;
 
     Text_t program;
     if ((main_binding && main_binding->type->tag == FunctionType) || subcommands) {
@@ -1380,10 +1398,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
                            ? main_binding->code
                            : namespace_name(env, env->namespace, Text("main"));
         program =
-            Texts("extern int parse_and_run$$", entry,
-                  "(int argc, char *argv[]);\n"
+            Texts("extern int parse_and_run$$", entry, "(int argc, char *argv[]);\n", profiler_decl,
                   "__attribute__ ((noinline))\n"
-                  "int main(int argc, char *argv[]) {\n"
+                  "int main(int argc, char *argv[]) {\n",
+                  start_profiler,
                   "\treturn parse_and_run$$",
                   entry,
                   "(argc, argv);\n"
@@ -1393,9 +1411,10 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         program =
             Texts("extern void ", namespace_name(env, env->namespace, Text("$initialize")),
                   "(void);\n"
-                  "extern void tomo_init(void);\n"
+                  "extern void tomo_init(void);\n", profiler_decl,
                   "__attribute__ ((noinline))\n"
-                  "int main(int argc, char *argv[]) {\n"
+                  "int main(int argc, char *argv[]) {\n",
+                  start_profiler,
                   "tomo_init();\n",
                   namespace_name(env, env->namespace, Text("$initialize")),
                   "();\n"
@@ -1453,7 +1472,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         link_macho ? Texts(" '-Wl,-sectcreate,__TEXT,__tomo_source,", Text$from_str(Path$as_c_string(source_blob)), "'")
                    : EMPTY_TEXT;
 
-    profile_span_t link_span = profile_begin("cc link executable");
+    TOMO_PROFILE_SPAN_BEGIN(link_span, "cc link executable");
     FILE *runner = run_cmd( // Invoke C compiler
         cc,
         // C flags:
@@ -1478,7 +1497,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     Text$print(runner, program);
     int status = pclose(runner);
-    profile_end(link_span);
+    TOMO_PROFILE_SPAN_END(link_span);
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
 
     LOG(LOG_BUILD, "Compiled executable:\t", Path$relative_to(exe_path, Path$current_dir()));

@@ -48,10 +48,12 @@ run). Commands that print build progress by default (`build`, `package`,
 (`tomo` *file.tm*, `run`, `eval`) are silent by default: use `tomo run -v`
 *file.tm* to see the compiler's work.
 
-`run` *file.tm* \[`--` *args...*\]
+`run` \[`--instrument`\] *file.tm* \[`--` *args...*\]
 : Compile and run the given program. Anything after `--` is passed to the
 program as its own arguments. The command name is optional: `tomo` *file.tm*
-does the same thing.
+does the same thing. With `--instrument`, the program is compiled with
+profiling instrumentation and prints a breakdown of where its time went when
+it exits (see **PROFILING**).
 
 `eval` *'expr'*
 : Evaluate a Tomo expression and print its result. The argument may be several
@@ -59,9 +61,12 @@ statements separated by newlines or `;` (for example `tomo eval 'use random;
 random.int(1, 100)'`); the value of the final statement is printed, with syntax
 coloring when standard output is a terminal.
 
-`build` \[`-o` *output*\] \[`--install`\] \[`--prefix` *dir*\] \[`-y`\] *file.tm*
+`build` \[`-o` *output*\] \[`--install`\] \[`--prefix` *dir*\] \[`-y`\]
+\[`--instrument`\] *file.tm*
 : Compile the given program to a standalone executable, placed as a sibling
-of the `.tm` file (or at `-o` *output*). With `--install`, the executable and
+of the `.tm` file (or at `-o` *output*). With `--instrument`, the executable
+is compiled with profiling instrumentation and prints a breakdown of where its
+time went when it exits (see **PROFILING**). With `--install`, the executable and
 its generated manpage are also copied into a prefix's `bin/` and `man/man1/` —
 the installation prefix by default, or `--prefix` *dir* to choose another.
 Existing files at those destinations are overwritten only after confirmation,
@@ -69,7 +74,7 @@ or immediately with `--yes`/`-y`; a warning is printed if the target `bin/` is
 not on your `$PATH`. Remove installed programs again with `tomo uninstall`
 *name*.
 
-`transpile` \[`--raw`\] *file.tm*
+`transpile` \[`--raw`\] \[`--instrument`\] *file.tm*
 : Transpile the given file to C and print the generated header and source to
 standard output, each preceded by a `// file:` line. The output is formatted
 with `clang-format` and (when standard output is a terminal)
@@ -167,6 +172,27 @@ Valid platforms are: `x86_64-linux`, `aarch64-linux`, `riscv64-linux`,
 : When using `--target`, download and install the target platform's libraries
 without asking for confirmation.
 
+# PROFILING
+
+A program compiled with `--instrument` (`tomo build --instrument` *file.tm*,
+or `tomo run --instrument` *file.tm*) times every function, conversion, and
+lambda it defines, and prints a report to standard error when it exits: for
+each function that ran, the number of calls, the time spent inside it (with
+its callees' time subtracted), the time spent in it and everything it called,
+and the per-call average, sorted by the first of those. The report is printed
+even when the program exits early, fails, or crashes. Instrumented calls cost
+around 13ns each (two reads of the CPU's cycle counter), charged to the calling
+function, so `--instrument` is for finding where the time goes rather than for
+measuring absolute speed.
+
+Setting `FLAME_GRAPH` to a path additionally writes the call tree there as an
+SVG flame graph: one box per frame, as wide as its share of the run and stacked
+on the frame that called it, each carrying its details in a hover tooltip.
+
+The program's own arguments are left alone; the report is controlled by
+`PROFILE`, `PROFILE_FILE`, and `FLAME_GRAPH` (see **ENVIRONMENT**). See also
+*docs/profiling.md*.
+
 # ENVIRONMENT
 
 `TOMO_PATH`
@@ -201,6 +227,15 @@ error abort (dumping core) instead of exiting cleanly.
 : Control `tomo test` runs: only run tests whose label contains
 `TOMO_TEST_FILTER`, cap each test at `TOMO_TEST_TIMEOUT` seconds, and print
 verbose output when `TOMO_TEST_VERBOSE` is set.
+
+`PROFILE`, `PROFILE_FILE`, `FLAME_GRAPH`
+: Control the profile report of a program compiled with `--instrument` (see
+**PROFILING**). Setting `PROFILE` to `0` (or `no`/`false`) makes the program
+collect nothing and print nothing, so an instrumented binary can also be run
+as a normal one. `PROFILE_FILE` writes the table to that path instead of
+standard error (`-` means standard output). `FLAME_GRAPH` writes an SVG flame
+graph to that path as well as the table. All three are read by the compiled
+program, not by `tomo`.
 
 `ZIG_GLOBAL_CACHE_DIR`
 : Where the bundled Zig toolchain keeps its global compile cache. If unset,

@@ -17,6 +17,7 @@ static cli_arg_t transpile_spec[] = {
      .description = "the file to transpile"}, //
     {"raw", &raw, &Bool$info,
      .description = "print the raw generated code, without formatting or syntax highlighting"}, //
+    INSTRUMENT_FLAG, //
     VERBOSE_FLAG, //
 };
 
@@ -29,9 +30,12 @@ static int cmd_transpile(cli_command_t *self, List_t extra_args) {
     (void)self, (void)extra_args;
     set_default_logs(0);
 
+    // --instrument changes the generated code, so fold it into the config
+    // fingerprint before anything checks whether the artifacts are up to date:
+    update_config_summary();
     List_t files = normalize_tm_paths(List(file));
     Path_t path = *(Path_t *)files.data;
-    env_t *env = global_env(source_mapping);
+    env_t *env = global_env(source_mapping, instrument);
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
     compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_C_FILES);
 

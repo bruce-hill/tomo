@@ -24,6 +24,7 @@
 #include "optionals.h"
 #include "paths.h"
 #include "print.h"
+#include "profiling.h"
 #include "siphash.h"
 #include "stacktrace.h"
 #include "stdlib.h"
@@ -150,10 +151,14 @@ static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
         else fputs("===== ILLEGAL INSTRUCTION =====\n\n", stderr);
         print_stacktrace(stderr, 3);
         fflush(stderr);
+        tomo_profile_report();
         if (Bool$parse(Text$from_str(getenv("TOMO_CORE_DUMP")), NULL) == true) raise(SIGABRT);
         raise(SIGABRT);
         _exit(1);
     }
+    // A crash skips atexit(), so an instrumented program prints its profile
+    // here instead (a no-op in every other program):
+    tomo_profile_report();
     tomo_cleanup();
     raise(sig);
     _exit(1);
