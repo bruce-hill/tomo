@@ -54,12 +54,16 @@ static Text_t get_flag_options(type_t *t, Text_t separator) {
     }
 }
 
-static OptionalText_t flagify(const char *name, bool prefix) {
+// An argument's flag as the runtime actually accepts it. The dashes follow the
+// role, not the length: `arg->name` is registered as `.name` (always a long
+// `--flag`, even when it is one letter) and `arg->alias` as `.short_flag`
+// (always a single-letter `-f`). Deriving them from the length instead
+// documented `-x` for `func main.add(x:Int)`, which the parser rejects.
+static OptionalText_t flagify(const char *name, bool is_short) {
     if (!name) return NONE_TEXT;
     Text_t flag = Text$from_str(name);
     flag = Text$replace(flag, Text("_"), Text("-"));
-    if (prefix) flag = flag.length == 1 ? Texts("-", flag) : Texts("--", flag);
-    return flag;
+    return is_short ? Texts("-", flag) : Texts("--", flag);
 }
 
 // Emit a compile-time Text_t value for `text`. The `Text(...)` macro is
@@ -259,10 +263,10 @@ Text_t compile_cli_dispatch(env_t *env, ast_t *file_ast, cli_command_def_t *comm
 static Text_t manpage_options(arg_t *args) {
     Text_t man = EMPTY_TEXT;
     for (arg_t *arg = args; arg; arg = arg->next) {
-        OptionalText_t flag = flagify(arg->name, true);
+        OptionalText_t flag = flagify(arg->name, /*is_short=*/false);
         assert(flag.tag != TEXT_NONE);
         Text_t flags = Texts("\\f[B]", flag, "\\f[R]");
-        if (arg->alias) flags = Texts(flags, ", \\f[B]", flagify(arg->alias, true), "\\f[R]");
+        if (arg->alias) flags = Texts(flags, ", \\f[B]", flagify(arg->alias, /*is_short=*/true), "\\f[R]");
         if (non_optional(arg->type)->tag == BoolType)
             flags = Texts(flags, " | \\f[B]--no-", Text$without_prefix(flag, Text("--")), "\\f[R]");
 
