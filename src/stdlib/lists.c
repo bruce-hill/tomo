@@ -445,7 +445,7 @@ List_t List$sample(List_t list, Int_t int_n, List_t weights, OptionalClosure_t r
     } aliases[list.length];
 
     for (int64_t i = 0; i < (int64_t)list.length; i++) {
-        double weight = i >= (int64_t)weights.length ? 0.0 : *(double *)(weights.data + weights.stride * i);
+        double weight = number_to_double(*(Num_t *)(weights.data + weights.stride * i));
         aliases[i].odds = weight * inverse_average;
         aliases[i].alias = -1;
     }
