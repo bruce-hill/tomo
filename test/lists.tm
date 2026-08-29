@@ -407,3 +407,15 @@ test "a list's .length is usable as an Int64 value"
 	xs := [10, 20, 30]
 	assert "$(xs.length)" == "3"
 	assert xs.length == Int64(3)
+
+# A comprehension inside a list literal stands for the items it produces, so
+# checking a call site has to look at what it yields, not at the comprehension
+# itself (whose own type is the whole list type):
+func list_arg_length(xs:[Int] -> Int)
+	return xs.length
+
+test "a comprehension is accepted directly as an argument"
+	assert list_arg_length([i for i in 3]) == 3
+	assert list_arg_length([i for i in 5 if i > 2]) == 3
+	assert list_arg_length([i*j for i in 2 for j in 2]) == 4
+	assert list_arg_length([1, 2, i for i in 3]) == 5

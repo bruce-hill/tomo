@@ -55,6 +55,16 @@
     counting on from its first line; it is now attributed to the generated C
     file it actually is.
 
+- Fixed a list or table comprehension being rejected in argument position:
+  `f([i for i in 3])` failed with "the function takes these args: `([Int])`,
+  but it's being called with: `([Int])`", while binding it to a variable first
+  worked. Checking a literal against a parameter type compared each element
+  against the item type, but a comprehension is not an element -- it stands for
+  the items it produces, and its own type is the whole list type. It is now
+  looked through, in its loop's scope, so what is checked is what it yields.
+  The table case was skipped outright rather than checked, so a table
+  comprehension's entries are now checked too.
+
 - **Breaking:** `sleep()`, `Text.distance()`, and `List.sample()` now use `Num`
   rather than `Float64`, so the default numeric type is what the standard
   library reaches for. `sleep()` takes a `Num` (`sleep(1/100)` is exact now),

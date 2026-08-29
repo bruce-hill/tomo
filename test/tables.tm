@@ -174,3 +174,12 @@ test "a table's .length is usable as an Int64 value"
 	t := {"a": 1, "b": 2}
 	assert "$(t.length)" == "2"
 	assert t.length == Int64(2)
+
+func table_arg_length(t:{Int:Int} -> Int)
+	return t.length
+
+# As with lists, a comprehension in a table literal yields entries rather than
+# being one, so an argument check has to look through it:
+test "a table comprehension is accepted directly as an argument"
+	assert table_arg_length({i: 10*i for i in 3}) == 3
+	assert table_arg_length({i: 10*i for i in 5 if i > 2}) == 3

@@ -2094,6 +2094,20 @@ PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target) {
     }
 }
 
+// A comprehension inside a list or table literal stands in for the items it
+// produces, not for a single item: its own type is the list/table type. Peel
+// off any comprehension layers to reach the expression that actually yields an
+// item, and advance `*scope` to the scope that expression is evaluated in (the
+// one holding the loop variables). Returns `ast` unchanged if it isn't one.
+static ast_t *unwrap_comprehension(env_t **scope, ast_t *ast) {
+    while (ast->tag == Comprehension) {
+        DeclareMatch(comp, ast, Comprehension);
+        *scope = for_scope(*scope, FakeAST(For, .iters = comp->iters, .vars = comp->vars, .at = comp->at));
+        ast = comp->expr;
+    }
+    return ast;
+}
+
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (is_incomplete_type(needed)) return false;
 
@@ -2136,17 +2150,21 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     if (non_optional_needed->tag == ListType && ast->tag == List) {
         type_t *item_type = Match(non_optional_needed, ListType)->item_type;
         for (ast_list_t *item = Match(ast, List)->items; item; item = item->next) {
-            if (!can_compile_to_type(env, item->ast, item_type)) return false;
+            env_t *scope = env;
+            ast_t *item_ast = unwrap_comprehension(&scope, item->ast);
+            if (!can_compile_to_type(scope, item_ast, item_type)) return false;
         }
         return true;
     } else if (non_optional_needed->tag == TableType && ast->tag == Table) {
         type_t *key_type = Match(non_optional_needed, TableType)->key_type;
         type_t *value_type = Match(non_optional_needed, TableType)->value_type;
         for (ast_list_t *entry = Match(ast, Table)->entries; entry; entry = entry->next) {
-            if (entry->ast->tag != TableEntry) continue; // TODO: fix this
-            DeclareMatch(e, entry->ast, TableEntry);
-            if (!can_compile_to_type(env, e->key, key_type)
-                || !(e->value ? can_compile_to_type(env, e->value, value_type) : type_eq(value_type, PRESENT_TYPE)))
+            env_t *scope = env;
+            ast_t *entry_ast = unwrap_comprehension(&scope, entry->ast);
+            if (entry_ast->tag != TableEntry) return false;
+            DeclareMatch(e, entry_ast, TableEntry);
+            if (!can_compile_to_type(scope, e->key, key_type)
+                || !(e->value ? can_compile_to_type(scope, e->value, value_type) : type_eq(value_type, PRESENT_TYPE)))
                 return false;
         }
         return true;
