@@ -19,6 +19,7 @@
 #include "../ast.h"
 #include "../compile/cli.h"
 #include "../compile/files.h"
+#include "../compile/text.h"
 #include "../compile/headers.h"
 #include "../config.h"
 #include "../naming.h"
@@ -633,7 +634,7 @@ void build_package(Path_t pkg_dir) {
 }
 
 void build_package_archive(Path_t pkg_dir, List_t tm_files, Path_t archive) {
-    env_t *env = fresh_scope(global_env(source_mapping, instrument));
+    env_t *env = fresh_scope(global_env(source_mapping, instrument, debugging));
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
 
     compile_files(env, tm_files, &object_files, &extra_ldlibs, COMPILE_OBJ);
@@ -1274,7 +1275,35 @@ void transpile_code(env_t *base_env, Path_t path) {
 
     if (has_main || subcommands) {
         Text_t entry = namespace_name(module_env, module_env->namespace, Text("main"));
-        c_code = Texts(c_code, compile_cli_dispatch(module_env, ast, subcommands, entry));
+        Text_t dispatch = compile_cli_dispatch(module_env, ast, subcommands, entry);
+        // The generated command-line wrapper is code the program never wrote,
+        // so it must not inherit the .tm line numbering compile_file() opens
+        // the file with. Left alone, every line of the wrapper claims to be a
+        // line of the .tm file -- counting on from that opening `#line 1` --
+        // and a debugger stopped in it reports whichever Tomo code happens to
+        // sit at those line numbers. Point it back at the C file it actually
+        // is, which means knowing how many lines come before it.
+        if (module_env->do_source_mapping) {
+            int64_t line = 1;
+            char last = '\n';
+            for (const char *p = Text$as_c_string(c_code); *p; p++) {
+                if (*p == '\n') line += 1;
+                last = *p;
+            }
+            // A `#line` is a preprocessor directive, so it has to start its own
+            // line -- if the code so far didn't end with a newline, break the
+            // line first (which puts the directive one line further down).
+            Text_t newline = EMPTY_TEXT;
+            if (last != '\n') {
+                newline = Text("\n");
+                line += 1;
+            }
+            // `line` is now the directive's own line, and a `#line` numbers the
+            // line after itself:
+            dispatch = Texts(newline, "#line ", line + 1, " ", quoted_str(Path$as_c_string(c_filename)), "\n",
+                             dispatch);
+        }
+        c_code = Texts(c_code, dispatch);
     }
 
     Path_t c_temp = artifact_temp(c_filename);

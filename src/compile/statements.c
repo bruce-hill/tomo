@@ -24,6 +24,45 @@ Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
     return Texts("\n#line ", line, "\n", code);
 }
 
+// A debug build (`--debug`) puts a `_$x$typeinfo` beside every variable `_$x`
+// it declares, holding the TypeInfo the runtime formatter needs to print that
+// variable. A debugger stopped in this scope finds the companion in the same
+// block as the variable itself, which is what makes shadowing and nested
+// scopes resolve correctly -- and it is the only way to print a type-erased
+// value at all, since a List_t's C type says nothing about its items.
+//
+// This is a plain local rather than a `static`: the TypeInfo for a compound
+// type is a compound literal, which has automatic storage duration at block
+// scope and so can't initialize a static. That costs one pointer store per
+// declaration, which is only ever paid by a build compiled for debugging.
+public
+Text_t compile_debug_typeinfo(env_t *env, const char *name, type_t *t) {
+    if (!env->do_debugging || name == NULL || streq(name, "_") || !has_type_info(t)) return EMPTY_TEXT;
+    return Texts("__attribute__((unused)) const TypeInfo_t *_$", name, "$typeinfo = ", compile_type_info(t), ";\n");
+}
+
+// The C text an `InlineCCode` node stands for, with its interpolations
+// compiled in.
+//
+// Kept separate from compile_statement() because of what that adds: a `#line`.
+// That is right for a `C_code` statement, but the compiler also synthesizes
+// InlineCCode nodes to stand for an already-compiled fragment (a temporary's
+// name, an enum member access) and drops them into the middle of an
+// expression. A `#line` there moves the line counter backwards mid-statement,
+// and everything the compiler emits after it -- to the end of the function --
+// is attributed to whatever line the synthesized node happened to carry. A
+// debugger then reports that line for code that has nothing to do with it.
+public
+Text_t compile_inline_c_code(env_t *env, ast_t *ast) {
+    DeclareMatch(inline_code, ast, InlineCCode);
+    Text_t code = EMPTY_TEXT;
+    for (ast_list_t *chunk = inline_code->chunks; chunk; chunk = chunk->next) {
+        if (chunk->ast->tag == TextLiteral) code = Texts(code, Match(chunk->ast, TextLiteral)->text);
+        else code = Texts(code, compile(env, chunk->ast));
+    }
+    return code;
+}
+
 static Text_t compile_simple_update_assignment(env_t *env, ast_t *ast, const char *op) {
     binary_operands_t update = BINARY_OPERANDS(ast);
     type_t *lhs_t = get_type(env, update.lhs);
@@ -50,7 +89,8 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
                 code_err(ast, "You can't declare a variable with a ", type_to_text(t), " value");
 
             Text_t val_code = compile_declared_value(env, ast);
-            return Texts(compile_declaration(t, Texts("_$", name)), " = ", val_code, ";");
+            return Texts(compile_debug_typeinfo(env, name, t), compile_declaration(t, Texts("_$", name)), " = ",
+                         val_code, ";");
         }
     }
     case Assign: return compile_assignment_statement(env, ast);
@@ -177,18 +217,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         ast_t *loop = WrapAST(ast, For, .vars = comp->vars, .at = comp->at, .iters = comp->iters, .body = body);
         return compile_statement(env, loop);
     }
-    case InlineCCode: {
-        DeclareMatch(inline_code, ast, InlineCCode);
-        Text_t code = EMPTY_TEXT;
-        for (ast_list_t *chunk = inline_code->chunks; chunk; chunk = chunk->next) {
-            if (chunk->ast->tag == TextLiteral) {
-                code = Texts(code, Match(chunk->ast, TextLiteral)->text);
-            } else {
-                code = Texts(code, compile(env, chunk->ast));
-            }
-        }
-        return code;
-    }
+    case InlineCCode: return compile_inline_c_code(env, ast);
     case Use: {
         DeclareMatch(use, ast, Use);
         if (use->what == USE_LOCAL) {

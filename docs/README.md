@@ -8,6 +8,7 @@ A few topics that are documented:
 
 - [Built-In Functions](builtins.md)
 - [Compilation Pipeline](compilation.md)
+- [Debugging](debugging.md)
 - [Functions](functions.md)
 - [Identifiers (Unicode variable names)](identifiers.md)
 - [Packages](packages.md)

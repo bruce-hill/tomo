@@ -2,6 +2,59 @@
 
 ## 2026-08-27
 
+- `tomo run --debug prog.tm` runs a program under gdb, in Tomo's terms.
+  Breakpoints, stepping, and backtraces already worked on `.tm` files (the
+  generated C carries `#line` directives back to the source); what is new is
+  everything above that. Values print through Tomo's own formatter, syntax
+  coloring and all, including lists, tables, and optionals -- a `--debug` build
+  emits the type information for each variable beside it, which is the only way
+  a debugger can see inside a type-erased value. Function and argument names are
+  Tomo's rather than the mangled C symbols, in gdb's own output as well as
+  Tomo's -- a backtrace reads `helper (label=..., count=..., items=...)`.
+  Commands added: `tlocals` (which inside a lambda lists the variables it closed
+  over as well as its arguments) and `tframe`. `backtrace`/`bt`/`where` is
+  replaced by one that prints the stack in Tomo's terms, arguments included
+  (`helper(label="widgets", count=7, items=[1, 2, 3])`), with values cut short;
+  gdb's own remains as `info stack`. A Tomo
+  variable `x` is `_$x` in the generated C, so `p` (gdb's alias for `print`) is
+  replaced by one that understands Tomo names -- without it, `print log` in a
+  program with a variable named `log` answers with libm's `log` function.
+  `print` and `watch` themselves are untouched, and anything `p` does not
+  recognize is passed to `print` unchanged. An exact `Num` whose value no decimal
+  expresses is shown with a rounded decimal beside it (`32768/3 ~= 10922.6666666667`,
+  `pi ~= 3.1415926536`); `set tomo-num-digits` controls the digits. Printed values are cut off at gdb's
+  own `print elements`, since a Tomo value is formatted whole and everything in
+  scope is printed at every stop. `frame`, `up`, and `down` report
+  the frame they select the way a stop is reported, with the source around the
+  line and the variables in scope.
+
+  A new `breakpoint()` builtin stops the program where it is called; it
+  compiles to nothing at all without `--debug`, so leaving one in the source
+  costs a release build nothing. Runtime errors stop in the debugger too, with
+  the failing frame and its variables intact, as do fatal signals; `Ctrl-C`
+  stops the program without killing it. A program that runs to completion
+  leaves the debugger with its own exit status.
+
+  `--debug` also works on `build`, `transpile`, and `test`. It compiles at
+  `-O0` by default (an explicit `-O` still wins) and keeps its DWARF
+  uncompressed, so an external debugger can read it. See `docs/debugging.md`.
+
+- Fixed three source-mapping bugs the debugger work turned up, each of which
+  made generated code claim to be somewhere it wasn't:
+
+  - A `match` statement compiled to a `MATCH(...)` macro whose argument was the
+    whole `switch` body. A preprocessor directive inside a macro argument is
+    undefined, so the `#line` directives in the clause bodies were dropped and
+    every line of every clause was attributed to the `match` line itself. The
+    macro is now written out, and each clause maps to its own lines.
+  - Compiler-synthesized C fragments dropped into the middle of an expression
+    carried a `#line` of their own, which moved the line counter backwards
+    mid-statement and left everything after it -- to the end of the function --
+    attributed to whatever line the fragment came from.
+  - The generated command-line wrapper claimed to be lines of the `.tm` file,
+    counting on from its first line; it is now attributed to the generated C
+    file it actually is.
+
 - **Breaking:** `sleep()`, `Text.distance()`, and `List.sample()` now use `Num`
   rather than `Float64`, so the default numeric type is what the standard
   library reaches for. `sleep()` takes a `Num` (`sleep(1/100)` is exact now),

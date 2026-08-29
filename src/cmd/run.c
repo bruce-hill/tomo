@@ -24,8 +24,53 @@ static cli_arg_t run_spec[] = {
      .description = "the program to compile and run"}, //
     OPTIMIZATION_FLAG, //
     INSTRUMENT_FLAG, //
+    DEBUG_FLAG, //
     VERBOSE_FLAG, //
 };
+
+// Run the compiled program under a debugger, with Tomo's gdb integration
+// loaded (see src/stdlib/tomo-gdb.py). `prog_args` is the program and its
+// arguments, exactly as the non-debug path would have exec'd them. Like that
+// path, this replaces the current process, so it only returns on failure.
+static int exec_under_debugger(const char *prog_args[], int64_t num_prog_args) {
+    const char *debugger = getenv("TOMO_DEBUGGER");
+    if (debugger == NULL || debugger[0] == '\0') debugger = "gdb";
+
+    Path_t script = Path$from_str(String(TOMO_PATH, "/lib/tomo@", TOMO_VERSION, "/tomo-gdb.py"));
+    if (!Path$is_file(script, true))
+        print_err("This Tomo installation is missing its debugger support file:\n", script);
+
+    // A Tomo runtime error -- `fail()`, a failed assertion, an out-of-bounds
+    // access -- prints its report and exits, and an exit is not something a
+    // debugger can stop on. TOMO_CORE_DUMP makes those raise SIGABRT after
+    // printing instead, so the debugger takes over with the failing frame and
+    // its variables still on the stack. An explicit setting is left alone.
+    setenv("TOMO_CORE_DUMP", "yes", /*overwrite=*/0);
+
+    const char *argv[8 + num_prog_args];
+    int64_t n = 0;
+    argv[n++] = debugger;
+    argv[n++] = "-q"; // no gdb banner; tomo-gdb.py prints its own
+    argv[n++] = "-x";
+    argv[n++] = Path$as_c_string(script);
+    // Start the program immediately. `tomo-run` (defined by the script) is
+    // `run` plus one rule: if the program finishes on its own, leave the
+    // debugger with the program's exit status instead of sitting at a prompt
+    // with nothing left to debug.
+    argv[n++] = "-ex";
+    argv[n++] = "tomo-run";
+    argv[n++] = "--args";
+    for (int64_t i = 0; i < num_prog_args; i++)
+        argv[n++] = prog_args[i];
+    argv[n] = NULL;
+
+    fflush(NULL);
+    execvp(debugger, (char **)argv);
+    print_err("Could not run `", debugger,
+              "`.\n`tomo run --debug` needs gdb installed, or $TOMO_DEBUGGER "
+              "pointing at a gdb-compatible debugger.");
+    return 1;
+}
 
 // Compile `path` and exec it, passing extra_args (the raw argv tail after
 // "--") as the program's arguments. Shared by `tomo run`, the bare-`tomo`
@@ -48,7 +93,7 @@ int compile_and_exec(Path_t path, List_t extra_args) {
     Path_t exe_path = get_exe_path(path);
 
     env_t *env;
-    TOMO_PROFILE_SPAN("global env", env = global_env(source_mapping, instrument));
+    TOMO_PROFILE_SPAN("global env", env = global_env(source_mapping, instrument, debugging));
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
     compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
     // This executable is run once and discarded, so don't spend git subprocesses
@@ -68,6 +113,7 @@ int compile_and_exec(Path_t path, List_t extra_args) {
     if (!zig_cache_dir_from_env) unsetenv("ZIG_GLOBAL_CACHE_DIR");
     // execv replaces this process, so print the profile now (atexit won't fire):
     tomo_profile_report();
+    if (debugging) return exec_under_debugger(prog_args, 1 + (int64_t)extra_args.length);
     execv(prog_args[0], (char **)prog_args);
     print_err("Could not execute program: ", prog_args[0]);
     return 1;

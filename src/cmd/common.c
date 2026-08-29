@@ -19,7 +19,7 @@
 #include "common.h"
 
 OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false,
-              instrument = false, profiling = false;
+              instrument = false, profiling = false, debugging = false;
 bool zig_cache_dir_from_env = false, cross_compiling = false, link_macho = false;
 uint32_t enabled_logs = 0;
 Text_t target_root = Text(""), lib_root = Text(""), zig_libc_dir = Text(""), cc = Text(""), ar = Text(""),
@@ -54,6 +54,21 @@ void set_default_logs(uint32_t default_logs) {
 }
 
 void configure_codegen(Text_t opt_level, bool optimize) {
+    // A debug build has to be one a debugger can follow: optimized code
+    // reorders and folds away the statements the user wants to step through,
+    // and without `#line` directives a debugger has no .tm source to show at
+    // all. An explicit -O still wins -- sometimes a bug only shows up
+    // optimized -- but the default becomes -O0 and source mapping is forced
+    // on either way.
+    if (debugging) {
+        if (opt_flag.tag == TEXT_NONE) opt_level = Text("0");
+        source_mapping = true;
+        // Turns `breakpoint()` from nothing into a call the debugger stops on
+        // (see stdlib/debugger.h). It is part of cflags, so it is also part of
+        // config_summary and of the precompiled header's fingerprint --
+        // toggling --debug rebuilds rather than reusing non-debug objects.
+        cflags = Texts(cflags, " -DTOMO_DEBUG_BUILD");
+    }
     optimization = opt_level;
     // Debug (-O0) builds get UBSan in trap mode: generated code is kept free
     // of undefined behavior (lambdas take their userdata as `void *` to match
@@ -71,8 +86,13 @@ void configure_codegen(Text_t opt_level, bool optimize) {
     // Enable them only for optimized (build/install) artifacts; the fast
     // run/eval path skips them since its binary is thrown away after one run.
     if (optimize) {
-        link_optimizations =
-            link_macho ? Text(" -Wl,-w,-dead_strip") : Text(" -Wl,--gc-sections -Wl,--compress-debug-sections=zstd");
+        // Debug builds skip the zstd debug-section compression: the vendored
+        // libbacktrace decompresses it natively for runtime stacktraces, but
+        // an external debugger only reads those sections if its own build has
+        // zstd support, so a debug build keeps its DWARF uncompressed.
+        link_optimizations = link_macho ? Text(" -Wl,-w,-dead_strip")
+                             : debugging ? Text(" -Wl,--gc-sections")
+                                         : Text(" -Wl,--gc-sections -Wl,--compress-debug-sections=zstd");
     } else {
         link_optimizations = Text("");
     }
@@ -82,7 +102,8 @@ void configure_codegen(Text_t opt_level, bool optimize) {
 void update_config_summary(void) {
     config_summary = Texts("TOMO_VERSION=", TOMO_VERSION, "\n", "COMPILER=", cc, " ", cflags, " -O", optimization, "\n",
                            "SOURCE_MAPPING=", source_mapping ? Text("yes") : Text("no"), "\n",
-                           "INSTRUMENTED=", instrument ? Text("yes") : Text("no"), "\n");
+                           "INSTRUMENTED=", instrument ? Text("yes") : Text("no"), "\n",
+                           "DEBUGGING=", debugging ? Text("yes") : Text("no"), "\n");
 }
 
 const char *paths_str(List_t paths) {

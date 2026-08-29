@@ -299,6 +299,10 @@ $(BUILD_DIR)/lib/$(AR_FILE): $(STDLIB_OBJS) | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSI
 $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini: packages.ini.default | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
 	@cp $^ $@
 
+# gdb's view of a Tomo program (`tomo run --debug` loads it; see src/cmd/run.c):
+$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/tomo-gdb.py: src/stdlib/tomo-gdb.py | $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)
+	@cp $< $@
+
 $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE: LICENSE.md | $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)
 	cp $< $@
 
@@ -405,6 +409,7 @@ $(ZIG_LIBC_DIR)/libc.a: $(ZIG_STAGED) scripts/stage_zig_libc.sh
 # Everything that makes up an installed Tomo tree for the current platform:
 BUILD_PRODUCTS = $(BUILD_DIR)/bin/tomo $(BUILD_DIR)/bin/tomo@$(TOMO_VERSION) \
 	$(BUILD_DIR)/lib/$(AR_FILE) $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/packages.ini \
+	$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/tomo-gdb.py \
 	$(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE $(build_headers) $(build_manpages) \
 	$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/gc.h \
 	$(ZIG_STORE_DIR)/zig $(ZIG_LINK) $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/ZIG-LICENSE \

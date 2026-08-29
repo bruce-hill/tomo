@@ -1145,6 +1145,12 @@ test "at_cleanup"
             _ := (/tmp/file.txt).remove(ignore_missing=yes)
         )
 
+test "breakpoint"
+    total := 0
+    for i in 10
+        total += i
+    breakpoint() # `tomo run --debug` stops here, with `total` and `i` in scope
+
 test "exit"
     if no
         exit("Goodbye forever!", Int32(1))

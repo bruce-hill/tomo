@@ -50,7 +50,7 @@ The run\-style commands (\f[B]tomo\f[R] \f[I]file.tm\f[R],
 \f[B]run\f[R], \f[B]eval\f[R]) are silent by default: use \f[B]tomo run
 \-v\f[R] \f[I]file.tm\f[R] to see the compiler\(cqs work.
 .TP
-\f[B]run\f[R] [\f[B]\-\-instrument\f[R]] \f[I]file.tm\f[R] [\f[B]\-\-\f[R] \f[I]args\&...\f[R]]
+\f[B]run\f[R] [\f[B]\-\-instrument\f[R]] [\f[B]\-\-debug\f[R]] \f[I]file.tm\f[R] [\f[B]\-\-\f[R] \f[I]args\&...\f[R]]
 Compile and run the given program.
 Anything after \f[B]\-\-\f[R] is passed to the program as its own
 arguments.
@@ -59,6 +59,9 @@ same thing.
 With \f[B]\-\-instrument\f[R], the program is compiled with profiling
 instrumentation and prints a breakdown of where its time went when it
 exits (see \f[B]PROFILING\f[R]).
+With \f[B]\-\-debug\f[R]/\f[B]\-d\f[R], it runs under a debugger that
+stops on \f[B]breakpoint()\f[R] calls, runtime errors, and fatal signals
+(see \f[B]DEBUGGING\f[R]).
 .TP
 \f[B]eval\f[R] \f[I]`expr'\f[R]
 Evaluate a Tomo expression and print its result.
@@ -69,12 +72,15 @@ coloring when standard output is a terminal.
 .PP
 \f[B]build\f[R] [\f[B]\-o\f[R] \f[I]output\f[R]] [\f[B]\-\-install\f[R]]
 [\f[B]\-\-prefix\f[R] \f[I]dir\f[R]] [\f[B]\-y\f[R]]
-[\f[B]\-\-instrument\f[R]] \f[I]file.tm\f[R] : Compile the given program
-to a standalone executable, placed as a sibling of the \f[B].tm\f[R]
-file (or at \f[B]\-o\f[R] \f[I]output\f[R]).
+[\f[B]\-\-instrument\f[R]] [\f[B]\-\-debug\f[R]] \f[I]file.tm\f[R] :
+Compile the given program to a standalone executable, placed as a
+sibling of the \f[B].tm\f[R] file (or at \f[B]\-o\f[R]
+\f[I]output\f[R]).
 With \f[B]\-\-instrument\f[R], the executable is compiled with profiling
 instrumentation and prints a breakdown of where its time went when it
 exits (see \f[B]PROFILING\f[R]).
+With \f[B]\-\-debug\f[R]/\f[B]\-d\f[R], it is compiled so a debugger can
+follow it (see \f[B]DEBUGGING\f[R]).
 With \f[B]\-\-install\f[R], the executable and its generated manpage are
 also copied into a prefix\(cqs \f[B]bin/\f[R] and \f[B]man/man1/\f[R]
 \(em the installation prefix by default, or \f[B]\-\-prefix\f[R]
@@ -86,7 +92,7 @@ warning is printed if the target \f[B]bin/\f[R] is not on your
 Remove installed programs again with \f[B]tomo uninstall\f[R]
 \f[I]name\f[R].
 .TP
-\f[B]transpile\f[R] [\f[B]\-\-raw\f[R]] [\f[B]\-\-instrument\f[R]] \f[I]file.tm\f[R]
+\f[B]transpile\f[R] [\f[B]\-\-raw\f[R]] [\f[B]\-\-instrument\f[R]] [\f[B]\-\-debug\f[R]] \f[I]file.tm\f[R]
 Transpile the given file to C and print the generated header and source
 to standard output, each preceded by a \f[B]// file:\f[R] line.
 The output is formatted with \f[B]clang\-format\f[R] and (when standard
@@ -226,6 +232,95 @@ The program\(cqs own arguments are left alone; the report is controlled
 by \f[B]PROFILE\f[R], \f[B]PROFILE_FILE\f[R], and \f[B]FLAME_GRAPH\f[R]
 (see \f[B]ENVIRONMENT\f[R]).
 See also \f[I]docs/profiling.md\f[R].
+.SH DEBUGGING
+\f[B]tomo run \-\-debug\f[R] \f[I]file.tm\f[R] runs a program under
+\f[B]gdb\f[R](1), with Tomo\(cqs debugger integration loaded into it.
+The program starts immediately and runs as it normally would; it stops
+when something stops it \(em a \f[B]breakpoint()\f[R] call in the
+source, a runtime error, a fatal signal, or an interrupt \(em and leaves
+you at a debugger prompt showing the Tomo function, the source around
+the line it stopped on, and the Tomo variables in scope.
+A program that finishes on its own leaves the debugger with its own exit
+status, exactly as \f[B]tomo run\f[R] would have.
+.PP
+Because Tomo\(cqs generated C carries \f[B]#line\f[R] directives back to
+the \f[B].tm\f[R] file, gdb\(cqs own commands work in Tomo\(cqs terms:
+\f[B]break\f[R] \f[I]file.tm\f[R]\f[B]:\f[R]\f[I]line\f[R],
+\f[B]step\f[R], \f[B]next\f[R], \f[B]finish\f[R], \f[B]continue\f[R],
+\f[B]list\f[R], \f[B]watch\f[R], and conditional breakpoints all behave
+as they would for a C program written in the \f[B].tm\f[R] file.
+Function names are reported as Tomo names rather than the mangled C
+symbols they compile to.
+.PP
+Commands are added on top of gdb\(cqs own: \f[B]tlocals\f[R] lists the
+Tomo variables in scope, \f[B]p\f[R] \f[I]var\f[R] prints one of them,
+and \f[B]tframe\f[R] re\-shows where the program is stopped.
+\f[B]frame\f[R], \f[B]up\f[R], and \f[B]down\f[R] report the frame they
+select the way a stop is reported: the Tomo name of the function, the
+source around the line, and the variables in scope.
+\f[B]backtrace\f[R] (and its \f[B]bt\f[R] and \f[B]where\f[R] spellings)
+is likewise replaced by one that prints the stack in Tomo\(cqs terms
+\(en \f[B]helper(label=\(dqwidgets\(dq, count=7)\f[R] \(en with argument
+values cut short; gdb\(cqs own backtrace remains available as \f[B]info
+stack\f[R].
+These print values with Tomo\(cqs own formatter \(em the same output
+\f[B]say()\f[R] would produce, syntax coloring included \(em rather than
+the C structures they compile to.
+gdb\(cqs own \f[B]print\f[R] does the same for values whose C type
+belongs to exactly one Tomo type.
+.PP
+A \f[B]Num\f[R] is exact, so it prints exactly \(em \f[B]32768/3\f[R],
+\f[B]pi\f[R], \f[B]1/2 + sqrt(5)/2\f[R] \(em and the debugger shows a
+rounded decimal beside it (\f[B]32768/3 \(rs[u2248]
+10922.6666666667\f[R]) for the ones no decimal expresses.
+\f[B]set tomo\-num\-digits\f[R] \f[I]n\f[R] sets how many fractional
+digits that carries, and \f[B]0\f[R] turns it off.
+.PP
+A Tomo value is formatted whole and the variables in scope are printed
+at every stop, so values are cut off to keep one large one from burying
+the screen, using gdb\(cqs own \f[B]set print elements\f[R] as the
+cutoff.
+.PP
+A Tomo variable \f[I]x\f[R] is \f[B]_$\f[R]\f[I]x\f[R] in the generated
+C, so a bare Tomo name typed at gdb finds either nothing or some
+unrelated C symbol of that name.
+\f[B]p\f[R] (which replaces gdb\(cqs alias for \f[B]print\f[R]) rewrites
+Tomo names to the C names they compile to; \f[B]print\f[R] and every
+other command are untouched and still take C names (a watchpoint on
+\f[I]x\f[R] is \f[B]watch _$\f[R]\f[I]x\f[R]), and anything \f[B]p\f[R]
+does not recognize is passed to \f[B]print\f[R] unchanged, so format
+letters and value history behave as they always did.
+.PP
+\f[B]\-\-debug\f[R] makes two changes to how the program is compiled.
+It defaults to \f[B]\-O0\f[R] (an explicit \f[B]\-O\f[R] still wins) so
+that the program a debugger sees is the one that was written, and it
+emits, beside every variable, the type information Tomo\(cqs formatter
+needs to print that variable \(em which is the only way a debugger can
+show what is inside a list, table, or optional, since those do not
+record their contents in their C type.
+.PP
+\f[B]breakpoint()\f[R] is a built\-in that stops the program where it is
+called.
+Only a program compiled with \f[B]\-\-debug\f[R] contains it at all:
+without that flag it compiles to nothing, so leaving one in the source
+costs a release build nothing.
+.PP
+Runtime errors stop in the debugger too.
+\f[B]tomo run \-\-debug\f[R] sets \f[B]TOMO_CORE_DUMP\f[R], which makes
+\f[B]fail()\f[R], a failed assertion, or an out\-of\-range access raise
+\f[B]SIGABRT\f[R] after printing its usual report, instead of exiting
+\(em so the failing frame and its variables are still there to look at.
+\f[B]SIGSEGV\f[R], \f[B]SIGFPE\f[R], \f[B]SIGILL\f[R], \f[B]SIGBUS\f[R],
+and \f[B]SIGSYS\f[R] stop the same way; an interrupt (\f[B]SIGINT\f[R])
+stops the program without killing it, so \f[B]continue\f[R] resumes.
+.PP
+\f[B]\-\-debug\f[R] is also available on \f[B]build\f[R],
+\f[B]transpile\f[R], and \f[B]test\f[R].
+A program built with it can be started under the debugger by hand by
+loading
+\f[I]prefix\f[R]\f[B]/lib/tomo\(at\f[R]\f[I]version\f[R]\f[B]/tomo\-gdb.py\f[R]
+with \f[B]gdb \-x\f[R].
+See also \f[I]docs/debugging.md\f[R].
 .SH ENVIRONMENT
 .TP
 \f[B]TOMO_PATH\f[R]
@@ -281,6 +376,12 @@ error (\f[B]\-\f[R] means standard output).
 the table.
 All three are read by the compiled program, not by \f[B]tomo\f[R].
 .TP
+\f[B]TOMO_DEBUGGER\f[R]
+The debugger \f[B]tomo run \-\-debug\f[R] launches.
+Defaults to \f[B]gdb\f[R], found on \f[B]$PATH\f[R]; set this to use a
+different gdb build or a gdb\-compatible debugger (see
+\f[B]DEBUGGING\f[R]).
+.TP
 \f[B]ZIG_GLOBAL_CACHE_DIR\f[R]
 Where the bundled Zig toolchain keeps its global compile cache.
 If unset, Tomo points it at its own cache directory (under
@@ -298,6 +399,10 @@ Programs installed with \f[B]tomo build \-\-install\f[R] also land in
 \f[I]prefix\f[R]\f[B]/lib/tomo\(at\f[R]\f[I]version\f[R]\f[B]/\f[R], \f[I]prefix\f[R]\f[B]/include/tomo\(at\f[R]\f[I]version\f[R]\f[B]/\f[R]
 The Tomo standard library archive and headers this version links
 against.
+.TP
+\f[I]prefix\f[R]\f[B]/lib/tomo\(at\f[R]\f[I]version\f[R]\f[B]/tomo\-gdb.py\f[R]
+Tomo\(cqs debugger integration, loaded into \f[B]gdb\f[R] by \f[B]tomo
+run \-\-debug\f[R] (see \f[B]DEBUGGING\f[R]).
 .TP
 \f[I]prefix\f[R]\f[B]/man/man1/\f[R]
 Man pages, including those installed for programs built with \f[B]tomo

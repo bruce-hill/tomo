@@ -72,6 +72,13 @@ typedef struct env_s {
     // Emit TOMO_PROFILED() instrumentation at the top of every generated
     // function (`tomo build --instrument`); see compile_function().
     bool do_profiling : 1;
+    // Emit a `_$x$typeinfo` companion beside every variable the program
+    // declares (`tomo build --debug`), so a debugger can format the variable
+    // with Tomo's own `generic_as_text`. Type-erased values (lists, tables,
+    // optionals) carry no element type in their C type, so this companion is
+    // the only way a debugger can tell what is inside one. See
+    // compile_debug_typeinfo() in compile/statements.c.
+    bool do_debugging : 1;
     type_t *current_type;
 } env_t;
 
@@ -86,7 +93,7 @@ typedef struct {
     bool is_variant_constructor : 1;
 } binding_t;
 
-env_t *global_env(bool source_mapping, bool profiling);
+env_t *global_env(bool source_mapping, bool profiling, bool debugging);
 env_t *load_module_env(env_t *env, ast_t *ast);
 env_t *get_namespace_by_type(env_t *env, type_t *t);
 env_t *fresh_scope(env_t *env);

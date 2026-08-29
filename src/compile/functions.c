@@ -695,6 +695,18 @@ static void check_unused_vars(env_t *env, arg_ast_t *args, ast_t *body) {
     }
 }
 
+// The TypeInfo companions a `--debug` build puts at the top of a function
+// body, one per parameter -- the same thing compile_debug_typeinfo() does for
+// a declaration, for the variables a function is entered with rather than the
+// ones it declares.
+static Text_t compile_debug_arg_typeinfos(env_t *env, arg_ast_t *args) {
+    if (!env->do_debugging) return EMPTY_TEXT;
+    Text_t code = EMPTY_TEXT;
+    for (arg_ast_t *arg = args; arg; arg = arg->next)
+        code = Texts(code, compile_debug_typeinfo(env, arg->name, get_arg_ast_type(env, arg)));
+    return code;
+}
+
 // The instrumentation `--instrument` adds to a generated function: a
 // file-scope site holding the function's Tomo-level name and location (out
 // param `site_def`), plus the TOMO_PROFILED() line that opens the body. The
@@ -814,6 +826,21 @@ static Text_t compile_lambda_ex(env_t *env, ast_t *ast, bool args_by_pointer) {
     if ((ret_t->tag == VoidType || ret_t->tag == AbortType) && body_scope->deferred)
         body = Texts(body, compile_statement(body_scope, FakeAST(Return)), "\n");
 
+    // A `--debug` build gives the variables a lambda closed over the same
+    // TypeInfo companions its own declarations get. They live in the userdata
+    // struct rather than as locals, so a debugger has to be told what is in
+    // one: without this, a captured list or table is only a `List_t` header.
+    Text_t closure_typeinfos = EMPTY_TEXT;
+    if (env->do_debugging) {
+        for (int64_t i = 0; i < (int64_t)closed_vars.entries.length; i++) {
+            struct {
+                const char *name;
+                binding_t *b;
+            } *entry = closed_vars.entries.data + closed_vars.entries.stride * i;
+            closure_typeinfos = Texts(closure_typeinfos, compile_debug_typeinfo(env, entry->name, entry->b->type));
+        }
+    }
+
     Text_t userdata_cast = Table$length(closed_vars) > 0
                                ? Texts(name, "$userdata_t *userdata = $userdata;\n")
                                : EMPTY_TEXT;
@@ -822,7 +849,7 @@ static Text_t compile_lambda_ex(env_t *env, ast_t *ast, bool args_by_pointer) {
     // source location in the site (`lambda (file.tm:12)`):
     Text_t instrumentation = compile_profiling(env, ast, name, Text("lambda"), &site_def);
     env->code->lambdas = Texts(env->code->lambdas, site_def, code, " {\n", userdata_cast, arg_unpack, instrumentation,
-                               body, "\n}\n");
+                               compile_debug_arg_typeinfos(env, lambda->args), closure_typeinfos, body, "\n}\n");
 
     check_unused_vars(env, lambda->args, lambda->body);
 
@@ -935,7 +962,8 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
     Text_t site_def = EMPTY_TEXT;
     Text_t instrumentation =
         compile_profiling(env, ast, name_code, profile_display_name(env, function_name), &site_def);
-    Text_t body_code = Texts("{\n", instrumentation, compile_inline_block(body_scope, body), "}\n");
+    Text_t body_code = Texts("{\n", instrumentation, compile_debug_arg_typeinfos(env, args),
+                             compile_inline_block(body_scope, body), "}\n");
     Text_t definition = Texts(site_def, with_source_info(env, ast, Texts(code, " ", body_code, "\n")));
 
     if (cache && args == NULL) { // no-args cache just uses a static var

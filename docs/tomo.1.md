@@ -48,12 +48,14 @@ run). Commands that print build progress by default (`build`, `package`,
 (`tomo` *file.tm*, `run`, `eval`) are silent by default: use `tomo run -v`
 *file.tm* to see the compiler's work.
 
-`run` \[`--instrument`\] *file.tm* \[`--` *args...*\]
+`run` \[`--instrument`\] \[`--debug`\] *file.tm* \[`--` *args...*\]
 : Compile and run the given program. Anything after `--` is passed to the
 program as its own arguments. The command name is optional: `tomo` *file.tm*
 does the same thing. With `--instrument`, the program is compiled with
 profiling instrumentation and prints a breakdown of where its time went when
-it exits (see **PROFILING**).
+it exits (see **PROFILING**). With `--debug`/`-d`, it runs under a debugger
+that stops on `breakpoint()` calls, runtime errors, and fatal signals (see
+**DEBUGGING**).
 
 `eval` *'expr'*
 : Evaluate a Tomo expression and print its result. The argument may be several
@@ -62,11 +64,12 @@ random.int(1, 100)'`); the value of the final statement is printed, with syntax
 coloring when standard output is a terminal.
 
 `build` \[`-o` *output*\] \[`--install`\] \[`--prefix` *dir*\] \[`-y`\]
-\[`--instrument`\] *file.tm*
+\[`--instrument`\] \[`--debug`\] *file.tm*
 : Compile the given program to a standalone executable, placed as a sibling
 of the `.tm` file (or at `-o` *output*). With `--instrument`, the executable
 is compiled with profiling instrumentation and prints a breakdown of where its
-time went when it exits (see **PROFILING**). With `--install`, the executable and
+time went when it exits (see **PROFILING**). With `--debug`/`-d`, it is compiled
+so a debugger can follow it (see **DEBUGGING**). With `--install`, the executable and
 its generated manpage are also copied into a prefix's `bin/` and `man/man1/` —
 the installation prefix by default, or `--prefix` *dir* to choose another.
 Existing files at those destinations are overwritten only after confirmation,
@@ -74,7 +77,7 @@ or immediately with `--yes`/`-y`; a warning is printed if the target `bin/` is
 not on your `$PATH`. Remove installed programs again with `tomo uninstall`
 *name*.
 
-`transpile` \[`--raw`\] \[`--instrument`\] *file.tm*
+`transpile` \[`--raw`\] \[`--instrument`\] \[`--debug`\] *file.tm*
 : Transpile the given file to C and print the generated header and source to
 standard output, each preceded by a `// file:` line. The output is formatted
 with `clang-format` and (when standard output is a terminal)
@@ -193,6 +196,75 @@ The program's own arguments are left alone; the report is controlled by
 `PROFILE`, `PROFILE_FILE`, and `FLAME_GRAPH` (see **ENVIRONMENT**). See also
 *docs/profiling.md*.
 
+# DEBUGGING
+
+`tomo run --debug` *file.tm* runs a program under `gdb`(1), with Tomo's
+debugger integration loaded into it. The program starts immediately and runs
+as it normally would; it stops when something stops it — a `breakpoint()` call
+in the source, a runtime error, a fatal signal, or an interrupt — and leaves
+you at a debugger prompt showing the Tomo function, the source around the line
+it stopped on, and the Tomo variables in scope. A program that finishes on its
+own leaves the debugger with its own exit status, exactly as `tomo run` would
+have.
+
+Because Tomo's generated C carries `#line` directives back to the `.tm` file,
+gdb's own commands work in Tomo's terms: `break` *file.tm*`:`*line*, `step`,
+`next`, `finish`, `continue`, `list`, `watch`, and conditional breakpoints all
+behave as they would for a C program written in the `.tm` file. Function names
+are reported as Tomo names rather than the mangled C symbols they compile to.
+
+Commands are added on top of gdb's own: `tlocals` lists the Tomo variables in
+scope, `p` *var* prints one of them, and
+`tframe` re-shows where the program is stopped. `frame`, `up`, and `down`
+report the frame they select the way a stop is reported: the Tomo name of the
+function, the source around the line, and the variables in scope. `backtrace`
+(and its `bt` and `where` spellings) is likewise replaced by one that prints the
+stack in Tomo's terms -- `helper(label="widgets", count=7)` -- with argument
+values cut short; gdb's own backtrace remains available as `info stack`. These print
+values with Tomo's own formatter — the same output `say()` would produce, syntax
+coloring included — rather than the C structures they compile to. gdb's own
+`print` does the same for values whose C type belongs to exactly one Tomo type.
+
+A `Num` is exact, so it prints exactly — `32768/3`, `pi`, `1/2 + sqrt(5)/2` —
+and the debugger shows a rounded decimal beside it (`32768/3 \[u2248] 10922.6666666667`)
+for the ones no decimal expresses. `set tomo-num-digits` *n* sets how many
+fractional digits that carries, and `0` turns it off.
+
+A Tomo value is formatted whole and the variables in scope are printed at every
+stop, so values are cut off to keep one large one from
+burying the screen, using gdb's own `set print elements` as the cutoff.
+
+A Tomo variable *x* is `_$`*x* in the generated C, so a bare Tomo name typed at
+gdb finds either nothing or some unrelated C symbol of that name. `p` (which
+replaces gdb's alias for `print`) rewrites Tomo names to the C names
+they compile to; `print` and every other command are untouched and still take C
+names (a watchpoint on *x* is `watch _$`*x*), and anything `p` does not recognize is passed to `print` unchanged, so
+format letters and value history behave as they always did.
+
+`--debug` makes two changes to how the program is compiled. It defaults to
+`-O0` (an explicit `-O` still wins) so that the program a debugger sees is the
+one that was written, and it emits, beside every variable, the type information
+Tomo's formatter needs to print that variable — which is the only way a
+debugger can show what is inside a list, table, or optional, since those do not
+record their contents in their C type.
+
+`breakpoint()` is a built-in that stops the program where it is called. Only a
+program compiled with `--debug` contains it at all: without that flag it
+compiles to nothing, so leaving one in the source costs a release build
+nothing.
+
+Runtime errors stop in the debugger too. `tomo run --debug` sets
+`TOMO_CORE_DUMP`, which makes `fail()`, a failed assertion, or an out-of-range
+access raise `SIGABRT` after printing its usual report, instead of exiting —
+so the failing frame and its variables are still there to look at. `SIGSEGV`,
+`SIGFPE`, `SIGILL`, `SIGBUS`, and `SIGSYS` stop the same way; an interrupt
+(`SIGINT`) stops the program without killing it, so `continue` resumes.
+
+`--debug` is also available on `build`, `transpile`, and `test`. A program
+built with it can be started under the debugger by hand by loading
+*prefix*`/lib/tomo@`*version*`/tomo-gdb.py` with `gdb -x`. See also
+*docs/debugging.md*.
+
 # ENVIRONMENT
 
 `TOMO_PATH`
@@ -237,6 +309,11 @@ standard error (`-` means standard output). `FLAME_GRAPH` writes an SVG flame
 graph to that path as well as the table. All three are read by the compiled
 program, not by `tomo`.
 
+`TOMO_DEBUGGER`
+: The debugger `tomo run --debug` launches. Defaults to `gdb`, found on
+`$PATH`; set this to use a different gdb build or a gdb-compatible debugger
+(see **DEBUGGING**).
+
 `ZIG_GLOBAL_CACHE_DIR`
 : Where the bundled Zig toolchain keeps its global compile cache. If unset,
 Tomo points it at its own cache directory (under `$XDG_CACHE_HOME/tomo`) rather
@@ -252,6 +329,10 @@ version. Programs installed with `tomo build --install` also land in
 
 *prefix*`/lib/tomo@`*version*`/`, *prefix*`/include/tomo@`*version*`/`
 : The Tomo standard library archive and headers this version links against.
+
+*prefix*`/lib/tomo@`*version*`/tomo-gdb.py`
+: Tomo's debugger integration, loaded into `gdb` by `tomo run --debug` (see
+**DEBUGGING**).
 
 *prefix*`/man/man1/`
 : Man pages, including those installed for programs built with `tomo build

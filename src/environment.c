@@ -54,7 +54,7 @@ static type_t *bind_type(env_t *env, const char *name, type_t *type) {
     return type;
 }
 
-env_t *global_env(bool source_mapping, bool profiling) {
+env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
     static env_t *_global_env = NULL;
     if (_global_env != NULL) return _global_env;
 
@@ -82,6 +82,7 @@ env_t *global_env(bool source_mapping, bool profiling) {
     Table$str_set(env->build_info, "Binary compiled at", timestamp);
 
     env->do_source_mapping = source_mapping;
+    env->do_debugging = debugging;
     env->do_profiling = profiling;
 
     TEXT_TYPE = bind_type(env, "Text", Type(TextType, .lang = "Text", .env = namespace_env(env, "Text")));
@@ -635,6 +636,7 @@ env_t *global_env(bool source_mapping, bool profiling) {
         {"TOMO_VERSION", "TOMO_VERSION_TEXT", "Text"},
         {"USE_COLOR", "USE_COLOR", "Bool"},
         {"ask", "ask", "func(prompt:Text, bold=yes, force_tty=yes -> Text?)"},
+        {"breakpoint", "tomo_breakpoint", "func()"},
         {"at_cleanup", "tomo_at_cleanup", "func(fn:func())"},
         {"exit", "tomo_exit", "func(message:Text?=none, code=Int32(1) -> Abort)"},
         {"fail", "fail_text", "func(message:Text -> Abort)"},

@@ -280,9 +280,13 @@ Text_t compile(env_t *env, ast_t *ast) {
     }
     case InlineCCode: {
         type_t *t = get_type(env, ast);
-        if (Match(ast, InlineCCode)->type_ast != NULL) return Texts("({", compile_statement(env, ast), "; })");
-        else if (t->tag == VoidType) return Texts("{\n", compile_statement(env, ast), "\n}");
-        else return compile_statement(env, ast);
+        // compile_inline_c_code() rather than compile_statement(): C code
+        // inside an expression must not carry a `#line`, which would move the
+        // line counter backwards in the middle of the statement being built.
+        Text_t code = compile_inline_c_code(env, ast);
+        if (Match(ast, InlineCCode)->type_ast != NULL) return Texts("({", code, "; })");
+        else if (t->tag == VoidType) return Texts("{\n", code, "\n}");
+        else return code;
     }
     case Use: code_err(ast, "Compiling 'use' as expression!");
     case Defer: code_err(ast, "Compiling 'defer' as expression!");

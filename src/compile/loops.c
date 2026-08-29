@@ -320,6 +320,27 @@ static env_t *cow_hoist_env(env_t *env, ast_t *loop_ast, Text_t *prelude) {
     return hoisted;
 }
 
+// The TypeInfo companions a `--debug` build gives a `for` loop's own
+// variables. `vars` is the loop's value variables plus its `at` counter;
+// their types are looked up through the loop's scope rather than derived
+// here, so each kind of iteration -- list, table, integer range, iterator
+// function, `for &x` by reference -- gets whatever type it actually bound.
+static Text_t compile_debug_loop_typeinfos(env_t *env, env_t *body_scope, ast_list_t *vars) {
+    if (!env->do_debugging) return EMPTY_TEXT;
+    Text_t code = EMPTY_TEXT;
+    for (ast_list_t *v = vars; v; v = v->next) {
+        ast_t *var = v->ast->tag == StackReference ? Match(v->ast, StackReference)->value : v->ast;
+        if (var->tag != Var) continue;
+        const char *name = Match(var, Var)->name;
+        binding_t *b = get_binding(body_scope, name);
+        // Only plain locals: a binding whose code is anything but the bare
+        // variable is not a variable a debugger can look up by that name.
+        if (b && Text$equal_values(b->code, Texts("_$", name)))
+            code = Texts(code, compile_debug_typeinfo(env, name, b->type));
+    }
+    return code;
+}
+
 // Compile `for [i,] &x in xs` -- in-place mutable iteration over a list.
 //
 // `&x` is a live pointer into the list's buffer, so element updates are plain
@@ -691,6 +712,15 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
     env_t *body_scope = for_scope(env, ast);
     // `continue`/`break` can target any loop variable by name, including the `at` counter:
     ast_list_t *ctx_vars = for_->at ? new (ast_list_t, .ast = for_->at, .next = for_->vars) : for_->vars;
+    // The loop's own variables get their TypeInfo companions at the top of the
+    // body. Every branch below declares the loop variables immediately before
+    // it plants `naked_body`, so putting the companions at the front of the
+    // body puts them in the same block as the variables they describe -- which
+    // is what a debugger stopped inside the loop looks in. This has to happen
+    // before the body is compiled: compiling it binds the body's own
+    // declarations into body_scope too, and those get their companions from
+    // the Declare case instead.
+    Text_t loop_var_typeinfos = compile_debug_loop_typeinfos(env, body_scope, ctx_vars);
     loop_ctx_t loop_ctx = (loop_ctx_t){
         .loop_name = "for",
         .loop_vars = ctx_vars,
@@ -699,7 +729,7 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
     };
     body_scope->loop_ctx = &loop_ctx;
     // Naked means no enclosing braces:
-    Text_t naked_body = compile_inline_block(body_scope, for_->body);
+    Text_t naked_body = Texts(loop_var_typeinfos, compile_inline_block(body_scope, for_->body));
     if (loop_ctx.skip_label.length > 0) naked_body = Texts(naked_body, "\n", loop_ctx.skip_label, ": continue;");
     Text_t stop = loop_ctx.stop_label.length > 0 ? Texts("\n", loop_ctx.stop_label, ":;") : EMPTY_TEXT;
 

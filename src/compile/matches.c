@@ -43,7 +43,14 @@ Text_t compile_match_statement(env_t *env, ast_t *ast) {
 
     DeclareMatch(enum_t, subject_t, EnumType);
 
-    Text_t code = Texts("MATCH(", compile_type(subject_t), ", ", compile(env, match->subject), ", _match_subject, {\n");
+    // Written out rather than wrapped in a macro: the clause bodies below
+    // carry `#line` directives, and a preprocessor directive inside a
+    // function-like macro's arguments is undefined -- the preprocessor drops
+    // them, and every line of every clause ends up attributed to the line the
+    // `match` itself is on. That makes a debugger unable to tell one clause
+    // from another, or to break on a line inside one.
+    Text_t code = Texts("{\n", compile_type(subject_t), " _match_subject = ", compile(env, match->subject),
+                        ";\nswitch (_match_subject.$tag) {\n");
     for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
         if (clause->pattern->tag == Var) {
             const char *clause_tag_name = Match(clause->pattern, Var)->name;
@@ -81,7 +88,8 @@ Text_t compile_match_statement(env_t *env, ast_t *ast) {
                 Text_t var = Texts("_$", var_name);
                 ast_t *member =
                     WrapLiteralCode(ast, Texts("_match_subject.", valid_c_name(clause_tag_name)), .type = tag_type);
-                code = Texts(code, compile_declaration(tag_type, var), " = ",
+                code = Texts(code, compile_debug_typeinfo(env, var_name, tag_type),
+                             compile_declaration(tag_type, var), " = ",
                              compile_maybe_incref(env, member, tag_type), ";\n");
                 scope = fresh_scope(scope);
                 set_binding(scope, Match(args->value, Var)->name, tag_type, EMPTY_TEXT);
@@ -101,7 +109,8 @@ Text_t compile_match_statement(env_t *env, ast_t *ast) {
                     Text_t var = Texts("_$", var_name);
                     ast_t *member =
                         WrapLiteralCode(ast, Texts("_match_subject.", valid_c_name(clause_tag_name)), .type = tag_type);
-                    code = Texts(code, compile_declaration(field->type, var), " = ",
+                    code = Texts(code, compile_debug_typeinfo(env, var_name, field->type),
+                                 compile_declaration(field->type, var), " = ",
                                  compile_maybe_incref(env, member, tag_type), ".", valid_c_name(field->name), ";\n");
                     set_binding(scope, Match(arg->value, Var)->name, field->type, var);
                 }
@@ -128,7 +137,7 @@ Text_t compile_match_statement(env_t *env, ast_t *ast) {
     } else {
         code = Texts(code, "default: errx(1, \"Invalid tag!\");\n");
     }
-    code = Texts(code, "\n}", Text(")"), "\n");
+    code = Texts(code, "\n}\n}\n");
     return code;
 }
 

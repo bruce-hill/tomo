@@ -49,6 +49,15 @@ void set_default_logs(uint32_t default_logs);
 #define INSTRUMENT_FLAG                                                                                                \
     {"instrument", &instrument, &Bool$info,                                                                            \
      .description = "compile with profiling instrumentation (report printed at exit)"}
+// Per-command debug flag: compile the program so a debugger can make sense of
+// it -- every variable gets a companion holding its TypeInfo (so gdb can print
+// Tomo values with Tomo's own formatter) and `breakpoint()` calls are kept.
+// Like --instrument, it changes the generated code, so it is part of
+// config_summary and toggling it rebuilds. `tomo run --debug` additionally
+// runs the program under gdb; see src/cmd/run.c.
+#define DEBUG_FLAG                                                                                                     \
+    {"debug", &debugging, &Bool$info, .short_flag = 'd',                                                               \
+     .description = "compile for debugging (and, for `run`, launch it under a debugger)"}
 // Per-command optimization flag. Its dest (opt_flag) stays NONE when unset, so
 // each command can fall back to its own default (fast for run/eval, high for
 // build) via configure_codegen():
@@ -92,7 +101,9 @@ extern OptionalBool_t verbose, quiet, clean_build, source_mapping, install_targe
     // (see tomo_profile_enable() in stdlib/profiling.h):
     profiling,
     // The dest of each compiling command's --instrument flag (see INSTRUMENT_FLAG):
-    instrument;
+    instrument,
+    // The dest of each compiling command's --debug flag (see DEBUG_FLAG):
+    debugging;
 
 // Whether ZIG_GLOBAL_CACHE_DIR came from the user's environment (true) or was
 // set by main() to point the bundled zig at Tomo's own cache directory

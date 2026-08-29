@@ -57,6 +57,28 @@ at_cleanup(func()
 )
 
 ```
+## breakpoint
+
+```tomo
+breakpoint : func(-> Void)
+```
+
+Stops the program in a debugger at the point where it is called. Running the program under `tomo run --debug` gives a debugger prompt here, showing the surrounding source and the values of the variables in scope.
+
+Only a program compiled with `--debug` contains this call at all. Without that flag it compiles to nothing, so a `breakpoint()` left in the source costs a release build nothing and does nothing if the program is run outside a debugger. See `docs/debugging.md`.
+
+
+**Return:** Nothing.
+
+
+**Example:**
+```tomo
+total := 0
+for i in 10
+    total += i
+breakpoint() # `tomo run --debug` stops here, with `total` and `i` in scope
+
+```
 ## exit
 
 ```tomo

@@ -53,6 +53,7 @@ static cli_arg_t test_spec[] = {
     {"jobs", &jobs, &Int32$info, .short_flag = 'j', .metavar = "n",
      .description = "how many test files to build and run at once (default: one per CPU)"}, //
     OPTIMIZATION_FLAG, //
+    DEBUG_FLAG, //
     VERBOSE_FLAG, //
 };
 
@@ -170,7 +171,7 @@ static test_result_t run_compile_fail(env_t *module_env, ast_t *test_node) {
 // crash -- takes down only this job, and the driver turns it into one failed
 // file rather than an aborted run.
 static void run_tests_for_file(Path_t path, int msg_fd) {
-    env_t *env = global_env(source_mapping, instrument);
+    env_t *env = global_env(source_mapping, instrument, debugging);
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast) print_err("Could not parse file: ", path);
 
@@ -361,7 +362,7 @@ static int cmd_test(cli_command_t *self, List_t extra_args) {
     int64_t max_jobs = jobs > 0 ? (int64_t)jobs : (cpus > 0 ? (int64_t)cpus : 1);
     if (max_jobs < 1) max_jobs = 1;
 
-    build_shared_dependencies(global_env(source_mapping, instrument), paths);
+    build_shared_dependencies(global_env(source_mapping, instrument, debugging), paths);
     // Every worker below compiles at least its own object and test runner, and
     // they all preload the same precompiled header. Build it here, before the
     // first fork, so a cold cache costs one compile of <tomo.h> rather than one

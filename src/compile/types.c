@@ -143,3 +143,26 @@ Text_t compile_type_info(type_t *t) {
     }
     return EMPTY_TEXT;
 }
+
+// Whether compile_type_info() can produce a TypeInfo for this type. Every type
+// a value can actually have has one; the exceptions are the types that only
+// ever describe control flow or a compile-time entity. Debug builds ask before
+// emitting a variable's TypeInfo companion (see compile_debug_typeinfo()),
+// since a variable's declared type is not always one of the value types --
+// `x := some_module` binds a ModuleType, for instance.
+public
+bool has_type_info(type_t *t) {
+    if (t == NULL) return false;
+    switch (t->tag) {
+    case UnknownType:
+    case AbortType:
+    case ReturnType:
+    case ModuleType: return false;
+    case ListType: return has_type_info(Match(t, ListType)->item_type);
+    case TableType:
+        return has_type_info(Match(t, TableType)->key_type) && has_type_info(Match(t, TableType)->value_type);
+    case PointerType: return has_type_info(Match(t, PointerType)->pointed);
+    case OptionalType: return has_type_info(Match(t, OptionalType)->type);
+    default: return true;
+    }
+}

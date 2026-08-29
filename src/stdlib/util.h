@@ -19,13 +19,6 @@
         &var;                                                                                                          \
     })
 
-#define MATCH(type, subj, var, body)                                                                                   \
-    {                                                                                                                  \
-        type var = subj;                                                                                               \
-        switch (var.$tag)                                                                                              \
-            body                                                                                                       \
-    }
-
 #ifndef public
 #define public __attribute__((visibility("default")))
 #endif
