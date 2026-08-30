@@ -1,0 +1,9 @@
+Parser Error
+
+test/parse/err_spaced_minus.tm
+ 3| func main()
+ 4|     >> a -b
+  :          --
+
+I don't know how to parse the rest of this line
+

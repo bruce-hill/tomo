@@ -1,0 +1,9 @@
+Parser Error
+
+test/parse/err_dangling_minus.tm
+ 2| func main()
+ 3|     >> -
+  :        -
+
+I expected an expression for this '-'
+

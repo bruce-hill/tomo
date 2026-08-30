@@ -58,3 +58,44 @@ test "a `-` written apart from its digits"
 	assert Int8(1) + -(2) == Int8(-1)
 	assert Int8(5) > -(1)
 	assert [10, 20, 30][-(1)]! == 30
+	# Not just the same value -- the same *type*, which decides whether the
+	# arithmetic wraps. Treating `-(1)` as an ordinary Int rather than a literal
+	# escalated this to bignum arithmetic, where it came out 128 instead.
+	big := Int8(127)
+	assert big - -1 == Int8(-128)
+	assert big - -(1) == Int8(-128)
+
+# Spellings whose value comes out different if the tree is wrong: Euclidean
+# `mod` makes `(-x) mod 3` and `-(x mod 3)` disagree, `.abs()` makes `(-x).abs()`
+# and `-(x.abs())` disagree, and a suffix binding looser than the `-` would
+# change the rest. The trees these check are in test/parse/negation.tm.
+test "negation binds where the parse tree says it does"
+	x := 5
+	n := -3
+	xs := [10, 20]
+	y := 2.0
+	assert -x mod 3 == 1
+	assert -n.abs() == -3
+	assert -2.abs() == -2
+	assert -xs[1]! == -10
+	assert -12..round() == -12
+	assert 10 - -3 == 13
+	assert 10--3 == 13
+	assert -y^-1 == -0.5
+	assert y^-2.0 == 0.25
+	assert -y^2 == -4
+
+# Groupings whose parentheses carry meaning: dropping them regroups the
+# expression. test-format checks that formatting every .tm file leaves its parse
+# alone, so writing them here is what puts the formatter's parenthesizing under
+# test -- it prints parentheses exactly where the operator wouldn't absorb the
+# operand back.
+test "parentheses that have to survive formatting"
+	assert (2^3)^2 == 64
+	assert 2^(3^2) == 512
+	assert (10 - 3) - 2 == 5
+	assert 10 - (3 - 2) == 9
+	assert (100/10)/2 == 5
+	assert 100/(10/2) == 20
+	assert (2 + 3)*4 == 20
+	assert -(2*3) == -6

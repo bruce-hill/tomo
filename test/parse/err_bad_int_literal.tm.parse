@@ -1,0 +1,9 @@
+Parser Error
+
+test/parse/err_bad_int_literal.tm
+ 3| func main()
+ 4|     >> 0x
+  :        --
+
+I couldn't parse this integer
+
