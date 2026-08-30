@@ -36,7 +36,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wfloat-equal"
 // Truncating toward zero, so 1.9 becomes 1 and -1.9 becomes -1. With
-// truncate=no the value must already be a whole number -- which for an
+// truncate=no the value must already be a whole number, which for an
 // irrational like sqrt(2) it provably isn't.
 public
 Int_t Int$from_num(Num_t n, bool truncate) {

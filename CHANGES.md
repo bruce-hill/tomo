@@ -6,18 +6,18 @@
   Breakpoints, stepping, and backtraces already worked on `.tm` files (the
   generated C carries `#line` directives back to the source); what is new is
   everything above that. Values print through Tomo's own formatter, syntax
-  coloring and all, including lists, tables, and optionals -- a `--debug` build
+  coloring and all, including lists, tables, and optionals. A `--debug` build
   emits the type information for each variable beside it, which is the only way
   a debugger can see inside a type-erased value. Function and argument names are
   Tomo's rather than the mangled C symbols, in gdb's own output as well as
-  Tomo's -- a backtrace reads `helper (label=..., count=..., items=...)`.
+  Tomo's, so a backtrace reads `helper (label=..., count=..., items=...)`.
   Commands added: `tlocals` (which inside a lambda lists the variables it closed
   over as well as its arguments) and `tframe`. `backtrace`/`bt`/`where` is
   replaced by one that prints the stack in Tomo's terms, arguments included
   (`helper(label="widgets", count=7, items=[1, 2, 3])`), with values cut short;
   gdb's own remains as `info stack`. A Tomo
   variable `x` is `_$x` in the generated C, so `p` (gdb's alias for `print`) is
-  replaced by one that understands Tomo names -- without it, `print log` in a
+  replaced by one that understands Tomo names. Without it, `print log` in a
   program with a variable named `log` answers with libm's `log` function.
   `print` and `watch` themselves are untouched, and anything `p` does not
   recognize is passed to `print` unchanged. An exact `Num` whose value no decimal
@@ -49,7 +49,7 @@
     macro is now written out, and each clause maps to its own lines.
   - Compiler-synthesized C fragments dropped into the middle of an expression
     carried a `#line` of their own, which moved the line counter backwards
-    mid-statement and left everything after it -- to the end of the function --
+    mid-statement and left everything after it, to the end of the function,
     attributed to whatever line the fragment came from.
   - The generated command-line wrapper claimed to be lines of the `.tm` file,
     counting on from its first line; it is now attributed to the generated C
@@ -59,7 +59,7 @@
   `f([i for i in 3])` failed with "the function takes these args: `([Int])`,
   but it's being called with: `([Int])`", while binding it to a variable first
   worked. Checking a literal against a parameter type compared each element
-  against the item type, but a comprehension is not an element -- it stands for
+  against the item type, but a comprehension is not an element: it stands for
   the items it produces, and its own type is the whole list type. It is now
   looked through, in its loop's scope, so what is checked is what it yields.
   The table case was skipped outright rather than checked, so a table
@@ -72,8 +72,8 @@
   a `func(->Num)` random source. Code passing an explicitly-`Float64` value to
   these needs a conversion; decimal literals like `sleep(1.5)` are unaffected,
   since they were already `Num`. `Text.distance()` still computes in floating
-  point internally and converts at the end -- its costs are sums of 1, 0.5 and
-  0.25, all exact in binary floating point, so the result is lossless.
+  point internally and converts at the end, and its costs are sums of 1, 0.5
+  and 0.25, all exact in binary floating point, so the result is lossless.
 
 - Programs can now define git-style CLI subcommands by declaring functions
   named `main.foo(...)` (nested arbitrarily deep, e.g. `main.submodule.init`).
@@ -104,9 +104,9 @@
 - New `Text.nearest(candidates, max_distance=0.6)` method: the closest of
   `candidates` to a text, or `none` when nothing is close enough. `max_distance`
   is an edit distance *per grapheme* of the shorter text, so short words have to
-  match more exactly than long ones -- a flat distance can't tell `trasnpil`
-  (a typo for `transpile`) from `cat` (not a typo for `fmt`), since both are 2
-  edits away. This is the "Did you mean ...?" logic that compiler errors already
+  match more exactly than long ones, since a flat distance can't tell
+  `trasnpil` (a typo for `transpile`) from `cat` (not a typo for `fmt`),
+  since both are 2 edits away. This is the "Did you mean ...?" logic that compiler errors already
   used, now available to Tomo code and shared with CLI parsing.
 - `tomo fmt` is now `tomo format`. `fmt` remains as an alias, so
   nothing that already invokes it has to change. CLI commands can declare one
@@ -134,7 +134,7 @@
   setting `NO_COLOR`) still got them. This covers `tomo` and compiled programs
   alike, and `print_err()` no longer hardcodes its red highlighting either.
   The CLI's escapes now all come from one palette (`tomo_cli_style()`), which
-  returns empty strings when color is off -- the same approach `report_style()`
+  returns empty strings when color is off, the same approach `report_style()`
   already used for `tomo test`/`tomo format` output.
 - The `tomo` compiler now runs the same `tomo_init()` startup that every
   compiled Tomo program runs, instead of an inlined partial copy of it. Along
@@ -157,9 +157,9 @@
   shimmed to `tomo run`, so it failed with a confusing "path not found".
   More generally, when a command has subcommands and the first word resembles
   one of them, that's now mentioned in any argument-parsing error for that
-  command. The resemblance alone never blocks anything -- it's only reported
-  once parsing has failed on its own -- so an argument that happens to look
-  like a command name still works (`tomo tests` runs a directory called
+  command. The resemblance alone never blocks anything, since it's only
+  reported once parsing has failed on its own, so an argument that happens
+  to look like a command name still works (`tomo tests` runs a directory called
   `tests`, one edit away from the `test` command).
 - Command-line dispatch and help rendering are now one implementation, shared
   by the `tomo` compiler and the programs it compiles. Previously the two had
@@ -193,8 +193,8 @@
   Passing a value for one (`--nums 1 2`, `--defs a:1`, `--tags a b`,
   `--force yes`) failed with `Unsupported type`, even though the generated help
   advertised the argument; only `--flag none` worked. An optional boolean is now
-  the toggle its help text already claimed it was -- `--force`, `--no-force`, and
-  `--force=yes|no`, with `--force=none` for the third value -- where previously
+  the toggle its help text already claimed it was: `--force`, `--no-force`, and
+  `--force=yes|no`, with `--force=none` for the third value. Where previously
   the bare flag reported `No value provided` and `--force none` silently set it
   to `no` rather than `none`. An optional list or table now also splits
   `--nums=1,2` on commas and stops at a flag (`--nums --other` gives an empty
@@ -213,7 +213,7 @@
   after a single run. Generated code leans on precompiled library routines, so
   the runtime penalty is small (measured at ~2% on an integer-heavy loop). As
   before, `-O0` builds are instrumented with UBSan in trap mode, so undefined
-  behaviour -- including in hand-written `C_code` -- now aborts rather than
+  behaviour, including in hand-written `C_code`, now aborts rather than
   misbehaving silently on these paths. Pass `-O1` explicitly to get the old
   behaviour.
 - Compiling a Tomo file now preloads a precompiled `tomo.h`, cached per
@@ -238,7 +238,7 @@
     `T`: truncated data, a nonsensical length or enum tag, or leftover trailing
     bytes. Since the encoding doesn't record which type it came from, a
     well-formed encoding of some *other* type can still deserialize
-    successfully into a nonsensical value -- but corrupt or hostile input can
+    successfully into a nonsensical value, but corrupt or hostile input can
     no longer read out of bounds or trigger an enormous allocation.
   - Tomo has no nested optionals, so `deserialize:T?(...)` is still just a
     `T?`, where `none` means either "this didn't decode" or "this decoded a
@@ -275,7 +275,7 @@
 - Removed the special restrictions on struct/enum fields (and function
   arguments) whose names start with an underscore. Previously, such fields
   couldn't be read from outside the type definition (`x._foo`) and couldn't be
-  passed positionally to a constructor or function call -- only by keyword.
+  passed positionally to a constructor or function call, only by keyword.
   None of that applies anymore; a leading underscore is just a regular,
   unrestricted identifier character.
 
@@ -299,8 +299,8 @@
 - `list.pairs()` and `table.entries()` used directly in for-position (a loop,
   comprehension, reducer, or lockstep clause) now compile to inline index
   loops instead of allocating an iterator closure and calling it indirectly
-  once per iteration. This is a semantics-preserving optimization -- behavior,
-  including snapshot semantics, is identical to iterating the closure -- but a
+  once per iteration. This is a semantics-preserving optimization: behavior,
+  including snapshot semantics, is identical to iterating the closure, but a
   pairs-heavy loop measured ~6x faster. Storing the iterator in a variable
   first (`p := xs.pairs(); for a, b in p`) still uses the closure, as it must.
 - New `table.entries()` and `list.pairs()` iterator methods, and direct table
@@ -313,7 +313,7 @@
   the container after making the iterator doesn't affect what it yields).
   `for k, v in t` is now a compile error pointing at `.entries()` (or
   `.keys`/`.values`), so loop variables always bind exactly what the
-  iterable yields — there's no more special case where a table yields a
+  iterable yields, and there's no more special case where a table yields a
   different number of values than everything else. Sets still iterate their
   elements directly (`for x in a_set`), which stays unambiguous at one value
   per iteration.
@@ -322,7 +322,7 @@
   out. Each iterable's yielded values bind to its slice of the loop variables
   in order, and the total arity must match exactly (a mismatch is a compile
   error naming each iterable's yield count). Any iterable kind can
-  participate — lists, counts, ranges, text, tables (key + value), and
+  participate: lists, counts, ranges, text, tables (key + value), and
   iterator functions (including multi-value out-parameter iterators, e.g.
   `for k1, v1, k2, v2 in entries1, entries2`). `_` discards a value, `at`
   binds an `Int64` iteration counter, and `skip`/`stop`/`else`,
@@ -341,7 +341,7 @@
   direct in-place stores with no per-element bounds checks or copy-on-write
   guards. The list stays usable inside the body (reads and indexed writes see
   live data); resizing the list or making a copy of it while the loop runs is
-  a clean runtime failure — checked every iteration and once after the loop,
+  a clean runtime failure, checked every iteration and once after the loop,
   so a violation in the final iteration is still caught. The reference is a
   non-escaping `&` pointer, so it can't outlive its iteration.
 - New `at` loop clause: `for x at i in xs` binds `i` as a native `Int64`
@@ -350,8 +350,8 @@
   error suggesting `at`): loop variables always bind exactly what the
   iterable yields, so a loop's meaning never depends on the type of the
   iterable. Works uniformly across lists, text, integer counts, ranges
-  (`for x at step in a.to(b)`), `onward()`, and iterator functions --
-  the last four previously had no index support at all -- and in
+  (`for x at step in a.to(b)`), `onward()`, and iterator functions, where
+  the last four previously had no index support at all, and in
   comprehensions and reducers (e.g. `[i*x for x at i in xs]`). Table
   iteration keeps its `for k, v` key/value meaning, with `at` available
   there too.
@@ -372,7 +372,7 @@
 - Fixed: a lambda that only wrote through a `&` argument (`a[] = ...`) was
   wrongly rejected by the enclosing function's unused-variable check.
 - Debug builds (`-O 0`) now run with UBSan enabled in trap mode: undefined
-  behavior -- including in user-written `C_code` -- crashes with an ILLEGAL
+  behavior, including in user-written `C_code`, crashes with an ILLEGAL
   INSTRUCTION report instead of silently misbehaving. (Previously `-O 0`
   failed to link outright: `zig cc` enables UBSan at -O0 but the -nostdlib
   link has no UBSan runtime; trap mode needs none.) To make generated code
@@ -418,7 +418,7 @@
 
 - Reworked logging verbosity. The global `--verbose`/`-v` and `--quiet`/`-q`
   flags are gone; each command now has its own `--verbose`/`-v` flag (and
-  commands that print progress by default — `build`, `package`, `install` —
+  commands that print progress by default (`build`, `package`, `install`)
   also have `--quiet`/`-q`). Logs are grouped into categories (`[build]`,
   `[skip]`, `[cmd]`) tracked by a bitmask; `--verbose` enables all of them.
   Run-style commands (`tomo file.tm`, `run`, `eval`) are silent by default, so
@@ -518,10 +518,10 @@
   aarch64). 32-bit targets are excluded (Tomo requires 64-bit), as is
   loongarch64 (unsupported by the vendored Boehm GC). Linux targets
   are fully static musl; macOS and the BSDs link libc dynamically but bundle the
-  vendored libraries statically. Cross-compiling needs only the host Zig — no
-  target SDK/sysroot. Zig archives are downloaded from ziglang.org and verified
-  against pinned SHA-256 checksums (`vendor/zig-checksums.mk`); `make -C vendor
-  download-all-zig` mirrors every platform's Zig archive.
+  vendored libraries statically. Cross-compiling needs only the host Zig, with
+  no target SDK/sysroot. Zig archives are downloaded from ziglang.org and
+  verified against pinned SHA-256 checksums (`vendor/zig-checksums.mk`);
+  `make -C vendor download-all-zig` mirrors every platform's Zig archive.
 - Runtime stack traces are symbolized in-process using a vendored libbacktrace
   and collected with the compiler's unwinder on every platform, so they work in
   fully static binaries (including inlined frames) and need no external tools.

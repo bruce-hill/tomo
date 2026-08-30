@@ -1,6 +1,7 @@
-// number.c — the number datatype: small rational immediates, heap-allocated
-// big rationals over a GMP-backed bigint, and the tier-3 constructive-real
-// approximation engine for irrational values. See number-design.md.
+// number.c implements the number datatype: small rational immediates,
+// heap-allocated big rationals over a GMP-backed bigint, and the tier-3
+// constructive-real approximation engine for irrational values.
+// See number-design.md.
 
 #include "number.h"
 
@@ -58,7 +59,7 @@ static char *xsprintf(const char *fmt, ...) {
 
 // ---------------------------------------------------------------------------
 // Instrumentation (opt-in via -DNUMBER_STATS; dump via number_stats_dump,
-// declared in number.h under the same guard). Dispatch counts only -- no
+// declared in number.h under the same guard). Dispatch counts only, with no
 // timing here, since wall-clock belongs to a profiler (perf, callgrind,
 // rdtsc microbenchmarks, ...), not the library itself. This answers a
 // different question than a profiler: not "how slow is this call" but
@@ -77,10 +78,10 @@ static struct {
     uint64_t tier1_fastpath; // small x small, integer sub-path (both denominators 1)
     uint64_t tier1_general; // small x small, needs gcd reduction / cross-multiply
     uint64_t tier2; // at least one heap bigrat operand
-    uint64_t tier2_u128_fast; // tier2 op whose operands both still fit u64 -- no bigint temporaries
+    uint64_t tier2_u128_fast; // tier2 op whose operands both still fit u64, no bigint temporaries
     uint64_t tier3; // at least one real/irrational operand
     uint64_t promotions; // number_from_ratio64 result didn't fit back into tier 1
-    uint64_t bi_allocs; // heap-bigint (mpz) allocations -- tier-3 magnitudes route through bi_new
+    uint64_t bi_allocs; // heap-bigint (mpz) allocations (tier-3 magnitudes route through bi_new)
     uint64_t irr_memo_hits; // irr_fixed: memoized approximation already precise enough
     uint64_t irr_recompute[10]; // irr_fixed: recompute needed, indexed by IRR_* (10 ops; see enum below)
     uint64_t interval_hits; // double-interval fast path decided a sign/rounding outright
@@ -126,10 +127,10 @@ static inline number small_zero(void) {
 // Error values
 //
 // The error tag (0x3) only pins the low 2 bits (see TAG_MASK/TAG_ERROR
-// above) -- number_is_error checks number_tag(x) == TAG_ERROR, not bit-exact
-// equality to NUMBER_ERROR -- so the remaining 62 bits are free to carry a
+// above). number_is_error checks number_tag(x) == TAG_ERROR, not bit-exact
+// equality to NUMBER_ERROR, so the remaining 62 bits are free to carry a
 // reason code with no change to the immediate representation: an error
-// value is still tagless -- no heap object at all, whatever its payload
+// value is still tagless, with no heap object at all, whatever its payload
 // bits. NUMBER_ERROR itself
 // (0x3) is ERR_GENERIC (code 0, shifted in), so every existing bare
 // NUMBER_ERROR return continues to work unchanged, just with a generic
@@ -175,14 +176,14 @@ static inline number err(uint32_t code) {
 }
 
 // ---------------------------------------------------------------------------
-// Bigint: a heap-allocated GMP integer (mpz_t), used magnitude-only -- every
+// Bigint: a heap-allocated GMP integer (mpz_t), used magnitude-only. Every
 // value stored here is nonnegative; signs live in the containing object
 // (num_bigrat's sign field, num_irr's appr_sign). The struct itself comes
 // from xmalloc (the collector); the limb buffer inside is owned by GMP and
 // follows GMP's process-global allocator, which tomo_init() (stdlib.c)
 // already points at the collector.
 
-// unsigned __int128 is a GCC/Clang extension, not ISO C -- __extension__
+// unsigned __int128 is a GCC/Clang extension, not ISO C, so __extension__
 // suppresses the -Wpedantic warning for introducing it (verified clean
 // under this project's exact warning set); every other u128 use below is
 // just referencing this typedef, not introducing new non-standard syntax,
@@ -233,7 +234,7 @@ static bool bi_fits_u64(const bigint *a, uint64_t *out) {
 }
 
 // Write u128 v into an already-initialized mpz (magnitude only). The hi==0
-// case -- the common one, since a u128 here is usually a widened u64 -- is a
+// case, the common one since a u128 here is usually a widened u64, is a
 // single mpz_set_ui with no shift.
 static void mpz_set_u128(mpz_ptr dst, u128 v) {
     uint64_t hi = (uint64_t)(v >> 64);
@@ -249,7 +250,7 @@ static void mpz_set_u128(mpz_ptr dst, u128 v) {
 // Binary (Stein's) GCD: shifts/subtracts/ctz instead of Euclid's
 // modulo loop. 64-bit idiv is the slowest ALU op on x86 (the arith_bench
 // int64-vs-double div numbers show it directly), and Euclid's loop is
-// nothing but idivs -- measured on this machine, binary gcd is ~1.7x
+// nothing but idivs. Measured on this machine, binary gcd is ~1.7x
 // faster on small-rational-sized operands, which cuts the dominant cost
 // of every small-fraction operation (see number_from_ratio64 and the
 // coprime-denominator reduction in rat_addsub_u128). Same contract as the
@@ -257,7 +258,7 @@ static void mpz_set_u128(mpz_ptr dst, u128 v) {
 static uint64_t gcd_u64(uint64_t a, uint64_t b) {
     if (a == 0) return b;
     if (b == 0) return a;
-    // gcd(x, 1) == 1 in one step -- the hot case for integer operands, where
+    // gcd(x, 1) == 1 in one step, the hot case for integer operands, where
     // rat_mul_u128/rat_div_u128 take gcd(n, 1) against a denominator of 1 (and
     // rat_addsub_u128 takes gcd(da, db) with both 1). Without this, binary GCD
     // would grind ~log(x) subtract-shift iterations down to 1. Mirrors the
@@ -285,14 +286,15 @@ static int ctz_u128(u128 v) {
     return lo ? __builtin_ctzll(lo) : 64 + __builtin_ctzll((uint64_t)(v >> 64));
 }
 
-// Binary (Stein's) GCD, the u128 twin of gcd_u64 above -- shifts/subtracts/
-// ctz instead of Euclid's modulo loop. This matters more here than at 64
-// bits: u128 has no hardware divide at all (unlike gcd_u64, whose modulo was
-// at least one idiv), so the old `a % b` loop compiled to a full software
-// division routine per iteration. The one caller left is rat_addsub_u128's
-// g>1 leftover reduction gcd(num, g); add/sub with coprime denominators and
-// all of mul/div reduce with 64-bit gcds only, never reaching here. Same
-// contract as before, including gcd(x,0) == x and gcd(0,x) == x.
+// Binary (Stein's) GCD, the u128 twin of gcd_u64 above, using shifts,
+// subtracts, and ctz instead of Euclid's modulo loop. This matters more here
+// than at 64 bits: u128 has no hardware divide at all (unlike gcd_u64, whose
+// modulo was at least one idiv), so the old `a % b` loop compiled to a full
+// software division routine per iteration. The one caller left is
+// rat_addsub_u128's g>1 leftover reduction gcd(num, g); add/sub with coprime
+// denominators and all of mul/div reduce with 64-bit gcds only, never
+// reaching here. Same contract as before, including gcd(x,0) == x and
+// gcd(0,x) == x.
 static u128 gcd_u128(u128 a, u128 b) {
     if (a == 0) return b;
     if (b == 0) return a;
@@ -446,9 +448,9 @@ typedef struct {
 // are rationals (b nonzero) and F = fn(arg) is a transcendental function
 // applied to arg: pi (arg unused), sqrt(arg) for a positive non-square
 // integer arg, ln(arg) for a rational arg > 1 (see make_real's
-// canonicalization -- 0 < arg < 1 is rewritten as -ln(1/arg) so F stays
+// canonicalization, where 0 < arg < 1 is rewritten as -ln(1/arg) so F stays
 // positive, matching the invariant every other fn already relies on), or
-// exp(arg) for any rational arg. fn is generic on purpose -- more
+// exp(arg) for any rational arg. fn is generic on purpose, so more
 // transcendentals (sin, cos, tan, ...) can join later without renaming
 // anything. Each sqrt(n)-class is a field (Q(sqrt n)) and the pi form is
 // closed under affine operations, so most arithmetic stays symbolic; ln/exp
@@ -528,12 +530,12 @@ static inline bool is_irrational_kind(number x) {
 }
 
 // Past this many bits of requested precision, an approximation attempt gives
-// up rather than loop forever — the only way a refinement can fail to
+// up rather than loop forever. The only way a refinement can fail to
 // terminate is a general IRRATIONAL value that is (or is suspiciously close
 // to) exactly zero without any symbolic proof either way, e.g.
 // sin(x)^2+cos(x)^2-1, which is mathematically zero but unrecognized by any
 // identity this design knows. ~5k decimal digits: generous for any
-// calculator use, but bounded -- and needs to stay fairly low, not just
+// calculator use, but bounded, and it needs to stay fairly low, not just
 // "safely below overflow": machin_pi-style series cost still grows
 // superlinearly with precision. The timings that set this value (2^14 well
 // under a second; 2^16 ~7s; 2^18 unfinished in 40s) were measured on the
@@ -564,7 +566,7 @@ static number make_irr(int op, number x, number y);
 // value; see IRR_MAX_PREC).
 static bool value_fixed(number x, uint32_t w, int *sign_out, bigint **mag_out);
 static bool irr_fixed(num_irr *n, uint32_t w, int *sign_out, bigint **mag_out);
-// exp(x)/ln(x) * 2^w as sign/magnitude, |error| <= 4 -- the numeric core
+// exp(x)/ln(x) * 2^w as sign/magnitude, |error| <= 4, the numeric core
 // shared by irr_fixed's IRR_EXP/IRR_LN cases (x arbitrary) and factor_appr's
 // FN_EXP/FN_LN cases (x always a plain rational, so these never actually
 // fail there). False only if x's own approximation can't be resolved.
@@ -645,12 +647,12 @@ static number canon_make(int sign, bigint *num, bigint *den) {
 //
 // A number reaches tier2 once it no longer fits the small immediate's
 // 31-bit numerator / 30-bit denominator, but its magnitude very commonly
-// still fits a plain uint64_t -- the immediate form's fields are narrower
+// still fits a plain uint64_t. The immediate form's fields are narrower
 // than the machine word for tagging reasons (see number.h), not because
 // values that size are rare. When both operands' num/den fit u64, every
 // intermediate of add/sub/mul/div fits in a single u128 (products of two
 // u64s never exceed ~2^128, and the one addition that could theoretically
-// carry past that -- unlike-sign-free add/sub's cross-term sum -- is
+// carry past that (unlike-sign-free add/sub's cross-term sum) is
 // overflow-checked and falls back on the rare operand pair large enough to
 // trip it). That keeps the whole operation off the GMP heap: zero
 // allocations when the reduced result re-fits a small immediate, versus
@@ -662,8 +664,8 @@ static number canon_make(int sign, bigint *num, bigint *den) {
 // A zero-allocation read-only mpq view of a rational number. For a heap
 // bigrat the stored mpq is returned directly (borrowed); for a small
 // immediate, v is filled with read-only mpz's over its own limb storage
-// (mpz_roinit_n -- no GMP allocation, nothing to clear). Valid only while
-// x is live and only for read-only mpq_* arguments.
+// (mpz_roinit_n, so no GMP allocation and nothing to clear). Valid only
+// while x is live and only for read-only mpq_* arguments.
 typedef struct {
     mpq_t q;
     mp_limb_t nl[1], dl[1];
@@ -697,7 +699,7 @@ static bool unpack_u64_rat(number x, int *sign, uint64_t *num, uint64_t *den) {
 
 // Turns an ALREADY-REDUCED sign*num/den (gcd(num,den) == 1, den > 0) into a
 // number: a small immediate if it fits, else a heap bigrat built directly
-// into the embedded mpq (bigrat_from_u128s) -- one xmalloc plus GMP's two
+// into the embedded mpq (bigrat_from_u128s), one xmalloc plus GMP's two
 // limb buffers, no throwaway bigint shells. num == 0 canonicalizes to zero
 // regardless of den (callers that can produce a cancellation reach here with
 // den == 1 anyway, but the guard keeps this correct for any caller).
@@ -739,9 +741,9 @@ static bool rat_addsub_u128(number a, number b, int bsign, number *out) {
     int sign;
     if (sa == sb) {
         // The only op in this fast path where two u128 products are summed
-        // rather than one taken alone -- the one place a 64-bit operand pair
-        // can still overflow u128 (each term can be within a factor of 2 of
-        // 2^128), so this is the one checked add.
+        // rather than one taken alone, and the one place a 64-bit operand
+        // pair can still overflow u128 (each term can be within a factor of
+        // 2 of 2^128), so this is the one checked add.
         if (__builtin_add_overflow(t1, t2, &num)) return false;
         sign = sa;
     } else if (t1 >= t2) {
@@ -766,7 +768,7 @@ static bool rat_addsub_u128(number a, number b, int bsign, number *out) {
 //
 // Cross-cancels before multiplying, the way GMP's mpq_mul does, rather than
 // forming na*nb / da*db and reducing after. The result na*nb/(da*db) can only
-// share a factor across the two diagonals -- gcd(na,db) and gcd(nb,da) -- since
+// share a factor across the two diagonals, gcd(na,db) and gcd(nb,da), since
 // gcd(na,da) and gcd(nb,db) are already 1 (canonical operands). Dividing those
 // out first leaves a product that is coprime by construction: canonical with
 // NO final ~126-bit gcd, and with smaller multiplicands. Each of num/den is
@@ -788,7 +790,7 @@ static bool rat_mul_u128(number a, number b, number *out) {
 // Attempts division entirely in u64/u128; false means an operand didn't fit
 // u64. Caller has already excluded b == 0.
 //
-// a/b = (na*db)/(da*nb) -- multiplication by the reciprocal -- so the same
+// a/b = (na*db)/(da*nb), multiplication by the reciprocal, so the same
 // cross-cancel as rat_mul_u128 applies, on the diagonals gcd(na,nb) and
 // gcd(db,da); the other two pairs (na,da) and (db,nb) are already coprime.
 static bool rat_div_u128(number a, number b, number *out) {
@@ -804,8 +806,8 @@ static bool rat_div_u128(number a, number b, number *out) {
 
 // Attempts a same-sign magnitude comparison (|a| vs |b|, both already known
 // rational) entirely in u64/u128; false means an operand didn't fit u64.
-// Unlike addsub, a single cross product each side is all this needs -- no
-// sum, so no overflow case to guard.
+// Unlike addsub, a single cross product each side is all this needs, with no
+// sum and so no overflow case to guard.
 static bool rat_compare_u128(number a, number b, int sa, int *out) {
     int sa_unused, sb_unused;
     uint64_t na, da, nb, db;
@@ -854,7 +856,7 @@ number number_from_double(double value) {
     uint64_t mant = (uint64_t)ldexp(m, 53); // exact 53-bit integer
     int p2 = e - 53; // value = mant * 2^p2
 
-    // Trim mant's trailing zero bits into p2 up front -- exactly what the
+    // Trim mant's trailing zero bits into p2 up front, exactly what the
     // gcd-based bigint path below would eventually reduce down to, but
     // doing it in pure integer ops first lets a "round" double (0.5, 1.25,
     // 100.0, ...) take a heap-free int64 fast path instead of always
@@ -970,7 +972,7 @@ int number_compare_capped_general(number a, number b, uint32_t max_prec) {
                 result = s;
             } else if (strcmp(number_to_symbolic(a), number_to_symbolic(b)) == 0) {
                 // The difference didn't cancel symbolically, but that only
-                // means number_sub's simplifier didn't spot it -- two values
+                // means number_sub's simplifier didn't spot it. Two values
                 // written the same way ARE the same value, whatever it is,
                 // and sin(2) vs sin(2) shouldn't cost a refinement at all.
                 // Worth checking here rather than after refine_sign_exact
@@ -1002,7 +1004,7 @@ int number_compare_capped_general(number a, number b, uint32_t max_prec) {
     // GMP only guarantees the *sign* of mpq_cmp, not its magnitude (it often
     // returns the cross products' limb-count difference), so normalize to
     // -1/0/+1. Returning it raw would leak values outside the documented
-    // range -- and a raw 2 would be misread as the reserved "unordered" code.
+    // range, and a raw 2 would be misread as the reserved "unordered" code.
     int c = mpq_cmp(number_mpq_view(a, &va), number_mpq_view(b, &vb));
     return (c > 0) - (c < 0);
 }
@@ -1055,9 +1057,9 @@ static number number_addsub(number a, number b, int bsign) {
         number bb = bsign < 0 ? number_neg(b) : b;
         // Try the exact symbolic form first (real_add never sees an
         // IRRATIONAL operand: it doesn't know how to, since !is_real_kind()
-        // means "treat as rational" there). Only on failure — no closed form
-        // unifies them, or an operand is already IRRATIONAL — fall back to
-        // a general node.
+        // means "treat as rational" there). Only on failure, when no closed
+        // form unifies them or an operand is already IRRATIONAL, does it fall
+        // back to a general node.
         number result = (is_irrational_kind(a) || is_irrational_kind(bb)) ? NUMBER_ERROR : real_add(a, bb);
         if (number_is_error(result)) result = make_irr(IRR_ADD, a, bb);
         return result;
@@ -1072,11 +1074,11 @@ static number number_addsub(number a, number b, int bsign) {
         NSTAT(tier1_general);
         // Raw cross-multiply, no pre-reduction: |each num term| <=
         // (2^31-1)(2^30-1) < 2^61, so |their sum| < 2^62, and den <
-        // (2^30-1)^2 < 2^60 -- everything fits int64 with 2x headroom.
+        // (2^30-1)^2 < 2^60, so everything fits int64 with 2x headroom.
         // An earlier version gcd-reduced the denominators first (the
         // classic trick for keeping intermediates small), but at these
         // sizes the intermediates were never in danger, and it meant two
-        // full gcd passes per add -- this one and number_from_ratio64's
+        // full gcd passes per add, this one and number_from_ratio64's
         // canonicalizing one. number_mul/number_div's fraction paths were
         // already shaped this way (raw product, single reduction in
         // number_from_ratio64); measured, this matches: dropping the
@@ -1106,7 +1108,7 @@ number number_sub_general(number a, number b) {
 // extern-inline fast-path dispatchers fall back on when they don't inline
 // a call (address-of; also every call, in a -DNUMBER_STATS build, where
 // number.h deliberately doesn't shadow these names with an inline version
-// at all -- see number.h's comment above number_add_general).
+// at all; see number.h's comment above number_add_general).
 number number_add(number a, number b) {
     return number_add_general(a, b);
 }
@@ -1131,7 +1133,7 @@ number number_mul_general(number a, number b) {
         // operand is. real_mul already does this (number_is_zero -> zero), but
         // an IRRATIONAL operand never reaches real_mul, so without this
         // `0 * sin(2)` would build an IRR_MUL node that no later refinement can
-        // ever prove is zero -- leaving a value that isn't number_is_zero, that
+        // ever prove is zero, leaving a value that isn't number_is_zero, that
         // compares "unordered" against 0, and that floor/mod reject.
         if (a.bits == NUMBER_ZERO.bits || b.bits == NUMBER_ZERO.bits) return small_zero();
         number result = (is_irrational_kind(a) || is_irrational_kind(b)) ? NUMBER_ERROR : real_mul(a, b);
@@ -1170,8 +1172,9 @@ number number_div_general(number a, number b) {
     if (number_is_error(b)) return b;
     if (number_is_zero(b)) return err(ERR_DIV_BY_ZERO); // catches the exact-rational-zero case
     // An exactly-zero numerator (e.g. ln(1)/ln(10)) is always 0, however
-    // unsimplified b is -- short-circuits refine_sign ever needing to prove
-    // an already-known-zero value nonzero all the way out to IRR_MAX_PREC.
+    // unsimplified b is. This short-circuits refine_sign ever needing to
+    // prove an already-known-zero value nonzero all the way out to
+    // IRR_MAX_PREC.
     if (number_is_zero(a)) return small_zero();
     if (is_irrational_kind(a) || is_irrational_kind(b) || is_real_kind(a) || is_real_kind(b)) {
         NSTAT(tier3);
@@ -1215,7 +1218,7 @@ number number_neg_general(number x) {
     }
     if (is_irrational_kind(x)) {
         // Not number_sub(small_zero(), x): that's subtraction with bsign<0,
-        // which calls number_neg on its second operand -- straight back
+        // which calls number_neg on its second operand, straight back
         // here, infinitely. Negate via multiplication instead.
         number neg1 = number_from_int(-1);
         number result = number_mul(x, neg1);
@@ -1296,7 +1299,7 @@ number number_lcm(number a, number b) {
 // Rounding to an integer: floor/ceil/trunc/round, and the floored modulus
 // built on floor. The rational tiers round directly (one bigint divmod at
 // most); irrational values refine [x - err, x + err] until both interval
-// ends round to the same integer -- see tier3_to_int.
+// ends round to the same integer; see tier3_to_int.
 
 enum { INT_FLOOR, INT_CEIL, INT_TRUNC, INT_ROUND };
 
@@ -1347,10 +1350,10 @@ static number rat_to_int(number x, int mode) {
 // An irrational x rounded to an integer by mode: refine x's approximation
 // until the whole interval it pins x inside rounds to a single integer.
 // Terminates as soon as x's distance from the nearest rounding boundary
-// exceeds the approximation error -- guaranteed eventually for any value
-// not exactly ON a boundary, so only a general IRRATIONAL node sitting
-// unprovably on one (or an unresolvable one) reaches the precision cap and
-// gives up.
+// exceeds the approximation error, which is guaranteed eventually for any
+// value not exactly ON a boundary, so only a general IRRATIONAL node
+// sitting unprovably on one (or an unresolvable one) reaches the precision
+// cap and gives up.
 static number tier3_to_int(number x, int mode) {
     for (uint32_t w = 32; w <= IRR_MAX_PREC; w *= 2) {
         int s;
@@ -1403,10 +1406,11 @@ number number_mod(number a, number b) {
 }
 
 // Decide a < b (-1), a == b (0), or a > b (+1) by comparing a and b each
-// rounded to `digits` fractional digits -- always total and terminating.
-// number_min/number_max use this only when exact comparison gives up (two
-// general irrationals indistinguishable within the precision cap); ties (and
-// the pathological case where even the rounding fails to resolve) report 0.
+// rounded to `digits` fractional digits, which is always total and
+// terminating. number_min/number_max use this only when exact comparison
+// gives up (two general irrationals indistinguishable within the precision
+// cap); ties (and the pathological case where even the rounding fails to
+// resolve) report 0.
 static int compare_rounded(number a, number b, uint32_t digits) {
     number scale = number_pow(number_from_int(10), number_from_int((int64_t)digits));
     number as = number_mul(a, scale);
@@ -1418,7 +1422,7 @@ static int compare_rounded(number a, number b, uint32_t digits) {
 }
 
 // The smaller (number_min) / larger (number_max) of a and b, returned as the
-// exact original value (not a rounded one) -- a fresh reference the caller
+// exact original value (not a rounded one), a fresh reference the caller
 // owns. Exact comparison decides the common case; only for two general
 // irrationals whose order that cannot resolve (see number_compare) does the
 // decision fall back to comparing them rounded to `digits` fractional digits,
@@ -1511,11 +1515,11 @@ static number make_real(number a, number b, uint32_t fn, number arg) {
 
 // number_pi/number_tau/number_sqrt2 are process-lifetime cached singletons:
 // the underlying heap object (and, once anything refines it, its best-known
-// approximation -- appr/appr_prec in num_real) is built once and held
+// approximation, appr/appr_prec in num_real) is built once and held
 // forever, so every call after the first hands back the same object rather
-// than a fresh allocation -- and callers benefit from each other's prior
+// than a fresh allocation, and callers benefit from each other's prior
 // precision work instead of starting cold every time. {0} (bits == 0, the
-// never-a-valid-number sentinel -- see number-design.md "Tagging") marks
+// never-a-valid-number sentinel; see number-design.md "Tagging") marks
 // "not yet built". Plain, non-atomic lazy init, consistent with the
 // single-threaded assumption elsewhere in this file, so no locking is
 // needed.
@@ -1701,7 +1705,7 @@ static number half_sqrt(int64_t n) {
     return result;
 }
 
-// sin0/cos0 of local*pi/12 for local in {0,2,3,4,6} -- the five standard
+// sin0/cos0 of local*pi/12 for local in {0,2,3,4,6}, the five standard
 // angles 0, pi/6, pi/4, pi/3, pi/2. These are exactly the base angles
 // reachable when k's denominator is 1, 2, 3, 4, or 6 (see
 // exact_trig_of_pi_multiple): denominators that would need pi/12 itself
@@ -1736,7 +1740,7 @@ static void base_angle_sin_cos(int64_t local, number *sin0, number *cos0) {
 }
 
 // If x is exactly k*pi for a rational k whose reduced denominator is 1, 2,
-// 3, 4, or 6, sin/cos are exact -- the standard special angles (0, pi/6,
+// 3, 4, or 6, sin/cos are exact at the standard special angles (0, pi/6,
 // pi/4, pi/3, pi/2, and every reflection/rotation of those around the
 // circle: 2pi/3, 3pi/4, pi, 3pi/2, ...). The general engine alone could
 // only ever approximate these arbitrarily close to their true value, never
@@ -1760,14 +1764,14 @@ static bool exact_trig_of_pi_multiple(number x, bool want_sin, number *out) {
     }
     uint64_t num_mag;
     // Bounded well under INT64_MAX/12 so sign*num_mag*(12/den_val) can't
-    // overflow below -- this is a fast path for ordinary angles, not a
+    // overflow below. This is a fast path for ordinary angles, not a
     // general bignum-multiple-of-pi solver. bi_fits_u64 reads magnitude
     // limbs, so it works on the signed numerator directly.
     if (!bi_fits_u64(mpq_numref(qk), &num_mag) || num_mag > (uint64_t)INT64_MAX / 12) return false;
     int sign = mpq_sgn(qk);
 
     // m = k * 12 (an integer, since den_val divides 12); reduce mod 24 (the
-    // period of pi/12) into [0, 24) -- angle and sign together, so negative
+    // period of pi/12) into [0, 24), angle and sign together, so negative
     // k is handled by the reduction itself, not a separate sign case.
     int64_t m = sign * (int64_t)num_mag * (12 / (int64_t)den_val);
     int64_t rmod = ((m % 24) + 24) % 24;
@@ -1852,7 +1856,7 @@ static bool twelfths_times_pi(number x, int64_t twelfths, number *out) {
 }
 
 // If |x| equals one of the standard tan values (sqrt(3)/3, 1, sqrt(3)),
-// atan(x) is an exact multiple of pi/12 (pi/6, pi/4, pi/3) -- the inverse
+// atan(x) is an exact multiple of pi/12 (pi/6, pi/4, pi/3), the inverse
 // direction of exact_trig_of_pi_multiple. atan(0) is handled by
 // number_atan's own escape before this is ever called.
 static bool exact_atan_of_special_value(number x, number *out) {
@@ -1906,7 +1910,7 @@ number number_atan2(number y, number x) {
 }
 
 // If |x| equals one of the standard sin values (1/2, sqrt(2)/2, sqrt(3)/2),
-// asin(x) is an exact multiple of pi/12 (pi/6, pi/4, pi/3) -- the inverse
+// asin(x) is an exact multiple of pi/12 (pi/6, pi/4, pi/3), the inverse
 // direction of exact_trig_of_pi_multiple. asin(0) and asin(+-1) are handled
 // by number_asin's own escapes before this is ever called.
 static bool exact_asin_of_special_value(number x, number *out) {
@@ -2035,7 +2039,7 @@ static number int_pow(number x, int64_t n) {
 }
 
 // x^(1/q) exactly, if rational x (already checked >= 0 by the caller for
-// even q) has a rational q-th root -- i.e. its numerator and denominator
+// even q) has a rational q-th root, i.e. its numerator and denominator
 // are each a perfect q-th power. Only ever exact or "doesn't apply": there
 // is no symbolic cbrt(n)-style form for q > 2 the way there is for
 // sqrt(n), so a non-exact root just returns false (the general engine
@@ -2197,7 +2201,7 @@ static number real_mul(number x, number y) {
     num_real *ry = as_real(y);
     if (rx->fn == FN_EXP && ry->fn == FN_EXP && number_is_zero(rx->a) && number_is_zero(ry->a)) {
         // b1*exp(e1) * b2*exp(e2) = b1*b2*exp(e1+e2); only the pure (no
-        // rational addend) form multiplies out this way -- (a1+b1 e^x1)
+        // rational addend) form multiplies out this way; (a1+b1 e^x1)
         // (a2+b2 e^x2) with a1 or a2 nonzero expands into terms this
         // linear a+b*F form can't hold.
         number sum = number_add(rx->arg, ry->arg);
@@ -2254,8 +2258,8 @@ static number real_div(number x, number y) {
     }
     if (ry->fn == FN_EXP && number_is_zero(ry->a)) {
         // 1/(b*exp(e)) = (1/b)*exp(-e): only the pure (no rational addend)
-        // form inverts inside this closed set -- 1/(a+b*exp(e)) with a != 0
-        // isn't again of the a+b*F shape.
+        // form inverts inside this closed set, since 1/(a+b*exp(e)) with a
+        // nonzero isn't again of the a+b*F shape.
         number inv_b = number_inverse(ry->b);
         number neg_arg = number_neg(ry->arg);
         number inv = make_real(small_zero(), inv_b, FN_EXP, neg_arg);
@@ -2367,7 +2371,7 @@ static bigint *pi_appr(uint32_t prec) {
 // overshoot every branch uses before storing into r->appr makes whatever
 // error the underlying computation has (<=1 for isqrt, <=2 for pi_appr,
 // <=4 for exp_fixed_core/ln_fixed_core) utterly negligible once shifted
-// back down by 64 bits to the requested prec -- so the <=2 contract holds
+// back down by 64 bits to the requested prec, so the <=2 contract holds
 // regardless of which branch produced it.
 static bigint *factor_appr(num_real *r, uint32_t prec) {
     if (r->fn == FN_PI) return pi_appr(prec);
@@ -2477,13 +2481,12 @@ static bool value_fixed(number x, uint32_t w, int *sign_out, bigint **mag_out) {
 // recursive descent over the same rational/real/DAG structure value_fixed
 // walks, each step widening its result by enough ulps to make the bounds
 // rigorous. If the interval is tight enough to decide the question being
-// asked -- a sign (refine_sign) or a k-digit decimal rounding
-// (real_to_string / irr_to_string_digits); number_to_double is
-// deliberately excluded, see refine_to_double -- the answer is served at
-// hardware speed and is
-// still exact; if not (cancellation, overflow, genuinely more precision
-// demanded), evaluation falls through to the bigint path unchanged, so a
-// wide interval costs one cheap failed attempt, never a wrong answer.
+// asked (a sign for refine_sign, or a k-digit decimal rounding for
+// real_to_string / irr_to_string_digits; number_to_double is deliberately
+// excluded, see refine_to_double), the answer is served at hardware speed and
+// is still exact; if not (cancellation, overflow, genuinely more precision
+// demanded), evaluation falls through to the bigint path unchanged, so a wide
+// interval costs one cheap failed attempt, never a wrong answer.
 //
 // Rigor budget per operation:
 //   - IEEE + - * / and sqrt are correctly rounded: 1-ulp outward widening
@@ -2492,7 +2495,7 @@ static bool value_fixed(number x, uint32_t w, int *sign_out, bigint **mag_out) {
 //     glibc documents worst-case errors of 1-2 ulp for these functions on
 //     every mainstream target (see its "Known Maximum Errors" manual
 //     section); DIVAL_LIBM_ULPS widens by 8, a 4x margin over that. A libm
-//     exceeding 8 ulps of error would erode this margin silently -- build
+//     exceeding 8 ulps of error would erode this margin silently, so build
 //     with -DNUMBER_NO_DOUBLE_FILTER to remove the fast path entirely (and
 //     with it any reliance on libm quality) at some cost to
 //     approximation-heavy workloads; every result then comes from the
@@ -2562,8 +2565,8 @@ static bool dival_of_real(const num_real *r, number a, number b, dival *out, int
 
 // Rigorous double bounds on any non-error number: *out straddles the true
 // value on success. False when bounds can't be established (overflow to
-// infinity, a domain edge, or the visit budget running out) -- never
-// wrong, just unavailable.
+// infinity, a domain edge, or the visit budget running out), never wrong,
+// just unavailable.
 static bool dival_of(number x, dival *out, int *budget) {
     if (--*budget < 0) return false;
     if (number_is_error(x)) return false;
@@ -2648,7 +2651,7 @@ static bool dival_of_real(const num_real *r, number a, number b, dival *out, int
         if (!isfinite(av)) return false;
         f = (dival){ival_prev(sqrt(ival_prev(av))), ival_next(sqrt(ival_next(av)))};
     } else if (r->fn == FN_LN) {
-        // r->arg > 1 (make_real's canonicalization), so ln(arg) > 0 -- no
+        // r->arg > 1 (make_real's canonicalization), so ln(arg) > 0, and no
         // domain edge to guard, unlike dival_of's general IRR_LN case.
         double av = number_to_double(r->arg);
         if (!isfinite(av)) return false;
@@ -2713,7 +2716,7 @@ static bool sign_from_interval(number x, int *sign_out) {
 // The expensive half of refine_sign: widen the fixed-point approximation
 // until it excludes zero, giving up past max_prec bits. A value that IS zero
 // can never be excluded, so it always runs the loop to the cap before
-// failing -- callers with a cheaper way to recognize zero should try it
+// failing. Callers with a cheaper way to recognize zero should try it
 // first (see the tier 3 comparison path), and callers that will discard
 // the answer past some precision anyway should say so via max_prec rather
 // than pay for every doubling up to IRR_MAX_PREC.
@@ -2740,7 +2743,7 @@ static bool refine_sign_exact(number x, int *sign_out, uint32_t max_prec) {
 
 // Sign of a real/irrational value. Always succeeds for a real (b != 0
 // guarantees it's irrational, hence nonzero); an irrational node might not
-// resolve -- see IRR_MAX_PREC's doc comment.
+// resolve; see IRR_MAX_PREC's doc comment.
 static bool refine_sign(number x, int *sign_out) {
     return sign_from_interval(x, sign_out) || refine_sign_exact(x, sign_out, IRR_MAX_PREC);
 }
@@ -2749,9 +2752,9 @@ static bool refine_sign(number x, int *sign_out) {
 // to budget extra precision in irr_fixed's MUL/DIV cases: how much a
 // *sibling* operand needs (MUL) or how much absolute precision an operand
 // itself needs (DIV, when its magnitude is small). Cheap and approximate on
-// purpose -- callers pad with guard bits. 0 on failure (a safe, if possibly
-// too-small, estimate -- the real evaluation call downstream will itself
-// fail and propagate correctly).
+// purpose, since callers pad with guard bits. 0 on failure (a safe, if
+// possibly too-small, estimate, since the real evaluation call downstream
+// will itself fail and propagate correctly).
 static int32_t approx_exponent(number x) {
     int s;
     bigint *v;
@@ -2784,7 +2787,7 @@ static int exp_series(int sign, const bigint *rmag, uint32_t p, bigint **out) {
 // atanh(|zmag|/2^p) * 2^p, |zmag| < 2^p (|z| < 1), z >= 0. Self-terminating
 // series like arctan_recip, but multiplicative (z is a general fixed-point
 // fraction here, not a reciprocal integer) and without sign alternation:
-// atanh(z) = z + z^3/3 + z^5/5 + ... -- every term is nonnegative, so
+// atanh(z) = z + z^3/3 + z^5/5 + ..., where every term is nonnegative, so
 // (unlike exp_series) plain bi_add accumulation is fine.
 static bigint *atanh_fixed(const bigint *zmag, uint32_t p) {
     mpz_t z2p, pk, term, sum;
@@ -2836,7 +2839,7 @@ static bigint *ln2_appr(uint32_t prec) {
 }
 
 // sin(sign*|rmag|/2^p) * 2^p via out, returning its sign; |rmag| <= pi*2^p
-// (i.e. |r| <= pi -- NOT reduced further to a tiny range, so this needs more
+// (i.e. |r| <= pi, NOT reduced further to a tiny range, so this needs more
 // terms than exp_series/atanh_fixed for the same precision, but still
 // converges: the factorial denominator beats any fixed |r|). Self-
 // terminating, alternating: sin(r) = r - r^3/3! + r^5/5! - ...
@@ -2862,7 +2865,7 @@ static int sin_series(int sign, const bigint *rmag, uint32_t p, bigint **out) {
 }
 
 // cos(|rmag|/2^p) * 2^p via out, returning its sign; |rmag| <= pi*2^p. cos
-// is even, so (unlike sin) the sign of r doesn't matter -- only |r| does.
+// is even, so (unlike sin) the sign of r doesn't matter, only |r| does.
 // Self-terminating, alternating: cos(r) = 1 - r^2/2! + r^4/4! - ...
 static int cos_series(const bigint *rmag, uint32_t p, bigint **out) {
     mpz_t r2p, term, sum;
@@ -2888,7 +2891,7 @@ static int cos_series(const bigint *rmag, uint32_t p, bigint **out) {
 // Reduces x into r in (-pi,pi] (sign + magnitude at precision P) via
 // x mod 2*pi. Needs pi at boosted precision that scales with x's own
 // magnitude, not just the output precision P: a coarse pi lets the quotient
-// floor(x/2pi) -- which grows with x's magnitude -- amplify pi's own
+// floor(x/2pi), which grows with x's magnitude, amplify pi's own
 // truncation error. This is the classic large-argument range-reduction
 // trap (see the caller's guard-bit comment for the actual budget).
 static bool reduce_mod_2pi(number x, uint32_t P, int *sign_out, bigint **rmag_out) {
@@ -2922,7 +2925,7 @@ static bool reduce_mod_2pi(number x, uint32_t P, int *sign_out, bigint **rmag_ou
 
 // atan(sign*|zmag|/2^p) * 2^p via out, returning its sign; |zmag| < 2^p
 // (|z| < 1), already reduced small by the caller. Self-terminating,
-// alternating -- same shape as atanh_fixed (undivided running power pk,
+// alternating, the same shape as atanh_fixed (undivided running power pk,
 // term computed fresh each step), just with sign flipping each term:
 // atan(z) = z - z^3/3 + z^5/5 - ...
 static int atan_series(int sign, const bigint *zmag, uint32_t p, bigint **out) {
@@ -2949,7 +2952,7 @@ static int atan_series(int sign, const bigint *zmag, uint32_t p, bigint **out) {
 
 // Builds a general IRRATIONAL node combining x and y (owned; for unary ops
 // y is small_zero(), an immediate, so owning it is free). For IRR_DIV,
-// first establishes y is nonzero via refine_sign -- giving up (see
+// first establishes y is nonzero via refine_sign, where giving up (see
 // IRR_MAX_PREC) makes the whole division NUMBER_ERROR rather than building
 // a node that could silently fail to converge later.
 static number make_irr(int op, number x, number y) {
@@ -2965,8 +2968,8 @@ static number make_irr(int op, number x, number y) {
     }
     num_irr *n = xmalloc(sizeof(num_irr));
     n->head.kind = KIND_IRRATIONAL;
-    // op is always one of the 9 IRR_* constants above -- a closed, entirely
-    // internal enum, unlike appr_prec's caller-facing unbounded range -- so
+    // op is always one of the 9 IRR_* constants above, a closed, entirely
+    // internal enum, unlike appr_prec's caller-facing unbounded range, so
     // masking here is a legitimate narrowing, not the silent-truncation
     // hazard that ruled out masking for appr_prec earlier.
     n->op = (uint32_t)op & 0xFu;
@@ -2982,14 +2985,14 @@ static number make_irr(int op, number x, number y) {
 // repeated halving until |r| < 1 (r = x/2^k), runs the self-terminating
 // series on r, then squares k times to undo the reduction: exp(x) =
 // exp(r)^(2^k). Keeps ONE constant working precision (w + guard) through
-// every squaring step rather than truncating between them -- each squaring
+// every squaring step rather than truncating between them. Each squaring
 // costs about 1 bit of relative precision, so truncating early would
 // compound that loss; truncate once, at the very end, down to w. Shared by
 // irr_fixed's IRR_EXP case and factor_appr's FN_EXP case.
 static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out) {
     // A single low-precision (64-bit) probe of |x| serves two purposes: k
-    // (how many squarings undo the range reduction) below, and -- see
-    // `extra` -- how many guard bits those squarings cost.
+    // (how many squarings undo the range reduction) below, and, see `extra`,
+    // how many guard bits those squarings cost.
     int s0;
     bigint *v0;
     if (!value_fixed(x, 64, &s0, &v0)) return false;
@@ -2998,11 +3001,11 @@ static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out
 
     // Each of the k squarings below roughly DOUBLES exp(r)'s *relative*
     // error, so after k of them the ABSOLUTE error at exp(x)'s own scale is
-    // roughly (exp(r)'s absolute error) * exp(x) -- not amplified by k
+    // roughly (exp(r)'s absolute error) * exp(x), not amplified by k
     // alone, but by exp(x) itself, which for x > 0 is exponentially larger
     // than the O(1) scale exp(r) starts at. The |error|<=4 contract is
-    // stated at the OUTPUT's scale (2^w), so exp(x)'s own bit width --
-    // roughly x*log2(e), nowhere close to k (~log2(x)) -- has to be
+    // stated at the OUTPUT's scale (2^w), so exp(x)'s own bit width,
+    // roughly x*log2(e) and nowhere close to k (~log2(x)), has to be
     // budgeted as guard bits up front: precision lost partway through a
     // chain of squarings can't be recovered by truncating at the very end.
     // Concretely, without this, number_to_string(number_exp(number_from_int(120)),
@@ -3016,7 +3019,7 @@ static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out
         // LOG2E_Q31 = ceil(log2(e) * 2^31): a uint32_t fixed-point constant
         // (log2(e) > 1, so a Q32 one would overflow uint32_t). v0 is
         // |x|*2^64 (error <= 4), so v0*LOG2E_Q31 is |x|*log2(e) scaled by
-        // 2^95 -- exp(x)'s bit width, at that scale.
+        // 2^95, exp(x)'s bit width at that scale.
         const uint32_t LOG2E_Q31 = 3098164010u; // ceil(log2(e) * 2^31)
         bigint *scaled = bi_mul_u32(v0, LOG2E_Q31);
         bigint *bits = bi_shr(scaled, 95);
@@ -3024,7 +3027,7 @@ static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out
         uint64_t needed;
         if (!bi_fits_u64(bits, &needed) || needed > (1u << 24)) {
             // exp(x) would need more than 16M bits (2MB) just to state its
-            // magnitude -- infeasible to compute exactly regardless of this
+            // magnitude, infeasible to compute exactly regardless of this
             // budget, so give up rather than attempt an allocation this size.
             bi_free(bits);
             bi_free(v0);
@@ -3063,8 +3066,8 @@ static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out
 // [1,2), ln(m) = 2*atanh(z) with z = (m-1)/(m+1) (|z| <= 1/3, fast
 // convergence). e is x's own bit-exponent, read off the fixed-point X this
 // function fetches anyway (exact, unlike approx_exponent's separate
-// precision-64 probe -- see below). False if x <= 0 (shouldn't happen:
-// every caller has already checked positivity -- number_ln directly, or
+// precision-64 probe; see below). False if x <= 0 (shouldn't happen:
+// every caller has already checked positivity, number_ln directly, or
 // make_real's arg > 1 canonicalization for factor_appr's FN_EXP case) or
 // if x's magnitude can't be resolved within IRR_MAX_PREC bits (see that
 // macro's doc comment). Shared by irr_fixed's IRR_LN case and factor_appr's
@@ -3078,18 +3081,18 @@ static bool ln_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out)
         bi_free(X);
         return false;
     }
-    // X == 0 here does NOT mean x <= 0 -- value_fixed already ruled that out
-    // via sx -- it means P wasn't enough to resolve x's magnitude at all: a
+    // X == 0 here does NOT mean x <= 0, since value_fixed already ruled that
+    // out via sx. It means P wasn't enough to resolve x's magnitude at all: a
     // sufficiently tiny x (e.g. ln(sqrt(exp(-750))), whose operand is
     // ~2^-542) needs P past a thousand bits before its leading bit is even
-    // visible. approx_exponent can't help size that P up front -- it probes
-    // at a fixed precision of 64 bits, so for an x this tiny it always sees
-    // 0 too and returns its own capped floor. Treating a 0 magnitude as a
-    // hard failure here (as this function used to) doesn't just mishandle
+    // visible. approx_exponent can't help size that P up front, since it
+    // probes at a fixed precision of 64 bits, so for an x this tiny it always
+    // sees 0 too and returns its own capped floor. Treating a 0 magnitude as
+    // a hard failure here (as this function used to) doesn't just mishandle
     // this case: it makes every caller (irr_to_string_digits, refine_sign,
-    // refine_to_double) that retries value_fixed at doubled precision give
-    // up on the FIRST attempt, because irr_fixed's IRR_LN case just forwards
-    // this function's false straight out -- indistinguishable from a
+    // refine_to_double) that retries value_fixed at doubled precision give up
+    // on the FIRST attempt, because irr_fixed's IRR_LN case just forwards
+    // this function's false straight out, indistinguishable from a
     // genuinely-undecidable value. So widen P here and retry directly,
     // instead of reporting a failure a wider P could have resolved.
     while (bi_is_zero(X)) {
@@ -3271,7 +3274,7 @@ static bool irr_fixed(num_irr *n, uint32_t w, int *sign_out, bigint **mag_out) {
     }
     case IRR_ATAN: {
         // |x| >= 1: reduce via atan(x) = sign(x)*pi/2 - atan(1/x) first, so
-        // the halving phase below always starts from |z| <= 1 -- unlike
+        // the halving phase below always starts from |z| <= 1. Unlike
         // SIN/COS's range reduction, this doesn't depend on x's magnitude
         // at all (a single reciprocal, not a magnitude-scaled quotient).
         int32_t ex = approx_exponent(n->x);
@@ -3351,7 +3354,7 @@ static bool irr_fixed(num_irr *n, uint32_t w, int *sign_out, bigint **mag_out) {
         // step already relies on). bi_isqrt's own rounding error is <1;
         // the dominant error comes from x's own approximation error
         // propagating through sqrt's derivative 1/(2*sqrt(x)), which grows
-        // as x shrinks toward 0 -- pad P by |exponent(x)| (the same
+        // as x shrinks toward 0, so pad P by |exponent(x)| (the same
         // magnitude-scaled guard-bit idea EXP/LN/ATAN use above) so the
         // down-scaled result still meets the <=4 error contract.
         int32_t ex = approx_exponent(n->x);
@@ -3386,9 +3389,9 @@ static bool irr_fixed(num_irr *n, uint32_t w, int *sign_out, bigint **mag_out) {
 // Conversion to double
 
 // Correctly rounded sign * n/d, d > 0. n may carry a sign of its own (an
-// mpq numref): only |n| is used -- bit length, limb reads, and truncating
-// division are all magnitude-correct -- and the result's sign comes from
-// `sign` alone.
+// mpq numref): only |n| is used, since bit length, limb reads, and
+// truncating division are all magnitude-correct, and the result's sign comes
+// from `sign` alone.
 static double rat_to_double(int sign, const bigint *n, const bigint *d) {
     int64_t nb = bi_bitlen(n), db = bi_bitlen(d);
     // Scale so the integer quotient has 54 or 55 bits.
@@ -3439,7 +3442,7 @@ static double rat_to_double(int sign, const bigint *n, const bigint *d) {
 // doubles, so it is at least a full ulp wide after any outward widening)
 // can never fit strictly inside one rounding interval. Serving this at
 // hardware speed would take double-double (compensated) interval
-// arithmetic -- ~106 effective bits -- which is future work; measured, the
+// arithmetic, ~106 effective bits, which is future work; measured, the
 // always-failing attempt only made this path slower.
 static double refine_to_double(number x) {
     for (uint32_t w = 64; w <= IRR_MAX_PREC; w *= 2) {
@@ -3448,12 +3451,12 @@ static double refine_to_double(number x) {
         if (!value_fixed(x, w, &s, &v)) return (double)NAN;
         bigint *four = bi_from_u64(4);
         // |value| <= 8*2^-w (v's own +-4 error band). Once w is past 1078
-        // bits, that bound is below 2^-1075 -- half the smallest positive
-        // subnormal double, the round-to-nearest-even threshold below which
-        // every double rounds to (signed) zero -- so the correctly rounded
-        // result is certain without ever computing rat_to_double on a value
-        // this close to its own error band. Without this, a value that's
-        // genuinely nonzero but far smaller than any double (e.g.
+        // bits, that bound is below 2^-1075, half the smallest positive
+        // subnormal double and the round-to-nearest-even threshold below
+        // which every double rounds to (signed) zero, so the correctly
+        // rounded result is certain without ever computing rat_to_double on a
+        // value this close to its own error band. Without this, a value
+        // that's genuinely nonzero but far smaller than any double (e.g.
         // exp(-20000), or pi times a googol-scale negative power of ten)
         // never gets a decisive d1==d2 verdict below and the loop exhausts
         // IRR_MAX_PREC still undecided, wrongly reporting NAN ("the error
@@ -3630,8 +3633,8 @@ static bigint *irr_to_string_digits(number x, uint32_t max_frac_digits, int *sig
 #ifndef NUMBER_NO_DOUBLE_FILTER
     // Interval pre-pass, like real_to_string's. There are no exact rational
     // coefficients to fold 10^d into here, so scale the interval by 10^d in
-    // double arithmetic instead -- exact for d <= 22 (10^22 = 2^22 * 5^22 is
-    // the largest power of ten a double represents exactly, and every
+    // double arithmetic instead, which is exact for d <= 22 (10^22 = 2^22 *
+    // 5^22 is the largest power of ten a double represents exactly, and every
     // smaller power along the way is exact too), and a request that deep
     // needs more precision than a double interval resolves anyway.
     if (max_frac_digits <= 22) {
@@ -3709,7 +3712,7 @@ static char *irr_to_string(number x, uint32_t max_frac_digits) {
 // TAG_SMALL fast path for number_to_string: den <= SMALL_DEN_MAX (2^30 - 1)
 // keeps every intermediate here comfortably inside uint64_t with room to
 // spare (r < den, so r*10^9 < 2^30*10^9 ~= 1.07e18, vs. UINT64_MAX ~=
-// 1.84e19) -- unlike number_from_string_fast, there's no overflow case to
+// 1.84e19). Unlike number_from_string_fast, there's no overflow case to
 // bail out of; this always applies when x is TAG_SMALL. Mirrors the
 // general bigint-based algorithm below digit for digit (same 9-digit
 // batching, same round-half-even, same carry cascade), just entirely off
@@ -3859,7 +3862,7 @@ char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact) {
         // The fraction terminated exactly inside this batch: q's low digits
         // are correct trailing-zero padding *past* the true last digit
         // (single-digit-at-a-time division would have stopped there), not
-        // significant output -- trim back to it. There's always a nonzero
+        // significant output, so trim back to it. There's always a nonzero
         // digit to stop at: if the whole batch were zero, r would already
         // have been zero going in, contradicting the loop condition above.
         if (mpz_sgn(r) == 0)
@@ -3935,7 +3938,7 @@ char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact) {
 //
 // A value's structure is a DAG: `y = x + x` refers to x twice rather than
 // copying it. Printing it as a plain expression unfolds that DAG into a tree,
-// which is exponential in the worst case -- doubling an irrational n times
+// which is exponential in the worst case: doubling an irrational n times
 // prints 2^n copies of it.
 //
 // So: print plainly while the unfolded form stays small (the overwhelmingly
@@ -4032,7 +4035,7 @@ static int sym_label_of(number x) {
 static char *rational_symbolic(number x) {
     if (number_tag(x) == TAG_SMALL) {
         // Small rationals are already canonical (number-design.md) and fit an
-        // int64/uint32 outright -- format directly instead of routing
+        // int64/uint32 outright, so format directly instead of routing
         // through mpz just to convert straight back to decimal.
         int64_t num = small_num(x);
         uint64_t den = small_den(x);
@@ -4096,7 +4099,7 @@ void number_stats_dump(FILE *out) {
 
 // Whether a and b certainly denote the same value, decided cheaply and
 // syntactically: bitwise-identical words (the same immediate, or the same
-// shared node -- e.g. every pi is the cached singleton), equal rationals
+// shared node, e.g. every pi is the cached singleton), equal rationals
 // (exact and cheap, since both rational tiers are canonical), or
 // same-shaped real/irrational nodes over such parts (two separately-built
 // sin(2) nodes are distinct pointers but identical shapes). Never refines
@@ -4146,11 +4149,11 @@ static bool mul_leaves_all_same(number x, number ref) {
 // How loosely the printed form of x binds at its top level, for deciding
 // whether an infix context must parenthesize it as an operand. Ordered
 // from tightest to loosest:
-//   RENDER_ATOM: a single token or self-delimited form -- "42", "pi",
+//   RENDER_ATOM: a single token or self-delimited form, e.g. "42", "pi",
 //     "sqrt(6)", "sin(2)", "pi^3"
-//   RENDER_PRODUCT: a top-level '*' or '/' -- "1/3", "2*pi", "sqrt(5)/2",
+//   RENDER_PRODUCT: a top-level '*' or '/', e.g. "1/3", "2*pi", "sqrt(5)/2",
 //     "pi^2*sin(2)", "x/y"
-//   RENDER_SUM: a top-level '+'/'-' or a leading sign -- "1 + pi", "-pi",
+//   RENDER_SUM: a top-level '+'/'-' or a leading sign, e.g. "1 + pi", "-pi",
 //     "-2", "x + y"
 enum { RENDER_ATOM, RENDER_PRODUCT, RENDER_SUM };
 
@@ -4256,7 +4259,7 @@ static char *mul_chain_str(num_irr *n, bool tex) {
 }
 
 // A general IRRATIONAL node has no closed algebraic form (that's why it's
-// here), but number_to_symbolic's contract is "always exact" -- satisfied
+// here), but number_to_symbolic's contract is "always exact", satisfied
 // by printing an exact expression-tree description instead of a decimal
 // approximation, e.g. "sin(2)", "pi + sqrt(2)", "pi^2".
 static char *irr_symbolic(num_irr *n) {
@@ -4567,7 +4570,7 @@ static bool number_from_string_fast(const char *str, number *out) {
     if (!any_digits || *s != '\0') return false; // malformed/empty: let the exact path report it
 
     // value = mant * 10^(expo - frac_digits); scale (a single power of 10)
-    // must itself fit in int64, same as mant -- past ~18 digits of combined
+    // must itself fit in int64, same as mant. Past ~18 digits of combined
     // magnitude this overflows and bails, same as the digit loops above.
     long p10 = expo - frac_digits;
     long mag = p10 < 0 ? -p10 : p10;
@@ -4587,7 +4590,7 @@ static bool number_from_string_fast(const char *str, number *out) {
 
 // Appends a run of decimal digits to *acc, batching up to 9 digits into a
 // uint32 chunk per bi_muladd_u32 pass (10^9 is the largest power of ten
-// whose chunk still fits a uint32) instead of one pass per digit -- the same
+// whose chunk still fits a uint32) instead of one pass per digit, the same
 // batching bi_to_decimal uses in the other direction. Advances *sp past the
 // run and returns how many digits it consumed (0 if *sp starts on a
 // non-digit).
@@ -4702,10 +4705,10 @@ number number_from_string(const char *str) {
 // The named, exact decimal-literal constructor (see number.h): the answer to
 // "how do I turn the literal 3.15 into a number without number_from_double's
 // silent double round-trip." Deliberately delegates to number_from_string's
-// exact decimal parse -- the exact machinery already lives there; this is the
-// discoverable name for it -- but rejects the "22/7" ratio form up front, so
-// "decimal" is honest (a ratio isn't decimal notation; callers who want one
-// reach for number_from_ratio or number_from_string).
+// exact decimal parse, since the exact machinery already lives there and this
+// is the discoverable name for it, but rejects the "22/7" ratio form up
+// front, so "decimal" is honest (a ratio isn't decimal notation; callers who
+// want one reach for number_from_ratio or number_from_string).
 number number_from_decimal(const char *str) {
     if (!str) return err(ERR_PARSE);
     for (const char *p = str; *p; p++)
@@ -4717,7 +4720,7 @@ number number_from_decimal(const char *str) {
 // Parsing the symbolic form
 //
 // The inverse of number_to_symbolic: reads back the exact expression it
-// prints, so an exact value -- irrationals included -- can round-trip through
+// prints, so an exact value (irrationals included) can round-trip through
 // text. The grammar is exactly what that printer emits:
 //
 //   expr   := term ((' + ' | ' - ') term)*
@@ -4738,7 +4741,7 @@ number number_from_decimal(const char *str) {
 #define SYM_MAX_LABELS 4096
 
 // The grammar recurses (a parenthesized group, a function's argument, a chain
-// of unary minuses), and the text being parsed is untrusted -- Num
+// of unary minuses), and the text being parsed is untrusted, since Num
 // deserialization feeds this whatever bytes it was handed. Each level costs a
 // C stack frame, so "((((((..." (one byte per level) would otherwise walk off
 // the stack. Far deeper than any nesting the printer emits, which stays flat.
@@ -4775,8 +4778,8 @@ static number sym_fail(sym_parser *p) {
     return NUMBER_ERROR;
 }
 
-// The two productions that can recurse once per input character -- a '('
-// group and a '-' chain -- go through this, so a hostile input hits a parse
+// The two productions that can recurse once per input character, a '('
+// group and a '-' chain, go through this, so a hostile input hits a parse
 // error instead of a stack overflow. See SYM_MAX_DEPTH.
 #define SYM_RECURSE(body_fn)                                                                                           \
     if (++p->depth > SYM_MAX_DEPTH) {                                                                                  \
@@ -4932,7 +4935,7 @@ static number sym_expr(sym_parser *p) {
 
 // The labelled form: "{#1 = <expr>; #2 = <expr>; <expr>}". Each binding is
 // available to the bindings after it and to the final expression, so a shared
-// subexpression is written -- and built -- exactly once.
+// subexpression is written, and built, exactly once.
 static number sym_bindings(sym_parser *p) {
     p->pos++; // '{'
     for (;;) {
@@ -4991,7 +4994,7 @@ number number_from_symbolic(const char *str) {
 // glue: tier demotion, canonicalization, sign handling, parsing/printing.
 // The old primitive property tests (divmod identity, mul commutativity,
 // shift round trips, isqrt bounds) verified GMP against GMP once the
-// backend switched, so they were dropped -- GMP's own test suite owns
+// backend switched, so they were dropped, since GMP's own test suite owns
 // that. Not part of the library build; run via `make fuzz` (builds with
 // -DFUZZ_MAIN and ASan/UBSan).
 #ifdef FUZZ_MAIN
@@ -4999,7 +5002,7 @@ number number_from_symbolic(const char *str) {
 static long g_total = 0, g_failed = 0;
 
 // Full-width random 64-bit limb (rand() yields only ~31 bits, so stitch
-// four draws) -- important so the fuzz checks actually exercise the high
+// four draws). This matters so the fuzz checks actually exercise the high
 // half of each limb, not just the low 32 bits.
 static bi_limb rand_limb(void) {
     return (bi_limb)(uint32_t)rand() | ((bi_limb)(uint32_t)rand() << 16) | ((bi_limb)(uint32_t)rand() << 32)
@@ -5042,7 +5045,7 @@ static bool report(bool ok, const char *tag, const bigint *a, const bigint *b, .
 }
 
 // ---- GCD: cross-checked against a plain Euclidean gcd built on bi_divmod,
-// simple enough to trust directly and -- crucially -- an algorithm distinct
+// simple enough to trust directly and, crucially, an algorithm distinct
 // from mpz_gcd's HGCD, so it is a real independent oracle.
 static bigint *fuzz_gcd_ref(const bigint *a, const bigint *b) {
     bigint *x = bi_copy(a), *y = bi_copy(b);

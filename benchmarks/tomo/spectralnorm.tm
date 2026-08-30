@@ -1,4 +1,4 @@
-# spectral-norm — The Computer Language Benchmarks Game
+# spectral-norm, from The Computer Language Benchmarks Game
 #
 # A Tomo port. Approximates the largest singular value of the infinite matrix
 # A{i,j} = 1 / ((i+j)(i+j+1)/2 + i + 1) by 10 rounds of the power method on
@@ -20,7 +20,7 @@
 # The denominator is a quadratic in the column j, so within a row it is carried
 # incrementally: each step adds `inc` (which itself grows by 1). Every value
 # stays an exact integer far below 2^53, so the Float64 carry equals the integer
-# denominator exactly — but the hot loop is just two float adds and a divide,
+# denominator exactly, but the hot loop is just two float adds and a divide,
 # with no per-element integer multiply/divide/convert. `u` is iterated by
 # element, so there is no bounds check or optional unwrap either.
 func mult_Av(u:&[Float64], out:&[Float64], n:Int64)

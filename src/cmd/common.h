@@ -50,7 +50,7 @@ void set_default_logs(uint32_t default_logs);
     {"instrument", &instrument, &Bool$info,                                                                            \
      .description = "compile with profiling instrumentation (report printed at exit)"}
 // Per-command debug flag: compile the program so a debugger can make sense of
-// it -- every variable gets a companion holding its TypeInfo (so gdb can print
+// it: every variable gets a companion holding its TypeInfo (so gdb can print
 // Tomo values with Tomo's own formatter) and `breakpoint()` calls are kept.
 // Like --instrument, it changes the generated code, so it is part of
 // config_summary and toggling it rebuilds. `tomo run --debug` additionally

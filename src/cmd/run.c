@@ -40,8 +40,8 @@ static int exec_under_debugger(const char *prog_args[], int64_t num_prog_args) {
     if (!Path$is_file(script, true))
         print_err("This Tomo installation is missing its debugger support file:\n", script);
 
-    // A Tomo runtime error -- `fail()`, a failed assertion, an out-of-bounds
-    // access -- prints its report and exits, and an exit is not something a
+    // A Tomo runtime error, whether `fail()`, a failed assertion, or an
+    // out-of-bounds access, prints its report and exits, and an exit is not something a
     // debugger can stop on. TOMO_CORE_DUMP makes those raise SIGABRT after
     // printing instead, so the debugger takes over with the failing frame and
     // its variables still on the stack. An explicit setting is left alone.
@@ -83,7 +83,7 @@ int compile_and_exec(Path_t path, List_t extra_args) {
     // run/eval compile for a quick single execution: default to -O0 and skip
     // the size-reducing link flags (fast to link), since this executable is
     // discarded after one run. -O0 rather than -O1 because clang's -O1 runs
-    // nearly the whole optimization pipeline -- measured on examples/learnxiny.tm,
+    // nearly the whole optimization pipeline. Measured on examples/learnxiny.tm,
     // `zig cc -O1` costs 232ms per object versus 231ms at -O3 and 127ms at -O0.
     // An explicit -O overrides the level but keeps the fast link path.
     configure_codegen(opt_flag.tag == TEXT_NONE ? Text("0") : opt_flag, /*optimize=*/false);

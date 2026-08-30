@@ -182,12 +182,12 @@ int main(void) {
     // via expect_eq (number_equal), not raw .bits: a result that correctly
     // overflows out of tier 1 is a bigrat, and two independently-allocated
     // bigrats representing the same value are equal but never bit-identical
-    // (different heap addresses) -- across a spread deliberately aimed at
+    // (different heap addresses). The spread is deliberately aimed at
     // every edge the fast path itself branches on: the integer sub-path
     // (both denominators 1) vs. general small fractions (falls through),
     // overflow right at the NUMBER_SMALL_NUM_MAX/MIN boundary (falls
     // through), values already promoted to bigrat (falls through
-    // immediately on the tag check), and -- for division specifically --
+    // immediately on the tag check), and, for division specifically,
     // both the evenly-divides fast path and inexact division and division
     // by zero (both fall through). A future change to either
     // implementation that desyncs them fails here, not silently in a
@@ -242,7 +242,7 @@ int main(void) {
                 int64_t bn = frac_nums[(i + 1) % n_frac_nums], bd = frac_dens[j];
                 // Operands are borrowed (see number.h), so each pair is
                 // constructed fresh, borrowed by both the fast and general
-                // call, then dropped explicitly -- unlike expect_eq's
+                // call, then dropped explicitly. Unlike expect_eq's
                 // arguments (its *results*), a borrowed operand is never
                 // implicitly freed by the call it's passed to.
                 number a1 = number_from_ratio(an, ad), a2 = number_from_ratio(an, ad);
@@ -281,7 +281,7 @@ int main(void) {
     // --- Fast-path dispatcher vs. general implementation: number_compare
     // and number_equal (number.h) get the same forced-inline fast-path
     // treatment as the arithmetic operators above. Unlike those, these
-    // return a plain int/bool, not a `number` -- so this compares the
+    // return a plain int/bool, not a `number`, so this compares the
     // returned values directly with == (no bits-vs-pointer or
     // error-is-never-equal-to-another-error subtlety to work around here,
     // since neither is a `number` result). ---
@@ -350,7 +350,7 @@ int main(void) {
         }
 
         // Error values: TAG_ERROR never matches the fast path's TAG_SMALL
-        // check, so both sides always fall through to _general -- this
+        // check, so both sides always fall through to _general. This
         // confirms that fallthrough itself stays correct, not new fast-path
         // logic.
         {
@@ -536,7 +536,7 @@ int main(void) {
         // The one genuinely undecidable case: a general (non-symbolic-form)
         // irrational equal to a rational with no identity the library
         // recognizes to prove it. Rather than loop forever, both give up past
-        // the precision cap -- number_compare reports 2 ("unordered") and
+        // the precision cap: number_compare reports 2 ("unordered") and
         // number_equal reports false. calc's inexact fallback relies on
         // exactly this contract (see calc.c).
         number one = number_from_int(1);
@@ -762,7 +762,7 @@ int main(void) {
         // number_pi/number_tau/number_sqrt2 are cached singletons (number.c):
         // repeated calls, retains, and drops of the *same* underlying heap
         // object must never leave a dangling reference or corrupt the cache
-        // for the next call. Exercise that cycle hard -- ASan/UBSan (this
+        // for the next call. Exercise that cycle hard, since ASan/UBSan (this
         // build) catch any use-after-free or leak here.
         for (int i = 0; i < 50; i++) {
             number a = number_pi();
@@ -807,7 +807,7 @@ int main(void) {
         expect_eq(number_ln(number_from_int(1)), number_from_int(0));
         expect_eq(number_log10(number_from_int(1)), number_from_int(0));
         // log10 is exact for any integer power of ten, positive or negative
-        // exponent -- not just x == 1. log10(1000) used to print as
+        // exponent, not just x == 1. log10(1000) used to print as
         // "3.0000000000" (numerically correct but not recognized as exact);
         // it's exactly 3 now.
         expect_eq(number_log10(number_from_int(1000)), number_from_int(3));
@@ -820,8 +820,8 @@ int main(void) {
 
         // --- LN(r)/EXP(r) closed symbolic forms ---
         {
-            // exp(ln(r)) == r and ln(exp(r)) == r exactly, for a rational r
-            // -- no interval refinement needed, and the results collapse
+            // exp(ln(r)) == r and ln(exp(r)) == r exactly, for a rational r,
+            // with no interval refinement needed, and the results collapse
             // straight back to the original rational.
             number three = number_from_int(3);
             number ln3 = number_ln(three);
@@ -897,7 +897,7 @@ int main(void) {
         // sin/cos of a rational multiple of pi with denominator 1 or 2 are
         // exact (the general engine alone could only ever approximate these
         // arbitrarily close to their true value, never prove them exactly
-        // zero -- e.g. sin(pi) would otherwise print as "0.000...0"). The
+        // zero, e.g. sin(pi) would otherwise print as "0.000...0"). The
         // next block below covers denominators 3, 4, 6 (the sqrt-valued
         // special angles) plus confirming denominators outside {1,2,3,4,6}
         // correctly fall through to the general engine.
@@ -926,7 +926,7 @@ int main(void) {
         // Denominators 3, 4, 6: the sqrt(2)/2, sqrt(3)/2 special angles,
         // plus their reflections/rotations around the circle. number_div/
         // mul/neg all BORROW their arguments (see the Arithmetic section of
-        // number.h) -- every intermediate below is computed once, reused by
+        // number.h), so every intermediate below is computed once, reused by
         // borrowing (sin/cos/tan/mul/neg never consume), and dropped
         // exactly once at the end; number_retain is only needed where the
         // SAME value is handed to expect_eq (which does consume) more than
@@ -1004,7 +1004,7 @@ int main(void) {
         }
 
         // asin/acos(+-1) are exact via the closed pi/2 symbolic form, not
-        // the general engine -- number_is_rational is still false (they're
+        // the general engine. number_is_rational is still false (they're
         // irrational), but the value carries no approximation error.
         number asin1 = number_asin(number_from_int(1));
         CHECK(!number_is_rational(asin1));
@@ -1061,7 +1061,7 @@ int main(void) {
 
         // pow's exact ladder, continued: rational exponents p/q with q > 2
         // stay exact when x is itself a rational q-th power (numerator and
-        // denominator each a perfect q-th power) -- e.g. 8^(1/3) == 2, not
+        // denominator each a perfect q-th power), e.g. 8^(1/3) == 2, not
         // an unsimplified exp(ln(8)/3). Odd q accepts a negative base (the
         // real q-th root exists); even q rejects it, same as sqrt.
         number p4 = number_pow(number_from_int(8), number_from_ratio(1, 3));
@@ -1101,7 +1101,7 @@ int main(void) {
         expect_str(number_cos(number_from_int(1)), 30, "0.540302305868139717400936607443", 0);
         // Large-argument range reduction: pi needs boosted precision that
         // scales with the argument's own magnitude, not just the output
-        // precision (see reduce_mod_2pi) -- this is the case that would
+        // precision (see reduce_mod_2pi). This is the case that would
         // silently give the wrong low digits if that budget were wrong.
         expect_str(number_sin(number_from_int(1000000)), 30, "-0.349993502171292952117652486781", 0);
         expect_str(number_cos(number_from_int(1000000)), 30, "0.936752127533144786938532535075", 0);
@@ -1117,7 +1117,7 @@ int main(void) {
         expect_str(number_pow(number_from_int(3), number_from_ratio(1, 3)), 30, "1.442249570307408382321638310780", 0);
 
         // pi + sqrt(2) etc. now evaluate instead of erroring (the general
-        // fallback's whole point) -- decimal digits and is_rational both
+        // fallback's whole point). Decimal digits and is_rational both
         // confirm this isn't a symbolic form.
         number pi = number_pi();
         number s2 = number_sqrt(number_from_int(2));
@@ -1150,8 +1150,8 @@ int main(void) {
         // asin/acos are built directly on number_sqrt with no separate
         // rational-only guard, so now that number_sqrt handles irrational
         // input, an already-irrational argument works too instead of
-        // erroring: asin(sin(1/2)) == 1/2 (not recognized symbolically --
-        // is_rational is false -- but numerically exact to any precision).
+        // erroring: asin(sin(1/2)) == 1/2 (not recognized symbolically, so
+        // is_rational is false, but numerically exact to any precision).
         {
             number s05 = number_sin(number_from_ratio(1, 2));
             number back = number_asin(s05); // borrows, doesn't consume
@@ -1163,7 +1163,7 @@ int main(void) {
         // recognize symbolically refine to the precision cap and report
         // "can't decide" rather than proving true. sin(x)^2+cos(x)^2 == 1
         // is mathematically exact but not caught by any identity here, so
-        // it should NOT compare equal to the rational 1 -- if this ever
+        // it should NOT compare equal to the rational 1. If this ever
         // starts passing, it means a real simplification was added and
         // this test (and its comment) should be revisited, not silently
         // deleted.
@@ -1291,7 +1291,7 @@ int main(void) {
         expect_tex(number_mul(onepi, onepi), "(1 + \\pi)^{2}");
         // exp(pi), not exp(2): a rational argument now unifies exp(x)*exp(x)
         // into the closed EXP(2x) form (see real_mul), so it wouldn't reach
-        // this IRR_MUL/IRR_EXP parenthesization path at all -- pi keeps this
+        // this IRR_MUL/IRR_EXP parenthesization path at all, so pi keeps this
         // exercising the general-fallback case.
         number exp_a = number_exp(pi);
         number exp_b = number_exp(pi);
@@ -1474,7 +1474,7 @@ int main(void) {
     // irrationals, against independently-computed nearest doubles. These
     // conversions are served by the hardware double-interval fast path when
     // it's enabled (the default) and by exact bigint bracketing when it
-    // isn't (-DNUMBER_NO_DOUBLE_FILTER) -- the expected values are the
+    // isn't (-DNUMBER_NO_DOUBLE_FILTER). The expected values are the
     // same either way, so this cross-checks the two implementations
     // against each other in whichever build is running. References were
     // computed by rounding 75-digit exact decimal expansions to the

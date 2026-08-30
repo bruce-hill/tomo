@@ -7,8 +7,8 @@ $ tomo run --debug fib.tm
 ```
 
 The program starts immediately and runs as it normally would. It stops when
-something stops it — a `breakpoint()` in the source, a runtime error, a fatal
-signal, or `Ctrl-C` — and hands you a prompt at that point:
+something stops it, whether a `breakpoint()` in the source, a runtime error, a
+fatal signal, or `Ctrl-C`, and hands you a prompt at that point:
 
 ```
 Tomo debugger -- break FILE.tm:LINE, step, next, finish, continue, bt, p VAR, tlocals, tframe, help
@@ -44,9 +44,9 @@ func describe(p:Point, tags:[Text] -> Text)
 ```
 
 Only a program compiled with `--debug` stops there. Without that flag
-`breakpoint()` compiles to nothing at all — not a call to an empty function, but
-nothing — so leaving one in the source costs a release build nothing. (The one
-exception is inside a lambda, where a builtin is reached through the closure's
+`breakpoint()` compiles to nothing at all, not a call to an empty function but
+nothing whatsoever, so leaving one in the source costs a release build
+nothing. (The one exception is inside a lambda, where a builtin is reached through the closure's
 captured function pointer rather than by name, the same way `say` is; there a
 release build keeps a call to an empty function.) Either way it does nothing if
 the program is run outside a debugger.
@@ -72,7 +72,7 @@ names = ["alice", "bob"]
 scores = {"a": 1, "b": 2}
 ```
 
-Values are printed with Tomo's own formatter — the same output `say()` would
+Values are printed with Tomo's own formatter, the same output `say()` would
 produce, syntax coloring included. gdb's own `print` gets the same treatment
 wherever the C type says which Tomo type it is: the number types, `Text`,
 `Path`, and every struct and enum the program defines. So `info locals`, a
@@ -81,12 +81,12 @@ read as Tomo too.
 
 Lists, tables, and optionals are the exception. Their C type records nothing
 about what they hold, so formatting one needs the type information a `--debug`
-build puts beside each variable — which is why `tlocals` and `p` can
-show them and a bare `print` of the underlying C value cannot.
+build puts beside each variable, which is why `tlocals` and `p` can show them
+and a bare `print` of the underlying C value cannot.
 
 ### Moving around the stack
 
-`bt` is the stack in Tomo's terms — the functions under their Tomo names, with
+`bt` is the stack in Tomo's terms: the functions under their Tomo names, with
 their arguments rendered the way Tomo writes them:
 
 ```
@@ -100,8 +100,8 @@ their arguments rendered the way Tomo writes them:
 This replaces gdb's `backtrace` (and `bt`/`where`). It shows every frame,
 including the runtime C ones in between; a frame that isn't Tomo code gets no
 argument list, because there is no Tomo rendering of one to give. Argument
-values are cut short (`items=[1, 2, 3, 4, 5, 6, 7, 8,…`) — a frame line is a
-summary, and `tlocals` is where a value is read properly. The frames a failure
+values are cut short (`items=[1, 2, 3, 4, 5, 6, 7, 8,…`), since a frame line is
+a summary, and `tlocals` is where a value is read properly. The frames a failure
 passed through on its way out of the runtime are shown too, so the Tomo frames
 of a crash are usually a few rows down.
 
@@ -112,12 +112,12 @@ other argument is handed to gdb's own backtrace, which is still there in full as
 `frame` *n*, `up`, and `down` select a frame and then report it the way a stop
 does: the Tomo name of the function, the source around the line, and the
 variables in scope. Selecting a frame that is not Tomo code (the runtime, the
-generated command-line wrapper) reports nothing extra — there is no Tomo view
-of it to give.
+generated command-line wrapper) reports nothing extra, because there is no Tomo
+view of it to give.
 
 ### Exact numbers
 
-A `Num` is exact, so what it prints is exact too — and `32768/3` or
+A `Num` is exact, so what it prints is exact too, and `32768/3` or
 `1/2 + sqrt(5)/2` is the right answer without being a readable one. The
 debugger shows the decimal alongside it:
 
@@ -131,8 +131,8 @@ root = sqrt(2) ≈ 1.4142135624
 golden = 1/2 + sqrt(5)/2 ≈ 1.6180339887
 ```
 
-A value whose exact form is already a decimal (`0.25`, `42`) is left alone —
-there is nothing to approximate. `set tomo-num-digits` *n* changes how many
+A value whose exact form is already a decimal (`0.25`, `42`) is left alone,
+since there is nothing to approximate. `set tomo-num-digits` *n* changes how many
 fractional digits the approximation carries, `0` turns it off, and
 `show tomo-num-digits` reports it. The decimal is correctly rounded, which is
 why it is marked `≈` rather than printed as the value: Tomo's own
@@ -141,7 +141,7 @@ actually has.
 
 ### Long values
 
-A Tomo value is formatted whole — a list is one line however long it is — and
+A Tomo value is formatted whole, so a list is one line however long it is, and
 the debugger prints everything in scope at every stop, so one big value would
 otherwise bury the rest of the screen. Values are cut off after `print elements` characters (200 by default):
 
@@ -160,7 +160,7 @@ on visible characters, so a colored value never loses its closing escape.
 
 A Tomo variable `x` is `_$x` in the generated C. The prefix is what keeps Tomo
 names from colliding with C keywords and with the runtime's own symbols, but it
-means a bare Tomo name typed at gdb either finds nothing or — worse — finds
+means a bare Tomo name typed at gdb either finds nothing or, worse, finds
 something else entirely:
 
 ```
@@ -182,7 +182,7 @@ log = @[2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
 
 `p` replaces gdb's `p`, which is an alias for `print`. `print` itself is
 untouched and still takes C names, and anything `p` doesn't recognize is handed
-straight to it — format letters (`p/x n`), value history, and the rest all
+straight to it, so format letters (`p/x n`), value history, and the rest all
 behave as they always did. Commands that aren't `p` take the C name, so a
 watchpoint on `x` is `watch _$x`.
 
@@ -193,9 +193,9 @@ and Tomo's operators and methods are not things gdb can call. `p x` works;
 
 ## Catching failures
 
-A Tomo runtime error — `fail()`, a failed assertion, an index out of range —
-normally prints its report and exits. Under `--debug` it stops in the debugger
-instead, after printing that report, with the failing frame and its variables
+A Tomo runtime error, whether `fail()`, a failed assertion, or an index out of
+range, normally prints its report and exits. Under `--debug` it stops in the
+debugger instead, after printing that report, with the failing frame and its variables
 still intact:
 
 ```
@@ -224,7 +224,7 @@ risky (boom.tm:3)
 builds compile at `-O0`, which traps it (see **Optimization** below).
 
 `Ctrl-C` interrupts the program and stops it wherever it happens to be, without
-killing it — `continue` resumes.
+killing it; `continue` resumes.
 
 ## Optimization
 
@@ -266,8 +266,8 @@ $ TOMO_CORE_DUMP=yes gdb -x "$prefix/lib/tomo@$(tomo --version)/tomo-gdb.py" ./p
 Tomo compiles to C, and the generated code carries `#line` directives pointing
 back at the `.tm` file (this is `--source-mapping`, on by default). That alone
 is enough for gdb to set breakpoints on Tomo lines, step through Tomo source,
-and produce backtraces in Tomo terms — it needs no help from Tomo to do any of
-that.
+and produce backtraces in Tomo terms, with no help from Tomo needed to do any
+of that.
 
 What it can't do on its own is show a Tomo *value*. An `Int` is a tagged
 small-integer-or-bignum, a `Text` is a rope, and a `[Int]` or `{Text:Int}`
@@ -284,5 +284,5 @@ to use a different gdb (or a gdb-compatible debugger) than the one on `$PATH`.
 
 ## See also
 
-- [Profiling](profiling.md) — `--instrument`, for where a program spends its time
-- [Compilation Pipeline](compilation.md) — what Tomo generates and how
+- [Profiling](profiling.md): `--instrument`, for where a program spends its time
+- [Compilation Pipeline](compilation.md): what Tomo generates and how

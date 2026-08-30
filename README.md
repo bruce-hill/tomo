@@ -126,8 +126,8 @@ The Tomo compiler is built as a fully static executable (musl libc) using
 
 The Boehm garbage collector, libunistring, the GNU multiple precision
 arithmetic library, and libbacktrace are vendored in `./vendor/` and built from
-source statically with the same `zig cc` toolchain — no system-installed copies
-of those libraries are needed. **The installed `tomo` compiles your programs
+source statically with the same `zig cc` toolchain, so no system-installed
+copies of those libraries are needed. **The installed `tomo` compiles your programs
 using a Zig toolchain bundled inside the installation** (under
 `libexec/tomo@VERSION/zig/`), so a Tomo installation is fully self-contained: no
 system C compiler is required to build or run Tomo programs, and the programs it
@@ -173,7 +173,7 @@ vendored libraries statically but link libc dynamically.
 **Windows is excluded** because Tomo's runtime relies on POSIX facilities (fork,
 mmap, pthreads, dlfcn) it doesn't provide, and **32-bit targets are excluded**
 because Tomo requires a 64-bit platform. Cross-compiling to a target only
-requires your host Zig — no target SDK or sysroot — since Zig bundles what's
+requires your host Zig, with no target SDK or sysroot, since Zig bundles what's
 needed to compile and link for each OS.
 
 

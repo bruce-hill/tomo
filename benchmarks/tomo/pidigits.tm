@@ -1,8 +1,8 @@
-# pidigits — The Computer Language Benchmarks Game
+# pidigits, from The Computer Language Benchmarks Game
 #
 # A Tomo port of Mr Ledrug's streaming spigot (the gcc-1 reference). This is a
 # pure big-integer benchmark: the reference uses GMP's mpz_t throughout, and
-# Tomo's default `Int` is exactly that — a GMP-backed arbitrary-precision
+# Tomo's default `Int` is exactly that, a GMP-backed arbitrary-precision
 # integer (small values stay tagged; big ones spill to bignum), so the port is
 # a near-transliteration with no inline C.
 #

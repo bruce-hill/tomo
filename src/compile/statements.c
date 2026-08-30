@@ -28,7 +28,7 @@ Text_t with_source_info(env_t *env, ast_t *ast, Text_t code) {
 // it declares, holding the TypeInfo the runtime formatter needs to print that
 // variable. A debugger stopped in this scope finds the companion in the same
 // block as the variable itself, which is what makes shadowing and nested
-// scopes resolve correctly -- and it is the only way to print a type-erased
+// scopes resolve correctly, and it is the only way to print a type-erased
 // value at all, since a List_t's C type says nothing about its items.
 //
 // This is a plain local rather than a `static`: the TypeInfo for a compound
@@ -49,7 +49,7 @@ Text_t compile_debug_typeinfo(env_t *env, const char *name, type_t *t) {
 // InlineCCode nodes to stand for an already-compiled fragment (a temporary's
 // name, an enum member access) and drops them into the middle of an
 // expression. A `#line` there moves the line counter backwards mid-statement,
-// and everything the compiler emits after it -- to the end of the function --
+// and everything the compiler emits after it, to the end of the function,
 // is attributed to whatever line the synthesized node happened to carry. A
 // debugger then reports that line for code that has nothing to do with it.
 public
@@ -101,7 +101,7 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
     // and `mod` are Euclidean, so they must go through the guarded
     // (zero-checked, Euclidean) reconstructed binop in
     // compile_update_assignment. (`/=` additionally changes the value's type
-    // for integer lvalues -- `/` is exact division -- which that path reports.)
+    // for integer lvalues, since `/` is exact division, which that path reports.)
     case DivideUpdate:
     case FloorDivideUpdate:
     case ModUpdate:

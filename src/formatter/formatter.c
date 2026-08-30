@@ -1043,7 +1043,7 @@ Text_t format_source(file_t *file, bool *formatted) {
 
     // The error is taken as a value and reported here rather than from inside
     // the parser, because the unwind below is what stops the parser reporting
-    // it itself -- and an unformattable file is worth a diagnostic. It lives on
+    // it itself, and an unformattable file is worth a diagnostic. It lives on
     // the heap because a modified automatic local of this frame would be
     // indeterminate after the longjmp:
     parse_error_t *parse_err = new (parse_error_t);

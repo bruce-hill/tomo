@@ -3,7 +3,7 @@
 # static (linux/musl) executables: musl libc, compiler-rt, zigc, libunwind,
 # and crt1.o. Tomo links compiled programs with -nostdlib against these
 # copies (see src/tomo.c) instead of letting zig supply its own, because zig
-# unconditionally builds its C runtime with full DWARF -- megabytes of debug
+# unconditionally builds its C runtime with full DWARF, i.e. megabytes of debug
 # info for libc internals that tomo stacktraces and gdb sessions never look
 # at, baked into every compiled program.
 #

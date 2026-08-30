@@ -161,7 +161,7 @@ char *gc_stream_finalize(FILE *stream, char **buf, size_t *size);
         gc_stream_finalize(_stream, &_buf, &_size);                                                                    \
     })
 // The highlighting is left out when output isn't colored (NO_COLOR, COLOR=0,
-// or not a terminal -- see tomo_init()):
+// or not a terminal; see tomo_init()):
 #define print_err(...)                                                                                                 \
     ({                                                                                                                 \
         fprint(stderr, USE_COLOR ? "\033[91;1m" : "", __VA_ARGS__, USE_COLOR ? "\033[m" : "");                          \

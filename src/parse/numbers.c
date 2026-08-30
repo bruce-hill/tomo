@@ -23,7 +23,7 @@ enum { NUM_PLAIN, NUM_PERCENT, NUM_DEGREES };
 // The exact value a numeric literal denotes. Built from the written digits
 // rather than a double, so `3.15` is 63/20 and not the nearest double to it,
 // and scaled exactly by any suffix: `%` is a division by 100, and `deg` a
-// multiplication by pi/180 -- which, pi being exact here, stays exact.
+// multiplication by pi/180, which, pi being exact here, stays exact.
 static Num_t num_literal_value(parse_ctx_t *ctx, const char *pos, const char *digits, int suffix) {
     Num_t n = number_from_decimal(digits);
     if (number_is_error(n)) parser_err(ctx, pos, pos, "I couldn't parse this number");
@@ -75,7 +75,7 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     size_t len = span_of(pos, "0123456789_");
     // Digits followed by `.identifier` are an Int with a method/field, not a
     // Num: `12.sqrt()` calls sqrt on the integer 12. But a SECOND dot ends
-    // that reading -- `12..round()` is the Num `12.` with `.round()` called
+    // that reading: `12..round()` is the Num `12.` with `.round()` called
     // on it, since `12.` followed by a path literal would be nonsense.
     if (pos[len] == '.' && pos[len + 1] != '.' && is_xid_start_next(pos + len + 1)) return NULL;
     else if (pos[len] == '.') len += 1 + span_of(pos + len + 1, "0123456789");
@@ -105,7 +105,7 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
 // would not. Returns NULL when there's no literal for the sign to fold into.
 ast_t *negate_literal(parse_ctx_t *ctx, const char *start, ast_t *literal) {
     // The sign is only part of the literal when it's written against the
-    // digits, which keeps a literal's span a literal -- what the formatter
+    // digits, which keeps a literal's span a literal, i.e. what the formatter
     // prints, and what `- -1` and `-(2)` would otherwise spoil. They're
     // negations of a literal instead, which is what they look like.
     if (!isdigit((unsigned char)start[1]) && start[1] != '.') return NULL;

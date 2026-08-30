@@ -1,19 +1,19 @@
-# mandelbrot — The Computer Language Benchmarks Game
+# mandelbrot, from The Computer Language Benchmarks Game
 #
 # A Tomo port. Renders the Mandelbrot set as a PBM bitmap (P4): one bit per
 # pixel, 1 = in the set, packed 8 pixels per byte MSB-first, rows padded to a
 # byte boundary. Output must match the C reference byte-for-byte.
 #
-# The escape loop is the classic form — squares computed once and reused in the
-# loop condition, membership decided by the final `zr² + zi² <= 4` — so the
-# boundary at exactly 4.0 matches the reference (which continues while `<= 4`,
+# The escape loop is the classic form, with squares computed once and reused
+# in the loop condition and membership decided by the final `zr² + zi² <= 4`,
+# so the boundary at exactly 4.0 matches the reference (which continues while `<= 4`,
 # i.e. escapes only when strictly greater).
 #
 # Design notes:
 #   - All arithmetic is native `Float64` (double) and the packing uses `Int64`, so
 #     the hot per-pixel loop stays in registers.
 #   - A whole row of packed bytes is filled into one reusable stack buffer and
-#     written raw through a `byte_writer` — no per-pixel or per-line Text.
+#     written raw through a `byte_writer`, with no per-pixel or per-line Text.
 #
 # Usage: mandelbrot <size>   (e.g. ./mandelbrot 16000)
 

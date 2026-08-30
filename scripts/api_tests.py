@@ -11,7 +11,7 @@ def single_test(name:str, test)->str:
     body = test["example"].strip()
     if name.startswith("Path.") or name in ['exit', 'say', 'print', 'sleep', 'fail', 'getenv', 'setenv', 'at_cleanup', 'ask']:
         # Compile-only: these examples have side effects (I/O, exit, ...) that
-        # must not actually run, so guard the body with `if no` -- it typechecks
+        # must not actually run, so guard the body with `if no`. It typechecks
         # but never executes, and the test passes as long as it compiles.
         return f'test "{name}"\n    if no\n        ' + body.replace('\n', '\n        ')
     return f'test "{name}"\n    ' + body.replace('\n', '\n    ')

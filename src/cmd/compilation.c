@@ -84,7 +84,7 @@ bool is_tomo_manpage(Path_t p) {
 // The build-info blob lives in a named section (see compile_build_info()
 // below), but rather than maintaining ELF/Mach-O/archive parsers just to find
 // that section, the blob brackets itself with sentinel strings and this scans
-// the raw bytes for them -- which works uniformly on executables for any
+// the raw bytes for them, which works uniformly on executables for any
 // platform and on `ar` archives like package.a. Entries are NUL-separated on
 // ELF (where the section is a string table) and newline-separated on Mach-O,
 // so NULs print as newlines.
@@ -172,7 +172,7 @@ static bool is_build_artifact(Text_t filename) {
 
 // Recursively add every file in `dir` to the zip's name->path table under
 // `prefix`, skipping hidden files (like .tomo/), compiled artifacts, and
-// symlinks (package binding links -- each linked package is embedded once,
+// symlinks (package binding links, since each linked package is embedded once,
 // under its own packages/ entry, via the dependency graph):
 static void add_dir_files(Table_t *files, Path_t dir, const char *prefix) {
     List_t children = Path$glob(Path$child(dir, Text("[!.]*")));
@@ -193,14 +193,14 @@ static bool is_store_entry_dir(Path_t dir) {
 }
 
 // Collect the binding names and (transitively) the store-entry digests that
-// the .tm files in `dir` still depend on -- parse-only, so no installs or
+// the .tm files in `dir` still depend on. Parse-only, so no installs or
 // confirmation prompts can trigger during garbage collection:
 static void collect_needed_packages(Path_t dir, Path_t store_root, Table_t *digests, Table_t *names) {
     List_t files = Path$glob(Path$child(dir, Text("*.tm")));
     for (int64_t i = 0; i < (int64_t)files.length; i++) {
         Path_t file = *(Path_t *)(files.data + i * files.stride);
         // A file that doesn't parse has no `use` statements to collect, and it
-        // may well be unrelated to what's being built -- garbage collection
+        // may well be unrelated to what's being built, and garbage collection
         // shouldn't fail the build over it, or report an error about a file the
         // user never asked to compile:
         parse_error_t parse_err = {};
@@ -277,7 +277,7 @@ static const char *package_zip_prefix(Path_t pkg_dir, Path_t root) {
 // where <consumer> is "" for the program's own files or the store-directory
 // name of the package making the use. Extraction recreates the
 // packages/<name> binding links from these lines (only for actually-used
-// packages -- the packages.ini pins may cover transitive dependencies too):
+// packages, since the packages.ini pins may cover transitive dependencies too):
 static const char *SOURCE_LINKS_ENTRY = "packages.links";
 
 // Record the packages that `consumer_file`'s use statements directly bind.
@@ -584,7 +584,7 @@ static Text_t compile_build_info(env_t *env, const char *symbol) {
 }
 
 // Launch a shell command with its stdout on a pipe (logging it like
-// command_output does), but WITHOUT waiting for it -- so several can run
+// command_output does), but WITHOUT waiting for it, so several can run
 // concurrently rather than one-at-a-time:
 #define popen_logged(...)                                                                                              \
     ({                                                                                                                 \
@@ -672,7 +672,7 @@ void build_package_archive(Path_t pkg_dir, List_t tm_files, Path_t archive) {
 // ---- atomic build artifacts -----------------------------------------------
 //
 // Artifacts are keyed by source path, so two `tomo` processes only ever write
-// the same file when they're building a shared dependency -- but when they do,
+// the same file when they're building a shared dependency, but when they do,
 // an O_TRUNC-then-write leaves a window where a third process reads a truncated
 // header or links a half-written object. Every artifact is therefore written to
 // a sibling temp file and renamed into place: rename(2) within a directory is
@@ -699,8 +699,8 @@ static void commit_artifact(Path_t temp, Path_t final) {
 // (where the optimizer, which a PCH does nothing for, dominates).
 //
 // A PCH is only usable by an invocation whose language and codegen options
-// match the ones it was built with -- clang rejects a mismatch outright rather
-// than falling back -- and Tomo's flags vary with the optimization level, the
+// match the ones it was built with (clang rejects a mismatch outright rather
+// than falling back), and Tomo's flags vary with the optimization level, the
 // target platform, and which headers the installation has. So rather than
 // shipping prebuilt ones (which cross-compiled distribution archives couldn't
 // produce anyway: their `tomo` doesn't run on the build host), the PCH is
@@ -766,7 +766,7 @@ static bool precompiled_header_resolved = false;
 // rejects the PCH). It exists to defeat `zig cc`'s own compilation cache,
 // which is content-addressed: without it, zig answers a PCH build with an
 // artifact it produced earlier from byte-identical headers, one that recorded
-// their *previous* mtimes -- and clang validates a PCH by mtime, so the reused
+// their *previous* mtimes, and clang validates a PCH by mtime, so the reused
 // artifact is rejected by every compile that tries to load it. Since the
 // fingerprint changes whenever those mtimes do (a plain `cp` of the headers
 // during `make install` is enough), keying zig's cache on it too keeps the two
@@ -814,9 +814,9 @@ static OptionalPath_t get_precompiled_header(void) {
         return precompiled_header;
     }
 
-    // Cache miss: build it. A failure here is not fatal -- the same headers are
-    // about to be compiled the ordinary way, which will report any real error
-    // against the user's own source rather than against tomo.h.
+    // Cache miss: build it. A failure here is not fatal, since the same
+    // headers are about to be compiled the ordinary way, which will report any
+    // real error against the user's own source rather than against tomo.h.
     (void)Path$create_directory(cache_dir, 0755, /*recursive=*/true);
     Path_t temp = artifact_temp(pch);
     TOMO_PROFILE_SPAN_BEGIN(span, "cc precompile tomo.h");
@@ -867,7 +867,7 @@ static void discard_precompiled_header(void) {
 // must never be able to fail a compile that would otherwise succeed, so an
 // attempt that used a PCH holds its diagnostics back; if it fails, the PCH is
 // discarded and the compile re-run without one, which either succeeds or
-// reports the program's real error itself -- uncaptured, and in colour.
+// reports the program's real error itself, uncaptured and in colour.
 static bool run_compile(const char *args, Path_t scratch) {
     const char *pch = pch_flag();
     if (pch[0] != '\0') {
@@ -934,7 +934,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
                 filename_id = Texts(filename_id, Text$from_strn((char[]){(char)c}, 1));
         }
         // The id is *random*, so two processes racing here would invent two different ones and each bake its own
-        // into the names it mangles -- a wrong build, not just a duplicated one. Write the id to a temp file and
+        // into the names it mangles, a wrong build and not just a duplicated one. Write the id to a temp file and
         // link() it into place: link is atomic and fails with EEXIST if someone else got there first, so everyone
         // ends up agreeing on a single id. Linking after the content is written means a reader never sees a
         // half-written id either.
@@ -977,7 +977,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
     // Resolve (and, on a cold cache, build) the precompiled header here in the
     // parent: the children below all need the same one, and each forking its
     // own build would mean N redundant compiles of tomo.h. Only when there is
-    // actually something to compile, though -- an up-to-date build that forks
+    // actually something to compile, though: an up-to-date build that forks
     // no children at all shouldn't pay for a cold cache.
     if (mode != COMPILE_C_FILES) {
         for (int64_t i = 0; i < (int64_t)dependency_files.entries.length; i++) {
@@ -1284,7 +1284,7 @@ void transpile_code(env_t *base_env, Path_t path) {
         // The generated command-line wrapper is code the program never wrote,
         // so it must not inherit the .tm line numbering compile_file() opens
         // the file with. Left alone, every line of the wrapper claims to be a
-        // line of the .tm file -- counting on from that opening `#line 1` --
+        // line of the .tm file, counting on from that opening `#line 1`,
         // and a debugger stopped in it reports whichever Tomo code happens to
         // sit at those line numbers. Point it back at the C file it actually
         // is, which means knowing how many lines come before it.
@@ -1296,7 +1296,7 @@ void transpile_code(env_t *base_env, Path_t path) {
                 last = *p;
             }
             // A `#line` is a preprocessor directive, so it has to start its own
-            // line -- if the code so far didn't end with a newline, break the
+            // line. If the code so far didn't end with a newline, break the
             // line first (which puts the directive one line further down).
             Text_t newline = EMPTY_TEXT;
             if (last != '\n') {
@@ -1462,8 +1462,8 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
 
     // Libraries bundled with the Tomo toolchain: every program links the full
     // vendored archives (below), so a package's `use -lgmp` etc. must not
-    // become a -l flag -- no system copies exist (the toolchain uses its own
-    // static musl builds):
+    // become a -l flag, since no system copies exist (the toolchain uses its
+    // own static musl builds):
     static const char *bundled_libs[] = {"-lgc", "-lgmp", "-lunistring", "-lbacktrace", "-lm", "-lunwind"};
 
     // .a archive files need to go later in the positional order:
@@ -1554,8 +1554,9 @@ Path_t build_test_runner(Path_t path, List_t object_files, List_t extra_ldlibs, 
     // The runner TU already contains the module's full code (so tests can reach
     // its private helpers), so drop the module's own object file from the link
     // to avoid duplicate definitions of its public symbols. Compare resolved
-    // absolute paths -- the dependency-graph objects and build_file(path) can
-    // carry different (relative vs absolute) representations of the same file:
+    // absolute paths, since the dependency-graph objects and build_file(path)
+    // can carry different (relative vs absolute) representations of the same
+    // file:
     Path_t cwd = Path$current_dir();
     const char *module_obj = Path$as_c_string(Path$resolved(build_file(path, ".o"), cwd));
     List_t link_objects = EMPTY_LIST;

@@ -4,7 +4,7 @@
 // Runtime tests (`test` and `fails`) are batched into a single runner binary
 // that forks per test (see stdlib/test_harness.c). Compile-failure tests
 // (`fails_compile`) are checked here in the driver by forking the frontend and
-// typechecking the block in a child -- no C compiler involved. Both kinds of
+// typechecking the block in a child, with no C compiler involved. Both kinds of
 // result flow into one merged summary.
 
 #include <gc.h>
@@ -137,7 +137,7 @@ static test_result_t run_compile_fail(env_t *module_env, ast_t *test_node) {
     bool failed = !WIFEXITED(status) || WEXITSTATUS(status) != 0;
     test_outcome_t outcome;
     if (WIFSIGNALED(status)) {
-        // The compiler crashed rather than emitting a diagnostic -- that's a compiler bug, not a legitimate
+        // The compiler crashed rather than emitting a diagnostic, which is a compiler bug, not a legitimate
         // "expected failure", so surface it as a failing test instead of a silent pass.
         output = (char *)String("(the compiler crashed with signal ", (int64_t)WTERMSIG(status),
                                 " instead of reporting an error)\n", output);
@@ -166,8 +166,8 @@ static test_result_t run_compile_fail(env_t *module_env, ast_t *test_node) {
 #define WORKER_RUNNER_CRASHED 3 // exit code: the test runner died on a signal
 
 // Run one file's tests, streaming each result back over `msg_fd`. This runs in
-// a forked worker, so anything fatal here -- an unparseable file, a compiler
-// crash -- takes down only this job, and the driver turns it into one failed
+// a forked worker, so anything fatal here, whether an unparseable file or a
+// compiler crash, takes down only this job, and the driver turns it into one failed
 // file rather than an aborted run.
 static void run_tests_for_file(Path_t path, int msg_fd) {
     env_t *env = global_env(source_mapping, instrument, debugging);
@@ -175,7 +175,7 @@ static void run_tests_for_file(Path_t path, int msg_fd) {
     if (!ast) print_err("Could not parse file: ", path);
 
     // Shared dependencies were built by the driver before any worker started, so this compiles only what belongs
-    // to this file -- no two workers write the same artifact. It also collects the object list for the link below.
+    // to this file, so no two workers write the same artifact. It also collects the object list for the link below.
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
     compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_OBJ);
 
@@ -207,7 +207,7 @@ static void run_tests_for_file(Path_t path, int msg_fd) {
     Path_t runner = build_test_runner(path, object_files, extra_ldlibs, runner_source);
     const char *runner_path = Path$as_c_string(Path$relative_to(runner, Path$current_dir()));
 
-    // The runner writes its records straight to the driver's pipe -- no need to relay them through this process.
+    // The runner writes its records straight to the driver's pipe, with no need to relay them through this process.
     fflush(NULL);
     pid_t pid = fork();
     if (pid == 0) {
@@ -223,7 +223,7 @@ static void run_tests_for_file(Path_t path, int msg_fd) {
     int run_status = 0;
     waitpid(pid, &run_status, 0);
     // A clean exit (0 = all passed, 1 = some failed) is expected; death by signal means the runner itself
-    // crashed, so the records we forwarded may be truncated -- make sure that can't read as a green suite.
+    // crashed, so the records we forwarded may be truncated. Make sure that can't read as a green suite.
     if (WIFSIGNALED(run_status)) {
         // Flush first: this worker's stdout is a pipe (fully buffered), so _exit() alone would throw away the
         // build/diagnostic output that is the only explanation the driver has to show.
@@ -292,7 +292,7 @@ static void start_job(job_t *j) {
 
 // Build the modules that more than one input depends on, before any worker
 // starts. Two workers that shared a dependency would otherwise race writing its
-// .h/.c/.o. Everything else -- each file's own module -- is left to its worker,
+// .h/.c/.o. Everything else, each file's own module, is left to its worker,
 // so compilation still happens in parallel and results start arriving as soon
 // as the first file is ready.
 static void build_shared_dependencies(env_t *env, List_t paths) {
@@ -306,7 +306,7 @@ static void build_shared_dependencies(env_t *env, List_t paths) {
         Path_t path = *(Path_t *)(paths.data + i * paths.stride);
         // Parse it here first, catching a parse error rather than dying on it: this scan runs in the driver, so an
         // unparseable file would otherwise abort the whole run. Left out of the scan, it simply gets no shared
-        // deps, and its own worker hits the same error and reports it as that one file failing -- which is also
+        // deps, and its own worker hits the same error and reports it as that one file failing, which is also
         // why the captured error is dropped rather than printed here.
         parse_error_t parse_err = {};
         if (!parse_file(Path$as_c_string(path), &parse_err)) continue;

@@ -1,6 +1,6 @@
 # Python bytecode cache from the driver/plotter.
 __pycache__/
-# Downloaded reference implementations (other languages) — never tracked.
+# Downloaded reference implementations (other languages), never tracked.
 fetched/
 # Compiled binaries and per-language build scratch.
 .build/

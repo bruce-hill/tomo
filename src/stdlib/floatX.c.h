@@ -94,8 +94,8 @@ PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInf
 }
 #endif
 
-// Approximating an exact real as a float is lossy for most values -- 1/3 and
-// sqrt(2) have no float at all -- so unlike the integer conversions this
+// Approximating an exact real as a float is lossy for most values, since 1/3
+// and sqrt(2) have no float at all, so unlike the integer conversions this
 // defaults to truncate=yes: asking for a float is asking for the
 // approximation. truncate=no demands the float be the exact value.
 public

@@ -12,8 +12,8 @@
 #include "util.h"
 
 // `none` is the all-zeroes word. number-design.md guarantees that is never a
-// valid number -- rational zero is 0/1 with tag 01, and a heap pointer is
-// never NULL -- so an optional Num costs nothing extra: no tag byte, no
+// valid number, since rational zero is 0/1 with tag 01 and a heap pointer is
+// never NULL, so an optional Num costs nothing extra: no tag byte, no
 // widening, same 8 bytes as a Num.
 #define NONE_NUM ((OptionalNum_t){.bits = 0})
 
@@ -23,7 +23,7 @@
 // the hot path, and the part worth duplicating at a call site is small. The
 // arithmetic they wrap is itself an inline fast path over the immediate tier
 // falling through to an out-of-line general case (see number.h), so an
-// operator on two small rationals -- the overwhelmingly common case --
+// operator on two small rationals, the overwhelmingly common case,
 // compiles to a few instructions in the caller with no call at all.
 //
 // A domain error (1/0, 0^-1, ...) fails immediately rather than propagating,
@@ -130,8 +130,8 @@ PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t *typ
 PUREFUNC int32_t Num$undecided_compare(Num_t x, Num_t y);
 
 // Where exactness runs out. Comparing two irrationals is undecidable in
-// general -- proving sqrt(3 + 2*sqrt(2)) == 1 + sqrt(2) takes symbolic
-// reasoning no engine does in full -- so past this many digits of agreement,
+// general, since proving sqrt(3 + 2*sqrt(2)) == 1 + sqrt(2) takes symbolic
+// reasoning no engine does in full, so past this many digits of agreement,
 // two values are treated as the same. Deep enough that nothing a program
 // actually computes lands inside it by accident.
 #define EQUALITY_DIGITS 40
@@ -139,12 +139,12 @@ PUREFUNC int32_t Num$undecided_compare(Num_t x, Num_t y);
 // EQUALITY_DIGITS expressed as bits of refinement, which is what the exact
 // layer actually works in: 40 decimal places need 40*log2(10) = 132.9 bits,
 // and refinement decides a value once its magnitude exceeds 4 at the working
-// precision -- i.e. once |x| > 2^-(w-2) -- so w = 140 resolves everything
+// precision, i.e. once |x| > 2^-(w-2), so w = 140 resolves everything
 // down to 2^-138 ~= 2.3e-42, comfortably past the last digit that matters.
 //
 // This is the number that makes the two halves of Num equality line up. The
 // undecided fallback below rounds to EQUALITY_DIGITS and compares that, so
-// any refinement past this width produces an answer that gets thrown away --
+// any refinement past this width produces an answer that gets thrown away
 // and, worse, is the *expensive* part: proving a difference nonzero gets
 // harder the smaller it is, and a difference that is exactly zero can never
 // be proven nonzero at all, so an uncapped call always runs every doubling
@@ -154,8 +154,8 @@ PUREFUNC int32_t Num$undecided_compare(Num_t x, Num_t y);
 #define NUM_EQUALITY_PREC 140
 
 // number_compare answers 2 for "couldn't decide", which happens only for two
-// general irrationals; everything else -- every rational, every closed
-// symbolic form -- decides here, inline.
+// general irrationals; everything else, every rational and every closed
+// symbolic form, decides here, inline.
 MACROLIKE PUREFUNC int32_t Num$compare_value(Num_t x, Num_t y) {
     int cmp = number_compare_capped(x, y, NUM_EQUALITY_PREC);
     if (unlikely(cmp == 2)) return Num$undecided_compare(x, y);
@@ -164,8 +164,8 @@ MACROLIKE PUREFUNC int32_t Num$compare_value(Num_t x, Num_t y) {
 PUREFUNC bool Num$equal(const void *x, const void *y, const TypeInfo_t *type);
 // When BOTH sides are small rational immediates, bit equality settles it
 // outright: small rationals are canonical, so equal ones are bit-identical.
-// Unlike number_equal in number.h -- whose equality is exactly the library's
-// own, so a *single* tag test suffices there -- equality here is whatever
+// Unlike number_equal in number.h, whose equality is exactly the library's
+// own, so a *single* tag test suffices there, equality here is whatever
 // Num$compare_value says, and that widens to "agrees to EQUALITY_DIGITS" for
 // an undecidable irrational (see Num$undecided_compare). A one-sided test
 // would let `sin(1):asin()! == 1.0` answer no while `<=` and `>=` both answer

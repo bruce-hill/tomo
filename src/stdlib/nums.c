@@ -20,7 +20,7 @@
 // A Num that a Tomo program can actually hold is never the `number` library's
 // error value: an operator that would produce one fails immediately, and a
 // method that would produce one answers `none` instead. So error
-// *propagation* -- the reason the library has an error value at all -- can't
+// *propagation*, the reason the library has an error value at all, can't
 // arise here, and only operations that can error from valid operands need
 // checking. The rest are wrapped with no test at all.
 
@@ -51,8 +51,8 @@ static OptionalNum_t opt(Num_t n) {
 // on, and one case is genuinely undecidable: a value sitting so close to the
 // boundary that no identity the engine recognizes places it, which refines
 // forever and gives up. Failing there would contradict how equality already
-// behaves -- agreement to EQUALITY_DIGITS settles what refinement can't -- so
-// decide it the same way, from that approximation, which is a rational and so
+// behaves, since agreement to EQUALITY_DIGITS settles what refinement can't,
+// so decide it the same way, from that approximation, which is a rational and so
 // always rounds. The guard after it is unreachable: it would take a value
 // whose decimal expansion is itself undecidable at that precision.
 #define UNARY_ROUNDING(name, fn)                                                                                       \
@@ -131,8 +131,8 @@ BINARY_OPT(lcm, number_lcm) // an irrational operand
 
 // --- Constructors ---
 //
-// Every one of these is exact. Converting *from* a Float64 is exact too --
-// every finite double is a rational -- but it converts the double's actual
+// Every one of these is exact. Converting *from* a Float64 is exact too,
+// since every finite double is a rational, but it converts the double's actual
 // value, so Float64(0.1) becomes 3602879701896397/36028797018963968 rather
 // than 1/10. Writing `0.1` directly gives the tenth.
 
@@ -194,8 +194,8 @@ Num_t Num$floor_divided_by(Num_t x, Num_t y) {
 }
 
 // Euclidean modulus, matching the integer types: always non-negative,
-// upholding x == y*(x//y) + (x mod y) exactly. (number_mod is *floored* --
-// its result takes the divisor's sign -- so it can't be used directly.)
+// upholding x == y*(x//y) + (x mod y) exactly. (number_mod is *floored*, so
+// its result takes the divisor's sign, and it can't be used directly.)
 public
 Num_t Num$modulo(Num_t x, Num_t y) {
     return Num$minus(x, Num$times(y, Num$floor_divided_by(x, y)));
@@ -258,12 +258,12 @@ Num_t Num$tau(void) {
 // want. These are the ways to ask.
 
 // The decimal expansion to at most `digits` fractional places. Exact values
-// stop early rather than padding zeros -- (1/4):digits(10) is "0.25" -- and
+// stop early rather than padding zeros, so (1/4):digits(10) is "0.25", and
 // need no marker. A value that doesn't fit shows a TRUNCATED prefix of its
 // true expansion with the ellipsis appended: never a rounding, whatever the
 // ellipsis is. The shown digits are always digits the value actually has --
 // (2/3):digits(10) is "0.6666666666…", not "0.6666666667" with a 7 the
-// expansion never contains -- and anyone who wants rounding rounds first.
+// expansion never contains, and anyone who wants rounding rounds first.
 public
 Text_t Num$digits(Num_t n, Int_t digits, Text_t ellipsis) {
     int64_t d = Int64$from_int(digits, false);
@@ -280,7 +280,7 @@ Text_t Num$digits(Num_t n, Int_t digits, Text_t ellipsis) {
     return Text$concat(Text$from_str(number_to_string(prefix, (uint32_t)d, NULL)), ellipsis);
 }
 
-// Whether `digits` fractional places capture the value exactly -- that is,
+// Whether `digits` fractional places capture the value exactly, that is,
 // whether `:digits(digits)` is the value itself rather than a truncation of it.
 public
 PUREFUNC bool Num$is_exact(Num_t n, Int_t digits) {
@@ -326,7 +326,7 @@ PUREFUNC bool Num$is_integer(Num_t n) {
 
 public
 Text_t Num$value_as_text(Num_t n) {
-    // Whatever is printed here is exact -- never a rounded decimal, which
+    // Whatever is printed here is exact, never a rounded decimal, which
     // would quietly misreport the value. A terminating decimal is the
     // friendliest exact form when one exists (0.1 + 0.2 prints as "0.3"), so
     // try that first; otherwise fall back to the symbolic form, which is exact
@@ -354,7 +354,7 @@ static Num_t rounded_for_equality(Num_t n) {
     return number_is_error(rounded) ? n : rounded;
 }
 
-// Reached only when number_compare answers 2 -- "couldn't decide" -- which
+// Reached only when number_compare answers 2, "couldn't decide", which
 // means two general irrationals whose difference it can neither prove zero
 // nor prove nonzero, and which do not have the same symbolic form (that case
 // number_compare already answers 0 itself, without refining).
@@ -397,7 +397,7 @@ PUREFUNC bool Num$is_none(const void *n, const TypeInfo_t *info) {
     return ((Num_t *)n)->bits == NONE_NUM.bits;
 }
 
-// Serialized as the exact symbolic form -- "1/3", "sqrt(2)", "1 + pi" -- and
+// Serialized as the exact symbolic form ("1/3", "sqrt(2)", "1 + pi") and
 // read back by parsing it. That form is the only representation that covers
 // every tier: a binary encoding of the tagged word would be writing out
 // pointers, and a decimal expansion doesn't terminate for most fractions and

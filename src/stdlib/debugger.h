@@ -2,7 +2,7 @@
 
 #pragma once
 
-// The symbol a debugger stops on. It does nothing itself -- its whole purpose
+// The symbol a debugger stops on. It does nothing itself, since its whole purpose
 // is to be a place in the program that a debugger can name. `tomo run --debug`
 // sets a breakpoint on it and, when it fires, steps up into the Tomo frame
 // that called it (see lib/tomo@VERSION/tomo-gdb.py).

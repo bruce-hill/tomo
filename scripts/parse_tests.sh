@@ -8,7 +8,7 @@
 # The runner doesn't care which: a file that unexpectedly stops parsing, or one
 # that unexpectedly starts, fails against its snapshot either way. Error
 # snapshots pin the caret span as well as the message, which is otherwise
-# untested -- a caret that drifts to the wrong characters breaks nothing that
+# untested, since a caret that drifts to the wrong characters breaks nothing that
 # any other test can see.
 #
 # Usage: parse_tests.sh TOMO [--regen]

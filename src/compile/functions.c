@@ -183,7 +183,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
         // ... and so should a numeric literal wrapped in a float or `Num`
         // constructor. `Num` especially: without this, get_constructor picks
         // the last-registered overload whose parameter the literal can compile
-        // to, which is `Num$from_float32` -- so `Num(0.1)` would round the
+        // to, which is `Num$from_float32`, so `Num(0.1)` would round the
         // exact tenth through a *single*-precision float, the exact opposite of
         // what the type is for.
         else if ((t->tag == FloatType || t->tag == NumType) && call->args && !call->args->next
@@ -694,7 +694,7 @@ static void check_unused_vars(env_t *env, arg_ast_t *args, ast_t *body) {
 }
 
 // The TypeInfo companions a `--debug` build puts at the top of a function
-// body, one per parameter -- the same thing compile_debug_typeinfo() does for
+// body, one per parameter, the same thing compile_debug_typeinfo() does for
 // a declaration, for the variables a function is entered with rather than the
 // ones it declares.
 static Text_t compile_debug_arg_typeinfos(env_t *env, arg_ast_t *args) {
@@ -721,7 +721,7 @@ static Text_t compile_profiling(env_t *env, ast_t *ast, Text_t name_code, Text_t
 }
 
 // A function's name as a Tomo programmer would write it ("Foo.bar"), for the
-// profile report -- the C symbol name is an implementation detail.
+// profile report, since the C symbol name is an implementation detail.
 static Text_t profile_display_name(env_t *env, const char *function_name) {
     Text_t name = Text$from_str(function_name);
     for (namespace_t *ns = env->namespace; ns; ns = ns->parent)
@@ -807,8 +807,8 @@ static Text_t compile_lambda_ex(env_t *env, ast_t *ast, bool args_by_pointer) {
         userdata = Texts(userdata, "}))");
         // The closure calling convention passes userdata as a `void *` (see the
         // fn_type_code casts at call sites). The lambda's own signature must
-        // match that type exactly -- calling through a mismatched
-        // function-pointer type is undefined behavior -- so take `void *` and
+        // match that type exactly, since calling through a mismatched
+        // function-pointer type is undefined behavior, so take `void *` and
         // cast to the concrete userdata struct inside:
         code = Texts(code, "void *$userdata)");
     }

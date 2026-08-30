@@ -1,4 +1,4 @@
-# n-body — The Computer Language Benchmarks Game
+# n-body, from The Computer Language Benchmarks Game
 #
 # A Tomo port. The simulation uses NO inline C; the only C_code use is the
 # final printf() calls, which format the energy to 9 decimal places (the
@@ -45,7 +45,7 @@ func advance(bodies:&[Body], steps:Int64, dt:Float64)
     for _ in Int64(1).to(steps)
         # The outer body is held by reference (`&bi`): direct field reads and a
         # single field write, no per-element checks. The inner `bodies[j]`
-        # cross-accesses stay indexed (checked) — they're random-access by
+        # cross-accesses stay indexed (checked), since they're random-access by
         # nature. The list stays live inside a `for &` loop, so indexed reads
         # and writes through `bodies` are fine; only resizing/copying it
         # mid-loop is (loudly) disallowed.

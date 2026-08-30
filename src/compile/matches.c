@@ -45,7 +45,7 @@ Text_t compile_match_statement(env_t *env, ast_t *ast) {
 
     // Written out rather than wrapped in a macro: the clause bodies below
     // carry `#line` directives, and a preprocessor directive inside a
-    // function-like macro's arguments is undefined -- the preprocessor drops
+    // function-like macro's arguments is undefined: the preprocessor drops
     // them, and every line of every clause ends up attributed to the line the
     // `match` itself is on. That makes a debugger unable to tell one clause
     // from another, or to break on a line inside one.

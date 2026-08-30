@@ -34,12 +34,13 @@ BUILD = os.path.join(HERE, ".build")
 RESULTS = os.path.join(HERE, "results.json")
 SIZES = os.path.join(HERE, "sizes.json")
 # Build with the repo's own in-tree compiler, not whatever `tomo` happens to
-# be on PATH — an installed release build can lag behind language features
-# used by the ports (e.g. `for x at i in xs`), and silently mis-parse them.
+# be on PATH, since an installed release build can lag behind language
+# features used by the ports (e.g. `for x at i in xs`), and silently mis-parse
+# them.
 LOCAL_TOMO = os.path.join(HERE, "..", "local-tomo")
 
 # C# is compiled with Native AOT (matching CLBG's `csharpaot` entries) so it
-# produces a standalone native binary — a fair peer to the other compiled
+# produces a standalone native binary, a fair peer to the other compiled
 # languages, with none of the ~25 ms JIT/runtime startup a `dotnet foo.dll`
 # launch would add to every short benchmark. Needs `clang` for the final link.
 # Zig is fetched from the community Programming-Language-Benchmarks repo (the
@@ -201,7 +202,7 @@ def on_battery(base="/sys/class/power_supply"):
     """True if running on battery, False if on AC, None if undeterminable.
 
     Battery power caps sustained CPU turbo, which reproducibly slows timings
-    even when pinned to one core -- enough to make results.json inconsistent
+    even when pinned to one core, enough to make results.json inconsistent
     with rows recorded while plugged in. Reads the Linux power-supply sysfs;
     returns None on other platforms or when there is no AC/battery to inspect
     (e.g. a desktop, or an empty sysfs), so the caller can proceed rather
@@ -319,7 +320,7 @@ def prepare(cfg, bname, lang):
 
     run = expand(spec["run"], src=src, bin="", tomo=LOCAL_TOMO, zig=ZIG_BIN)
     # A `prelude` is a one-liner run via the interpreter's `-e` before the
-    # script — used to shim LuaJIT (Lua 5.1 semantics) up to the handful of
+    # script, used to shim LuaJIT (Lua 5.1 semantics) up to the handful of
     # 5.2+ names a few CLBG Lua entries expect (e.g. `table.unpack`), so we can
     # run the *same* fetched source under both Lua and LuaJIT without editing
     # it. The script still sees its own argv.
@@ -453,7 +454,7 @@ def _langs_for(cfg, bench):
 
 
 # ---------------------------------------------------------------------------
-# sizes — compare compiled *static* binary sizes across languages
+# sizes: compare compiled *static* binary sizes across languages
 # ---------------------------------------------------------------------------
 # Only languages that can produce a standalone statically-linked binary are
 # included, so the comparison is like-for-like (a self-contained executable,
@@ -520,7 +521,7 @@ def sizes(cfg, benchmarks):
                 continue
             src = source_path(cfg, bname, lang)
             if not os.path.exists(src):
-                print(f"  skip {lang:<11} (source missing — run fetch)")
+                print(f"  skip {lang:<11} (source missing, run fetch)")
                 continue
             bdir = os.path.join(BUILD, bname, "size")
             os.makedirs(bdir, exist_ok=True)

@@ -7,13 +7,13 @@ which is exact.
 
 Floats support the standard math operations (`x+y`, `x-y`, `x*y`, `x/y`) as
 well as powers/exponentiation (`x^y`), modulus (`x mod y` and `x mod1 y`), and
-floored division (`x // y`, which is `floor(x/y)` -- unlike the integer types
+floored division (`x // y`, which is `floor(x/y)`, unlike the integer types
 and `Num`, whose `//` is the Euclidean quotient).
 
 Because a bare numeric literal like `1.5` is a `Num`, a float is written by
 naming the type: `Float64(1.5)` or `Float32(123.456)`. In any position where
-the type is already known -- a typed variable, a function argument, a
-comparison against a float -- a literal is compiled directly to a float with
+the type is already known, whether a typed variable, a function argument, or a
+comparison against a float, a literal is compiled directly to a float with
 no `Num` involved:
 
 ```tomo

@@ -63,7 +63,7 @@ ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
     // hitting any terminator above; pos must still advance past what was
     // consumed, or the "path" is a zero-width AST and every enclosing parse
     // loop (parse_file_body's for(;;), block statement loops) spins forever
-    // re-parsing the same spot -- `x := 12..y` used to hang the compiler.
+    // re-parsing the same spot. `x := 12..y` used to hang the compiler.
     if (!terminated) pos += len;
     char *path = String(string_slice(path_start, .length = len));
     for (char *src = path, *dest = path;;) {

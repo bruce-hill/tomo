@@ -14,7 +14,7 @@
 #include "compilation.h"
 
 // For loops with an optional `i` index variable (`for i, x in ...`), the index
-// is an Int64 counting 1, 2, 3, ... -- an independent counter declared before
+// is an Int64 counting 1, 2, 3, ..., an independent counter declared before
 // the loop and stepped once per yielded element:
 static Text_t index_counter_decl(Text_t index) {
     return index.length > 0 ? Texts("Int64_t ", index, "$counter = 0;\n") : EMPTY_TEXT;
@@ -33,10 +33,10 @@ static Text_t index_counter_step(Text_t index) {
 // pins registers and blocks vectorization. When we can prove the guard can't
 // fire mid-loop, we hoist it: compact once (if shared) before the loop, then
 // compile the loop's list accesses against hoisted data/stride/length locals
-// (List_get_hoisted / List_lvalue_hoisted / List_swap_hoisted -- bounds
-// checks kept, only the CoW guard and the header re-reads are removed).
+// (List_get_hoisted / List_lvalue_hoisted / List_swap_hoisted, with bounds
+// checks kept and only the CoW guard and the header re-reads are removed).
 //
-// Soundness: data_refcount is not a general aliasing property -- writes
+// Soundness: data_refcount is not a general aliasing property, since writes
 // through aliased pointers never bump it. It changes only at specific
 // compiler-emitted operations: taking a value snapshot (copying/dereferencing
 // a list value, slicing), starting a list iteration (which snapshots), and
@@ -119,7 +119,7 @@ static bool cow_expr_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
         // Constructor calls of scalar types (e.g. `Int64(1)`) are pure
         // conversions: with scalar-only arguments they can't touch any list.
         // Actual function calls (the callee is a function, not a type) stay
-        // disallowed -- they could reach the list through an escaped alias.
+        // disallowed, since they could reach the list through an escaped alias.
         DeclareMatch(call, ast, FunctionCall);
         type_t *fn_t = cow_var_type(env, call->fn);
         if (fn_t == NULL || fn_t->tag != TypeInfoType || !cow_type_ok(Match(fn_t, TypeInfoType)->type)) return false;
@@ -216,7 +216,7 @@ static bool cow_stmt_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
     }
     case MethodCall: {
         // `xs.swap(i, j)` is the one whitelisted method: it compiles inline
-        // (List_swap) and behaves exactly like a pair of indexed writes -- it
+        // (List_swap) and behaves exactly like a pair of indexed writes: it
         // never snapshots or resizes, and its own CoW guard is elided under a
         // hoist just like List_lvalue's.
         DeclareMatch(call, ast, MethodCall);
@@ -288,8 +288,8 @@ static env_t *cow_hoist_env(env_t *env, ast_t *loop_ast, Text_t *prelude) {
     // Two phases, because different variables can alias the same heap list
     // (and thus the same header struct): first compact every *written* list
     // if shared, then capture every accessed list's header (data/stride/
-    // length) into locals. Captures must come after ALL compacts -- a compact
-    // changes the header, and an alias captured before it would go stale.
+    // length) into locals. Captures must come after ALL compacts, since a
+    // compact changes the header and an alias captured before it would go stale.
     // Accesses inside the loop compile against these locals, so the C
     // compiler can keep the header in registers and strength-reduce the
     // stride multiply; going through the list pointer would force a reload on
@@ -323,8 +323,8 @@ static env_t *cow_hoist_env(env_t *env, ast_t *loop_ast, Text_t *prelude) {
 // The TypeInfo companions a `--debug` build gives a `for` loop's own
 // variables. `vars` is the loop's value variables plus its `at` counter;
 // their types are looked up through the loop's scope rather than derived
-// here, so each kind of iteration -- list, table, integer range, iterator
-// function, `for &x` by reference -- gets whatever type it actually bound.
+// here, so each kind of iteration (list, table, integer range, iterator
+// function, `for &x` by reference) gets whatever type it actually bound.
 static Text_t compile_debug_loop_typeinfos(env_t *env, env_t *body_scope, ast_list_t *vars) {
     if (!env->do_debugging) return EMPTY_TEXT;
     Text_t code = EMPTY_TEXT;
@@ -341,7 +341,7 @@ static Text_t compile_debug_loop_typeinfos(env_t *env, env_t *body_scope, ast_li
     return code;
 }
 
-// Compile `for [i,] &x in xs` -- in-place mutable iteration over a list.
+// Compile `for [i,] &x in xs`, in-place mutable iteration over a list.
 //
 // `&x` is a live pointer into the list's buffer, so element updates are plain
 // in-place stores with no per-element bounds checks or copy-on-write guards.
@@ -350,10 +350,10 @@ static Text_t compile_debug_loop_typeinfos(env_t *env, env_t *body_scope, ast_li
 // while the loop runs are the two that would invalidate the raw pointer or
 // break copy-on-write, and both are runtime failures rather than silent bugs:
 //   1. If a snapshot shares the buffer at loop entry (data_refcount > 0), we
-//      compact once up front -- the same copy CoW would charge on first write.
+//      compact once up front, the same copy CoW would charge on first write.
 //   2. List_ref_iter_guard (stdlib/lists.h) re-checks at the top of each
 //      iteration AND once after the loop (including `stop` exits), so a
-//      resize or copy in any iteration -- even the last -- fails before the
+//      resize or copy in any iteration, even the last, fails before the
 //      loop's results can be used. A mid-loop snapshot can't be *protected*
 //      without a per-write CoW check (it would see the remainder of the
 //      current iteration's writes), so it fails rather than silently
@@ -498,7 +498,7 @@ static void compile_combinatoric_fragment(env_t *env, env_t *body_scope, ast_t *
     }
 }
 
-// Compile `for x, y in xs, ys` -- lockstep iteration over several iterables.
+// Compile `for x, y in xs, ys`, lockstep iteration over several iterables.
 //
 // Each iterable contributes a setup step (run once, leftmost first, so the
 // iterables are evaluated in source order) and an advance-or-break step at the
@@ -715,7 +715,7 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
     // The loop's own variables get their TypeInfo companions at the top of the
     // body. Every branch below declares the loop variables immediately before
     // it plants `naked_body`, so putting the companions at the front of the
-    // body puts them in the same block as the variables they describe -- which
+    // body puts them in the same block as the variables they describe, which
     // is what a debugger stopped inside the loop looks in. This has to happen
     // before the body is compiled: compiling it binds the body's own
     // declarations into body_scope too, and those get their companions from
@@ -925,7 +925,7 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
     case BigIntType: {
         // `for x in n` counts with the count's own type (`Int`); the optional
         // index form `for i, x in n` adds an Int64 index. The index is just a
-        // counter starting at 1 -- it can't plausibly overflow within any
+        // counter starting at 1, and it can't plausibly overflow within any
         // physically executable loop, so it needs no relation to the bound.
         ast_t *index_var = for_->at;
         ast_t *value_var = single_loop_var(for_->vars);
@@ -1040,7 +1040,7 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
 
         // Multi-value iterator protocol: every argument is a `&` out-parameter
         // and the return is a Bool saying whether values were produced. The
-        // loop variables themselves are the out-slots -- each call writes the
+        // loop variables themselves are the out-slots: each call writes the
         // next values directly into them, no tuple or wrapper value involved.
         arg_t *yield_args = iterator_yield_args(iter_value_t);
         if (yield_args) {

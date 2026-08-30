@@ -171,7 +171,7 @@ void print_stacktrace(FILE *out, int offset) {
         uintptr_t call_address = (uintptr_t)stack[i] - 1;
 
         // backtrace_pcinfo() invokes the callback once per (possibly inlined)
-        // frame at this address, innermost-first -- with optimization, several
+        // frame at this address, innermost-first. With optimization, several
         // source-level calls can collapse into one physical frame, and this
         // recovers all of them.
         frame_list_t frames = {.count = 0};
@@ -194,7 +194,7 @@ void print_stacktrace(FILE *out, int offset) {
             // "$initialize$<file id>" from "parse_and_run$$main$<file id>",
             // so "main$" is on the stack but "$initialize$" already returned
             // by the time main() runs. Top-level-script programs have no
-            // "main$" anywhere -- their code runs directly inside
+            // "main$" anywhere, since their code runs directly inside
             // "$initialize$<file id>", called straight from C's own (always
             // bare, never namespaced) main(). Matching either name catches
             // both cases while still skipping the plain "main" C wrapper

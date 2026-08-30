@@ -26,7 +26,7 @@ __attribute__((noinline)) void tomo_debug_breakpoint(void) {
 // `breakpoint` used as a value instead of being called. There is no call site
 // for the macro to act on, so this is what such a reference resolves to. It
 // always goes to the real thing: libtomo is built once, without
-// TOMO_DEBUG_BUILD, so it cannot compile the call away -- and it does not need
+// TOMO_DEBUG_BUILD, so it cannot compile the call away, and it does not need
 // to, since stopping on tomo_debug_breakpoint() is a no-op unless a debugger
 // is there to notice.
 public

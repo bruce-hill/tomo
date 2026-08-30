@@ -197,7 +197,7 @@ void Struct$deserialize(FILE *in, void *outval, List_t *pointers, const TypeInfo
             bool b = (bool)c;
             // Clear the byte before filling its first bit: the OR below only
             // ever *sets* bits, and `outval` is caller-supplied storage that
-            // may hold stale ones -- Table$deserialize reuses a single stack
+            // may hold stale ones, since Table$deserialize reuses a single stack
             // buffer for every entry, so without this a `no` read after a
             // `yes` in the same bit position decodes as `yes`.
             if (bit_offset == 0) *(char *)(outval + byte_offset) = 0;

@@ -39,7 +39,7 @@ void initialize_vars_and_statics(env_t *env, ast_t *ast) {
                 && (decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value, t));
             if ((decl->value && !value_is_constant) || (!decl->value && has_heap_memory(t))) {
                 // Only non-constant values need runtime initialization here.
-                // (Compile the value inside this branch, not above -- for a
+                // (Compile the value inside this branch, not above, since for a
                 // constant value it's emitted as a static initializer by
                 // compile_top_level_code instead, and compiling it here too
                 // would duplicate any hoisted static defs, e.g. a list
@@ -247,8 +247,8 @@ Text_t compile_test_runner(env_t *env, ast_t *ast, int64_t *out_count) {
     *out_count = count;
     if (count == 0) return EMPTY_TEXT;
 
-    // Emit the entire module into the runner's own translation unit -- including
-    // its file-private (`static`) helpers -- so the test bodies above can call
+    // Emit the entire module into the runner's own translation unit, including
+    // its file-private (`static`) helpers, so the test bodies above can call
     // them. Because the module's code lives here, the driver must NOT also link
     // the module's normal object file (that would duplicate every public
     // symbol); see build_test_runner(). compile_file() emits the accumulated

@@ -92,7 +92,7 @@ also `X`, then it can be used without issues, regardless of where they got it.
 Installed packages are content-addressed: each project keeps its own store of
 them in `.tomo/store/<package-digest>/`, next to the project's source files.
 The names things call packages by are symlinks: whenever a `use name` resolves,
-Tomo records a `packages/name` binding link next to the consumer -- in the
+Tomo records a `packages/name` binding link next to the consumer, in the
 project's `.tomo/packages/` directory, pointing at `../store/<digest>`, or,
 for a package inside the store using another package, in that store entry's own
 `packages/` directory, pointing at `../../<digest>`. Every level of the
@@ -117,14 +117,14 @@ the directory (transitively) uses anymore is removed, and the corresponding
 `packages.ini` entry is annotated with `unused=true` (the marker is removed
 again if the package comes back into use). The pins themselves and any
 `vendor/` directories are never touched, so re-adding a `use` restores the
-package from the download cache without any network access -- and the
+package from the download cache without any network access, and the
 `unused=true` markers make it easy to spot pins that could be deleted.
 
 Compiled executables embed a zip of everything needed to rebuild them: the
 program's sources, its `packages.ini` pins, license texts, and the full sources
 of every package linked in. `tomo info -x <program>` unpacks that into
-a `<program>-source/` directory with exactly the shape of a working project --
-including a pre-seeded `.tomo/store/` and its binding links -- so an extracted
+a `<program>-source/` directory with exactly the shape of a working project,
+including a pre-seeded `.tomo/store/` and its binding links, so an extracted
 tree rebuilds as-is, offline, with no edits.
 
 ## Package Sources
@@ -172,7 +172,7 @@ a source archive with the right hash.
 archive from the download cache into your project's `vendor/` directory and
 rewrites the package's `./packages.ini` entry to use it as the primary source
 (demoting the previous sources to fallbacks, and keeping the digest pin, which
-still verifies -- it's the same bytes):
+still verifies, since it's the same bytes):
 
 ```ini
 [foo]

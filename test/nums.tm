@@ -17,7 +17,7 @@ test "integer division with `/` is exact"
 
 test "constant arithmetic folds exactly"
 	# These all compile to a single Num constant (usually a NUMBER_SMALL
-	# immediate) rather than runtime arithmetic -- see fold_num_constant.
+	# immediate) rather than runtime arithmetic; see fold_num_constant.
 	# The values must be identical to what the runtime would compute.
 	assert 1/3 + 1/6 == 0.5
 	assert 0.1 + 0.1 == 1/5
@@ -99,7 +99,7 @@ test "approximating to a requested number of digits"
 	assert Num.PI.digits(10) == "3.1415926535…"
 	assert (2.).sqrt()!.digits(10) == "1.4142135623…"
 	assert (-2/3).digits(10) == "-0.6666666666…"
-	# The digits never round, whatever the ellipsis -- rounding is what
+	# The digits never round, whatever the ellipsis. Rounding is what
 	# .round() is for:
 	assert (2/3).digits(10, ellipsis="") == "0.6666666666"
 	assert (2/3).digits(10, ellipsis="...") == "0.6666666666..."
@@ -143,7 +143,7 @@ test "constructing a Num is always exact"
 	assert Num(Int64(5)) == 5
 	assert Num(Float64(0.5)) == 0.5
 	assert Num(yes) == 1
-	# Float64(0.1) is the double, not a tenth -- so this is not 0.1:
+	# Float64(0.1) is the double, not a tenth, so this is not 0.1:
 	assert Num(Float64(0.1)) != 0.1
 
 test "parsing"
@@ -204,7 +204,7 @@ test "distinct irrationals still order correctly"
 
 test "equality runs out exactly where the digits do"
 	# Two values whose difference is a bare rational cancel exactly, however
-	# small that difference is -- no refinement, no threshold:
+	# small that difference is, with no refinement and no threshold:
 	assert Num.PI != Num.PI + (10.).power(-50)
 	# When the difference *can't* be cancelled, it has to be refined instead,
 	# and refinement stops at the same 40 digits that decide equality. Well
@@ -232,7 +232,7 @@ test "equal values are equal however they're written"
 	assert (2.).sqrt()! * (2.).sqrt()! == 2
 	assert Num.PI * 2 == Num.TAU
 	# Proving this symbolically takes reasoning no engine does in full, so it
-	# falls back to agreeing to 40 digits -- which it does.
+	# falls back to agreeing to 40 digits, which it does.
 	assert (3. + 2 * (2.).sqrt()!).sqrt()! == 1 + (2.).sqrt()!
 
 test "irrationals work as table keys"

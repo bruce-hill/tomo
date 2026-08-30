@@ -33,7 +33,7 @@ bool match_separator(parse_ctx_t *ctx, const char **pos);
 // Zig's libc strspn()/strcspn() measure the *whole* string with strlen() before
 // matching anything, to turn the null-terminated pointers into slices. On a
 // pointer into a source file that makes every call cost O(bytes to end of file)
-// however few characters it actually consumes -- which turned skipping one
+// however few characters it actually consumes, which turned skipping one
 // newline between statements into a scan of the entire rest of the file, and
 // made parsing quadratic in file length. These scan only what they consume.
 PUREFUNC MACROLIKE bool char_in_set(char c, const char *set) {
@@ -58,7 +58,7 @@ PUREFUNC MACROLIKE size_t span_not(const char *s, const char *reject) {
 
 // GC_strndup() calls strlen() on its argument before clamping to `len`, so
 // copying a few characters out of a source file measures the whole rest of the
-// file first -- the same trap as strspn() above. This copies only `len` bytes.
+// file first, the same trap as strspn() above. This copies only `len` bytes.
 MACROLIKE char *strndup_bounded(const char *s, size_t len) {
     char *copy = GC_MALLOC_ATOMIC(len + 1);
     memcpy(copy, s, len);

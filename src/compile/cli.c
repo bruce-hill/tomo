@@ -68,8 +68,8 @@ static OptionalText_t flagify(const char *name, bool is_short) {
 
 // Emit a compile-time Text_t value for `text`. The `Text(...)` macro is
 // ASCII-only (it stores the literal's *byte* count as a grapheme count and
-// tags it TEXT_ASCII), so anything that can contain non-ASCII -- Unicode
-// command names, doc comments, user-supplied USAGE/HELP metadata -- has to go
+// tags it TEXT_ASCII), so anything that can contain non-ASCII, whether Unicode
+// command names, doc comments, or user-supplied USAGE/HELP metadata, has to go
 // through Text$from_str(), which decodes the UTF-8, or text operations on it
 // crash.
 static Text_t text_literal(Text_t text) {
@@ -125,7 +125,7 @@ cli_command_def_t *get_cli_subcommands(env_t *env, ast_t *file_ast) {
 // Emit the storage, argument spec, and handler function for one command, plus
 // (recursively) its children, and return the name of its cli_command_t. The
 // runtime (src/stdlib/cli.c) does all the dispatching and help rendering from
-// these -- the same code path the `tomo` CLI itself goes through.
+// these, the same code path the `tomo` CLI itself goes through.
 static Text_t compile_command_spec(env_t *env, cli_command_def_t *node, Text_t c_path, Text_t *defs, Text_t *inits) {
     // Children first: a parent's child list refers to their cli_command_t's.
     Text_t child_names = EMPTY_TEXT;

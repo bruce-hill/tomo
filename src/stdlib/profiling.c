@@ -138,7 +138,7 @@ public
 void tomo_profile_begin(tomo_profile_frame_t *frame, tomo_profile_site_t *site) {
     tomo_profile_node_t *parent = current_frame ? current_frame->node : &call_tree_root;
     int depth = current_frame ? current_frame->depth + 1 : 0;
-    // The memo turns the usual case -- called again from the same place -- into
+    // The memo turns the usual case, called again from the same place, into
     // one comparison; only a call from somewhere new walks the tree:
     tomo_profile_node_t *node;
     if (site->cached_parent == parent) {
@@ -160,7 +160,7 @@ void tomo_profile_end(tomo_profile_frame_t *frame) {
     frame->node->calls += 1;
     // A folded frame's time is already inside the node it shares with its
     // caller; adding it again would count the same time twice. Everything else
-    // the report shows -- self time, per-function totals, call counts -- is
+    // the report shows (self time, per-function totals, call counts) is
     // summed out of the tree once, at exit, rather than per call.
     if (!frame->folded) frame->node->total_ticks += elapsed;
     current_frame = frame->parent;
@@ -268,8 +268,8 @@ void tomo_profile_merge(int fd) {
 }
 
 // The site's file, shortened to a path relative to the working directory when
-// it is under it -- the absolute paths the compiler bakes in are long and the
-// leading directories are the same for every line.
+// it is under it, since the absolute paths the compiler bakes in are long and
+// the leading directories are the same for every line.
 static const char *short_path(const char *path) {
     if (path == NULL) return NULL;
     static char cwd[4096] = "";
@@ -334,7 +334,7 @@ static void copy_truncated(char *dst, size_t dst_size, const char *src, int max_
 // The call tree drawn as an image, written when FLAME_GRAPH names a path: one
 // box per frame, as wide as its share of the run and stacked on the
 // frame that called it. Where the table answers "which function is slow", this
-// answers "reached from where", and a canvas has the resolution for it -- every
+// answers "reached from where", and a canvas has the resolution for it: every
 // frame gets a box no matter how thin, carrying its details in a tooltip.
 
 #define SVG_WIDTH 1200.0
@@ -484,8 +484,8 @@ static void aggregate_sites(tomo_profile_node_t *parent) {
         // Inclusive time is only counted where the function isn't already
         // somewhere above it on the stack: an outer call's time already covers
         // the inner ones, so counting both would count it twice. (Calling
-        // itself directly doesn't even reach here -- those frames fold into the
-        // one node -- but a mutually recursive cycle does.)
+        // itself directly doesn't even reach here, since those frames fold
+        // into the one node, but a mutually recursive cycle does.)
         bool nested_in_itself = false;
         for (tomo_profile_node_t *ancestor = node->parent; ancestor; ancestor = ancestor->parent)
             if (ancestor->site == site) {
@@ -509,12 +509,12 @@ void tomo_profile_report(void) {
     uint64_t ticks_elapsed = ticks() - ticks_started;
     if (ticks_elapsed > 0 && elapsed > 0.0) seconds_per_tick = elapsed / (double)ticks_elapsed;
 
-    // The program can exit from inside a call -- `fail()`, an explicit exit, a
-    // fatal signal -- leaving frames on the stack whose timers never stopped.
-    // Stop them now, so the functions the program died inside are reported with
-    // the time they had used, instead of showing up with zero calls. This has
-    // to happen before the totals are summed, since it is what puts those
-    // frames' time into the tree:
+    // The program can exit from inside a call, whether `fail()`, an explicit
+    // exit, or a fatal signal, leaving frames on the stack whose timers never
+    // stopped. Stop them now, so the functions the program died inside are
+    // reported with the time they had used, instead of showing up with zero
+    // calls. This has to happen before the totals are summed, since it is what
+    // puts those frames' time into the tree:
     while (current_frame)
         tomo_profile_end(current_frame);
 
@@ -522,7 +522,7 @@ void tomo_profile_report(void) {
 
     // Nothing to report: the program exited before any instrumented function
     // ran (`--help`, a rejected argument). Instrumented programs profile every
-    // run, so those runs would otherwise each print an empty report -- and,
+    // run, so those runs would otherwise each print an empty report and,
     // with PROFILE_FILE or FLAME_GRAPH set, write an empty file.
     if (sites == NULL) return;
 

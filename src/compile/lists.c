@@ -25,7 +25,7 @@ static bool is_zero_valued_literal(env_t *env, ast_t *ast, type_t *item_type) {
     if (ast->tag == FunctionCall) {
         DeclareMatch(call, ast, FunctionCall);
         type_t *fn_t = get_type(env, call->fn);
-        // Forward through a numeric cast only -- `Byte(0)`/`Int64(0)`/`Num(0.0)`
+        // Forward through a numeric cast only, since `Byte(0)`/`Int64(0)`/`Num(0.0)`
         // really is all-bits-zero when its argument is. A struct/enum
         // constructor like `Foo(0)` is NOT (its other fields may default to
         // nonzero, and its layout isn't its argument's), so it never qualifies.
@@ -87,8 +87,8 @@ Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type) {
             // Every item is a compile-time constant: hoist the data into a
             // module-level `static const` array (program lifetime, .rodata) and
             // point a `ConstList` at it. The result is a constant List_t
-            // *expression* -- no allocation, no copy, valid even as a file-scope
-            // initializer -- that never dangles wherever it escapes to. Mutation
+            // *expression* (no allocation, no copy, valid even as a
+            // file-scope initializer) that never dangles wherever it escapes to. Mutation
             // is guarded by copy-on-write (see ConstList in stdlib/lists.h).
             static int64_t const_list_num = 0;
             Text_t data_name = Text$from_str(String("list_literal$", ++const_list_num));

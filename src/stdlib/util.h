@@ -57,7 +57,7 @@
 // memcpy() already has its own internal fast paths for small sizes, but none
 // of that helps here: since the *compiler* can't see the size, it can't
 // inline it away, so every call is a real, non-inlined function call (likely
-// through an IFUNC dispatch) -- measured at ~5x the cost of a direct store
+// through an IFUNC dispatch), measured at ~5x the cost of a direct store
 // for size 1 or 8. This macro is `always_inline`, so the size switch below
 // gets resolved and folded down to one instruction at each call site where
 // the compiler CAN see the actual runtime size take one of these common

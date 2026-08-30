@@ -310,18 +310,18 @@ struct ast_s {
             const char *name;
         } Var;
         struct {
-            // The value the digits denote. The literal as it was written --
-            // its base, `_` separators and sign -- is recoverable from the
-            // node's span, so it isn't kept here (see ast_source).
+            // The value the digits denote. The literal as it was written,
+            // including its base, `_` separators and sign, is recoverable from
+            // the node's span, so it isn't kept here (see ast_source).
             Int_t i;
         } Int;
         struct {
             // The exact value, computed at parse time: `3.15` is 63/20, not
             // the nearest double to it (3.14999999999999991...). Codegen picks
-            // the tightest encoding this value admits -- usually a
+            // the tightest encoding this value admits, usually a
             // NUMBER_SMALL immediate, costing nothing at runtime. As with an
-            // Int literal, the digits as written -- along with any `%`/`deg`
-            // suffix -- are recoverable from the node's span.
+            // Int literal, the digits as written, along with any `%`/`deg`
+            // suffix, are recoverable from the node's span.
             Num_t n;
         } Num;
         struct {
@@ -489,8 +489,8 @@ struct ast_s {
             ast_t *body; // Block
             // At most one of these is non-NULL (both NULL => the test should pass). The string is the substring the
             // failure/error must contain; "" means "match any failure".
-            const char *expected_failure; // `fails "..."`         -- expected runtime panic/abort
-            const char *expected_compile_error; // `fails_compile "..."` -- expected typecheck error
+            const char *expected_failure; // `fails "..."`: expected runtime panic/abort
+            const char *expected_compile_error; // `fails_compile "..."`: expected typecheck error
         } Test;
         struct {
             ast_t *var;

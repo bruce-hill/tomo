@@ -96,7 +96,7 @@ Text_t check_none(type_t *t, Text_t value) {
     // __builtin_isnan compiles to an inline comparison; Float64$isnan is an
     // out-of-line call (via fpclassify), too slow for hot-loop `!` unwraps.
     // The all-zeroes word is never a valid Num (see NONE_NUM in nums.h), so
-    // this is one compare against zero -- no tag byte, no widening.
+    // this is one compare against zero, with no tag byte and no widening.
     case NumType: return Texts("((", value, ").bits == 0)");
     case FloatType: return Texts("__builtin_isnan(", value, ")");
     case ListType: return Texts("((", value, ").data == NULL)");

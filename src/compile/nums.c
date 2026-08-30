@@ -12,9 +12,9 @@
 
 // The tightest C representation of an exact value known at compile time.
 //
-// Any value whose reduced fraction fits the immediate tier -- 32 bits of
+// Any value whose reduced fraction fits the immediate tier (32 bits of
 // numerator, 30 of denominator, which covers nearly every literal anyone
-// writes -- becomes a NUMBER_SMALL constant expression: no allocation, no
+// writes) becomes a NUMBER_SMALL constant expression: no allocation, no
 // runtime call, nothing but a 64-bit load. `0.5` is NUMBER_SMALL(1, 2).
 //
 // Anything else needs a bigint or an irrational factor, neither of which has a

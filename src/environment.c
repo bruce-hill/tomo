@@ -159,7 +159,7 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
         // Num: an exact computable real, and the type of a numeric literal
         // like `1.1`. Arithmetic resolves through the plus/minus/times/...
         // metamethods below rather than raw C operators, the same way Int's
-        // does -- see compile_binary_op_to_type.
+        // does; see compile_binary_op_to_type.
         MAKE_TYPE( //
             "Num", Type(NumType), Text("Num_t"), Text("Num$info"), //
             {"abs", "Num$abs", "func(x:Num -> Num)"}, //

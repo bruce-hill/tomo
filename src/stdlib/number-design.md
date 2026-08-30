@@ -26,9 +26,9 @@ second one:
   *constructive real factor* that is tagged with a known symbolic form (1, π,
   √n, ln n, ...). Rational-only arithmetic never touches the constructive real
   machinery, and the symbolic tags make identities like
-  `sqrt(2) * sqrt(2) == 2` and many comparisons decidable — pure constructive
-  real evaluation alone can only ever prove a result is *within* 2⁻ⁿ of 2,
-  never that it *is* 2.
+  `sqrt(2) * sqrt(2) == 2` and many comparisons decidable, whereas pure
+  constructive real evaluation alone can only ever prove a result is *within*
+  2⁻ⁿ of 2, never that it *is* 2.
 
 This library is a C implementation of the UnifiedReal pattern, with an
 additional immediate (non-heap) representation beneath it for small rationals.
@@ -37,10 +37,10 @@ additional immediate (non-heap) representation beneath it for small rationals.
 
 A `number` is a 64-bit value in one of three tiers:
 
-1. **Small rational** — an immediate value, no heap allocation: a 32-bit
+1. **Small rational**: an immediate value, no heap allocation, holding a 32-bit
    signed numerator, a 30-bit unsigned denominator, and a 2-bit tag.
-2. **Big rational** — a pointer to a heap-allocated canonical `mpq_t`.
-3. **Real** — a pointer to a heap-allocated structure representing
+2. **Big rational**: a pointer to a heap-allocated canonical `mpq_t`.
+3. **Real**: a pointer to a heap-allocated structure representing
    `rational × crFactor`, where the rational part is exact and the factor is a
    constructive real tagged with its symbolic form when known.
 
@@ -48,16 +48,16 @@ A `number` is a 64-bit value in one of three tiers:
 
 The low 2 bits of the 64-bit value distinguish the tiers:
 
-- `00` — heap pointer, used as-is with no masking (heap objects are 8-byte
+- `00`: heap pointer, used as-is with no masking (heap objects are 8-byte
   aligned, so real pointers always have low bits `000`). A header field in the
   heap object distinguishes big rationals from reals.
-- `01` — small rational: signed numerator in the high 32 bits, unsigned
-  denominator in bits 2–31.
-- `11` — the error value. The upper 62 bits carry a reason code (division by
+- `01`: small rational, with a signed numerator in the high 32 bits and an
+  unsigned denominator in bits 2–31.
+- `11`: the error value. The upper 62 bits carry a reason code (division by
   zero, square root of a negative number, ...) into a static message table;
   `NUMBER_ERROR` is code 0 ("undefined result", no specific reason given).
   Since only the low 2 bits are checked, an error value never needs a heap
-  allocation or refcounting no matter which reason it carries — retain/drop
+  allocation or refcounting no matter which reason it carries, since retain/drop
   already treat every non-pointer tag as a no-op.
 
 The remaining tag value (`10`) is reserved. Note that the all-zeros word is a
@@ -76,8 +76,8 @@ Arithmetic is done in 64-bit intermediates (32×32→64 multiplies, or
 fits in 32/30 bits, it is re-packed as a small rational; otherwise it is
 promoted to a big rational.
 
-**Integer sub-path**: when both operands have denominator 1 — the most common
-case in practice — the gcd reduction is skipped entirely: addition,
+**Integer sub-path**: when both operands have denominator 1, the most common
+case in practice, the gcd reduction is skipped entirely: addition,
 subtraction, and multiplication are a single overflow-checked integer
 operation plus re-tagging. This one-branch check makes small-integer
 arithmetic cost a couple of cycles, comparable to hardware floating point but
@@ -88,7 +88,7 @@ exact.
 A heap-allocated canonical `mpq_t` (GMP rational) with the same canonical
 form and the same semantics, just without size limits. Every operation that
 produces a big rational checks whether the result fits in a small rational and
-**demotes** it if so — long computations tend to re-shrink, and demotion is
+**demotes** it if so, since long computations tend to re-shrink and demotion is
 what keeps the fast path hot.
 
 ### Tier 3: Reals
@@ -99,18 +99,18 @@ what keeps the fast path hot.
 > the pure product form below. The linear form keeps addition closed within
 > each factor class: each `√n` class forms the field Q(√n) (closed under
 > + − × ÷), π forms are closed under affine operations, and LN/EXP forms are
-> closed under same-argument affine combination plus two narrower identities
-> — `exp(a)·exp(b) = exp(a+b)` (and its inverse) for the pure `b·EXP(a)`
-> form, and `b1·ln(r1) + b2·ln(r2) = ln(r1^b1·r2^b2)` when both coefficients
-> are integers (so e.g. `2·ln(2) − ln(4)` collapses to exactly `0`, not an
-> unresolved difference of two LN terms). `exp(ln(r)) == r` and
+> closed under same-argument affine combination plus two narrower
+> identities: `exp(a)·exp(b) = exp(a+b)` (and its inverse) for the pure
+> `b·EXP(a)` form, and `b1·ln(r1) + b2·ln(r2) = ln(r1^b1·r2^b2)` when both
+> coefficients are integers (so e.g. `2·ln(2) − ln(4)` collapses to exactly
+> `0`, not an unresolved difference of two LN terms). `exp(ln(r)) == r` and
 > `ln(exp(r)) == r` are recognized exactly, with no interval refinement.
 > Commensurable radicands are unified via a perfect-square check (`√8 →
 > 2√2`), which also makes equality and comparison exact and total.  This
 > symbolic form is tried first for every operation; results outside every
 > closed form (π+√2, π², 1/π, ln(2)+ln(3)·(1/2), exp(2)+exp(3), ...) fall
 > back to the general `IRRATIONAL` CR machinery described below, which is
-> implemented — sin, cos, tan, asin, acos, atan, exp, ln, log10, sinh, cosh,
+> implemented. sin, cos, tan, asin, acos, atan, exp, ln, log10, sinh, cosh,
 > tanh, and pow are all built on six CR primitives (SIN, COS, EXP, LN, ATAN,
 > SQRT) plus generic ADD/SUB/MUL/DIV nodes for combining values that don't
 > unify symbolically. `sqrt` of an already-irrational value (nested roots
@@ -119,14 +119,14 @@ what keeps the fast path hot.
 > Cross-tag known-unequal rules (e.g. an EXP/LN factor is never a rational
 > multiple of a SQRT factor, since one is transcendental and the other
 > algebraic) are *not* implemented beyond what falls out of numeric interval
-> refinement — a rational multiple of π is deliberately left undecided
+> refinement, so a rational multiple of π is deliberately left undecided
 > against EXP/LN (whether e.g. e is a rational multiple of π is an open
 > problem in general, so no such rule would be sound to assert here). The
 > hardware floating-point fast path below is implemented for sign
 > determination / comparison and few-digit decimal output (see the
 > revised scope in that section); `number_to_double` deliberately stays on
 > the bigint path (a same-precision double interval cannot decide a
-> correctly rounded 53-bit result — that would take double-double interval
+> correctly rounded 53-bit result, which would take double-double interval
 > arithmetic, which remains future work).
 
 A real is stored in factored form, following UnifiedReal:
@@ -136,11 +136,11 @@ A real is stored in factored form, following UnifiedReal:
 where the rational part reuses the tier 1/2 representation and `crFactor` is a
 constructive real annotated with a symbolic form tag:
 
-- `ONE` (the factor is exactly 1 — the number is actually rational)
+- `ONE` (the factor is exactly 1, so the number is actually rational)
 - `PI`
 - `SQRT(r)` for rational r
 - `LN(r)`, `EXP(r)` for rational r
-- `IRRATIONAL` — an arbitrary constructive real expression with no known form
+- `IRRATIONAL`: an arbitrary constructive real expression with no known form
 
 The symbolic tags enable exact simplification and decidable comparison in the
 common cases: multiplying two `SQRT` factors with equal radicands yields a
@@ -161,14 +161,14 @@ exactly as in CRCalc.
 
 **Hardware floating-point fast path**: before scaled-bigint evaluation, a
 request that a low-precision answer can decide is first attempted with
-hardware `double` interval arithmetic — a recursive descent over the same
+hardware `double` interval arithmetic, a recursive descent over the same
 value structure, each node computing a [lower, upper] bound pair widened
 outward by enough ulps to be rigorous (1 ulp for IEEE's correctly rounded
 `+ - * /`/`sqrt`; a generous 8 for libm's `exp`/`ln`/`atan`/`sin`/`cos`,
 whose documented worst-case errors are 1–2 ulp; `sin`/`cos` are bounded by
 Lipschitz continuity around the interval midpoint, so any argument width is
-handled). If the interval decides the question — a sign/comparison, or a
-k-digit decimal rounding — the answer is served at hardware speed and is
+handled). If the interval decides the question, whether a sign/comparison or a
+k-digit decimal rounding, the answer is served at hardware speed and is
 still exact; if the interval is too wide (cancellation, overflow, a shared
 DAG deep enough to exhaust the descent's visit budget), evaluation falls
 back to the bigint path, so a failed attempt costs nanoseconds and can
@@ -176,8 +176,9 @@ never produce a wrong answer. Measured (see `benchmarks/filter_bench.c`),
 this is ~10x on comparison and few-digit output of calculator-style
 expressions. Two boundaries drawn deliberately: `number_to_double` is *not*
 served (deciding a correctly rounded 53-bit result means separating values
-half an ulp apart — impossible for a same-precision interval; double-double
-interval arithmetic could lift this and is future work), and building with
+half an ulp apart, which is impossible for a same-precision interval;
+double-double interval arithmetic could lift this and is future work), and
+building with
 `-DNUMBER_NO_DOUBLE_FILTER` removes the fast path entirely for anyone
 unwilling to rely on their libm staying within the widening margin.
 
@@ -189,9 +190,9 @@ Every arithmetic operation checks tiers in order:
 2. Both operands rational (either size) → when both numerator and denominator
    fit 64 bits (the common case even for heap bigrats), the whole op runs in
    u64/u128 with GMP-style reduction (cross-cancel the coprime diagonals, or
-   reduce denominators first for add/sub) and demotes if the result fits — no
-   `mpq` allocation. Otherwise it falls back to `mpq` arithmetic. This keeps
-   rational arithmetic competitive with GMP directly.
+   reduce denominators first for add/sub) and demotes if the result fits,
+   with no `mpq` allocation. Otherwise it falls back to `mpq` arithmetic.
+   This keeps rational arithmetic competitive with GMP directly.
 3. At least one real → symbolic-form rules first, general CR construction only
    as a last resort.
 
@@ -230,8 +231,8 @@ counts for textual output are converted to binary precision internally.
 
 - **Comparison**: exact comparison of computable reals is undecidable in
   general, so the comparison API is `number_compare(x, y, precision)`,
-  returning −1, +1, or 0 meaning "indistinguishable at this precision" — a 0
-  is *not* a proof of equality. However, when both operands have known
+  returning −1, +1, or 0 meaning "indistinguishable at this precision", where a
+  0 is *not* a proof of equality. However, when both operands have known
   symbolic forms (including plain rationals), comparison is exact and the
   precision bound is not consulted. The common cases are decidable; only
   genuinely `IRRATIONAL`-tagged comparisons are approximate.
@@ -240,7 +241,7 @@ counts for textual output are converted to binary precision internally.
   operands as hardware `double` intervals, and if the intervals don't overlap
   the comparison is decided in nanoseconds. Only near-ties fall through to
   precise evaluation at increasing precision up to the caller's bound.
-- **Textual output**: digits are generated exactly — a number prints as `2`,
+- **Textual output**: digits are generated exactly, so a number prints as `2`,
   not `2.0000000000`, whenever its rational/symbolic representation proves it.
   For `IRRATIONAL` values, output to k digits is correctly rounded by
   computing at increasing precision until the k-digit rounding is decided.
@@ -256,7 +257,7 @@ an error yields an error), similar to NaN but detectable via `number_is_error`.
 Unlike NaN, the error value isn't a single bit pattern: `number_error_message`
 reports *why* (`"division by zero"`, `"square root of a negative number"`,
 ...) via a reason code packed into the value's own bits (see "Tagging"
-above), at no cost — the error value stays a tagless immediate no matter
+above), at no cost, since the error value stays a tagless immediate no matter
 which reason it carries. When two already-erroneous values combine (e.g.
 `2/0 + sqrt(-1)`), the result carries whichever operand's reason the
 implementation happened to check first; propagation always keeps the
@@ -271,8 +272,8 @@ produce an error.
 
 ## Known Limitation: Expression Growth
 
-The factored representation means purely rational computation — the
-overwhelmingly common case — never allocates a CR node, no matter how long the
+The factored representation means purely rational computation, the
+overwhelmingly common case, never allocates a CR node, no matter how long the
 computation runs. But genuinely irrational accumulation (e.g.
 `x = x + sin(1)` in a loop) still builds a chain of CR nodes whose depth grows
 with the iteration count, with memory and re-evaluation cost to match. This is
@@ -283,9 +284,9 @@ accept the explicit loss of exactness.
 
 ## Rejected Alternative: Optimistic Floating-Point Representation
 
-A fourth representation tier — storing values as hardware doubles, detecting
+A fourth representation tier, storing values as hardware doubles, detecting
 inexact operations (via error-free transformations like TwoSum/FMA residuals),
-and falling back to rationals — was considered and rejected:
+and falling back to rationals, was considered and rejected:
 
 - A double only represents *dyadic* rationals (n/2ᵏ). Integers and
   halves/quarters are exact, but `0.1`, `0.3`, and `1/3` are not, so the most
@@ -296,7 +297,7 @@ and falling back to rationals — was considered and rejected:
   ~25/25 bits and creating a canonical-form problem (5 as double `5.0` vs.
   rational `5/1`) that breaks bit-equality without per-operation
   canonicalization checks.
-- The main workload it would accelerate — small-integer arithmetic — is
+- The main workload it would accelerate, small-integer arithmetic, is
   already covered by the tier 1 integer sub-path at comparable cost.
 
 The optimistic-float idea instead lives where the fallback is genuinely

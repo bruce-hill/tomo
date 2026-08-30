@@ -57,8 +57,8 @@ void configure_codegen(Text_t opt_level, bool optimize) {
     // A debug build has to be one a debugger can follow: optimized code
     // reorders and folds away the statements the user wants to step through,
     // and without `#line` directives a debugger has no .tm source to show at
-    // all. An explicit -O still wins -- sometimes a bug only shows up
-    // optimized -- but the default becomes -O0 and source mapping is forced
+    // all. An explicit -O still wins, since sometimes a bug only shows up
+    // optimized, but the default becomes -O0 and source mapping is forced
     // on either way.
     if (debugging) {
         if (opt_flag.tag == TEXT_NONE) opt_level = Text("0");
@@ -74,7 +74,7 @@ void configure_codegen(Text_t opt_level, bool optimize) {
     // of undefined behavior (lambdas take their userdata as `void *` to match
     // the closure calling convention, function-to-closure promotion goes
     // through typed shims, and the tagged small-int fast paths shift through
-    // uint64_t), so violations -- including in user-written `C_code` -- trap
+    // uint64_t), so violations, including in user-written `C_code`, trap
     // with an ILLEGAL INSTRUCTION crash report instead of misbehaving
     // silently. Trap mode needs no UBSan runtime library, which the -nostdlib
     // link couldn't provide anyway. Optimized builds skip the instrumentation

@@ -11,8 +11,8 @@ assert (2.).sqrt()! * (2.).sqrt()! == 2
 ```
 
 None of those hold for hardware floating point, where `0.1` isn't a tenth and
-`0.1 + 0.2` is `0.30000000000000004`. If you want floating point -- because you
-need hardware speed and can accept the error -- use
+`0.1 + 0.2` is `0.30000000000000004`. If you want floating point, because you
+need hardware speed and can accept the error, use
 [`Float64`/`Float32`](floats.md).
 
 ## What a Num can hold
@@ -28,7 +28,7 @@ Three kinds of value, chosen automatically:
 
 Literals can have a decimal point (`5.`), scientific notation (`1e8`), a
 percent sign, or a `deg` suffix. A percent is a division by 100 (`5% == 0.05`)
-and `deg` converts to radians -- exactly, since pi is exact here:
+and `deg` converts to radians, exactly, since pi is exact here:
 
 ```tomo
 assert 50% == 0.5
@@ -82,8 +82,8 @@ assert (1./3.).tex() == "\\frac{1}{3}"
 ## Rounding
 
 `:floor()`, `:ceil()`, `:trunc()`, and `:round()` are exact. `:round()` takes
-an increment and gives the nearest multiple of it -- a penny, a nickel, a
-third, a thousand -- with ties going to the even multiple; the default
+an increment and gives the nearest multiple of it, whether a penny, a nickel,
+a third, or a thousand, with ties going to the even multiple; the default
 increment of 1 means the nearest whole number:
 
 ```tomo
@@ -144,7 +144,7 @@ to answer.
 
 ## Converting
 
-To an integer, strictly by default -- pass `truncate=yes` to round toward
+To an integer, strictly by default. Pass `truncate=yes` to round toward
 zero:
 
 ```tomo
@@ -172,8 +172,8 @@ assert Num(Float64(0.1)) != 0.1   # that float is not a tenth
 
 ## Performance
 
-Exactness is not free. Small rational arithmetic is fast -- comparable to
-hardware floating point for integers and simple fractions -- but big rationals
+Exactness is not free. Small rational arithmetic is fast, comparable to
+hardware floating point for integers and simple fractions, but big rationals
 allocate, and irrationals build an expression that is evaluated to whatever
 precision is demanded of it. Accumulating irrationals in a loop grows the
 expression with the loop, so code that needs bounded cost should round to a

@@ -98,7 +98,7 @@ typedef struct {
 
 int tomo_dispatch_command(int argc, char *argv[], cli_spec_t *cli);
 
-// The palette for help, usage, and error text -- every escape emptied out when
+// The palette for help, usage, and error text, with every escape emptied out when
 // output isn't colored (NO_COLOR, COLOR=0, or not a terminal). Same approach as
 // report_style() in report.h: each site writes `style.bold` unconditionally
 // rather than branching on USE_COLOR or filtering escapes back out afterwards.

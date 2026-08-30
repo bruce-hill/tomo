@@ -69,7 +69,7 @@ static bool starts_like_negative_number(const char *arg) {
 
 // Parse the value half of a boolean flag (`--flag=X`, `-f=X`) into `*out`,
 // returning whether it was valid. `optional` additionally accepts "none",
-// which is a value in its own right -- distinct from both yes and no, and
+// which is a value in its own right, distinct from both yes and no, and
 // from the NONE_BOOL that Bool$parse returns to report a bad value.
 static bool parse_boolean_flag_value(const char *value, bool optional, void *out) {
     if (optional && streq(value, "none")) {
@@ -81,7 +81,7 @@ static bool parse_boolean_flag_value(const char *value, bool optional, void *out
     return parsed != NONE_BOOL;
 }
 
-// `dest` is a Bool_t, or an OptionalBool_t when `optional` -- both one byte.
+// `dest` is a Bool_t, or an OptionalBool_t when `optional`, both one byte.
 // A bad value writes NONE_BOOL into either, but only after `optional` has been
 // checked, so the write is always immediately followed by print_err exiting.
 static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, bool optional) {
@@ -110,7 +110,7 @@ static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag
                 return true;
             }
             // Short flags are letters, so a token that opens like a number is
-            // one -- not a cluster to search for this flag's letter in. Without
+            // one, not a cluster to search for this flag's letter in. Without
             // this, a `-e` flag claims the `e` inside `-1e5`.
         } else if (short_flag && arg[0] == '-' && arg[1] != '-' && !starts_like_negative_number(arg)
                    && strchr(arg + 1, short_flag)) {
@@ -202,7 +202,7 @@ void tomo_parse_arg_list(List_t args, cli_help_info_t info, int spec_len, cli_ar
     }
 }
 
-// Whether this is a list or table -- possibly behind an optional or pointer
+// Whether this is a list or table, possibly behind an optional or pointer
 // wrapper, which doesn't change how the contents parse. Such an argument takes
 // many values, so `--flag=a,b,c` splits on commas, and the container decides
 // for itself where its values stop.
@@ -214,8 +214,8 @@ static bool holds_many_values(const TypeInfo_t *type) {
 
 // The runtime counterparts of the compiler's is_int_type() and
 // is_numeric_type() (src/types.h). Those take a `type_t`, the compiler's own
-// representation of a type, which a compiled program never has -- it carries
-// TypeInfo_t instead -- so the same questions get asked here of that. Keep the
+// representation of a type, which a compiled program never has, since it
+// carries TypeInfo_t instead, so the same questions get asked here of that. Keep the
 // two in step: these cover exactly the types those do.
 static bool is_int_info(const TypeInfo_t *type) {
     return type == &Int$info || type == &Int64$info || type == &Int32$info || type == &Int16$info || type == &Int8$info
@@ -496,7 +496,7 @@ static int dispatch_into(cli_spec_t *cli, cli_command_t *command, List_t head, L
     if (word && command->num_children > 0) {
         OptionalText_t nearest = nearest_command(command, word);
         if (nearest.tag != TEXT_NONE)
-            command_hint = Texts("\n", style.bold, word, style.reset, " isn't a command -- did you mean ", style.bold,
+            command_hint = Texts("\n", style.bold, word, style.reset, " isn't a command. Did you mean ", style.bold,
                                  nearest, style.reset, "?");
     }
 
@@ -626,7 +626,7 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
         while (args.length > 0) {
             const char *arg = *(const char **)args.data;
             // A key:value token carries two values, so the flag-or-value
-            // question -- and the key parse below -- are about the key alone.
+            // question, and the key parse below, are about the key alone.
             const char *colon = is_set ? NULL : strchr(arg, ':');
             if (!is_set && !colon) break;
             const char *key_str = colon ? String(string_slice(arg, (size_t)(colon - arg))) : arg;

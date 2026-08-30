@@ -61,7 +61,7 @@ typedef struct tomo_profile_site_s {
 
 // One node of the call tree: a site reached by one particular path of callers.
 // This is the only thing a call updates, and everything reported is summed out
-// of it afterwards -- the flame graph draws these nodes directly, and the table
+// of it afterwards: the flame graph draws these nodes directly, and the table
 // merges the nodes of each function into a single row.
 typedef struct tomo_profile_node_s {
     tomo_profile_site_t *site;
@@ -98,8 +98,8 @@ void tomo_profile_begin(tomo_profile_frame_t *frame, tomo_profile_site_t *site);
 void tomo_profile_end(tomo_profile_frame_t *frame);
 
 // Instrument the enclosing function. The cleanup attribute makes the timer stop
-// on every path out of the function -- `return`, a deferred block, or falling
-// off the end -- without the compiler having to find each exit point.
+// on every path out of the function, whether `return`, a deferred block, or
+// falling off the end, without the compiler having to find each exit point.
 // Only the one field is assigned, rather than initializing the whole struct:
 // `= {.node = NULL}` would zero every other member too, which is pure cost in a
 // build that is running with PROFILE=0. Nothing can leave the function between
@@ -117,7 +117,7 @@ static inline void tomo_profile_leave(tomo_profile_frame_t *frame) {
 }
 
 // Time a statement (or a braced block) as a named span. Spans are ordinary
-// sites -- they nest, they accumulate across repeats, and they appear in the
+// sites: they nest, they accumulate across repeats, and they appear in the
 // report and the graph exactly like instrumented functions do:
 //     TOMO_PROFILE_SPAN("parse", ast = parse_file(path));
 // (the parameters are `_name`/`_site` so that the designated initializers'

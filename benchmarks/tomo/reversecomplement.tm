@@ -1,4 +1,4 @@
-# reverse-complement — The Computer Language Benchmarks Game
+# reverse-complement, from The Computer Language Benchmarks Game
 #
 # A Tomo port of the gcc-4 reference (single-threaded). Reads FASTA on stdin;
 # for each record it prints the header unchanged, then the reverse-complement
@@ -8,13 +8,13 @@
 #   - The whole input is slurped once as raw `[Byte]` (`read_bytes()`), and all
 #     work is byte-level: no Text decoding, no per-line allocation.
 #   - `comp` is a 256-entry byte table mapping each nucleotide (upper OR lower
-#     case) to its upper-case complement, and everything else — crucially
-#     newlines — to 0. Walking the sequence backwards and emitting only the
+#     case) to its upper-case complement, and everything else, crucially
+#     newlines, to 0. Walking the sequence backwards and emitting only the
 #     non-zero lookups reverses, complements, upper-cases and strips newlines in
 #     a single pass, exactly like the reference's `xtab` (where `if (c)` skips
 #     the zero entries).
 #   - Header/record boundaries are located with `.find()` (memchr-backed,
-#     vectorized) instead of a manual per-byte scan loop — the same technique
+#     vectorized) instead of a manual per-byte scan loop, the same technique
 #     the fast reference implementations use (Go's line-splitting bufio
 #     reader, C#'s `Array.IndexOf`), which a hand-written scalar loop can't
 #     match without SIMD.
@@ -57,7 +57,7 @@ func main()
     # run. Output can never be longer than the input (re-wrapping only removes
     # or repositions newlines), so `n` bytes of `data` itself, plus a little
     # slack for a wrap-width mismatch between input and output, is always
-    # enough room. Sliced (not copied) from `data` — the first indexed write
+    # enough room. Sliced (not copied) from `data`, so the first indexed write
     # below triggers one bulk copy-on-write compact, not a per-byte cost.
     out := &(data ++ [Byte(0) for _ in n // 60 + 64])
     p := Int64(0)  # write cursor into `out`, shared across all records

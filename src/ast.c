@@ -51,7 +51,7 @@ const bool op_is_right_associative[NUM_AST_TAGS] = {
 
 // Whether `outer_op` absorbs an `op` expression on its right into itself,
 // rather than leaving it for whatever encloses `outer_op` in turn. It absorbs
-// `op` when `op` binds more tightly -- or exactly as tightly, if `outer_op` is
+// `op` when `op` binds more tightly, or exactly as tightly if `outer_op` is
 // right-associative, which is what groups `a ^ b ^ c` as `a ^ (b ^ c)`.
 //
 // `outer_op` is Unknown for an expression with nothing around it. That absorbs
@@ -335,7 +335,7 @@ Text_t ast_to_sexp(ast_t *ast) {
 // Num value it denotes, so `1/3` compiles to NUMBER_SMALL(1, 3) and
 // `0.1 + 0.1` to NUMBER_SMALL(1, 5) rather than a runtime call chain. The
 // compiler links the same number library the runtime uses, so "fold" here
-// means "run the actual arithmetic" -- the folded value is bit-identical to
+// means "run the actual arithmetic", and the folded value is bit-identical to
 // what the runtime would have produced, Euclidean division/modulus included.
 //
 // Deliberately narrow: literals, negation, and the binary operators, folding
@@ -525,7 +525,7 @@ CONSTFUNC bool is_operation(ast_t *ast) {
 
 // An integer literal, seeing through a `-` written apart from its digits. `-2`
 // folds the sign into the literal as it's parsed, but `- 2` and `-(2)` are a
-// negation wrapping one, and they denote the same value -- so anything that
+// negation wrapping one, and they denote the same value, so anything that
 // treats a literal specially, whether that's compiling it straight to a sized
 // type or letting it take its type from the other operand, should treat all
 // three alike. The value is written to `*value` when one is asked for.

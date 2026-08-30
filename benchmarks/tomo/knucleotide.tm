@@ -1,4 +1,4 @@
-# k-nucleotide — The Computer Language Benchmarks Game
+# k-nucleotide, from The Computer Language Benchmarks Game
 #
 # A Tomo port. The only inline C is the final `%.3f` frequency formatting
 # (Tomo has no zero-padded float format), which the benchmark's ground rules
@@ -102,7 +102,7 @@ func write_frequencies(seq:[Byte], k:Int64)
     say(out, newline=no)
 
 # Count occurrences of one specific oligonucleotide by sliding its exact key
-# over the sequence (no table needed — only one key matters).
+# over the sequence (no table needed, since only one key matters).
 func write_count(seq:[Byte], oligo:Text)
     n := Int64(seq.length)
     bytes := oligo.utf8()

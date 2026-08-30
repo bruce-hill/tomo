@@ -36,7 +36,7 @@ ast_t *parse_declaration(parse_ctx_t *ctx, const char *pos) {
         }
     }
     // A declaration with no value is a bare `x : T`, so an open parenthesis
-    // here means this isn't a declaration at all -- it's a construct that takes
+    // here means this isn't a declaration at all, but a construct that takes
     // a type, like `deserialize:Foo(bytes)`:
     if (val == NULL && *pos == '(') return NULL;
     return NewAST(ctx->file, start, pos, Declare, .var = var, .type = type, .value = val);

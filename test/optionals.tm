@@ -243,7 +243,7 @@ test "printing a none optional in if/else"
 
 test "'or' fallbacks can be untyped literals"
     # The fallback takes the optional's own type, so a bare literal works for
-    # any of them -- not just the bignum `Int`, whose type a literal already
+    # any of them, not just the bignum `Int`, whose type a literal already
     # has on its own.
     none_i64 : Int64? = none
     none_byte : Byte? = none

@@ -1,4 +1,4 @@
-# fannkuch-redux — The Computer Language Benchmarks Game
+# fannkuch-redux, from The Computer Language Benchmarks Game
 #
 # A Tomo port of Oleg Mazurov's algorithm (the one used by the fastest Go,
 # Java, and C++ entries), single-threaded: the reference programs use its
@@ -9,7 +9,7 @@
 # What makes it faster than the naive reference algorithm:
 #   - Flips are counted on a scratch copy (`pp`) with early-outs: a
 #     permutation starting with 0 counts no flips, and one whose first flip
-#     ends the game counts 1 — neither needs any copying at all.
+#     ends the game counts 1, and neither needs any copying at all.
 #   - Each flip reverses only the *interior* of the prefix; the two ends are
 #     exchanged implicitly by tracking the virtual first element (`p0`) in a
 #     local, halving the swaps per flip.
@@ -17,7 +17,7 @@
 #     `p.swap(1, 2)` instead of a rotate, and no step copies the whole array.
 #
 # Tomo-specific notes (see nbody.tm and git history for the general levers):
-#   - Pure Tomo; no inline C anywhere — output uses `say()`.
+#   - Pure Tomo; no inline C anywhere, and output uses `say()`.
 #   - Hot loops iterate `Int64(...)` ranges so counters stay native, and use
 #     `p.swap(i, j)`/indexed access on `&[Int64]` lists (stack-allocated
 #     headers; the list values never escape). The main loop body

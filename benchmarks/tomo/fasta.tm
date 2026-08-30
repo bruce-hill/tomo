@@ -1,4 +1,4 @@
-# fasta — The Computer Language Benchmarks Game
+# fasta, from The Computer Language Benchmarks Game
 #
 # A Tomo port. Pure Tomo; no inline C. Output must match the C reference
 # byte-for-byte, which pins down the exact pseudo-random sequence (a linear
@@ -13,17 +13,17 @@
 #     register instead of through a heap `@[Int64]` (which would cost a bounds
 #     check + optional-unwrap + copy-on-write guard on every single draw).
 #   - The cumulative probabilities are paired with their output byte in a
-#     `[Freq]` list, and the linear search is `for f in freqs` — element
+#     `[Freq]` list, and the linear search is `for f in freqs`, i.e. element
 #     iteration, so no per-step bounds-checked optional indexing.
 #   - Output bytes are filled straight into a fixed byte buffer sized for a
 #     whole batch of lines (with newlines) and written raw to stdout with a
-#     `byte_writer` — no per-line Text allocation, cord concatenation, or
+#     `byte_writer`, with no per-line Text allocation, cord concatenation, or
 #     UTF-8 round-trip.
 #
 # The repeated-ALU block (ONE) still leans on Tomo's cord/rope Text: `++` is
 # O(1) and slicing is O(1), so `alu ++ alu.slice(1, 60)` is a cord whose every
 # 60-wide window [pos+1, pos+60] is a valid O(1) slice of one shared backing
-# cord — no copying.
+# cord, with no copying.
 #
 # Usage: fasta <n>   (e.g. ./fasta 2500000)
 
@@ -83,7 +83,7 @@ func random_fasta(header:Text, freqs:[Freq], n:Int64, seed:Int64 -> Int64)
     buf := &[Byte(0) for _ in cap]   # stack scratch buffer; never escapes
     p := Int64(0)    # write cursor into `buf` (0-based; buf is 1-indexed)
     col := Int64(0)  # characters written on the current line
-    # Write raw bytes straight to stdout — no UTF-8 validation or Text/cord
+    # Write raw bytes straight to stdout, with no UTF-8 validation or Text/cord
     # round-trip. `append` avoids seeking a pipe; the final write closes it.
     emit := (/dev/stdout).byte_writer(append=yes)
     emit((header ++ "\n").utf8())!

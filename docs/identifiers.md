@@ -42,7 +42,7 @@ unicode representations of `résumé` below refer to the same variable:
 ```tomo
 func main()
     résumé := 7        # written with precomposed é
-    say("$résumé")     # written with e + combining accent — same variable
+    say("$résumé")     # written with e + combining accent; same variable
 ```
 
 ## Generated C code

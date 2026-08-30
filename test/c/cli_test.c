@@ -2,8 +2,8 @@
 // shared by the `tomo` compiler and by every program it compiles.
 // To run the test: make test-cli
 //
-// The parser answers by printing and exiting -- errors to stderr, --help and
-// --version to stdout -- so those cases run in a forked child (see
+// The parser answers by printing and exiting, with errors to stderr and
+// --help/--version to stdout, so those cases run in a forked child (see
 // run_in_child) and assert on the child's exit status and output.
 
 #include "cli.h"
@@ -73,7 +73,7 @@ static int failures = 0;
 // An argument list, as the parser takes it:
 #define ARGS(...) TypedList(const char *, __VA_ARGS__)
 
-// The arguments left over after a pop, joined with spaces -- what the parser
+// The arguments left over after a pop, joined with spaces, i.e. what the parser
 // would go on to treat as positional values.
 static const char *leftovers(List_t args) {
     return CString$join(" ", args);
@@ -320,7 +320,7 @@ static void test_short_flags(void) {
     CHECK_POP(&Int$info, I(0), 'n', "count", ARGS("-abn", "42", "rest"), "42", "-ab rest");
     CHECK_POP(&Int$info, I(0), 'n', "count", ARGS("-abn=42", "rest"), "42", "-ab rest");
     // The trailing ";" stops the leftover from being read as another cluster
-    // with a value -- `-ab1 2` must not parse as b=1, then a=2:
+    // with a value: `-ab1 2` must not parse as b=1, then a=2:
     CHECK_POP(&Int$info, I(0), 'n', "count", ARGS("-abn42", "rest"), "42", "-ab; rest");
 
     // With no short flag registered, -n is just another argument:
@@ -385,7 +385,7 @@ static void test_scalar_types(void) {
     CHECK_POP(&Num$info, NONE_NUM, 0, "x", ARGS("--x=1.5"), "1.5", "");
 
     // The negative extremes are reachable positionally, where dashes are
-    // allowed (as a flag value they need the numeric exception -- see
+    // allowed (as a flag value they need the numeric exception; see
     // test_negative_numbers):
     CHECK_POSITIONAL(&Int64$info, (int64_t)0, ARGS("-9223372036854775808"), true, "-9223372036854775808", "");
     CHECK_POSITIONAL(&Int8$info, (int8_t)0, ARGS("-128", "rest"), true, "-128", "rest");
@@ -410,8 +410,8 @@ static void test_scalar_types(void) {
 }
 
 // An optional argument renders as its value or as `none`, which is exactly
-// what has to be checked -- whichever way the type represents none internally (a
-// has_value byte, a NaN, a NULL pointer, a reserved bit pattern).
+// what has to be checked, whichever way the type represents none internally
+// (a has_value byte, a NaN, a NULL pointer, a reserved bit pattern).
 #define OPT(t, inner) Optional$info(sizeof(t), __alignof__(t), (inner))
 
 static void test_optional_types(void) {
@@ -502,7 +502,7 @@ static void test_optional_containers(void) {
               "");
     CHECK_POP(opt_set, (OptionalTable_t)NONE_TABLE, 0, "tags", ARGS("--tags", "a", "b"), "{\"a\", \"b\"}", "");
 
-    // A flag given with no values of its own is empty, not none -- the flag
+    // A flag given with no values of its own is empty, not none, since the flag
     // was still given:
     CHECK_POP(opt_list, (OptionalList_t)NONE_LIST, 0, "nums", ARGS("--nums", "--other"), "[]", "--other");
     CHECK_POP(opt_table, (OptionalTable_t)NONE_TABLE, 0, "defs", ARGS("--defs", "--other"), "{}", "--other");
@@ -515,8 +515,8 @@ static void test_optional_containers(void) {
     CHECK_POP(opt_list, (OptionalList_t)TypedList(int32_t, 9), 0, "nums", ARGS("--nums", "1"), "[9, 1]", "");
 }
 
-// An optional boolean is a boolean flag too -- is_bool_arg() looks through the
-// optional, so the help text advertises it as a toggle -- with `--flag=none`
+// An optional boolean is a boolean flag too, since is_bool_arg() looks through
+// the optional, so the help text advertises it as a toggle, with `--flag=none`
 // for the third value.
 static void test_optional_booleans(void) {
     const TypeInfo_t *opt_bool = OPT(OptionalBool_t, &Bool$info);
@@ -617,7 +617,7 @@ static void test_negative_numbers(void) {
     CHECK_POP(OPT(OptionalPoint_t, &Point$info), ((OptionalPoint_t){0}), 0, "at", ARGS("--at", "-3", "-4"),
               "Point{x=-3, y=-4}", "");
     // A struct whose leading field isn't numeric can still take a negative in
-    // the fields that are (its leading token is rejected -- see test_errors):
+    // the fields that are (its leading token is rejected; see test_errors):
     CHECK_POP(&Label$info, ((Label_t){0}), 0, "label", ARGS("--label", "x", "-2"), "Label{name=\"x\", n=-2}", "");
 
     // A pointer looks through to what it points at:
@@ -729,7 +729,7 @@ static void test_positionals(void) {
     CHECK_STR(fill_two(ARGS("a", "--", "-b"), plain, false), "a/-b");
 
     // With strict_positionals, only entries marked .positional are filled from
-    // bare words -- before and after "--" alike. (This is the mode
+    // bare words, before and after "--" alike. (This is the mode
     // hand-written CLIs like the compiler's use.)
     CHECK_STR(fill_two(ARGS("a"), strict, true), "-/a");
     CHECK_STR(fill_two(ARGS("--", "-a"), strict, true), "-/-a"); // the dash is part of the value here
@@ -821,8 +821,8 @@ static void test_errors(void) {
     CHECK_PARSE_ERROR(ARGS("--count", "-"), "Not a valid flag: -", BAD_ARG("count", &Int$info));
 
     // A wrapped container stops at a dashed token exactly where a bare one
-    // does -- the wrapper defers to it rather than erroring first -- so the
-    // token is left over rather than rejected:
+    // does, since the wrapper defers to it rather than erroring first, so
+    // the token is left over rather than rejected:
     CHECK_PARSE_ERROR(ARGS("--files", "-1"), "Unknown flag values: -1",
                       BAD_ARG("files", Pointer$info("@", List$info(&Text$info))));
     // ...while a wrapper around a struct still rejects it, since a struct
@@ -849,10 +849,10 @@ static void test_errors(void) {
         cli_arg_t spec[] = {{.name = "name", .dest = &name, .type = &Text$info}};
         parse_case_t c = {.args = ARGS("bulid", "x"),
                           .info = {.usage = Text("Usage: prog"),
-                                   .command_hint = Text("\nbulid isn't a command -- did you mean build?")},
+                                   .command_hint = Text("\nbulid isn't a command. Did you mean build?")},
                           .spec_len = 1,
                           .spec = spec};
-        EXPECT_PARSE_ERROR(&c, "did you mean build?");
+        EXPECT_PARSE_ERROR(&c, "Did you mean build?");
     }
 }
 
@@ -892,13 +892,13 @@ static void test_usage_text(void) {
     // A metavar overrides the type-derived placeholder:
     CHECK_USAGE("Usage: prog --out FILE", ARG("out", &Text$info, .metavar = "FILE", .required = true));
 
-    // An optional shows the placeholder of the type it wraps -- and an
+    // An optional shows the placeholder of the type it wraps, and an
     // optional boolean is still a boolean flag, with no placeholder at all:
     CHECK_USAGE("Usage: prog --count N", ARG("count", OPT(Int_t, &Int$info), .required = true));
     CHECK_USAGE("Usage: prog --force", ARG("force", OPT(OptionalBool_t, &Bool$info), .required = true));
 
     // A list *flag* shows that it takes many values (a list positional is
-    // displayed differently -- see the first spec above):
+    // displayed differently; see the first spec above):
     CHECK_USAGE("Usage: prog --files path1 path2...", ARG("files", List$info(&Path$info), .required = true));
     // An optional list takes many values too, as a flag and as a positional:
     CHECK_USAGE("Usage: prog --files path1 path2...",
@@ -1075,9 +1075,9 @@ static void test_dispatch(void) {
     }
 
     { // A word that resembles a top-level command is only blamed once the
-        // parse actually fails -- the root command here can absorb one file
+        // parse actually fails. The root command here can absorb one file
         // argument, so the second word is what triggers the error:
-        CHECK_DISPATCH(1, "isn't a command -- did you mean add?", "adk", "x");
+        CHECK_DISPATCH(1, "isn't a command. Did you mean add?", "adk", "x");
     }
 
     { // ...but a lone word that parses fine just runs, even though it's one

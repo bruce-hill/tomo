@@ -1512,8 +1512,8 @@ Num_t Text$distance(Text_t a, Text_t b, Text_t language) {
     }
 #undef DIST
 
-    // The matrix holds sums of 1, 0.5 and 0.25 -- all exact in binary floating
-    // point -- so converting the result to a Num is lossless:
+    // The matrix holds sums of 1, 0.5 and 0.25, all exact in binary floating
+    // point, so converting the result to a Num is lossless:
     return number_from_double(distances[a.length * (b.length + 1) + b.length]);
 }
 

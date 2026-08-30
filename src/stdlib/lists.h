@@ -62,8 +62,8 @@ extern char _EMPTY_LIST_SENTINEL;
 // compact-if-shared up front, captures the header fields into locals, and
 // compiles accesses against those. This both removes the per-write CoW guard
 // (data_refcount provably stays 0) and lets the C compiler keep the header in
-// registers / strength-reduce the stride multiply -- re-reading through the
-// pointer would force a reload on every iteration, since element stores could
+// registers / strength-reduce the stride multiply, since re-reading through
+// the pointer would force a reload on every iteration, since element stores could
 // alias the list struct. Bounds checks stay.
 #define List_get_hoisted(data_val, stride_val, length_val, index_expr, item_type, start, end)                          \
     ({                                                                                                                 \
@@ -76,8 +76,8 @@ extern char _EMPTY_LIST_SENTINEL;
         (item_type *)((data_val) + (stride_val) * off);                                                               \
     }))
 // `xs.swap(i, j)`: exchange two elements in place, checking each index with
-// List_checked_offset in turn (so a failure names whichever index -- i first,
-// then j -- was actually out of range). One copy-on-write check covers both
+// List_checked_offset in turn (so a failure names whichever index, i first,
+// then j, was actually out of range). One copy-on-write check covers both
 // writes (compare a two-element multi-assignment swap: 4 bounds checks + 2
 // CoW checks). Swapping an index with itself is a no-op, not an error.
 #define List_swap_hoisted(item_type, data_val, stride_val, length_val, i_expr, j_expr, start, end)                     \
@@ -128,7 +128,7 @@ extern char _EMPTY_LIST_SENTINEL;
     } while (0)
 // A list whose items contain no pointers can be allocated as GC-atomic, so the
 // collector never scans its payload. All the fixed-size number types qualify
-// (including Byte, which is uint8_t — the unsigned widths were previously
+// (including Byte, which is uint8_t; the unsigned widths were previously
 // missing, so Byte/Int lists were needlessly scanned).
 #define is_atomic(x)                                                                                                   \
     _Generic(x,                                                                                                        \
@@ -171,7 +171,7 @@ extern char _EMPTY_LIST_SENTINEL;
 // A list literal whose elements are all compile-time constants. `data` points
 // at a module-level `static const` array (emitted separately by the compiler,
 // so its elements have .rodata/program lifetime), and this is a plain constant
-// *expression* (no statement expression) -- so the whole List_t is itself a
+// *expression* (no statement expression), so the whole List_t is itself a
 // compile-time constant, usable even as a file-scope initializer, and its buffer
 // never dangles wherever the value escapes to. `data_refcount` is maxed and
 // `free` is 0 so any mutation path copies to a fresh heap buffer before writing
@@ -206,11 +206,11 @@ extern char _EMPTY_LIST_SENTINEL;
 
 // Insert an item, inlining the hot case: an *append* (index I(0), the
 // default) where there is spare capacity, the list isn't an aliased/CoW
-// snapshot, and the stride already matches -- a bounds-free store plus two
-// counter bumps, with no function call. Everything else (any other index,
+// snapshot, and the stride already matches, giving a bounds-free store plus
+// two counter bumps, with no function call. Everything else (any other index,
 // growth, resize, copy-on-write) falls back to List$insert. When the index
-// is the compile-time constant I(0) -- list comprehensions and plain
-// `list.insert(x)` appends both compile to that -- the compiler folds the
+// is the compile-time constant I(0), which list comprehensions and plain
+// `list.insert(x)` appends both compile to, the compiler folds the
 // `is I(0)` test away and keeps only the store; a runtime index just pays one
 // predictable comparison. `padded_item_size` is a compile-time sizeof, so the
 // memcpy_fixed folds to a single store.
@@ -244,14 +244,15 @@ extern char _EMPTY_LIST_SENTINEL;
                             .data_refcount = 0}                                                                        \
                  : (is_atomic(zero_item) ? EMPTY_ATOMIC_LIST : EMPTY_LIST);                                            \
     })
-// A list of `count` all-bits-zero items -- what a comprehension whose body is
-// a constant zero (`[Byte(0) for _ in n]`, `[0.0 for _ in n]`, ...) produces,
-// but without looping to store each element: allocate and zero the whole block
-// in one shot. GC_MALLOC (non-atomic) already returns cleared memory; the
-// atomic allocator does NOT (it promises no-pointers, not zeroed), so those
-// blocks are memset here. `zero_item` supplies the item type only; this is
-// valid solely for types whose zero value is all-bits-zero (bytes, fixed-width
-// ints, Nums, Bools), which the compiler checks before emitting this.
+// A list of `count` all-bits-zero items, which is what a comprehension whose
+// body is a constant zero (`[Byte(0) for _ in n]`, `[0.0 for _ in n]`, ...)
+// produces, but without looping to store each element: allocate and zero the
+// whole block in one shot. GC_MALLOC (non-atomic) already returns cleared
+// memory; the atomic allocator does NOT (it promises no-pointers, not zeroed),
+// so those blocks are memset here. `zero_item` supplies the item type only;
+// this is valid solely for types whose zero value is all-bits-zero (bytes,
+// fixed-width ints, Nums, Bools), which the compiler checks before emitting
+// this.
 #define List$zeroed(count, zero_item)                                                                                  \
     ({                                                                                                                 \
         int64_t _zn = (count);                                                                                         \

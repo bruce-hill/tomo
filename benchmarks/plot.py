@@ -40,14 +40,14 @@ GRID = "#e6e8eb"
 
 # A few very slow entries squash everyone else: on spectral-norm Python takes
 # 182s against a 0.61s leader, so every other bar is a sliver. The panel then
-# truncates its x-axis to the rest of the field -- an ordinary axis, ordinary
-# linear scale, ordinary ticks, just a shorter one -- and the entries that do
-# not fit run off the end of it, marked with an arrowhead and labeled with
+# truncates its x-axis to the rest of the field, an ordinary axis with an
+# ordinary linear scale and ordinary ticks, just a shorter one, and the
+# entries that do not fit run off the end of it, marked with an arrowhead and labeled with
 # their real time inside the bar. Where to truncate is derived from the data
 # rather than fixed at some number of seconds: sort the times and truncate
 # above the *lowest* neighbor-to-neighbor jump that is big enough to matter and
-# leaves only a few entries above it -- the lowest such jump, not the biggest,
-# because it is the one that wins back the most axis for the pack (mandelbrot's
+# leaves only a few entries above it, taking the lowest such jump rather than
+# the biggest, because it is the one that wins back the most axis for the pack (mandelbrot's
 # biggest jump is Lua->Python at the very top, where truncating there would
 # leave the field just as squashed).
 BREAK_JUMP = 2.5        # a jump this large can host the truncation...
@@ -112,8 +112,9 @@ def panel(ax, bname, block):
 
     # A few runaway entries would squash the rest of the field into slivers, so
     # the axis stops at the rest of the field (see truncate_at) and they run off
-    # the end of it. The axis is an ordinary one either way -- same linear
-    # scale, same ticks -- so bar lengths mean the same thing throughout.
+    # the end of it. The axis is an ordinary one either way, with the same
+    # linear scale and the same ticks, so bar lengths mean the same thing
+    # throughout.
     shown = truncate_at(times)
     xmax = shown if shown is not None else (max(times) if times else 1.0)
     # The usual headroom past the longest bar is where its label goes; an
@@ -161,7 +162,7 @@ def panel(ax, bname, block):
     args = " ".join(block.get("args", []))
     ax.set_title(f"{bname}   (n = {args})", loc="left", fontsize=13,
                  color=INK, fontweight="bold", pad=8)
-    ax.set_xlabel("wall-clock seconds — lower is faster", fontsize=9, color=MUTED)
+    ax.set_xlabel("wall-clock seconds (lower is faster)", fontsize=9, color=MUTED)
 
 
 def human_bytes(n):
@@ -213,7 +214,7 @@ def size_panel(ax, bname, block):
 
     ax.set_title(f"{bname}", loc="left", fontsize=13, color=INK,
                  fontweight="bold", pad=8)
-    ax.set_xlabel("static binary size (MB, stripped) — smaller is leaner",
+    ax.set_xlabel("static binary size (MB, stripped; smaller is leaner)",
                   fontsize=9, color=MUTED)
 
 
@@ -232,7 +233,7 @@ def main_sizes(path, out):
     ]
     axes[0, 0].legend(handles=legend, loc="upper right", frameon=False,
                       fontsize=9, borderaxespad=0.6)
-    fig.suptitle("Static binary size — Tomo vs. other compiled languages",
+    fig.suptitle("Static binary size: Tomo vs. other compiled languages",
                  x=0.02, ha="left", fontsize=14, fontweight="bold", color=INK)
     fig.text(0.02, 0.008,
              "statically linked · symbols stripped · only languages that can "
@@ -286,11 +287,11 @@ def main():
     axes[0, 0].legend(handles=legend, loc="upper right", frameon=False,
                       fontsize=9, borderaxespad=0.6)
     # Reserve title/footer bands as *fixed* heights (in inches, converted to
-    # figure fractions) rather than fixed fractions -- otherwise a taller
+    # figure fractions) rather than fixed fractions, since otherwise a taller
     # figure (more benchmarks) opens a huge gap under the title.
     top = 1.0 - 0.55 / fig_h
     bottom = 0.35 / fig_h
-    fig.suptitle("Tomo vs. other languages — Computer Language Benchmarks Game",
+    fig.suptitle("Tomo vs. other languages: Computer Language Benchmarks Game",
                  x=0.02, y=1.0 - 0.28 / fig_h, ha="left", va="top",
                  fontsize=14, fontweight="bold", color=INK)
     fig.text(0.02, 0.10 / fig_h,

@@ -272,7 +272,7 @@ PUREFUNC OptionalInt_t List$find(List_t list, void *item, const TypeInfo_t *type
     const TypeInfo_t *item_type = type->ListInfo.item;
     // Fast path: a tightly-packed list of single-byte items (Byte or Int8) is
     // just a byte buffer, and byte-value equality *is* generic_equal() for
-    // these types (no metamethods, no padding) -- so search it with memchr(),
+    // these types (no metamethods, no padding), so search it with memchr(),
     // which is typically SIMD-vectorized, instead of a scalar per-element
     // generic_equal() loop.
     if (list.stride == 1 && (item_type == &Byte$info || item_type == &Int8$info)) {
@@ -863,7 +863,7 @@ void List$deserialize(FILE *in, void *obj, List_t *pointers, const TypeInfo_t *t
     if (len > 0 && padded_size > 0 && list.data == NULL) deserialization_failed();
     deserialize_fn_t item_deserialize = type->ListInfo.item->metamethods.deserialize;
     if (padded_size == 0) {
-        // A zero-sized item holds nothing and reads nothing, so there is nothing to loop over -- and looping
+        // A zero-sized item holds nothing and reads nothing, so there is nothing to loop over, and looping
         // anyway would spin for as long as an unbounded (unbounded because the data can't bound it) count says.
     } else if (item_deserialize) {
         for (int64_t i = 0; i < len; i++)

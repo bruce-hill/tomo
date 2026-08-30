@@ -70,7 +70,7 @@ of the `.tm` file (or at `-o` *output*). With `--instrument`, the executable
 is compiled with profiling instrumentation and prints a breakdown of where its
 time went when it exits (see **PROFILING**). With `--debug`/`-d`, it is compiled
 so a debugger can follow it (see **DEBUGGING**). With `--install`, the executable and
-its generated manpage are also copied into a prefix's `bin/` and `man/man1/` —
+its generated manpage are also copied into a prefix's `bin/` and `man/man1/`,
 the installation prefix by default, or `--prefix` *dir* to choose another.
 Existing files at those destinations are overwritten only after confirmation,
 or immediately with `--yes`/`-y`; a warning is printed if the target `bin/` is
@@ -200,8 +200,9 @@ The program's own arguments are left alone; the report is controlled by
 
 `tomo run --debug` *file.tm* runs a program under `gdb`(1), with Tomo's
 debugger integration loaded into it. The program starts immediately and runs
-as it normally would; it stops when something stops it — a `breakpoint()` call
-in the source, a runtime error, a fatal signal, or an interrupt — and leaves
+as it normally would; it stops when something stops it, whether a
+`breakpoint()` call in the source, a runtime error, a fatal signal, or an
+interrupt, and leaves
 you at a debugger prompt showing the Tomo function, the source around the line
 it stopped on, and the Tomo variables in scope. A program that finishes on its
 own leaves the debugger with its own exit status, exactly as `tomo run` would
@@ -218,15 +219,15 @@ scope, `p` *var* prints one of them, and `tframe` re-shows where the program is
 stopped. `frame`, `up`, and `down` report the frame they select the way a stop
 is reported: the Tomo name of the function, the source around the line, and the
 variables in scope. `backtrace` (and `bt`/`where`) is likewise replaced by one
-that prints the stack in Tomo's terms -- `helper(label="widgets", count=7)` --
+that prints the stack in Tomo's terms, `helper(label="widgets", count=7)`,
 with argument values cut short; gdb's own backtrace remains available as `info
-stack`. These print values with Tomo's own formatter — the same output `say()`
-would produce, syntax coloring included — rather than the C structures they
+stack`. These print values with Tomo's own formatter, the same output `say()`
+would produce with syntax coloring included, rather than the C structures they
 compile to. gdb's own `print` does the same for values whose C type belongs to
 exactly one Tomo type.
 
-A `Num` is exact, so it prints exactly — `32768/3`, `pi`, `1/2 + sqrt(5)/2` —
-and the debugger shows a rounded decimal beside it (`32768/3 \[u2248] 10922.6666666667`)
+A `Num` is exact, so it prints exactly as `32768/3`, `pi`, or
+`1/2 + sqrt(5)/2`, and the debugger shows a rounded decimal beside it (`32768/3 \[u2248] 10922.6666666667`)
 for the ones no decimal expresses. `set tomo-num-digits` *n* sets how many
 fractional digits that carries, and `0` turns it off.
 
@@ -244,7 +245,7 @@ format letters and value history behave as they always did.
 `--debug` makes two changes to how the program is compiled. It defaults to
 `-O0` (an explicit `-O` still wins) so that the program a debugger sees is the
 one that was written, and it emits, beside every variable, the type information
-Tomo's formatter needs to print that variable — which is the only way a
+Tomo's formatter needs to print that variable, which is the only way a
 debugger can show what is inside a list, table, or optional, since those do not
 record their contents in their C type.
 
@@ -255,8 +256,8 @@ nothing.
 
 Runtime errors stop in the debugger too. `tomo run --debug` sets
 `TOMO_CORE_DUMP`, which makes `fail()`, a failed assertion, or an out-of-range
-access raise `SIGABRT` after printing its usual report, instead of exiting —
-so the failing frame and its variables are still there to look at. `SIGSEGV`,
+access raise `SIGABRT` after printing its usual report, instead of exiting, so
+the failing frame and its variables are still there to look at. `SIGSEGV`,
 `SIGFPE`, `SIGILL`, `SIGBUS`, and `SIGSYS` stop the same way; an interrupt
 (`SIGINT`) stops the program without killing it, so `continue` resumes.
 
@@ -270,8 +271,8 @@ built with it can be started under the debugger by hand by loading
 `TOMO_PATH`
 : The installation prefix Tomo compiles and links against (its `lib/`,
 `include/`, `libexec/`, and `man/` trees) and installs into. By default this
-is determined at runtime from the location of the running `tomo` binary — the
-grandparent of the resolved executable path — so an installation is
+is determined at runtime from the location of the running `tomo` binary (the
+grandparent of the resolved executable path), so an installation is
 relocatable. Set `TOMO_PATH` to override it, for example to point at a tree in
 an unusual location or one whose `tomo` binary has been copied away from its
 sibling directories.

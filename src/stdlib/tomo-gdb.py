@@ -8,13 +8,13 @@
 #   Show a Tomo value. An Int is a tagged small-int-or-bignum, a Text is a rope,
 #   and a List or Table doesn't record in its C type what it holds. Printing
 #   them means calling Tomo's own generic_as_text() in the stopped program, with
-#   the value's TypeInfo -- which for a type-erased value is only available
+#   the value's TypeInfo, which for a type-erased value is only available
 #   because a `--debug` build emits a `_$x$typeinfo` beside each variable `_$x`
 #   (see compile_debug_typeinfo() in src/compile/statements.c).
 #
 #   Use Tomo's names. A function is `fib$prog_a1b2c3d4` and a variable `x` is
 #   `_$x`, so a bare Tomo name typed at gdb finds either nothing or some
-#   unrelated C symbol -- `print log` in a program with a `log` variable answers
+#   unrelated C symbol, so `print log` in a program with a `log` variable answers
 #   with libm's log().
 #
 # Commands: `tlocals`, `tframe`, and replacements for `p` (gdb's alias for
@@ -122,7 +122,7 @@ def typeinfo_for(gdb_type):
 
     The naming is regular enough to be a rule rather than a table: `Int_t` has
     `Int$info`, and a struct or enum has the `$$info$` beside it. The rule also
-    excludes the right types by itself -- `List$info` and `Table$info` are
+    excludes the right types by itself, since `List$info` and `Table$info` are
     macros rather than symbols, so a type-erased value finds nothing here and
     falls back to the variable's companion, which is the only thing that knows
     what it holds."""
@@ -159,7 +159,7 @@ def _lookup_typeinfo(type_name):
 def truncate(text, limit=None):
     """`text` cut to `limit` (or gdb's `print elements`), counting visible characters.
 
-    A Tomo value is formatted whole -- a list is one line however long it is --
+    A Tomo value is formatted whole, so a list is one line however long it is,
     and the variables in scope are printed at every stop, so one big value would
     otherwise bury the screen. The regex takes a prefix of at most `limit`
     visible characters without ever splitting an ANSI escape, which would leave
@@ -183,7 +183,7 @@ def format_value(address, typeinfo):
     # An exact Num that no decimal expresses (`32768/3`, `pi`) gets one beside
     # it; one already written as a decimal has nothing to approximate. The
     # TypeInfo is compared by pointer because it usually arrives as the name of
-    # a variable's companion -- and an optional `Num?` deliberately doesn't
+    # a variable's companion, and an optional `Num?` deliberately doesn't
     # match, since its TypeInfo is the optional's and a `none` is not a number.
     same = "(const void *)(%s) == (const void *)&Num$info" % typeinfo
     if text is None or (typeinfo != NUM_INFO and not attempt(lambda: int(gdb.parse_and_eval(same)), 0)):
@@ -197,8 +197,8 @@ def format_value(address, typeinfo):
 def scratch_copy(value):
     """A pointer to a copy of `value` in the program's heap, or None.
 
-    Some values gdb hands out have no address -- the one `finish` reports comes
-    back in a register -- and Tomo's formatter takes a pointer. GC memory, so
+    Some values gdb hands out have no address (the one `finish` reports comes
+    back in a register), and Tomo's formatter takes a pointer. GC memory, so
     nothing has to free it. GC_malloc has no debug info, hence the cast."""
 
     def allocate():
@@ -231,8 +231,8 @@ def pretty_printer(value):
     if typeinfo is None:
         return None
     if typeinfo == NUM_INFO:
-        # A `Num?` is the same C type as a `Num`, and only its TypeInfo -- which
-        # a bare value doesn't carry -- tells them apart. Its `none` is the one
+        # A `Num?` is the same C type as a `Num`, and only its TypeInfo, which
+        # a bare value doesn't carry, tells them apart. Its `none` is the one
         # bit pattern no real Num has, and formatting that as a number hangs.
         if attempt(lambda: int(value["bits"]), None) == 0:
             return Rendered(dim("none"))
@@ -331,7 +331,7 @@ def frame_variables(frame):
 
 def captured_variables(frame, already_shown):
     """The variables a lambda closed over, which are fields of its `userdata`
-    rather than locals -- without these, stopping inside a lambda shows only its
+    rather than locals. Without these, stopping inside a lambda shows only its
     arguments. Captured functions (`say`, `breakpoint`) are left out: they are
     how a lambda calls anything at all, not something the user put there."""
     userdata = attempt(lambda: frame.read_var("userdata"))
@@ -380,7 +380,7 @@ def show_frame(frame, locals_too=True):
 def show_selected(locals_too=True):
     """Report the selected frame, if it is Tomo code.
 
-    Only the frame actually selected -- walking out to some enclosing Tomo frame
+    Only the frame actually selected: walking out to some enclosing Tomo frame
     would describe a different one than the user moved to, and when stepping it
     would describe somewhere other than where execution is."""
     frame = attempt(gdb.selected_frame)
@@ -559,8 +559,8 @@ def on_exited(event):
 def on_stop(event):
     """Report a stop in Tomo's terms.
 
-    A stop the program didn't ask for -- a breakpoint, a signal -- is one the
-    user is about to look around from, so it lists what is in scope too.
+    A stop the program didn't ask for, such as a breakpoint or a signal, is
+    one the user is about to look around from, so it lists what is in scope too.
     Stepping doesn't: `step` through a long function should show the line it
     reached, not reprint every variable at each one. It also shows the frame
     directly rather than running `tframe`, since re-entering gdb's command loop
@@ -578,12 +578,12 @@ def on_stop(event):
     else:
         return
     frame = attempt(tomo_frame)
-    show_frame(frame) if frame else out(dim("(stopped outside Tomo code -- `bt` for the stack)"))
+    show_frame(frame) if frame else out(dim("(stopped outside Tomo code; `bt` for the stack)"))
 
 
 def silence(breakpoint):
     """gdb announces a hit with the raw C symbol ("Breakpoint 1, main$prog_a1b2c3d4
-    () at prog.tm:9") -- frame filters don't reach that line. Silence it and let
+    () at prog.tm:9"), and frame filters don't reach that line. Silence it and let
     the stop handler report the stop instead."""
     attempt(lambda: setattr(breakpoint, "silent", True))
 
@@ -600,7 +600,7 @@ def configure():
     quietly("set print pretty on")
     # A frame line names its arguments but never shows one. Rendering a Tomo
     # value means calling into the stopped program, and gdb caches the frame it
-    # is printing across that call -- during `finish` it then fails to reinflate
+    # is printing across that call. During `finish` it then fails to reinflate
     # it and dies with an internal error. `tlocals` has the values.
     quietly("set print frame-arguments none")
 

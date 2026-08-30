@@ -25,7 +25,7 @@ test "negation"
 	assert - -1 == 1
 	assert -2.5 ^ 2 == -6.25
 	assert -(1.0/3) == -1.0/3
-	# The formatter prints these back as written -- `-` absorbs the `^` but not
+	# The formatter prints these back as written: `-` absorbs the `^` but not
 	# the `*`, so only the second needs its parentheses (see test-format).
 	assert -x^2 == -9
 	assert -(x*2) == -6
@@ -42,8 +42,8 @@ test "negative literals"
 
 # Whether the `-` is written against the digits decides only whether the parser
 # folds it into the literal; it doesn't decide what the expression means. These
-# are all the literal -2, including where only a literal will do -- compiling
-# straight to a sized type, or taking its type from the other operand.
+# are all the literal -2, including where only a literal will do, whether
+# compiling straight to a sized type or taking its type from the other operand.
 #
 # Written as `-(2)` rather than `- 2` because the formatter normalizes the spacing
 # away, and test-format checks that formatting every .tm file in the tree leaves
@@ -58,7 +58,7 @@ test "a `-` written apart from its digits"
 	assert Int8(1) + -(2) == Int8(-1)
 	assert Int8(5) > -(1)
 	assert [10, 20, 30][-(1)]! == 30
-	# Not just the same value -- the same *type*, which decides whether the
+	# Not just the same value, but the same *type*, which decides whether the
 	# arithmetic wraps. Treating `-(1)` as an ordinary Int rather than a literal
 	# escalated this to bignum arithmetic, where it came out 128 instead.
 	big := Int8(127)
@@ -88,7 +88,7 @@ test "negation binds where the parse tree says it does"
 # Groupings whose parentheses carry meaning: dropping them regroups the
 # expression. test-format checks that formatting every .tm file leaves its parse
 # alone, so writing them here is what puts the formatter's parenthesizing under
-# test -- it prints parentheses exactly where the operator wouldn't absorb the
+# test: it prints parentheses exactly where the operator wouldn't absorb the
 # operand back.
 test "parentheses that have to survive formatting"
 	assert (2^3)^2 == 64

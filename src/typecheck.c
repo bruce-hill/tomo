@@ -198,7 +198,7 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
     case USE_PACKAGE: {
         OptionalPath_t installed = find_installed_package(env->build_info, use_ast);
         assert(installed);
-        // Register under the name the `use` statement refers to it by -- the
+        // Register under the name the `use` statement refers to it by, the
         // same name FieldAccess looks up (ModuleType->name). The install
         // directory's basename doesn't work as a key: digest-pinned packages
         // install into a directory named after their digest.
@@ -639,7 +639,7 @@ PUREFUNC public const char *record_literal_name(ast_t *type_expr) {
 // Enum variants aren't type infos: each one is bound in the enum's namespace as
 // a generated constructor function returning the enum. `type_expr` (a Var like
 // `A` or a FieldAccess like `Baz.A`) names a variant iff it resolves to a
-// binding explicitly marked as one -- matching by name and return type alone
+// binding explicitly marked as one. Matching by name and return type alone
 // would also catch an unrelated user function that happens to share a tag's
 // name and return type (e.g. a smart constructor `func A(x:Int -> Baz)`).
 PUREFUNC public binding_t *get_variant_constructor(env_t *env, ast_t *type_expr) {
@@ -1428,7 +1428,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         // next to a `Float32`/`Float64` it takes that type instead of dragging
         // the whole operation into the exact-real `Num`, so `0.5 * x` is
         // Float64 math when `x` is a Float64. This mirrors what comparisons do
-        // above. Only literals qualify -- a `Num` *value* never promotes to a
+        // above. Only literals qualify: a `Num` *value* never promotes to a
         // float (see can_promote), so `can_compile_to_type` only says yes for
         // an expression built entirely out of literals.
         if (lhs_t->tag == FloatType && rhs_t->tag == NumType && can_compile_to_type(env, binop.rhs, lhs_t)) {
@@ -1860,7 +1860,7 @@ type_t *parse_type_string(env_t *env, const char *str) {
 }
 
 // Compiled to a native fixed-width int / Num / Byte target, any int literal
-// that fits is a plain cast -- a C constant (codegen errors if it doesn't fit).
+// that fits is a plain cast to a C constant (codegen errors if it doesn't fit).
 // Compiled to a bignum `Int`, only a small-enough literal is constant (the
 // I_small() compound literal); a larger one compiles to a runtime
 // Int$from_str/from_int64 call. Magnitude, not signed order: compile_int
@@ -1874,8 +1874,9 @@ static bool int_literal_is_constant(Int_t i, type_t *t) {
 bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
     // For numeric cases, the type this value will be compiled to: when the
     // caller knows it (a declared type or a list's item type), an untyped-int
-    // expression compiles in that type -- `1 + 2` in an Int64 context is native
-    // `(I64(1)+I64(2))`, a C constant -- rather than bignum-then-converted.
+    // expression compiles in that type, so `1 + 2` in an Int64 context is
+    // native `(I64(1)+I64(2))`, a C constant, rather than
+    // bignum-then-converted.
     // `NULL` means "use the value's own inferred type".
 #define EXPECTED_OR_INFERRED (expected_type ? expected_type : get_type(env, ast))
     switch (ast->tag) {
@@ -1885,8 +1886,8 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         // Compiled to a Float64/Float32 target, a numeric literal is a hex
         // float constant. Compiled to a `Num`, only a value that fits the
         // immediate tier is a C constant (a NUMBER_SMALL compound literal);
-        // anything else -- a big numerator/denominator, or an irrational like
-        // `90deg` -- needs a runtime constructor call (see compile_num).
+        // anything else, whether a big numerator/denominator or an irrational
+        // like `90deg`, needs a runtime constructor call (see compile_num).
         type_t *t = EXPECTED_OR_INFERRED;
         if (t->tag == FloatType) return true;
         if (t->tag != NumType) return false;
@@ -1942,7 +1943,7 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         if (is_int_literal(ast, &literal)) return int_literal_is_constant(literal, EXPECTED_OR_INFERRED);
 
         // A constant Num folds to a single value at compile time, just as the
-        // arithmetic in BINOP_CASES below does -- but only when it is compiled
+        // arithmetic in BINOP_CASES below does, but only when it is compiled
         // *as* a Num. Promoting one to a float is a runtime call, and codegen
         // doesn't push a target type through `-` to avoid it.
         if (EXPECTED_OR_INFERRED->tag == NumType) {
@@ -1962,11 +1963,12 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         binary_operands_t binop = BINARY_OPERANDS(ast);
         type_t *t = EXPECTED_OR_INFERRED;
         // An operation is a compile-time constant only when it has a native C
-        // operator form for `t` (so `compile_to_type` -- which pushes `t` into
-        // the operands -- renders it as a constant expression). The op set is
+        // operator form for `t` (so `compile_to_type`, which pushes `t` into
+        // the operands, renders it as a constant expression). The op set is
         // type-dependent: fixed-width int `/`,`%` compile to *checked* blocks
-        // (division-by-zero), `**` and bignum arithmetic to function calls --
-        // none are constants. Operands are checked against the same target `t`.
+        // (division-by-zero), and `**` and bignum arithmetic to function
+        // calls, none of which are constants. Operands are checked against
+        // the same target `t`.
         // Constant Num arithmetic folds to a single value at compile time
         // (see fold_num_constant); it's a C constant when that value fits the
         // immediate tier.
@@ -2063,9 +2065,9 @@ bool embed_is_constant(ast_t *ast, type_t *t) {
 // and bitwise and/or/xor have no float form, so they can't push into a
 // `Float64`/`Float32` target (`(3.0 << 1.0)` is invalid C); exponentiation
 // compiles to `pow()` and only supports floats. `Num` (the exact real) has no
-// native C operator form for *any* op -- its arithmetic goes through the
-// Num$plus/... metamethods, which compile_binary_op_to_type only finds when the
-// operands are already Nums -- so nothing pushes down into it; an int-literal
+// native C operator form for *any* op, since its arithmetic goes through the
+// Num$plus/... metamethods, which compile_binary_op_to_type only finds when
+// the operands are already Nums, so nothing pushes down into it; an int-literal
 // expression bound for a `Num` is computed as an `Int` and promoted.
 // `target == NULL` means "no target constraint".
 PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target) {

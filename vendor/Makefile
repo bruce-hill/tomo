@@ -56,7 +56,7 @@ ifneq ($(HOST_ARCH)|$(HOST_OS),$(TARGET_ARCH)|$(TARGET_OS))
 endif
 # Vendored-library frames never appear in Tomo stacktraces, and gdb variable
 # inspection matters for libtomo and generated code, not these libraries'
-# internals — so full debug info for them is dead weight in every linked
+# internals, so full debug info for them is dead weight in every linked
 # program (autoconf's default `-g -O2` put ~2MB of DWARF into even a
 # hello-world binary). -g1 keeps just enough (function names + line tables) to
 # make sense of a gdb backtrace into these libs; set -g here if you ever need
@@ -81,7 +81,7 @@ GC_EXTRA = $(if $(filter openbsd,$(TARGET_OS)),CPPFLAGS=-D__data_start=_etext,)
 # GMP detects its assembly symbol prefix by running the host `nm` on a compiled
 # object. That fails for Mach-O (macOS) objects, which GNU nm can't read, so for
 # macOS targets GMP is built without assembly (portable C) and told the symbol
-# prefix directly (Mach-O prefixes globals with an underscore) -- exactly the
+# prefix directly (Mach-O prefixes globals with an underscore), exactly the
 # workaround GMP's own configure recommends when nm can't be used.
 GMP_EXTRA = $(if $(filter macos,$(TARGET_OS)),--disable-assembly gmp_cv_asm_underscore=yes gmp_cv_asm_w32=.long,)
 
@@ -265,7 +265,7 @@ $(DEPS_DIR)/libbacktrace-$(LIBBACKTRACE_VERSION)/configure: libbacktrace-$(LIBBA
 	tar xzfm $< -C $(DEPS_DIR)
 	# elf.c's zlib and lzma decompressors only fire for legacy ".zdebug"
 	# sections, the ELFCOMPRESS_ZLIB case, and .gnu_debugdata (Fedora/Debian
-	# MiniDebugInfo) -- none of which a tomo build ever produces (debug
+	# MiniDebugInfo), none of which a tomo build ever produces (debug
 	# sections are always --compress-debug-sections=zstd, and tomo never
 	# emits .gnu_debugdata). They're direct calls from elf_add(), which is
 	# always live, so --gc-sections can't drop them on its own; this patch
@@ -285,7 +285,7 @@ $(BUILD_BASE)/backtrace/lib/libbacktrace.a: $(DEPS_DIR)/libbacktrace-$(LIBBACKTR
 
 # miniz: DEFLATE + ZIP archive reading/writing, used by the tomo compiler to
 # embed (and extract) program source zips. The release asset is the two-file
-# amalgamated distribution, so it's compiled directly -- no configure step.
+# amalgamated distribution, so it's compiled directly, with no configure step.
 # MINIZ_NO_TIME keeps zip archives deterministic (no timestamps); the same
 # define is passed when compiling tomo so the header's ABI matches.
 miniz-$(MINIZ_VERSION).zip:

@@ -465,7 +465,7 @@ OptionalPath_t find_installed_package(Table_t *build_info, ast_t *use) {
 static bool parse_package_entry(Path_t ini_file, const char *name, pkg_info_t *pkg);
 
 // The pinned digest for `name`, as resolved through the same packages.ini
-// chain a `use` in `using_file` would consult -- parse-only, installing
+// chain a `use` in `using_file` would consult. Parse-only, installing
 // nothing. NULL if the package isn't pinned by digest (e.g. a
 // directory-source package) or isn't found at all:
 const char *find_pinned_digest(Path_t using_file, const char *name) {
@@ -810,7 +810,7 @@ void unvendor_package(const char *name) {
     create_binding_link(ini, name, installed);
 
     // Delete the vendored copy (an extracted directory for editable vendoring,
-    // otherwise an archive file -- kept if another entry still references it):
+    // otherwise an archive file, kept if another entry still references it):
     if (editable || !source_still_referenced(ini, name, vendored_source)) {
         Result_t removed = Path$remove(vendored, true);
         if (removed.Failure.reason.tag != TEXT_NONE)

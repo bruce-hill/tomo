@@ -151,8 +151,8 @@ str := "Sum: $(1 + 2)"
 // equivalent to "Sum: 3"
 ```
 
-A bare `$` takes only a variable's name, so anything more than that -- a field
-access, a method call, an operator -- needs the parenthesized form:
+A bare `$` takes only a variable's name, so anything more than that, whether a
+field access, a method call, or an operator, needs the parenthesized form:
 
 ```tomo
 // Interpolates `my_struct` and leaves ".age" as ordinary text:

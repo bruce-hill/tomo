@@ -24,7 +24,7 @@ void report_repeat(FILE *f, const char *s, int n);
 // but one column), so measuring with strlen would make lines come up short.
 int report_display_width(const char *s);
 
-// "0.42s" / "84ms" / "1m 03s" -- short enough to sit at the end of a line.
+// "0.42s" / "84ms" / "1m 03s", short enough to sit at the end of a line.
 void report_duration(char *buf, size_t n, double seconds);
 
 // Draw "<mark> <name> ···········" and leave the cursor where a right-hand

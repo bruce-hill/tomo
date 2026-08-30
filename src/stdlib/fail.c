@@ -41,7 +41,7 @@ _Noreturn void fail_source(const char *filename, int start, int end, Text_t mess
     else fputs("Runtime Error\n\n", stderr);
     print_stacktrace(stderr, 1);
     fputs("\n", stderr);
-    // Source first, then the message -- the same order parser_err and compiler_err use:
+    // Source first, then the message, the same order parser_err and compiler_err use:
     file_t *_file = (filename) ? load_file(filename) : NULL;
     if ((filename) && _file) {
         highlight_error(_file, _file->text + (start), _file->text + (end), "\x1b[91;7;1m", 2, USE_COLOR);

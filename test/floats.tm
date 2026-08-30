@@ -46,7 +46,7 @@ test "float literals in arithmetic take the float's type"
 	assert Int64(3) * (1./3.) == 1
 
 test "floored division"
-	# `/` is ordinary float division; `//` is floor(x/y) -- plain floor, not
+	# `/` is ordinary float division; `//` is floor(x/y), plain floor and not
 	# the Euclidean quotient the integer types and Num use, so for a negative
 	# divisor it rounds down rather than keeping the remainder non-negative.
 	assert Float64(7.5) / Float64(2) == 3.75

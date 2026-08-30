@@ -49,7 +49,7 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         assert(operand_t);
 
         // Fast path: comparing an optional against the `none` literal is just
-        // an inline none-check on the other operand -- no need for a full
+        // an inline none-check on the other operand, with no need for a full
         // type-dispatched generic_equal() (e.g. `ptr == none` -> `ptr == NULL`).
         if (operand_t->tag == OptionalType) {
             ast_t *other = binop.lhs->tag == None ? binop.rhs : (binop.rhs->tag == None ? binop.lhs : NULL);

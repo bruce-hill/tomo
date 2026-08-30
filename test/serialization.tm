@@ -147,7 +147,7 @@ test "optional Bool roundtrip"
     >> deserialize:Bool?(serialize(some_bool))
     assert deserialize:Bool?(serialize(some_bool)) == no
     # `Bool??` collapses to `Bool?`, so a serialized `none` comes back as the
-    # same `none` a failed decode gives -- but never as `yes`/`no`:
+    # same `none` a failed decode gives, but never as `yes`/`no`:
     none_bool : Bool? = none
     >> deserialize:Bool?(serialize(none_bool))
     assert deserialize:Bool?(serialize(none_bool)) == none

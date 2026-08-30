@@ -1,5 +1,5 @@
 # What a `-` turns into: part of a numeric literal, a negation, or subtraction,
-# and how far its operand reaches. Only the parse tree tells these apart -- the
+# and how far its operand reaches. Only the parse tree tells these apart; the
 # values they produce are checked in test/operators.tm.
 func main()
     # Written against the digits, the sign belongs to the literal; written

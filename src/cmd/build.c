@@ -104,7 +104,7 @@ static int cmd_build(cli_command_t *self, List_t extra_args) {
     if (prefix != NONE_PATH && do_install != true) print_err("`--prefix` only applies together with `--install`");
     // `--install` puts a native binary into the prefix, so it can't be combined
     // with cross-compilation (the binary wouldn't run here) and needs write
-    // access to the prefix -- check both before doing the build work:
+    // access to the prefix, so check both before doing the build work:
     if (do_install) {
         if (cross_compiling) print_err("`--install` can't be combined with --target: the binary wouldn't run here");
         require_writable_prefix(Path$as_c_string(install_prefix()));

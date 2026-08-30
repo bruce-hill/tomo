@@ -162,9 +162,9 @@ bool tomo_test_read_record(int fd, test_result_t *out) {
 //
 // Two looks, chosen by USE_COLOR (a tty, or COLOR=1): a rich report with color,
 // box drawing and source excerpts; and a plain ASCII one that
-// stays greppable and log-friendly when piped. Both carry the same information
-// -- the plain version drops only decoration, never a detail you'd need to fix
-// a failure.
+// stays greppable and log-friendly when piped. Both carry the same
+// information: the plain version drops only decoration, never a detail you'd
+// need to fix a failure.
 
 // ---- source excerpts ------------------------------------------------------
 
@@ -242,7 +242,7 @@ static const char *outcome_headline(const test_result_t *r) {
 }
 
 // Laid out like every other Tomo diagnostic: what went wrong, the source it went
-// wrong in, then the message -- the same order `parser_err` and `compiler_err`
+// wrong in, then the message, the same order `parser_err` and `compiler_err`
 // use, with the test's name standing in for the error-kind badge.
 static void print_failure(FILE *f, const test_result_t *r, int indent, style_t s) {
     int sub = indent + 2;
@@ -259,7 +259,7 @@ static void print_failure(FILE *f, const test_result_t *r, int indent, style_t s
         break;
     case TEST_RESULT_WRONG_MESSAGE: print_mismatch(f, r, sub, s); break;
     case TEST_RESULT_TIMEOUT:
-        fprintf(f, "%*s%sit hit the time limit and was killed -- raise it with TOMO_TEST_TIMEOUT=<seconds>%s\n", sub,
+        fprintf(f, "%*s%sit hit the time limit and was killed; raise it with TOMO_TEST_TIMEOUT=<seconds>%s\n", sub,
                 "", s.dim, s.reset);
         print_output(f, r->output, sub, s, "");
         break;
@@ -382,8 +382,9 @@ void tomo_test_render(test_result_t *results, int64_t n, bool verbose) {
     }
 
     // Verbose: the full roster, so you can see what actually ran (and what each
-    // test printed). Failures are only marked here -- their details come below,
-    // right above the summary, so you never scroll back up through the logs.
+    // test printed). Failures are only marked here, and their details come
+    // below, right above the summary, so you never scroll back up through the
+    // logs.
     if (verbose) {
         const char *cur = NULL;
         for (int64_t i = 0; i < n; i++) {
@@ -424,7 +425,7 @@ void tomo_test_render(test_result_t *results, int64_t n, bool verbose) {
     }
 
     if (n == 0) {
-        // Not a pass and not a failure -- say so plainly rather than reporting a triumphant "0 passed":
+        // Not a pass and not a failure, so say so plainly rather than reporting a triumphant "0 passed":
         fprintf(f, "%*s%sno tests found%s\n", indent, "", s.dim, s.reset);
         fflush(f);
         return;
@@ -489,7 +490,7 @@ int _tomo_run_tests(tomo_test_t *tests, int64_t n) {
             setenv("TOMO_PLAIN_ERRORS", "1", 1);
             // Only `fails "..."` matches its expected message against this output, and ANSI codes in the middle
             // of the message would break that match. Every other test's output is shown to the user verbatim, so
-            // leave its syntax highlighting -- colorized `>>` values and types -- intact.
+            // leave its syntax highlighting (colorized `>>` values and types) intact.
             if (tests[i].expect_failure) USE_COLOR = false;
             alarm(timeout);
             tests[i].fn();

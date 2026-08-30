@@ -1,8 +1,8 @@
-# binary-trees — The Computer Language Benchmarks Game
+# binary-trees, from The Computer Language Benchmarks Game
 #
 # A Tomo port. No inline C at all: `say()` produces the exact output. This
-# benchmark is an allocation/GC stress test — it builds and discards many
-# short-lived binary trees — so the port leans on Tomo's heap pointers and GC
+# benchmark is an allocation/GC stress test, building and discarding many
+# short-lived binary trees, so the port leans on Tomo's heap pointers and GC
 # rather than any manual memory management.
 #
 # Design notes:

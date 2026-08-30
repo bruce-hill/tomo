@@ -26,7 +26,7 @@ unexport LD_LIBRARY_PATH
 # The counter dry-runs the goal to count its steps. `make -n` still *executes*
 # recipe lines that invoke $(MAKE), so for goals built out of recursive makes
 # (dist/archive/deps) the "dry" run would recurse into vendor builds and try to
-# enter directories that don't exist yet, spraying errors -- skip those goals,
+# enter directories that don't exist yet, spraying errors, so skip those goals
 # and silence the counting run's stderr. Skipped before configure.sh has run:
 # the counting sub-make would otherwise try to remake config.mk (an interactive
 # prompt) inside $(shell); once config.mk is generated, make restarts and the
@@ -205,7 +205,7 @@ dist:
 
 # Install the DIST_TARGETS platforms' libraries straight from the local build
 # trees into the XDG data directory, where `tomo --target <platform>` looks for
-# them -- so cross-compilation can be tested without any network access. The
+# them, so cross-compilation can be tested without any network access. The
 # host platform is skipped (native builds don't use a target pack). Limit the
 # set with e.g. `make install-targets DIST_TARGETS=aarch64-linux`.
 XDG_DATA_HOME ?= $(HOME)/.local/share
@@ -221,7 +221,7 @@ install-targets:
 
 BUILD_DIR=$(BUILD_BASE)/tomo
 # Tomo's stdlib headers install under include/tomo@VER/tomo/, with the
-# umbrella tomo.h at include/tomo@VER/tomo.h -- compiled programs get
+# umbrella tomo.h at include/tomo@VER/tomo.h, and compiled programs get
 # -I PREFIX/include/tomo@VER, so they say `#include <tomo.h>`. (The headers
 # can't live flat at the -I root: some share names with libc headers, like
 # stdlib.h, and would shadow them.)
@@ -230,8 +230,8 @@ build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VER
 	$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo.h
 
 # Tomo's own man pages live in a versioned store (man/tomo@VER/man1/...), with
-# symlinks at the man-visible paths (man/man1/tomo.1.gz -> ../tomo@VER/man1/...)
-# -- the same last-install-wins scheme as the bin/tomo -> bin/tomo@VER symlink:
+# symlinks at the man-visible paths (man/man1/tomo.1.gz -> ../tomo@VER/man1/...),
+# the same last-install-wins scheme as the bin/tomo -> bin/tomo@VER symlink:
 manpages := $(wildcard man/man*/*)
 build_manpages := $(patsubst man/%,$(BUILD_DIR)/man/tomo@$(TOMO_VERSION)/%.gz,$(manpages)) \
 	$(patsubst man/%,$(BUILD_DIR)/man/%.gz,$(manpages))
@@ -314,7 +314,7 @@ $(BUILD_DIR)/share/licenses/tomo@$(TOMO_VERSION)/TOMO-LICENSE: LICENSE.md | $(BU
 ZIG_STAGED = $(BUILD_BASE)/zig/zig
 # The toolchain is shared between coresident Tomo versions: the real copy
 # lives in a store keyed by ZIG's version, and each Tomo version's
-# libexec/tomo@VER/zig is a symlink into it -- so a Tomo upgrade that keeps
+# libexec/tomo@VER/zig is a symlink into it, so a Tomo upgrade that keeps
 # the same zig pin adds ~10MB instead of ~400MB. `tomo uninstall` (no args)
 # removes stores that no remaining installation's symlink points into.
 ZIG_STORE_DIR = $(BUILD_DIR)/libexec/zig@$(ZIG_VERSION)
@@ -388,7 +388,7 @@ $(VENDOR_LICENSE_PRODUCTS) &: $(VENDOR_LICENSES) | $(LICENSES_DIR)
 # Ship the vendored static libraries inside the versioned lib dir (NOT
 # directly in lib/, where they could shadow real system libraries). Every
 # tomo-compiled program links these full archives alongside libtomo.a, so the
-# linker extracts exactly the members used -- by the stdlib or by packages
+# linker extracts exactly the members used, whether by the stdlib or by packages
 # with e.g. `use <gmp.h>`:
 VENDOR_INSTALL_DIR=$(BUILD_DIR)/lib/tomo@$(TOMO_VERSION)/vendor
 VENDOR_INSTALLED_LIBS=$(foreach d,$(filter-out miniz,$(VENDOR_DEPS)),$(VENDOR_INSTALL_DIR)/lib$(d).a)
@@ -468,7 +468,7 @@ test-tm: build test/api.tm
 	fi
 
 # The `number` type's C-level test suite. Built with the *host* compiler
-# rather than `zig cc`, because it runs under ASan/UBSan -- the static musl
+# rather than `zig cc`, because it runs under ASan/UBSan and the static musl
 # builds everything else uses can't host the sanitizer runtimes. It needs
 # only number.c, so it links the host's gmp/gc rather than the vendored ones.
 $(BUILD_BASE)/number_test: test/c/number_test.c src/stdlib/number.c src/stdlib/number.h
@@ -497,13 +497,13 @@ test-cli: $(BUILD_BASE)/cli_test
 	@$(BUILD_BASE)/cli_test
 
 # A compilation database for editors and language servers (clangd, ccls). The
-# build's own flags are what let this tree parse at all -- `$$` in identifiers,
-# the vendored headers in place of the system ones, gnu23 -- so those are what
+# build's own flags are what let this tree parse at all (`$$` in identifiers,
+# the vendored headers in place of the system ones, gnu23), so those are what
 # it records. Generated rather than checked in: it names absolute paths and the
 # host platform. Regenerated when the flags or the file list change.
 LSP_SOURCES=$(wildcard src/*.c src/cmd/*.c src/compile/*.c src/parse/*.c src/formatter/*.c src/stdlib/*.c test/c/*.c)
 # The flags go through the shell on their way to the script, which splits them
-# exactly as it does for the compiler -- so -DSUDO='"doas"' arrives as the one
+# exactly as it does for the compiler, so -DSUDO='"doas"' arrives as the one
 # argument the compiler sees, quotes and all.
 compile_commands.json: Makefile config.mk | ./scripts/compile_commands.py
 	@./scripts/compile_commands.py $(LSP_SOURCES) -- \
@@ -523,7 +523,7 @@ test-format: build test/api.tm
 	    -not -path 'test/parse/*' | sort)
 
 # Snapshot tests for the parser: every test/parse/*.tm is parsed and its output
-# -- a parse tree, or the full text of a parse error -- compared against the
+# (a parse tree, or the full text of a parse error) compared against the
 # snapshot checked in beside it. The err_*.tm fixtures don't parse on purpose,
 # which is why test-format skips this directory.
 test-parse: build
@@ -627,7 +627,7 @@ deps: $(VENDORED_LIBS) $(VENDOR_LICENSES)
 
 # "&:" (grouped targets) tells make that ONE invocation of this recipe produces
 # all of these files. With a plain multi-target rule, parallel make would run
-# the recipe once per missing file -- several concurrent `make -C vendor`
+# the recipe once per missing file, with several concurrent `make -C vendor`
 # instances racing to extract and configure the same source trees.
 $(VENDORED_LIBS) $(VENDOR_LICENSES) &:
 	$(MAKE) -C vendor ZIG_PLATFORM='$(ZIG_PLATFORM)' ZIG_TARGET='$(ZIG_TARGET)' BUILD_BASE='$(CURDIR)/$(BUILD_BASE)'

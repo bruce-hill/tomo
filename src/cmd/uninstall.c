@@ -48,7 +48,7 @@ static void remove_file(Path_t p) {
 // Uninstall one program given a bare name (looked up in TOMO_PATH/bin) or a
 // path to a binary. Only files Tomo itself produced are removed: the binary
 // must carry the build-info header and the manpage must carry the Tomo marker.
-// A missing binary or manpage is a warning, not an error -- the other half is
+// A missing binary or manpage is a warning, not an error, and the other half is
 // still attempted.
 static void uninstall_program(Text_t arg) {
     // A slash means the argument is a path; otherwise it's a name in bin/:
@@ -102,8 +102,8 @@ static const char *newest_remaining_version(void) {
 }
 
 // Remove the symlinks in the given directory that pointed into the removed
-// installation and no longer resolve. Other files -- and even other dangling
-// symlinks, in a shared prefix -- are left alone: only links whose target is
+// installation and no longer resolve. Other files, and even other dangling
+// symlinks in a shared prefix, are left alone: only links whose target is
 // a tomo@<version> path are Tomo's to delete.
 static void remove_dangling_links(const char *dir) {
     List_t entries = Path$glob(Path$from_str(String(dir, "/*")));

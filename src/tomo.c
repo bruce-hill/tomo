@@ -100,7 +100,7 @@ static void after_globals(void) {
     // scripts/stage_zig_libc.sh), link -nostdlib against it: zig's own libc
     // and compiler-rt unconditionally carry megabytes of DWARF that tomo
     // stacktraces and gdb sessions never read. When the staged copy is
-    // missing, fall back to zig's -- the only cost is bigger binaries.
+    // missing, fall back to zig's; the only cost is bigger binaries.
     if (streq(link_os, "linux")) {
         ldflags = Texts(ldflags, Text(" -static"));
         Text_t staged = Texts(lib_root, "/lib/tomo@", TOMO_VERSION, "/vendor/zig-libc");
@@ -133,7 +133,7 @@ static void after_globals(void) {
         // configure_codegen() via link_optimizations: the DWARF that powers
         // runtime stacktraces is most of a binary's file size, and the vendored
         // libbacktrace decompresses zstd sections natively so traces are
-        // unaffected -- but both flags slow linking, so the fast run/eval path
+        // unaffected, but both flags slow linking, so the fast run/eval path
         // skips them.
         ldflags = Texts(ldflags, " -Wl,-u,build_info -Wl,-u,tomo_versions");
     }

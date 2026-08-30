@@ -228,7 +228,7 @@ assert (0.).cosh() == 1
 Num.digits : func(n: Num, digits: Int = 15, ellipsis: Text = "…" -> Text)
 ```
 
-The decimal expansion of a number, to at most the requested number of fractional digits. A value that fits exactly stops early rather than padding with zeros, and gets no marker. A value that doesn't shows a truncated prefix of its true expansion with the ellipsis appended -- never a rounding: every digit shown is a digit the value actually has. To round, round first.
+The decimal expansion of a number, to at most the requested number of fractional digits. A value that fits exactly stops early rather than padding with zeros, and gets no marker. A value that doesn't shows a truncated prefix of its true expansion with the ellipsis appended, and never a rounding: every digit shown is a digit the value actually has. To round, round first.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------

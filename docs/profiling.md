@@ -44,8 +44,8 @@ Only functions that actually ran are listed, and time spent inside the standard
 library is charged to the Tomo function that called it, since the standard
 library isn't instrumented.
 
-If the program exits from inside a function -- an explicit exit, a `fail()`, or
-a crash -- the report is still printed, and the functions it died inside are
+If the program exits from inside a function, whether an explicit exit, a
+`fail()`, or a crash, the report is still printed, and the functions it died inside are
 credited with the time they had used. A run where no instrumented function ran
 at all (`--help`, or a rejected argument) prints nothing.
 
