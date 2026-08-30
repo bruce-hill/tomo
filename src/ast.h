@@ -310,7 +310,10 @@ struct ast_s {
             const char *name;
         } Var;
         struct {
-            const char *str;
+            // The value the digits denote. The literal as it was written --
+            // its base, `_` separators and sign -- is recoverable from the
+            // node's span, so it isn't kept here (see ast_source).
+            Int_t i;
         } Int;
         struct {
             // The exact value, computed at parse time: `3.15` is 63/20, not

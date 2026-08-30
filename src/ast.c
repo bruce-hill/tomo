@@ -346,12 +346,7 @@ Text_t ast_to_sexp(ast_t *ast) {
 bool fold_num_constant(ast_t *ast, Num_t *out) {
     switch (ast->tag) {
     case Num: *out = Match(ast, Num)->n; return true;
-    case Int: {
-        OptionalInt_t i = Int$from_str(Match(ast, Int)->str);
-        if (i.small == 0) return false; // parse failure sentinel
-        *out = Num$from_int(i);
-        return true;
-    }
+    case Int: *out = Num$from_int(Match(ast, Int)->i); return true;
     case Negative: {
         Num_t inner;
         if (!fold_num_constant(Match(ast, Negative)->value, &inner)) return false;

@@ -10,6 +10,7 @@
 #include <uniname.h>
 
 #include "../ast.h"
+#include "../stdlib/integers.h"
 #include "../stdlib/number.h"
 #include "context.h"
 #include "errors.h"
@@ -59,7 +60,9 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
         return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_DEGREES), .str = str,
                       .suffix = NUM_DEGREES);
 
-    return NewAST(ctx->file, start, pos, Int, .str = str);
+    OptionalInt_t i = Int$from_str(str);
+    if (i.small == 0) parser_err(ctx, start, pos, "I couldn't parse this integer");
+    return NewAST(ctx->file, start, pos, Int, .i = i);
 }
 
 ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
@@ -106,7 +109,7 @@ ast_t *negate_literal(parse_ctx_t *ctx, const char *start, ast_t *literal) {
     // negations of a literal instead, which is what they look like.
     if (!isdigit((unsigned char)start[1]) && start[1] != '.') return NULL;
     switch (literal->tag) {
-    case Int: return NewAST(ctx->file, start, literal->end, Int, .str = String("-", Match(literal, Int)->str));
+    case Int: return NewAST(ctx->file, start, literal->end, Int, .i = Int$negative(Match(literal, Int)->i));
     case Num: {
         DeclareMatch(num, literal, Num);
         return NewAST(ctx->file, start, literal->end, Num, .n = number_neg(num->n), .str = String("-", num->str),

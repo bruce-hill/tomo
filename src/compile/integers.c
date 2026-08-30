@@ -13,6 +13,14 @@
 #include "../util.h"
 #include "compilation.h"
 
+// Load an integer value into an mpz_t, which is what the range checks here
+// (and the loop bound in compile/loops.c) are written against.
+public
+void mpz_init_int(mpz_t out, Int_t i) {
+    if likely (i.small & 1L) mpz_init_set_si(out, i.small >> 2L);
+    else mpz_init_set(out, i.big);
+}
+
 public
 Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
     if (ast->tag != Int) {
@@ -30,25 +38,11 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
                                    compile_int_to_type(env, ast, Match(target, OptionalType)->type));
     }
 
-    const char *literal = Match(ast, Int)->str;
-    OptionalInt_t int_val = Int$from_str(literal);
-    if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
-
     mpz_t i;
-    if likely (int_val.small & 1L) {
-        mpz_init_set_si(i, int_val.small >> 2L);
-    } else {
-        mpz_init_set(i, int_val.big);
-    }
+    mpz_init_int(i, Match(ast, Int)->i);
 
     char *c_literal;
-    if (strncmp(literal, "0x", 2) == 0 || strncmp(literal, "0X", 2) == 0 || strncmp(literal, "0b", 2) == 0) {
-        gmp_asprintf(&c_literal, "0x%ZX", i);
-    } else if (strncmp(literal, "0o", 2) == 0) {
-        gmp_asprintf(&c_literal, "%#Zo", i);
-    } else {
-        gmp_asprintf(&c_literal, "%#Zd", i);
-    }
+    gmp_asprintf(&c_literal, "%#Zd", i);
 
     if (target->tag == ByteType) {
         if (mpz_cmp_si(i, UINT8_MAX) <= 0 && mpz_cmp_si(i, 0) >= 0) return Texts("(Byte_t)(", c_literal, ")");
@@ -93,15 +87,10 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
 
 public
 Text_t compile_int(ast_t *ast) {
-    const char *str = Match(ast, Int)->str;
-    OptionalInt_t int_val = Int$from_str(str);
-    if (int_val.small == 0) code_err(ast, "Failed to parse this integer");
     mpz_t i;
-    if likely (int_val.small & 1L) {
-        mpz_init_set_si(i, int_val.small >> 2L);
-    } else {
-        mpz_init_set(i, int_val.big);
-    }
+    mpz_init_int(i, Match(ast, Int)->i);
+    char *str;
+    gmp_asprintf(&str, "%Zd", i);
 
     if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) {
         return Texts("I_small(", str, ")");

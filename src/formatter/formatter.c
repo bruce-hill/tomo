@@ -76,7 +76,7 @@ static Text_t quoted_label(const char *label) {
 // parses to the sentinel size -1. There is no `cache=` flag: emitting one lost
 // the caching entirely and left a function definition that didn't parse.
 static Text_t format_cache_flag(ast_t *cache, Table_t comments, Text_t indent) {
-    if (cache->tag == Int && streq(Match(cache, Int)->str, "-1")) return Text("; cached");
+    if (cache->tag == Int && Int$equal_value(Match(cache, Int)->i, I_small(-1))) return Text("; cached");
     return Texts("; cache_size=", fmt(cache, comments, indent));
 }
 
@@ -413,7 +413,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         return Match(ast, Bool)->b ? Text("yes") : Text("no");
     /*inline*/ case Int: {
         OptionalText_t source = ast_source(ast);
-        return source.length > 0 ? source : Text$from_str(Match(ast, Int)->str);
+        return source.length > 0 ? source : Int$value_as_text(Match(ast, Int)->i);
     }
     /*inline*/ case Num: {
         OptionalText_t source = ast_source(ast);

@@ -195,7 +195,7 @@ ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
         if (match_word(&pos, "inline")) {
             is_inline = true;
         } else if (match_word(&pos, "cached")) {
-            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .str = "-1");
+            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .i = I_small(-1));
         } else if (match_word(&pos, "cache_size")) {
             whitespace(ctx, &pos);
             if (!match(&pos, "=")) parser_err(ctx, flag_start, pos, "I expected a value for 'cache_size'");
@@ -231,7 +231,7 @@ ast_t *parse_convert_def(parse_ctx_t *ctx, const char *pos) {
         if (match_word(&pos, "inline")) {
             is_inline = true;
         } else if (match_word(&pos, "cached")) {
-            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .str = "-1");
+            if (!cache_ast) cache_ast = NewAST(ctx->file, pos, pos, Int, .i = I_small(-1));
         } else if (match_word(&pos, "cache_size")) {
             whitespace(ctx, &pos);
             if (!match(&pos, "=")) parser_err(ctx, flag_start, pos, "I expected a value for 'cache_size'");

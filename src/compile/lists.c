@@ -39,9 +39,8 @@ static bool is_zero_valued_literal(env_t *env, ast_t *ast, type_t *item_type) {
     }
     if (ast->tag == Int) {
         if (item_type->tag != ByteType && item_type->tag != IntType && item_type->tag != FloatType) return false;
-        OptionalInt_t v = Int$from_str(Match(ast, Int)->str);
-        if (v.small == 0) return false; // failed to parse
         // Zero always fits the tagged small form (a bignum is never zero):
+        Int_t v = Match(ast, Int)->i;
         return (v.small & 1L) && ((v.small >> 2L) == 0);
     }
     if (ast->tag == Num) {
@@ -274,28 +273,28 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         EXPECT_POINTER();
         arg_t *arg_spec =
             new (arg_t, .name = "item", .type = item_t,
-                 .next = new (arg_t, .name = "at", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "0")));
+                 .next = new (arg_t, .name = "at", .type = INT_TYPE, .default_val = FakeAST(Int, .i = I_small(0))));
         return Texts("List$insert_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      padded_item_size, ")");
     } else if (streq(call->name, "insert_all")) {
         EXPECT_POINTER();
         arg_t *arg_spec =
             new (arg_t, .name = "items", .type = self_value_t,
-                 .next = new (arg_t, .name = "at", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "0")));
+                 .next = new (arg_t, .name = "at", .type = INT_TYPE, .default_val = FakeAST(Int, .i = I_small(0))));
         return Texts("List$insert_all(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      padded_item_size, ")");
     } else if (streq(call->name, "remove_at")) {
         EXPECT_POINTER();
         arg_t *arg_spec =
-            new (arg_t, .name = "index", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "-1"),
-                 .next = new (arg_t, .name = "count", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "1")));
+            new (arg_t, .name = "index", .type = INT_TYPE, .default_val = FakeAST(Int, .i = I_small(-1)),
+                 .next = new (arg_t, .name = "count", .type = INT_TYPE, .default_val = FakeAST(Int, .i = I_small(1))));
         return Texts("List$remove_at(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      padded_item_size, ")");
     } else if (streq(call->name, "remove_item")) {
         EXPECT_POINTER();
         arg_t *arg_spec =
             new (arg_t, .name = "item", .type = item_t,
-                 .next = new (arg_t, .name = "max_count", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "-1")));
+                 .next = new (arg_t, .name = "max_count", .type = INT_TYPE, .default_val = FakeAST(Int, .i = I_small(-1))));
         return Texts("List$remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      compile_type_info(self_value_t), ")");
     } else if (streq(call->name, "has")) {
@@ -481,7 +480,7 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         return Texts("Table$from_entries(", self, ", Table$info(", compile_type_info(item_t), ", &Present$$info))");
     } else if (streq(call->name, "pop")) {
         EXPECT_POINTER();
-        arg_t *arg_spec = new (arg_t, .name = "index", .type = INT_TYPE, .default_val = FakeAST(Int, "-1"));
+        arg_t *arg_spec = new (arg_t, .name = "index", .type = INT_TYPE, .default_val = FakeAST(Int, I_small(-1)));
         Text_t index = compile_arguments(env, ast, arg_spec, call->args);
         return Texts("List$pop(", self, ", ", index, ", ", compile_type(item_t), ", _, ",
                      promote_to_optional(item_t, Text("_")), ", ", compile_none(item_t), ")");

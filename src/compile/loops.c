@@ -822,7 +822,7 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
         // Special case for Int.onward()
         arg_ast_t *args = Match(iter, MethodCall)->args;
         arg_t *arg_spec =
-            new (arg_t, .name = "step", .type = INT_TYPE, .default_val = FakeAST(Int, .str = "1"), .next = NULL);
+            new (arg_t, .name = "step", .type = INT_TYPE, .default_val = FakeAST(Int, .i = I_small(1)), .next = NULL);
         Text_t step = compile_arguments(env, iter, arg_spec, args);
         ast_t *index_var = for_->at;
         ast_t *value_var = single_loop_var(for_->vars);
@@ -934,15 +934,8 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
 
         Text_t n;
         if (iter->tag == Int) {
-            const char *str = Match(iter, Int)->str;
-            Int_t int_val = Int$from_str(str);
-            if (int_val.small == 0) code_err(iter, "Failed to parse this integer");
             mpz_t i;
-            if likely (int_val.small & 1L) {
-                mpz_init_set_si(i, int_val.small >> 2L);
-            } else {
-                mpz_init_set(i, int_val.big);
-            }
+            mpz_init_int(i, Match(iter, Int)->i);
             if (mpz_cmpabs_ui(i, BIGGEST_SMALL_INT) <= 0) n = Text$from_str(mpz_get_str(NULL, 10, i));
             else goto big_n;
 

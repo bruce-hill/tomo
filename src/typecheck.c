@@ -1909,10 +1909,7 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         // compiles to a runtime Int$from_str/from_int64 call.
         type_t *t = EXPECTED_OR_INFERRED;
         if (t->tag == IntType || t->tag == FloatType || t->tag == ByteType) return true;
-        DeclareMatch(info, ast, Int);
-        Int_t int_val = Int$parse(Text$from_str(info->str), NONE_INT, NULL);
-        if (int_val.small == 0) return false; // Failed to parse
-        return (Int$compare_value(int_val, I(BIGGEST_SMALL_INT)) <= 0);
+        return (Int$compare_value(Match(ast, Int)->i, I(BIGGEST_SMALL_INT)) <= 0);
     }
     case TextJoin: {
         DeclareMatch(text, ast, TextJoin);

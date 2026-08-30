@@ -85,8 +85,7 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
             if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                 value = compile_int_to_type(env, call_arg->value, spec_arg->type);
             } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Int) {
-                OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
-                if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
+                Int_t int_val = Match(call_arg->value, Int)->i;
                 if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
                     value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
                 else value = Text$from_str(String(hex_double((double)Float32$from_int(int_val, false)), "f"));
@@ -109,8 +108,7 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
                 if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
                 } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Int) {
-                    OptionalInt_t int_val = Int$from_str(Match(call_arg->value, Int)->str);
-                    if (int_val.small == 0) code_err(call_arg->value, "Failed to parse this integer");
+                    Int_t int_val = Match(call_arg->value, Int)->i;
                     if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
                         value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
                     else value = Text$from_str(String(hex_double((double)Float32$from_int(int_val, false)), "f"));
@@ -980,13 +978,16 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
         definition = Texts(definition, wrapper);
     } else if (cache && cache->tag == Int) {
         assert(args);
-        OptionalInt64_t cache_size = Int64$parse(Text$from_str(Match(cache, Int)->str), NONE_INT, NULL);
+        Int_t cache_size = Match(cache, Int)->i;
         Text_t pop_code = EMPTY_TEXT;
-        if (cache->tag == Int && cache_size.has_value && cache_size.value > 0) {
+        // An upper bound too big for an int64 is no bound worth emitting (and
+        // wouldn't be a usable C integer literal):
+        if (Int$compare_value(cache_size, I_small(0)) > 0
+            && Int$compare_value(cache_size, Int$from_int64(INT64_MAX)) <= 0) {
             // FIXME: this currently just deletes the first entry, but this
             // should be more like a least-recently-used cache eviction policy
             // or least-frequently-used
-            pop_code = Texts("if (cache.entries.length > ", cache_size.value,
+            pop_code = Texts("if (cache.entries.length > ", Int$value_as_text(cache_size),
                              ") Table$remove(&cache, cache.entries.data + "
                              "cache.entries.stride*0, table_type);\n");
         }
