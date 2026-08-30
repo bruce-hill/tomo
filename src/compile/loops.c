@@ -60,6 +60,8 @@ typedef struct {
     Table_t *accessed; // variable name -> Var ast of ALL lists indexed (reads + writes)
 } cow_scan_t;
 
+static bool cow_expr_ok(env_t *env, ast_t *ast, cow_scan_t *scan);
+
 // Scalar-ish types: values whose copies can't share a list buffer.
 static bool cow_type_ok(type_t *t) {
     if (t == NULL) return false;
@@ -103,6 +105,25 @@ static bool cow_index_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
     return true;
 }
 
+// Clearing each argument through the scan is what keeps a list from crossing
+// into a call: a list-typed variable or element fails cow_type_ok there.
+// Checking the argument's own type here as well would reject an untyped
+// numeric literal, whose type is `Num` until the call coerces it.
+static bool cow_call_args_ok(env_t *env, arg_ast_t *args, cow_scan_t *scan) {
+    for (arg_ast_t *arg = args; arg; arg = arg->next)
+        if (!cow_expr_ok(env, arg->value, scan)) return false;
+    return true;
+}
+
+// The `self` of a method call, which is either a scalar-typed value
+// (`v.len2()`) or a type's namespace (`Float64.sqrt(x)`, which parses as a
+// method call on the type name).
+static bool cow_method_self_ok(env_t *env, ast_t *self, cow_scan_t *scan) {
+    type_t *self_t = cow_var_type(env, self);
+    if (self_t != NULL && self_t->tag == TypeInfoType) return true;
+    return cow_expr_ok(env, self, scan) && cow_type_ok(get_type(env, self));
+}
+
 static bool cow_expr_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
     if (ast == NULL) return false;
     switch (ast->tag) {
@@ -118,14 +139,38 @@ static bool cow_expr_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
     case FunctionCall: {
         // Constructor calls of scalar types (e.g. `Int64(1)`) are pure
         // conversions: with scalar-only arguments they can't touch any list.
-        // Actual function calls (the callee is a function, not a type) stay
-        // disallowed, since they could reach the list through an escaped alias.
+        // A call through a plain variable stays disallowed: the variable could
+        // hold a lambda, and a lambda can capture the list even when its
+        // signature is all scalars.
         DeclareMatch(call, ast, FunctionCall);
         type_t *fn_t = cow_var_type(env, call->fn);
-        if (fn_t == NULL || fn_t->tag != TypeInfoType || !cow_type_ok(Match(fn_t, TypeInfoType)->type)) return false;
-        for (arg_ast_t *arg = call->args; arg; arg = arg->next)
-            if (!cow_expr_ok(env, arg->value, scan)) return false;
-        return true;
+        if (fn_t == NULL || fn_t->tag != TypeInfoType || !cow_type_ok(Match(fn_t, TypeInfoType)->type))
+            return false;
+        return cow_call_args_ok(env, call->args, scan);
+    }
+    case MethodCall: {
+        // A method on a scalar-typed value (`v.len2()`) or in a type's
+        // namespace (`Float64.sqrt(x)`), taking and returning only scalars.
+        // This is the same class of call the BINOP_CASES arm below already
+        // admits: an operator on a struct compiles to a call to the type's own
+        // metamethod, so `a - b` on a Vec3 already emits `Vec3$minus(...)`.
+        // Nothing reachable this way can name the loop's list.
+        DeclareMatch(call, ast, MethodCall);
+        if (!cow_method_self_ok(env, call->self, scan)) return false;
+        return cow_type_ok(get_type(env, ast)) && cow_call_args_ok(env, call->args, scan);
+    }
+    case FieldAccess: {
+        // Reading a field of an all-scalar struct reaches no list. A module or
+        // type namespace on the left is not a scalar struct, so it stops here.
+        DeclareMatch(access, ast, FieldAccess);
+        type_t *subject_t = get_type(env, access->fielded);
+        if (subject_t == NULL || subject_t->tag != StructType || !cow_type_ok(subject_t)) return false;
+        return cow_expr_ok(env, access->fielded, scan);
+    }
+    case RecordLiteral: {
+        // Building an all-scalar struct out of parts the scan has cleared.
+        if (!cow_type_ok(get_type(env, ast))) return false;
+        return cow_call_args_ok(env, Match(ast, RecordLiteral)->args, scan);
     }
     case BINOP_CASES: {
         if (is_update_assignment(ast)) return false; // statements, not expressions
