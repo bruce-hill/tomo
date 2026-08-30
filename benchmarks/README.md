@@ -19,11 +19,11 @@ machine-specific; `make benchmarks` reproduces and regenerates them locally.
 
 Across ~17 languages and all nine benchmarks, **Tomo sits inside the
 compiled-language cluster and beats every scripting language on every
-benchmark**, and on four of the nine it is at or ahead of C. Highlights:
+benchmark**, and on three of the nine it is at or ahead of C. Highlights:
 fannkuch-redux 0.16s (a shade faster than C++, Fortran, and C), binary-trees
 0.20s (4th of 16, ahead of C, C++, Zig, Go), mandelbrot 0.70s (beats the
 multithreaded C and Go entries outright), k-nucleotide 0.23s (3rd, behind only
-C and C++). Its weakest showing is pidigits at ~4.5× C, a pure GMP bignum
+C and C++). Its weakest showing is pidigits at ~4.2× C, a pure GMP bignum
 stress test, still 4th of 9. No garbage-collected, memory-safe language in the
 set is dramatically ahead of it.
 
@@ -46,12 +46,13 @@ Per-benchmark graphs: [n-body](results-nbody.png) ·
 
 Binary sizes are statically linked and stripped, so each number is the whole
 self-contained footprint, not a stub leaning on a system `libc`. Tomo's is
-**~770 KB and near-constant** across all nine (763–788 KB): the runtime
+**~800 KB and near-constant** across all nine (788–813 KB): the runtime
 dominates and the program is noise. Only Zig's minimal-runtime musl builds
 (15–38 KB) are in a different league. Tomo lands within a few percent of C
-either way, and well under Nim (~810 KB), Rust (~1.2–1.4 MB), Go (~1.6 MB),
-and C++ (up to 2.2 MB). Only a handful of languages produce a standalone
-static binary at all, so benchmarks left with fewer than five of them
+(smaller on fasta, slightly larger elsewhere), and well under Nim (~810 KB),
+Rust (~1.2–1.4 MB), Go (~1.4–1.7 MB), and C++ (up to 2.2 MB). Only a handful
+of languages produce a standalone static binary at all, so benchmarks left
+with fewer than five of them
 (pidigits, reverse-complement, spectral-norm) are dropped from the chart
 rather than shown as a two- or three-way list.
 
