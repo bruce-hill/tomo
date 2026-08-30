@@ -45,9 +45,9 @@ test "negative literals"
 # are all the literal -2, including where only a literal will do -- compiling
 # straight to a sized type, or taking its type from the other operand.
 #
-# Spelled `-(2)` rather than `- 2` because the formatter normalizes the spacing
+# Written as `-(2)` rather than `- 2` because the formatter normalizes the spacing
 # away, and test-format checks that formatting every .tm file in the tree leaves
-# its parse alone. Both spellings parse to the same negation of a literal.
+# its parse alone. Both representations parse to the same negation of a literal.
 test "a `-` written apart from its digits"
 	small : Int8 = -(128)
 	assert "$small" == "-128"
@@ -65,7 +65,7 @@ test "a `-` written apart from its digits"
 	assert big - -1 == Int8(-128)
 	assert big - -(1) == Int8(-128)
 
-# Spellings whose value comes out different if the tree is wrong: Euclidean
+# Representations whose value comes out different if the tree is wrong: Euclidean
 # `mod` makes `(-x) mod 3` and `-(x mod 3)` disagree, `.abs()` makes `(-x).abs()`
 # and `-(x.abs())` disagree, and a suffix binding looser than the `-` would
 # change the rest. The trees these check are in test/parse/negation.tm.

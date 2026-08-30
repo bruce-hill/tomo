@@ -1388,7 +1388,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
         // A bare numeric literal is untyped: it takes the other side's type,
         // even through an optional (`x : Float64? = none; x == 0.0`).
-        if ((is_int_literal(binop.lhs, NULL) && is_numeric_type(rhs_t)) || (is_int_literal(binop.rhs, NULL) && is_numeric_type(lhs_t))
+        if ((is_int_literal(binop.lhs, NULL) && is_numeric_type(rhs_t))
+            || (is_int_literal(binop.rhs, NULL) && is_numeric_type(lhs_t))
             || (binop.lhs->tag == Num && is_numeric_type(non_optional(rhs_t)))
             || (binop.rhs->tag == Num && is_numeric_type(non_optional(lhs_t)))
             || can_compile_to_type(env, binop.rhs, lhs_t) || can_compile_to_type(env, binop.lhs, rhs_t))
@@ -1419,7 +1420,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
         }
 
         // `/` is exact division: dividing two integers gives the exact answer
-        // (a Num), not a rounded-down integer. The integer quotient is spelled
+        // (a Num), not a rounded-down integer. The integer quotient uses
         // `//` (Euclidean division), which keeps its operands' type.
         if (ast->tag == Divide && is_int_type(lhs_t) && is_int_type(rhs_t)) return Type(NumType);
 

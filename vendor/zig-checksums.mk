@@ -78,7 +78,7 @@ ZIG_BSD_PLATFORMS = x86_64-freebsd aarch64-freebsd \
 ZIG_DIST_PLATFORMS = $(ZIG_LINUX_PLATFORMS) $(ZIG_MACOS_PLATFORMS) $(ZIG_BSD_PLATFORMS)
 
 # --- The host's platform key ------------------------------------------------
-# uname spellings differ from Zig's: macOS reports "Darwin"/"arm64" and the
+# uname values differ from Zig's: macOS reports "Darwin"/"arm64" and the
 # BSDs report "amd64", so both components need normalizing.
 host_os_map_Linux = linux
 host_os_map_Darwin = macos

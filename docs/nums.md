@@ -118,7 +118,7 @@ Optional `Num`s cost nothing extra: `Num?` is the same size as `Num`.
 ## Equality
 
 Rationals and the common irrational forms compare exactly, including across
-different spellings of the same value:
+different representations of the same value:
 
 ```tomo
 assert (2.).sqrt()! == (8.).sqrt()! / 2

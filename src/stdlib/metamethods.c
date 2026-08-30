@@ -69,13 +69,12 @@ List_t generic_serialize(const void *x, const TypeInfo_t *type) {
     return bytes;
 }
 
-// Deserializers recurse into their nested values, and a few encodings let one
-// level be spelled in as little as two bytes (an empty table plus a "has a
-// fallback" flag, say), so a small hostile input can otherwise nest deeply
-// enough to overflow the stack -- a crash, which is exactly what
-// deserialization_failed() exists to turn into a clean `none`. Cap the nesting
-// well below the shallowest stack Tomo runs on (a secondary thread on macOS
-// gets 512KB). Data this deeply nested can't be produced by _serialize()
+// Deserializers recurse into their nested values, and some encodings let one
+// level use as few as two bytes (e.g. an empty table plus a "has a fallback" flag),
+// so a small hostile input can otherwise nest deeply enough to cause a stack
+// overflow. deserialization_failed() exists to turn that into `none` return value.
+// Cap the nesting well below the shallowest stack Tomo runs on (a secondary thread
+// on macOS gets 512KB). Data this deeply nested can't be produced by _serialize()
 // either, which recurses the same way.
 #define MAX_DESERIALIZATION_DEPTH 1000
 static _Thread_local int deserialization_depth = 0;

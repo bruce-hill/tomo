@@ -1,11 +1,11 @@
 // The runtime test harness used by `tomo test`. See test_harness.h.
 #include <signal.h>
-#include <sys/ioctl.h>
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "files.h" // highlight_error_to, load_file
@@ -216,8 +216,8 @@ static void print_output(FILE *f, const char *output, int indent, style_t s, con
     for (const char *line = output; line < output + end;) {
         const char *nl = memchr(line, '\n', (size_t)(output + end - line));
         size_t len = nl ? (size_t)(nl - line) : (size_t)(output + end - line);
-        fprintf(f, "%*s%s%s%s %s%.*s%s\n", indent, "", s.dim, USE_COLOR ? "┆" : "|", s.reset, color, (int)len,
-                line, s.reset);
+        fprintf(f, "%*s%s%s%s %s%.*s%s\n", indent, "", s.dim, USE_COLOR ? "┆" : "|", s.reset, color, (int)len, line,
+                s.reset);
         if (!nl) break;
         line = nl + 1;
     }
@@ -251,17 +251,13 @@ static void print_failure(FILE *f, const test_result_t *r, int indent, style_t s
     fprintf(f, "%*s%s%s%s%s\n", sub, "", s.red, s.bold, outcome_headline(r), s.reset);
 
     switch (r->outcome) {
-    case TEST_RESULT_UNEXPECTED_FAILURE:
-        print_output(f, r->output, sub, s, "");
-        break;
+    case TEST_RESULT_UNEXPECTED_FAILURE: print_output(f, r->output, sub, s, ""); break;
     case TEST_RESULT_UNEXPECTED_SUCCESS:
         if (r->expected_msg)
             fprintf(f, "%*s%sit should have failed with a message containing%s\n", sub, "", s.dim, s.reset);
         if (r->expected_msg) fprintf(f, "%*s  %s%s%s\n", sub, "", s.green, r->expected_msg, s.reset);
         break;
-    case TEST_RESULT_WRONG_MESSAGE:
-        print_mismatch(f, r, sub, s);
-        break;
+    case TEST_RESULT_WRONG_MESSAGE: print_mismatch(f, r, sub, s); break;
     case TEST_RESULT_TIMEOUT:
         fprintf(f, "%*s%sit hit the time limit and was killed -- raise it with TOMO_TEST_TIMEOUT=<seconds>%s\n", sub,
                 "", s.dim, s.reset);
@@ -416,8 +412,7 @@ void tomo_test_render(test_result_t *results, int64_t n, bool verbose) {
     if (failed > 0) {
         // A banner, so the eye lands on the failures even in a wall of build output:
         if (USE_COLOR)
-            fprintf(f, "\n\x1b[91;7;1m %lld test%s failed \x1b[m\n\n", (long long)failed,
-                    failed == 1 ? "" : "s");
+            fprintf(f, "\n\x1b[91;7;1m %lld test%s failed \x1b[m\n\n", (long long)failed, failed == 1 ? "" : "s");
         else fprintf(f, "\n%lld test%s failed\n\n", (long long)failed, failed == 1 ? "" : "s");
         for (int64_t i = 0; i < n; i++)
             if (results[i].outcome != TEST_RESULT_PASS) print_failure(f, &results[i], indent, s);
@@ -446,7 +441,7 @@ void tomo_test_render(test_result_t *results, int64_t n, bool verbose) {
         fprintf(f, "%*s%s%s%s %lld failed%s %s%s %lld passed %s %s%s\n", indent, "", s.red, s.bold,
                 USE_COLOR ? s.fail_mark : "FAIL:", (long long)failed, s.reset, s.dim, s.sep, (long long)passed, s.sep,
                 time_str, s.reset);
-        // The single most useful next command, spelled out so it can be copied:
+        // The single most useful next command, defined so it can be copied:
         for (int64_t i = 0; i < n; i++) {
             if (results[i].outcome == TEST_RESULT_PASS) continue;
             if (!results[i].file) break;

@@ -72,7 +72,7 @@ static Text_t quoted_label(const char *label) {
     return Text$quoted(Text$from_str(label), false, Text("\""));
 }
 
-// The flag is spelled `cached` or `cache_size=N` in source; a bare `cached`
+// The flag uses `cached` or `cache_size=N` in source; a bare `cached`
 // parses to the sentinel size -1. There is no `cache=` flag: emitting one lost
 // the caching entirely and left a function definition that didn't parse.
 static Text_t format_cache_flag(ast_t *cache, Table_t comments, Text_t indent) {
@@ -375,9 +375,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         return Texts("(", Text$escaped(Text$from_str(Match(ast, Path)->path), false, Text("()")), ")");
     }
     /*inline*/ case Embed: { return Texts("_embed_ ", fmt_inline(Match(ast, Embed)->path, comments)); }
-    /*inline*/ case Serialize: {
-        return Texts("serialize(", fmt_inline(Match(ast, Serialize)->value, comments), ")");
-    }
+    /*inline*/ case Serialize: { return Texts("serialize(", fmt_inline(Match(ast, Serialize)->value, comments), ")"); }
     /*inline*/ case Deserialize: {
         DeclareMatch(deserialize, ast, Deserialize);
         return Texts("deserialize:", format_type(deserialize->type_ast), "(", fmt_inline(deserialize->value, comments),
@@ -910,8 +908,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Deserialize: {
         if (inlined_fits) return inlined;
         DeclareMatch(deserialize, ast, Deserialize);
-        return Texts("deserialize:", format_type(deserialize->type_ast), "(",
-                     fmt(deserialize->value, comments, indent), ")");
+        return Texts("deserialize:", format_type(deserialize->type_ast), "(", fmt(deserialize->value, comments, indent),
+                     ")");
     }
     /*multiline*/ case Min:
     /*multiline*/ case Max: {

@@ -4,8 +4,8 @@
 
 #include "bools.h"
 #include "datatypes.h"
-#include "metamethods.h"
 #include "floats.h"
+#include "metamethods.h"
 #include "optionals.h"
 #include "text.h"
 #include "util.h"
@@ -72,7 +72,7 @@ void Optional$deserialize(FILE *in, void *outval, List_t *pointers, const TypeIn
     } else {
         // All-zero bytes are `none` for most types (empty list/table data,
         // a cleared `has_value` flag, a zero enum tag, a NULL pointer); the
-        // rest spell `none` with a specific bit pattern:
+        // rest need `none` to have a specific bit pattern:
         if (nonnull->tag == TextInfo) *(Text_t *)outval = NONE_TEXT;
         else if (nonnull->tag == ListInfo) *(List_t *)outval = NONE_LIST;
         else if (nonnull->tag == TableInfo) *(Table_t *)outval = NONE_TABLE;

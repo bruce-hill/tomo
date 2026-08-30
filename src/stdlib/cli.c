@@ -579,7 +579,7 @@ static bool resembles_number(const char *arg, const TypeInfo_t *type) {
     // A number was plainly meant, even if it turns out to be a bad one: let
     // `-1abc` reach the parse error that names it, as `1abc` would.
     if (starts_like_negative_number(arg)) return true;
-    // Otherwise only a float spelling can still be a number, and Float64$parse
+    // Otherwise only a float can still be a number, and Float64$parse
     // is what knows those: `-inf`, `-INFINITY`.
     return !is_int_info(type) && !isnan(Float64$parse(Text$from_str(arg), NULL));
 }

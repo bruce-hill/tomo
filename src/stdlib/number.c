@@ -32,21 +32,18 @@
 // one; tomo_init() (stdlib.c) already points that at GC_MALLOC_ATOMIC, which
 // is both correct (limbs hold no pointers) and better than scanning them.
 
-static void *xmalloc(size_t size)
-{
+static void *xmalloc(size_t size) {
     void *p = GC_MALLOC(size);
     if (!p) abort();
     return p;
 }
 
-static char *xstrdup(const char *s)
-{
+static char *xstrdup(const char *s) {
     size_t n = strlen(s) + 1;
     return memcpy(xmalloc(n), s, n);
 }
 
-static char *xsprintf(const char *fmt, ...)
-{
+static char *xsprintf(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     int n = vsnprintf(NULL, 0, fmt, ap);
@@ -77,16 +74,16 @@ enum { STAT_ADD, STAT_SUB, STAT_MUL, STAT_DIV, STAT_COMPARE, STAT_OP_COUNT };
 
 static struct {
     uint64_t ops[STAT_OP_COUNT]; // top-level number_* calls, by operation
-    uint64_t tier1_fastpath;     // small x small, integer sub-path (both denominators 1)
-    uint64_t tier1_general;      // small x small, needs gcd reduction / cross-multiply
-    uint64_t tier2;              // at least one heap bigrat operand
-    uint64_t tier2_u128_fast;    // tier2 op whose operands both still fit u64 -- no bigint temporaries
-    uint64_t tier3;              // at least one real/irrational operand
-    uint64_t promotions;         // number_from_ratio64 result didn't fit back into tier 1
-    uint64_t bi_allocs;          // heap-bigint (mpz) allocations -- tier-3 magnitudes route through bi_new
-    uint64_t irr_memo_hits;      // irr_fixed: memoized approximation already precise enough
-    uint64_t irr_recompute[10];  // irr_fixed: recompute needed, indexed by IRR_* (10 ops; see enum below)
-    uint64_t interval_hits;      // double-interval fast path decided a sign/rounding outright
+    uint64_t tier1_fastpath; // small x small, integer sub-path (both denominators 1)
+    uint64_t tier1_general; // small x small, needs gcd reduction / cross-multiply
+    uint64_t tier2; // at least one heap bigrat operand
+    uint64_t tier2_u128_fast; // tier2 op whose operands both still fit u64 -- no bigint temporaries
+    uint64_t tier3; // at least one real/irrational operand
+    uint64_t promotions; // number_from_ratio64 result didn't fit back into tier 1
+    uint64_t bi_allocs; // heap-bigint (mpz) allocations -- tier-3 magnitudes route through bi_new
+    uint64_t irr_memo_hits; // irr_fixed: memoized approximation already precise enough
+    uint64_t irr_recompute[10]; // irr_fixed: recompute needed, indexed by IRR_* (10 ops; see enum below)
+    uint64_t interval_hits; // double-interval fast path decided a sign/rounding outright
     uint64_t interval_fallbacks; // interval was computable but too wide (or undecidable): bigint path
 } number_stats;
 
@@ -103,20 +100,27 @@ static struct {
 #define TAG_SMALL 0x1u
 #define TAG_ERROR 0x3u
 
-#define SMALL_NUM_MAX INT32_MAX  // |numerator| bound for the immediate form
+#define SMALL_NUM_MAX INT32_MAX // |numerator| bound for the immediate form
 #define SMALL_DEN_MAX 0x3FFFFFFFu // 30-bit denominator bound
 
-static inline uint32_t number_tag(number x) { return x.bits & TAG_MASK; }
+static inline uint32_t number_tag(number x) {
+    return x.bits & TAG_MASK;
+}
 
-static inline number small_make(int32_t num, uint32_t den)
-{
+static inline number small_make(int32_t num, uint32_t den) {
     return (number){((uint64_t)(uint32_t)num << 32) | ((uint64_t)den << 2) | TAG_SMALL};
 }
 
-static inline int64_t small_num(number x) { return (int32_t)(x.bits >> 32); }
-static inline uint64_t small_den(number x) { return (x.bits >> 2) & SMALL_DEN_MAX; }
+static inline int64_t small_num(number x) {
+    return (int32_t)(x.bits >> 32);
+}
+static inline uint64_t small_den(number x) {
+    return (x.bits >> 2) & SMALL_DEN_MAX;
+}
 
-static inline number small_zero(void) { return small_make(0, 1); }
+static inline number small_zero(void) {
+    return small_make(0, 1);
+}
 
 // ---------------------------------------------------------------------------
 // Error values
@@ -132,7 +136,7 @@ static inline number small_zero(void) { return small_make(0, 1); }
 // message; call sites that know *why* construct a specific code instead via
 // err().
 enum {
-    ERR_GENERIC = 0,     // NUMBER_ERROR's own code: no specific reason given
+    ERR_GENERIC = 0, // NUMBER_ERROR's own code: no specific reason given
     ERR_DIV_BY_ZERO,
     ERR_SQRT_NEGATIVE,
     ERR_LOG_NONPOSITIVE,
@@ -166,7 +170,9 @@ static const char *const ERROR_MESSAGES[ERR_COUNT] = {
 
 // An error value carrying a specific reason code. err(ERR_GENERIC) is bit-
 // identical to NUMBER_ERROR.
-static inline number err(uint32_t code) { return (number){((uint64_t)code << 2) | TAG_ERROR}; }
+static inline number err(uint32_t code) {
+    return (number){((uint64_t)code << 2) | TAG_ERROR};
+}
 
 // ---------------------------------------------------------------------------
 // Bigint: a heap-allocated GMP integer (mpz_t), used magnitude-only -- every
@@ -187,8 +193,7 @@ typedef mp_limb_t bi_limb;
 
 typedef __mpz_struct bigint;
 
-static bigint *bi_new(void)
-{
+static bigint *bi_new(void) {
     NSTAT(bi_allocs);
     bigint *b = xmalloc(sizeof(bigint));
     mpz_init(b);
@@ -196,32 +201,32 @@ static bigint *bi_new(void)
 }
 
 // NULL-safe, like free(): the memoized appr fields stay NULL until first use.
-static void bi_free(bigint *b)
-{
+static void bi_free(bigint *b) {
     if (!b) return;
     mpz_clear(b);
 }
 
-static bigint *bi_from_u64(uint64_t v)
-{
+static bigint *bi_from_u64(uint64_t v) {
     bigint *b = bi_new();
     mpz_set_ui(b, v);
     return b;
 }
 
-static bigint *bi_copy(const bigint *a)
-{
+static bigint *bi_copy(const bigint *a) {
     bigint *b = bi_new();
     mpz_set(b, a);
     return b;
 }
 
-static inline bool bi_is_zero(const bigint *a) { return mpz_sgn(a) == 0; }
+static inline bool bi_is_zero(const bigint *a) {
+    return mpz_sgn(a) == 0;
+}
 
-static inline bool bi_is_one(const bigint *a) { return mpz_cmp_ui(a, 1) == 0; }
+static inline bool bi_is_one(const bigint *a) {
+    return mpz_cmp_ui(a, 1) == 0;
+}
 
-static bool bi_fits_u64(const bigint *a, uint64_t *out)
-{
+static bool bi_fits_u64(const bigint *a, uint64_t *out) {
     if (mpz_size(a) > 1) return false;
     *out = mpz_size(a) ? mpz_getlimbn(a, 0) : 0;
     return true;
@@ -230,8 +235,7 @@ static bool bi_fits_u64(const bigint *a, uint64_t *out)
 // Write u128 v into an already-initialized mpz (magnitude only). The hi==0
 // case -- the common one, since a u128 here is usually a widened u64 -- is a
 // single mpz_set_ui with no shift.
-static void mpz_set_u128(mpz_ptr dst, u128 v)
-{
+static void mpz_set_u128(mpz_ptr dst, u128 v) {
     uint64_t hi = (uint64_t)(v >> 64);
     if (hi == 0) {
         mpz_set_ui(dst, (uint64_t)v);
@@ -250,8 +254,7 @@ static void mpz_set_u128(mpz_ptr dst, u128 v)
 // of every small-fraction operation (see number_from_ratio64 and the
 // coprime-denominator reduction in rat_addsub_u128). Same contract as the
 // Euclid version it replaced, including gcd(x,0) == x and gcd(0,x) == x.
-static uint64_t gcd_u64(uint64_t a, uint64_t b)
-{
+static uint64_t gcd_u64(uint64_t a, uint64_t b) {
     if (a == 0) return b;
     if (b == 0) return a;
     // gcd(x, 1) == 1 in one step -- the hot case for integer operands, where
@@ -277,8 +280,7 @@ static uint64_t gcd_u64(uint64_t a, uint64_t b)
 
 // Count trailing zeros of a nonzero u128 (there's no __builtin_ctz for
 // 128-bit): low word if it carries any set bit, else 64 + the high word's.
-static int ctz_u128(u128 v)
-{
+static int ctz_u128(u128 v) {
     uint64_t lo = (uint64_t)v;
     return lo ? __builtin_ctzll(lo) : 64 + __builtin_ctzll((uint64_t)(v >> 64));
 }
@@ -291,8 +293,7 @@ static int ctz_u128(u128 v)
 // g>1 leftover reduction gcd(num, g); add/sub with coprime denominators and
 // all of mul/div reduce with 64-bit gcds only, never reaching here. Same
 // contract as before, including gcd(x,0) == x and gcd(0,x) == x.
-static u128 gcd_u128(u128 a, u128 b)
-{
+static u128 gcd_u128(u128 a, u128 b) {
     if (a == 0) return b;
     if (b == 0) return a;
     // gcd(x, 1) == 1 in one step. This is the hot case for *integer*
@@ -317,16 +318,16 @@ static u128 gcd_u128(u128 a, u128 b)
     return a << shift;
 }
 
-static int bi_cmp(const bigint *a, const bigint *b) { return mpz_cmp(a, b); }
+static int bi_cmp(const bigint *a, const bigint *b) {
+    return mpz_cmp(a, b);
+}
 
-static uint32_t bi_bitlen(const bigint *a)
-{
+static uint32_t bi_bitlen(const bigint *a) {
     if (mpz_sgn(a) == 0) return 0;
     return (uint32_t)mpz_sizeinbase(a, 2);
 }
 
-static bigint *bi_add(const bigint *a, const bigint *b)
-{
+static bigint *bi_add(const bigint *a, const bigint *b) {
     bigint *res = bi_new();
     mpz_add(res, a, b);
     return res;
@@ -334,44 +335,38 @@ static bigint *bi_add(const bigint *a, const bigint *b)
 
 // Callers maintain a >= b (magnitude convention: results stay nonnegative);
 // mpz_sub itself has no such requirement.
-static bigint *bi_sub(const bigint *a, const bigint *b)
-{
+static bigint *bi_sub(const bigint *a, const bigint *b) {
     bigint *res = bi_new();
     mpz_sub(res, a, b);
     return res;
 }
 
-static bigint *bi_mul(const bigint *a, const bigint *b)
-{
+static bigint *bi_mul(const bigint *a, const bigint *b) {
     bigint *res = bi_new();
     mpz_mul(res, a, b);
     return res;
 }
 
-static bigint *bi_mul_u32(const bigint *a, uint32_t m)
-{
+static bigint *bi_mul_u32(const bigint *a, uint32_t m) {
     bigint *res = bi_new();
     mpz_mul_ui(res, a, m);
     return res;
 }
 
-static bigint *bi_shl(const bigint *a, uint32_t k)
-{
+static bigint *bi_shl(const bigint *a, uint32_t k) {
     bigint *res = bi_new();
     mpz_mul_2exp(res, a, k);
     return res;
 }
 
-static bigint *bi_shr(const bigint *a, uint32_t k)
-{
+static bigint *bi_shr(const bigint *a, uint32_t k) {
     bigint *res = bi_new();
     mpz_tdiv_q_2exp(res, a, k);
     return res;
 }
 
 // d must be nonzero.
-static void bi_divmod(const bigint *n, const bigint *d, bigint **q_out, bigint **r_out)
-{
+static void bi_divmod(const bigint *n, const bigint *d, bigint **q_out, bigint **r_out) {
     bigint *q = bi_new(), *r = bi_new();
     mpz_tdiv_qr(q, r, n, d);
     *q_out = q;
@@ -379,15 +374,13 @@ static void bi_divmod(const bigint *n, const bigint *d, bigint **q_out, bigint *
 }
 
 // floor(sqrt(n)).
-static bigint *bi_isqrt(const bigint *n)
-{
+static bigint *bi_isqrt(const bigint *n) {
     bigint *s = bi_new();
     mpz_sqrt(s, n);
     return s;
 }
 
-static bigint *bi_pow10(uint32_t k)
-{
+static bigint *bi_pow10(uint32_t k) {
     bigint *r = bi_new();
     mpz_ui_pow_ui(r, 10, k);
     return r;
@@ -395,8 +388,7 @@ static bigint *bi_pow10(uint32_t k)
 
 // If n (a positive bigint magnitude) is exactly base^k for some k >= 0, sets
 // *out = k and returns true. base is a GMP sizeinbase base (2..62).
-static bool bi_exact_power(const bigint *n, unsigned base, int64_t *out)
-{
+static bool bi_exact_power(const bigint *n, unsigned base, int64_t *out) {
     if (bi_is_zero(n)) return false;
     // sizeinbase is the digit count (or one more); base^k is the only
     // (k+1)-digit value in that base, so compute the candidate and compare.
@@ -413,8 +405,7 @@ static bool bi_exact_power(const bigint *n, unsigned base, int64_t *out)
 // Decimal digits of a magnitude, as an xmalloc'd string ("0" for zero).
 // mpz_get_str is subquadratic (divide-and-conquer conversion), unlike the
 // old chunked divide-by-10^19 loop this replaces.
-static char *bi_to_decimal(const bigint *b)
-{
+static char *bi_to_decimal(const bigint *b) {
     char *buf = xmalloc(mpz_sizeinbase(b, 10) + 2);
     mpz_get_str(buf, 10, b);
     return buf;
@@ -422,8 +413,7 @@ static char *bi_to_decimal(const bigint *b)
 
 // Decimal digits of |z| for a possibly-negative mpz (an mpq numref): the
 // printers place signs themselves, per their own spacing/TeX conventions.
-static char *mpz_mag_decimal(mpz_srcptr z)
-{
+static char *mpz_mag_decimal(mpz_srcptr z) {
     char *buf = xmalloc(mpz_sizeinbase(z, 10) + 2);
     mpz_get_str(buf, 10, z);
     if (buf[0] == '-') memmove(buf, buf + 1, strlen(buf));
@@ -470,15 +460,15 @@ enum { FN_PI = 1, FN_SQRT = 2, FN_LN = 3, FN_EXP = 4 };
 
 typedef struct {
     num_head head;
-    uint32_t fn : 3;     // FN_PI/FN_SQRT/FN_LN/FN_EXP: which transcendental
-    number a;             // rational part (owned)
-    number b;             // coefficient of F: nonzero rational (owned)
-    number arg;           // FN_SQRT: positive non-square integer; FN_LN: rational > 1;
-                          // FN_EXP: any rational; unused for FN_PI
-    mpz_t appr;           // memoized approximation of F: F * 2^appr_prec
-    uint32_t appr_prec;   // bits of precision in appr (error <= 2 ulp); 0 = no
-                          // memo yet (every stored prec carries a +64 overshoot,
-                          // so 0 never occurs naturally); unbounded, full-width
+    uint32_t fn : 3; // FN_PI/FN_SQRT/FN_LN/FN_EXP: which transcendental
+    number a; // rational part (owned)
+    number b; // coefficient of F: nonzero rational (owned)
+    number arg; // FN_SQRT: positive non-square integer; FN_LN: rational > 1;
+                // FN_EXP: any rational; unused for FN_PI
+    mpz_t appr; // memoized approximation of F: F * 2^appr_prec
+    uint32_t appr_prec; // bits of precision in appr (error <= 2 ulp); 0 = no
+                        // memo yet (every stored prec carries a +64 overshoot,
+                        // so 0 never occurs naturally); unbounded, full-width
 } num_real;
 
 // Tier 3 (general fallback): a lazy constructive-real DAG node, used once a
@@ -493,33 +483,47 @@ typedef struct {
 // results). The DAG is acyclic: an operation only ever references
 // already-built operands.
 enum {
-    IRR_SIN, IRR_COS, IRR_EXP, IRR_LN, IRR_ATAN, IRR_SQRT,
-    IRR_ADD, IRR_SUB, IRR_MUL, IRR_DIV,
+    IRR_SIN,
+    IRR_COS,
+    IRR_EXP,
+    IRR_LN,
+    IRR_ATAN,
+    IRR_SQRT,
+    IRR_ADD,
+    IRR_SUB,
+    IRR_MUL,
+    IRR_DIV,
 };
 
 typedef struct {
     num_head head;
-    uint32_t op : 4;        // one of the IRR_* ops above (10 values, needs unsigned 4 bits)
-    int32_t appr_sign : 2;  // sign of the memoized approximation; 0 until first evaluated
-    number x;                 // operand (owned); LHS for binary ops
-    number y;                 // RHS for ADD/SUB/MUL/DIV (owned); small_zero() (unused) for unary ops
-    mpz_t appr;                // memoized |value| * 2^appr_prec
-    uint32_t appr_prec;        // bits of precision in appr; 0 = no memo yet
-                               // (stored precs always carry +64); unbounded, full-width
+    uint32_t op : 4; // one of the IRR_* ops above (10 values, needs unsigned 4 bits)
+    int32_t appr_sign : 2; // sign of the memoized approximation; 0 until first evaluated
+    number x; // operand (owned); LHS for binary ops
+    number y; // RHS for ADD/SUB/MUL/DIV (owned); small_zero() (unused) for unary ops
+    mpz_t appr; // memoized |value| * 2^appr_prec
+    uint32_t appr_prec; // bits of precision in appr; 0 = no memo yet
+                        // (stored precs always carry +64); unbounded, full-width
 } num_irr;
 
-static inline num_head *number_head(number x) { return (num_head *)(uintptr_t)x.bits; }
-static inline num_bigrat *number_heap(number x) { return (num_bigrat *)(uintptr_t)x.bits; }
-static inline num_real *as_real(number x) { return (num_real *)(uintptr_t)x.bits; }
-static inline num_irr *as_irr(number x) { return (num_irr *)(uintptr_t)x.bits; }
+static inline num_head *number_head(number x) {
+    return (num_head *)(uintptr_t)x.bits;
+}
+static inline num_bigrat *number_heap(number x) {
+    return (num_bigrat *)(uintptr_t)x.bits;
+}
+static inline num_real *as_real(number x) {
+    return (num_real *)(uintptr_t)x.bits;
+}
+static inline num_irr *as_irr(number x) {
+    return (num_irr *)(uintptr_t)x.bits;
+}
 
-static inline bool is_real_kind(number x)
-{
+static inline bool is_real_kind(number x) {
     return number_tag(x) == TAG_POINTER && x.bits != 0 && number_head(x)->kind == KIND_REAL;
 }
 
-static inline bool is_irrational_kind(number x)
-{
+static inline bool is_irrational_kind(number x) {
     return number_tag(x) == TAG_POINTER && x.bits != 0 && number_head(x)->kind == KIND_IRRATIONAL;
 }
 
@@ -571,8 +575,7 @@ static int signed_add(int s1, bigint *m1, int s2, bigint *m2, bigint **out);
 // Wrap a canonical, known-not-small mpq into a fresh heap bigrat, MOVING
 // q's contents (struct copy; the limb buffers change owner and q must not
 // be used or cleared afterwards).
-static number bigrat_steal(mpq_t q)
-{
+static number bigrat_steal(mpq_t q) {
     num_bigrat *p = xmalloc(sizeof(num_bigrat));
     p->head.kind = KIND_BIGRAT;
     p->q[0] = q[0];
@@ -583,8 +586,7 @@ static number bigrat_steal(mpq_t q)
 // to fill in place. Lets the u128/u64 constructors below write num/den
 // straight into the final allocation instead of building a throwaway pair of
 // heap-mpz shells and swapping their limbs in.
-static num_bigrat *bigrat_alloc(void)
-{
+static num_bigrat *bigrat_alloc(void) {
     num_bigrat *p = xmalloc(sizeof(num_bigrat));
     p->head.kind = KIND_BIGRAT;
     mpq_init(p->q);
@@ -595,8 +597,7 @@ static num_bigrat *bigrat_alloc(void)
 // (num, den coprime, den > 0, value known not to fit the small tier), writing
 // into the embedded mpq with no intermediate bigint shells. u128 covers the
 // u64 callers too (a widened u64 takes mpz_set_u128's single-word fast path).
-static number bigrat_from_u128s(int sign, u128 num, u128 den)
-{
+static number bigrat_from_u128s(int sign, u128 num, u128 den) {
     num_bigrat *p = bigrat_alloc();
     mpz_set_u128(mpq_numref(p->q), num);
     mpz_set_u128(mpq_denref(p->q), den);
@@ -606,14 +607,12 @@ static number bigrat_from_u128s(int sign, u128 num, u128 den)
 
 // Consume a CANONICAL mpq (mpq_canonicalize invariants already hold) and
 // return it as a number: the small immediate if it fits, else a heap bigrat.
-static number number_from_mpq(mpq_t q)
-{
+static number number_from_mpq(mpq_t q) {
     if (mpq_sgn(q) == 0) {
         mpq_clear(q);
         return small_zero();
     }
-    if (mpz_cmpabs_ui(mpq_numref(q), SMALL_NUM_MAX) <= 0 &&
-        mpz_cmp_ui(mpq_denref(q), SMALL_DEN_MAX) <= 0) {
+    if (mpz_cmpabs_ui(mpq_numref(q), SMALL_NUM_MAX) <= 0 && mpz_cmp_ui(mpq_denref(q), SMALL_DEN_MAX) <= 0) {
         int32_t n = (int32_t)mpz_get_si(mpq_numref(q));
         uint32_t d = (uint32_t)mpz_get_ui(mpq_denref(q));
         mpq_clear(q);
@@ -624,8 +623,7 @@ static number number_from_mpq(mpq_t q)
 
 // Canonicalize sign * num/den into a number, taking ownership of num and den:
 // reduce by the gcd, then demote to a small rational if it fits.
-static number canon_make(int sign, bigint *num, bigint *den)
-{
+static number canon_make(int sign, bigint *num, bigint *den) {
     if (bi_is_zero(den)) {
         bi_free(num);
         bi_free(den);
@@ -671,8 +669,7 @@ typedef struct {
     mp_limb_t nl[1], dl[1];
 } mpq_view;
 
-static mpq_srcptr number_mpq_view(number x, mpq_view *v)
-{
+static mpq_srcptr number_mpq_view(number x, mpq_view *v) {
     if (number_tag(x) == TAG_POINTER) return number_heap(x)->q;
     int64_t n = small_num(x);
     uint64_t un = n < 0 ? (uint64_t)-n : (uint64_t)n;
@@ -685,8 +682,7 @@ static mpq_srcptr number_mpq_view(number x, mpq_view *v)
 
 // Always succeeds for TAG_SMALL; for a heap bigrat, only if its num and den
 // (already reduced/canonical) each still fit 64 bits.
-static bool unpack_u64_rat(number x, int *sign, uint64_t *num, uint64_t *den)
-{
+static bool unpack_u64_rat(number x, int *sign, uint64_t *num, uint64_t *den) {
     if (number_tag(x) == TAG_SMALL) {
         int64_t n = small_num(x);
         *sign = n < 0 ? -1 : 1;
@@ -705,8 +701,7 @@ static bool unpack_u64_rat(number x, int *sign, uint64_t *num, uint64_t *den)
 // limb buffers, no throwaway bigint shells. num == 0 canonicalizes to zero
 // regardless of den (callers that can produce a cancellation reach here with
 // den == 1 anyway, but the guard keeps this correct for any caller).
-static number finish_reduced_u128(int sign, u128 num, u128 den)
-{
+static number finish_reduced_u128(int sign, u128 num, u128 den) {
     if (num == 0) return small_zero();
     if (num <= SMALL_NUM_MAX && den <= SMALL_DEN_MAX) {
         int32_t n32 = (int32_t)num;
@@ -731,12 +726,10 @@ static number finish_reduced_u128(int sign, u128 num, u128 den)
 // where an unconditional reduce-the-full-product approach would pay a 126-bit
 // binary GCD plus two software u128 divisions on every add. This is the bulk
 // of the large-fraction add/sub cost, and the reason mpq_add outran number.
-static bool rat_addsub_u128(number a, number b, int bsign, number *out)
-{
+static bool rat_addsub_u128(number a, number b, int bsign, number *out) {
     int sa, sb;
     uint64_t na, da, nb, db;
-    if (!unpack_u64_rat(a, &sa, &na, &da) || !unpack_u64_rat(b, &sb, &nb, &db))
-        return false;
+    if (!unpack_u64_rat(a, &sa, &na, &da) || !unpack_u64_rat(b, &sb, &nb, &db)) return false;
     sb *= bsign;
     uint64_t g = gcd_u64(da, db);
     uint64_t da_r = da / g, db_r = db / g; // da_r == da, db_r == db when g == 1
@@ -779,12 +772,10 @@ static bool rat_addsub_u128(number a, number b, int bsign, number *out)
 // NO final ~126-bit gcd, and with smaller multiplicands. Each of num/den is
 // still a single u64*u64 product (the reduced factors are <= the originals),
 // so there is no overflow case to guard.
-static bool rat_mul_u128(number a, number b, number *out)
-{
+static bool rat_mul_u128(number a, number b, number *out) {
     int sa, sb;
     uint64_t na, da, nb, db;
-    if (!unpack_u64_rat(a, &sa, &na, &da) || !unpack_u64_rat(b, &sb, &nb, &db))
-        return false;
+    if (!unpack_u64_rat(a, &sa, &na, &da) || !unpack_u64_rat(b, &sb, &nb, &db)) return false;
     // Denominators are >= 1, so both gcds are >= 1 (no zero divide); na == 0
     // gives g1 == db, na/g1 == 0 -> finish_reduced_u128's num==0 zero guard.
     uint64_t g1 = gcd_u64(na, db), g2 = gcd_u64(nb, da);
@@ -800,12 +791,10 @@ static bool rat_mul_u128(number a, number b, number *out)
 // a/b = (na*db)/(da*nb) -- multiplication by the reciprocal -- so the same
 // cross-cancel as rat_mul_u128 applies, on the diagonals gcd(na,nb) and
 // gcd(db,da); the other two pairs (na,da) and (db,nb) are already coprime.
-static bool rat_div_u128(number a, number b, number *out)
-{
+static bool rat_div_u128(number a, number b, number *out) {
     int sa, sb;
     uint64_t na, da, nb, db;
-    if (!unpack_u64_rat(a, &sa, &na, &da) || !unpack_u64_rat(b, &sb, &nb, &db))
-        return false;
+    if (!unpack_u64_rat(a, &sa, &na, &da) || !unpack_u64_rat(b, &sb, &nb, &db)) return false;
     uint64_t g1 = gcd_u64(na, nb), g2 = gcd_u64(db, da); // nb >= 1 (b != 0), da/db >= 1
     u128 num = (u128)(na / g1) * (db / g2);
     u128 den = (u128)(nb / g1) * (da / g2);
@@ -817,12 +806,10 @@ static bool rat_div_u128(number a, number b, number *out)
 // rational) entirely in u64/u128; false means an operand didn't fit u64.
 // Unlike addsub, a single cross product each side is all this needs -- no
 // sum, so no overflow case to guard.
-static bool rat_compare_u128(number a, number b, int sa, int *out)
-{
+static bool rat_compare_u128(number a, number b, int sa, int *out) {
     int sa_unused, sb_unused;
     uint64_t na, da, nb, db;
-    if (!unpack_u64_rat(a, &sa_unused, &na, &da) || !unpack_u64_rat(b, &sb_unused, &nb, &db))
-        return false;
+    if (!unpack_u64_rat(a, &sa_unused, &na, &da) || !unpack_u64_rat(b, &sb_unused, &nb, &db)) return false;
     u128 l = (u128)na * db, r = (u128)nb * da;
     *out = ((l > r) - (l < r)) * sa;
     return true;
@@ -830,8 +817,7 @@ static bool rat_compare_u128(number a, number b, int sa, int *out)
 
 // Build a number from an int64 ratio (the workhorse for all small-value
 // construction). Handles sign, reduction, and promotion to big rationals.
-static number number_from_ratio64(int64_t num, int64_t den)
-{
+static number number_from_ratio64(int64_t num, int64_t den) {
     if (den == 0) return err(ERR_DIV_BY_ZERO);
     int sign = 1;
     uint64_t un = num < 0 ? (sign = -sign, -(uint64_t)num) : (uint64_t)num;
@@ -851,15 +837,15 @@ static number number_from_ratio64(int64_t num, int64_t den)
 // ---------------------------------------------------------------------------
 // Constructors
 
-number number_from_int(int64_t value) { return number_from_ratio64(value, 1); }
+number number_from_int(int64_t value) {
+    return number_from_ratio64(value, 1);
+}
 
-number number_from_ratio(int64_t numerator, int64_t denominator)
-{
+number number_from_ratio(int64_t numerator, int64_t denominator) {
     return number_from_ratio64(numerator, denominator);
 }
 
-number number_from_double(double value)
-{
+number number_from_double(double value) {
     if (!isfinite(value)) return err(ERR_NOT_FINITE);
     if (value == 0) return small_zero();
     int sign = value < 0 ? -1 : 1;
@@ -883,8 +869,7 @@ number number_from_double(double value)
         p2 += tz;
     }
     if (p2 >= 0) {
-        if (p2 < 63 && mant <= (uint64_t)INT64_MAX >> p2)
-            return number_from_ratio64(sign * (int64_t)(mant << p2), 1);
+        if (p2 < 63 && mant <= (uint64_t)INT64_MAX >> p2) return number_from_ratio64(sign * (int64_t)(mant << p2), 1);
     } else if (-p2 < 63) {
         return number_from_ratio64(sign * (int64_t)mant, (int64_t)1 << -p2);
     }
@@ -901,19 +886,21 @@ number number_from_double(double value)
 // ---------------------------------------------------------------------------
 // Predicates
 
-bool number_is_error(number x) { return number_tag(x) == TAG_ERROR; }
+bool number_is_error(number x) {
+    return number_tag(x) == TAG_ERROR;
+}
 
-const char *number_error_message(number x)
-{
+const char *number_error_message(number x) {
     if (!number_is_error(x)) return NULL;
     uint64_t code = x.bits >> 2;
     return ERROR_MESSAGES[code < ERR_COUNT ? code : ERR_GENERIC];
 }
 
-bool number_is_zero(number x) { return x.bits == small_zero().bits; }
+bool number_is_zero(number x) {
+    return x.bits == small_zero().bits;
+}
 
-int number_sign(number x)
-{
+int number_sign(number x) {
     switch (number_tag(x)) {
     case TAG_SMALL: {
         int64_t n = small_num(x);
@@ -934,26 +921,24 @@ int number_sign(number x)
     }
 }
 
-bool number_is_negative(number x) { return number_sign(x) < 0; }
-bool number_is_rational(number x)
-{
+bool number_is_negative(number x) {
+    return number_sign(x) < 0;
+}
+bool number_is_rational(number x) {
     return !number_is_error(x) && !is_real_kind(x) && !is_irrational_kind(x);
 }
-bool number_is_integer(number x)
-{
+bool number_is_integer(number x) {
     if (number_tag(x) == TAG_SMALL) return small_den(x) == 1;
     // Reals are irrational by construction; an IRRATIONAL node can't be
     // proven integer (see the header comment: false means "not provably").
-    if (number_tag(x) != TAG_POINTER || x.bits == 0 || number_head(x)->kind != KIND_BIGRAT)
-        return false;
+    if (number_tag(x) != TAG_POINTER || x.bits == 0 || number_head(x)->kind != KIND_BIGRAT) return false;
     return bi_is_one(mpq_denref(number_heap(x)->q));
 }
 
 // ---------------------------------------------------------------------------
 // Comparison
 
-int number_compare_capped_general(number a, number b, uint32_t max_prec)
-{
+int number_compare_capped_general(number a, number b, uint32_t max_prec) {
     NSTAT(ops[STAT_COMPARE]);
     if (number_is_error(a) || number_is_error(b)) return 2;
     if (a.bits == b.bits) return 0; // same immediate, or the same shared heap reference
@@ -1021,17 +1006,19 @@ int number_compare_capped_general(number a, number b, uint32_t max_prec)
     int c = mpq_cmp(number_mpq_view(a, &va), number_mpq_view(b, &vb));
     return (c > 0) - (c < 0);
 }
-int number_compare_general(number a, number b) { return number_compare_capped_general(a, b, IRR_MAX_PREC); }
+int number_compare_general(number a, number b) {
+    return number_compare_capped_general(a, b, IRR_MAX_PREC);
+}
 // The out-of-line counterpart to number.h's gnu_inline definition, exactly as
 // number_compare has one below:
-int number_compare_capped(number a, number b, uint32_t max_prec)
-{
+int number_compare_capped(number a, number b, uint32_t max_prec) {
     return number_compare_capped_general(a, b, max_prec);
 }
-int number_compare(number a, number b) { return number_compare_general(a, b); } // see comment above number_add_general
+int number_compare(number a, number b) {
+    return number_compare_general(a, b);
+} // see comment above number_add_general
 
-bool number_equal_general(number a, number b)
-{
+bool number_equal_general(number a, number b) {
     if (number_is_error(a) || number_is_error(b)) return false;
     if (a.bits == b.bits) return true; // same immediate, or the same shared heap reference
     if (is_real_kind(a) || is_real_kind(b) || is_irrational_kind(a) || is_irrational_kind(b))
@@ -1043,13 +1030,14 @@ bool number_equal_general(number a, number b)
     if (number_tag(a) == TAG_SMALL) return a.bits == b.bits;
     return mpq_equal(number_heap(a)->q, number_heap(b)->q) != 0;
 }
-bool number_equal(number a, number b) { return number_equal_general(a, b); } // see comment above number_add_general
+bool number_equal(number a, number b) {
+    return number_equal_general(a, b);
+} // see comment above number_add_general
 
 // ---------------------------------------------------------------------------
 // Arithmetic
 
-static number rat_addsub_general(number a, number b, int bsign)
-{
+static number rat_addsub_general(number a, number b, int bsign) {
     mpq_view va, vb;
     mpq_srcptr qa = number_mpq_view(a, &va), qb = number_mpq_view(b, &vb);
     mpq_t r;
@@ -1059,8 +1047,7 @@ static number rat_addsub_general(number a, number b, int bsign)
     return number_from_mpq(r); // mpq results are canonical
 }
 
-static number number_addsub(number a, number b, int bsign)
-{
+static number number_addsub(number a, number b, int bsign) {
     if (number_is_error(a)) return a;
     if (number_is_error(b)) return b;
     if (is_irrational_kind(a) || is_irrational_kind(b) || is_real_kind(a) || is_real_kind(b)) {
@@ -1071,10 +1058,8 @@ static number number_addsub(number a, number b, int bsign)
         // means "treat as rational" there). Only on failure — no closed form
         // unifies them, or an operand is already IRRATIONAL — fall back to
         // a general node.
-        number result = (is_irrational_kind(a) || is_irrational_kind(bb)) ?
-                             NUMBER_ERROR : real_add(a, bb);
-        if (number_is_error(result))
-            result = make_irr(IRR_ADD, a, bb);
+        number result = (is_irrational_kind(a) || is_irrational_kind(bb)) ? NUMBER_ERROR : real_add(a, bb);
+        if (number_is_error(result)) result = make_irr(IRR_ADD, a, bb);
         return result;
     }
     if (number_tag(a) == TAG_SMALL && number_tag(b) == TAG_SMALL) {
@@ -1109,18 +1094,27 @@ static number number_addsub(number a, number b, int bsign)
     return rat_addsub_general(a, b, bsign);
 }
 
-number number_add_general(number a, number b) { NSTAT(ops[STAT_ADD]); return number_addsub(a, b, 1); }
-number number_sub_general(number a, number b) { NSTAT(ops[STAT_SUB]); return number_addsub(a, b, -1); }
+number number_add_general(number a, number b) {
+    NSTAT(ops[STAT_ADD]);
+    return number_addsub(a, b, 1);
+}
+number number_sub_general(number a, number b) {
+    NSTAT(ops[STAT_SUB]);
+    return number_addsub(a, b, -1);
+}
 // Plain (non-inline) bodies: the GNU89 "true definition" number.h's
 // extern-inline fast-path dispatchers fall back on when they don't inline
 // a call (address-of; also every call, in a -DNUMBER_STATS build, where
 // number.h deliberately doesn't shadow these names with an inline version
 // at all -- see number.h's comment above number_add_general).
-number number_add(number a, number b) { return number_add_general(a, b); }
-number number_sub(number a, number b) { return number_sub_general(a, b); }
+number number_add(number a, number b) {
+    return number_add_general(a, b);
+}
+number number_sub(number a, number b) {
+    return number_sub_general(a, b);
+}
 
-number number_mul_general(number a, number b)
-{
+number number_mul_general(number a, number b) {
     NSTAT(ops[STAT_MUL]);
     if (number_is_error(a)) return a;
     if (number_is_error(b)) return b;
@@ -1140,10 +1134,8 @@ number number_mul_general(number a, number b)
         // ever prove is zero -- leaving a value that isn't number_is_zero, that
         // compares "unordered" against 0, and that floor/mod reject.
         if (a.bits == NUMBER_ZERO.bits || b.bits == NUMBER_ZERO.bits) return small_zero();
-        number result = (is_irrational_kind(a) || is_irrational_kind(b)) ?
-                             NUMBER_ERROR : real_mul(a, b);
-        if (number_is_error(result))
-            result = make_irr(IRR_MUL, a, b);
+        number result = (is_irrational_kind(a) || is_irrational_kind(b)) ? NUMBER_ERROR : real_mul(a, b);
+        if (number_is_error(result)) result = make_irr(IRR_MUL, a, b);
         return result;
     }
     if (number_tag(a) == TAG_SMALL && number_tag(b) == TAG_SMALL) {
@@ -1168,10 +1160,11 @@ number number_mul_general(number a, number b)
     mpq_mul(r, number_mpq_view(a, &va), number_mpq_view(b, &vb));
     return number_from_mpq(r);
 }
-number number_mul(number a, number b) { return number_mul_general(a, b); } // see comment above number_add_general
+number number_mul(number a, number b) {
+    return number_mul_general(a, b);
+} // see comment above number_add_general
 
-number number_div_general(number a, number b)
-{
+number number_div_general(number a, number b) {
     NSTAT(ops[STAT_DIV]);
     if (number_is_error(a)) return a;
     if (number_is_error(b)) return b;
@@ -1182,8 +1175,7 @@ number number_div_general(number a, number b)
     if (number_is_zero(a)) return small_zero();
     if (is_irrational_kind(a) || is_irrational_kind(b) || is_real_kind(a) || is_real_kind(b)) {
         NSTAT(tier3);
-        number result = (is_irrational_kind(a) || is_irrational_kind(b)) ?
-                             NUMBER_ERROR : real_div(a, b);
+        number result = (is_irrational_kind(a) || is_irrational_kind(b)) ? NUMBER_ERROR : real_div(a, b);
         if (number_is_error(result))
             // make_irr does the eager nonzero check on b for IRR_DIV.
             result = make_irr(IRR_DIV, a, b);
@@ -1208,19 +1200,18 @@ number number_div_general(number a, number b)
     mpq_div(r, number_mpq_view(a, &va), number_mpq_view(b, &vb));
     return number_from_mpq(r);
 }
-number number_div(number a, number b) { return number_div_general(a, b); } // see comment above number_add_general
+number number_div(number a, number b) {
+    return number_div_general(a, b);
+} // see comment above number_add_general
 
 static number make_real(number a, number b, uint32_t fn, number arg);
 
-number number_neg_general(number x)
-{
+number number_neg_general(number x) {
     if (number_is_error(x)) return x;
-    if (number_tag(x) == TAG_SMALL)
-        return number_from_ratio64(-small_num(x), (int64_t)small_den(x));
+    if (number_tag(x) == TAG_SMALL) return number_from_ratio64(-small_num(x), (int64_t)small_den(x));
     if (is_real_kind(x)) {
         num_real *r = as_real(x);
-        return make_real(number_neg(r->a), number_neg(r->b), r->fn,
-                         r->arg);
+        return make_real(number_neg(r->a), number_neg(r->b), r->fn, r->arg);
     }
     if (is_irrational_kind(x)) {
         // Not number_sub(small_zero(), x): that's subtraction with bsign<0,
@@ -1236,24 +1227,23 @@ number number_neg_general(number x)
     mpq_neg(r, p->q); // same magnitude: still not small, no demote check
     return bigrat_steal(r);
 }
-number number_neg(number x) { return number_neg_general(x); } // see comment above number_add_general
+number number_neg(number x) {
+    return number_neg_general(x);
+} // see comment above number_add_general
 
-number number_abs(number x)
-{
+number number_abs(number x) {
     if (number_is_error(x)) return x;
     return number_is_negative(x) ? number_neg(x) : x;
 }
 
-number number_inverse(number x)
-{
+number number_inverse(number x) {
     if (number_is_error(x)) return x;
     if (is_real_kind(x) || is_irrational_kind(x)) {
         number one = number_from_int(1);
         number res = number_div(one, x); // public dispatcher: handles both kinds
         return res;
     }
-    if (number_tag(x) == TAG_SMALL)
-        return number_from_ratio64((int64_t)small_den(x), small_num(x));
+    if (number_tag(x) == TAG_SMALL) return number_from_ratio64((int64_t)small_den(x), small_num(x));
     num_bigrat *p = number_heap(x);
     mpq_t r;
     mpq_init(r);
@@ -1271,8 +1261,7 @@ number number_inverse(number x)
 // gcd(0, x) == |x| (gcd(0, 0) == 0) and lcm(0, x) == 0. An irrational operand
 // has no such divisor structure -> error; an error operand propagates.
 
-number number_gcd(number a, number b)
-{
+number number_gcd(number a, number b) {
     if (number_is_error(a)) return a;
     if (number_is_error(b)) return b;
     if (!number_is_rational(a) || !number_is_rational(b)) return err(ERR_GCD_IRRATIONAL);
@@ -1288,8 +1277,7 @@ number number_gcd(number a, number b)
     return number_from_mpq(r);
 }
 
-number number_lcm(number a, number b)
-{
+number number_lcm(number a, number b) {
     if (number_is_error(a)) return a;
     if (number_is_error(b)) return b;
     if (!number_is_rational(a) || !number_is_rational(b)) return err(ERR_GCD_IRRATIONAL);
@@ -1313,8 +1301,7 @@ number number_lcm(number a, number b)
 enum { INT_FLOOR, INT_CEIL, INT_TRUNC, INT_ROUND };
 
 // floor of a rational, non-error x.
-static number rat_floor(number x)
-{
+static number rat_floor(number x) {
     if (number_tag(x) == TAG_SMALL) {
         int64_t n = small_num(x), d = (int64_t)small_den(x);
         int64_t q = n / d;
@@ -1330,15 +1317,13 @@ static number rat_floor(number x)
 }
 
 // q must be integer-valued (denominator 1; either rational tier).
-static bool int_is_even(number q)
-{
+static bool int_is_even(number q) {
     if (number_tag(q) == TAG_SMALL) return (small_num(q) & 1) == 0;
     return mpz_even_p(mpq_numref(number_heap(q)->q));
 }
 
 // A rational, non-error x rounded to an integer-valued number by mode.
-static number rat_to_int(number x, int mode)
-{
+static number rat_to_int(number x, int mode) {
     switch (mode) {
     case INT_FLOOR: return rat_floor(x);
     case INT_CEIL: { // ceil(x) = -floor(-x)
@@ -1347,8 +1332,7 @@ static number rat_to_int(number x, int mode)
         number res = number_neg(f);
         return res;
     }
-    case INT_TRUNC:
-        return rat_to_int(x, number_is_negative(x) ? INT_CEIL : INT_FLOOR);
+    case INT_TRUNC: return rat_to_int(x, number_is_negative(x) ? INT_CEIL : INT_FLOOR);
     default: { // INT_ROUND: nearest, ties to even
         number q = rat_floor(x);
         number frac = number_sub(x, q); // in [0, 1)
@@ -1367,8 +1351,7 @@ static number rat_to_int(number x, int mode)
 // not exactly ON a boundary, so only a general IRRATIONAL node sitting
 // unprovably on one (or an unresolvable one) reaches the precision cap and
 // gives up.
-static number tier3_to_int(number x, int mode)
-{
+static number tier3_to_int(number x, int mode) {
     for (uint32_t w = 32; w <= IRR_MAX_PREC; w *= 2) {
         int s;
         bigint *v;
@@ -1388,20 +1371,26 @@ static number tier3_to_int(number x, int mode)
     return err(ERR_UNDECIDABLE_INT);
 }
 
-static number number_to_int(number x, int mode)
-{
+static number number_to_int(number x, int mode) {
     if (number_is_error(x)) return x;
     if (is_real_kind(x) || is_irrational_kind(x)) return tier3_to_int(x, mode);
     return rat_to_int(x, mode);
 }
 
-number number_floor(number x) { return number_to_int(x, INT_FLOOR); }
-number number_ceil(number x) { return number_to_int(x, INT_CEIL); }
-number number_trunc(number x) { return number_to_int(x, INT_TRUNC); }
-number number_round(number x) { return number_to_int(x, INT_ROUND); }
+number number_floor(number x) {
+    return number_to_int(x, INT_FLOOR);
+}
+number number_ceil(number x) {
+    return number_to_int(x, INT_CEIL);
+}
+number number_trunc(number x) {
+    return number_to_int(x, INT_TRUNC);
+}
+number number_round(number x) {
+    return number_to_int(x, INT_ROUND);
+}
 
-number number_mod(number a, number b)
-{
+number number_mod(number a, number b) {
     if (number_is_error(a)) return a;
     if (number_is_error(b)) return b;
     if (number_is_zero(b)) return err(ERR_DIV_BY_ZERO);
@@ -1418,8 +1407,7 @@ number number_mod(number a, number b)
 // number_min/number_max use this only when exact comparison gives up (two
 // general irrationals indistinguishable within the precision cap); ties (and
 // the pathological case where even the rounding fails to resolve) report 0.
-static int compare_rounded(number a, number b, uint32_t digits)
-{
+static int compare_rounded(number a, number b, uint32_t digits) {
     number scale = number_pow(number_from_int(10), number_from_int((int64_t)digits));
     number as = number_mul(a, scale);
     number bs = number_mul(b, scale);
@@ -1437,8 +1425,7 @@ static int compare_rounded(number a, number b, uint32_t digits)
 // which guarantees a definite, terminating answer. On a tie (including an
 // exact equality, or indistinguishability at `digits`) the first operand is
 // returned. An error operand propagates.
-number number_min(number a, number b, uint32_t digits)
-{
+number number_min(number a, number b, uint32_t digits) {
     if (number_is_error(a)) return a;
     if (number_is_error(b)) return b;
     int c = number_compare(a, b);
@@ -1446,8 +1433,7 @@ number number_min(number a, number b, uint32_t digits)
     return c <= 0 ? a : b;
 }
 
-number number_max(number a, number b, uint32_t digits)
-{
+number number_max(number a, number b, uint32_t digits) {
     if (number_is_error(a)) return a;
     if (number_is_error(b)) return b;
     int c = number_compare(a, b);
@@ -1470,12 +1456,10 @@ number number_max(number a, number b, uint32_t digits)
 
 // If the nonnegative rational x is the square of a rational, produce that
 // square root and return true.
-static bool rational_sqrt_exact(number x, number *out)
-{
+static bool rational_sqrt_exact(number x, number *out) {
     mpq_view v;
     mpq_srcptr q = number_mpq_view(x, &v); // x >= 0: caller checked the sign
-    if (!mpz_perfect_square_p(mpq_numref(q)) || !mpz_perfect_square_p(mpq_denref(q)))
-        return false;
+    if (!mpz_perfect_square_p(mpq_numref(q)) || !mpz_perfect_square_p(mpq_denref(q))) return false;
     mpq_t r;
     mpq_init(r);
     mpz_sqrt(mpq_numref(r), mpq_numref(q));
@@ -1490,8 +1474,7 @@ static bool rational_sqrt_exact(number x, number *out)
 // stay > 1 (0 < arg < 1 rewrites to -ln(1/arg)), keeping F = ln(arg) > 0 --
 // the invariant factor_appr/dival_of_real rely on for every fn, and the one
 // that lets "a real is always nonzero" (number_sign) keep holding.
-static number make_real(number a, number b, uint32_t fn, number arg)
-{
+static number make_real(number a, number b, uint32_t fn, number arg) {
     if (number_is_error(a) || number_is_error(b) || number_is_error(arg)) {
         number e = number_is_error(a) ? a : (number_is_error(b) ? b : arg);
         return e;
@@ -1522,7 +1505,7 @@ static number make_real(number a, number b, uint32_t fn, number arg)
     r->b = b;
     r->arg = arg;
     mpz_init(r->appr); // lazy: allocates nothing until a value is stored
-    r->appr_prec = 0;  // 0 = no memo yet
+    r->appr_prec = 0; // 0 = no memo yet
     return (number){(uint64_t)(uintptr_t)r};
 }
 
@@ -1536,29 +1519,25 @@ static number make_real(number a, number b, uint32_t fn, number arg)
 // "not yet built". Plain, non-atomic lazy init, consistent with the
 // single-threaded assumption elsewhere in this file, so no locking is
 // needed.
-number number_pi(void)
-{
+number number_pi(void) {
     static number cached = {0};
     if (cached.bits == 0) cached = make_real(small_zero(), number_from_int(1), FN_PI, small_zero());
     return cached;
 }
 
-number number_tau(void)
-{
+number number_tau(void) {
     static number cached = {0};
     if (cached.bits == 0) cached = make_real(small_zero(), number_from_int(2), FN_PI, small_zero());
     return cached;
 }
 
-number number_sqrt2(void)
-{
+number number_sqrt2(void) {
     static number cached = {0};
     if (cached.bits == 0) cached = number_sqrt(number_from_int(2));
     return cached;
 }
 
-number number_sqrt(number x)
-{
+number number_sqrt(number x) {
     if (number_is_error(x)) return x;
     if (is_real_kind(x) || is_irrational_kind(x)) {
         // Already irrational (pi, sqrt(n), or a general CR value): no
@@ -1596,8 +1575,7 @@ number number_sqrt(number x)
 // exp(x): 0 -> exact 1; ln(r)'s inverse (exp(ln(r)) == r) -> exact r;
 // rational x -> the closed EXP(x) symbolic form; otherwise the general
 // IRRATIONAL engine.
-number number_exp(number x)
-{
+number number_exp(number x) {
     if (number_is_error(x)) return x;
     if (number_is_zero(x)) return number_from_int(1);
     if (is_real_kind(x)) {
@@ -1605,16 +1583,14 @@ number number_exp(number x)
         if (r->fn == FN_LN && number_is_zero(r->a) && number_equal(r->b, NUMBER_ONE))
             return r->arg; // exp(ln(r)) == r, exactly
     }
-    if (number_is_rational(x))
-        return make_real(small_zero(), number_from_int(1), FN_EXP, x);
+    if (number_is_rational(x)) return make_real(small_zero(), number_from_int(1), FN_EXP, x);
     return make_irr(IRR_EXP, x, small_zero());
 }
 
 // ln(x): x <= 0 -> error; 1 -> exact 0; exp(r)'s inverse (ln(exp(r)) == r)
 // -> exact r; rational x -> the closed LN(x) symbolic form; otherwise the
 // general engine.
-number number_ln(number x)
-{
+number number_ln(number x) {
     if (number_is_error(x)) return x;
     if (number_sign(x) <= 0) return err(ERR_LOG_NONPOSITIVE);
     number one = number_from_int(1);
@@ -1625,8 +1601,7 @@ number number_ln(number x)
         if (r->fn == FN_EXP && number_is_zero(r->a) && number_equal(r->b, NUMBER_ONE))
             return r->arg; // ln(exp(r)) == r, exactly
     }
-    if (number_is_rational(x))
-        return make_real(small_zero(), number_from_int(1), FN_LN, x);
+    if (number_is_rational(x)) return make_real(small_zero(), number_from_int(1), FN_LN, x);
     return make_irr(IRR_LN, x, small_zero());
 }
 
@@ -1636,8 +1611,7 @@ number number_ln(number x)
 // single-bit test plus a count-trailing-zeros; other bases walk a short,
 // fully branch-predictable multiply chain (<= 10 steps to overshoot 2^31 in
 // base 10) with no wider arithmetic than the u64 accumulator.
-static bool u64_exact_power(uint64_t v, unsigned base, int64_t *out)
-{
+static bool u64_exact_power(uint64_t v, unsigned base, int64_t *out) {
     if (v == 0) return false;
     if (base == 2) {
         if ((v & (v - 1)) != 0) return false; // more than one bit set
@@ -1646,7 +1620,10 @@ static bool u64_exact_power(uint64_t v, unsigned base, int64_t *out)
     }
     int64_t k = 0;
     uint64_t p = 1;
-    while (p < v) { p *= base; k++; } // v < 2^31, base >= 2: no u64 overflow
+    while (p < v) {
+        p *= base;
+        k++;
+    } // v < 2^31, base >= 2: no u64 overflow
     if (p != v) return false;
     *out = k;
     return true;
@@ -1655,8 +1632,7 @@ static bool u64_exact_power(uint64_t v, unsigned base, int64_t *out)
 // If x == base^n for an integer n (any sign), sets *out = n and returns true:
 // base^n lands in x's numerator (n >= 0) or denominator (n < 0). Shared by
 // number_log10 and number_log2 via number_log_base.
-static bool exact_log_of_power(number x, unsigned base, number *out)
-{
+static bool exact_log_of_power(number x, unsigned base, number *out) {
     if (number_tag(x) == TAG_SMALL) {
         // Immediate small rational, always in lowest terms: an exact power is
         // either an integer base^n (den 1, num a power of base) or a unit
@@ -1694,8 +1670,7 @@ static bool exact_log_of_power(number x, unsigned base, number *out)
 
 // log_base(x) = ln(x)/ln(base): same domain as ln (x <= 0 -> error). Exact
 // when x is an integer power of base. Shared by number_log10 and number_log2.
-static number number_log_base(number x, unsigned base)
-{
+static number number_log_base(number x, unsigned base) {
     number exact;
     if (exact_log_of_power(x, base, &exact)) return exact;
     number lnx = number_ln(x);
@@ -1708,15 +1683,18 @@ static number number_log_base(number x, unsigned base)
 
 // log10(x) = ln(x)/ln(10): same domain as ln (x <= 0 -> error). Exact for
 // x == 10^n, any integer n (positive, negative, or zero).
-number number_log10(number x) { return number_log_base(x, 10); }
+number number_log10(number x) {
+    return number_log_base(x, 10);
+}
 
 // log2(x) = ln(x)/ln(2): same domain as ln (x <= 0 -> error). Exact for
 // x == 2^n, any integer n (positive, negative, or zero).
-number number_log2(number x) { return number_log_base(x, 2); }
+number number_log2(number x) {
+    return number_log_base(x, 2);
+}
 
 // sqrt(n)/2 as an exact REAL value.
-static number half_sqrt(int64_t n)
-{
+static number half_sqrt(int64_t n) {
     number s = number_sqrt(number_from_int(n));
     number two = number_from_int(2);
     number result = number_div(s, two);
@@ -1731,14 +1709,28 @@ static number half_sqrt(int64_t n)
 // single-F symbolic form can't hold directly) never arise from that set --
 // every reachable value of "local" after quadrant reduction is a multiple
 // of 2, 3, 4, or 6, and none of those ever equal 1 or 5.
-static void base_angle_sin_cos(int64_t local, number *sin0, number *cos0)
-{
+static void base_angle_sin_cos(int64_t local, number *sin0, number *cos0) {
     switch (local) {
-    case 0: *sin0 = small_zero(); *cos0 = number_from_int(1); break;
-    case 2: *sin0 = number_from_ratio(1, 2); *cos0 = half_sqrt(3); break;
-    case 3: *sin0 = half_sqrt(2); *cos0 = half_sqrt(2); break;
-    case 4: *sin0 = half_sqrt(3); *cos0 = number_from_ratio(1, 2); break;
-    case 6: *sin0 = number_from_int(1); *cos0 = small_zero(); break;
+    case 0:
+        *sin0 = small_zero();
+        *cos0 = number_from_int(1);
+        break;
+    case 2:
+        *sin0 = number_from_ratio(1, 2);
+        *cos0 = half_sqrt(3);
+        break;
+    case 3:
+        *sin0 = half_sqrt(2);
+        *cos0 = half_sqrt(2);
+        break;
+    case 4:
+        *sin0 = half_sqrt(3);
+        *cos0 = number_from_ratio(1, 2);
+        break;
+    case 6:
+        *sin0 = number_from_int(1);
+        *cos0 = small_zero();
+        break;
     default: abort(); // unreachable: see comment above
     }
 }
@@ -1750,8 +1742,7 @@ static void base_angle_sin_cos(int64_t local, number *sin0, number *cos0)
 // only ever approximate these arbitrarily close to their true value, never
 // prove them exactly (e.g. sin(pi) would print as "0.000...0" instead of
 // the exact 0 it is).
-static bool exact_trig_of_pi_multiple(number x, bool want_sin, number *out)
-{
+static bool exact_trig_of_pi_multiple(number x, bool want_sin, number *out) {
     if (!is_real_kind(x)) return false;
     num_real *r = as_real(x);
     if (r->fn != FN_PI || !number_is_zero(r->a)) return false;
@@ -1761,8 +1752,8 @@ static bool exact_trig_of_pi_multiple(number x, bool want_sin, number *out)
     uint32_t den_val;
     if (bi_is_one(kden)) {
         den_val = 1;
-    } else if (mpz_cmp_ui(kden, 2) == 0 || mpz_cmp_ui(kden, 3) == 0 ||
-               mpz_cmp_ui(kden, 4) == 0 || mpz_cmp_ui(kden, 6) == 0) {
+    } else if (mpz_cmp_ui(kden, 2) == 0 || mpz_cmp_ui(kden, 3) == 0 || mpz_cmp_ui(kden, 4) == 0
+               || mpz_cmp_ui(kden, 6) == 0) {
         den_val = (uint32_t)mpz_get_ui(kden); // one of 2/3/4/6 (guarded above)
     } else {
         return false;
@@ -1772,8 +1763,7 @@ static bool exact_trig_of_pi_multiple(number x, bool want_sin, number *out)
     // overflow below -- this is a fast path for ordinary angles, not a
     // general bignum-multiple-of-pi solver. bi_fits_u64 reads magnitude
     // limbs, so it works on the signed numerator directly.
-    if (!bi_fits_u64(mpq_numref(qk), &num_mag) || num_mag > (uint64_t)INT64_MAX / 12)
-        return false;
+    if (!bi_fits_u64(mpq_numref(qk), &num_mag) || num_mag > (uint64_t)INT64_MAX / 12) return false;
     int sign = mpq_sgn(qk);
 
     // m = k * 12 (an integer, since den_val divides 12); reduce mod 24 (the
@@ -1784,10 +1774,23 @@ static bool exact_trig_of_pi_multiple(number x, bool want_sin, number *out)
 
     int64_t local;
     int sin_sign, cos_sign;
-    if (rmod <= 6) { local = rmod; sin_sign = 1; cos_sign = 1; }
-    else if (rmod <= 12) { local = 12 - rmod; sin_sign = 1; cos_sign = -1; }
-    else if (rmod <= 18) { local = rmod - 12; sin_sign = -1; cos_sign = -1; }
-    else { local = 24 - rmod; sin_sign = -1; cos_sign = 1; }
+    if (rmod <= 6) {
+        local = rmod;
+        sin_sign = 1;
+        cos_sign = 1;
+    } else if (rmod <= 12) {
+        local = 12 - rmod;
+        sin_sign = 1;
+        cos_sign = -1;
+    } else if (rmod <= 18) {
+        local = rmod - 12;
+        sin_sign = -1;
+        cos_sign = -1;
+    } else {
+        local = 24 - rmod;
+        sin_sign = -1;
+        cos_sign = 1;
+    }
 
     number sin0, cos0;
     base_angle_sin_cos(local, &sin0, &cos0);
@@ -1809,8 +1812,7 @@ static bool exact_trig_of_pi_multiple(number x, bool want_sin, number *out)
 
 // sin(x): 0 -> exact 0; k*pi (k rational with denominator 1 or 2) -> exact;
 // otherwise the general engine (range-reduced mod 2pi).
-number number_sin(number x)
-{
+number number_sin(number x) {
     if (number_is_error(x)) return x;
     if (number_is_zero(x)) return small_zero();
     number exact;
@@ -1819,8 +1821,7 @@ number number_sin(number x)
 }
 
 // cos(x): 0 -> exact 1; k*pi (as above) -> exact; otherwise the general engine.
-number number_cos(number x)
-{
+number number_cos(number x) {
     if (number_is_error(x)) return x;
     if (number_is_zero(x)) return number_from_int(1);
     number exact;
@@ -1830,8 +1831,7 @@ number number_cos(number x)
 
 // tan(x) = sin(x)/cos(x). Poles (x == pi/2 + k*pi) surface as NUMBER_ERROR
 // via division's inability to prove cos(x) nonzero, not a domain check here.
-number number_tan(number x)
-{
+number number_tan(number x) {
     if (number_is_error(x)) return x;
     number s = number_sin(x);
     number c = number_cos(x);
@@ -1842,8 +1842,7 @@ number number_tan(number x)
 // Shared tail for exact_atan_of_special_value and exact_asin_of_special_value:
 // given the pi/12 multiple already identified (twelfths < 0 means "no exact
 // value"), applies x's sign and returns twelfths/12 * pi via out.
-static bool twelfths_times_pi(number x, int64_t twelfths, number *out)
-{
+static bool twelfths_times_pi(number x, int64_t twelfths, number *out) {
     if (twelfths < 0) return false;
     if (number_is_negative(x)) twelfths = -twelfths;
     number pi = number_pi();
@@ -1856,8 +1855,7 @@ static bool twelfths_times_pi(number x, int64_t twelfths, number *out)
 // atan(x) is an exact multiple of pi/12 (pi/6, pi/4, pi/3) -- the inverse
 // direction of exact_trig_of_pi_multiple. atan(0) is handled by
 // number_atan's own escape before this is ever called.
-static bool exact_atan_of_special_value(number x, number *out)
-{
+static bool exact_atan_of_special_value(number x, number *out) {
     number ax = number_abs(x);
     number one = number_from_int(1);
     number sqrt3 = number_sqrt(number_from_int(3));
@@ -1872,8 +1870,7 @@ static bool exact_atan_of_special_value(number x, number *out)
 
 // atan(x): 0 -> exact 0; +-sqrt(3)/3, +-1, +-sqrt(3) -> exact (+-pi/6, pi/4,
 // pi/3); otherwise the general engine. Defined for all x.
-number number_atan(number x)
-{
+number number_atan(number x) {
     if (number_is_error(x)) return x;
     if (number_is_zero(x)) return small_zero();
     number exact;
@@ -1887,8 +1884,7 @@ number number_atan(number x)
 // pi/12 where applicable, so e.g. atan2(1, 1) == pi/4 and atan2(1, -1) ==
 // 3*pi/4 exactly. atan2(0, 0) has no defined direction -> error (this differs
 // from C's atan2, which returns 0). An error operand propagates.
-number number_atan2(number y, number x)
-{
+number number_atan2(number y, number x) {
     if (number_is_error(y)) return y;
     if (number_is_error(x)) return x;
     int sx = number_sign(x), sy = number_sign(y);
@@ -1913,8 +1909,7 @@ number number_atan2(number y, number x)
 // asin(x) is an exact multiple of pi/12 (pi/6, pi/4, pi/3) -- the inverse
 // direction of exact_trig_of_pi_multiple. asin(0) and asin(+-1) are handled
 // by number_asin's own escapes before this is ever called.
-static bool exact_asin_of_special_value(number x, number *out)
-{
+static bool exact_asin_of_special_value(number x, number *out) {
     number ax = number_abs(x);
     number half = number_from_ratio(1, 2);
     number sqrt2_2 = half_sqrt(2);
@@ -1932,8 +1927,7 @@ static bool exact_asin_of_special_value(number x, number *out)
 // through number_sqrt, so this works for an already-irrational x too (e.g.
 // asin(sin(0.5))): number_sqrt falls back to the general engine rather
 // than erroring, and so does this.
-number number_asin(number x)
-{
+number number_asin(number x) {
     if (number_is_error(x)) return x;
     if (number_is_zero(x)) return small_zero();
     number one = number_from_int(1);
@@ -1970,8 +1964,7 @@ number number_asin(number x)
 }
 
 // acos(x) = pi/2 - asin(x). Same domain as asin.
-number number_acos(number x)
-{
+number number_acos(number x) {
     if (number_is_error(x)) return x;
     number asinx = number_asin(x);
     if (number_is_error(asinx)) return asinx;
@@ -1984,8 +1977,7 @@ number number_acos(number x)
 
 // sinh/cosh/tanh via exp: no new IRR ops, pure composition. cosh(x) is
 // never zero for real x, so tanh has no pole to worry about (unlike tan).
-number number_sinh(number x)
-{
+number number_sinh(number x) {
     if (number_is_error(x)) return x;
     if (number_is_zero(x)) return small_zero();
     number ex = number_exp(x);
@@ -1997,8 +1989,7 @@ number number_sinh(number x)
     return result;
 }
 
-number number_cosh(number x)
-{
+number number_cosh(number x) {
     if (number_is_error(x)) return x;
     if (number_is_zero(x)) return number_from_int(1);
     number ex = number_exp(x);
@@ -2010,8 +2001,7 @@ number number_cosh(number x)
     return result;
 }
 
-number number_tanh(number x)
-{
+number number_tanh(number x) {
     if (number_is_error(x)) return x;
     if (number_is_zero(x)) return small_zero();
     number s = number_sinh(x);
@@ -2021,8 +2011,7 @@ number number_tanh(number x)
 }
 
 // x^n for integer n (any sign), via exact repeated squaring. x != 0.
-static number int_pow(number x, int64_t n)
-{
+static number int_pow(number x, int64_t n) {
     bool neg = n < 0;
     uint64_t un = neg ? (uint64_t)(-(n + 1)) + 1 : (uint64_t)n; // avoid negating INT64_MIN
     number base = x;
@@ -2051,8 +2040,7 @@ static number int_pow(number x, int64_t n)
 // is no symbolic cbrt(n)-style form for q > 2 the way there is for
 // sqrt(n), so a non-exact root just returns false (the general engine
 // still gets the numerically correct answer, just not an exact one).
-static bool exact_rational_root(number x, uint32_t q, number *out)
-{
+static bool exact_rational_root(number x, uint32_t q, number *out) {
     mpq_view v;
     mpq_srcptr xq = number_mpq_view(x, &v);
     mpq_t r;
@@ -2070,8 +2058,7 @@ static bool exact_rational_root(number x, uint32_t q, number *out)
 }
 
 // x^y: a rational-escape ladder before falling back to exp(y*ln(x)).
-number number_pow(number x, number y)
-{
+number number_pow(number x, number y) {
     if (number_is_error(x)) return x;
     if (number_is_error(y)) return y;
     if (number_is_zero(y)) return number_from_int(1); // x^0 == 1, including 0^0
@@ -2127,8 +2114,7 @@ number number_pow(number x, number y)
 }
 
 // If sqrt(r2) is a rational multiple of sqrt(r1), set *conv to that multiple.
-static bool sqrt_commensurable(number r1, number r2, number *conv)
-{
+static bool sqrt_commensurable(number r1, number r2, number *conv) {
     if (number_equal(r1, r2)) {
         *conv = number_from_int(1);
         return true;
@@ -2147,8 +2133,7 @@ static bool sqrt_commensurable(number r1, number r2, number *conv)
 // 0 instead of two unrelated LN terms. False (leaving the two terms
 // unrepresentable as one, so the caller falls back to the general engine)
 // when either coefficient is non-integer, e.g. ln(2) + (1/2)*ln(3).
-static bool ln_combine(number b1, number r1, number b2, number r2, number *out)
-{
+static bool ln_combine(number b1, number r1, number b2, number r2, number *out) {
     bool ok1, ok2;
     int64_t i1 = number_to_int64(b1, &ok1), i2 = number_to_int64(b2, &ok2);
     if (!ok1 || !ok2 || i1 == INT64_MIN || i2 == INT64_MIN) // int_pow negates
@@ -2160,8 +2145,7 @@ static bool ln_combine(number b1, number r1, number b2, number r2, number *out)
 }
 
 // At least one operand is a real; neither is an error.
-static number real_add(number x, number y)
-{
+static number real_add(number x, number y) {
     if (!is_real_kind(x)) {
         number t = x;
         x = y;
@@ -2169,46 +2153,37 @@ static number real_add(number x, number y)
     }
     num_real *rx = as_real(x);
     if (!is_real_kind(y)) { // real + rational: shift the rational part
-        return make_real(number_add(rx->a, y), rx->b,
-                         rx->fn, rx->arg);
+        return make_real(number_add(rx->a, y), rx->b, rx->fn, rx->arg);
     }
     num_real *ry = as_real(y);
-    if (rx->fn != ry->fn)
-        return NUMBER_ERROR; // pi + sqrt(n): outside every representable form
+    if (rx->fn != ry->fn) return NUMBER_ERROR; // pi + sqrt(n): outside every representable form
     if (rx->fn == FN_PI) {
-        return make_real(number_add(rx->a, ry->a), number_add(rx->b, ry->b),
-                         FN_PI, small_zero());
+        return make_real(number_add(rx->a, ry->a), number_add(rx->b, ry->b), FN_PI, small_zero());
     }
     if (rx->fn == FN_EXP) {
-        if (!number_equal(rx->arg, ry->arg))
-            return NUMBER_ERROR; // exp(a) + exp(b), a != b: not representable
-        return make_real(number_add(rx->a, ry->a), number_add(rx->b, ry->b),
-                         FN_EXP, rx->arg);
+        if (!number_equal(rx->arg, ry->arg)) return NUMBER_ERROR; // exp(a) + exp(b), a != b: not representable
+        return make_real(number_add(rx->a, ry->a), number_add(rx->b, ry->b), FN_EXP, rx->arg);
     }
     if (rx->fn == FN_LN) {
         if (number_equal(rx->arg, ry->arg)) {
-            return make_real(number_add(rx->a, ry->a), number_add(rx->b, ry->b),
-                             FN_LN, rx->arg);
+            return make_real(number_add(rx->a, ry->a), number_add(rx->b, ry->b), FN_LN, rx->arg);
         }
         // ln(r1)*b1 + ln(r2)*b2 = ln(r1^b1 * r2^b2) when b1, b2 are both
         // integers (see ln_combine): folds to a single LN term.
         number combined;
         if (!ln_combine(rx->b, rx->arg, ry->b, ry->arg, &combined))
             return NUMBER_ERROR; // e.g. ln(2) + (1/2)*ln(3): not representable
-        return make_real(number_add(rx->a, ry->a), number_from_int(1),
-                         FN_LN, combined);
+        return make_real(number_add(rx->a, ry->a), number_from_int(1), FN_LN, combined);
     }
     number conv;
-    if (!sqrt_commensurable(rx->arg, ry->arg, &conv))
-        return NUMBER_ERROR; // e.g. sqrt(2) + sqrt(3)
+    if (!sqrt_commensurable(rx->arg, ry->arg, &conv)) return NUMBER_ERROR; // e.g. sqrt(2) + sqrt(3)
     number b2 = number_mul(ry->b, conv);
     number a = number_add(rx->a, ry->a);
     number b = number_add(rx->b, b2);
     return make_real(a, b, FN_SQRT, rx->arg);
 }
 
-static number real_mul(number x, number y)
-{
+static number real_mul(number x, number y) {
     if (!is_real_kind(x)) {
         number t = x;
         x = y;
@@ -2217,12 +2192,10 @@ static number real_mul(number x, number y)
     num_real *rx = as_real(x);
     if (!is_real_kind(y)) { // scale by a rational
         if (number_is_zero(y)) return small_zero();
-        return make_real(number_mul(rx->a, y), number_mul(rx->b, y),
-                         rx->fn, rx->arg);
+        return make_real(number_mul(rx->a, y), number_mul(rx->b, y), rx->fn, rx->arg);
     }
     num_real *ry = as_real(y);
-    if (rx->fn == FN_EXP && ry->fn == FN_EXP &&
-        number_is_zero(rx->a) && number_is_zero(ry->a)) {
+    if (rx->fn == FN_EXP && ry->fn == FN_EXP && number_is_zero(rx->a) && number_is_zero(ry->a)) {
         // b1*exp(e1) * b2*exp(e2) = b1*b2*exp(e1+e2); only the pure (no
         // rational addend) form multiplies out this way -- (a1+b1 e^x1)
         // (a2+b2 e^x2) with a1 or a2 nonzero expands into terms this
@@ -2259,8 +2232,7 @@ static number real_mul(number x, number y)
 }
 
 // y is nonzero and at least one operand is a real; neither is an error.
-static number real_div(number x, number y)
-{
+static number real_div(number x, number y) {
     if (!is_real_kind(y)) { // real / rational
         number inv = number_inverse(y);
         number res = real_mul(x, inv);
@@ -2290,8 +2262,7 @@ static number real_div(number x, number y)
         number res = number_mul(x, inv);
         return res;
     }
-    if (ry->fn != FN_SQRT)
-        return NUMBER_ERROR; // 1/(a+b*pi), 1/(a+b*ln r), 1/(a+b*exp e) [a!=0]: outside every form
+    if (ry->fn != FN_SQRT) return NUMBER_ERROR; // 1/(a+b*pi), 1/(a+b*ln r), 1/(a+b*exp e) [a!=0]: outside every form
     // 1/(a + b*sqrt r) = (a - b*sqrt r) / (a^2 - b^2*r); the denominator is
     // nonzero because sqrt(r) is irrational.
     number a2 = number_mul(ry->a, ry->a);
@@ -2317,8 +2288,7 @@ static number real_div(number x, number y)
 // Moves z (signed) out into a fresh heap bigint magnitude, returning its
 // sign; z is cleared. The bridge from a series loop's in-place signed mpz
 // locals back to the (sign, magnitude-bigint) protocol the engine speaks.
-static int mpz_take(mpz_t z, bigint **out)
-{
+static int mpz_take(mpz_t z, bigint **out) {
     int s = mpz_sgn(z);
     mpz_abs(z, z);
     bigint *b = bi_new();
@@ -2336,8 +2306,7 @@ static int mpz_take(mpz_t z, bigint **out)
 // magnitude-truncate-then-apply-sign arithmetic exactly.
 
 // arctan(1/x) * 2^w by truncated Taylor series; x*x must fit in uint32.
-static bigint *arctan_recip(uint32_t x, uint32_t w)
-{
+static bigint *arctan_recip(uint32_t x, uint32_t w) {
     mpz_t p, term, sum;
     mpz_init_set_ui(p, 1);
     mpz_mul_2exp(p, p, w);
@@ -2360,8 +2329,7 @@ static bigint *arctan_recip(uint32_t x, uint32_t w)
 // pi * 2^prec with |error| <= 2, via Machin's formula:
 // pi = 16*arctan(1/5) - 4*arctan(1/239). The 24 guard bits absorb the
 // per-term truncation slop (~5 * work-bits) for any precision below ~10^6.
-static bigint *machin_pi(uint32_t prec)
-{
+static bigint *machin_pi(uint32_t prec) {
     uint32_t w = prec + 24;
     bigint *a5 = arctan_recip(5, w);
     bigint *a239 = arctan_recip(239, w);
@@ -2383,8 +2351,7 @@ static uint32_t g_pi_prec = 0;
 // pi * 2^prec with |error| <= 2, memoized globally. Standalone (not just
 // factor_appr's FN_PI case) so irr_fixed's SIN/COS range reduction can reach
 // it without a num_real to hang off of.
-static bigint *pi_appr(uint32_t prec)
-{
+static bigint *pi_appr(uint32_t prec) {
     if (g_pi_appr == NULL || g_pi_prec < prec) {
         uint32_t p = prec + 64; // overshoot so nearby requests hit the memo
         bigint *fresh = machin_pi(p);
@@ -2402,8 +2369,7 @@ static bigint *pi_appr(uint32_t prec)
 // <=4 for exp_fixed_core/ln_fixed_core) utterly negligible once shifted
 // back down by 64 bits to the requested prec -- so the <=2 contract holds
 // regardless of which branch produced it.
-static bigint *factor_appr(num_real *r, uint32_t prec)
-{
+static bigint *factor_appr(num_real *r, uint32_t prec) {
     if (r->fn == FN_PI) return pi_appr(prec);
     if (r->appr_prec == 0 || r->appr_prec < prec) {
         uint32_t p = prec + 64; // overshoot so nearby requests hit the memo
@@ -2434,8 +2400,7 @@ static bigint *factor_appr(num_real *r, uint32_t prec)
 }
 
 // (s1, m1) + (s2, m2) -> (sign, *out); consumes m1 and m2.
-static int signed_add(int s1, bigint *m1, int s2, bigint *m2, bigint **out)
-{
+static int signed_add(int s1, bigint *m1, int s2, bigint *m2, bigint **out) {
     int sign;
     if (s1 == s2) {
         *out = bi_add(m1, m2);
@@ -2459,9 +2424,7 @@ static int signed_add(int s1, bigint *m1, int s2, bigint *m2, bigint **out)
 // (a + b*F) * 2^w as sign/magnitude with |error| <= 4. a and b are passed
 // explicitly so digit generation can fold exact powers of ten into them;
 // r supplies F (fn/arg) and its memo.
-static void real_fixed(num_real *r, number a, number b, uint32_t w,
-                       int *sign_out, bigint **mag_out)
-{
+static void real_fixed(num_real *r, number a, number b, uint32_t w, int *sign_out, bigint **mag_out) {
     // T = b * F * 2^w, error <= 2: evaluate F with enough extra precision
     // to absorb both F's error scaled by |b| and the final truncation. F is
     // positive (every factor's invariant), so T's sign is b's own, and
@@ -2490,15 +2453,13 @@ static void real_fixed(num_real *r, number a, number b, uint32_t w,
 
 // Any non-error number as fixed-point at precision w, |error| <= 4. False
 // if the approximation can't be resolved (see IRR_MAX_PREC).
-static bool value_fixed(number x, uint32_t w, int *sign_out, bigint **mag_out)
-{
+static bool value_fixed(number x, uint32_t w, int *sign_out, bigint **mag_out) {
     if (is_real_kind(x)) {
         num_real *r = as_real(x);
         real_fixed(r, r->a, r->b, w, sign_out, mag_out);
         return true;
     }
-    if (is_irrational_kind(x))
-        return irr_fixed(as_irr(x), w, sign_out, mag_out);
+    if (is_irrational_kind(x)) return irr_fixed(as_irr(x), w, sign_out, mag_out);
     mpq_view v;
     mpq_srcptr q = number_mpq_view(x, &v);
     mpz_t t;
@@ -2551,43 +2512,43 @@ typedef struct {
     double lo, hi;
 } dival;
 
-static inline double ival_prev(double v) { return nextafter(v, -(double)INFINITY); }
-static inline double ival_next(double v) { return nextafter(v, (double)INFINITY); }
+static inline double ival_prev(double v) {
+    return nextafter(v, -(double)INFINITY);
+}
+static inline double ival_next(double v) {
+    return nextafter(v, (double)INFINITY);
+}
 
 #define DIVAL_LIBM_ULPS 8
 
-static double ival_down_k(double v, int k)
-{
-    for (int i = 0; i < k; i++) v = ival_prev(v);
+static double ival_down_k(double v, int k) {
+    for (int i = 0; i < k; i++)
+        v = ival_prev(v);
     return v;
 }
 
-static double ival_up_k(double v, int k)
-{
-    for (int i = 0; i < k; i++) v = ival_next(v);
+static double ival_up_k(double v, int k) {
+    for (int i = 0; i < k; i++)
+        v = ival_next(v);
     return v;
 }
 
-static dival dival_add(dival a, dival b)
-{
+static dival dival_add(dival a, dival b) {
     return (dival){ival_prev(a.lo + b.lo), ival_next(a.hi + b.hi)};
 }
 
-static dival dival_sub(dival a, dival b)
-{
+static dival dival_sub(dival a, dival b) {
     return (dival){ival_prev(a.lo - b.hi), ival_next(a.hi - b.lo)};
 }
 
-static dival dival_mul(dival a, dival b)
-{
+static dival dival_mul(dival a, dival b) {
     double p1 = a.lo * b.lo, p2 = a.lo * b.hi, p3 = a.hi * b.lo, p4 = a.hi * b.hi;
-    return (dival){ival_prev(fmin(fmin(p1, p2), fmin(p3, p4))),
-                   ival_next(fmax(fmax(p1, p2), fmax(p3, p4)))};
+    return (dival){ival_prev(fmin(fmin(p1, p2), fmin(p3, p4))), ival_next(fmax(fmax(p1, p2), fmax(p3, p4)))};
 }
 
 // The correctly rounded double nearest pi; the true pi is strictly inside
-// [ival_prev, ival_next] of it. (Spelled in hex rather than M_PI: M_PI is
-// a POSIX extension, not ISO C, and this file builds with -Wpedantic.)
+// [ival_prev, ival_next] of it. (This is written in hex rather than M_PI
+// because M_PI is a POSIX extension, not ISO C, and this file builds with -Wpedantic.)
 #define PI_DOUBLE 0x1.921fb54442d18p+1
 
 // Every dival_of call site's descent shares one visit budget: the DAG is
@@ -2603,8 +2564,7 @@ static bool dival_of_real(const num_real *r, number a, number b, dival *out, int
 // value on success. False when bounds can't be established (overflow to
 // infinity, a domain edge, or the visit budget running out) -- never
 // wrong, just unavailable.
-static bool dival_of(number x, dival *out, int *budget)
-{
+static bool dival_of(number x, dival *out, int *budget) {
     if (--*budget < 0) return false;
     if (number_is_error(x)) return false;
     if (number_is_rational(x)) {
@@ -2633,24 +2593,20 @@ static bool dival_of(number x, dival *out, int *budget)
         else {
             if (b.lo <= 0 && b.hi >= 0) return false; // can't bound across a pole
             double q1 = a.lo / b.lo, q2 = a.lo / b.hi, q3 = a.hi / b.lo, q4 = a.hi / b.hi;
-            res = (dival){ival_prev(fmin(fmin(q1, q2), fmin(q3, q4))),
-                          ival_next(fmax(fmax(q1, q2), fmax(q3, q4)))};
+            res = (dival){ival_prev(fmin(fmin(q1, q2), fmin(q3, q4))), ival_next(fmax(fmax(q1, q2), fmax(q3, q4)))};
         }
         break;
     }
     case IRR_EXP:
-        res = (dival){ival_down_k(exp(a.lo), DIVAL_LIBM_ULPS),
-                      ival_up_k(exp(a.hi), DIVAL_LIBM_ULPS)};
+        res = (dival){ival_down_k(exp(a.lo), DIVAL_LIBM_ULPS), ival_up_k(exp(a.hi), DIVAL_LIBM_ULPS)};
         if (res.lo < 0) res.lo = 0; // exp > 0; widening below the axis helps nobody
         break;
     case IRR_LN:
         if (a.lo <= 0) return false; // interval dips into ln's domain edge
-        res = (dival){ival_down_k(log(a.lo), DIVAL_LIBM_ULPS),
-                      ival_up_k(log(a.hi), DIVAL_LIBM_ULPS)};
+        res = (dival){ival_down_k(log(a.lo), DIVAL_LIBM_ULPS), ival_up_k(log(a.hi), DIVAL_LIBM_ULPS)};
         break;
     case IRR_ATAN:
-        res = (dival){ival_down_k(atan(a.lo), DIVAL_LIBM_ULPS),
-                      ival_up_k(atan(a.hi), DIVAL_LIBM_ULPS)};
+        res = (dival){ival_down_k(atan(a.lo), DIVAL_LIBM_ULPS), ival_up_k(atan(a.hi), DIVAL_LIBM_ULPS)};
         break;
     case IRR_SQRT:
         if (a.lo < 0) a.lo = 0; // x >= 0 was proven at construction; the interval may still dip
@@ -2667,14 +2623,12 @@ static bool dival_of(number x, dival *out, int *budget)
         if (!isfinite(m)) return false;
         double v = n->op == IRR_SIN ? sin(m) : cos(m);
         double h = fmax(ival_next(m - a.lo), ival_next(a.hi - m));
-        res = (dival){ival_down_k(v - h, DIVAL_LIBM_ULPS),
-                      ival_up_k(v + h, DIVAL_LIBM_ULPS)};
+        res = (dival){ival_down_k(v - h, DIVAL_LIBM_ULPS), ival_up_k(v + h, DIVAL_LIBM_ULPS)};
         if (res.lo < -1) res.lo = -1; // range clamp is always sound for sin/cos
         if (res.hi > 1) res.hi = 1;
         break;
     }
-    default:
-        return false; // unreachable: every IRR_* op is handled above
+    default: return false; // unreachable: every IRR_* op is handled above
     }
     if (!isfinite(res.lo) || !isfinite(res.hi)) return false;
     *out = res;
@@ -2684,8 +2638,7 @@ static bool dival_of(number x, dival *out, int *budget)
 // Bounds for the linear form a + b*F. a and b are parameters (not read
 // from r) for the same reason real_fixed's are: digit generation folds an
 // exact power of ten into them first.
-static bool dival_of_real(const num_real *r, number a, number b, dival *out, int *budget)
-{
+static bool dival_of_real(const num_real *r, number a, number b, dival *out, int *budget) {
     dival ia, ib, f;
     if (!dival_of(a, &ia, budget) || !dival_of(b, &ib, budget)) return false;
     if (r->fn == FN_PI) {
@@ -2699,13 +2652,11 @@ static bool dival_of_real(const num_real *r, number a, number b, dival *out, int
         // domain edge to guard, unlike dival_of's general IRR_LN case.
         double av = number_to_double(r->arg);
         if (!isfinite(av)) return false;
-        f = (dival){ival_down_k(log(ival_prev(av)), DIVAL_LIBM_ULPS),
-                    ival_up_k(log(ival_next(av)), DIVAL_LIBM_ULPS)};
+        f = (dival){ival_down_k(log(ival_prev(av)), DIVAL_LIBM_ULPS), ival_up_k(log(ival_next(av)), DIVAL_LIBM_ULPS)};
     } else { // FN_EXP
         double av = number_to_double(r->arg);
         if (!isfinite(av)) return false;
-        f = (dival){ival_down_k(exp(ival_prev(av)), DIVAL_LIBM_ULPS),
-                    ival_up_k(exp(ival_next(av)), DIVAL_LIBM_ULPS)};
+        f = (dival){ival_down_k(exp(ival_prev(av)), DIVAL_LIBM_ULPS), ival_up_k(exp(ival_next(av)), DIVAL_LIBM_ULPS)};
         if (f.lo < 0) f.lo = 0; // exp > 0; widening below the axis helps nobody
     }
     dival res = dival_add(ia, dival_mul(ib, f));
@@ -2721,8 +2672,7 @@ static bool dival_of_real(const num_real *r, number a, number b, dival *out, int
 // bigint digit loops' round-half-away-from-zero-on-the-magnitude exactly
 // on every decidable case, since the cases where the two rules differ
 // (exact ties) are never decidable from a widened interval.
-static bool dival_round_int(dival iv, int *sign_out, bigint **mag_out)
-{
+static bool dival_round_int(dival iv, int *sign_out, bigint **mag_out) {
     double flo = floor(ival_prev(iv.lo + 0.5));
     double fhi = floor(ival_next(iv.hi + 0.5));
     if (flo != fhi) return false;
@@ -2737,8 +2687,7 @@ static bool dival_round_int(dival iv, int *sign_out, bigint **mag_out)
 // hardware interval already excludes zero, the sign is decided in a few
 // nanoseconds and no bigint is ever touched. False means "not decided here",
 // which includes the filter being compiled out entirely.
-static bool sign_from_interval(number x, int *sign_out)
-{
+static bool sign_from_interval(number x, int *sign_out) {
 #ifndef NUMBER_NO_DOUBLE_FILTER
     dival iv;
     int budget = DIVAL_VISIT_BUDGET;
@@ -2771,8 +2720,7 @@ static bool sign_from_interval(number x, int *sign_out)
 //
 // The final step is clamped to max_prec instead of overshooting it, so a cap
 // that isn't a power of two still gets tried at exactly its own width.
-static bool refine_sign_exact(number x, int *sign_out, uint32_t max_prec)
-{
+static bool refine_sign_exact(number x, int *sign_out, uint32_t max_prec) {
     for (uint32_t w = 32;; w *= 2) {
         if (w > max_prec) w = max_prec; // the last step lands exactly on the cap
         int s;
@@ -2793,8 +2741,7 @@ static bool refine_sign_exact(number x, int *sign_out, uint32_t max_prec)
 // Sign of a real/irrational value. Always succeeds for a real (b != 0
 // guarantees it's irrational, hence nonzero); an irrational node might not
 // resolve -- see IRR_MAX_PREC's doc comment.
-static bool refine_sign(number x, int *sign_out)
-{
+static bool refine_sign(number x, int *sign_out) {
     return sign_from_interval(x, sign_out) || refine_sign_exact(x, sign_out, IRR_MAX_PREC);
 }
 
@@ -2805,8 +2752,7 @@ static bool refine_sign(number x, int *sign_out)
 // purpose -- callers pad with guard bits. 0 on failure (a safe, if possibly
 // too-small, estimate -- the real evaluation call downstream will itself
 // fail and propagate correctly).
-static int32_t approx_exponent(number x)
-{
+static int32_t approx_exponent(number x) {
     int s;
     bigint *v;
     if (!value_fixed(x, 64, &s, &v)) return 0;
@@ -2819,8 +2765,7 @@ static int32_t approx_exponent(number x)
 // (i.e. |r| < 1). Self-terminating Taylor series: exp(r) = sum r^k/k!.
 // term carries its sign natively (mpz), so the alternation for negative r
 // is just multiplying by the signed r each step.
-static int exp_series(int sign, const bigint *rmag, uint32_t p, bigint **out)
-{
+static int exp_series(int sign, const bigint *rmag, uint32_t p, bigint **out) {
     mpz_t term, sum;
     mpz_init_set_ui(term, 1);
     mpz_mul_2exp(term, term, p); // term_0 = 1 * 2^p
@@ -2841,13 +2786,12 @@ static int exp_series(int sign, const bigint *rmag, uint32_t p, bigint **out)
 // fraction here, not a reciprocal integer) and without sign alternation:
 // atanh(z) = z + z^3/3 + z^5/5 + ... -- every term is nonnegative, so
 // (unlike exp_series) plain bi_add accumulation is fine.
-static bigint *atanh_fixed(const bigint *zmag, uint32_t p)
-{
+static bigint *atanh_fixed(const bigint *zmag, uint32_t p) {
     mpz_t z2p, pk, term, sum;
     mpz_init(z2p);
     mpz_mul(z2p, zmag, zmag);
     mpz_tdiv_q_2exp(z2p, z2p, p); // z^2 * 2^p
-    mpz_init_set(pk, zmag);       // p_0 = z^1 * 2^p
+    mpz_init_set(pk, zmag); // p_0 = z^1 * 2^p
     mpz_init(term);
     mpz_init(sum);
     for (uint32_t k = 0; mpz_sgn(pk) != 0; k++) {
@@ -2871,8 +2815,7 @@ static uint32_t g_ln2_prec = 0;
 // unlike every other x, ln(2) can't go through the general mantissa/exponent
 // reduction below (extracting 2's own exponent needs ln(2) already), so it's
 // computed directly here.
-static bigint *ln2_appr(uint32_t prec)
-{
+static bigint *ln2_appr(uint32_t prec) {
     if (g_ln2_appr == NULL || g_ln2_prec < prec) {
         uint32_t p = prec + 32;
         bigint *one = bi_from_u64(1);
@@ -2897,13 +2840,12 @@ static bigint *ln2_appr(uint32_t prec)
 // terms than exp_series/atanh_fixed for the same precision, but still
 // converges: the factorial denominator beats any fixed |r|). Self-
 // terminating, alternating: sin(r) = r - r^3/3! + r^5/5! - ...
-static int sin_series(int sign, const bigint *rmag, uint32_t p, bigint **out)
-{
+static int sin_series(int sign, const bigint *rmag, uint32_t p, bigint **out) {
     mpz_t r2p, term, sum;
     mpz_init(r2p);
     mpz_mul(r2p, rmag, rmag);
     mpz_tdiv_q_2exp(r2p, r2p, p); // r^2 * 2^p
-    mpz_init_set(term, rmag);     // term_0 = sign * |r|
+    mpz_init_set(term, rmag); // term_0 = sign * |r|
     if (sign < 0) mpz_neg(term, term);
     mpz_init_set(sum, term);
     for (uint32_t k = 1; mpz_sgn(term) != 0; k++) {
@@ -2922,8 +2864,7 @@ static int sin_series(int sign, const bigint *rmag, uint32_t p, bigint **out)
 // cos(|rmag|/2^p) * 2^p via out, returning its sign; |rmag| <= pi*2^p. cos
 // is even, so (unlike sin) the sign of r doesn't matter -- only |r| does.
 // Self-terminating, alternating: cos(r) = 1 - r^2/2! + r^4/4! - ...
-static int cos_series(const bigint *rmag, uint32_t p, bigint **out)
-{
+static int cos_series(const bigint *rmag, uint32_t p, bigint **out) {
     mpz_t r2p, term, sum;
     mpz_init(r2p);
     mpz_mul(r2p, rmag, rmag);
@@ -2950,8 +2891,7 @@ static int cos_series(const bigint *rmag, uint32_t p, bigint **out)
 // floor(x/2pi) -- which grows with x's magnitude -- amplify pi's own
 // truncation error. This is the classic large-argument range-reduction
 // trap (see the caller's guard-bit comment for the actual budget).
-static bool reduce_mod_2pi(number x, uint32_t P, int *sign_out, bigint **rmag_out)
-{
+static bool reduce_mod_2pi(number x, uint32_t P, int *sign_out, bigint **rmag_out) {
     int sx;
     bigint *X;
     if (!value_fixed(x, P, &sx, &X)) return false;
@@ -2985,13 +2925,12 @@ static bool reduce_mod_2pi(number x, uint32_t P, int *sign_out, bigint **rmag_ou
 // alternating -- same shape as atanh_fixed (undivided running power pk,
 // term computed fresh each step), just with sign flipping each term:
 // atan(z) = z - z^3/3 + z^5/5 - ...
-static int atan_series(int sign, const bigint *zmag, uint32_t p, bigint **out)
-{
+static int atan_series(int sign, const bigint *zmag, uint32_t p, bigint **out) {
     mpz_t z2p, pk, term, sum;
     mpz_init(z2p);
     mpz_mul(z2p, zmag, zmag);
     mpz_tdiv_q_2exp(z2p, z2p, p); // z^2 * 2^p
-    mpz_init_set(pk, zmag);       // p_0 = sign * z^1 * 2^p (undivided power)
+    mpz_init_set(pk, zmag); // p_0 = sign * z^1 * 2^p (undivided power)
     if (sign < 0) mpz_neg(pk, pk);
     mpz_init(term);
     mpz_init(sum);
@@ -3013,8 +2952,7 @@ static int atan_series(int sign, const bigint *zmag, uint32_t p, bigint **out)
 // first establishes y is nonzero via refine_sign -- giving up (see
 // IRR_MAX_PREC) makes the whole division NUMBER_ERROR rather than building
 // a node that could silently fail to converge later.
-static number make_irr(int op, number x, number y)
-{
+static number make_irr(int op, number x, number y) {
     if (number_is_error(x) || number_is_error(y)) {
         number e = number_is_error(x) ? x : y;
         return e;
@@ -3036,7 +2974,7 @@ static number make_irr(int op, number x, number y)
     n->x = x;
     n->y = y;
     mpz_init(n->appr); // lazy: allocates nothing until a value is stored
-    n->appr_prec = 0;  // 0 = no memo yet
+    n->appr_prec = 0; // 0 = no memo yet
     return (number){(uint64_t)(uintptr_t)n};
 }
 
@@ -3048,8 +2986,7 @@ static number make_irr(int op, number x, number y)
 // costs about 1 bit of relative precision, so truncating early would
 // compound that loss; truncate once, at the very end, down to w. Shared by
 // irr_fixed's IRR_EXP case and factor_appr's FN_EXP case.
-static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out)
-{
+static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out) {
     // A single low-precision (64-bit) probe of |x| serves two purposes: k
     // (how many squarings undo the range reduction) below, and -- see
     // `extra` -- how many guard bits those squarings cost.
@@ -3132,8 +3069,7 @@ static bool exp_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out
 // if x's magnitude can't be resolved within IRR_MAX_PREC bits (see that
 // macro's doc comment). Shared by irr_fixed's IRR_LN case and factor_appr's
 // FN_LN case.
-static bool ln_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out)
-{
+static bool ln_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out) {
     uint32_t P = w + 32;
     int sx;
     bigint *X;
@@ -3223,8 +3159,7 @@ static bool ln_fixed_core(number x, uint32_t w, int *sign_out, bigint **mag_out)
 // like factor_appr does for pi/sqrt. Each op requests enough extra
 // precision from its operand(s) to guarantee |error| <= 4 at w, the same
 // contract value_fixed makes for every other kind.
-static bool irr_fixed(num_irr *n, uint32_t w, int *sign_out, bigint **mag_out)
-{
+static bool irr_fixed(num_irr *n, uint32_t w, int *sign_out, bigint **mag_out) {
     if (n->appr_prec != 0 && n->appr_prec >= w) {
         NSTAT(irr_memo_hits);
         *sign_out = n->appr_sign;
@@ -3327,10 +3262,8 @@ static bool irr_fixed(num_irr *n, uint32_t w, int *sign_out, bigint **mag_out)
         bigint *rmag;
         if (!reduce_mod_2pi(n->x, P, &rsign, &rmag)) return false;
         bigint *raw;
-        if (n->op == IRR_SIN)
-            sign = sin_series(rsign, rmag, P, &raw);
-        else
-            sign = cos_series(rmag, P, &raw);
+        if (n->op == IRR_SIN) sign = sin_series(rsign, rmag, P, &raw);
+        else sign = cos_series(rmag, P, &raw);
         bi_free(rmag);
         mag = bi_shr(raw, P - p);
         bi_free(raw);
@@ -3438,8 +3371,7 @@ static bool irr_fixed(num_irr *n, uint32_t w, int *sign_out, bigint **mag_out)
         sign = 1; // sqrt(x) > 0 always here (x > 0 was proven at construction)
         break;
     }
-    default:
-        abort(); // unreachable: every IRR_* op is handled above
+    default: abort(); // unreachable: every IRR_* op is handled above
     }
     mpz_swap(n->appr, mag);
     bi_free(mag); // now holds the previous memo
@@ -3457,8 +3389,7 @@ static bool irr_fixed(num_irr *n, uint32_t w, int *sign_out, bigint **mag_out)
 // mpq numref): only |n| is used -- bit length, limb reads, and truncating
 // division are all magnitude-correct -- and the result's sign comes from
 // `sign` alone.
-static double rat_to_double(int sign, const bigint *n, const bigint *d)
-{
+static double rat_to_double(int sign, const bigint *n, const bigint *d) {
     int64_t nb = bi_bitlen(n), db = bi_bitlen(d);
     // Scale so the integer quotient has 54 or 55 bits.
     int64_t shift = db + 54 - nb;
@@ -3493,8 +3424,7 @@ static double rat_to_double(int sign, const bigint *n, const bigint *d)
     uint64_t keep = qv >> drop;
     uint64_t guard = (qv >> (drop - 1)) & 1;
     bool lower = (qv & (((uint64_t)1 << (drop - 1)) - 1)) != 0 || sticky;
-    if (guard && (lower || (keep & 1)))
-        keep++; // may carry to prec+1 bits: a power of two, still exact
+    if (guard && (lower || (keep & 1))) keep++; // may carry to prec+1 bits: a power of two, still exact
     double result = ldexp((double)keep, (int)(e2 + drop));
     return sign < 0 ? -result : result;
 }
@@ -3511,8 +3441,7 @@ static double rat_to_double(int sign, const bigint *n, const bigint *d)
 // hardware speed would take double-double (compensated) interval
 // arithmetic -- ~106 effective bits -- which is future work; measured, the
 // always-failing attempt only made this path slower.
-static double refine_to_double(number x)
-{
+static double refine_to_double(number x) {
     for (uint32_t w = 64; w <= IRR_MAX_PREC; w *= 2) {
         int s;
         bigint *v;
@@ -3559,8 +3488,7 @@ static double refine_to_double(number x)
     return (double)NAN;
 }
 
-double number_to_double(number x)
-{
+double number_to_double(number x) {
     if (number_is_error(x)) return (double)NAN;
     if (number_tag(x) == TAG_SMALL) {
         // Both operands are exact in double, and IEEE division is correctly
@@ -3572,15 +3500,13 @@ double number_to_double(number x)
     return rat_to_double(mpq_sgn(q), mpq_numref(q), mpq_denref(q));
 }
 
-int64_t number_to_int64(number x, bool *ok)
-{
+int64_t number_to_int64(number x, bool *ok) {
     bool valid = false;
     int64_t result = 0;
     if (number_tag(x) == TAG_SMALL && small_den(x) == 1) {
         valid = true;
         result = small_num(x);
-    } else if (number_tag(x) == TAG_POINTER && x.bits != 0 &&
-               number_head(x)->kind == KIND_BIGRAT) {
+    } else if (number_tag(x) == TAG_POINTER && x.bits != 0 && number_head(x)->kind == KIND_BIGRAT) {
         num_bigrat *p = number_heap(x);
         int sign = mpq_sgn(p->q);
         uint64_t mag;
@@ -3604,8 +3530,7 @@ int64_t number_to_int64(number x, bool *ok)
 
 // Formats N (a decimal magnitude representing round(value * 10^max_frac_digits))
 // with a decimal point max_frac_digits from the right. Consumes N.
-static char *format_scaled_decimal(bigint *N, int sign, uint32_t max_frac_digits)
-{
+static char *format_scaled_decimal(bigint *N, int sign, uint32_t max_frac_digits) {
     char *dec = bi_to_decimal(N);
     bool neg = sign < 0 && !bi_is_zero(N);
     bi_free(N);
@@ -3636,8 +3561,7 @@ static char *format_scaled_decimal(bigint *N, int sign, uint32_t max_frac_digits
 // interval refinement (irrationals never land exactly on a rounding
 // boundary). The power of ten is folded exactly into the rational
 // coefficients so only one irrational factor approximation is needed.
-static char *real_to_string(num_real *r, uint32_t max_frac_digits)
-{
+static char *real_to_string(num_real *r, uint32_t max_frac_digits) {
     number scale = canon_make(1, bi_pow10(max_frac_digits), bi_from_u64(1));
     number a = number_mul(r->a, scale);
     number b = number_mul(r->b, scale);
@@ -3702,8 +3626,7 @@ static char *real_to_string(num_real *r, uint32_t max_frac_digits)
 // itself is scaled by 10^d instead of the value: N = round(value * 10^d),
 // same half-up bracket-agreement loop, just with a wider (still exact)
 // error margin. Gives up (returns NULL) past IRR_MAX_PREC bits.
-static bigint *irr_to_string_digits(number x, uint32_t max_frac_digits, int *sign_out)
-{
+static bigint *irr_to_string_digits(number x, uint32_t max_frac_digits, int *sign_out) {
 #ifndef NUMBER_NO_DOUBLE_FILTER
     // Interval pre-pass, like real_to_string's. There are no exact rational
     // coefficients to fold 10^d into here, so scale the interval by 10^d in
@@ -3716,7 +3639,8 @@ static bigint *irr_to_string_digits(number x, uint32_t max_frac_digits, int *sig
         int budget = DIVAL_VISIT_BUDGET;
         if (dival_of(x, &iv, &budget)) {
             double s10 = 1.0;
-            for (uint32_t i = 0; i < max_frac_digits; i++) s10 *= 10.0;
+            for (uint32_t i = 0; i < max_frac_digits; i++)
+                s10 *= 10.0;
             dival scaled = {ival_prev(iv.lo * s10), ival_next(iv.hi * s10)};
             bigint *N;
             if (dival_round_int(scaled, sign_out, &N)) {
@@ -3775,8 +3699,7 @@ static bigint *irr_to_string_digits(number x, uint32_t max_frac_digits, int *sig
     return N;
 }
 
-static char *irr_to_string(number x, uint32_t max_frac_digits)
-{
+static char *irr_to_string(number x, uint32_t max_frac_digits) {
     int sign = 0;
     bigint *N = irr_to_string_digits(x, max_frac_digits, &sign);
     if (N == NULL) return xstrdup("(error)"); // gave up within the precision cap
@@ -3791,8 +3714,7 @@ static char *irr_to_string(number x, uint32_t max_frac_digits)
 // general bigint-based algorithm below digit for digit (same 9-digit
 // batching, same round-half-even, same carry cascade), just entirely off
 // the heap for the digit generation itself.
-static char *number_to_string_small(number x, uint32_t max_frac_digits, bool *is_exact)
-{
+static char *number_to_string_small(number x, uint32_t max_frac_digits, bool *is_exact) {
     int64_t num = small_num(x);
     uint64_t den = small_den(x);
     bool neg = num < 0;
@@ -3810,7 +3732,8 @@ static char *number_to_string_small(number x, uint32_t max_frac_digits, bool *is
             tmp[tn++] = (char)('0' + Q % 10);
             Q /= 10;
         }
-        while (tn) int_digits[ilen++] = tmp[--tn];
+        while (tn)
+            int_digits[ilen++] = tmp[--tn];
     }
 
     static const uint64_t POW10_U64[10] = {
@@ -3827,7 +3750,8 @@ static char *number_to_string_small(number x, uint32_t max_frac_digits, bool *is
             frac[fn + i] = (char)('0' + (q / POW10_U64[batch - 1 - i]) % 10);
         fn += batch;
         if (r == 0) // see number_to_string's identical trim: terminated mid-batch
-            while (frac[fn - 1] == '0') fn--;
+            while (frac[fn - 1] == '0')
+                fn--;
     }
     bool exact = r == 0;
 
@@ -3849,7 +3773,8 @@ static char *number_to_string_small(number x, uint32_t max_frac_digits, bool *is
     memcpy(digits + 1 + ilen, frac, fn);
     if (round_up) {
         size_t i = ilen + fn;
-        while (digits[i] == '9') digits[i--] = '0';
+        while (digits[i] == '9')
+            digits[i--] = '0';
         digits[i]++;
     }
     bool carried = digits[0] != '0';
@@ -3886,8 +3811,7 @@ static char *number_to_string_small(number x, uint32_t max_frac_digits, bool *is
     return out;
 }
 
-char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact)
-{
+char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact) {
     if (is_exact) *is_exact = true;
     if (number_is_error(x)) return xstrdup("(error)");
     if (is_real_kind(x)) {
@@ -3939,7 +3863,8 @@ char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact)
         // digit to stop at: if the whole batch were zero, r would already
         // have been zero going in, contradicting the loop condition above.
         if (mpz_sgn(r) == 0)
-            while (frac[fn - 1] == '0') fn--;
+            while (frac[fn - 1] == '0')
+                fn--;
     }
     bool exact = mpz_sgn(r) == 0;
 
@@ -3966,7 +3891,8 @@ char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact)
     memcpy(digits + 1 + ilen, frac, fn);
     if (round_up) {
         size_t i = ilen + fn;
-        while (digits[i] == '9') digits[i--] = '0';
+        while (digits[i] == '9')
+            digits[i--] = '0';
         digits[i]++;
     }
     bool carried = digits[0] != '0';
@@ -4029,9 +3955,9 @@ char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact)
 
 typedef struct {
     number node;
-    size_t refs;  // how many times the DAG reaches this node
-    size_t size;  // its unfolded size, saturating at SYM_UNFOLD_LIMIT
-    int label;    // -1 until assigned
+    size_t refs; // how many times the DAG reaches this node
+    size_t size; // its unfolded size, saturating at SYM_UNFOLD_LIMIT
+    int label; // -1 until assigned
 } sym_entry;
 
 typedef struct {
@@ -4042,13 +3968,11 @@ typedef struct {
 // Only IRRATIONAL nodes can be shared in a way that matters: every other kind
 // prints in a bounded amount of text (a rational's digits, or a real's
 // a + b*F with rational parts), so unfolding one costs nothing.
-static bool sym_shareable(number x)
-{
+static bool sym_shareable(number x) {
     return is_irrational_kind(x);
 }
 
-static sym_entry *sym_find(sym_table *t, number x)
-{
+static sym_entry *sym_find(sym_table *t, number x) {
     for (size_t i = 0; i < t->len; i++)
         if (t->entries[i].node.bits == x.bits) return &t->entries[i];
     return NULL;
@@ -4058,8 +3982,7 @@ static sym_entry *sym_find(sym_table *t, number x)
 // saturating at SYM_UNFOLD_LIMIT. Each distinct node is expanded once and
 // its size remembered, so a DAG whose unfolded form is astronomical is still
 // measured in time linear in the number of distinct nodes.
-static size_t sym_survey(sym_table *t, number x)
-{
+static size_t sym_survey(sym_table *t, number x) {
     if (!sym_shareable(x)) return 1;
 
     sym_entry *existing = sym_find(t, x);
@@ -4100,15 +4023,13 @@ static struct {
 
 static char *symbolic_render(number x);
 
-static int sym_label_of(number x)
-{
+static int sym_label_of(number x) {
     if (!sym_share.table) return -1;
     sym_entry *e = sym_find(sym_share.table, x);
     return e ? e->label : -1;
 }
 
-static char *rational_symbolic(number x)
-{
+static char *rational_symbolic(number x) {
     if (number_tag(x) == TAG_SMALL) {
         // Small rationals are already canonical (number-design.md) and fit an
         // int64/uint32 outright -- format directly instead of routing
@@ -4116,7 +4037,7 @@ static char *rational_symbolic(number x)
         int64_t num = small_num(x);
         uint64_t den = small_den(x);
         return den == 1 ? xsprintf("%lld", (long long)num)
-                         : xsprintf("%lld/%llu", (long long)num, (unsigned long long)den);
+                        : xsprintf("%lld/%llu", (long long)num, (unsigned long long)den);
     }
     mpq_srcptr q = number_heap(x)->q; // heap bigrat: TAG_SMALL handled above
     char *num = mpz_mag_decimal(mpq_numref(q));
@@ -4131,8 +4052,7 @@ static char *rational_symbolic(number x)
     return result;
 }
 
-static const char *irr_op_name(int op)
-{
+static const char *irr_op_name(int op) {
     switch (op) {
     case IRR_SIN: return "sin";
     case IRR_COS: return "cos";
@@ -4145,37 +4065,32 @@ static const char *irr_op_name(int op)
 }
 
 #ifdef NUMBER_STATS
-void number_stats_dump(FILE *out)
-{
+void number_stats_dump(FILE *out) {
     static const char *const op_names[STAT_OP_COUNT] = {
-        [STAT_ADD] = "add", [STAT_SUB] = "sub", [STAT_MUL] = "mul",
-        [STAT_DIV] = "div", [STAT_COMPARE] = "compare",
+        [STAT_ADD] = "add", [STAT_SUB] = "sub", [STAT_MUL] = "mul", [STAT_DIV] = "div", [STAT_COMPARE] = "compare",
     };
     fprintf(out, "number_stats:\n  calls:");
     for (int i = 0; i < STAT_OP_COUNT; i++)
         fprintf(out, " %s=%llu", op_names[i], (unsigned long long)number_stats.ops[i]);
-    uint64_t dispatched = number_stats.tier1_fastpath + number_stats.tier1_general +
-                           number_stats.tier2 + number_stats.tier3;
-    fprintf(out, "\n  tier1: fastpath=%llu general=%llu\n  tier2 (bigrat): %llu (u128 fast path: %llu)\n"
-                 "  tier3 (real/irrational): %llu\n  dispatched total: %llu\n"
-                 "  promotions (tier1 -> tier2): %llu\n  bi_allocs: %llu\n"
-                 "  irr nodes: memo_hits=%llu recompute:",
-            (unsigned long long)number_stats.tier1_fastpath,
-            (unsigned long long)number_stats.tier1_general,
+    uint64_t dispatched =
+        number_stats.tier1_fastpath + number_stats.tier1_general + number_stats.tier2 + number_stats.tier3;
+    fprintf(out,
+            "\n  tier1: fastpath=%llu general=%llu\n  tier2 (bigrat): %llu (u128 fast path: %llu)\n"
+            "  tier3 (real/irrational): %llu\n  dispatched total: %llu\n"
+            "  promotions (tier1 -> tier2): %llu\n  bi_allocs: %llu\n"
+            "  irr nodes: memo_hits=%llu recompute:",
+            (unsigned long long)number_stats.tier1_fastpath, (unsigned long long)number_stats.tier1_general,
             (unsigned long long)number_stats.tier2, (unsigned long long)number_stats.tier2_u128_fast,
-            (unsigned long long)number_stats.tier3,
-            (unsigned long long)dispatched, (unsigned long long)number_stats.promotions,
-            (unsigned long long)number_stats.bi_allocs,
+            (unsigned long long)number_stats.tier3, (unsigned long long)dispatched,
+            (unsigned long long)number_stats.promotions, (unsigned long long)number_stats.bi_allocs,
             (unsigned long long)number_stats.irr_memo_hits);
     for (int op = 0; op < IRR_DIV + 1; op++) {
         const char *name = irr_op_name(op);
-        if (!name)
-            name = op == IRR_ADD ? "add" : op == IRR_SUB ? "sub" : op == IRR_MUL ? "mul" : "div";
+        if (!name) name = op == IRR_ADD ? "add" : op == IRR_SUB ? "sub" : op == IRR_MUL ? "mul" : "div";
         fprintf(out, " %s=%llu", name, (unsigned long long)number_stats.irr_recompute[op]);
     }
     fprintf(out, "\n  double-interval filter: hits=%llu fallbacks=%llu\n",
-            (unsigned long long)number_stats.interval_hits,
-            (unsigned long long)number_stats.interval_fallbacks);
+            (unsigned long long)number_stats.interval_hits, (unsigned long long)number_stats.interval_fallbacks);
 }
 #endif
 
@@ -4188,19 +4103,16 @@ void number_stats_dump(FILE *out)
 // approximations and never loops, unlike full number_equal on two
 // irrationals; "false" just means "not provably the same by inspection",
 // which the power-collapsing display below treats as distinct factors.
-static bool same_displayed_value(number a, number b)
-{
+static bool same_displayed_value(number a, number b) {
     if (a.bits == b.bits) return true;
     if (is_real_kind(a) && is_real_kind(b)) {
         num_real *ra = as_real(a), *rb = as_real(b);
-        return ra->fn == rb->fn && same_displayed_value(ra->a, rb->a) &&
-               same_displayed_value(ra->b, rb->b) &&
-               (ra->fn == FN_PI || same_displayed_value(ra->arg, rb->arg));
+        return ra->fn == rb->fn && same_displayed_value(ra->a, rb->a) && same_displayed_value(ra->b, rb->b)
+               && (ra->fn == FN_PI || same_displayed_value(ra->arg, rb->arg));
     }
     if (is_irrational_kind(a) && is_irrational_kind(b)) {
         num_irr *na = as_irr(a), *nb = as_irr(b);
-        return na->op == nb->op && same_displayed_value(na->x, nb->x) &&
-               same_displayed_value(na->y, nb->y);
+        return na->op == nb->op && same_displayed_value(na->x, nb->x) && same_displayed_value(na->y, nb->y);
     }
     if (number_is_rational(a) && number_is_rational(b)) return number_equal(a, b);
     return false;
@@ -4208,15 +4120,13 @@ static bool same_displayed_value(number a, number b)
 
 // The leaves of a multiplication chain: nested IRR_MUL nodes flattened in
 // left-to-right order, so ((x*x)*x) and (x*(x*x)) both yield [x, x, x].
-static size_t count_mul_leaves(number x)
-{
+static size_t count_mul_leaves(number x) {
     if (is_irrational_kind(x) && as_irr(x)->op == IRR_MUL)
         return count_mul_leaves(as_irr(x)->x) + count_mul_leaves(as_irr(x)->y);
     return 1;
 }
 
-static void fill_mul_leaves(number x, number *leaves, size_t *pos)
-{
+static void fill_mul_leaves(number x, number *leaves, size_t *pos) {
     if (is_irrational_kind(x) && as_irr(x)->op == IRR_MUL) {
         fill_mul_leaves(as_irr(x)->x, leaves, pos);
         fill_mul_leaves(as_irr(x)->y, leaves, pos);
@@ -4227,11 +4137,9 @@ static void fill_mul_leaves(number x, number *leaves, size_t *pos)
 
 // Whether every leaf of the multiplication chain under x matches ref --
 // i.e. the chain displays as a single power like "pi^3".
-static bool mul_leaves_all_same(number x, number ref)
-{
+static bool mul_leaves_all_same(number x, number ref) {
     if (is_irrational_kind(x) && as_irr(x)->op == IRR_MUL)
-        return mul_leaves_all_same(as_irr(x)->x, ref) &&
-               mul_leaves_all_same(as_irr(x)->y, ref);
+        return mul_leaves_all_same(as_irr(x)->x, ref) && mul_leaves_all_same(as_irr(x)->y, ref);
     return same_displayed_value(x, ref);
 }
 
@@ -4246,8 +4154,7 @@ static bool mul_leaves_all_same(number x, number ref)
 //     "-2", "x + y"
 enum { RENDER_ATOM, RENDER_PRODUCT, RENDER_SUM };
 
-static int render_level(number x)
-{
+static int render_level(number x) {
     // A labelled node prints as "#1": a single token, never needing parens,
     // whatever the expression underneath it would have needed.
     if (sym_share.active && x.bits != sym_share.defining.bits && sym_label_of(x) >= 0) return RENDER_ATOM;
@@ -4256,9 +4163,10 @@ static int render_level(number x)
         switch (n->op) {
         case IRR_ADD:
         case IRR_SUB: return RENDER_SUM;
-        case IRR_DIV: return RENDER_PRODUCT; // "x/y" (TeX \frac never
-                                              // needs wrapping, and PRODUCT
-                                              // never triggers one there)
+        case IRR_DIV:
+            return RENDER_PRODUCT; // "x/y" (TeX \frac never
+                                   // needs wrapping, and PRODUCT
+                                   // never triggers one there)
         case IRR_MUL: {
             // "pi^3" binds like an atom; "pi^2*sin(2)" is a product
             number ref = n->x;
@@ -4283,19 +4191,17 @@ static int render_level(number x)
 }
 
 // Wrap an already-malloc'd rendering in parentheses, consuming it.
-static char *wrap_parens(char *s)
-{
+static char *wrap_parens(char *s) {
     char *wrapped = xsprintf("(%s)", s);
     return wrapped;
 }
 
-// Whether base's rendering must be wrapped in parentheses before an
-// exponent is attached to it: anything looser than an atom, plus two
-// TeX-only cases -- e^{x}^{2} is a double-superscript error and
-// \frac{...}{...}^{2} misreads (their symbolic spellings "exp(x)" and
+// Returns whether base's rendering must be wrapped in parentheses before
+// an exponent is attached to it. Anything looser than an atom, plus two
+// TeX-only cases: e^{x}^{2} is a double-superscript error and
+// \frac{...}{...}^{2} parses wrong (the symbolic "exp(x)" and
 // "x/y" are fine as-is).
-static bool pow_base_needs_parens(number base, bool tex)
-{
+static bool pow_base_needs_parens(number base, bool tex) {
     if (tex && is_irrational_kind(base)) {
         uint32_t op = as_irr(base)->op;
         if (op == IRR_EXP || op == IRR_DIV) return true;
@@ -4305,12 +4211,10 @@ static bool pow_base_needs_parens(number base, bool tex)
 
 // A multiplication chain with repeated factors collapsed into powers:
 // x*x*x displays as "x^3" (or "x^{3}" in TeX) rather than "x*x*x".
-// Factors are grouped by same_displayed_value in first-appearance order --
-// commutativity makes the reordering sound. No outer parens: contexts that
-// embed this as an operand add them per render_level. Shared by the
-// symbolic and TeX renderings; only the spelling differs.
-static char *mul_chain_str(num_irr *n, bool tex)
-{
+// Factors are grouped by same_displayed_value in first-appearance order
+// because commutativity makes the reordering sound. No outer parens: contexts
+// that embed this as an operand add them per render_level.
+static char *mul_chain_str(num_irr *n, bool tex) {
     size_t total = count_mul_leaves(n->x) + count_mul_leaves(n->y);
     number *leaves = xmalloc(total * sizeof(number));
     size_t pos = 0;
@@ -4331,12 +4235,8 @@ static char *mul_chain_str(num_irr *n, bool tex)
         char *piece = base;
         if (power > 1) {
             bool parens = pow_base_needs_parens(leaves[i], tex);
-            if (tex)
-                piece = parens ? xsprintf("(%s)^{%zu}", base, power)
-                               : xsprintf("%s^{%zu}", base, power);
-            else
-                piece = parens ? xsprintf("(%s)^%zu", base, power)
-                               : xsprintf("%s^%zu", base, power);
+            if (tex) piece = parens ? xsprintf("(%s)^{%zu}", base, power) : xsprintf("%s^{%zu}", base, power);
+            else piece = parens ? xsprintf("(%s)^%zu", base, power) : xsprintf("%s^%zu", base, power);
         } else if (render_level(leaves[i]) == RENDER_SUM) {
             // An additive or sign-leading factor misreads bare in a
             // product: (1+pi)*x is "(1 + pi)*x", not "1 + pi*x"
@@ -4348,8 +4248,7 @@ static char *mul_chain_str(num_irr *n, bool tex)
             // '*' prints tight, matching the closed forms ("2*pi"); TeX
             // keeps spaces around \cdot only to delimit the macro name
             // (math mode ignores them)
-            char *joined = tex ? xsprintf("%s \\cdot %s", acc, piece)
-                               : xsprintf("%s*%s", acc, piece);
+            char *joined = tex ? xsprintf("%s \\cdot %s", acc, piece) : xsprintf("%s*%s", acc, piece);
             acc = joined;
         }
     }
@@ -4360,8 +4259,7 @@ static char *mul_chain_str(num_irr *n, bool tex)
 // here), but number_to_symbolic's contract is "always exact" -- satisfied
 // by printing an exact expression-tree description instead of a decimal
 // approximation, e.g. "sin(2)", "pi + sqrt(2)", "pi^2".
-static char *irr_symbolic(num_irr *n)
-{
+static char *irr_symbolic(num_irr *n) {
     if (n->op == IRR_MUL) return mul_chain_str(n, false);
     char *xs = symbolic_render(n->x);
     const char *fname = irr_op_name(n->op);
@@ -4373,20 +4271,16 @@ static char *irr_symbolic(num_irr *n)
     // A right operand that renders as a sum misreads after any of these
     // operators ("x - 1 + pi"); after '/' even a product does ("x/2*pi").
     // Left operands only misread when a sum meets '/' ("1 + pi/x").
-    if (render_level(n->y) >= (n->op == IRR_DIV ? RENDER_PRODUCT : RENDER_SUM))
-        ys = wrap_parens(ys);
-    if (n->op == IRR_DIV && render_level(n->x) == RENDER_SUM)
-        xs = wrap_parens(xs);
+    if (render_level(n->y) >= (n->op == IRR_DIV ? RENDER_PRODUCT : RENDER_SUM)) ys = wrap_parens(ys);
+    if (n->op == IRR_DIV && render_level(n->x) == RENDER_SUM) xs = wrap_parens(xs);
     // '/' prints tight and '+'/'-' spaced, matching the closed forms
     // ("pi/3", "1/2 + sqrt(5)/2")
-    char *result = n->op == IRR_DIV
-                        ? xsprintf("%s/%s", xs, ys)
-                        : xsprintf("%s %s %s", xs, n->op == IRR_ADD ? "+" : "-", ys);
+    char *result =
+        n->op == IRR_DIV ? xsprintf("%s/%s", xs, ys) : xsprintf("%s %s %s", xs, n->op == IRR_ADD ? "+" : "-", ys);
     return result;
 }
 
-static char *symbolic_render(number x)
-{
+static char *symbolic_render(number x) {
     // In shared mode, a subexpression that appears more than once prints as
     // its label everywhere except the binding that defines it.
     if (sym_share.active && x.bits != sym_share.defining.bits) {
@@ -4439,8 +4333,7 @@ static char *symbolic_render(number x)
     return result;
 }
 
-char *number_to_symbolic(number x)
-{
+char *number_to_symbolic(number x) {
     sym_table table = {.entries = NULL, .len = 0, .cap = 0};
     size_t unfolded = sym_survey(&table, x);
     if (unfolded < SYM_UNFOLD_LIMIT) return symbolic_render(x); // the common case
@@ -4479,14 +4372,13 @@ char *number_to_symbolic(number x)
 
 // A rational as TeX: "42", "-\frac{7}{2}" (the sign stays outside the
 // fraction, where TeX convention puts it).
-static char *rational_tex(number x)
-{
+static char *rational_tex(number x) {
     if (number_tag(x) == TAG_SMALL) {
         int64_t num = small_num(x);
         uint64_t den = small_den(x);
         if (den == 1) return xsprintf("%lld", (long long)num);
-        return xsprintf("%s\\frac{%lld}{%llu}", num < 0 ? "-" : "",
-                        (long long)(num < 0 ? -num : num), (unsigned long long)den);
+        return xsprintf("%s\\frac{%lld}{%llu}", num < 0 ? "-" : "", (long long)(num < 0 ? -num : num),
+                        (unsigned long long)den);
     }
     mpq_srcptr q = number_heap(x)->q; // heap bigrat: TAG_SMALL handled above
     char *num = mpz_mag_decimal(mpq_numref(q));
@@ -4501,11 +4393,8 @@ static char *rational_tex(number x)
     return result;
 }
 
-// TeX for a general IRRATIONAL node, mirroring irr_symbolic: an exact
-// expression-tree description, just in TeX spelling — "\sin(2)",
-// "(\pi + \sqrt{2})", "\frac{\ln(5)}{\ln(10)}".
-static char *irr_tex(num_irr *n)
-{
+// Get the TeX representation for an irrational node, e.g. "\frac{\ln(5)}{\ln(10)}"
+static char *irr_tex(num_irr *n) {
     if (n->op == IRR_MUL) return mul_chain_str(n, true);
     char *xs = number_to_tex(n->x);
     char *result;
@@ -4534,8 +4423,7 @@ static char *irr_tex(num_irr *n)
     return result;
 }
 
-char *number_to_tex(number x)
-{
+char *number_to_tex(number x) {
     if (number_is_error(x)) return xstrdup("\\text{error}");
     if (is_irrational_kind(x)) return irr_tex(as_irr(x));
     if (!is_real_kind(x)) return rational_tex(x);
@@ -4545,17 +4433,30 @@ char *number_to_tex(number x)
     // "2\pi", "3\sqrt{2}"), and a nonzero rational part goes in front.
     num_real *r = as_real(x);
     char *factor;
-    if (r->fn == FN_PI) {
+    switch (r->fn) {
+    case FN_PI: {
         factor = xstrdup("\\pi");
-    } else if (r->fn == FN_SQRT) {
+        break;
+    }
+    case FN_SQRT: {
         char *rad = rational_symbolic(r->arg); // a positive integer: plain digits
         factor = xsprintf("\\sqrt{%s}", rad);
-    } else if (r->fn == FN_LN) {
+        break;
+    }
+    case FN_LN: {
         char *arg_s = rational_tex(r->arg);
         factor = xsprintf("\\ln(%s)", arg_s);
-    } else { // FN_EXP: same "e^{...}" spelling irr_tex uses for IRR_EXP
+        break;
+    }
+    case FN_EXP: {
         char *arg_s = rational_tex(r->arg);
         factor = xsprintf("e^{%s}", arg_s);
+        break;
+    }
+    default: {
+        factor = xsprintf("???");
+        break;
+    }
     }
     mpq_view vb;
     mpq_srcptr qb = number_mpq_view(r->b, &vb);
@@ -4596,10 +4497,10 @@ char *number_to_tex(number x)
 // unexpected character, or malformed input, it bails out (false, no side
 // effects via *out) and the caller re-parses with the exact path, which
 // produces the right value (or the right parse error) either way.
-static bool number_from_string_fast(const char *str, number *out)
-{
+static bool number_from_string_fast(const char *str, number *out) {
     const char *s = str;
-    while (isspace((unsigned char)*s)) s++;
+    while (isspace((unsigned char)*s))
+        s++;
     int sign = 1;
     if (*s == '+' || *s == '-') {
         if (*s == '-') sign = -1;
@@ -4608,8 +4509,8 @@ static bool number_from_string_fast(const char *str, number *out)
     int64_t mant = 0;
     bool any_digits = false;
     while (isdigit((unsigned char)*s)) {
-        if (__builtin_mul_overflow(mant, (int64_t)10, &mant) ||
-            __builtin_add_overflow(mant, (int64_t)(*s - '0'), &mant))
+        if (__builtin_mul_overflow(mant, (int64_t)10, &mant)
+            || __builtin_add_overflow(mant, (int64_t)(*s - '0'), &mant))
             return false;
         any_digits = true;
         s++;
@@ -4619,13 +4520,14 @@ static bool number_from_string_fast(const char *str, number *out)
         int64_t den = 0;
         bool any_den = false;
         while (isdigit((unsigned char)*s)) {
-            if (__builtin_mul_overflow(den, (int64_t)10, &den) ||
-                __builtin_add_overflow(den, (int64_t)(*s - '0'), &den))
+            if (__builtin_mul_overflow(den, (int64_t)10, &den)
+                || __builtin_add_overflow(den, (int64_t)(*s - '0'), &den))
                 return false;
             any_den = true;
             s++;
         }
-        while (isspace((unsigned char)*s)) s++;
+        while (isspace((unsigned char)*s))
+            s++;
         if (!any_digits || !any_den || *s != '\0') return false; // malformed/empty: let the exact path report it
         *out = number_from_ratio64(sign * mant, den);
         return true;
@@ -4634,8 +4536,8 @@ static bool number_from_string_fast(const char *str, number *out)
     if (*s == '.') {
         s++;
         while (isdigit((unsigned char)*s)) {
-            if (__builtin_mul_overflow(mant, (int64_t)10, &mant) ||
-                __builtin_add_overflow(mant, (int64_t)(*s - '0'), &mant))
+            if (__builtin_mul_overflow(mant, (int64_t)10, &mant)
+                || __builtin_add_overflow(mant, (int64_t)(*s - '0'), &mant))
                 return false;
             frac_digits++;
             any_digits = true;
@@ -4660,7 +4562,8 @@ static bool number_from_string_fast(const char *str, number *out)
         if (!any_exp) return false; // malformed: let the exact path report it
         expo *= esign;
     }
-    while (isspace((unsigned char)*s)) s++;
+    while (isspace((unsigned char)*s))
+        s++;
     if (!any_digits || *s != '\0') return false; // malformed/empty: let the exact path report it
 
     // value = mant * 10^(expo - frac_digits); scale (a single power of 10)
@@ -4692,10 +4595,10 @@ static bool number_from_string_fast(const char *str, number *out)
 // *sp past it; returns the digit count. The run parses via mpz_set_str
 // (subquadratic divide-and-conquer, same family as mpz_get_str on output),
 // so a huge literal costs what GMP's own conversion costs, not O(n^2).
-static long parse_digit_run(bigint **acc, const char **sp)
-{
+static long parse_digit_run(bigint **acc, const char **sp) {
     const char *start = *sp, *s = start;
-    while (isdigit((unsigned char)*s)) s++;
+    while (isdigit((unsigned char)*s))
+        s++;
     long count = s - start;
     *sp = s;
     if (count == 0) return 0;
@@ -4717,13 +4620,13 @@ static long parse_digit_run(bigint **acc, const char **sp)
     return count;
 }
 
-number number_from_string(const char *str)
-{
+number number_from_string(const char *str) {
     if (!str) return err(ERR_PARSE);
     number fast;
     if (number_from_string_fast(str, &fast)) return fast;
     const char *s = str;
-    while (isspace((unsigned char)*s)) s++;
+    while (isspace((unsigned char)*s))
+        s++;
     int sign = 1;
     if (*s == '+' || *s == '-') {
         if (*s == '-') sign = -1;
@@ -4737,7 +4640,8 @@ number number_from_string(const char *str)
         s++;
         bigint *den = bi_new();
         bool any_den = parse_digit_run(&den, &s) > 0;
-        while (isspace((unsigned char)*s)) s++;
+        while (isspace((unsigned char)*s))
+            s++;
         if (!any_digits || !any_den || *s != '\0') {
             bi_free(mant);
             bi_free(den);
@@ -4772,7 +4676,8 @@ number number_from_string(const char *str)
         }
         expo *= esign;
     }
-    while (isspace((unsigned char)*s)) s++;
+    while (isspace((unsigned char)*s))
+        s++;
     if (!any_digits || *s != '\0') {
         bi_free(mant);
         return err(ERR_PARSE);
@@ -4801,8 +4706,7 @@ number number_from_string(const char *str)
 // discoverable name for it -- but rejects the "22/7" ratio form up front, so
 // "decimal" is honest (a ratio isn't decimal notation; callers who want one
 // reach for number_from_ratio or number_from_string).
-number number_from_decimal(const char *str)
-{
+number number_from_decimal(const char *str) {
     if (!str) return err(ERR_PARSE);
     for (const char *p = str; *p; p++)
         if (*p == '/') return err(ERR_PARSE);
@@ -4850,16 +4754,14 @@ typedef struct {
 
 static number sym_expr(sym_parser *p);
 
-static void sym_skip_space(sym_parser *p)
-{
+static void sym_skip_space(sym_parser *p) {
     while (*p->pos == ' ' || *p->pos == '\t')
         p->pos++;
 }
 
 // Consumes `word` only when it isn't a prefix of a longer identifier, so
 // "sin" doesn't match inside a hypothetical "sinh".
-static bool sym_word(sym_parser *p, const char *word)
-{
+static bool sym_word(sym_parser *p, const char *word) {
     size_t n = strlen(word);
     if (strncmp(p->pos, word, n) != 0) return false;
     char after = p->pos[n];
@@ -4868,8 +4770,7 @@ static bool sym_word(sym_parser *p, const char *word)
     return true;
 }
 
-static number sym_fail(sym_parser *p)
-{
+static number sym_fail(sym_parser *p) {
     p->failed = true;
     return NUMBER_ERROR;
 }
@@ -4887,13 +4788,11 @@ static number sym_fail(sym_parser *p)
     return sym_recurse_result
 
 static number sym_atom_body(sym_parser *p);
-static number sym_atom(sym_parser *p)
-{
+static number sym_atom(sym_parser *p) {
     SYM_RECURSE(sym_atom_body);
 }
 
-static number sym_atom_body(sym_parser *p)
-{
+static number sym_atom_body(sym_parser *p) {
     sym_skip_space(p);
 
     if (*p->pos == '(') {
@@ -4960,8 +4859,7 @@ static number sym_atom_body(sym_parser *p)
     return sym_fail(p);
 }
 
-static number sym_power(sym_parser *p)
-{
+static number sym_power(sym_parser *p) {
     number base = sym_atom(p);
     if (p->failed) return NUMBER_ERROR;
     sym_skip_space(p);
@@ -4986,13 +4884,11 @@ static number sym_power(sym_parser *p)
 }
 
 static number sym_unary_body(sym_parser *p);
-static number sym_unary(sym_parser *p)
-{
+static number sym_unary(sym_parser *p) {
     SYM_RECURSE(sym_unary_body);
 }
 
-static number sym_unary_body(sym_parser *p)
-{
+static number sym_unary_body(sym_parser *p) {
     sym_skip_space(p);
     if (*p->pos == '-') {
         p->pos++;
@@ -5002,8 +4898,7 @@ static number sym_unary_body(sym_parser *p)
     return sym_power(p);
 }
 
-static number sym_term(sym_parser *p)
-{
+static number sym_term(sym_parser *p) {
     number acc = sym_unary(p);
     for (;;) {
         if (p->failed) return NUMBER_ERROR;
@@ -5019,8 +4914,7 @@ static number sym_term(sym_parser *p)
     }
 }
 
-static number sym_expr(sym_parser *p)
-{
+static number sym_expr(sym_parser *p) {
     number acc = sym_term(p);
     for (;;) {
         if (p->failed) return NUMBER_ERROR;
@@ -5039,8 +4933,7 @@ static number sym_expr(sym_parser *p)
 // The labelled form: "{#1 = <expr>; #2 = <expr>; <expr>}". Each binding is
 // available to the bindings after it and to the final expression, so a shared
 // subexpression is written -- and built -- exactly once.
-static number sym_bindings(sym_parser *p)
-{
+static number sym_bindings(sym_parser *p) {
     p->pos++; // '{'
     for (;;) {
         sym_skip_space(p);
@@ -5076,8 +4969,7 @@ static number sym_bindings(sym_parser *p)
     return result;
 }
 
-number number_from_symbolic(const char *str)
-{
+number number_from_symbolic(const char *str) {
     if (!str) return err(ERR_PARSE);
     sym_parser p = {.pos = str, .failed = false, .labels = {{0}}, .label_count = 0};
     sym_skip_space(&p);
@@ -5109,14 +5001,12 @@ static long g_total = 0, g_failed = 0;
 // Full-width random 64-bit limb (rand() yields only ~31 bits, so stitch
 // four draws) -- important so the fuzz checks actually exercise the high
 // half of each limb, not just the low 32 bits.
-static bi_limb rand_limb(void)
-{
-    return (bi_limb)(uint32_t)rand() | ((bi_limb)(uint32_t)rand() << 16) |
-           ((bi_limb)(uint32_t)rand() << 32) | ((bi_limb)(uint32_t)rand() << 48);
+static bi_limb rand_limb(void) {
+    return (bi_limb)(uint32_t)rand() | ((bi_limb)(uint32_t)rand() << 16) | ((bi_limb)(uint32_t)rand() << 32)
+           | ((bi_limb)(uint32_t)rand() << 48);
 }
 
-static bigint *bi_rand(uint32_t max_limbs)
-{
+static bigint *bi_rand(uint32_t max_limbs) {
     uint32_t len = max_limbs == 0 ? 0 : 1u + (uint32_t)(rand() % (int)max_limbs);
     bigint *b = bi_new();
     for (uint32_t i = 0; i < len; i++) { // most-significant limb first
@@ -5126,16 +5016,14 @@ static bigint *bi_rand(uint32_t max_limbs)
     return b;
 }
 
-static void bi_print(const char *label, const bigint *b)
-{
+static void bi_print(const char *label, const bigint *b) {
     char *s = bi_to_decimal(b);
     fprintf(stderr, "%s = %s (limbs=%zu)\n", label, s, mpz_size(b));
 }
 
 // Records a check's outcome, printing a,b (and any extra bigints) on
 // failure. `extra` is a NULL-terminated array of (label, bigint*) pairs.
-static bool report(bool ok, const char *tag, const bigint *a, const bigint *b, ...)
-{
+static bool report(bool ok, const char *tag, const bigint *a, const bigint *b, ...) {
     g_total++;
     if (ok) return true;
     g_failed++;
@@ -5156,8 +5044,7 @@ static bool report(bool ok, const char *tag, const bigint *a, const bigint *b, .
 // ---- GCD: cross-checked against a plain Euclidean gcd built on bi_divmod,
 // simple enough to trust directly and -- crucially -- an algorithm distinct
 // from mpz_gcd's HGCD, so it is a real independent oracle.
-static bigint *fuzz_gcd_ref(const bigint *a, const bigint *b)
-{
+static bigint *fuzz_gcd_ref(const bigint *a, const bigint *b) {
     bigint *x = bi_copy(a), *y = bi_copy(b);
     while (!bi_is_zero(y)) {
         bigint *q, *r;
@@ -5171,20 +5058,18 @@ static bigint *fuzz_gcd_ref(const bigint *a, const bigint *b)
     return x; // gcd in x; zero-operand cases fall out correctly (gcd(a,0)=a)
 }
 
-static bool gcd_check(const bigint *a, const bigint *b, const char *tag)
-{
+static bool gcd_check(const bigint *a, const bigint *b, const char *tag) {
     bigint *expect = fuzz_gcd_ref(a, b);
     bigint *got = bi_new();
     mpz_gcd(got, a, b);
     bool ok = report(bi_cmp(expect, got) == 0, tag, a, b, "  expect (euclid)", expect, "  got (hybrid)", got,
-                      (const char *)NULL);
+                     (const char *)NULL);
     bi_free(expect);
     bi_free(got);
     return ok;
 }
 
-static void run_gcd_fuzz(void)
-{
+static void run_gcd_fuzz(void) {
     for (uint32_t max_limbs = 1; max_limbs <= 80; max_limbs++) {
         for (int trial = 0; trial < 300; trial++) {
             bigint *a = bi_rand(max_limbs);
@@ -5283,8 +5168,7 @@ static void run_gcd_fuzz(void)
 // canon_make, number_addsub, number_mul, and number_div together, on top
 // of the bigint-layer checks above.
 
-static void run_number_fuzz(void)
-{
+static void run_number_fuzz(void) {
     for (int trial = 0; trial < 20000; trial++) {
         int64_t an = (int64_t)(rand() - RAND_MAX / 2), ad = 1 + rand() % 100000;
         int64_t bn = (int64_t)(rand() - RAND_MAX / 2), bd = 1 + rand() % 100000;
@@ -5310,12 +5194,10 @@ static void run_number_fuzz(void)
             fprintf(stderr, "MISMATCH (number-add-sub-inverse): a=%lld/%lld b=%lld/%lld\n", (long long)an,
                     (long long)ad, (long long)bn, (long long)bd);
         }
-
     }
 }
 
-int main(void)
-{
+int main(void) {
     srand(67890);
     run_gcd_fuzz();
     run_number_fuzz();
@@ -5324,5 +5206,3 @@ int main(void)
 }
 
 #endif // FUZZ_MAIN
-
-

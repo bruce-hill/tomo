@@ -196,9 +196,9 @@
   list) exactly like a non-optional one; the two disagreed on both.
 - Added `make test-cli`, a C-level test suite for the argument parser that the
   compiler and the programs it compiles share (`src/stdlib/cli.c`). It covers
-  the flag spellings, the supported argument types, positional filling, `--`,
-  the generated usage and help text, command dispatch, and the parse errors;
-  it runs as part of `make test`.
+  the different ways to pass flags, the supported argument types, positional
+  filling, `--`, the generated usage and help text, command dispatch, and the
+  parse errors; it runs as part of `make test`.
 
 ## 2026-08-21
 
@@ -226,8 +226,8 @@
   `serialize(value)` instead of `bytes : [Byte] = value`, and
   `deserialize:T(bytes)` instead of `value : T = bytes`. Because the result
   type depends on the type written after the colon, `deserialize:T(...)` is a
-  construct rather than a function call: the type has to be spelled out
-  literally there.
+  construct rather than a function call: the type has to be typed out literally
+  there.
   - `deserialize:T(...)` returns a `T?` instead of aborting the program on bad
     input. It gives back `none` when the bytes aren't a well-formed encoding of
     `T`: truncated data, a nonsensical length or enum tag, or leftover trailing

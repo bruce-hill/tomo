@@ -97,14 +97,13 @@ their arguments rendered the way Tomo writes them:
 #3 cli_handler.main at .tomo/foo.tm.c:50
 ```
 
-This replaces gdb's `backtrace` (and its `bt` and `where` spellings), so there
-is one backtrace to know rather than two. It shows every frame, including the
-runtime C ones in between; a frame that isn't Tomo code gets no argument list,
-because there is no Tomo rendering of one to give. Argument values are cut short
-(`items=[1, 2, 3, 4, 5, 6, 7, 8,…`) — a frame line is a summary, and `tlocals`
-is where a value is read properly. The frames a failure passed through on its
-way out of the runtime are shown too, so the Tomo frames of a crash are usually
-a few rows down.
+This replaces gdb's `backtrace` (and `bt`/`where`). It shows every frame,
+including the runtime C ones in between; a frame that isn't Tomo code gets no
+argument list, because there is no Tomo rendering of one to give. Argument
+values are cut short (`items=[1, 2, 3, 4, 5, 6, 7, 8,…`) — a frame line is a
+summary, and `tlocals` is where a value is read properly. The frames a failure
+passed through on its way out of the runtime are shown too, so the Tomo frames
+of a crash are usually a few rows down.
 
 `bt` *n* shows the innermost *n* frames and `bt -`*n* the outermost *n*. Any
 other argument is handed to gdb's own backtrace, which is still there in full as

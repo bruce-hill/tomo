@@ -14,17 +14,17 @@
 
 static int checks = 0;
 
-#define CHECK(cond) do { \
-    if (!(cond)) { \
-        fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); \
-        exit(1); \
-    } \
-    checks++; \
-} while (0)
+#define CHECK(cond)                                                                                                    \
+    do {                                                                                                               \
+        if (!(cond)) {                                                                                                 \
+            fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond);                                            \
+            exit(1);                                                                                                   \
+        }                                                                                                              \
+        checks++;                                                                                                      \
+    } while (0)
 
 // want_exact: 1/0 to check the exactness flag, -1 to ignore it.
-static void expect_str(number x, uint32_t digits, const char *want, int want_exact)
-{
+static void expect_str(number x, uint32_t digits, const char *want, int want_exact) {
     bool exact;
     char *s = number_to_string(x, digits, &exact);
     if (strcmp(s, want) != 0) {
@@ -38,8 +38,7 @@ static void expect_str(number x, uint32_t digits, const char *want, int want_exa
     checks++;
 }
 
-static void expect_sym(number x, const char *want)
-{
+static void expect_sym(number x, const char *want) {
     char *s = number_to_symbolic(x);
     if (strcmp(s, want) != 0) {
         fprintf(stderr, "FAIL: to_symbolic gave \"%s\", want \"%s\"\n", s, want);
@@ -48,8 +47,7 @@ static void expect_sym(number x, const char *want)
     checks++;
 }
 
-static void expect_tex(number x, const char *want)
-{
+static void expect_tex(number x, const char *want) {
     char *s = number_to_tex(x);
     if (strcmp(s, want) != 0) {
         fprintf(stderr, "FAIL: to_tex gave \"%s\", want \"%s\"\n", s, want);
@@ -58,14 +56,12 @@ static void expect_tex(number x, const char *want)
     checks++;
 }
 
-static void expect_eq(number a, number b)
-{
+static void expect_eq(number a, number b) {
     CHECK(number_equal(a, b));
     CHECK(number_compare(a, b) == 0);
 }
 
-static void expect_error(number x)
-{
+static void expect_error(number x) {
     CHECK(number_is_error(x));
 }
 
@@ -77,8 +73,7 @@ static void expect_error(number x)
 // -computed error results (e.g. a fast-path dispatcher and its general
 // fallback both correctly rejecting the same division by zero) that
 // legitimately agree.
-static void expect_dispatch_eq(number a, number b)
-{
+static void expect_dispatch_eq(number a, number b) {
     if (number_is_error(a) && number_is_error(b)) {
         checks++;
         return;
@@ -86,8 +81,7 @@ static void expect_dispatch_eq(number a, number b)
     expect_eq(a, b);
 }
 
-static void expect_msg(number x, const char *want)
-{
+static void expect_msg(number x, const char *want) {
     CHECK(number_is_error(x));
     const char *msg = number_error_message(x);
     if (!msg || strcmp(msg, want) != 0) {
@@ -97,8 +91,7 @@ static void expect_msg(number x, const char *want)
     checks++;
 }
 
-static void expect_roundtrip(double d)
-{
+static void expect_roundtrip(double d) {
     number x = number_from_double(d);
     double back = number_to_double(x);
     if (back != d) {
@@ -108,8 +101,7 @@ static void expect_roundtrip(double d)
     checks++;
 }
 
-static number factorial(int n)
-{
+static number factorial(int n) {
     number acc = number_from_int(1);
     for (int i = 2; i <= n; i++) {
         number f = number_from_int(i);
@@ -120,20 +112,24 @@ static number factorial(int n)
 }
 
 // x is borrowed.
-static uint32_t tag_of(number x) { return (uint32_t)(x.bits & 3); }
+static uint32_t tag_of(number x) {
+    return (uint32_t)(x.bits & 3);
+}
 
 // What tomo_init() does for a real Tomo program: hand GMP the collector, so
 // its limb buffers are GC-owned like everything else here.
-static void *gc_gmp_alloc(size_t size) { return GC_MALLOC_ATOMIC(size); }
-static void *gc_gmp_realloc(void *ptr, size_t old_size, size_t new_size)
-{
+static void *gc_gmp_alloc(size_t size) {
+    return GC_MALLOC_ATOMIC(size);
+}
+static void *gc_gmp_realloc(void *ptr, size_t old_size, size_t new_size) {
     (void)old_size;
     return GC_REALLOC(ptr, new_size);
 }
-static void gc_gmp_free(void *ptr, size_t size) { (void)ptr, (void)size; }
+static void gc_gmp_free(void *ptr, size_t size) {
+    (void)ptr, (void)size;
+}
 
-int main(void)
-{
+int main(void) {
     GC_INIT();
     mp_set_memory_functions(gc_gmp_alloc, gc_gmp_realloc, gc_gmp_free);
 
@@ -154,12 +150,23 @@ int main(void)
     // literals is trusting; a future change to the internal representation
     // must not silently break it. ---
     {
-        int64_t nums[] = {0, 1, -1, 42, -42, 1, -1, 1, 22, -22,
-                           NUMBER_SMALL_NUM_MAX, NUMBER_SMALL_NUM_MIN,
-                           NUMBER_SMALL_NUM_MAX, NUMBER_SMALL_NUM_MIN, 1};
-        uint32_t dens[] = {1, 1, 1, 1, 1, 2, 2, 3, 7, 7,
-                            1, 1, NUMBER_SMALL_DEN_MAX, NUMBER_SMALL_DEN_MAX,
-                            NUMBER_SMALL_DEN_MAX};
+        int64_t nums[] = {0,
+                          1,
+                          -1,
+                          42,
+                          -42,
+                          1,
+                          -1,
+                          1,
+                          22,
+                          -22,
+                          NUMBER_SMALL_NUM_MAX,
+                          NUMBER_SMALL_NUM_MIN,
+                          NUMBER_SMALL_NUM_MAX,
+                          NUMBER_SMALL_NUM_MIN,
+                          1};
+        uint32_t dens[] = {
+            1, 1, 1, 1, 1, 2, 2, 3, 7, 7, 1, 1, NUMBER_SMALL_DEN_MAX, NUMBER_SMALL_DEN_MAX, NUMBER_SMALL_DEN_MAX};
         for (size_t i = 0; i < sizeof(nums) / sizeof(*nums); i++) {
             number viaMacro = NUMBER_SMALL(nums[i], dens[i]);
             number viaRuntime = number_from_ratio(nums[i], (int64_t)dens[i]);
@@ -186,9 +193,17 @@ int main(void)
     // implementation that desyncs them fails here, not silently in a
     // caller. ---
     {
-        int64_t small_ints[] = {0, 1, -1, 42, -42, 1000, -1000,
-                                 NUMBER_SMALL_NUM_MAX, NUMBER_SMALL_NUM_MIN,
-                                 NUMBER_SMALL_NUM_MAX - 1, NUMBER_SMALL_NUM_MIN + 1};
+        int64_t small_ints[] = {0,
+                                1,
+                                -1,
+                                42,
+                                -42,
+                                1000,
+                                -1000,
+                                NUMBER_SMALL_NUM_MAX,
+                                NUMBER_SMALL_NUM_MIN,
+                                NUMBER_SMALL_NUM_MAX - 1,
+                                NUMBER_SMALL_NUM_MIN + 1};
         size_t n_ints = sizeof(small_ints) / sizeof(*small_ints);
         for (size_t i = 0; i < n_ints; i++) {
             for (size_t j = 0; j < n_ints; j++) {
@@ -212,7 +227,7 @@ int main(void)
                 expect_dispatch_eq(number_div(a1, b1), number_div_general(a2, b2)); // incl. b==0
             }
             expect_dispatch_eq(number_neg(number_from_int(small_ints[i])),
-                      number_neg_general(number_from_int(small_ints[i])));
+                               number_neg_general(number_from_int(small_ints[i])));
         }
 
         // Small fractions: both TAG_SMALL, but not the integer sub-path --
@@ -271,9 +286,17 @@ int main(void)
     // error-is-never-equal-to-another-error subtlety to work around here,
     // since neither is a `number` result). ---
     {
-        int64_t cmp_ints[] = {0, 1, -1, 42, -42, 1000, -1000,
-                               NUMBER_SMALL_NUM_MAX, NUMBER_SMALL_NUM_MIN,
-                               NUMBER_SMALL_NUM_MAX - 1, NUMBER_SMALL_NUM_MIN + 1};
+        int64_t cmp_ints[] = {0,
+                              1,
+                              -1,
+                              42,
+                              -42,
+                              1000,
+                              -1000,
+                              NUMBER_SMALL_NUM_MAX,
+                              NUMBER_SMALL_NUM_MIN,
+                              NUMBER_SMALL_NUM_MAX - 1,
+                              NUMBER_SMALL_NUM_MIN + 1};
         size_t n_cmp_ints = sizeof(cmp_ints) / sizeof(*cmp_ints);
         for (size_t i = 0; i < n_cmp_ints; i++) {
             for (size_t j = 0; j < n_cmp_ints; j++) {
@@ -426,11 +449,11 @@ int main(void)
 
     // --- Round-half-even in decimal output ---
     {
-        expect_str(number_from_ratio(1, 8), 2, "0.12", 0);  // 0.125: tie, 2 even
-        expect_str(number_from_ratio(3, 8), 2, "0.38", 0);  // 0.375: tie, 7 odd
-        expect_str(number_from_ratio(7, 2), 0, "4", 0);     // 3.5 -> 4
-        expect_str(number_from_ratio(5, 2), 0, "2", 0);     // 2.5 -> 2
-        expect_str(number_from_ratio(1, 2), 0, "0", 0);     // 0.5 -> 0
+        expect_str(number_from_ratio(1, 8), 2, "0.12", 0); // 0.125: tie, 2 even
+        expect_str(number_from_ratio(3, 8), 2, "0.38", 0); // 0.375: tie, 7 odd
+        expect_str(number_from_ratio(7, 2), 0, "4", 0); // 3.5 -> 4
+        expect_str(number_from_ratio(5, 2), 0, "2", 0); // 2.5 -> 2
+        expect_str(number_from_ratio(1, 2), 0, "0", 0); // 0.5 -> 0
         expect_str(number_from_string("99.95"), 1, "100.0", 0); // carry cascade
     }
 
@@ -500,9 +523,9 @@ int main(void)
         CHECK(number_compare(r31, pi) < 0);
         CHECK(!number_equal(pi, r31));
 
-        // Commensurable radicals are recognized equal symbolically, so
+        // Identical radicals are recognized as equal symbolically, so
         // number_compare returns 0 and number_equal is true even across the
-        // two spellings; a rational still orders strictly against them.
+        // two different representations; a rational still orders strictly against them.
         number s2 = number_sqrt(number_from_int(2));
         number twos2 = number_mul(number_from_int(2), s2);
         number s8 = number_sqrt(number_from_int(8)); // == 2*sqrt(2)
@@ -577,14 +600,10 @@ int main(void)
         expect_msg(number_ln(number_from_int(0)), "logarithm of a non-positive number");
         expect_msg(number_ln(number_from_int(-5)), "logarithm of a non-positive number");
         expect_msg(number_log10(number_from_int(-1)), "logarithm of a non-positive number");
-        expect_msg(number_asin(number_from_int(2)),
-                   "arcsine or arccosine of a value outside [-1, 1]");
-        expect_msg(number_acos(number_from_ratio(-3, 2)),
-                   "arcsine or arccosine of a value outside [-1, 1]");
-        expect_msg(number_pow(number_from_int(0), number_from_int(-1)),
-                   "zero raised to a negative power");
-        expect_msg(number_pow(number_from_int(-2), number_from_ratio(1, 2)),
-                   "square root of a negative number");
+        expect_msg(number_asin(number_from_int(2)), "arcsine or arccosine of a value outside [-1, 1]");
+        expect_msg(number_acos(number_from_ratio(-3, 2)), "arcsine or arccosine of a value outside [-1, 1]");
+        expect_msg(number_pow(number_from_int(0), number_from_int(-1)), "zero raised to a negative power");
+        expect_msg(number_pow(number_from_int(-2), number_from_ratio(1, 2)), "square root of a negative number");
         expect_msg(number_pow(number_from_int(-2), number_from_ratio(1, 3)),
                    "a negative number raised to a non-integer power (not a real result)");
         expect_msg(number_from_string("not a number"), "invalid number syntax");
@@ -612,8 +631,7 @@ int main(void)
             number b = number_sqrt(number_from_int(-1));
             number sum = number_add(a, b);
             const char *msg = number_error_message(sum);
-            CHECK(strcmp(msg, "division by zero") == 0 ||
-                  strcmp(msg, "square root of a negative number") == 0);
+            CHECK(strcmp(msg, "division by zero") == 0 || strcmp(msg, "square root of a negative number") == 0);
         }
     }
 
@@ -682,7 +700,6 @@ int main(void)
         // A negative real (still no closed sqrt form, still a domain error).
         number neg_s2 = number_neg(s2);
         expect_error(number_sqrt(neg_s2));
-
 
         CHECK(number_compare(s2, two) < 0);
         number one_and_half = number_from_ratio(3, 2);
@@ -867,7 +884,6 @@ int main(void)
             number e3c = number_exp(three);
             number esum = number_add(e2c, e3c);
             CHECK(!number_is_rational(esum));
-
         }
 
         expect_eq(number_sinh(number_from_int(0)), number_from_int(0));
@@ -905,7 +921,6 @@ int main(void)
             expect_eq(number_cos(two_pi), number_from_int(1));
             expect_eq(number_cos(three_half_pi), number_from_int(0));
             expect_error(number_tan(half_pi));
-
         }
 
         // Denominators 3, 4, 6: the sqrt(2)/2, sqrt(3)/2 special angles,
@@ -971,7 +986,6 @@ int main(void)
             expect_eq(number_sin(neg_pi6), (neg_half));
             number neg_pi3 = number_neg(pi3);
             expect_eq(number_cos(neg_pi3), (half));
-
         }
 
         // Denominators outside {1,2,3,4,6} (needing pi/12's sqrt6+sqrt2 form,
@@ -1030,7 +1044,6 @@ int main(void)
             number a13 = number_asin(number_from_ratio(1, 3));
             CHECK(!number_is_rational(a13));
             expect_str(a13, 15, "0.339836909454122", 0);
-
         }
 
         // pow's exact ladder: integer exponents (any sign, any base) and
@@ -1084,36 +1097,24 @@ int main(void)
         expect_str(number_ln(number_from_int(2)), 15, "0.693147180559945", 0);
         expect_str(number_ln(number_from_ratio(1, 2)), 15, "-0.693147180559945", 0);
         expect_str(number_log10(number_from_int(2)), 15, "0.301029995663981", 0);
-        expect_str(number_sin(number_from_int(1)), 30,
-                   "0.841470984807896506652502321630", 0);
-        expect_str(number_cos(number_from_int(1)), 30,
-                   "0.540302305868139717400936607443", 0);
+        expect_str(number_sin(number_from_int(1)), 30, "0.841470984807896506652502321630", 0);
+        expect_str(number_cos(number_from_int(1)), 30, "0.540302305868139717400936607443", 0);
         // Large-argument range reduction: pi needs boosted precision that
         // scales with the argument's own magnitude, not just the output
         // precision (see reduce_mod_2pi) -- this is the case that would
         // silently give the wrong low digits if that budget were wrong.
-        expect_str(number_sin(number_from_int(1000000)), 30,
-                   "-0.349993502171292952117652486781", 0);
-        expect_str(number_cos(number_from_int(1000000)), 30,
-                   "0.936752127533144786938532535075", 0);
-        expect_str(number_tan(number_from_int(1)), 25,
-                   "1.5574077246549022305069748", 0);
-        expect_str(number_atan(number_from_int(2)), 30,
-                   "1.107148717794090503017065460179", 0);
+        expect_str(number_sin(number_from_int(1000000)), 30, "-0.349993502171292952117652486781", 0);
+        expect_str(number_cos(number_from_int(1000000)), 30, "0.936752127533144786938532535075", 0);
+        expect_str(number_tan(number_from_int(1)), 25, "1.5574077246549022305069748", 0);
+        expect_str(number_atan(number_from_int(2)), 30, "1.107148717794090503017065460179", 0);
         expect_str(number_atan(number_from_int(10)), 30, // |x| > 1: reciprocal reduction
                    "1.471127674303734591852875571762", 0);
-        expect_str(number_asin(number_from_ratio(1, 2)), 30,
-                   "0.523598775598298873077107230547", 0);
-        expect_str(number_acos(number_from_ratio(1, 2)), 30,
-                   "1.047197551196597746154214461093", 0);
-        expect_str(number_sinh(number_from_int(1)), 30,
-                   "1.175201193643801456882381850596", 0);
-        expect_str(number_cosh(number_from_ratio(1, 2)), 30,
-                   "1.127625965206380785226225161403", 0);
-        expect_str(number_tanh(number_from_int(1)), 30,
-                   "0.761594155955764888119458282605", 0);
-        expect_str(number_pow(number_from_int(3), number_from_ratio(1, 3)), 30,
-                   "1.442249570307408382321638310780", 0);
+        expect_str(number_asin(number_from_ratio(1, 2)), 30, "0.523598775598298873077107230547", 0);
+        expect_str(number_acos(number_from_ratio(1, 2)), 30, "1.047197551196597746154214461093", 0);
+        expect_str(number_sinh(number_from_int(1)), 30, "1.175201193643801456882381850596", 0);
+        expect_str(number_cosh(number_from_ratio(1, 2)), 30, "1.127625965206380785226225161403", 0);
+        expect_str(number_tanh(number_from_int(1)), 30, "0.761594155955764888119458282605", 0);
+        expect_str(number_pow(number_from_int(3), number_from_ratio(1, 3)), 30, "1.442249570307408382321638310780", 0);
 
         // pi + sqrt(2) etc. now evaluate instead of erroring (the general
         // fallback's whole point) -- decimal digits and is_rational both
@@ -1244,7 +1245,7 @@ int main(void)
         number top = number_add(one, s5);
         expect_tex(number_div(top, two), "\\frac{1}{2} + \\frac{\\sqrt{5}}{2}");
 
-        // General IRRATIONAL nodes: expression trees in TeX spelling.
+        // General IRRATIONAL nodes: expression trees in TeX form.
         expect_tex(number_sin(two), "\\sin(2)");
         expect_tex(number_exp(two), "e^{2}");
         expect_tex(number_ln(two), "\\ln(2)");
@@ -1282,7 +1283,7 @@ int main(void)
         expect_tex(number_mul(pi2, sin_a), "\\pi^{2} \\cdot \\sin(2)");
 
         // Bases that bind looser than '^' get parenthesized: a real-kind
-        // form in both spellings, and e^{2} only in TeX (where a bare
+        // form in both representations, and e^{2} only in TeX (where a bare
         // double superscript would be invalid)
         number one = number_from_int(1);
         number onepi = number_add(one, pi);
@@ -1309,7 +1310,6 @@ int main(void)
         number sin2 = number_sin(two);
         number sin3 = number_sin(three);
         expect_sym(number_mul(sin2, sin3), "sin(2)*sin(3)");
-
     }
 
     // --- Infix operands that render looser than their context get parens ---
@@ -1317,10 +1317,10 @@ int main(void)
         number pi = number_pi();
         number one = number_from_int(1);
         number two = number_from_int(2);
-        number onepi = number_add(one, pi);   // "1 + pi"
+        number onepi = number_add(one, pi); // "1 + pi"
         number s2 = number_sqrt2();
         number onesqrt2 = number_add(one, s2); // "1 + sqrt(2)"
-        number twopi = number_mul(two, pi);   // "2*pi"
+        number twopi = number_mul(two, pi); // "2*pi"
         number sin2 = number_sin(two);
 
         // The reported bug: (1+pi)*(1+sqrt(2)) printed as "(1 + pi * 1 + sqrt(2))"
@@ -1350,10 +1350,7 @@ int main(void)
         expect_sym(number_div(sin2, pi2), "sin(2)/pi^2"); // a lone power binds like an atom
         number pisin = number_mul(pi, sin2);
         expect_sym(number_div(sin2, pisin), "sin(2)/(pi*sin(2))");
-
     }
-
-
 
     // --- Reference counting ---
     {
@@ -1365,19 +1362,15 @@ int main(void)
     // --- Rounding: floor/ceil/trunc/round across all tiers ---
     {
         // Small rationals, both signs, against the mathematical definitions.
-        struct { int64_t n, d, floor, ceil, trunc, round; } cases[] = {
-            {0, 1, 0, 0, 0, 0},
-            {7, 1, 7, 7, 7, 7},
-            {-7, 1, -7, -7, -7, -7},
-            {7, 2, 3, 4, 3, 4},   // 3.5: tie -> 4 (even)
+        struct {
+            int64_t n, d, floor, ceil, trunc, round;
+        } cases[] = {
+            {0, 1, 0, 0, 0, 0},          {7, 1, 7, 7, 7, 7},    {-7, 1, -7, -7, -7, -7},
+            {7, 2, 3, 4, 3, 4}, // 3.5: tie -> 4 (even)
             {-7, 2, -4, -3, -3, -4}, // -3.5: tie -> -4 (even)
-            {5, 2, 2, 3, 2, 2},   // 2.5: tie -> 2 (even)
-            {-5, 2, -3, -2, -2, -2},
-            {1, 3, 0, 1, 0, 0},
-            {-1, 3, -1, 0, 0, 0},
-            {2, 3, 0, 1, 0, 1},
-            {-2, 3, -1, 0, 0, -1},
-            {99, 10, 9, 10, 9, 10},
+            {5, 2, 2, 3, 2, 2}, // 2.5: tie -> 2 (even)
+            {-5, 2, -3, -2, -2, -2},     {1, 3, 0, 1, 0, 0},    {-1, 3, -1, 0, 0, 0},
+            {2, 3, 0, 1, 0, 1},          {-2, 3, -1, 0, 0, -1}, {99, 10, 9, 10, 9, 10},
             {-99, 10, -10, -9, -9, -10},
         };
         for (size_t i = 0; i < sizeof(cases) / sizeof(*cases); i++) {
@@ -1441,15 +1434,13 @@ int main(void)
     {
         // Floored modulus: result takes b's sign, and a == b*floor(a/b) +
         // mod(a, b) exactly.
-        struct { int64_t an, ad, bn, bd, rn, rd; } cases[] = {
-            {7, 1, 3, 1, 1, 1},
-            {-7, 1, 3, 1, 2, 1},
-            {7, 1, -3, 1, -2, 1},
-            {-7, 1, -3, 1, -1, 1},
-            {6, 1, 3, 1, 0, 1},
-            {7, 2, 2, 1, 3, 2},   // 3.5 mod 2 = 1.5
-            {1, 2, 1, 3, 1, 6},   // 1/2 mod 1/3 = 1/6
-            {-1, 2, 1, 3, 1, 6},  // -1/2 mod 1/3 = 1/6 (floored, not truncated)
+        struct {
+            int64_t an, ad, bn, bd, rn, rd;
+        } cases[] = {
+            {7, 1, 3, 1, 1, 1},    {-7, 1, 3, 1, 2, 1}, {7, 1, -3, 1, -2, 1},
+            {-7, 1, -3, 1, -1, 1}, {6, 1, 3, 1, 0, 1},  {7, 2, 2, 1, 3, 2}, // 3.5 mod 2 = 1.5
+            {1, 2, 1, 3, 1, 6}, // 1/2 mod 1/3 = 1/6
+            {-1, 2, 1, 3, 1, 6}, // -1/2 mod 1/3 = 1/6 (floored, not truncated)
         };
         for (size_t i = 0; i < sizeof(cases) / sizeof(*cases); i++) {
             number a = number_from_ratio(cases[i].an, cases[i].ad);
@@ -1561,8 +1552,6 @@ int main(void)
         CHECK(number_to_int64(NUMBER_ERROR, &ok) == 0 && !ok);
     }
 
-
-
     // --- log2: exact on powers of two, correctly rounded otherwise ---
     {
         expect_str(number_log2(number_from_int(8)), 5, "3", 1);
@@ -1603,7 +1592,6 @@ int main(void)
 
         CHECK(number_is_error(number_atan2(number_from_int(0), number_from_int(0))));
         expect_str(number_atan2(number_from_int(1), number_from_int(2)), 6, "0.463648", 0);
-
     }
 
     // --- gcd/lcm: integers, sign normalization, zeros, rationals, bigints ---
@@ -1627,7 +1615,7 @@ int main(void)
         CHECK(number_equal(l, p100));
 
         number s2 = number_sqrt2(), two = number_from_int(2);
-        CHECK(number_is_error(number_gcd(s2, two)));   // irrational operand -> error
+        CHECK(number_is_error(number_gcd(s2, two))); // irrational operand -> error
         CHECK(number_is_error(number_lcm(two, s2)));
     }
 

@@ -2,7 +2,7 @@
 # Run the locally built tomo (building it first if needed). Works from any
 # working directory: the repository root is derived from this script's path.
 repo="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
-# Normalize uname's spellings to Zig platform keys (Darwin/arm64/amd64 etc.):
+# Normalize uname to Zig platform keys (Darwin/arm64/amd64 etc.):
 case "$(uname -s)" in
     Darwin) os=macos ;;
     *) os=$(uname -s | tr '[:upper:]' '[:lower:]') ;;

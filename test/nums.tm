@@ -11,7 +11,7 @@ test "integer division with `/` is exact"
 	assert 7/2 == 3.5
 	assert (1/3) * 3 == 1
 	assert Int64(1) / Int64(3) == 1/3
-	# The integer quotient is spelled `//`:
+	# The integer quotient uses the floored division operator `//`:
 	assert 7//2 == 3
 	assert 7//2 + 7 mod 2 * 0 == 3
 
@@ -319,8 +319,8 @@ test "force-unwrapping the square root of a negative panics"
 	_ := (-1.).sqrt()!
 fails "This was expected to be a value, but it's `none`"
 
-# As with the integer notations in test/integers.tm: these spellings are here to
-# be parsed, evaluated, and -- via test-format -- formatted back to themselves.
+# As with the integer notations in test/integers.tm, we need to test that
+# the different numeric forms are equivalent and roundtrip with `tomo format --check`
 test "num literal notations"
 	assert .5 == 0.5
 	assert 1. == 1

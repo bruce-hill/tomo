@@ -204,7 +204,7 @@ test "compound divide-assignment by zero panics"
 fails "Cannot divide 10 by zero"
 
 # The notations an integer literal can be written in. The values are the point,
-# and so is having these spellings in a file at all: test-format checks that
+# and so is having these representations in a file at all: test-format checks that
 # formatting preserves the parse of every .tm in the tree, and a literal is
 # printed back from its source span.
 test "integer literal notations"

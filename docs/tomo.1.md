@@ -214,16 +214,16 @@ behave as they would for a C program written in the `.tm` file. Function names
 are reported as Tomo names rather than the mangled C symbols they compile to.
 
 Commands are added on top of gdb's own: `tlocals` lists the Tomo variables in
-scope, `p` *var* prints one of them, and
-`tframe` re-shows where the program is stopped. `frame`, `up`, and `down`
-report the frame they select the way a stop is reported: the Tomo name of the
-function, the source around the line, and the variables in scope. `backtrace`
-(and its `bt` and `where` spellings) is likewise replaced by one that prints the
-stack in Tomo's terms -- `helper(label="widgets", count=7)` -- with argument
-values cut short; gdb's own backtrace remains available as `info stack`. These print
-values with Tomo's own formatter — the same output `say()` would produce, syntax
-coloring included — rather than the C structures they compile to. gdb's own
-`print` does the same for values whose C type belongs to exactly one Tomo type.
+scope, `p` *var* prints one of them, and `tframe` re-shows where the program is
+stopped. `frame`, `up`, and `down` report the frame they select the way a stop
+is reported: the Tomo name of the function, the source around the line, and the
+variables in scope. `backtrace` (and `bt`/`where`) is likewise replaced by one
+that prints the stack in Tomo's terms -- `helper(label="widgets", count=7)` --
+with argument values cut short; gdb's own backtrace remains available as `info
+stack`. These print values with Tomo's own formatter — the same output `say()`
+would produce, syntax coloring included — rather than the C structures they
+compile to. gdb's own `print` does the same for values whose C type belongs to
+exactly one Tomo type.
 
 A `Num` is exact, so it prints exactly — `32768/3`, `pi`, `1/2 + sqrt(5)/2` —
 and the debugger shows a rounded decimal beside it (`32768/3 \[u2248] 10922.6666666667`)

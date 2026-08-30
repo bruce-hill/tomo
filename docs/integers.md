@@ -69,8 +69,9 @@ fit in the specified integer size (e.g. `Int8(99999)`).
 ## A Note on Division
 
 Dividing two integers with `/` gives the **exact** answer as a
-[`Num`](nums.md), because that's what division means: `7/2` is `3.5` and
-`1/3` is exactly a third. The *integer* quotient is spelled `//`:
+[`Num`](nums.md), because that's what division means: `7/2` is `3.5` and `1/3`
+is exactly a third. The *integer* quotient uses the floored division operator
+`//`:
 
 ```tomo
 assert 7/2 == 3.5

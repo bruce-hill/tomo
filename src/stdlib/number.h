@@ -108,12 +108,12 @@ number number_from_decimal(const char *str);
 // future change to the internal representation can't silently break it
 // without a test failing first.
 #define NUMBER_SMALL_NUM_MIN (-2147483647LL) // -(2^31 - 1); zero can't be negative, so -2^31 itself doesn't arise
-#define NUMBER_SMALL_NUM_MAX 2147483647LL    // 2^31 - 1
-#define NUMBER_SMALL_DEN_MAX 1073741823u     // 2^30 - 1
-#define NUMBER_SMALL(num, den) \
+#define NUMBER_SMALL_NUM_MAX 2147483647LL // 2^31 - 1
+#define NUMBER_SMALL_DEN_MAX 1073741823u // 2^30 - 1
+#define NUMBER_SMALL(num, den)                                                                                         \
     ((number){((uint64_t)(uint32_t)(int32_t)(num) << 32) | ((uint64_t)(uint32_t)(den) << 2) | 0x1u})
 
-// The three most common numeric literals, spelled out for a code generator
+// The three most common numeric literals, #defined for a code generator
 // (or anyone else) that would otherwise write NUMBER_SMALL(0, 1) etc. --
 // same zero-cost compile-time constant, just named. Compare NUMBER_ERROR
 // above, which does the same for the (unrelated) error immediate.
@@ -123,7 +123,7 @@ number number_from_decimal(const char *str);
 
 // --- Predicates ---
 
-// Whether x is the error value: the same test number_is_error does, spelled
+// Whether x is the error value: the same test number_is_error does, written
 // as a macro for callers that can't afford a call. The low two bits are the
 // tag and 11 is the error tag (see "Tagging" above and number-design.md), so
 // this is one mask-and-compare on a value already in a register.
@@ -223,44 +223,37 @@ number number_neg(number x);
 //   - Retagging is a single +/-0x5 on the whole word (low half is 0xA
 //     after an add, 0x0 after a subtract; either way the numerator field
 //     is untouched since no carry/borrow crosses bit 32).
-extern inline __attribute__((gnu_inline, always_inline)) number number_add(number a, number b)
-{
+extern inline __attribute__((gnu_inline, always_inline)) number number_add(number a, number b) {
     if (__builtin_expect((a.bits & 0xFFFFFFFFu) == 0x5u && (b.bits & 0xFFFFFFFFu) == 0x5u, 1)) {
         uint64_t w = a.bits + b.bits;
-        if (__builtin_expect((int64_t)((a.bits ^ w) & (b.bits ^ w)) >= 0 &&
-                              (w >> 32) != 0x80000000u, 1))
+        if (__builtin_expect((int64_t)((a.bits ^ w) & (b.bits ^ w)) >= 0 && (w >> 32) != 0x80000000u, 1))
             return (number){w - 0x5u};
     }
     return number_add_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) number number_sub(number a, number b)
-{
+extern inline __attribute__((gnu_inline, always_inline)) number number_sub(number a, number b) {
     if (__builtin_expect((a.bits & 0xFFFFFFFFu) == 0x5u && (b.bits & 0xFFFFFFFFu) == 0x5u, 1)) {
         uint64_t w = a.bits - b.bits; // low halves cancel exactly: low32(w) == 0
-        if (__builtin_expect((int64_t)((a.bits ^ b.bits) & (a.bits ^ w)) >= 0 &&
-                              (w >> 32) != 0x80000000u, 1))
+        if (__builtin_expect((int64_t)((a.bits ^ b.bits) & (a.bits ^ w)) >= 0 && (w >> 32) != 0x80000000u, 1))
             return (number){w + 0x5u};
     }
     return number_sub_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) number number_mul(number a, number b)
-{
+extern inline __attribute__((gnu_inline, always_inline)) number number_mul(number a, number b) {
     if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {
         uint64_t da = (a.bits >> 2) & NUMBER_SMALL_DEN_MAX, db = (b.bits >> 2) & NUMBER_SMALL_DEN_MAX;
         if (__builtin_expect(da == 1 && db == 1, 1)) { // integer sub-path, matching number_mul
             int64_t na = (int32_t)(a.bits >> 32), nb = (int32_t)(b.bits >> 32), prod;
-            if (!__builtin_mul_overflow(na, nb, &prod) && prod <= NUMBER_SMALL_NUM_MAX &&
-                prod >= NUMBER_SMALL_NUM_MIN)
+            if (!__builtin_mul_overflow(na, nb, &prod) && prod <= NUMBER_SMALL_NUM_MAX && prod >= NUMBER_SMALL_NUM_MIN)
                 return NUMBER_SMALL(prod, 1);
         }
     }
     return number_mul_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) number number_div(number a, number b)
-{
+extern inline __attribute__((gnu_inline, always_inline)) number number_div(number a, number b) {
     if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {
         uint64_t da = (a.bits >> 2) & NUMBER_SMALL_DEN_MAX, db = (b.bits >> 2) & NUMBER_SMALL_DEN_MAX;
         if (__builtin_expect(da == 1 && db == 1, 1)) {
@@ -279,8 +272,7 @@ extern inline __attribute__((gnu_inline, always_inline)) number number_div(numbe
     return number_div_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) number number_neg(number x)
-{
+extern inline __attribute__((gnu_inline, always_inline)) number number_neg(number x) {
     if (__builtin_expect((x.bits & 3) == 1, 1)) {
         // Negating an already-in-bounds small rational is always back in
         // bounds (|-num| == |num|; NUMBER_SMALL_NUM_MIN is -(2^31-1), not
@@ -322,7 +314,7 @@ number number_lcm(number a, number b);
 // and never hit the cap in practice.
 
 number number_floor(number x); // largest integer <= x
-number number_ceil(number x);  // smallest integer >= x
+number number_ceil(number x); // smallest integer >= x
 number number_trunc(number x); // round toward zero: floor for x >= 0, ceil for x < 0
 number number_round(number x); // nearest integer, ties to even (round-half-even,
                                // matching number_to_string's digit rounding)
@@ -436,9 +428,8 @@ int number_compare(number a, number b);
 int number_compare_capped(number a, number b, uint32_t max_prec);
 bool number_equal(number a, number b);
 #else
-extern inline __attribute__((gnu_inline, always_inline)) int number_compare_capped(number a, number b,
-                                                                                   uint32_t max_prec)
-{
+extern inline
+    __attribute__((gnu_inline, always_inline)) int number_compare_capped(number a, number b, uint32_t max_prec) {
     // The tier-1 fast path is precision-independent, so it is exactly
     // number_compare's; only the refinement past it takes the cap.
     if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {
@@ -450,8 +441,7 @@ extern inline __attribute__((gnu_inline, always_inline)) int number_compare_capp
     return number_compare_capped_general(a, b, max_prec);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) int number_compare(number a, number b)
-{
+extern inline __attribute__((gnu_inline, always_inline)) int number_compare(number a, number b) {
     if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {
         if (a.bits == b.bits) return 0; // same immediate
         // Cross-multiply, matching number_compare_general's own TAG_SMALL
@@ -464,8 +454,7 @@ extern inline __attribute__((gnu_inline, always_inline)) int number_compare(numb
     return number_compare_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) bool number_equal(number a, number b)
-{
+extern inline __attribute__((gnu_inline, always_inline)) bool number_equal(number a, number b) {
     // Single-operand tag test (Leijen, MSR-TR-2022-17, section 2.5): when
     // a is a small immediate, a.bits == b.bits fully decides equality
     // *regardless of what b is* -- so only a's tag needs checking, and the

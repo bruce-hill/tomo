@@ -13,9 +13,9 @@
 #include "utils.h"
 
 static const char *keywords[] = {
-    "C_code", "_embed_", "_max_", "_min_",  "and",   "assert", "break", "continue", "defer", "do",   "else", "enum",
-    "for",    "func",    "if",    "in",     "match", "mod",    "mod1",  "no",       "none",  "not",  "or",   "pass",
-    "return", "struct",  "then",  "unless", "use",   "while",  "xor",   "yes",
+    "C_code", "_embed_", "_max_",  "_min_",  "and",  "assert", "break", "continue", "defer", "do",   "else",
+    "enum",   "for",     "func",   "if",     "in",   "match",  "mod",   "mod1",     "no",    "none", "not",
+    "or",     "pass",    "return", "struct", "then", "unless", "use",   "while",    "xor",   "yes",
 };
 
 CONSTFUNC bool is_keyword(const char *word) {
@@ -106,8 +106,8 @@ const char *get_word(const char **inout) {
     if (ascii_only) return strndup_bounded(word, len);
 
     // Normalize non-ASCII identifiers to NFC (per Unicode UAX #31) so that
-    // canonically-equivalent spellings (e.g. precomposed "é" vs. "e" + combining
-    // accent) refer to the same variable.
+    // canonically-equivalent unicode representations (e.g. precomposed
+    // "é" vs. "e" + combining accent) refer to the same variable.
     size_t norm_len = 0;
     uint8_t *normalized = u8_normalize(UNINORM_NFC, (const uint8_t *)word, len, NULL, &norm_len);
     if (!normalized) return strndup_bounded(word, len); // Fall back to the raw bytes on failure
@@ -276,7 +276,8 @@ const char *unescape(parse_ctx_t *ctx, const char **out, size_t *len_out) {
     } else if ('0' <= escape[1] && escape[1] <= '7') {
         // Octal escape: \n, \nn, or \nnn (1 to 3 octal digits)
         int digits = 1;
-        while (digits < 3 && '0' <= escape[1 + digits] && escape[1 + digits] <= '7') digits++;
+        while (digits < 3 && '0' <= escape[1 + digits] && escape[1 + digits] <= '7')
+            digits++;
         char buf[4] = {0};
         memcpy(buf, &escape[1], (size_t)digits);
         char c = (char)strtol(buf, NULL, 8);

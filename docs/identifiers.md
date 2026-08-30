@@ -37,7 +37,7 @@ identical but are different byte sequences.
 To avoid confusing situations where two identifiers look the same but don't
 refer to the same thing, Tomo normalizes every identifier to [Normalization
 Form C (NFC)](https://www.unicode.org/reports/tr15/) at parse time. Both
-spellings of `résumé` below refer to the same variable:
+unicode representations of `résumé` below refer to the same variable:
 
 ```tomo
 func main()

@@ -283,7 +283,7 @@ static const TypeInfo_t Shape$info = {
 };
 
 // ---------------------------------------------------------------------------
-// pop_cli_flag: the long-flag spellings
+// pop_cli_flag: the long-flag versions
 // ---------------------------------------------------------------------------
 
 static void test_long_flags(void) {
@@ -306,7 +306,7 @@ static void test_long_flags(void) {
 }
 
 // ---------------------------------------------------------------------------
-// pop_cli_flag: the short-flag spellings, including clusters
+// pop_cli_flag: the short-flag versions, including clusters
 // ---------------------------------------------------------------------------
 
 static void test_short_flags(void) {
@@ -331,7 +331,7 @@ static void test_short_flags(void) {
 }
 
 // ---------------------------------------------------------------------------
-// Boolean flags, which have their own spellings (--no-flag, --flag=yes, ...)
+// Boolean flags, which have their own versions (--no-flag, --flag=yes, ...)
 // ---------------------------------------------------------------------------
 
 static void test_boolean_flags(void) {
@@ -339,14 +339,14 @@ static void test_boolean_flags(void) {
     CHECK_POP(&Bool$info, false, 'f', "force", ARGS("--force", "rest"), "yes", "rest");
     CHECK_POP(&Bool$info, true, 'f', "force", ARGS("--no-force", "rest"), "no", "rest");
 
-    // --flag=<boolean> and -f=<boolean>, in every spelling Bool$parse accepts:
-    static const char *const yes_spellings[] = {"yes", "true", "on", "1"};
-    static const char *const no_spellings[] = {"no", "false", "off", "0"};
-    for (size_t i = 0; i < sizeof(yes_spellings) / sizeof(yes_spellings[0]); i++) {
-        CHECK_POP(&Bool$info, false, 'f', "force", ARGS(String("--force=", yes_spellings[i])), "yes", "");
-        CHECK_POP(&Bool$info, false, 'f', "force", ARGS(String("-f=", yes_spellings[i])), "yes", "");
-        CHECK_POP(&Bool$info, true, 'f', "force", ARGS(String("--force=", no_spellings[i])), "no", "");
-        CHECK_POP(&Bool$info, true, 'f', "force", ARGS(String("-f=", no_spellings[i])), "no", "");
+    // --flag=<boolean> and -f=<boolean>, in every form Bool$parse accepts:
+    static const char *const yes_values[] = {"yes", "true", "on", "1"};
+    static const char *const no_values[] = {"no", "false", "off", "0"};
+    for (size_t i = 0; i < sizeof(yes_values) / sizeof(yes_values[0]); i++) {
+        CHECK_POP(&Bool$info, false, 'f', "force", ARGS(String("--force=", yes_values[i])), "yes", "");
+        CHECK_POP(&Bool$info, false, 'f', "force", ARGS(String("-f=", yes_values[i])), "yes", "");
+        CHECK_POP(&Bool$info, true, 'f', "force", ARGS(String("--force=", no_values[i])), "no", "");
+        CHECK_POP(&Bool$info, true, 'f', "force", ARGS(String("-f=", no_values[i])), "no", "");
     }
 
     // A bare short flag takes no value, so it can be clustered with others:
@@ -357,7 +357,7 @@ static void test_boolean_flags(void) {
     CHECK_POP(&Bool$info, false, 'f', "force", ARGS("--force", "no"), "yes", "no");
 
     // A longer flag that merely starts with this one's name is not a match, in
-    // any of the boolean spellings:
+    // any of the boolean values:
     CHECK_NO_POP(&Bool$info, false, 'f', "force", ARGS("--forced"), "no", "--forced");
     CHECK_NO_POP(&Bool$info, false, 'f', "force", ARGS("--forced=yes"), "no", "--forced=yes");
     CHECK_NO_POP(&Bool$info, false, 'f', "force", ARGS("--no-forced"), "no", "--no-forced");
@@ -410,7 +410,7 @@ static void test_scalar_types(void) {
 }
 
 // An optional argument renders as its value or as `none`, which is exactly
-// what has to be checked -- whichever way the type spells none internally (a
+// what has to be checked -- whichever way the type represents none internally (a
 // has_value byte, a NaN, a NULL pointer, a reserved bit pattern).
 #define OPT(t, inner) Optional$info(sizeof(t), __alignof__(t), (inner))
 
@@ -521,7 +521,7 @@ static void test_optional_containers(void) {
 static void test_optional_booleans(void) {
     const TypeInfo_t *opt_bool = OPT(OptionalBool_t, &Bool$info);
 
-    // Every boolean spelling, plus `none` for the third value:
+    // Every boolean value, plus `none` for the third value:
     static const struct {
         const char *arg, *want;
     } cases[] = {
@@ -580,7 +580,7 @@ static void test_optional_booleans(void) {
 static void test_negative_numbers(void) {
     const TypeInfo_t *ints = List$info(&Int32$info), *texts = List$info(&Text$info);
 
-    // Every spelling of a numeric flag takes a negative value:
+    // Make sure negative values are parsed right:
     CHECK_POP(&Int$info, I(0), 'n', "count", ARGS("--count", "-1"), "-1", "");
     CHECK_POP(&Int$info, I(0), 'n', "count", ARGS("--count=-1"), "-1", "");
     CHECK_POP(&Int$info, I(0), 'n', "count", ARGS("-n", "-1"), "-1", "");
@@ -814,7 +814,7 @@ static void test_errors(void) {
     CHECK_PARSE_ERROR(ARGS("--count", "--name"), "Not a valid flag: --name", BAD_ARG("count", &Int$info),
                       BAD_ARG("name", &Text$info));
 
-    // A dashed value is a flag to a non-numeric argument even when it spells a
+    // A dashed value is a flag to a non-numeric argument even when it represents a
     // number, and a dashed non-number is a flag even to a numeric one:
     CHECK_PARSE_ERROR(ARGS("--name", "-1"), "Not a valid flag: -1", BAD_ARG("name", &Text$info));
     CHECK_PARSE_ERROR(ARGS("--count", "-x"), "Not a valid flag: -x", BAD_ARG("count", &Int$info));
@@ -840,7 +840,6 @@ static void test_errors(void) {
     CHECK_PARSE_ERROR(ARGS("-f=banana"), "Invalid boolean value for flag -f",
                       BAD_ARG("force", &Bool$info, .short_flag = 'f'));
 
-    // Errors show the usage text, so the user can see the right spelling...
     CHECK_PARSE_ERROR(ARGS(), "Usage: prog [--name text]", BAD_ARG("name", &Text$info, .required = true));
 
     // ...and the command hint is appended too, so a mistyped subcommand is
@@ -1177,7 +1176,7 @@ static void test_dispatch_short_flag_shadowing(void) {
     CHECK_STR(ran_command, "(root)");
     CHECK(global_verbose);
 
-    // ...while the long spellings, which nothing here contests, still work:
+    // ...while the long versions, which nothing here contests, still work:
     CHECK_DISPATCH_OF(&cli, 0, "prog 9.9.9", "--version");
     CHECK_DISPATCH_OF(&cli, 0, "Usage: prog", "--help");
 }
