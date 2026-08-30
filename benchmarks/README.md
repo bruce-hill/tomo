@@ -1,147 +1,38 @@
 # Tomo benchmarks
 
-Compare Tomo's performance against other languages using programs from [The
-Computer Language Benchmarks Game][clbg] (CLBG).
+Tomo's performance against other languages, using programs from [The Computer
+Language Benchmarks Game][clbg] (CLBG).
 
 Only the **Tomo** ports (`tomo/*.tm`) live in this repo. Every other language's
-source is **downloaded on demand** into `fetched/`, which is git-ignored, so
-this directory never vendors other languages' code. Most come from the CLBG
-website; **Zig**, **Nim**, and **Odin** aren't covered by the CLBG, so they're
-fetched from the community [Programming-Language-Benchmarks][plb] repo instead.
+source is downloaded on demand into the git-ignored `fetched/`, so this
+directory never vendors other languages' code. Most come from the CLBG site;
+Zig, Nim, and Odin aren't covered there, so they come from the community
+[Programming-Language-Benchmarks][plb] repo instead.
 
-The PNG graphs below are a checked-in snapshot from one x86-64 Linux box (best
-of 3 runs, each pinned to a single core, every output validated against the
-reference). Timings are machine-specific, and `results.json` and the vector
-graphs are git-ignored; `make benchmarks` (see [Usage](#usage)) reproduces
-everything locally and regenerates these PNGs.
+## Results
+
+The checked-in PNGs are a snapshot from one x86-64 Linux box (best of 3 runs,
+each pinned to a single core, every output validated). Timings are
+machine-specific; `make benchmarks` reproduces and regenerates them locally.
 
 ![Tomo vs. other languages across nine benchmarks](results.png)
 
-Where a handful of entries are far slower than the rest of the field, the
-panel's x-axis is **truncated** to the rest of the field, an ordinary linear
-axis, just a shorter one. Without it, Python's 182s on spectral-norm would
-squash the other eleven languages into slivers. The entries that don't fit run
-off the end of the axis, marked with an arrowhead and labeled with their real
-time and slowdown, so they're plainly off the chart rather than silently
-rescaled. Where to truncate is picked from the data (`truncate_at` in
+Across ~17 languages and all nine benchmarks, **Tomo sits inside the
+compiled-language cluster and beats every scripting language on every
+benchmark**, and on four of the nine it is at or ahead of C. Highlights:
+fannkuch-redux 0.16s (a shade faster than C++, Fortran, and C), binary-trees
+0.20s (4th of 16, ahead of C, C++, Zig, Go), mandelbrot 0.70s (beats the
+multithreaded C and Go entries outright), k-nucleotide 0.23s (3rd, behind only
+C and C++). Its weakest showing is pidigits at ~4.5× C, a pure GMP bignum
+stress test, still 4th of 9. No garbage-collected, memory-safe language in the
+set is dramatically ahead of it.
+
+Where a few entries are far slower than the rest (Python's 182s on
+spectral-norm), a panel's x-axis is truncated to the rest of the field, still
+an ordinary linear axis. Entries that don't fit run off the end with an
+arrowhead and their real time, so they're plainly off the chart rather than
+silently rescaled. The cut is derived from the data (`truncate_at` in
 `plot.py`), not hardcoded per benchmark.
-
-With the field now up to ~17 languages across all nine of the CLBG's
-library-free benchmarks, the useful summary is that **Tomo sits inside the
-compiled-language cluster and beats every scripting language on every single
-benchmark, with no exceptions**, and on four of the nine it is at or ahead of C.
-On the tight compute loops: **fannkuch-redux** puts it at 0.16s, 6th of 15 and a
-shade *faster* than C++, Fortran, and C; **n-body** at 0.26s is ~1.9× the
-leaders (Rust/Zig), just ahead of C#, Go, and Java. On the hash-table-heavy
-**k-nucleotide** it takes 3rd at 0.23s, behind only C and C++ and ahead of
-Go, LuaJIT, Java, Rust, and every scripting language. **binary-trees** (an
-allocation/GC stress test) has it 4th of 16 at 0.20s, *ahead of C, C++, Zig,
-Fortran, Go, and Odin*, trailing only Nim, Java, and C#. **fasta** at 0.34s is
-1.4× C and 4.6× the leader (Zig's byte tables set a high bar here), still ahead
-of Java, Rust, LuaJIT, Fortran, C#, and every scripting language.
-
-Of the four newer benchmarks, **mandelbrot** is a standout: at 0.70s Tomo
-*beats* the (multithreaded, core-pinned) C and Go entries outright, trailing
-only Rust, C++, and Java. **reverse-complement** at 0.16s (1.6× C) is 5th of 12,
-ahead of Java, Python, LuaJIT, JavaScript, PyPy, C++, and Lua, and closing in on
-C#/Swift (0.13s/0.11s). **spectral-norm** at 1.15s is ~1.9× C, ahead of Go,
-LuaJIT, C#, Java, and every scripting language. **pidigits**, a pure GMP bignum
-stress test, is Tomo's weakest relative showing at ~4.5× C, but still 4th of 9,
-comfortably ahead of Python, PyPy, C#, Java, and JavaScript. Several runtime and
-compiler improvements came out of chasing these numbers down; see below.
-
-The top of each compute chart is crowded with fast natives, and Zig, Nim,
-Fortran, and Rust routinely lead, but no garbage-collected, memory-safe language
-in the set is dramatically ahead of Tomo, and the scripting languages trail it
-everywhere, often by one or two orders of magnitude (Python is 50–300× slower
-than the fastest entry on several benchmarks here).
-
-### Runtime improvements this benchmark suite found
-
-Each before/after time below is the pair measured when that change was made, on
-this same box; they're a record of the improvement, not of where the benchmark
-stands today (see the current numbers above).
-
-Timing **pidigits** turned up a genuine bug: every `Int` bignum's GMP limb
-storage was allocated with GMP's default (plain `malloc`) allocator, so the
-garbage collector never reclaimed it and a bignum-heavy loop leaked
-continuously. Routing GMP's allocation hooks through the GC
-(`mp_set_memory_functions`, set up once in `tomo_init`) fixed it: peak RSS on
-pidigits (n=10000) dropped from **~11.3 GB to 12 MB**, and wall time from
-6.75s to 1.75s, since the GC was no longer thrashing over gigabytes of leaked
-limbs.
-
-Profiling **reverse-complement** (which built its output with a per-byte
-`out.insert(c)`) turned up a second one: `List$insert`'s growth path copied the
-*entire* existing list one element at a time via a separate `memcpy()` call per
-item, even when the data was already tightly packed and a single bulk `memcpy`
-would do. `perf` showed a quarter of total runtime spent inside those one-byte
-`memcpy` calls. Fixed to bulk-copy contiguous lists (the common case, including
-every plain append-via-`insert`); this alone took reverse- complement from 0.60s
-to 0.40s and improved k-nucleotide (which builds its sequence the same way) too.
-It's a general fix that speeds up any Tomo code building a list via repeated
-`insert()`, not just these two benchmarks.
-
-Even with that fix, `List$insert` still calls `memcpy()` once per element for
-the actual item placement, which is real function-call overhead when the item is
-a single byte. The reverse-complement port now avoids `insert()` entirely: its
-output buffer is `data`'s own backing bytes, reused as scratch space by slicing
-them (an O(1), zero-copy view) and writing into that slice by index. The *first*
-indexed write triggers one bulk copy-on-write compact for the whole buffer;
-every write after that is a plain bounds-checked pointer store, no function call
-and no growth logic at all. That dropped reverse-complement from 0.40s to 0.30s.
-
-At that point Tomo was still ~2x slower than Go, C#, and Swift, so we dug
-further with `perf annotate` on the compiled binary. The remaining cost split
-roughly in half: ~29% of total runtime was a scalar per-byte scan just to locate
-each FASTA record's boundary (looking for the next `>`); ~51% was a
-data-dependent branch in the transform loop itself (checking whether each byte
-was a former newline to skip it). Go's reference doesn't pay either cost: it
-reads *lines* via `bufio.ReadSlice('\n')`, which uses a vectorized `IndexByte`
-(memchr-equivalent) internally, and C#'s calls `Array.IndexOf` directly
-(SIMD-accelerated on .NET). Both delegate the byte-search entirely to a
-vectorized primitive Tomo's stdlib didn't have.
-
-So we added one: **`List$find`/`List$has` now use `memchr()` for `[Byte]`/
-`[Int8]` lists** (stride 1, no metamethods, since byte-value equality already
-*is* what `memchr` computes), instead of a scalar per-element loop. Measured on a
-50M-byte worst-case search (value absent, forces a full scan): 1.59s → 0.37s,
-~4.3x. Rewriting reverse-complement's two boundary scans as `data.from(i)
-.find(...)` calls, the same technique Go and C# use, expressed in pure Tomo with
-no inline C, brought it to **0.25s, closing most of that gap: clearly ahead of
-Java and Python, and within striking distance of C#/Swift**. `List.find`'s new
-memchr fast path is a general win too, not specific to this benchmark: it speeds
-up any byte/int8-list search in any Tomo program.
-
-We tried one more restructuring first that *didn't* pan out, worth recording
-honestly: mimicking Go's exact technique of transforming line-by-line into a
-branchless inner loop, deferring all newline-insertion to a separate bulk rewrap
-pass. It successfully eliminated the per-byte data-dependent branch, but was
-*slower* in practice (0.26s → 0.37s). `perf annotate` showed the more complex
-multi-cursor loop nest defeated GCC's strength-reduction of the list-indexing
-math, replacing cheap pointer increments with real per-access multiplies that
-cost more than the branch it removed. Good algorithmic intuition doesn't always
-survive contact with the compiler's actual codegen; measuring beats predicting.
-
-Separately, exploring whether the transform could be expressed the *idiomatic*
-way, a list comprehension `[comp[d] for d in region.reversed() if d !=
-newline]`, motivated three general compiler/runtime improvements so that
-idiomatic form wouldn't pay a heavy tax: (1) **list comprehensions now compile
-to a pre-sized buffer filled with inlined appends** instead of
-`insert`-into-an-empty-list. For `[expr for x in SOURCE (if cond)]` over a list,
-the result can't exceed `SOURCE.length`, so the buffer is allocated once and
-every append is a bounds-free store (no growth realloc, no per-element function
-call). This ~3×'d a comprehension microbenchmark (0.39s → 0.13s). (2) The
-inlined-append fast path lives in `List.insert` itself (keyed on appending at
-the end), so *all* append-in-a-loop code benefits, not just comprehensions. (3)
-**Unsigned-int lists (including `[Byte]`) are now GC-atomic**, so the collector
-no longer scans their payload for pointers. With all three, a comprehension port
-of reverse-complement lands within ~15% of the hand-tuned index loop,
-impressively close for fully idiomatic code but still behind it, because a
-comprehension is at most 1:1 and so can't also insert the wrap newlines in the
-same pass (it must materialize the sequence and re-wrap it separately). The
-benchmark keeps the faster single-pass version; the compiler improvements stand
-on their own for everyday code.
 
 Per-benchmark graphs: [n-body](results-nbody.png) ·
 [fannkuch-redux](results-fannkuchredux.png) · [fasta](results-fasta.png) ·
@@ -151,55 +42,19 @@ Per-benchmark graphs: [n-body](results-nbody.png) ·
 [mandelbrot](results-mandelbrot.png) ·
 [spectral-norm](results-spectralnorm.png).
 
-### Binary size
-
-A companion comparison of **static binary sizes**, for the languages that can
-produce a standalone statically-linked executable, is generated by `bench.py
-sizes` and `plot.py --sizes`:
-
 ![Static binary size across languages](sizes.png)
 
-Every binary here is statically linked and stripped, so the number is the whole
-self-contained footprint (code + language runtime), not a stub that leans on a
-system `libc`. Tomo's binary is **~770 KB and near-constant across every
-benchmark** (761–787 KB over all nine): the runtime dominates and the program
-itself is noise. Only Zig's minimal-runtime musl builds (15–38 KB) are in a
-different league; Tomo lands within a few percent of C's static binaries either
-way (smaller on binary-trees and fasta, slightly larger elsewhere) and well
-under Nim (~810 KB), Rust (~1.2–1.4 MB), Go (~1.6 MB), and C++ (up to 2.2 MB).
-(Interpreted and bytecode languages have no such binary; Swift, Odin, and
-Fortran can't statically link on the test box; and pidigits/spectral-norm's
-C/C++ drop out where static `libgmp`/`libgomp` aren't installed.)
-
-## Layout
-
-```
-benchmarks/
-  config.json      # languages (build/run recipes) + per-benchmark program map
-  bench.py         # driver: fetch / run / list
-  fetch.sh         # thin wrapper: ./fetch.sh  ==  bench.py fetch
-  plot.py          # results.json -> results.svg + results.png (or --sizes)
-  tomo/            # TRACKED: the Tomo ports (the only source we own)
-    nbody.tm
-    fannkuchredux.tm
-    fasta.tm
-    knucleotide.tm
-    binarytrees.tm
-    pidigits.tm
-    reversecomplement.tm
-    mandelbrot.tm
-    spectralnorm.tm
-  fetched/         # git-ignored: reference implementations, downloaded
-  .build/          # git-ignored: compiled binaries / build scratch
-  results.json     # git-ignored: measured timings
-  sizes.json       # git-ignored: measured static binary sizes
-```
+Binary sizes are statically linked and stripped, so each number is the whole
+self-contained footprint, not a stub leaning on a system `libc`. Tomo's is
+**~770 KB and near-constant** across all nine (761–787 KB): the runtime
+dominates and the program is noise. Only Zig's minimal-runtime musl builds
+(15–38 KB) are in a different league. Tomo lands within a few percent of C
+either way, and well under Nim (~810 KB), Rust (~1.2–1.4 MB), Go (~1.6 MB),
+and C++ (up to 2.2 MB).
 
 ## Usage
 
-From the repository root, `make benchmarks` does the whole thing: rebuild the
-compiler, fetch anything missing, re-time every language, re-measure binary
-sizes, and re-render every graph:
+From the repository root:
 
 ```sh
 make benchmarks                          # everything, end to end
@@ -212,166 +67,122 @@ make benchmark-list                      # benchmarks + toolchain status
 make benchmark-refetch                   # re-download reference programs
 ```
 
-Every `BENCH_*` variable below works either as an environment variable or as a
-`make` variable. The underlying scripts can also be run directly:
+`bench.py` (`fetch`/`list`/`run`/`sizes`) and `plot.py` (`--sizes`) can also be
+run directly. Each `BENCH_*` variable works as an environment variable or a
+`make` variable:
 
-```sh
-./fetch.sh                 # download reference implementations for all benchmarks
-python3 bench.py list      # show benchmarks + which toolchains are installed
-python3 bench.py run       # build, run, validate, and time every language
-python3 bench.py sizes     # build every language statically, record binary sizes
-python3 plot.py            # render results.svg and results.png
-python3 plot.py --sizes    # render sizes.svg and sizes.png from sizes.json
-```
-
-Environment overrides for quick iteration:
-
-- `BENCH_ARGS="1000"`: override the benchmark input (e.g. a fast smoke test).
-- `BENCH_REPEATS=1`: number of timed runs per language (best time is kept).
+- `BENCH_ARGS="1000"`: override the benchmark input.
+- `BENCH_REPEATS=1`: timed runs per language (best time is kept).
 - `BENCH_BUILD_TIMEOUT=180`: per-language build timeout in seconds.
-- `BENCH_CPU=2`: which core to pin runs to (default `0`); `BENCH_CPU=all`
-  disables pinning.
+- `BENCH_CPU=2`: which core to pin to (default `0`); `all` disables pinning.
 
 ## How a run works
 
-For each benchmark, the **reference** language (C) runs first and its output
-becomes the expected result. Every other language must reproduce that output
-byte-for-byte or it is flagged as an output mismatch (a program can't post a
-fast time by computing the wrong thing). Each language is run `repeats` times
-and the best wall-clock time is kept, along with peak RSS.
+The reference language (C) runs first and its output becomes the expected
+result. Every other language must reproduce it byte-for-byte, so a program
+can't post a fast time by computing the wrong thing. Each is run `repeats`
+times and the best wall-clock time is kept, along with peak RSS.
 
-**Every timed run is pinned to a single core** (`taskset -c 0`). Several CLBG
-programs are multithreaded (fannkuch-redux's `go-1` hardcodes
-`runtime.GOMAXPROCS(4)`, `gpp-1` fans out with `std::async`, and the Rust and
-Java entries spawn threads), while the C reference and the Tomo ports are
-single-threaded. Unpinned, the wall-clock chart would compare 1-core programs
-against N-core ones; pinned, it's a same-resources, language-vs-language
-comparison.
+**Every timed run is pinned to one core** (`taskset -c 0`). Several CLBG
+programs are multithreaded (fannkuch-redux's `go-1` hardcodes `GOMAXPROCS(4)`,
+`gpp-1` fans out with `std::async`) while the C reference and the Tomo ports
+are single-threaded. Pinning makes it a same-resources comparison instead of
+1-core against N-core.
 
-## Ground rules for the Tomo ports
+The Tomo ports implement the actual algorithm in pure Tomo, using the same
+algorithm as the reference. The only permitted `C_code` is `printf` for the
+final numeric output, since Tomo has no `%.9f`-style zero-padded float
+formatting.
 
-- **No inline C for computation.** The Tomo ports implement the actual
-  algorithm in pure Tomo. The *only* permitted `C_code` use is formatting the
-  final numeric output with `printf` (Tomo has no `%.9f`-style zero-padded
-  float formatting), matching the benchmark's required output exactly.
-- Ports use the same algorithm as the reference programs, sized by the same
-  input, and validated against the reference output.
+## Coverage
 
-## Languages
+All nine of the CLBG's library-free core benchmarks are implemented.
+(regex-redux is excluded: it benchmarks a regex library, not the language.)
+Not every language has an entry for every one, and a language with no
+installed toolchain is skipped rather than failing the run.
 
-| Status | Languages |
-|--------|-----------|
-| Active | C (gcc), C++ (g++), Rust, Go, Zig, Nim, Odin, Java, C#, Swift, Fortran, JavaScript (node), Lua, LuaJIT, Python, PyPy, **Tomo** |
+| Language | Benchmarks | Notable gaps |
+|---|---|---|
+| C, C++, Go, Java, JavaScript, Python, PyPy, **Tomo** | 9/9 | |
+| C# | 8/9 | k-nucleotide needs the `DictionarySlim` NuGet package |
+| Lua, LuaJIT | 8/9 | no pidigits entry |
+| Swift | 7/9 | no pidigits; `swiftc` can't type-check spectral-norm's `eval_A` in reasonable time |
+| Rust | 6/9 | the missing three all need `rug`/`ramp`, `rayon`, or an arena crate |
+| Fortran, Zig | 4/9 | no CLBG Fortran hash table for k-nucleotide; Zig's k-nucleotide reads a file path, not stdin |
+| Nim | 3/9 | no upstream entries to fetch |
+| Odin | 2/9 | no upstream entries; its k-nucleotide no longer compiles |
 
-Not every language implements every benchmark. A language runs only the
-benchmarks it has a validated program for; the rest are simply absent from that
-chart. Coverage gaps (and why they exist) are noted below.
+Toolchain notes:
 
-C# uses **Native AOT** (`dotnet publish` with `PublishAot`), matching the CLBG
-`csharpaot` entries: the driver writes a minimal AOT `.csproj`, drops the
-fetched source in as `Program.cs`, and runs the resulting standalone native
-binary, a fair peer to the other compiled languages, with none of the JIT/
-runtime startup a `dotnet foo.dll` launch adds to every short run. It needs the
-.NET SDK plus `clang` (for the final native link); machines without both are
-skipped. The first AOT build restores the ILCompiler package from NuGet, so it
-needs network access once.
+- **C#** uses Native AOT (`dotnet publish` with `PublishAot`), matching CLBG's
+  `csharpaot` entries, so it's a fair peer to the other compiled languages with
+  no JIT startup. Needs the .NET SDK plus `clang`, and network access once to
+  restore ILCompiler from NuGet.
+- **Zig, Nim, Odin** come from [PLB][plb] as raw files, with a program's slug
+  being the filename stem (`"2"` → `2.nim`). Zig's sources target ~0.14, so
+  the driver prefers a `zig0.14` on PATH (override with `ZIG=...`).
+- **LuaJIT** is Lua 5.1, so its config carries a one-line `prelude` shimming
+  `table.unpack`. Lua and LuaJIT then run byte-identical fetched sources.
+- **PyPy** runs CPython's fetched sources, so it needs a Python 3 PyPy.
 
-Swift is compiled ahead-of-time with `swiftc -O`. A few CLBG Swift entries are
-too old for a current toolchain (Swift 6.x) or skip the benchmark's required
-output format, so the slugs are chosen to avoid those: **n-body** uses `swift-3`
-(`swift-1` prints unformatted doubles instead of `%.9f`) and
-**k-nucleotide** uses `swift-2` (`swift-1` calls the long-removed
-`String.characters`).
+Per-benchmark quirks:
 
-Fortran is compiled with `gfortran -O3 -march=native`. It runs in four of the
-five benchmarks; CLBG has no Fortran k-nucleotide entry (the page is a stub
-noting the lack of a standard Fortran hash table), so it's skipped there.
+- **k-nucleotide** and **reverse-complement** read a FASTA file on stdin, which
+  the driver generates with the C fasta program at the configured scale.
+  k-nucleotide's C entry needs klib's `khash.h` at `/usr/include/klib`.
+- **mandelbrot**'s C/C++ get `-ffp-contract=off`: under `-march=native` gcc
+  otherwise fuses the complex-square update into FMAs, flipping one boundary
+  pixel away from the output everyone else agrees on.
+- **spectral-norm**'s C++ needs `-fopenmp`; Python uses the single-threaded
+  `python3-6`, since the default entry's multiprocessing pool thrashes when
+  pinned to one core.
 
-Zig, Nim, and Odin are the non-CLBG languages: their sources come from the
-community [Programming-Language-Benchmarks][plb] repo (raw files, not
-HTML-extracted; see `source: "plb"` in `config.json`), and a program's slug is
-just the repo's filename stem (e.g. `"2"` → `2.nim`).
+## What this suite turned up
 
-- **Zig** builds with `zig build-exe -OReleaseFast -lc`. Those sources target
-  Zig ~0.14 (before the 0.15 `std.io`/`process.args` rework), so the driver
-  prefers a `zig0.14` binary on PATH (override with `ZIG=...`); a bleeding-edge
-  `zig` alone won't compile them. Runs four of five, since its k-nucleotide entry
-  reads an input *file path* rather than stdin, which doesn't fit the
-  `stdin_fasta` harness.
-- **Nim** builds with `nim c -d:danger`. The repo has Nim for n-body,
-  binary-trees, and fasta only (three of five), as no fannkuch or k-nucleotide
-  entry exists to fetch.
-- **Odin** builds with `odin build -o:speed`. The repo has Odin for n-body,
-  binary-trees, and k-nucleotide, but the k-nucleotide entry doesn't compile on
-  a current Odin (`os.stream_from_handle` was removed), leaving two of five.
+Chasing these numbers produced real runtime and compiler fixes. Each
+before/after is the pair measured at the time, not where things stand now.
 
-The PLB benchmark directory names differ slightly from ours (`fannkuch-redux` vs
-`fannkuchredux`); `bench.py`'s `PLB_ALGO` maps between them.
+- **GMP limbs weren't GC-allocated.** Every `Int` bignum used GMP's default
+  `malloc`, so the collector never reclaimed it and bignum-heavy loops leaked
+  continuously. Routing GMP through the GC (`mp_set_memory_functions` in
+  `tomo_init`) took pidigits from ~11.3 GB peak RSS to 12 MB, and 6.75s to
+  1.75s.
+- **`List$insert` growth copied element-by-element**, one `memcpy()` call per
+  item even when the data was already packed. `perf` put a quarter of
+  reverse-complement's runtime inside those one-byte calls. Bulk-copying
+  contiguous lists took it 0.60s → 0.40s and sped up any list built by
+  repeated `insert()`.
+- **`List.find`/`has` now use `memchr()` for `[Byte]`/`[Int8]`** instead of a
+  scalar loop, since byte equality already *is* what `memchr` computes. A 50 MB
+  worst-case scan went 1.59s → 0.37s. Rewriting reverse-complement's
+  boundary scans on top of it, the same trick Go's `bufio` and C#'s
+  `Array.IndexOf` use, brought it to 0.25s.
+- **List comprehensions compile to a pre-sized buffer with inlined appends**
+  rather than insert-into-an-empty-list: the result of `[expr for x in SOURCE]`
+  can't exceed `SOURCE.length`, so every append is a bounds-free store (~3×
+  on a microbenchmark, 0.39s → 0.13s). The fast path lives in `List.insert`, so
+  all append-in-a-loop code benefits. Unsigned-int lists including `[Byte]` are
+  now GC-atomic too, so the collector skips their payload.
+- **One that didn't pan out:** mimicking Go's branchless line-by-line transform
+  was *slower* (0.26s → 0.37s). `perf annotate` showed the multi-cursor loop
+  nest defeated GCC's strength-reduction of the indexing math, trading cheap
+  pointer increments for per-access multiplies that cost more than the branch
+  it removed.
 
-A language with no installed toolchain is skipped with a message rather than
-failing the run.
+## Layout
 
-## Benchmarks
-
-Implemented: all nine of the CLBG's library-free core: **n-body**,
-**fannkuch-redux**, **fasta**, **k-nucleotide**, **binary-trees**,
-**pidigits**, **reverse-complement**, **mandelbrot**, **spectral-norm**.
-(regex-redux is deliberately excluded: it benchmarks a regex library, not the
-language.)
-
-**pidigits** is a pure big-integer benchmark (a streaming spigot for the digits
-of π). It maps directly onto Tomo's default `Int`, which is a GMP-backed
-arbitrary-precision integer, so the port is a near-transliteration of the C
-reference. Peers use each language's standard bignum (GMP for C/C++ via `-lgmp`,
-Go's `math/big`, native `BigInt`/`BigInteger`, Python's native `int`). Rust is
-omitted because every CLBG Rust entry links the `rug`/`ramp` GMP-binding crates,
-none vendored here.
-
-**reverse-complement** slurps a FASTA file on stdin (same `stdin_fasta` harness
-as k-nucleotide) and reverse-complements each sequence. The C serves it under
-the short URL stem `revcomp`, so its config carries `site_name: "revcomp"`. Rust
-is omitted because every CLBG Rust entry depends on the `rayon` crate.
-
-**mandelbrot** renders the set as a P4 PBM bitmap. Its C/C++ references are
-built with an extra `-ffp-contract=off` (per-benchmark `cflags`): under
-`-march=native`, gcc otherwise contracts the complex-square update into fused
-multiply-adds, which flips a single boundary pixel (`c = -i`) and diverges from
-the byte-exact output that Python, Go, Rust, and the Tomo port all agree on.
-
-**spectral-norm** is a dense floating-point benchmark (the power method on
-AᵀA). Its C++ entry needs `-fopenmp` (`cflags`); Python uses the single-threaded
-`python3-6` because the default entry's multiprocessing pool thrashes badly when
-pinned to one core; Swift is omitted because current `swiftc` can't type-check
-the fetched `eval_A` expression in reasonable time.
-
-**k-nucleotide** reads a FASTA file on stdin: the driver generates that input
-with the C fasta program at the configured scale and pipes it to each
-implementation (see `stdin_fasta` in `config.json`). The C entry depends on
-klib's `khash.h`; the benchmark's `cflags` adds `-I/usr/include/klib`, so C is
-skipped on machines where klib isn't installed there. Its Java entry uses
-`graalvmaot-3` (the `-1`/`-2` entries need the external `fastutil` library).
-
-PyPy runs the same fetched sources as CPython (`source_from: "python"`), via
-`pypy3`, so it needs a Python **3** PyPy (the `pypy` 2.7 binary won't run the
-Python-3 entries). It covers every benchmark.
-
-LuaJIT runs the same fetched source as Lua. LuaJIT is Lua 5.1, and a few CLBG
-Lua entries call 5.2+ names (e.g. `table.unpack` in the fasta entry), so the
-`luajit` config carries a one-line `prelude`, `if not table.unpack then
-table.unpack=unpack end`, run via `luajit -e` before the script. That shims the
-5.1/5.2 gap without editing the fetched source, so Lua and LuaJIT run
-byte-identical programs. (k-nucleotide's Lua entry needs no shim; it just hadn't
-been wired up for LuaJIT before.)
-
-Rust is omitted from **binary-trees**: every CLBG Rust entry links an external
-arena crate (`typed_arena`, `bumpalo`) and/or `rayon`, none vendored here. The
-C++ entry (`gpp-2`) is the self-contained one; the faster `gpp-1`/`gpp-3` need
-Boost.Pool. Tomo uses its own GC and heap pointers, no arena; a node is a
-self-referential struct with two optional `@Tree?` children.
-
-C# is omitted from **k-nucleotide**: its CLBG entries depend on the external
-`Microsoft.Collections.DictionarySlim` NuGet package (much like the Java entries
-there need `fastutil`), which isn't vendored here.
+```
+benchmarks/
+  config.json   # languages (build/run recipes) + per-benchmark program map
+  bench.py      # driver: fetch / list / run / sizes
+  fetch.sh      # thin wrapper: ./fetch.sh  ==  bench.py fetch
+  plot.py       # results.json -> results.svg + results.png (or --sizes)
+  tomo/         # TRACKED: the Tomo ports, the only source we own
+  fetched/      # git-ignored: reference implementations, downloaded
+  .build/       # git-ignored: compiled binaries / build scratch
+  results.json  # git-ignored: measured timings
+  sizes.json    # git-ignored: measured static binary sizes
+```
 
 [clbg]: https://benchmarksgame-team.pages.debian.net/benchmarksgame/
 [plb]: https://github.com/hanabi1224/Programming-Language-Benchmarks
