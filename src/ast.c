@@ -12,7 +12,10 @@
 #include "stdlib/text.h"
 
 const int op_tightness[NUM_AST_TAGS] = {
-    [Power] = 9,
+    [Power] = 10,
+    // Negation is an operator like any other, and it sits here: `-x ^ 2` is
+    // `-(x ^ 2)`, while `-x * y` is `(-x) * y`.
+    [Negative] = 9,
     [Multiply] = 8,
     [Divide] = 8,
     [FloorDivide] = 8,
@@ -45,6 +48,28 @@ const int op_tightness[NUM_AST_TAGS] = {
 const bool op_is_right_associative[NUM_AST_TAGS] = {
     [Power] = true,
 };
+
+// Whether `outer_op` absorbs an `op` expression on its right into itself,
+// rather than leaving it for whatever encloses `outer_op` in turn. It absorbs
+// `op` when `op` binds more tightly -- or exactly as tightly, if `outer_op` is
+// right-associative, which is what groups `a ^ b ^ c` as `a ^ (b ^ c)`.
+//
+// `outer_op` is Unknown for an expression with nothing around it. That absorbs
+// every real operator, since Unknown's tightness of 0 is below all of them.
+CONSTFUNC bool absorbs_rhs(ast_e outer_op, ast_e op) {
+    if (op_is_right_associative[outer_op]) return op_tightness[op] >= op_tightness[outer_op];
+    return op_tightness[op] > op_tightness[outer_op];
+}
+
+// The same question for an `op` expression on the *left* of `outer_op`, where
+// the tie goes the other way: left-associativity is what groups `a - b - c` as
+// `(a - b) - c`. Only the formatter needs to ask, since the parser builds its
+// left-hand side out of terms, and it asks in order to know whether an operand
+// has to be parenthesized to be read back the way it was written.
+CONSTFUNC bool absorbs_lhs(ast_e outer_op, ast_e op) {
+    if (op_is_right_associative[outer_op]) return op_tightness[op] > op_tightness[outer_op];
+    return op_tightness[op] >= op_tightness[outer_op];
+}
 
 const binop_info_t binop_info[NUM_AST_TAGS] = {
     [Power] = {"power", "^"},
@@ -495,6 +520,12 @@ void visit_topologically(ast_list_t *asts, Closure_t fn) {
             visit(fn.userdata, stmt->ast);
         }
     }
+}
+
+// Whether this expression is an operator application that op_tightness
+// describes the grouping of: the binary operators, plus negation.
+CONSTFUNC bool is_operation(ast_t *ast) {
+    return op_tightness[ast->tag] > 0;
 }
 
 CONSTFUNC bool is_binary_operation(ast_t *ast) {

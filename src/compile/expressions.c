@@ -4,6 +4,7 @@
 #include "../ast.h"
 #include "../config.h"
 #include "../environment.h"
+#include "../stdlib/number.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../util.h"
@@ -132,6 +133,16 @@ Text_t compile(env_t *env, ast_t *ast) {
     case Negative: {
         ast_t *value = Match(ast, Negative)->value;
         type_t *t = get_type(env, value);
+
+        // A negated compile-time-constant Num folds to the constant it denotes,
+        // the same way arithmetic on them does (see compile_binary_op_to_type):
+        if (t->tag == NumType) {
+            Num_t folded;
+            if (fold_num_constant(ast, &folded))
+                return compile_num_value(
+                    folded, Texts("number_from_string(\"", Text$from_str(number_to_symbolic(folded)), "\")"));
+        }
+
         binding_t *b = get_namespace_binding(env, value, "negative");
         if (b && b->type->tag == FunctionType) {
             DeclareMatch(fn, b->type, FunctionType);

@@ -143,8 +143,15 @@ ast_t *parse_negative(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
     if (!match(&pos, "-")) return NULL;
     spaces(&pos);
-    ast_t *val = expect(ctx, start, &pos, parse_term, "I expected an expression for this '-'");
-    return NewAST(ctx->file, start, pos, Negative, .value = val);
+    // Negation takes as much as its tightness entitles it to, so `-x ^ 2`
+    // negates the power rather than raising a negated `x`:
+    ast_t *val = parse_infix_expr(ctx, pos, Negative);
+    if (!val) parser_err(ctx, start, pos, "I expected an expression for this '-'");
+    pos = val->end;
+    // A negated literal stays a literal, since that's what the rest of the
+    // compiler needs to see to fit `-128` into an Int8:
+    ast_t *literal = negate_literal(ctx, start, val);
+    return literal ? literal : NewAST(ctx->file, start, pos, Negative, .value = val);
 }
 
 ast_t *parse_bool(parse_ctx_t *ctx, const char *pos) {
@@ -211,7 +218,7 @@ ast_t *parse_term_no_suffix(parse_ctx_t *ctx, const char *pos) {
     spaces(&pos);
     ast_t *term = NULL;
     (void)(false || (term = parse_none(ctx, pos)) || (term = parse_num(ctx, pos)) // Must come before int
-           || (term = parse_int(ctx, pos)) || (term = parse_negative(ctx, pos)) // Must come after num/int
+           || (term = parse_int(ctx, pos)) || (term = parse_negative(ctx, pos))
            || (term = parse_heap_alloc(ctx, pos)) || (term = parse_stack_reference(ctx, pos))
            || (term = parse_bool(ctx, pos)) || (term = parse_text(ctx, pos, true)) || (term = parse_path(ctx, pos))
            || (term = parse_lambda(ctx, pos)) || (term = parse_parens(ctx, pos)) || (term = parse_table(ctx, pos))

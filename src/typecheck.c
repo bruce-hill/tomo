@@ -1962,6 +1962,12 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         // Codegen doesn't push a target type through `-`, so gate on the value's
         // own type.
         type_t *nt = get_type(env, ast);
+        // A constant Num is the exception: it folds to a single value at compile
+        // time, just as the arithmetic in BINOP_CASES below does.
+        if (nt->tag == NumType) {
+            Num_t folded;
+            return fold_num_constant(ast, &folded) && (folded.bits & 0x3) == 0x1;
+        }
         if (nt->tag != IntType && nt->tag != FloatType && nt->tag != ByteType) return false;
         return is_constant(env, Match(ast, Negative)->value, NULL);
     }

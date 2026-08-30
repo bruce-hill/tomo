@@ -450,14 +450,14 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
             return Texts(lhs, " ", Text$from_str(op), " ", rhs);
         }
 
+        // An operand keeps its parentheses exactly when this operator wouldn't
+        // absorb it back: `dt / (d2 * x)` is not `dt / d2 * x`, and `(2 ^ 3) ^ 2`
+        // is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are the same.
         if ((operands.lhs->tag == If || operands.lhs->tag == Match)
-            || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
+            || (is_operation(operands.lhs) && !absorbs_lhs(ast->tag, operands.lhs->tag)))
             lhs = parenthesize(lhs, EMPTY_TEXT);
-        // `<=`, not `<`: every operator here is left-associative, so a
-        // right-hand operand that binds *equally* tightly still needs its
-        // parentheses -- `dt / (d2 * x)` is not `dt / d2 * x`.
         if ((operands.rhs->tag == If || operands.rhs->tag == Match)
-            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] <= op_tightness[ast->tag]))
+            || (is_operation(operands.rhs) && !absorbs_rhs(ast->tag, operands.rhs->tag)))
             rhs = parenthesize(rhs, EMPTY_TEXT);
 
         Text_t space =
@@ -1000,13 +1000,12 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             return Texts(lhs, " ", Text$from_str(op), " ", rhs);
         }
 
+        // See the inline case above for which operands keep their parentheses.
         if ((operands.lhs->tag == If || operands.lhs->tag == Match)
-            || (is_binary_operation(operands.lhs) && op_tightness[operands.lhs->tag] < op_tightness[ast->tag]))
+            || (is_operation(operands.lhs) && !absorbs_lhs(ast->tag, operands.lhs->tag)))
             lhs = parenthesize(lhs, indent);
-        // See the inline case above: left-associativity means an equally-tight
-        // right-hand operand keeps its parentheses.
         if ((operands.rhs->tag == If || operands.rhs->tag == Match)
-            || (is_binary_operation(operands.rhs) && op_tightness[operands.rhs->tag] <= op_tightness[ast->tag]))
+            || (is_operation(operands.rhs) && !absorbs_rhs(ast->tag, operands.rhs->tag)))
             rhs = parenthesize(rhs, indent);
 
         Text_t space =

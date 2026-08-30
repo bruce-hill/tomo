@@ -31,7 +31,6 @@ static Num_t num_literal_value(parse_ctx_t *ctx, const char *pos, const char *di
 
 ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    (void)match(&pos, "-");
     if (!isdigit(*pos)) return NULL;
     if (match(&pos, "0x")) { // Hex
         pos += span_of(pos, "0123456789abcdefABCDEF_");
@@ -65,7 +64,6 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
 
 ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     const char *start = pos;
-    bool negative = match(&pos, "-");
     if (!isdigit(*pos) && *pos != '.') return NULL;
     else if (*pos == '.' && !isdigit(pos[1])) return NULL;
 
@@ -89,12 +87,32 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     }
     pos += len;
 
-    if (negative) buf = String("-", buf);
-
     int suffix = NUM_PLAIN;
     if (match(&pos, "%")) suffix = NUM_PERCENT;
     else if (match(&pos, "deg")) suffix = NUM_DEGREES;
 
     return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, buf, suffix), .str = buf,
                   .suffix = suffix);
+}
+
+// Fold a leading `-` into a numeric literal, so `-128` is a single Int literal
+// rather than a negation applied to `128`: only a literal can be compiled
+// straight to a sized target, so `Int8(-128)` fits where negating an `Int8(128)`
+// would not. Returns NULL when there's no literal for the sign to fold into --
+// `-(x + 1)` is a negation, and so is `- -1`, whose literal is already signed.
+ast_t *negate_literal(parse_ctx_t *ctx, const char *start, ast_t *literal) {
+    switch (literal->tag) {
+    case Int: {
+        const char *str = Match(literal, Int)->str;
+        if (str[0] == '-') return NULL;
+        return NewAST(ctx->file, start, literal->end, Int, .str = String("-", str));
+    }
+    case Num: {
+        DeclareMatch(num, literal, Num);
+        if (num->str[0] == '-') return NULL;
+        return NewAST(ctx->file, start, literal->end, Num, .n = number_neg(num->n), .str = String("-", num->str),
+                      .suffix = num->suffix);
+    }
+    default: return NULL;
+    }
 }
