@@ -9,7 +9,6 @@
 
 #include <gc.h>
 #include <errno.h>
-#include <setjmp.h>
 #include <poll.h>
 #include <stdlib.h>
 #include <string.h>
@@ -307,10 +306,10 @@ static void build_shared_dependencies(env_t *env, List_t paths) {
         Path_t path = *(Path_t *)(paths.data + i * paths.stride);
         // Parse it here first, catching a parse error rather than dying on it: this scan runs in the driver, so an
         // unparseable file would otherwise abort the whole run. Left out of the scan, it simply gets no shared
-        // deps, and its own worker hits the same error and reports it as that one file failing.
-        jmp_buf on_err;
-        if (setjmp(on_err) != 0) continue;
-        if (!parse_file(Path$as_c_string(path), &on_err)) continue;
+        // deps, and its own worker hits the same error and reports it as that one file failing -- which is also
+        // why the captured error is dropped rather than printed here.
+        parse_error_t parse_err = {};
+        if (!parse_file(Path$as_c_string(path), &parse_err)) continue;
 
         Table_t deps = EMPTY_TABLE, links = EMPTY_TABLE;
         build_file_dependency_graph(env->build_info, path, &deps, &links);

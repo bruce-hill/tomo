@@ -2,7 +2,6 @@
 
 #include <errno.h>
 #include <gc.h>
-#include <setjmp.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -53,7 +52,7 @@ static const char *elide_offsets(const char *sexp) {
     return out;
 }
 
-// Stages of the round-trip, so the longjmp handler can say which one failed:
+// Stages of the round-trip, so a failure can say which one it failed at:
 typedef enum {
     STAGE_PARSE,
     STAGE_FORMAT,
@@ -84,21 +83,17 @@ static void report_problem(check_stage_t stage, Path_t path) {
 // program into something different, unparseable, or unsettled.
 static bool check_file(Path_t path) {
     const char *path_str = Path$as_c_string(path);
-    volatile check_stage_t stage = STAGE_PARSE;
-    jmp_buf on_err;
-    // A parse error anywhere below longjmps here, having already printed its own diagnostic:
-    if (setjmp(on_err) != 0) {
-        report_problem(stage, path);
-        return false;
-    }
 
-    ast_t *before = parse_file(path_str, &on_err);
+    // The parse errors below are the whole point of the check, so they're
+    // taken as values and printed here, ahead of the stage that failed:
+    parse_error_t parse_err = {};
+    ast_t *before = parse_file(path_str, &parse_err);
     if (!before) {
+        if (parse_err.message) print_parse_error(parse_err);
         report_problem(STAGE_PARSE, path);
         return false;
     }
 
-    stage = STAGE_FORMAT;
     bool formatted = false;
     Text_t once = format_source(load_file(path_str), &formatted);
     if (!formatted) {
@@ -109,20 +104,19 @@ static bool check_file(Path_t path) {
 
     // parse_file takes "<name>source" for a virtual file, so the formatted text can be reparsed without
     // ever touching the disk:
-    stage = STAGE_REPARSE;
-    ast_t *after = parse_file(String("<", path_str, ">", once_str), &on_err);
+    parse_err = (parse_error_t){};
+    ast_t *after = parse_file(String("<", path_str, ">", once_str), &parse_err);
     if (!after) {
+        if (parse_err.message) print_parse_error(parse_err);
         report_problem(STAGE_REPARSE, path);
         return false;
     }
 
-    stage = STAGE_COMPARE;
     if (!streq(elide_offsets(ast_to_sexp_str(before)), elide_offsets(ast_to_sexp_str(after)))) {
         report_problem(STAGE_COMPARE, path);
         return false;
     }
 
-    stage = STAGE_IDEMPOTENT;
     Text_t twice = format_source(spoof_file(String("<", path_str, ">"), once_str), &formatted);
     if (!formatted || !Text$equal_values(once, twice)) {
         report_problem(STAGE_IDEMPOTENT, path);
@@ -132,9 +126,9 @@ static bool check_file(Path_t path) {
 }
 
 // Check every file, a jobful at a time. Each check runs in its own process:
-// the work is CPU-bound and independent, and a parse error longjmps out of
-// deep inside the parser, so a crash or a stray exit can only take down the one
-// file it belongs to.
+// the work is CPU-bound and independent, and the parser can still exit outright
+// on some failures, so a crash or a stray exit can only take down the one file
+// it belongs to.
 //
 // A failing check writes a multi-line diagnostic, so children write to their
 // own temp file rather than sharing stderr; the parent echoes each one whole

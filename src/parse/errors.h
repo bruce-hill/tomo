@@ -13,19 +13,21 @@
 #include "utils.h" // IWYU pragma: export
 
 //
-// Print a parse error and exit (or use the on_err longjmp)
+// Fail the parse: record the error if the caller wants it as a value, unwind if
+// there's somewhere to unwind to, and only report it if neither happened --
+// printing is the last resort, for when nothing else will handle this.
 //
-#define parser_err(ctx, start, end, ...)                                                                               \
+#define parser_err(ctx, err_start, err_end, ...)                                                                       \
     ({                                                                                                                 \
-        if (USE_COLOR) fputs("\x1b[96;1;7m Parser Error \x1b[m\n\n", stderr);                                          \
-        else fputs("Parser Error\n\n", stderr);                                                                        \
-        highlight_error((ctx)->file, (start), (end), "\x1b[91;7;1m", 2, USE_COLOR);                                    \
-        fputs("\n", stderr);                                                                                           \
-        if (getenv("TOMO_STACKTRACE")) print_stacktrace(stderr, 1);                                                    \
-        if (USE_COLOR) fputs("\x1b[91;1m", stderr);                                                                    \
-        fprint(stderr, __VA_ARGS__, "\n");                                                                             \
-        if (USE_COLOR) fputs("\x1b[m", stderr);                                                                        \
+        parse_error_t _parse_err = {                                                                                   \
+            .file = (ctx)->file,                                                                                       \
+            .start = (err_start),                                                                                      \
+            .end = (err_end),                                                                                          \
+            .message = String(__VA_ARGS__),                                                                            \
+        };                                                                                                             \
+        if ((ctx)->error) *(ctx)->error = _parse_err;                                                                  \
         if ((ctx)->on_err) longjmp(*((ctx)->on_err), 1);                                                               \
+        print_parse_error(_parse_err);                                                                                 \
         exit(1);                                                                                                       \
     })
 

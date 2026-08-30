@@ -15,6 +15,7 @@
 #include "../stdlib/integers.h"
 #include "../stdlib/optionals.h"
 #include "../stdlib/text.h"
+#include "../util.h"
 #include "args.h"
 #include "enums.h"
 #include "formatter.h"
@@ -1041,13 +1042,21 @@ Text_t format_source(file_t *file, bool *formatted) {
     if (formatted) *formatted = false;
     if (!file) return EMPTY_TEXT;
 
+    // The error is taken as a value and reported here rather than from inside
+    // the parser, because the unwind below is what stops the parser reporting
+    // it itself -- and an unformattable file is worth a diagnostic. It lives on
+    // the heap because a modified automatic local of this frame would be
+    // indeterminate after the longjmp:
+    parse_error_t *parse_err = new (parse_error_t);
     jmp_buf on_err;
     if (setjmp(on_err) != 0) {
+        if (parse_err->message) print_parse_error(*parse_err);
         return Text$from_str(file->text);
     }
     parse_ctx_t ctx = {
         .file = file,
         .on_err = &on_err,
+        .error = parse_err,
         .comments = {},
     };
 

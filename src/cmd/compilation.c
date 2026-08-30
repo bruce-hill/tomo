@@ -199,7 +199,12 @@ static void collect_needed_packages(Path_t dir, Path_t store_root, Table_t *dige
     List_t files = Path$glob(Path$child(dir, Text("*.tm")));
     for (int64_t i = 0; i < (int64_t)files.length; i++) {
         Path_t file = *(Path_t *)(files.data + i * files.stride);
-        ast_t *ast = parse_file(Path$as_c_string(file), NULL);
+        // A file that doesn't parse has no `use` statements to collect, and it
+        // may well be unrelated to what's being built -- garbage collection
+        // shouldn't fail the build over it, or report an error about a file the
+        // user never asked to compile:
+        parse_error_t parse_err = {};
+        ast_t *ast = parse_file(Path$as_c_string(file), &parse_err);
         if (!ast) continue;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
             if (stmt->ast->tag != Use) continue;

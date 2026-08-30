@@ -93,7 +93,7 @@ ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
 }
 
 public
-ast_t *parse_file(const char *path, jmp_buf *on_err) {
+ast_t *parse_file(const char *path, parse_error_t *error_out) {
     if (path[0] != '<' && path[0] != '/') fail("Path is not fully resolved: ", path);
     // NOTE: this cache leaks a bounded amount of memory. The cache will never
     // hold more than PARSE_CACHE_SIZE entries (see below), but each entry's
@@ -113,9 +113,17 @@ ast_t *parse_file(const char *path, jmp_buf *on_err) {
         if (!file) return NULL;
     }
 
+    // A caller that wants the error as a value needs the parse to unwind
+    // rather than exit, so the jmp_buf is this function's business, not the
+    // caller's:
+    jmp_buf on_err;
+    if (error_out) {
+        if (setjmp(on_err) != 0) return NULL;
+    }
     parse_ctx_t ctx = {
         .file = file,
-        .on_err = on_err,
+        .on_err = error_out ? &on_err : NULL,
+        .error = error_out,
     };
 
     const char *pos = file->text;
