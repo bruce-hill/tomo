@@ -546,6 +546,10 @@ static char *real_to_string(num_real *r, uint32_t max_frac_digits);
 // Sign of a real/irrational value via interval refinement; false if the
 // value can't be resolved within IRR_MAX_PREC bits (see the macro above).
 static bool refine_sign(number x, int *sign_out);
+// refine_sign's two halves, for the one caller (number_compare_general's
+// tier 3) that has something cheap to try in between them.
+static bool sign_from_interval(number x, int *sign_out);
+static bool refine_sign_exact(number x, int *sign_out);
 // Builds a general IRRATIONAL node combining x and y (y is small_zero(),
 // i.e. unused, for unary ops), taking ownership of both. For IRR_DIV, first
 // establishes y is nonzero via refine_sign; gives up -> NUMBER_ERROR.
@@ -965,9 +969,9 @@ int number_compare_general(number a, number b)
         // forms that don't unify fall back to a general IRRATIONAL node
         // rather than erroring): if the difference simplifies to an exact
         // rational/real symbolic form, its sign decides exactly. Otherwise
-        // it needs refine_sign directly (NOT the public number_sign, whose
-        // give-up fallback of 0 would be misread here as "equal" -- this is
-        // the one place that distinction matters: refine_sign only ever
+        // it needs refine_sign's halves directly (NOT the public number_sign,
+        // whose give-up fallback of 0 would be misread here as "equal" --
+        // this is the one place that distinction matters: refining only ever
         // succeeds by proving nonzero, never by proving exactly zero, so a
         // give-up here means "can't decide", which is unordered (2), not
         // equal (0)).
@@ -975,7 +979,25 @@ int number_compare_general(number a, number b)
         int result;
         if (is_real_kind(diff) || is_irrational_kind(diff)) {
             int s;
-            result = refine_sign(diff, &s) ? s : 2;
+            if (sign_from_interval(diff, &s)) {
+                // Cheapest: the hardware interval already excludes zero.
+                result = s;
+            } else if (strcmp(number_to_symbolic(a), number_to_symbolic(b)) == 0) {
+                // The difference didn't cancel symbolically, but that only
+                // means number_sub's simplifier didn't spot it -- two values
+                // written the same way ARE the same value, whatever it is,
+                // and sin(2) vs sin(2) shouldn't cost a refinement at all.
+                // Worth checking here rather than after refine_sign_exact
+                // gives up, because a difference that is genuinely zero can
+                // never be excluded from zero: that call would run every
+                // doubling out to IRR_MAX_PREC before failing, which is the
+                // single most expensive thing this function can do. The
+                // symbolic form is canonical for structure and linear even
+                // for a heavily shared expression (see number_to_symbolic).
+                result = 0;
+            } else {
+                result = refine_sign_exact(diff, &s) ? s : 2;
+            }
         } else {
             result = number_sign(diff);
         }
@@ -2703,16 +2725,13 @@ static bool dival_round_int(dival iv, int *sign_out, bigint **mag_out)
 }
 #endif // NUMBER_NO_DOUBLE_FILTER
 
-// Sign of a real/irrational value: refine until the interval excludes zero,
-// giving up past IRR_MAX_PREC bits. Always succeeds for a real (b != 0
-// guarantees it's irrational, hence nonzero); an irrational node might not
-// resolve -- see IRR_MAX_PREC's doc comment.
-static bool refine_sign(number x, int *sign_out)
+// Floating-point filter (the computational-geometry pattern): when the
+// hardware interval already excludes zero, the sign is decided in a few
+// nanoseconds and no bigint is ever touched. False means "not decided here",
+// which includes the filter being compiled out entirely.
+static bool sign_from_interval(number x, int *sign_out)
 {
 #ifndef NUMBER_NO_DOUBLE_FILTER
-    // Floating-point filter (the computational-geometry pattern): when the
-    // hardware interval already excludes zero, the sign is decided in a few
-    // nanoseconds and no bigint is ever touched.
     dival iv;
     int budget = DIVAL_VISIT_BUDGET;
     if (dival_of(x, &iv, &budget)) {
@@ -2728,7 +2747,19 @@ static bool refine_sign(number x, int *sign_out)
         }
         NSTAT(interval_fallbacks); // straddles zero at double width: refine for real
     }
+#else
+    (void)x, (void)sign_out;
 #endif
+    return false;
+}
+
+// The expensive half of refine_sign: widen the fixed-point approximation
+// until it excludes zero, giving up past IRR_MAX_PREC bits. A value that IS
+// zero can never be excluded, so it always runs the loop to the cap before
+// failing -- callers with a cheaper way to recognize zero should try it
+// first (see number_compare_general's tier 3).
+static bool refine_sign_exact(number x, int *sign_out)
+{
     for (uint32_t w = 32; w <= IRR_MAX_PREC; w *= 2) {
         int s;
         bigint *v;
@@ -2743,6 +2774,14 @@ static bool refine_sign(number x, int *sign_out)
         }
     }
     return false;
+}
+
+// Sign of a real/irrational value. Always succeeds for a real (b != 0
+// guarantees it's irrational, hence nonzero); an irrational node might not
+// resolve -- see IRR_MAX_PREC's doc comment.
+static bool refine_sign(number x, int *sign_out)
+{
+    return sign_from_interval(x, sign_out) || refine_sign_exact(x, sign_out);
 }
 
 // floor(log2(|x|)), approximately (+-1); can be negative for |x| < 1. Used

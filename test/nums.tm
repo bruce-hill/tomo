@@ -192,9 +192,21 @@ test "comparisons"
 	assert (2.).sqrt()! > 1.4
 	assert ((1./3.) <> (1./3.)) == Int32(0)
 
+test "distinct irrationals still order correctly"
+	# The structural shortcut below must not swallow values that only look
+	# alike: these all have different symbolic forms, so they take the
+	# refinement path and have to come out in the right order.
+	assert (2.).sin() != (3.).sin()
+	assert (2.).sin() != (2.).cos()
+	assert (2.).sin() > (3.).sin()
+	assert Num.PI < Num.TAU
+	assert (2.).sqrt()! < (3.).sqrt()!
+
 test "identical expressions are equal"
 	# Two separately built irrationals with the same structure are the same
-	# value, and need no numeric refinement to say so.
+	# value, and need no numeric refinement to say so: number_compare's
+	# tier 3 compares symbolic forms before it tries to refine a difference
+	# it can never prove nonzero.
 	assert (2.).sin() == (2.).sin()
 	assert (2.).sin() + Num.PI == (2.).sin() + Num.PI
 	assert (2.).sin() * Num.PI == (2.).sin() * Num.PI

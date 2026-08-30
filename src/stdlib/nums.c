@@ -363,16 +363,11 @@ static Num_t rounded_for_equality(Num_t n) {
 
 // Reached only when number_compare answers 2 -- "couldn't decide" -- which
 // means two general irrationals whose difference it can neither prove zero
-// nor prove nonzero. Two answers are still available, in order of cost.
+// nor prove nonzero, and which do not have the same symbolic form (that case
+// number_compare already answers 0 itself, without refining).
 public
 PUREFUNC int32_t Num$undecided_compare(Num_t x, Num_t y) {
-    // Identical expressions are the same value, whatever that value is --
-    // sin(2) and sin(2) need no refinement to be equal. The symbolic form is
-    // canonical for structure, and is linear even for a heavily shared
-    // expression (see number_to_symbolic's shared form).
-    if (streq(number_to_symbolic(x), number_to_symbolic(y))) return 0;
-
-    // Otherwise decide it numerically: agreement to EQUALITY_DIGITS counts as
+    // Decide it numerically: agreement to EQUALITY_DIGITS counts as
     // equality. Rounding both to rationals first makes the comparison total.
     int cmp = number_compare(rounded_for_equality(x), rounded_for_equality(y));
     return cmp == 2 ? 0 : (int32_t)cmp;
