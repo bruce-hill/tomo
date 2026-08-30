@@ -242,7 +242,8 @@ def main_sizes(path, out):
         print("no benchmark has enough languages to chart")
         return
     n = len(benches)
-    fig, axes = plt.subplots(n, 1, figsize=(9, 1.0 + 3.2 * n), squeeze=False)
+    fig_h = 1.0 + 3.2 * n
+    fig, axes = plt.subplots(n, 1, figsize=(9, fig_h), squeeze=False)
     fig.patch.set_facecolor("white")
     for ax, (bname, block) in zip(axes[:, 0], benches):
         ax.set_facecolor("white")
@@ -253,13 +254,19 @@ def main_sizes(path, out):
     ]
     axes[0, 0].legend(handles=legend, loc="upper right", frameon=False,
                       fontsize=9, borderaxespad=0.6)
+    # Title/footer bands are fixed heights (inches converted to figure
+    # fractions), the same as main(): a fixed *fraction* opens a bigger and
+    # bigger gap under the title as the figure grows with the panel count.
+    top = 1.0 - 0.55 / fig_h
+    bottom = 0.35 / fig_h
     fig.suptitle("Static binary size: Tomo vs. other compiled languages",
-                 x=0.02, ha="left", fontsize=14, fontweight="bold", color=INK)
-    fig.text(0.02, 0.008,
+                 x=0.02, y=1.0 - 0.28 / fig_h, ha="left", va="top",
+                 fontsize=14, fontweight="bold", color=INK)
+    fig.text(0.02, 0.10 / fig_h,
              "statically linked · symbols stripped · only languages that can "
              "produce a standalone static binary",
              ha="left", fontsize=8, color=MUTED)
-    fig.tight_layout(rect=[0, 0.03, 1, 0.93])
+    fig.tight_layout(rect=[0, bottom, 1, top])
     svg = os.path.join(HERE, out + ".svg")
     png = os.path.join(HERE, out + ".png")
     fig.savefig(svg)
