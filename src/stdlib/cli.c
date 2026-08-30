@@ -14,11 +14,11 @@
 #include "bytes.h"
 #include "c_strings.h"
 #include "cli.h"
+#include "floats.h"
 #include "integers.h"
 #include "metamethods.h"
-#include "floats.h"
-#include "nums.h"
 #include "number.h"
+#include "nums.h"
 #include "optionals.h"
 #include "paths.h"
 #include "print.h"
@@ -32,17 +32,59 @@ public
 cli_style_t tomo_cli_style(void) {
     if (USE_COLOR)
         return (cli_style_t){
-            .bold = "\x1b[1m",       .dim = "\x1b[2m",     .italic = "\x1b[3m",  .reset = "\x1b[m",
-            .heading = "\x1b[4;1m",  .usage = "\x1b[93;4;1m", .flag = "\x1b[93;1m", .value = "\x1b[1;94m",
-            .command = "\x1b[1;32m", .error = "\x1b[91;1m",
+            .bold = "\x1b[1m",
+            .dim = "\x1b[2m",
+            .italic = "\x1b[3m",
+            .reset = "\x1b[m",
+            .heading = "\x1b[4;1m",
+            .usage = "\x1b[93;4;1m",
+            .flag = "\x1b[93;1m",
+            .value = "\x1b[1;94m",
+            .command = "\x1b[1;32m",
+            .error = "\x1b[91;1m",
         };
     return (cli_style_t){
-        .bold = "",    .dim = "",   .italic = "", .reset = "",  .heading = "",
-        .usage = "",   .flag = "",  .value = "",  .command = "", .error = "",
+        .bold = "",
+        .dim = "",
+        .italic = "",
+        .reset = "",
+        .heading = "",
+        .usage = "",
+        .flag = "",
+        .value = "",
+        .command = "",
+        .error = "",
     };
 }
 
-static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag, bool *dest) {
+// Whether `arg` starts the way a negative number does: `-1`, `-.5`, `-1e5`,
+// `-0x1f` do; `-x`, `-inf`, `-` and `` do not. Whether the whole token is a
+// well-formed number is a question for the number parsers.
+static bool starts_like_negative_number(const char *arg) {
+    if (arg[0] != '-') return false;
+    const char *number = arg + 1;
+    if (*number == '.') number += 1; // the sole non-digit a number may open with
+    return *number >= '0' && *number <= '9';
+}
+
+// Parse the value half of a boolean flag (`--flag=X`, `-f=X`) into `*out`,
+// returning whether it was valid. `optional` additionally accepts "none",
+// which is a value in its own right -- distinct from both yes and no, and
+// from the NONE_BOOL that Bool$parse returns to report a bad value.
+static bool parse_boolean_flag_value(const char *value, bool optional, void *out) {
+    if (optional && streq(value, "none")) {
+        *(OptionalBool_t *)out = NONE_BOOL;
+        return true;
+    }
+    OptionalBool_t parsed = Bool$parse(Text$from_str(value), NULL);
+    *(OptionalBool_t *)out = parsed;
+    return parsed != NONE_BOOL;
+}
+
+// `dest` is a Bool_t, or an OptionalBool_t when `optional` -- both one byte.
+// A bad value writes NONE_BOOL into either, but only after `optional` has been
+// checked, so the write is always immediately followed by print_err exiting.
+static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, bool optional) {
     const char *no_flag = String("no-", flag);
     for (int64_t i = 0; i < (int64_t)args->length; i++) {
         const char *arg = *(const char **)(args->data + i * args->stride);
@@ -52,32 +94,33 @@ static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag
                 break;
             } else if (streq(arg + 2, flag)) {
                 // Case: --flag
-                *dest = true;
+                *(Bool_t *)dest = true;
                 List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
                 return true;
             } else if (streq(arg + 2, no_flag)) {
                 // Case: --no-flag
-                *dest = false;
+                *(Bool_t *)dest = false;
                 List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
                 return true;
             } else if (starts_with(arg + 2, flag) && arg[2 + strlen(flag)] == '=') {
-                // Case: --flag=yes|no|true|false|on|off|0|1
-                OptionalBool_t b = Bool$parse(Text$from_str(arg + 2 + strlen(flag) + 1), NULL);
-                if (b == NONE_BOOL) print_err("Invalid boolean value for flag ", flag, ": ", arg);
-                *dest = b;
+                // Case: --flag=yes|no|true|false|on|off|0|1 (or none, if optional)
+                if (!parse_boolean_flag_value(arg + 2 + strlen(flag) + 1, optional, dest))
+                    print_err("Invalid boolean value for flag ", flag, ": ", arg);
                 List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
                 return true;
             }
-        } else if (short_flag && arg[0] == '-' && arg[1] != '-' && strchr(arg + 1, short_flag)) {
+            // Short flags are letters, so a token that opens like a number is
+            // one -- not a cluster to search for this flag's letter in. Without
+            // this, a `-e` flag claims the `e` inside `-1e5`.
+        } else if (short_flag && arg[0] == '-' && arg[1] != '-' && !starts_like_negative_number(arg)
+                   && strchr(arg + 1, short_flag)) {
             const char *loc = strchr(arg + 1, short_flag);
             if (loc[1] == '=') {
-                // Case: -f=yes|no|true|false|on|off|1|0
-                OptionalBool_t b = Bool$parse(Text$from_str(loc + 2), NULL);
-                if (b == NONE_BOOL) {
+                // Case: -f=yes|no|true|false|on|off|1|0 (or none, if optional)
+                if (!parse_boolean_flag_value(loc + 2, optional, dest)) {
                     char short_str[2] = {short_flag, '\0'};
                     print_err("Invalid boolean value for flag -", short_str, ": ", arg);
                 }
-                *dest = b;
                 if (loc > arg + 1) {
                     // Case: -abcdef=... -> -abcde
                     char *remainder = String(string_slice(arg, (size_t)(loc - arg)));
@@ -90,7 +133,7 @@ static bool pop_boolean_cli_flag(List_t *args, char short_flag, const char *flag
                 return true;
             } else {
                 // Case: -...f...
-                *dest = true;
+                *(Bool_t *)dest = true;
                 if (strlen(arg) == 2) {
                     // Case: -f -> pop flag entirely
                     List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
@@ -115,7 +158,7 @@ void tomo_parse_arg_list(List_t args, cli_help_info_t info, int spec_len, cli_ar
     }
 
     bool show_help = false;
-    if (pop_boolean_cli_flag(&args, info.help_short, "help", &show_help) && show_help) {
+    if (pop_boolean_cli_flag(&args, info.help_short, "help", &show_help, false) && show_help) {
         print(info.help);
         exit(0);
     }
@@ -155,9 +198,32 @@ void tomo_parse_arg_list(List_t args, cli_help_info_t info, int spec_len, cli_ar
         // Show the usage too: leftovers usually mean an earlier word was
         // consumed as something the user didn't intend (a mistyped command
         // name swallowed as a positional argument, say).
-        print_err("Unknown flag values: ", CString$join(" ", remaining_args), "\n", info.usage,
-                  info.command_hint);
+        print_err("Unknown flag values: ", CString$join(" ", remaining_args), "\n", info.usage, info.command_hint);
     }
+}
+
+// Whether this is a list or table -- possibly behind an optional or pointer
+// wrapper, which doesn't change how the contents parse. Such an argument takes
+// many values, so `--flag=a,b,c` splits on commas, and the container decides
+// for itself where its values stop.
+static bool holds_many_values(const TypeInfo_t *type) {
+    while (type->tag == OptionalInfo || type->tag == PointerInfo)
+        type = type->tag == OptionalInfo ? type->OptionalInfo.type : type->PointerInfo.pointed;
+    return type->tag == ListInfo || type->tag == TableInfo;
+}
+
+// The runtime counterparts of the compiler's is_int_type() and
+// is_numeric_type() (src/types.h). Those take a `type_t`, the compiler's own
+// representation of a type, which a compiled program never has -- it carries
+// TypeInfo_t instead -- so the same questions get asked here of that. Keep the
+// two in step: these cover exactly the types those do.
+static bool is_int_info(const TypeInfo_t *type) {
+    return type == &Int$info || type == &Int64$info || type == &Int32$info || type == &Int16$info || type == &Int8$info
+           || type == &Byte$info;
+}
+
+static bool is_numeric_info(const TypeInfo_t *type) {
+    return is_int_info(type) || type == &Num$info || type == &Float64$info || type == &Float32$info;
 }
 
 // The value placeholder shown for a flag in usage/help text, derived from its
@@ -166,9 +232,7 @@ static Text_t flag_value_options(const char *metavar, const TypeInfo_t *type) {
     if (metavar) return Text$from_str(metavar);
     if (type == &Bool$info) return Text("yes|no");
     if (type == &Path$info) return Text("path");
-    if (type == &Int$info || type == &Int64$info || type == &Int32$info || type == &Int16$info || type == &Int8$info
-        || type == &Byte$info || type == &Num$info || type == &Float64$info || type == &Float32$info)
-        return Text("N");
+    if (is_numeric_info(type)) return Text("N");
     if (type == &CString$info || type->tag == TextInfo) return Text("text");
     if (type->tag == OptionalInfo) return flag_value_options(NULL, type->OptionalInfo.type);
     if (type->tag == PointerInfo) return flag_value_options(NULL, type->PointerInfo.pointed);
@@ -204,7 +268,7 @@ static bool is_bool_arg(const cli_arg_t *arg) {
 // appended for lists:
 static Text_t positional_display(const cli_arg_t *arg) {
     Text_t name = Text$from_str(arg->metavar ? arg->metavar : arg->name);
-    if (arg->type->tag == ListInfo || arg->type->tag == TableInfo) name = Texts(name, "...");
+    if (holds_many_values(arg->type)) name = Texts(name, "...");
     return name;
 }
 
@@ -287,8 +351,7 @@ static void materialize_command(cli_spec_t *cli, cli_command_t *command, Text_t 
 
     if (command->usage.length == 0) {
         Text_t subcommand_form = Texts(" ", style.bold, "<command>", style.reset, " ...");
-        if (command->handler)
-            command->usage = tomo_generate_usage(invocation, command->spec_len, command->spec);
+        if (command->handler) command->usage = tomo_generate_usage(invocation, command->spec_len, command->spec);
         else command->usage = Texts(style.usage, "Usage:", style.reset, " ", invocation, subcommand_form);
         if (command->handler && command->num_children > 0)
             // The spaces go outside the style, or they get underlined too:
@@ -388,8 +451,7 @@ static int unrecognized_command(cli_command_t *command, const char *word) {
     OptionalText_t nearest = nearest_command(command, word);
     cli_style_t style = tomo_cli_style();
     fprint(stderr, style.error, "Unrecognized command: ", word, style.reset,
-           nearest.tag == TEXT_NONE ? EMPTY_TEXT
-                                    : Texts("\nDid you mean ", style.bold, nearest, style.reset, "?"),
+           nearest.tag == TEXT_NONE ? EMPTY_TEXT : Texts("\nDid you mean ", style.bold, nearest, style.reset, "?"),
            "\n", command->help);
     return 1;
 }
@@ -482,14 +544,16 @@ int tomo_dispatch_command(int argc, char *argv[], cli_spec_t *cli) {
 
     if (!claims_long_flag(cli, named, "help")) {
         bool show_help = false;
-        if (pop_boolean_cli_flag(&head, unclaimed_short_flag(cli, named, 'h'), "help", &show_help) && show_help) {
+        if (pop_boolean_cli_flag(&head, unclaimed_short_flag(cli, named, 'h'), "help", &show_help, false)
+            && show_help) {
             print(named->help);
             return 0;
         }
     }
     if (cli->version && !claims_long_flag(cli, named, "version")) {
         bool show_version = false;
-        if (pop_boolean_cli_flag(&head, unclaimed_short_flag(cli, named, cli->version_short), "version", &show_version)
+        if (pop_boolean_cli_flag(&head, unclaimed_short_flag(cli, named, cli->version_short), "version", &show_version,
+                                 false)
             && show_version) {
             print(cli->version);
             return 0;
@@ -501,12 +565,45 @@ int tomo_dispatch_command(int argc, char *argv[], cli_spec_t *cli) {
     return dispatch_into(cli, &cli->root, head, extra_args);
 }
 
+// Whether or not a CLI arg resembles a number
+static bool resembles_number(const char *arg, const TypeInfo_t *type) {
+    switch (type->tag) {
+    case OptionalInfo: return resembles_number(arg, type->OptionalInfo.type);
+    case PointerInfo: return resembles_number(arg, type->PointerInfo.pointed);
+    // A struct's values are parsed field by field, so only the first field can
+    // land on the leading token:
+    case StructInfo: return type->StructInfo.num_fields > 0 && resembles_number(arg, type->StructInfo.fields[0].type);
+    default: break;
+    }
+    if (!is_numeric_info(type)) return false;
+    // A number was plainly meant, even if it turns out to be a bad one: let
+    // `-1abc` reach the parse error that names it, as `1abc` would.
+    if (starts_like_negative_number(arg)) return true;
+    // Otherwise only a float spelling can still be a number, and Float64$parse
+    // is what knows those: `-inf`, `-INFINITY`.
+    return !is_int_info(type) && !isnan(Float64$parse(Text$from_str(arg), NULL));
+}
+
+// Whether a dash-leading argument should be read as a flag rather than as a
+// value of `type`. A negative number given to a numeric argument is a value:
+// otherwise `--count -1` and `--count=-1` would both be errors, leaving no way
+// to pass a negative number except after a bare "--".
+static bool is_flag_not_value(const char *arg, const TypeInfo_t *type) {
+    if (arg[0] != '-') return false;
+    // A wrapped container defers to the container, which breaks out of its own
+    // loop on a flag. This has to come first: `[Int]?` and `[Int]` would
+    // otherwise disagree about where `--nums --other` stops.
+    if ((type->tag == OptionalInfo || type->tag == PointerInfo) && holds_many_values(type)) return false;
+    if (arg[1] == '-') return true; // no number starts with `--`
+    return !resembles_number(arg, type);
+}
+
 static List_t parse_arg_list(List_t args, const char *flag, void *dest, const TypeInfo_t *type, bool allow_dashes) {
     if (type->tag == ListInfo) {
         void *item = type->ListInfo.item->size ? GC_MALLOC((size_t)type->ListInfo.item->size) : NULL;
         while (args.length > 0) {
             const char *arg = *(const char **)args.data;
-            if (arg[0] == '-' && !allow_dashes) break;
+            if (!allow_dashes && is_flag_not_value(arg, type->ListInfo.item)) break;
             args = parse_arg_list(args, flag, item, type->ListInfo.item, allow_dashes);
             List$insert(dest, item, I(0), type->ListInfo.item->size);
         }
@@ -515,18 +612,22 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
         // Arguments take the form key:value
         void *key = type->TableInfo.key->size ? GC_MALLOC((size_t)type->TableInfo.key->size) : NULL;
         void *value = type->TableInfo.value->size ? GC_MALLOC((size_t)type->TableInfo.value->size) : NULL;
+        bool is_set = type->TableInfo.value->size == 0;
         while (args.length > 0) {
             const char *arg = *(const char **)args.data;
-            if (arg[0] == '-' && !allow_dashes) break;
-            if (type->TableInfo.value->size == 0) {
+            // A key:value token carries two values, so the flag-or-value
+            // question -- and the key parse below -- are about the key alone.
+            const char *colon = is_set ? NULL : strchr(arg, ':');
+            if (!is_set && !colon) break;
+            const char *key_str = colon ? String(string_slice(arg, (size_t)(colon - arg))) : arg;
+            if (!allow_dashes && is_flag_not_value(key_str, type->TableInfo.key)) break;
+            if (is_set) {
                 List_t key_arg = List(arg);
                 (void)parse_arg_list(key_arg, flag, key, type->TableInfo.key, allow_dashes);
                 Table$set(dest, key, NULL, type);
                 args = List$from(args, I(2));
             } else {
-                const char *colon = strchr(arg, ':');
-                if (!colon) break;
-                List_t key_arg = List(String(string_slice(arg, (size_t)(colon - arg))));
+                List_t key_arg = List(key_str);
                 (void)parse_arg_list(key_arg, flag, key, type->TableInfo.key, allow_dashes);
                 List_t value_arg = List(colon + 1);
                 (void)parse_arg_list(value_arg, flag, value, type->TableInfo.value, allow_dashes);
@@ -554,7 +655,7 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
     if (!allow_dashes) {
         if ((type->tag == TextInfo || type == &CString$info) && arg[0] == '\\' && arg[1] == '-') {
             arg = arg + 1;
-        } else if (arg[0] == '-') {
+        } else if (is_flag_not_value(arg, type)) {
             print_err("Not a valid flag: ", arg);
         }
     }
@@ -562,21 +663,34 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
     if (type->tag == OptionalInfo) {
         const TypeInfo_t *nonnull = type->OptionalInfo.type;
         if (streq(arg, "none")) {
+            // Types with 'none' that use non-zero bits:
             if (nonnull == &Float64$info) *(double *)dest = (double)NAN;
             else if (nonnull == &Float32$info) *(float *)dest = (float)NAN;
+            else if (nonnull == &Bool$info) *(OptionalBool_t *)dest = NONE_BOOL;
             else memset(dest, 0, (size_t)type->size);
             return List$from(args, I(2));
         } else {
+            // A list or table parses by appending into whatever is already
+            // there, so an argument still holding `none` (data == NULL) has to
+            // become empty first. This is also what makes a flag given with no
+            // values at all (`--files --other`) an empty list rather than none.
+            if (nonnull->tag == ListInfo && ((List_t *)dest)->data == NULL) *(List_t *)dest = (List_t)EMPTY_LIST;
+            else if (nonnull->tag == TableInfo && ((Table_t *)dest)->entries.data == NULL)
+                *(Table_t *)dest = (Table_t)EMPTY_TABLE;
+
             args = parse_arg_list(args, flag, dest, nonnull, allow_dashes);
+            // For optional types where the value itself is enough:
             if (nonnull == &Int$info || nonnull == &Path$info || nonnull == &Num$info || nonnull == &Float64$info
-                || nonnull == &Float32$info || nonnull->tag == TextInfo || nonnull->tag == EnumInfo)
+                || nonnull == &Float32$info || nonnull == &Bool$info || nonnull->tag == TextInfo
+                || nonnull->tag == EnumInfo || nonnull->tag == ListInfo || nonnull->tag == TableInfo)
                 return args;
+            // For optional types where there's a 'has_value' boolean:
             else if (nonnull == &Int64$info) ((OptionalInt64_t *)dest)->has_value = true;
             else if (nonnull == &Int32$info) ((OptionalInt32_t *)dest)->has_value = true;
             else if (nonnull == &Int16$info) ((OptionalInt16_t *)dest)->has_value = true;
             else if (nonnull == &Int8$info) ((OptionalInt8_t *)dest)->has_value = true;
             else if (nonnull == &Byte$info) ((OptionalByte_t *)dest)->has_value = true;
-            else if (nonnull->tag == StructInfo && nonnull != &Path$info) *(bool *)(dest + nonnull->size) = true;
+            else if (nonnull->tag == StructInfo) *(bool *)(dest + nonnull->size) = true;
             else print_err("Unsupported type: ", generic_as_text(NULL, USE_COLOR, nonnull));
             return args;
         }
@@ -668,9 +782,12 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
 }
 
 bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, const TypeInfo_t *type) {
-    if (type == &Bool$info) {
-        return pop_boolean_cli_flag(args, short_flag, flag, dest);
-    }
+    // Booleans support `--flag`, `--no-flag`, and `--flag=<val>`, where `<val>`
+    // can be `yes`, `no`, or `none` for optionals, plus any of the other ways to
+    // parse a boolean.
+    if (type == &Bool$info) return pop_boolean_cli_flag(args, short_flag, flag, dest, false);
+    if (type->tag == OptionalInfo && type->OptionalInfo.type == &Bool$info)
+        return pop_boolean_cli_flag(args, short_flag, flag, dest, true);
 
     for (int64_t i = 0; i < (int64_t)args->length; i++) {
         const char *arg = *(const char **)(args->data + i * args->stride);
@@ -689,7 +806,7 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                 // Case: --flag=...
                 const char *arg_value = arg + 2 + strlen(flag) + 1;
                 List_t values;
-                if (type->tag == ListInfo || type->tag == TableInfo) {
+                if (holds_many_values(type)) {
                     // For lists and tables, --flag=a,b,c or --flag=a:1,b:2,c:3
                     List_t texts = Text$split(Text$from_str(arg_value), Text(","));
                     values = EMPTY_LIST;
@@ -705,14 +822,15 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                 List$remove_at(args, I(i + 1), I(1), sizeof(const char *));
                 return true;
             }
-        } else if (short_flag && arg[0] == '-' && arg[1] != '-' && strchr(arg + 1, short_flag)) {
+        } else if (short_flag && arg[0] == '-' && arg[1] != '-' && !starts_like_negative_number(arg)
+                   && strchr(arg + 1, short_flag)) {
             const char *loc = strchr(arg + 1, short_flag);
             char short_str[2] = {short_flag, '\0'};
             if (loc[1] == '=') {
                 // Case: -f=...
                 const char *arg_value = loc + 2;
                 List_t values;
-                if (type->tag == ListInfo || type->tag == TableInfo) {
+                if (holds_many_values(type)) {
                     // For lists and tables, -f=a,b,c or -f=a:1,b:2,c:3
                     List_t texts = Text$split(Text$from_str(arg_value), Text(","));
                     values = EMPTY_LIST;
@@ -756,7 +874,7 @@ bool pop_cli_flag(List_t *args, char short_flag, const char *flag, void *dest, c
                 // Case: -...fVALUE (e.g. -O3)
                 const char *arg_value = loc + 1;
                 List_t values;
-                if (type->tag == ListInfo || type->tag == TableInfo) {
+                if (holds_many_values(type)) {
                     // For lists and tables, -fa,b,c or -fa:1,b:2,c:3
                     List_t texts = Text$split(Text$from_str(arg_value), Text(","));
                     values = EMPTY_LIST;

@@ -482,6 +482,20 @@ $(BUILD_BASE)/number_test: test/c/number_test.c src/stdlib/number.c src/stdlib/n
 test-number: $(BUILD_BASE)/number_test
 	@$(BUILD_BASE)/number_test
 
+# The argument parser's C-level test suite. Unlike number_test, cli.c pulls in
+# most of the stdlib, so this links the same objects and vendored libraries the
+# `tomo` binary does, with the project toolchain (and therefore runs only when
+# building for the host platform).
+$(BUILD_BASE)/cli_test: test/c/cli_test.c $(STDLIB_OBJS) $(VENDORED_LIBS) | deps
+	@mkdir -p $(dir $@)
+	@$(ECHO) $(CC) $(CFLAGS_PLACEHOLDER) $(LDFLAGS) -o $@ test/c/cli_test.c
+	@$(CC) $(filter-out -MMD -MP,$(CFLAGS)) -iquote src/stdlib $(LDFLAGS) \
+	    -o $@ $< $(STDLIB_OBJS) $(VENDORED_LIBS) $(LDLIBS)
+
+test-cli: $(BUILD_BASE)/cli_test
+	@printf '\033[1m Testing CLI argument parsing... \033[m\n'
+	@$(BUILD_BASE)/cli_test
+
 # Round-trips every .tm file in the tree through `tomo fmt` and checks that the
 # formatter neither changes what the code means nor leaves it unsettled. The
 # file list is gathered at recipe time, not parse time, so a generated file like
@@ -490,7 +504,7 @@ test-format: build test/api.tm
 	@printf '\033[1m Testing formatter... \033[m\n'
 	@./local-tomo fmt --check $$(find test examples benchmarks -name '*.tm' | sort)
 
-test: test-tm test-number test-format
+test: test-tm test-number test-cli test-format
 	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
 
 # Remove just the (target-specific) Tomo object files:
@@ -510,7 +524,7 @@ api/api.md: $(API_YAML)
 test/api.tm: $(API_YAML) | ./scripts/api_tests.py
 	./scripts/api_tests.py $^ >$@
 
-.PHONY: test-format test-tm
+.PHONY: test-format test-tm test-cli
 
 .PHONY: api-docs
 api-docs: $(API_MD) api/api.md
@@ -638,5 +652,5 @@ uninstall:
 	"$(PREFIX)/bin/tomo@$(TOMO_VERSION)" uninstall --yes
 
 .SUFFIXES:
-.PHONY: test-number all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version pch \
+.PHONY: test-number test-cli all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version pch \
 	benchmarks benchmark-fetch benchmark-refetch benchmark-run benchmark-sizes benchmark-graphs benchmark-list

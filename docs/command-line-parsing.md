@@ -91,6 +91,35 @@ $ ./greet '\-weird'     # name="-weird"
 $ ./greet -- -weird     # name="-weird"
 ```
 
+Negative numbers are the exception: a dashed value is read as a number, not a
+flag, when the argument it fills is a numeric one. Nothing else could be meant
+by it, and it needs no escaping in any of the spellings:
+
+```tomo
+func main(count|c:Int, scale:Num=1.0)
+    ...
+```
+```bash
+$ ./scale --count -1            # count=-1
+$ ./scale --count=-1            # count=-1
+$ ./scale -c-1 --scale=-1.5     # count=-1, scale=-1.5
+$ ./scale -1                    # count=-1, filled positionally
+```
+
+This follows the type, not the value: a `Text` argument given `-1` is still a
+usage error (`\-1` or a bare `--` passes it), and a numeric argument given
+`-x` is still a usage error too. What counts as a number is whatever the
+argument's own type parses, so every spelling works negated -- `-0x10`,
+`-0o644`, `-1e5`, and `-inf` for `Float64`/`Float32`. A value that is a number
+but out of range for its argument (`-1` for a `Byte`, `-inf` for a `Num`, which
+has no infinity) reports that, rather than being rejected as a flag. A list or
+table of numbers takes negative values the same way, and stops at a dashed
+argument that isn't one:
+
+```bash
+$ ./stats --nums -1 2 -3 --verbose   # nums=[-1, 2, -3]
+```
+
 ## Supported Argument Types
 
 Tomo automatically supports several argument types out of the box, but if there
@@ -108,6 +137,10 @@ For a boolean argument, `foo`, the argument can be passed in several ways:
 - `--foo` or `--no-foo` provide the argument as `yes`/`no` respectively
 - `--foo=yes`/`--foo=on`/`--foo=true`/`--foo=1` all parse as `yes` (case insensitive)
 - `--foo=no`/`--foo=off`/`--foo=false`/`--foo=0` all parse as `no` (case insensitive)
+
+An optional boolean (`foo:Bool?`) takes the same spellings, plus `--foo=none`
+for the third value. A bare `--foo` is still `yes` and `--no-foo` is still `no`.
+
 - Any other values will report a usage error
 
 ### Integers and Numbers

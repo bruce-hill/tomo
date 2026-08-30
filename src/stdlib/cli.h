@@ -37,6 +37,9 @@ typedef struct {
 
 void tomo_parse_arg_list(List_t args, cli_help_info_t info, int spec_len, cli_arg_t spec[spec_len]);
 
+// Fills in a command's `usage` when the program doesn't supply one of its own.
+Text_t tomo_generate_usage(Text_t prefix, int spec_len, cli_arg_t spec[spec_len]);
+
 // One command in a git-style CLI. Commands nest: `tomo build`, `git submodule
 // init`. A command with children can still have a handler of its own (like
 // `git stash` alongside `git stash pop`), and a command with no handler is

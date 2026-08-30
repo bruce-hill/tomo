@@ -171,6 +171,34 @@
   relayed arguments, as in `tomo run prog.tm -- args...`, or just marks the
   end of flags). As a result, generated programs' `--help` now uses the same
   layout as `tomo`'s, with `Arguments:`/`Flags:`/`Commands:` sections.
+- Negative numbers can now be passed as command-line arguments. A dashed token
+  is read as a value rather than a flag when the argument it fills is numeric,
+  so `--count -1`, `--count=-1`, `-c-1`, and a bare positional `-1` all work,
+  as do lists and tables of numbers (`--nums -1 2 -3`). Every one of these was
+  previously `Not a valid flag: -1`, and a negative number could only be given
+  after a bare `--`. The rule follows the argument's type rather than the token,
+  so a `Text` argument given `-1` is still a usage error (`\-1` or `--` passes
+  it), and a numeric argument given `-x` still is too. What counts as a number is
+  whatever the argument's own type parses, so `-0x10`, `-0o644`, `-1e5`, and
+  `-inf` (for `Float64`/`Float32`) all work; a number out of range for its
+  argument reports that instead of being rejected as a flag. A negative number is never read as a cluster of short flags,
+  so a flag whose letter appears inside one (`-e` and `-1e5`, `-x` and `-0x1f`)
+  no longer claims it.
+- Optional lists, tables, sets, and booleans work as command-line arguments.
+  Passing a value for one (`--nums 1 2`, `--defs a:1`, `--tags a b`,
+  `--force yes`) failed with `Unsupported type`, even though the generated help
+  advertised the argument; only `--flag none` worked. An optional boolean is now
+  the toggle its help text already claimed it was -- `--force`, `--no-force`, and
+  `--force=yes|no`, with `--force=none` for the third value -- where previously
+  the bare flag reported `No value provided` and `--force none` silently set it
+  to `no` rather than `none`. An optional list or table now also splits
+  `--nums=1,2` on commas and stops at a flag (`--nums --other` gives an empty
+  list) exactly like a non-optional one; the two disagreed on both.
+- Added `make test-cli`, a C-level test suite for the argument parser that the
+  compiler and the programs it compiles share (`src/stdlib/cli.c`). It covers
+  the flag spellings, the supported argument types, positional filling, `--`,
+  the generated usage and help text, command dispatch, and the parse errors;
+  it runs as part of `make test`.
 
 ## 2026-08-21
 
