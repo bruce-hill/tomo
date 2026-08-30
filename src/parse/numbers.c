@@ -98,18 +98,17 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
 // Fold a leading `-` into a numeric literal, so `-128` is a single Int literal
 // rather than a negation applied to `128`: only a literal can be compiled
 // straight to a sized target, so `Int8(-128)` fits where negating an `Int8(128)`
-// would not. Returns NULL when there's no literal for the sign to fold into --
-// `-(x + 1)` is a negation, and so is `- -1`, whose literal is already signed.
+// would not. Returns NULL when there's no literal for the sign to fold into.
 ast_t *negate_literal(parse_ctx_t *ctx, const char *start, ast_t *literal) {
+    // The sign is only part of the literal when it's written against the
+    // digits, which keeps a literal's span a literal -- what the formatter
+    // prints, and what `- -1` and `-(2)` would otherwise spoil. They're
+    // negations of a literal instead, which is what they look like.
+    if (!isdigit((unsigned char)start[1]) && start[1] != '.') return NULL;
     switch (literal->tag) {
-    case Int: {
-        const char *str = Match(literal, Int)->str;
-        if (str[0] == '-') return NULL;
-        return NewAST(ctx->file, start, literal->end, Int, .str = String("-", str));
-    }
+    case Int: return NewAST(ctx->file, start, literal->end, Int, .str = String("-", Match(literal, Int)->str));
     case Num: {
         DeclareMatch(num, literal, Num);
-        if (num->str[0] == '-') return NULL;
         return NewAST(ctx->file, start, literal->end, Num, .n = number_neg(num->n), .str = String("-", num->str),
                       .suffix = num->suffix);
     }
