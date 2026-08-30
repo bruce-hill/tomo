@@ -1909,7 +1909,11 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         // compiles to a runtime Int$from_str/from_int64 call.
         type_t *t = EXPECTED_OR_INFERRED;
         if (t->tag == IntType || t->tag == FloatType || t->tag == ByteType) return true;
-        return (Int$compare_value(Match(ast, Int)->i, I(BIGGEST_SMALL_INT)) <= 0);
+        // Magnitude, not signed order: compile_int compares the same way
+        // (mpz_cmpabs_ui), so a big *negative* literal is no more constant
+        // than a big positive one.
+        Int_t i = Match(ast, Int)->i;
+        return Int$compare_value(i, I(BIGGEST_SMALL_INT)) <= 0 && Int$compare_value(i, I(-BIGGEST_SMALL_INT)) >= 0;
     }
     case TextJoin: {
         DeclareMatch(text, ast, TextJoin);
