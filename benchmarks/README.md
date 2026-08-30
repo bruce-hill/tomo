@@ -46,11 +46,14 @@ Per-benchmark graphs: [n-body](results-nbody.png) ·
 
 Binary sizes are statically linked and stripped, so each number is the whole
 self-contained footprint, not a stub leaning on a system `libc`. Tomo's is
-**~770 KB and near-constant** across all nine (761–787 KB): the runtime
+**~770 KB and near-constant** across all nine (763–788 KB): the runtime
 dominates and the program is noise. Only Zig's minimal-runtime musl builds
 (15–38 KB) are in a different league. Tomo lands within a few percent of C
 either way, and well under Nim (~810 KB), Rust (~1.2–1.4 MB), Go (~1.6 MB),
-and C++ (up to 2.2 MB).
+and C++ (up to 2.2 MB). Only a handful of languages produce a standalone
+static binary at all, so benchmarks left with fewer than five of them
+(pidigits, reverse-complement, spectral-norm) are dropped from the chart
+rather than shown as a two- or three-way list.
 
 ## Usage
 

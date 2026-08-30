@@ -41,19 +41,24 @@ GRID = "#e6e8eb"
 # A few very slow entries squash everyone else: on spectral-norm Python takes
 # 182s against a 0.61s leader, so every other bar is a sliver. The panel then
 # truncates its x-axis to the rest of the field, an ordinary axis with an
-# ordinary linear scale and ordinary ticks, just a shorter one, and the
-# entries that do not fit run off the end of it, marked with an arrowhead and labeled with
-# their real time inside the bar. Where to truncate is derived from the data
-# rather than fixed at some number of seconds: sort the times and truncate
+# ordinary linear scale and ordinary ticks, just a shorter one, and the entries
+# that do not fit run off the end of it, marked with an arrowhead and labeled
+# with their real time inside the bar. Where to truncate is derived from the
+# data rather than fixed at some number of seconds: sort the times and truncate
 # above the *lowest* neighbor-to-neighbor jump that is big enough to matter and
 # leaves only a few entries above it, taking the lowest such jump rather than
-# the biggest, because it is the one that wins back the most axis for the pack (mandelbrot's
-# biggest jump is Lua->Python at the very top, where truncating there would
-# leave the field just as squashed).
+# the biggest, because it is the one that wins back the most axis for the pack
+# (mandelbrot's biggest jump is Lua->Python at the very top, where truncating
+# there would leave the field just as squashed).
 BREAK_JUMP = 2.5        # a jump this large can host the truncation...
 BREAK_MAX_SHARE = 0.25  # ...if at most this fraction of the field is above it
 BREAK_MIN_SQUASH = 0.4  # ...and the rest is squashed into this fraction of the
                         #    axis, i.e. there is real room to be won back
+
+# Only a handful of languages produce a standalone static binary at all, and it
+# thins out further per benchmark. Below this many entries a panel is a list,
+# not a comparison, so the size chart leaves it out (and says which).
+MIN_SIZE_LANGS = 5
 
 
 def load(path):
@@ -206,8 +211,13 @@ def size_panel(ax, bname, block):
     ax.set_axisbelow(True)
 
     for yi, (lang, _, b) in zip(y, rows):
+        # rows is sorted ascending, so only the first row is actually the
+        # smallest; everything else carries its ratio. A second decimal when
+        # the ratio would round to 1.0 keeps a genuinely larger binary from
+        # reading as a tie.
         rel = b / smallest if smallest else 1.0
-        txt = human_bytes(b) + (f"  ({rel:.1f}×)" if rel >= 1.05 else "  (smallest)")
+        ratio = f"{rel:.2f}×" if rel < 1.05 else f"{rel:.1f}×"
+        txt = human_bytes(b) + ("  (smallest)" if yi == 0 else f"  ({ratio})")
         ax.text(b + xmax * 0.012, yi, txt, va="center", ha="left",
                 fontsize=9, color=INK if lang == "tomo" else MUTED,
                 fontweight="bold" if lang == "tomo" else "normal", zorder=4)
@@ -220,7 +230,17 @@ def size_panel(ax, bname, block):
 
 def main_sizes(path, out):
     data = load(path)
-    benches = [(b, blk) for b, blk in data.items() if blk.get("results")]
+    benches, thin = [], []
+    for b, blk in data.items():
+        if not blk.get("results"):
+            continue
+        (benches if len(blk["results"]) >= MIN_SIZE_LANGS else thin).append((b, blk))
+    if thin:
+        dropped = ", ".join(f"{b} ({len(blk['results'])})" for b, blk in thin)
+        print(f"skipping (fewer than {MIN_SIZE_LANGS} languages): {dropped}")
+    if not benches:
+        print("no benchmark has enough languages to chart")
+        return
     n = len(benches)
     fig, axes = plt.subplots(n, 1, figsize=(9, 1.0 + 3.2 * n), squeeze=False)
     fig.patch.set_facecolor("white")
