@@ -1,4 +1,4 @@
-// `tomo fmt`: format Tomo source code, or check that formatting is faithful.
+// `tomo format`: format Tomo source code, or check that formatting is faithful.
 
 #include <errno.h>
 #include <gc.h>
@@ -23,7 +23,7 @@ static OptionalBool_t in_place = false;
 static OptionalBool_t check = false;
 static int32_t jobs = 0; // 0 = unset; see check_all() below
 
-static cli_arg_t fmt_spec[] = {
+static cli_arg_t format_spec[] = {
     {"files", &files, List$info(&Path$info), .positional = true, .required = true, .metavar = "file.tm",
      .description = "the files to format"},
     {"in-place", &in_place, &Bool$info, .short_flag = 'i',
@@ -223,7 +223,7 @@ static int64_t check_all(List_t paths, int64_t max_jobs) {
     return failures;
 }
 
-static int cmd_fmt(cli_command_t *self, List_t extra_args) {
+static int cmd_format(cli_command_t *self, List_t extra_args) {
     (void)extra_args;
     set_default_logs(0);
     files = normalize_tm_paths(files);
@@ -259,15 +259,16 @@ static int cmd_fmt(cli_command_t *self, List_t extra_args) {
     return 0;
 }
 
-cli_command_t fmt_command = {
-    .name = "fmt",
+cli_command_t format_command = {
+    .name = "format",
+    .alias = "fmt",
     .summary = "Format Tomo source code",
     .description = "Formats Tomo source, printing to stdout (or rewriting the files with\n"
                    "--in-place). With --check, nothing is written: each file is checked to\n"
                    "make sure it parses, that the formatted source parses to the same syntax\n"
                    "tree, and that formatting it again changes nothing. Files are checked in\n"
                    "parallel and listed as they finish, unless --quiet.",
-    .spec_len = sizeof(fmt_spec) / sizeof(fmt_spec[0]),
-    .spec = fmt_spec,
-    .handler = cmd_fmt,
+    .spec_len = sizeof(format_spec) / sizeof(format_spec[0]),
+    .spec = format_spec,
+    .handler = cmd_format,
 };

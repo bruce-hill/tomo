@@ -47,6 +47,10 @@ Text_t tomo_generate_usage(Text_t prefix, int spec_len, cli_arg_t spec[spec_len]
 typedef struct cli_command_s cli_command_t;
 struct cli_command_s {
     const char *name;        // "run", "build", ... (NULL for the root command)
+    // An alternate name that invokes the same command ("fmt" for "format"),
+    // or NULL. Accepted wherever the name is, but not listed as a command of
+    // its own:
+    const char *alias;
     const char *summary;     // one-liner shown in the parent's command listing
     const char *description; // optional prose paragraph for this command's help
     // Usage/help shown for `<prog> <cmd> --help` and parse errors; leave empty

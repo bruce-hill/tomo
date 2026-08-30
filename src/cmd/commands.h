@@ -5,7 +5,7 @@
 #include "../stdlib/cli.h"
 #include "../stdlib/datatypes.h"
 
-extern cli_command_t run_command, build_command, transpile_command, parse_command, fmt_command, package_command,
+extern cli_command_t run_command, build_command, transpile_command, parse_command, format_command, package_command,
     uninstall_command, vendor_command, info_command, version_command, eval_command, test_command;
 
 // The tomo CLI itself (defined in tomo.c); its usage/help text is

@@ -108,6 +108,11 @@
   (a typo for `transpile`) from `cat` (not a typo for `fmt`), since both are 2
   edits away. This is the "Did you mean ...?" logic that compiler errors already
   used, now available to Tomo code and shared with CLI parsing.
+- `tomo fmt` is now `tomo format`. `fmt` remains as an alias, so
+  nothing that already invokes it has to change. CLI commands can declare one
+  alias each; an alias is accepted wherever the command name is, is shown
+  under the command's own `--help`, and can be suggested for a typo, but it
+  doesn't take up a line of its own in the list of commands.
 - An unrecognized subcommand now suggests the closest match, in both generated
   programs and `tomo` itself, alongside the full list of available commands.
 - Fixed three bugs in `Text.distance()`. They only ever ran in compiler error
@@ -130,7 +135,7 @@
   alike, and `print_err()` no longer hardcodes its red highlighting either.
   The CLI's escapes now all come from one palette (`tomo_cli_style()`), which
   returns empty strings when color is off -- the same approach `report_style()`
-  already used for `tomo test`/`tomo fmt` output.
+  already used for `tomo test`/`tomo format` output.
 - The `tomo` compiler now runs the same `tomo_init()` startup that every
   compiled Tomo program runs, instead of an inlined partial copy of it. Along
   with removing the duplicated color and hash-key setup, this means the

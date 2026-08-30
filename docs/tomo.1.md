@@ -88,9 +88,9 @@ written into the file's `.tomo/` directory.
 `parse` *file.tm...*
 : Print the parse tree of the given files as S-expressions.
 
-`fmt` \[`-i`\] *file.tm...*
+`format` \[`-i`\] *file.tm...*
 : Autoformat the given files and print them to standard output, or rewrite
-them in place with `--in-place`/`-i`.
+them in place with `--in-place`/`-i`. Also available as `fmt`.
 
 `package` \[`-o` *libname.a*\] \[*dir-or-file...*\]
 : Build packages into static archives. With no arguments, the current

@@ -199,6 +199,12 @@ int tomo_main(cli_command_t *self, List_t extra_args) {
             Text_t command = Text$from_str(tomo_cli.root.children[i]->name);
             List$insert(&names, &command, I(0), sizeof(Text_t));
             listing = Texts(listing, i > 0 ? Text(", ") : EMPTY_TEXT, command);
+            // An alias is a real name for the command, so it belongs among the
+            // suggestions, but not in the listing of commands:
+            if (tomo_cli.root.children[i]->alias) {
+                Text_t alias = Text$from_str(tomo_cli.root.children[i]->alias);
+                List$insert(&names, &alias, I(0), sizeof(Text_t));
+            }
         }
         OptionalText_t nearest = Text$nearest(name, names, NUMBER_SMALL(3, 5) /* 0.6 */);
         cli_style_t style = tomo_cli_style();

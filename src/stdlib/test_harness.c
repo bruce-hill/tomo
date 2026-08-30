@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 #include "files.h" // highlight_error_to, load_file
-#include "report.h" // shared with `tomo fmt --check`
+#include "report.h" // shared with `tomo format --check`
 #include "stdlib.h" // USE_COLOR
 #include "test_harness.h"
 

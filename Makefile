@@ -513,13 +513,13 @@ compile_commands.json: Makefile config.mk | ./scripts/compile_commands.py
 .PHONY: lsp
 lsp: compile_commands.json
 
-# Round-trips every .tm file in the tree through `tomo fmt` and checks that the
+# Round-trips every .tm file in the tree through `tomo format` and checks that the
 # formatter neither changes what the code means nor leaves it unsettled. The
 # file list is gathered at recipe time, not parse time, so a generated file like
 # test/api.tm is picked up on a fresh checkout:
 test-format: build test/api.tm
 	@printf '\033[1m Testing formatter... \033[m\n'
-	@./local-tomo fmt --check $$(find test examples benchmarks -name '*.tm' \
+	@./local-tomo format --check $$(find test examples benchmarks -name '*.tm' \
 	    -not -path 'test/parse/*' | sort)
 
 # Snapshot tests for the parser: every test/parse/*.tm is parsed and its output

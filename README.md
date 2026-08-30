@@ -225,7 +225,7 @@ Commands:
   build: Compile a Tomo program to a standalone executable
   transpile: Transpile a Tomo file to C and print the result
   parse: Print the parse tree of Tomo files as S-expressions
-  fmt: Format Tomo source code
+  format: Format Tomo source code
   package: Build Tomo packages into static archives
   uninstall: Uninstall Tomo programs, or this whole Tomo installation
   vendor: Copy packages' verified sources into ./vendor/

@@ -363,6 +363,9 @@ static void materialize_command(cli_spec_t *cli, cli_command_t *command, Text_t 
         Text_t help = Texts(style.bold, invocation, style.reset);
         if (command->summary) help = Texts(help, ": ", command->summary);
         help = Texts(help, "\n\n", command->usage);
+        if (command->alias)
+            help = Texts(help, "\n", style.usage, "Alias:", style.reset, " ", prefix, " ", style.command,
+                         command->alias, style.reset);
         if (command->description) help = Texts(help, "\n\n", command->description);
 
         Text_t args_text = EMPTY_TEXT, flags_text = EMPTY_TEXT;
@@ -404,7 +407,8 @@ static void materialize_help_text(const char *prog, cli_spec_t *cli) {
 
 static cli_command_t *find_child(cli_command_t *command, const char *name) {
     for (int i = 0; i < command->num_children; i++) {
-        if (streq(name, command->children[i]->name)) return command->children[i];
+        cli_command_t *child = command->children[i];
+        if (streq(name, child->name) || (child->alias && streq(name, child->alias))) return child;
     }
     return NULL;
 }
@@ -416,6 +420,12 @@ static OptionalText_t nearest_command(cli_command_t *command, const char *word) 
     for (int i = 0; i < command->num_children; i++) {
         Text_t name = Text$from_str(command->children[i]->name);
         List$insert(&names, &name, I(0), sizeof(Text_t));
+        // An alias is a real name for the command, so a typo of it should
+        // suggest the alias itself rather than the name it stands for:
+        if (command->children[i]->alias) {
+            Text_t alias = Text$from_str(command->children[i]->alias);
+            List$insert(&names, &alias, I(0), sizeof(Text_t));
+        }
     }
     return Text$nearest(Text$from_str(word), names, NUMBER_SMALL(3, 5) /* 0.6 */);
 }
