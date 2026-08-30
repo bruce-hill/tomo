@@ -86,7 +86,7 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
         Num_t folded;
         if (fold_num_constant(ast, &folded))
             return compile_num_value(
-                folded, Texts("number_from_string(\"", Text$from_str(number_to_symbolic(folded)), "\")"));
+                folded, Texts("number_from_symbolic(\"", Text$from_str(number_to_symbolic(folded)), "\")"));
     }
 
     // `/` on integers is exact: both operands convert to Num (losslessly) and

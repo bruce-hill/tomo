@@ -319,14 +319,10 @@ struct ast_s {
             // The exact value, computed at parse time: `3.15` is 63/20, not
             // the nearest double to it (3.14999999999999991...). Codegen picks
             // the tightest encoding this value admits -- usually a
-            // NUMBER_SMALL immediate, costing nothing at runtime.
+            // NUMBER_SMALL immediate, costing nothing at runtime. As with an
+            // Int literal, the digits as written -- along with any `%`/`deg`
+            // suffix -- are recoverable from the node's span.
             Num_t n;
-            // The digits as written (minus `_` separators) and any trailing
-            // `%`/`deg`, kept for the two things the value alone can't do:
-            // reconstruct the literal when it needs a runtime constructor
-            // (see compile_num_to_type), and print it back out (formatter).
-            const char *str;
-            enum { NUM_PLAIN, NUM_PERCENT, NUM_DEGREES } suffix;
         } Num;
         struct {
             Text_t text;

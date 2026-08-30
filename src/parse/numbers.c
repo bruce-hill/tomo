@@ -16,6 +16,10 @@
 #include "errors.h"
 #include "utils.h"
 
+// A numeric literal's trailing scale, which the parser folds into the value:
+// nothing else in the compiler needs to know it was written that way.
+enum { NUM_PLAIN, NUM_PERCENT, NUM_DEGREES };
+
 // The exact value a numeric literal denotes. Built from the written digits
 // rather than a double, so `3.15` is 63/20 and not the nearest double to it,
 // and scaled exactly by any suffix: `%` is a division by 100, and `deg` a
@@ -54,11 +58,9 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     // `50%` and `90deg` are numeric literals, not integers: both scale the
     // written digits by an exact factor (1/100, and pi/180 respectively).
     if (match(&pos, "%"))
-        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_PERCENT), .str = str,
-                      .suffix = NUM_PERCENT);
+        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_PERCENT));
     else if (match(&pos, "deg"))
-        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_DEGREES), .str = str,
-                      .suffix = NUM_DEGREES);
+        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_DEGREES));
 
     OptionalInt_t i = Int$from_str(str);
     if (i.small == 0) parser_err(ctx, start, pos, "I couldn't parse this integer");
@@ -94,8 +96,7 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     if (match(&pos, "%")) suffix = NUM_PERCENT;
     else if (match(&pos, "deg")) suffix = NUM_DEGREES;
 
-    return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, buf, suffix), .str = buf,
-                  .suffix = suffix);
+    return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, buf, suffix));
 }
 
 // Fold a leading `-` into a numeric literal, so `-128` is a single Int literal
@@ -110,11 +111,7 @@ ast_t *negate_literal(parse_ctx_t *ctx, const char *start, ast_t *literal) {
     if (!isdigit((unsigned char)start[1]) && start[1] != '.') return NULL;
     switch (literal->tag) {
     case Int: return NewAST(ctx->file, start, literal->end, Int, .i = Int$negative(Match(literal, Int)->i));
-    case Num: {
-        DeclareMatch(num, literal, Num);
-        return NewAST(ctx->file, start, literal->end, Num, .n = number_neg(num->n), .str = String("-", num->str),
-                      .suffix = num->suffix);
-    }
+    case Num: return NewAST(ctx->file, start, literal->end, Num, .n = number_neg(Match(literal, Num)->n));
     default: return NULL;
     }
 }

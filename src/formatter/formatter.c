@@ -417,10 +417,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case Num: {
         OptionalText_t source = ast_source(ast);
-        if (source.length > 0) return source;
-        DeclareMatch(num, ast, Num);
-        const char *suffix = num->suffix == NUM_PERCENT ? "%" : (num->suffix == NUM_DEGREES ? "deg" : "");
-        return Text$from_str(String(num->str, suffix));
+        return source.length > 0 ? source : Text$from_str(number_to_symbolic(Match(ast, Num)->n));
     }
     /*inline*/ case Var:
         return Text$from_str(Match(ast, Var)->name);

@@ -72,17 +72,9 @@ Text_t compile_num_to_type(env_t *env, ast_t *ast, type_t *target) {
 
 public
 Text_t compile_num(ast_t *ast) {
-    DeclareMatch(num, ast, Num);
-    // The fallback rebuilds the value from the source digits rather than from
-    // the parsed one, since a heap `number` can't be written as a constant.
-    Text_t digits = Texts("number_from_decimal(\"", Text$from_str(num->str), "\")");
-    Text_t fallback;
-    switch (num->suffix) {
-    case NUM_PERCENT: fallback = Texts("number_div(", digits, ", NUMBER_SMALL(100, 1))"); break;
-    case NUM_DEGREES:
-        fallback = Texts("number_mul(", digits, ", number_div(number_pi(), NUMBER_SMALL(180, 1)))");
-        break;
-    default: fallback = digits; break;
-    }
-    return compile_num_value(num->n, fallback);
+    Num_t n = Match(ast, Num)->n;
+    // The fallback is for a value with no C constant form (a heap `number`):
+    // it rebuilds the exact value from its symbolic form, which covers the
+    // irrational values a `deg` literal denotes as well as the rational ones.
+    return compile_num_value(n, Texts("number_from_symbolic(\"", Text$from_str(number_to_symbolic(n)), "\")"));
 }
