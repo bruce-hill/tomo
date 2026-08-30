@@ -25,3 +25,4 @@
 *.tar.gz
 *.tar.xz
 tags
+/compile_commands.json

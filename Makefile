@@ -496,6 +496,23 @@ test-cli: $(BUILD_BASE)/cli_test
 	@printf '\033[1m Testing CLI argument parsing... \033[m\n'
 	@$(BUILD_BASE)/cli_test
 
+# A compilation database for editors and language servers (clangd, ccls). The
+# build's own flags are what let this tree parse at all -- `$$` in identifiers,
+# the vendored headers in place of the system ones, gnu23 -- so those are what
+# it records. Generated rather than checked in: it names absolute paths and the
+# host platform. Regenerated when the flags or the file list change.
+LSP_SOURCES=$(wildcard src/*.c src/cmd/*.c src/compile/*.c src/parse/*.c src/formatter/*.c src/stdlib/*.c test/c/*.c)
+# The flags go through the shell on their way to the script, which splits them
+# exactly as it does for the compiler -- so -DSUDO='"doas"' arrives as the one
+# argument the compiler sees, quotes and all.
+compile_commands.json: Makefile config.mk | ./scripts/compile_commands.py
+	@./scripts/compile_commands.py $(LSP_SOURCES) -- \
+	    $(filter-out -MMD -MP,$(CFLAGS)) -iquote src/stdlib > $@
+	@printf 'Wrote \033[1m%s\033[m for %s files\n' $@ $(words $(LSP_SOURCES))
+
+.PHONY: lsp
+lsp: compile_commands.json
+
 # Round-trips every .tm file in the tree through `tomo fmt` and checks that the
 # formatter neither changes what the code means nor leaves it unsettled. The
 # file list is gathered at recipe time, not parse time, so a generated file like
