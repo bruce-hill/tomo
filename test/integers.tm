@@ -202,3 +202,15 @@ test "compound divide-assignment by zero panics"
 	x := 10
 	x //= 0
 fails "Cannot divide 10 by zero"
+
+# The notations an integer literal can be written in. The values are the point,
+# and so is having these spellings in a file at all: test-format checks that
+# formatting preserves the parse of every .tm in the tree, and a literal is
+# printed back from its source span.
+test "integer literal notations"
+	assert 0x10 == 16
+	assert 0o17 == 15
+	assert 0b1011 == 11
+	assert 0xFF_FF == 65535
+	assert 1_000_000 == 1000000
+	assert 123456789012345678901234567890 - 1 == 123456789012345678901234567889

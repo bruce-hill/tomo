@@ -318,3 +318,14 @@ fails "division by zero"
 test "force-unwrapping the square root of a negative panics"
 	_ := (-1.).sqrt()!
 fails "This was expected to be a value, but it's `none`"
+
+# As with the integer notations in test/integers.tm: these spellings are here to
+# be parsed, evaluated, and -- via test-format -- formatted back to themselves.
+test "num literal notations"
+	assert .5 == 0.5
+	assert 1. == 1
+	assert 6.02e23 == 602000000000000000000000
+	assert 1.5e-3 == 0.0015
+	assert 1_000.5 == 1000.5
+	assert 0.5% == 0.005
+	assert 12..round() == 12
