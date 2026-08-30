@@ -521,6 +521,7 @@ struct ast_s {
 };
 
 extern const int op_tightness[NUM_AST_TAGS];
+extern const bool op_is_right_associative[NUM_AST_TAGS];
 
 typedef struct {
     const char *method_name;

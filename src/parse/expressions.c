@@ -243,7 +243,8 @@ ast_t *parse_term(parse_ctx_t *ctx, const char *pos) {
 }
 
 ast_t *parse_expr(parse_ctx_t *ctx, const char *pos) {
-    return parse_infix_expr(ctx, pos, 0);
+    // Nothing encloses a whole expression, so every operator is absorbed:
+    return parse_infix_expr(ctx, pos, Unknown);
 }
 
 ast_t *parse_extended_expr(parse_ctx_t *ctx, const char *pos) {

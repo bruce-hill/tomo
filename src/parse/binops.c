@@ -60,14 +60,26 @@ ast_e match_binary_operator(const char **pos) {
     }
 }
 
-ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightness) {
+// Whether `outer_op` absorbs `op` into the expression it encloses, rather than
+// leaving it for whatever encloses `outer_op` in turn. It absorbs `op` when `op`
+// binds more tightly -- or exactly as tightly, if `outer_op` is
+// right-associative, which is what groups `a ^ b ^ c` as `a ^ (b ^ c)`.
+//
+// `outer_op` is Unknown for an expression with nothing around it. That absorbs
+// every real operator, since Unknown's tightness of 0 is below all of them.
+static bool absorbs(ast_e outer_op, ast_e op) {
+    if (op_is_right_associative[outer_op]) return op_tightness[op] >= op_tightness[outer_op];
+    return op_tightness[op] > op_tightness[outer_op];
+}
+
+ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, ast_e outer_op) {
     ast_t *lhs = optional(ctx, &pos, parse_term);
     if (!lhs) return NULL;
 
     int64_t starting_line = get_line_number(ctx->file, pos);
     int64_t starting_indent = get_indent(ctx, pos);
     spaces(&pos);
-    for (ast_e op; (op = match_binary_operator(&pos)) != Unknown && op_tightness[op] >= min_tightness; spaces(&pos)) {
+    for (ast_e op; (op = match_binary_operator(&pos)) != Unknown && absorbs(outer_op, op); spaces(&pos)) {
         ast_t *key = NULL;
         if (op == Min || op == Max) {
             key = NewAST(ctx->file, pos, pos, Var, .name = (op == Min ? "_min_" : "_max_"));
@@ -89,7 +101,7 @@ ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, int min_tightness) {
         if (get_line_number(ctx->file, pos) != starting_line && get_indent(ctx, pos) < starting_indent)
             parser_err(ctx, pos, eol(pos), "I expected this line to be at least as indented than the line above it");
 
-        ast_t *rhs = parse_infix_expr(ctx, pos, op_tightness[op] + 1);
+        ast_t *rhs = parse_infix_expr(ctx, pos, op);
         if (!rhs) break;
         pos = rhs->end;
 

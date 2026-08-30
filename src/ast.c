@@ -39,6 +39,13 @@ const int op_tightness[NUM_AST_TAGS] = {
     [Xor] = 1,
 };
 
+// Associativity, the companion to op_tightness above: everything groups to the
+// left (10-3-2 is (10-3)-2) except exponentiation, which groups to the right
+// (2^3^2 is 2^(3^2)).
+const bool op_is_right_associative[NUM_AST_TAGS] = {
+    [Power] = true,
+};
+
 const binop_info_t binop_info[NUM_AST_TAGS] = {
     [Power] = {"power", "^"},
     [PowerUpdate] = {"power", "^="},
