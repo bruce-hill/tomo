@@ -1,0 +1,1 @@
+(Block (FunctionDef (Var "main") (args) (Block (Declare (Var "name") nil (Text "world")) (DebugLog  (Text "hello " (Var "name"))) (DebugLog  (Text "sum: " (Plus (Int "1") (Int "2")))) (DebugLog  (Text (Var "name") ".length")) (DebugLog  (Text (FieldAccess (Var "name") "length"))) (DebugLog  (Text "escaped: \$name")) (DebugLog  (Text "multiline\ntext")))))

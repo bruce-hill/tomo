@@ -1,0 +1,1 @@
+(Block (FunctionDef (Var "main") (args) (Block (Declare (Var "table") nil (Table (TableEntry (Text "a") (Int "1")))) (DebugLog  (NonOptional (Index (Var "table") (Text "a")))) (DebugLog  (Or (Index (Var "table") (Text "b")) (Int "0"))) (Declare (Var "maybe") (OptionalType (VarType "Int")) nil) (DebugLog  (Equals (Var "maybe") (None))))))

@@ -1,0 +1,9 @@
+Parser Error
+
+test/parse/err_unclosed_paren.tm
+ 2|     x := (1 + 2
+ 3|     say("unreachable")
+  :     -----------------
+
+I wasn't able to parse the rest of this expression
+

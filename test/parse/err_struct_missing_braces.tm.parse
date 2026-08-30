@@ -1,0 +1,9 @@
+Parser Error
+
+test/parse/err_struct_missing_braces.tm
+ 1| struct Person (name:Text, age:Int)
+  :              ^
+ 2|     pass
+
+I expected a '{' and a list of fields here
+

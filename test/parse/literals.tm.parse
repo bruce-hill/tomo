@@ -1,0 +1,1 @@
+(Block (FunctionDef (Var "main") (args) (Block (DebugLog  (Int "123")) (DebugLog  (Int "1_000_000")) (DebugLog  (Int "0xff")) (DebugLog  (Num "2.0")) (DebugLog  (Num "1e10")) (DebugLog  (Bool yes)) (DebugLog  (Bool no)) (DebugLog  (None)) (DebugLog  (Text "double quoted")) (DebugLog  (Text "single quoted")))))

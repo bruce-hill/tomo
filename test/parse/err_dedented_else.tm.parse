@@ -1,0 +1,10 @@
+Parser Error
+
+test/parse/err_dedented_else.tm
+ 3|         say("yes")
+ 4| else
+  : ----
+ 5|     say("no")
+
+I expect all top-level statements to be declarations of some kind
+

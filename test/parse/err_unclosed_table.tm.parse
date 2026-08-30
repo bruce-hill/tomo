@@ -1,0 +1,8 @@
+Parser Error
+
+test/parse/err_unclosed_table.tm
+ 1| func main()
+ 2|     t := {"one": 1, "two": 2
+
+I wasn't able to parse the rest of this table
+

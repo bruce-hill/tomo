@@ -1,0 +1,9 @@
+Parser Error
+
+test/parse/err_missing_operand.tm
+ 1| func main()
+ 2|     x := 1 +
+  :            -
+
+I don't know how to parse the rest of this line
+

@@ -519,9 +519,24 @@ lsp: compile_commands.json
 # test/api.tm is picked up on a fresh checkout:
 test-format: build test/api.tm
 	@printf '\033[1m Testing formatter... \033[m\n'
-	@./local-tomo fmt --check $$(find test examples benchmarks -name '*.tm' | sort)
+	@./local-tomo fmt --check $$(find test examples benchmarks -name '*.tm' \
+	    -not -path 'test/parse/*' | sort)
 
-test: test-tm test-number test-cli test-format
+# Snapshot tests for the parser: every test/parse/*.tm is parsed and its output
+# -- a parse tree, or the full text of a parse error -- compared against the
+# snapshot checked in beside it. The err_*.tm fixtures don't parse on purpose,
+# which is why test-format skips this directory.
+test-parse: build
+	@printf '\033[1m Testing parser... \033[m\n'
+	@./scripts/parse_tests.sh ./local-tomo
+
+# Rewrites every parser snapshot from current behavior. It can't tell a fixed
+# bug from a newly introduced one, so review `git diff test/parse` afterwards.
+.PHONY: regen-parse-tests
+regen-parse-tests: build
+	@./scripts/parse_tests.sh ./local-tomo --regen
+
+test: test-tm test-number test-cli test-parse test-format
 	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
 
 # Remove just the (target-specific) Tomo object files:

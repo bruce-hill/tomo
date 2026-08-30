@@ -1,0 +1,9 @@
+Parser Error
+
+test/parse/err_func_colon.tm
+ 1| func main():
+  :            -
+ 2|     say("Tomo function bodies take no colon")
+
+There should not be a colon here, just put the function body without the colon.
+

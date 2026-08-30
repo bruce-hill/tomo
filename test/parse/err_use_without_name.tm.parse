@@ -1,0 +1,9 @@
+Parser Error
+
+test/parse/err_use_without_name.tm
+ 1| use
+  : ---
+ 2| func main()
+
+There is no module name here to use
+

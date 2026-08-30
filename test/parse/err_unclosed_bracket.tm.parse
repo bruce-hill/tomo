@@ -1,0 +1,8 @@
+Parser Error
+
+test/parse/err_unclosed_bracket.tm
+ 1| func main()
+ 2|     x := [1, 2, 3
+
+I wasn't able to parse the rest of this list
+
