@@ -218,7 +218,7 @@ struct Person{name:Text, age:Int}
 
     # Methods are defined here as well:
     func say_age(self:Person)
-        say("My age is $self.age")
+        say("My age is $(self.age)")
 
     # If you want to mutate a value, you must have a mutable pointer:
     func increase_age(self:@Person, amount=1)

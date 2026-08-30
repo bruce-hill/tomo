@@ -24,7 +24,7 @@ struct Foo{name:Text, age:Int}
     oldest := Foo{"Methuselah", 969}
 
     func greet(f:Foo)
-        say("Hi my name is $f.name and I am $f.age years old!")
+        say("Hi my name is $(f.name) and I am $(f.age) years old!")
 
     func get_older(f:@Foo)
         f.age += 1

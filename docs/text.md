@@ -137,8 +137,8 @@ multi_line := "
 
 ## Text Interpolations
 
-Inside double quoted text, you can use a dollar sign (`$`) to insert an
-expression that you want converted to text. This is called text interpolation:
+Inside double quoted text, you can use a dollar sign (`$`) to insert a value
+that you want converted to text. This is called text interpolation:
 
 ```tomo
 // Interpolation:
@@ -149,6 +149,17 @@ str := "My var is $my_var!"
 // Using parentheses:
 str := "Sum: $(1 + 2)"
 // equivalent to "Sum: 3"
+```
+
+A bare `$` takes only a variable's name, so anything more than that -- a field
+access, a method call, an operator -- needs the parenthesized form:
+
+```tomo
+// Interpolates `my_struct` and leaves ".age" as ordinary text:
+str := "Age: $my_struct.age"
+
+// Interpolates the field:
+str := "Age: $(my_struct.age)"
 ```
 
 Single-quoted text interpolates with `$` in exactly the same way. Backtick text
