@@ -415,6 +415,17 @@ number number_pow(number x, number y);
 // library recognizes proving it (e.g. sin(x)^2+cos(x)^2 vs. 1) refine up to
 // an internal precision cap and then give up, rather than loop forever.
 int number_compare_general(number a, number b);
+
+// number_compare, but giving up after max_prec bits of refinement instead of
+// the internal cap. Same answers, except that a difference too small to be
+// excluded from zero within max_prec bits is reported unordered (2) rather
+// than resolved. For a caller that applies its own "close enough counts as
+// equal" threshold to the undecided case, refining past that threshold is
+// work whose result gets discarded: passing the matching precision here
+// makes the two agree instead of leaving a gap between them (see
+// Num$compare_value, whose cap is NUM_EQUALITY_PREC).
+int number_compare_capped_general(number a, number b, uint32_t max_prec);
+
 // Exact equality. The error value is not equal to anything, including
 // itself. See number_compare for the one undecidable case (reported as
 // not-equal here, since equality can't be confirmed).
@@ -422,8 +433,23 @@ bool number_equal_general(number a, number b);
 
 #ifdef NUMBER_STATS
 int number_compare(number a, number b);
+int number_compare_capped(number a, number b, uint32_t max_prec);
 bool number_equal(number a, number b);
 #else
+extern inline __attribute__((gnu_inline, always_inline)) int number_compare_capped(number a, number b,
+                                                                                   uint32_t max_prec)
+{
+    // The tier-1 fast path is precision-independent, so it is exactly
+    // number_compare's; only the refinement past it takes the cap.
+    if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {
+        if (a.bits == b.bits) return 0;
+        int64_t l = (int32_t)(a.bits >> 32) * (int64_t)((b.bits >> 2) & NUMBER_SMALL_DEN_MAX);
+        int64_t r = (int32_t)(b.bits >> 32) * (int64_t)((a.bits >> 2) & NUMBER_SMALL_DEN_MAX);
+        return (l > r) - (l < r);
+    }
+    return number_compare_capped_general(a, b, max_prec);
+}
+
 extern inline __attribute__((gnu_inline, always_inline)) int number_compare(number a, number b)
 {
     if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {

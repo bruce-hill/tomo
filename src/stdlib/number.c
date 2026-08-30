@@ -546,10 +546,11 @@ static char *real_to_string(num_real *r, uint32_t max_frac_digits);
 // Sign of a real/irrational value via interval refinement; false if the
 // value can't be resolved within IRR_MAX_PREC bits (see the macro above).
 static bool refine_sign(number x, int *sign_out);
-// refine_sign's two halves, for the one caller (number_compare_general's
-// tier 3) that has something cheap to try in between them.
+// refine_sign's two halves, split for the one caller (comparison's tier 3)
+// that has something cheap to try in between them, and that wants a say in
+// how far the expensive half goes.
 static bool sign_from_interval(number x, int *sign_out);
-static bool refine_sign_exact(number x, int *sign_out);
+static bool refine_sign_exact(number x, int *sign_out, uint32_t max_prec);
 // Builds a general IRRATIONAL node combining x and y (y is small_zero(),
 // i.e. unused, for unary ops), taking ownership of both. For IRR_DIV, first
 // establishes y is nonzero via refine_sign; gives up -> NUMBER_ERROR.
@@ -951,7 +952,7 @@ bool number_is_integer(number x)
 // ---------------------------------------------------------------------------
 // Comparison
 
-int number_compare_general(number a, number b)
+int number_compare_capped_general(number a, number b, uint32_t max_prec)
 {
     NSTAT(ops[STAT_COMPARE]);
     if (number_is_error(a) || number_is_error(b)) return 2;
@@ -996,7 +997,7 @@ int number_compare_general(number a, number b)
                 // for a heavily shared expression (see number_to_symbolic).
                 result = 0;
             } else {
-                result = refine_sign_exact(diff, &s) ? s : 2;
+                result = refine_sign_exact(diff, &s, max_prec) ? s : 2;
             }
         } else {
             result = number_sign(diff);
@@ -1019,6 +1020,13 @@ int number_compare_general(number a, number b)
     // range -- and a raw 2 would be misread as the reserved "unordered" code.
     int c = mpq_cmp(number_mpq_view(a, &va), number_mpq_view(b, &vb));
     return (c > 0) - (c < 0);
+}
+int number_compare_general(number a, number b) { return number_compare_capped_general(a, b, IRR_MAX_PREC); }
+// The out-of-line counterpart to number.h's gnu_inline definition, exactly as
+// number_compare has one below:
+int number_compare_capped(number a, number b, uint32_t max_prec)
+{
+    return number_compare_capped_general(a, b, max_prec);
 }
 int number_compare(number a, number b) { return number_compare_general(a, b); } // see comment above number_add_general
 
@@ -2754,13 +2762,19 @@ static bool sign_from_interval(number x, int *sign_out)
 }
 
 // The expensive half of refine_sign: widen the fixed-point approximation
-// until it excludes zero, giving up past IRR_MAX_PREC bits. A value that IS
-// zero can never be excluded, so it always runs the loop to the cap before
+// until it excludes zero, giving up past max_prec bits. A value that IS zero
+// can never be excluded, so it always runs the loop to the cap before
 // failing -- callers with a cheaper way to recognize zero should try it
-// first (see number_compare_general's tier 3).
-static bool refine_sign_exact(number x, int *sign_out)
+// first (see the tier 3 comparison path), and callers that will discard
+// the answer past some precision anyway should say so via max_prec rather
+// than pay for every doubling up to IRR_MAX_PREC.
+//
+// The final step is clamped to max_prec instead of overshooting it, so a cap
+// that isn't a power of two still gets tried at exactly its own width.
+static bool refine_sign_exact(number x, int *sign_out, uint32_t max_prec)
 {
-    for (uint32_t w = 32; w <= IRR_MAX_PREC; w *= 2) {
+    for (uint32_t w = 32;; w *= 2) {
+        if (w > max_prec) w = max_prec; // the last step lands exactly on the cap
         int s;
         bigint *v;
         if (!value_fixed(x, w, &s, &v)) return false;
@@ -2772,8 +2786,8 @@ static bool refine_sign_exact(number x, int *sign_out)
             *sign_out = s;
             return true;
         }
+        if (w >= max_prec) return false;
     }
-    return false;
 }
 
 // Sign of a real/irrational value. Always succeeds for a real (b != 0
@@ -2781,7 +2795,7 @@ static bool refine_sign_exact(number x, int *sign_out)
 // resolve -- see IRR_MAX_PREC's doc comment.
 static bool refine_sign(number x, int *sign_out)
 {
-    return sign_from_interval(x, sign_out) || refine_sign_exact(x, sign_out);
+    return sign_from_interval(x, sign_out) || refine_sign_exact(x, sign_out, IRR_MAX_PREC);
 }
 
 // floor(log2(|x|)), approximately (+-1); can be negative for |x| < 1. Used

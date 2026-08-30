@@ -202,6 +202,21 @@ test "distinct irrationals still order correctly"
 	assert Num.PI < Num.TAU
 	assert (2.).sqrt()! < (3.).sqrt()!
 
+test "equality runs out exactly where the digits do"
+	# Two values whose difference is a bare rational cancel exactly, however
+	# small that difference is -- no refinement, no threshold:
+	assert Num.PI != Num.PI + (10.).power(-50)
+	# When the difference *can't* be cancelled, it has to be refined instead,
+	# and refinement stops at the same 40 digits that decide equality. Well
+	# above that, the two are distinguished:
+	a := (2.).sin() + (3.).sin()
+	b := (3.).sin() + (2.).sin()
+	assert a + (10.).power(-20) != b
+	# Below it, they agree to every digit that counts, so they're equal --
+	# this is the documented rule, not an artifact of how hard the refiner
+	# happened to work before giving up:
+	assert a + (10.).power(-50) == b
+
 test "identical expressions are equal"
 	# Two separately built irrationals with the same structure are the same
 	# value, and need no numeric refinement to say so: number_compare's

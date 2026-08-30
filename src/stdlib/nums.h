@@ -129,11 +129,35 @@ PUREFUNC uint64_t Num$hash(const void *n, const TypeInfo_t *type);
 PUREFUNC int32_t Num$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC int32_t Num$undecided_compare(Num_t x, Num_t y);
 
+// Where exactness runs out. Comparing two irrationals is undecidable in
+// general -- proving sqrt(3 + 2*sqrt(2)) == 1 + sqrt(2) takes symbolic
+// reasoning no engine does in full -- so past this many digits of agreement,
+// two values are treated as the same. Deep enough that nothing a program
+// actually computes lands inside it by accident.
+#define EQUALITY_DIGITS 40
+
+// EQUALITY_DIGITS expressed as bits of refinement, which is what the exact
+// layer actually works in: 40 decimal places need 40*log2(10) = 132.9 bits,
+// and refinement decides a value once its magnitude exceeds 4 at the working
+// precision -- i.e. once |x| > 2^-(w-2) -- so w = 140 resolves everything
+// down to 2^-138 ~= 2.3e-42, comfortably past the last digit that matters.
+//
+// This is the number that makes the two halves of Num equality line up. The
+// undecided fallback below rounds to EQUALITY_DIGITS and compares that, so
+// any refinement past this width produces an answer that gets thrown away --
+// and, worse, is the *expensive* part: proving a difference nonzero gets
+// harder the smaller it is, and a difference that is exactly zero can never
+// be proven nonzero at all, so an uncapped call always runs every doubling
+// to the internal cap before giving up. Capping here means "agrees to 40
+// digits" is the whole rule, rather than a fallback that only applies when
+// several thousand digits of refinement happened to come up empty.
+#define NUM_EQUALITY_PREC 140
+
 // number_compare answers 2 for "couldn't decide", which happens only for two
 // general irrationals; everything else -- every rational, every closed
 // symbolic form -- decides here, inline.
 MACROLIKE PUREFUNC int32_t Num$compare_value(Num_t x, Num_t y) {
-    int cmp = number_compare(x, y);
+    int cmp = number_compare_capped(x, y, NUM_EQUALITY_PREC);
     if (unlikely(cmp == 2)) return Num$undecided_compare(x, y);
     return (int32_t)cmp;
 }

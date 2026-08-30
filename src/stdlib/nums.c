@@ -345,13 +345,6 @@ Text_t Num$as_text(const void *n, bool colorize, const TypeInfo_t *info) {
     return text;
 }
 
-// Where exactness runs out. Comparing two irrationals is undecidable in
-// general -- proving sqrt(3 + 2*sqrt(2)) == 1 + sqrt(2) takes symbolic
-// reasoning no engine does in full -- so past this many digits of agreement,
-// two values are treated as the same. Deep enough that nothing a program
-// actually computes lands inside it by accident.
-#define EQUALITY_DIGITS 40
-
 // The value rounded to EQUALITY_DIGITS, as an exact rational. Comparing two
 // of these always decides, where comparing the originals may not.
 static Num_t rounded_for_equality(Num_t n) {
