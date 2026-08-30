@@ -780,6 +780,20 @@ binding_t *get_subcommand_binding(env_t *env, ast_t *ast) {
     return b;
 }
 
+// A comprehension inside a list or table literal stands in for the items it
+// produces, not for a single item: its own type is the list/table type. Peel
+// off any comprehension layers to reach the expression that actually yields an
+// item, and advance `*scope` to the scope that expression is evaluated in (the
+// one holding the loop variables). Returns `ast` unchanged if it isn't one.
+static ast_t *unwrap_comprehension(env_t **scope, ast_t *ast) {
+    while (ast->tag == Comprehension) {
+        DeclareMatch(comp, ast, Comprehension);
+        *scope = for_scope(*scope, FakeAST(For, .iters = comp->iters, .vars = comp->vars, .at = comp->at));
+        ast = comp->expr;
+    }
+    return ast;
+}
+
 type_t *get_type(env_t *env, ast_t *ast) {
     if (!ast) return NULL;
 #pragma clang diagnostic push
@@ -890,13 +904,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         DeclareMatch(list, ast, List);
         type_t *item_type = NULL;
         for (ast_list_t *item = list->items; item; item = item->next) {
-            ast_t *item_ast = item->ast;
             env_t *scope = env;
-            while (item_ast->tag == Comprehension) {
-                DeclareMatch(comp, item_ast, Comprehension);
-                scope = for_scope(scope, FakeAST(For, .iters = comp->iters, .vars = comp->vars, .at = comp->at));
-                item_ast = comp->expr;
-            }
+            ast_t *item_ast = unwrap_comprehension(&scope, item->ast);
             type_t *t2 = get_type(scope, item_ast);
             type_t *merged = item_type ? type_or_type(item_type, t2) : t2;
             if (!merged)
@@ -916,14 +925,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *key_type = NULL, *value_type = NULL;
         bool ambiguous_key_type = false, ambiguous_value_type = false;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-            ast_t *entry_ast = entry->ast;
             env_t *scope = env;
-            while (entry_ast->tag == Comprehension) {
-                DeclareMatch(comp, entry_ast, Comprehension);
-                scope = for_scope(scope, FakeAST(For, .iters = comp->iters, .vars = comp->vars, .at = comp->at));
-                entry_ast = comp->expr;
-            }
-
+            ast_t *entry_ast = unwrap_comprehension(&scope, entry->ast);
             DeclareMatch(e, entry_ast, TableEntry);
             type_t *key_t = get_type(scope, e->key);
             type_t *value_t = e->value ? get_type(scope, e->value) : PRESENT_TYPE;
@@ -2092,20 +2095,6 @@ PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target) {
     case Xor: return target == NULL || target->tag != FloatType;
     default: return false;
     }
-}
-
-// A comprehension inside a list or table literal stands in for the items it
-// produces, not for a single item: its own type is the list/table type. Peel
-// off any comprehension layers to reach the expression that actually yields an
-// item, and advance `*scope` to the scope that expression is evaluated in (the
-// one holding the loop variables). Returns `ast` unchanged if it isn't one.
-static ast_t *unwrap_comprehension(env_t **scope, ast_t *ast) {
-    while (ast->tag == Comprehension) {
-        DeclareMatch(comp, ast, Comprehension);
-        *scope = for_scope(*scope, FakeAST(For, .iters = comp->iters, .vars = comp->vars, .at = comp->at));
-        ast = comp->expr;
-    }
-    return ast;
 }
 
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
