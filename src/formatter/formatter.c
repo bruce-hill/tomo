@@ -331,6 +331,9 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case Negative: {
         ast_t *val = Match(ast, Negative)->value;
+        // An operand this `-` absorbs needs no parentheses to be read back as
+        // part of it: `-x ^ 2` is already the negation of the power.
+        if (is_binary_operation(val) && absorbs_rhs(Negative, val->tag)) return Texts("-", fmt_inline(val, comments));
         return Texts("-", must(termify_inline(val, comments)));
     }
     /*inline*/ case HeapAllocate: {
@@ -838,7 +841,9 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Negative: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, Negative)->value;
-        if (is_binary_operation(val)) return Texts("-", termify(val, comments, indent));
+        // See the inline case above for which operands keep their parentheses.
+        if (is_binary_operation(val) && !absorbs_rhs(Negative, val->tag))
+            return Texts("-", termify(val, comments, indent));
         else return Texts("-", fmt(val, comments, indent));
     }
     /*multiline*/ case HeapAllocate: {

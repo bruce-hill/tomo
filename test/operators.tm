@@ -25,6 +25,10 @@ test "negation"
 	assert - -1 == 1
 	assert -2.5 ^ 2 == -6.25
 	assert -(1.0/3) == -1.0/3
+	# The formatter prints these back as written -- `-` absorbs the `^` but not
+	# the `*`, so only the second needs its parentheses (see test-format).
+	assert -x^2 == -9
+	assert -(x*2) == -6
 
 # A `-` in front of a number still yields a single negative literal, which is
 # what lets it be compiled to a sized type that only holds it with the sign on.
