@@ -313,7 +313,9 @@ int highlight_error_to(FILE *out, int indent, file_t *file, const char *start, c
                 if (sp < start) print_char = ' ';
                 else if (sp == start && sp == end) print_char = '^';
                 else if (sp >= start && sp < end) print_char = '-';
-                else print_char = ' ';
+                // Nothing is printed after the carets, so padding out to the
+                // width of the source line would only be trailing whitespace:
+                else break;
                 printed += fputc_column(out, *sp, print_char, &col);
             }
             printed += fputs("\n", out);
