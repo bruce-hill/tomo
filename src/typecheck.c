@@ -1272,8 +1272,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (binop.lhs->tag == Int && is_int_type(rhs_t)) return rhs_t;
-        else if (binop.rhs->tag == Int && is_int_type(lhs_t)) return lhs_t;
+        if (is_int_literal(binop.lhs, NULL) && is_int_type(rhs_t)) return rhs_t;
+        else if (is_int_literal(binop.rhs, NULL) && is_int_type(lhs_t)) return lhs_t;
 
         // `opt? or (x == y)` / `(x == y) or opt?` is a boolean conditional:
         if ((lhs_t->tag == OptionalType && rhs_t->tag == BoolType)
@@ -1319,8 +1319,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (binop.lhs->tag == Int && is_int_type(rhs_t)) return rhs_t;
-        else if (binop.rhs->tag == Int && is_int_type(lhs_t)) return lhs_t;
+        if (is_int_literal(binop.lhs, NULL) && is_int_type(rhs_t)) return rhs_t;
+        else if (is_int_literal(binop.rhs, NULL) && is_int_type(lhs_t)) return lhs_t;
 
         // `and` between optionals/bools is a boolean expression like `if opt? and opt?:` or `if x > 0 and opt?:`
         if ((lhs_t->tag == OptionalType || lhs_t->tag == BoolType)
@@ -1349,8 +1349,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         type_t *lhs_t = get_type(env, binop.lhs);
         type_t *rhs_t = get_type(env, binop.rhs);
 
-        if (binop.lhs->tag == Int && is_int_type(rhs_t)) return rhs_t;
-        else if (binop.rhs->tag == Int && is_int_type(lhs_t)) return lhs_t;
+        if (is_int_literal(binop.lhs, NULL) && is_int_type(rhs_t)) return rhs_t;
+        else if (is_int_literal(binop.rhs, NULL) && is_int_type(lhs_t)) return lhs_t;
 
         // `xor` between optionals/bools is a boolean expression like `if opt? xor opt?:` or `if x > 0 xor opt?:`
         if ((lhs_t->tag == OptionalType || lhs_t->tag == BoolType)
@@ -1388,7 +1388,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
 
         // A bare numeric literal is untyped: it takes the other side's type,
         // even through an optional (`x : Float64? = none; x == 0.0`).
-        if ((binop.lhs->tag == Int && is_numeric_type(rhs_t)) || (binop.rhs->tag == Int && is_numeric_type(lhs_t))
+        if ((is_int_literal(binop.lhs, NULL) && is_numeric_type(rhs_t)) || (is_int_literal(binop.rhs, NULL) && is_numeric_type(lhs_t))
             || (binop.lhs->tag == Num && is_numeric_type(non_optional(rhs_t)))
             || (binop.rhs->tag == Num && is_numeric_type(non_optional(lhs_t)))
             || can_compile_to_type(env, binop.rhs, lhs_t) || can_compile_to_type(env, binop.lhs, rhs_t))
@@ -1434,9 +1434,9 @@ type_t *get_type(env_t *env, ast_t *ast) {
             return lhs_t;
         } else if (rhs_t->tag == FloatType && lhs_t->tag == NumType && can_compile_to_type(env, binop.lhs, rhs_t)) {
             return rhs_t;
-        } else if (is_numeric_type(lhs_t) && binop.rhs->tag == Int) {
+        } else if (is_numeric_type(lhs_t) && is_int_literal(binop.rhs, NULL)) {
             return lhs_t;
-        } else if (is_numeric_type(rhs_t) && binop.lhs->tag == Int) {
+        } else if (is_numeric_type(rhs_t) && is_int_literal(binop.lhs, NULL)) {
             return rhs_t;
         } else {
             switch (compare_precision(lhs_t, rhs_t)) {
@@ -1858,6 +1858,18 @@ type_t *parse_type_string(env_t *env, const char *str) {
     return ast ? parse_type_ast(env, ast) : NULL;
 }
 
+// Compiled to a native fixed-width int / Num / Byte target, any int literal
+// that fits is a plain cast -- a C constant (codegen errors if it doesn't fit).
+// Compiled to a bignum `Int`, only a small-enough literal is constant (the
+// I_small() compound literal); a larger one compiles to a runtime
+// Int$from_str/from_int64 call. Magnitude, not signed order: compile_int
+// compares the same way (mpz_cmpabs_ui), so a big *negative* literal is no more
+// constant than a big positive one.
+static bool int_literal_is_constant(Int_t i, type_t *t) {
+    if (t->tag == IntType || t->tag == FloatType || t->tag == ByteType) return true;
+    return Int$compare_value(i, I(BIGGEST_SMALL_INT)) <= 0 && Int$compare_value(i, I(-BIGGEST_SMALL_INT)) >= 0;
+}
+
 bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
     // For numeric cases, the type this value will be compiled to: when the
     // caller knows it (a declared type or a list's item type), an untyped-int
@@ -1879,20 +1891,7 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         if (t->tag != NumType) return false;
         return (Match(ast, Num)->n.bits & 0x3) == 0x1;
     }
-    case Int: {
-        // Compiled to a native fixed-width int / Num / Byte target, any int
-        // literal that fits is a plain cast -- a C constant (codegen errors if
-        // it doesn't fit). Compiled to a bignum `Int`, only a small-enough
-        // literal is constant (the I_small() compound literal); a larger one
-        // compiles to a runtime Int$from_str/from_int64 call.
-        type_t *t = EXPECTED_OR_INFERRED;
-        if (t->tag == IntType || t->tag == FloatType || t->tag == ByteType) return true;
-        // Magnitude, not signed order: compile_int compares the same way
-        // (mpz_cmpabs_ui), so a big *negative* literal is no more constant
-        // than a big positive one.
-        Int_t i = Match(ast, Int)->i;
-        return Int$compare_value(i, I(BIGGEST_SMALL_INT)) <= 0 && Int$compare_value(i, I(-BIGGEST_SMALL_INT)) >= 0;
-    }
+    case Int: return int_literal_is_constant(Match(ast, Int)->i, EXPECTED_OR_INFERRED);
     case TextJoin: {
         DeclareMatch(text, ast, TextJoin);
         if (!text->children) return true; // Empty string, OK
@@ -1936,17 +1935,25 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         return is_constant(env, Match(ast, Not)->value, NULL);
     }
     case Negative: {
-        // Negation compiles to a native C `-` (a constant expression) only for
-        // fixed-width int / Num / Byte, not bignum `Int` (`Int$negative` call).
-        // Codegen doesn't push a target type through `-`, so gate on the value's
-        // own type.
-        type_t *nt = get_type(env, ast);
-        // A constant Num is the exception: it folds to a single value at compile
-        // time, just as the arithmetic in BINOP_CASES below does.
-        if (nt->tag == NumType) {
+        // A `-` written apart from its digits is a literal like any other (see
+        // is_int_literal), and is constant on the same terms:
+        Int_t literal;
+        if (is_int_literal(ast, &literal)) return int_literal_is_constant(literal, EXPECTED_OR_INFERRED);
+
+        // A constant Num folds to a single value at compile time, just as the
+        // arithmetic in BINOP_CASES below does -- but only when it is compiled
+        // *as* a Num. Promoting one to a float is a runtime call, and codegen
+        // doesn't push a target type through `-` to avoid it.
+        if (EXPECTED_OR_INFERRED->tag == NumType) {
             Num_t folded;
             return fold_num_constant(ast, &folded) && (folded.bits & 0x3) == 0x1;
         }
+
+        // Negation otherwise compiles to a native C `-` (a constant expression)
+        // only for fixed-width int / Num / Byte, not bignum `Int`
+        // (`Int$negative` call). Same reason as above: gate on the value's own
+        // type, since no target type is pushed through the `-`.
+        type_t *nt = get_type(env, ast);
         if (nt->tag != IntType && nt->tag != FloatType && nt->tag != ByteType) return false;
         return is_constant(env, Match(ast, Negative)->value, NULL);
     }
@@ -1996,7 +2003,7 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type) {
         if (fn_t && fn_t->tag == TypeInfoType && call->args && !call->args->next) {
             type_t *ctor_t = Match(fn_t, TypeInfoType)->type;
             ast_t *arg = call->args->value;
-            if (is_numeric_type(ctor_t) && arg->tag == Int && is_constant(env, arg, ctor_t)) return true;
+            if (is_numeric_type(ctor_t) && is_int_literal(arg, NULL) && is_constant(env, arg, ctor_t)) return true;
             if (ctor_t->tag == FloatType && arg->tag == Num) return true;
         }
         return false;
@@ -2094,7 +2101,7 @@ PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed) {
     // Untyped int literals can compile to a numeric type even when it's
     // wrapped in an Optional (e.g. comparing a `(+.length: ...)` reduction's
     // `Int64?` result against the literal `6`).
-    if (is_numeric_type(non_optional_needed) && ast->tag == Int) return true;
+    if (is_numeric_type(non_optional_needed) && is_int_literal(ast, NULL)) return true;
     if (needed->tag == FloatType && ast->tag == Num) return true;
     // Untyped-int-literal arithmetic (inferred as bignum `Int`) can compile to
     // any numeric type its operands can, by pushing the type into them.

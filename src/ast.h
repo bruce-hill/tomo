@@ -543,6 +543,7 @@ CONSTFUNC bool is_update_assignment(ast_t *ast);
 CONSTFUNC ast_e binop_tag(ast_e tag);
 CONSTFUNC bool is_binary_operation(ast_t *ast);
 CONSTFUNC bool is_operation(ast_t *ast);
+bool is_int_literal(ast_t *ast, Int_t *value);
 CONSTFUNC bool absorbs_rhs(ast_e outer_op, ast_e op);
 CONSTFUNC bool absorbs_lhs(ast_e outer_op, ast_e op);
 typedef enum { VISIT_STOP, VISIT_PROCEED } visit_behavior_t;

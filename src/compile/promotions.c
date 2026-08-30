@@ -154,7 +154,7 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
         ast = Match(ast, Block)->statements->ast;
     }
 
-    if (ast->tag == Int && is_numeric_type(non_optional(t))) {
+    if (is_int_literal(ast, NULL) && is_numeric_type(non_optional(t))) {
         return compile_int_to_type(env, ast, t);
     } else if (ast->tag == Num && is_numeric_type(non_optional(t))) {
         return compile_num_to_type(env, ast, t);

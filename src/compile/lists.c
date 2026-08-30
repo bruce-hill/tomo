@@ -346,7 +346,7 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         arg_ast_t *arg = i_arg;
         for (int n = 0; n < 2; n++, arg = arg->next) {
             type_t *arg_t = get_type(env, arg->value);
-            if (arg->value->tag == Int)
+            if (is_int_literal(arg->value, NULL))
                 index_codes[n] = compile_int_to_type(env, arg->value, Type(IntType, .bits = TYPE_IBITS64));
             else if (arg_t->tag == BigIntType) index_codes[n] = Texts("Int64$from_int(", compile(env, arg->value), ", no)");
             else if (is_int_type(arg_t)) index_codes[n] = Texts("(Int64_t)(", compile(env, arg->value), ")");

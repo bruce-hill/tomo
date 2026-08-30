@@ -523,6 +523,27 @@ CONSTFUNC bool is_operation(ast_t *ast) {
     return op_tightness[ast->tag] > 0;
 }
 
+// An integer literal, seeing through a `-` written apart from its digits. `-2`
+// folds the sign into the literal as it's parsed, but `- 2` and `-(2)` are a
+// negation wrapping one, and they denote the same value -- so anything that
+// treats a literal specially, whether that's compiling it straight to a sized
+// type or letting it take its type from the other operand, should treat all
+// three alike. The value is written to `*value` when one is asked for.
+bool is_int_literal(ast_t *ast, Int_t *value) {
+    switch (ast->tag) {
+    case Int:
+        if (value) *value = Match(ast, Int)->i;
+        return true;
+    case Negative: {
+        Int_t inner;
+        if (!is_int_literal(Match(ast, Negative)->value, &inner)) return false;
+        if (value) *value = Int$negative(inner);
+        return true;
+    }
+    default: return false;
+    }
+}
+
 CONSTFUNC bool is_binary_operation(ast_t *ast) {
     switch (ast->tag) {
     case Min:

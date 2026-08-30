@@ -169,7 +169,7 @@ Text_t compile_lvalue(env_t *env, ast_t *ast) {
             Text_t target_code = compile_to_pointer_depth(env, index->indexed, 1, false);
             type_t *item_type = Match(container_t, ListType)->item_type;
             Text_t index_code =
-                index->index->tag == Int
+                is_int_literal(index->index, NULL)
                     ? compile_int_to_type(env, index->index, Type(IntType, .bits = TYPE_IBITS64))
                     : (index_t->tag == BigIntType ? Texts("Int64$from_int(", compile(env, index->index), ", no)")
                                                   : Texts("(Int64_t)(", compile(env, index->index), ")"));

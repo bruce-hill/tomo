@@ -31,9 +31,9 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         type_t *operand_t;
         if (type_eq(lhs_t, rhs_t)) {
             operand_t = lhs_t;
-        } else if (binop.lhs->tag == Int && is_numeric_type(rhs_t)) {
+        } else if (is_int_literal(binop.lhs, NULL) && is_numeric_type(rhs_t)) {
             operand_t = rhs_t;
-        } else if (binop.rhs->tag == Int && is_numeric_type(lhs_t)) {
+        } else if (is_int_literal(binop.rhs, NULL) && is_numeric_type(lhs_t)) {
             operand_t = lhs_t;
         } else if (binop.lhs->tag == Num && is_numeric_type(non_optional(rhs_t))) {
             operand_t = rhs_t;
@@ -91,9 +91,9 @@ Text_t compile_comparison(env_t *env, ast_t *ast) {
         type_t *operand_t;
         if (type_eq(lhs_t, rhs_t)) {
             operand_t = lhs_t;
-        } else if (cmp.lhs->tag == Int && is_numeric_type(rhs_t)) {
+        } else if (is_int_literal(cmp.lhs, NULL) && is_numeric_type(rhs_t)) {
             operand_t = rhs_t;
-        } else if (cmp.rhs->tag == Int && is_numeric_type(lhs_t)) {
+        } else if (is_int_literal(cmp.rhs, NULL) && is_numeric_type(lhs_t)) {
             operand_t = lhs_t;
         } else if (cmp.lhs->tag == Num && is_numeric_type(non_optional(rhs_t))) {
             operand_t = rhs_t;

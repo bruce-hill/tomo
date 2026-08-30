@@ -23,7 +23,8 @@ void mpz_init_int(mpz_t out, Int_t i) {
 
 public
 Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
-    if (ast->tag != Int) {
+    Int_t literal;
+    if (!is_int_literal(ast, &literal)) {
         Text_t code = compile(env, ast);
         type_t *actual_type = get_type(env, ast);
         if (!promote(env, ast, &code, actual_type, target))
@@ -39,7 +40,7 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
     }
 
     mpz_t i;
-    mpz_init_int(i, Match(ast, Int)->i);
+    mpz_init_int(i, literal);
 
     char *c_literal;
     gmp_asprintf(&c_literal, "%#Zd", i);

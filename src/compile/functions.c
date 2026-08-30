@@ -82,10 +82,10 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
                 continue;
 
             Text_t value;
-            if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
+            Int_t int_val;
+            if (spec_arg->type->tag == IntType && is_int_literal(call_arg->value, NULL)) {
                 value = compile_int_to_type(env, call_arg->value, spec_arg->type);
-            } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Int) {
-                Int_t int_val = Match(call_arg->value, Int)->i;
+            } else if (spec_arg->type->tag == FloatType && is_int_literal(call_arg->value, &int_val)) {
                 if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
                     value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
                 else value = Text$from_str(String(hex_double((double)Float32$from_int(int_val, false)), "f"));
@@ -105,10 +105,10 @@ Text_t compile_arguments(env_t *env, ast_t *call_ast, arg_t *spec_args, arg_ast_
             const char *pseudoname = String(i++);
             if (!Table$str_get(used_args, pseudoname)) {
                 Text_t value;
-                if (spec_arg->type->tag == IntType && call_arg->value->tag == Int) {
+                Int_t int_val;
+                if (spec_arg->type->tag == IntType && is_int_literal(call_arg->value, NULL)) {
                     value = compile_int_to_type(env, call_arg->value, spec_arg->type);
-                } else if (spec_arg->type->tag == FloatType && call_arg->value->tag == Int) {
-                    Int_t int_val = Match(call_arg->value, Int)->i;
+                } else if (spec_arg->type->tag == FloatType && is_int_literal(call_arg->value, &int_val)) {
                     if (Match(spec_arg->type, FloatType)->bits == TYPE_NBITS64)
                         value = Text$from_str(String(hex_double(Float64$from_int(int_val, false))));
                     else value = Text$from_str(String(hex_double((double)Float32$from_int(int_val, false)), "f"));
@@ -178,7 +178,7 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
 
         // Literal constructors for numeric types like `Byte(123)` should
         // not go through any conversion, just a cast:
-        if (is_numeric_type(t) && call->args && !call->args->next && call->args->value->tag == Int)
+        if (is_numeric_type(t) && call->args && !call->args->next && is_int_literal(call->args->value, NULL))
             return compile_to_type(env, call->args->value, t);
         // ... and so should a numeric literal wrapped in a float or `Num`
         // constructor. `Num` especially: without this, get_constructor picks

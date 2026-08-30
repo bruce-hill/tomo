@@ -39,3 +39,22 @@ test "negative literals"
 	assert -2.5 + 0.5 == -2.0
 	assert -1e3 == -1000.0
 	assert -0x10 == -16
+
+# Whether the `-` is written against the digits decides only whether the parser
+# folds it into the literal; it doesn't decide what the expression means. These
+# are all the literal -2, including where only a literal will do -- compiling
+# straight to a sized type, or taking its type from the other operand.
+#
+# Spelled `-(2)` rather than `- 2` because the formatter normalizes the spacing
+# away, and test-format checks that formatting every .tm file in the tree leaves
+# its parse alone. Both spellings parse to the same negation of a literal.
+test "a `-` written apart from its digits"
+	small : Int8 = -(128)
+	assert "$small" == "-128"
+	assert Int8(-(2)) == Int8(-2)
+	assert Int8(-(-(-2))) == Int8(-2)
+	assert Int64(-(5)) == Int64(-5)
+	assert Float64(-(2)) == Float64(-2)
+	assert Int8(1) + -(2) == Int8(-1)
+	assert Int8(5) > -(1)
+	assert [10, 20, 30][-(1)]! == 30
