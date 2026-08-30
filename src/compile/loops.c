@@ -62,12 +62,15 @@ typedef struct {
 
 static bool cow_expr_ok(env_t *env, ast_t *ast, cow_scan_t *scan);
 
-// Scalar-ish types: values whose copies can't share a list buffer.
+// Scalar-ish types: values whose copies can't share a list buffer. A tagged
+// word that may point at its own heap object still counts, since that object
+// is never a list: `Int` (GMP bignum) and `Num` (exact real) both qualify.
 static bool cow_type_ok(type_t *t) {
     if (t == NULL) return false;
     switch (t->tag) {
     case IntType:
     case BigIntType:
+    case NumType:
     case FloatType:
     case BoolType:
     case ByteType: return true;

@@ -51,6 +51,8 @@ test "hoisted writes accumulate across outer-loop iterations"
 		count += 1
 	assert ws[] == [4, 8, 12]
 
+struct Money{amount, rate: Num}
+
 struct Point{x, y: Float64}
     func scaled_by(p:Point, k:Float64 -> Point; inline)
         return Point{p.x*k, p.y*k}
@@ -108,3 +110,26 @@ test "a list-typed call argument is still ineligible"
 		ts[i] = ts[i]! + 10
 	assert ts[] == [11, 12, 13]
 	assert mid == [11, 2, 3]
+
+# `Num` and `Int` are tagged words that may point at their own heap object,
+# which is never a list, so lists of them are eligible too. Heap-backed values
+# (a big rational, an irrational) are the interesting case: the up-front
+# compact has to copy them without the collector losing track.
+
+test "Num lists are eligible and stay exact"
+	ns := @[1/3, Num.PI, 1/2 + (5.).sqrt()!/2]
+	before := ns[]
+	for i in Int64(1).to(Int64(3))
+		ns[i] = ns[i]! * 3
+	assert ns[1]! == 1
+	assert ns[2]! == 3 * Num.PI
+	assert before == [1/3, Num.PI, 1/2 + (5.).sqrt()!/2]
+
+test "structs of Nums are eligible"
+	struct_vals := @[Money{1/7, 7}, Money{1/3, 3}]
+	before := struct_vals[]
+	for i in Int64(1).to(Int64(2))
+		m := struct_vals[i]!
+		struct_vals[i] = Money{m.amount * m.rate, m.rate}
+	assert struct_vals[] == [Money{1, 7}, Money{1, 3}]
+	assert before == [Money{1/7, 7}, Money{1/3, 3}]
