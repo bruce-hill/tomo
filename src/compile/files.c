@@ -80,16 +80,7 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
     if (!ast) return EMPTY_TEXT;
 
     switch (ast->tag) {
-    case Use: {
-        // DeclareMatch(use, ast, Use);
-        // if (use->what == USE_C_CODE) {
-        //     Path_t path = Path$relative_to(Path$from_str(use->path),
-        //     Path(".tomo")); return Texts("#include \"",
-        //     Path$as_c_string(path),
-        //     "\"\n");
-        // }
-        return EMPTY_TEXT;
-    }
+    case Use: return EMPTY_TEXT;
     case Declare: {
         DeclareMatch(decl, ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;

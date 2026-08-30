@@ -165,28 +165,6 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
     return NULL;
 }
 
-// static PUREFUNC bool risks_zero_or_inf(ast_t *ast)
-// {
-//     switch (ast->tag) {
-//     case Int: {
-//         const char *str = Match(ast, Int)->str;
-//         OptionalInt_t int_val = Int$from_str(str);
-//         return (int_val.small == 0x1); // zero
-//     }
-//     case Num: {
-//         return Match(ast, Num)->n == 0.0;
-//     }
-//     case BINOP_CASES: {
-//         binary_operands_t binop = BINARY_OPERANDS(ast);
-//         if (ast->tag == Multiply || ast->tag == Divide || ast->tag == Min || ast->tag == Max)
-//             return risks_zero_or_inf(binop.lhs) || risks_zero_or_inf(binop.rhs);
-//         else
-//             return true;
-//     }
-//     default: return true;
-//     }
-// }
-
 PUREFUNC type_t *get_math_type(env_t *env, ast_t *ast, type_t *lhs_t, type_t *rhs_t) {
     (void)env;
     switch (compare_precision(lhs_t, rhs_t)) {

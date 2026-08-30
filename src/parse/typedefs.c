@@ -31,10 +31,6 @@ ast_t *parse_namespace(parse_ctx_t *ctx, const char *pos) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
             whitespace(ctx, &pos); // TODO: check for newline
-            // if (!(space_types & WHITESPACE_NEWLINES)) {
-            //     pos = stmt->end;
-            //     break;
-            // }
         } else {
             if (get_indent(ctx, next) > indent && next < eol(next))
                 parser_err(ctx, next, eol(next), "I couldn't parse this namespace declaration");
