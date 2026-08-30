@@ -13,6 +13,13 @@ extern Text_t TOMO_VERSION_TEXT;
 
 void tomo_configure(void);
 void tomo_init(void);
+// Run on the way out, by atexit() and by the fatal-signal handler alike.
+// This is how anything optional attaches itself to program exit without the
+// runtime having to name it: `--instrument` builds register their profile
+// report here (profiling.c), which is what keeps profiling.c out of the link
+// for everyone else, since one direct reference would defeat --gc-sections.
+// An #ifdef could not do that job: libtomo.a is compiled once and shipped, so
+// it cannot know which programs will be instrumented.
 void tomo_at_cleanup(Closure_t fn);
 void tomo_cleanup(void);
 

@@ -1,5 +1,6 @@
 // Implementation of the runtime function profiler (see profiling.h).
 
+#include <gc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -181,6 +182,13 @@ void tomo_profile_mark_start(void) {
     ticks_started = ticks();
 }
 
+// tomo_cleanup() runs this, so the report is printed on every way out that
+// the runtime already handles: a normal exit, a `fail()`, or a fatal signal.
+static void report_at_cleanup(void *userdata) {
+    (void)userdata;
+    tomo_profile_report();
+}
+
 public
 void tomo_profile_enable(void) {
     tomo_profile_mark_start();
@@ -191,7 +199,11 @@ void tomo_profile_enable(void) {
     const char *flame = getenv("FLAME_GRAPH");
     if (flame && flame[0] != '\0') flame_path = flame;
     tomo_profiling_enabled = true;
-    atexit(tomo_profile_report);
+    // An instrumented program calls tomo_profile_start() ahead of tomo_init(),
+    // so the collector may not be up yet and tomo_at_cleanup() allocates.
+    // GC_INIT() is idempotent, so tomo_init()'s own call stays a no-op.
+    GC_INIT();
+    tomo_at_cleanup((Closure_t){.fn = report_at_cleanup, .userdata = NULL});
 }
 
 public
