@@ -46,7 +46,8 @@ List_t NAMESPACED(bits)(INTX_T x);
 bool NAMESPACED(get_bit)(INTX_T x, Int_t bit_index);
 Closure_t NAMESPACED(to)(INTX_T first, INTX_T last, OPT_T step);
 Closure_t NAMESPACED(onward)(INTX_T first, INTX_T step);
-PUREFUNC OPT_T NAMESPACED(parse)(Text_t text, OptionalInt_t base, Text_t *remainder);
+// Not PUREFUNC: this writes through `remainder` (see Text$starts_with).
+OPT_T NAMESPACED(parse)(Text_t text, OptionalInt_t base, Text_t *remainder);
 CONSTFUNC bool NAMESPACED(is_between)(const INTX_T x, const INTX_T low, const INTX_T high);
 CONSTFUNC INTX_T NAMESPACED(clamped)(INTX_T x, INTX_T min, INTX_T max);
 MACROLIKE CONSTFUNC INTX_T NAMESPACED(from_byte)(Byte_t b) {
