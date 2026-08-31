@@ -9,7 +9,7 @@
 #include "datatypes/closure.h"
 #include "datatypes/present.h"
 #include "datatypes/table.h" // IWYU pragma: export
-#include "lists.h"
+#include "list.h"
 #include "typeinfo.h"
 #include "util.h"
 

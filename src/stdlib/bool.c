@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "bools.h"
+#include "bool.h"
 #include "integers.h"
 #include "metamethods.h"
 #include "optionals.h"

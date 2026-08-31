@@ -263,7 +263,7 @@ $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/%.h: src/stdlib/%.h | $(BUILD_DIR
 	cp $< $@
 
 # The umbrella header: in the (flat) source tree it includes its siblings as
-# `#include "bools.h"`, but installed they live in the tomo/ subdirectory
+# `#include "bool.h"`, but installed they live in the tomo/ subdirectory
 # next to it, so rewrite the quoted includes on the way in:
 $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo.h: src/stdlib/tomo.h | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo
 	sed 's|#include "|#include "tomo/|' $< > $@

@@ -8,7 +8,7 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/files.h"
 #include "../stdlib/optionals.h"
-#include "../stdlib/tables.h"
+#include "../stdlib/table.h"
 #include "../stdlib/text.h"
 #include "formatter.h"
 #include "utils.h"

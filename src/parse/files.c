@@ -8,8 +8,8 @@
 
 #include "../ast.h"
 #include "../stdlib/datatypes.h"
-#include "../stdlib/paths.h"
-#include "../stdlib/tables.h"
+#include "../stdlib/path.h"
+#include "../stdlib/table.h"
 #include "../stdlib/text.h"
 #include "../util.h"
 #include "context.h"

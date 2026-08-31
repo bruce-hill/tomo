@@ -3,7 +3,7 @@
 #include "../ast.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/stdlib.h"
-#include "../stdlib/tables.h"
+#include "../stdlib/table.h"
 #include "../stdlib/text.h"
 #include "args.h"
 #include "enums.h"

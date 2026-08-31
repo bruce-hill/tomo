@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#include "bools.h"
+#include "bool.h"
 #include "datatypes.h"
 #include "floats.h"
 #include "metamethods.h"

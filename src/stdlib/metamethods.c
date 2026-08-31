@@ -7,10 +7,10 @@
 
 #include "datatypes/typeinfo.h"
 #include "fail.h"
-#include "lists.h"
+#include "list.h"
 #include "metamethods.h"
 #include "siphash.h"
-#include "tables.h"
+#include "table.h"
 #include "text.h"
 #include "util.h"
 

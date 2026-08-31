@@ -8,7 +8,7 @@
 #include "../naming.h"
 #include "../packages.h"
 #include "../stdlib/datatypes.h"
-#include "../stdlib/paths.h"
+#include "../stdlib/path.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../types.h"

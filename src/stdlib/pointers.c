@@ -10,7 +10,7 @@
 #include "datatypes/typeinfo.h"
 #include "integers.h"
 #include "metamethods.h"
-#include "tables.h"
+#include "table.h"
 #include "text.h"
 #include "util.h"
 

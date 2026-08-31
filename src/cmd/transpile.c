@@ -3,8 +3,8 @@
 #include <unistd.h>
 
 #include "../environment.h"
-#include "../stdlib/bools.h"
-#include "../stdlib/lists.h"
+#include "../stdlib/bool.h"
+#include "../stdlib/list.h"
 #include "commands.h"
 #include "common.h"
 #include "compilation.h"

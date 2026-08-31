@@ -2,7 +2,7 @@
 
 #include "../ast.h"
 #include "../parse/files.h"
-#include "../stdlib/lists.h"
+#include "../stdlib/list.h"
 #include "commands.h"
 #include "common.h"
 

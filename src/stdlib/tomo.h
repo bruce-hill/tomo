@@ -7,9 +7,9 @@
 #include <stdbool.h> // IWYU pragma: export
 #include <stdint.h> // IWYU pragma: export
 
-#include "bools.h" // IWYU pragma: export
-#include "bytes.h" // IWYU pragma: export
-#include "c_strings.h" // IWYU pragma: export
+#include "bool.h" // IWYU pragma: export
+#include "byte.h" // IWYU pragma: export
+#include "c_string.h" // IWYU pragma: export
 #include "cli.h" // IWYU pragma: export
 #include "datatypes.h" // IWYU pragma: export
 #include "datatypes/typeinfo.h" // IWYU pragma: export
@@ -20,12 +20,12 @@
 #include "floats.h" // IWYU pragma: export
 #include "functiontype.h" // IWYU pragma: export
 #include "integers.h" // IWYU pragma: export
-#include "lists.h" // IWYU pragma: export
+#include "list.h" // IWYU pragma: export
 #include "memory.h" // IWYU pragma: export
 #include "metamethods.h" // IWYU pragma: export
-#include "nums.h" // IWYU pragma: export
+#include "num.h" // IWYU pragma: export
 #include "optionals.h" // IWYU pragma: export
-#include "paths.h" // IWYU pragma: export
+#include "path.h" // IWYU pragma: export
 #include "pointers.h" // IWYU pragma: export
 #include "print.h" // IWYU pragma: export
 #include "profiling.h" // IWYU pragma: export
@@ -34,6 +34,6 @@
 #include "stacktrace.h" // IWYU pragma: export
 #include "stdlib.h" // IWYU pragma: export
 #include "structs.h" // IWYU pragma: export
-#include "tables.h" // IWYU pragma: export
+#include "table.h" // IWYU pragma: export
 #include "test_harness.h" // IWYU pragma: export
 #include "text.h" // IWYU pragma: export

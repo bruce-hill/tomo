@@ -14,23 +14,23 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "bools.h"
-#include "bytes.h"
-#include "c_strings.h"
+#include "bool.h"
+#include "byte.h"
+#include "c_string.h"
 #include "datatypes.h"
 #include "datatypes/typeinfo.h"
 #include "enums.h"
 #include "floats.h"
 #include "integers.h"
-#include "lists.h"
+#include "list.h"
 #include "metamethods.h"
-#include "nums.h"
+#include "num.h"
 #include "optionals.h"
-#include "paths.h"
+#include "path.h"
 #include "pointers.h"
 #include "print.h"
 #include "structs.h"
-#include "tables.h"
+#include "table.h"
 #include "text.h"
 
 static int checks = 0;

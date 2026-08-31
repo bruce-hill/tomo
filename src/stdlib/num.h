@@ -51,7 +51,7 @@ MACROLIKE Num_t Num$divided_by(Num_t x, Num_t y) { // y == 0
     if (unlikely(NUMBER_IS_ERROR(result))) Num$arithmetic_error(result);
     return result;
 }
-// Out-of-line (nums.c): Euclidean, built on floor_divided_by, so it's not a
+// Out-of-line (num.c): Euclidean, built on floor_divided_by, so it's not a
 // single-call wrapper like the others here.
 Num_t Num$modulo(Num_t x, Num_t y); // y == 0
 MACROLIKE Num_t Num$power(Num_t base, Num_t exponent) { // 0^negative, negative^non-integer
@@ -71,7 +71,7 @@ Num_t Num$cosh(Num_t x);
 Num_t Num$tanh(Num_t x);
 Num_t Num$exp(Num_t x);
 
-// Rounding (see nums.c: fails only for an irrational the library can't place
+// Rounding (see num.c: fails only for an irrational the library can't place
 // on one side of the boundary, which no symbolic form ever hits).
 Num_t Num$floor(Num_t x);
 Num_t Num$ceil(Num_t x);

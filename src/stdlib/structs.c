@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "bools.h"
+#include "bool.h"
 #include "metamethods.h"
 #include "siphash.h"
 #include "structs.h"

@@ -4,7 +4,7 @@
 #include <signal.h> // IWYU pragma: export
 #include <stdio.h> // IWYU pragma: export
 
-#include "./stdlib/bools.h" // IWYU pragma: export
+#include "./stdlib/bool.h" // IWYU pragma: export
 #include "./stdlib/print.h" // IWYU pragma: export
 #include "./stdlib/stacktrace.h" // IWYU pragma: export
 #include "./stdlib/util.h" // IWYU pragma: export

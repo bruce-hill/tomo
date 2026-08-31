@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "../util.h"
-#include "bytes.h"
+#include "byte.h"
 #include "integers.h"
 #include "text.h"
 #include "util.h"

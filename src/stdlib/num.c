@@ -13,8 +13,8 @@
 #include "fail.h"
 #include "integers.h"
 #include "metamethods.h"
+#include "num.h"
 #include "number.h"
-#include "nums.h"
 #include "siphash.h"
 #include "text.h"
 
@@ -25,7 +25,7 @@
 // arise here, and only operations that can error from valid operands need
 // checking. The rest are wrapped with no test at all.
 
-// Out-of-line and noreturn, so the operators in nums.h can carry the error
+// Out-of-line and noreturn, so the operators in num.h can carry the error
 // check inline without dragging fail()'s machinery into every call site.
 public
 _Noreturn void Num$arithmetic_error(Num_t bad) {

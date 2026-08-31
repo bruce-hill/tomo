@@ -110,14 +110,14 @@
 #include <uniwidth.h>
 
 #include "../util.h"
-#include "bytes.h"
+#include "byte.h"
 #include "datatypes.h"
 #include "integers.h"
-#include "lists.h"
+#include "list.h"
 #include "metamethods.h"
 #include "number.h"
 #include "optionals.h"
-#include "tables.h"
+#include "table.h"
 #include "text.h"
 
 // Use inline version of the siphash code for performance:

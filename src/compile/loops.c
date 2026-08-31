@@ -7,7 +7,7 @@
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
-#include "../stdlib/tables.h"
+#include "../stdlib/table.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "../util.h"
@@ -398,7 +398,7 @@ static Text_t compile_debug_loop_typeinfos(env_t *env, env_t *body_scope, ast_li
 // break copy-on-write, and both are runtime failures rather than silent bugs:
 //   1. If a snapshot shares the buffer at loop entry (data_refcount > 0), we
 //      compact once up front, the same copy CoW would charge on first write.
-//   2. List_ref_iter_guard (stdlib/lists.h) re-checks at the top of each
+//   2. List_ref_iter_guard (stdlib/list.h) re-checks at the top of each
 //      iteration AND once after the loop (including `stop` exits), so a
 //      resize or copy in any iteration, even the last, fails before the
 //      loop's results can be used. A mid-loop snapshot can't be *protected*

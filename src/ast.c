@@ -6,10 +6,10 @@
 #include "ast.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
+#include "stdlib/num.h"
 #include "stdlib/number.h"
-#include "stdlib/nums.h"
 #include "stdlib/optionals.h"
-#include "stdlib/tables.h"
+#include "stdlib/table.h"
 #include "stdlib/text.h"
 
 const int op_tightness[NUM_AST_TAGS] = {
@@ -372,7 +372,7 @@ bool fold_num_constant(ast_t *ast, Num_t *out) {
         case Divide: result = number_div(lhs, rhs); break;
         case FloorDivide: {
             // The Euclidean quotient, exactly as Num$floor_divided_by
-            // computes it at runtime (see nums.c).
+            // computes it at runtime (see num.c).
             Num_t q = number_div(lhs, rhs);
             if (NUMBER_IS_ERROR(q)) return false;
             result = number_is_negative(rhs) ? number_ceil(q) : number_floor(q);

@@ -12,17 +12,17 @@
 #include <string.h>
 #include <sys/param.h>
 
-#include "c_strings.h"
+#include "c_string.h"
 #include "datatypes.h"
 #include "datatypes/typeinfo.h"
 #include "fail.h"
-#include "lists.h"
+#include "list.h"
 #include "memory.h"
 #include "metamethods.h"
 #include "pointers.h"
 #include "siphash.h"
 #include "structs.h"
-#include "tables.h"
+#include "table.h"
 #include "text.h"
 #include "util.h"
 

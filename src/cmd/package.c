@@ -2,7 +2,7 @@
 
 #include <unistd.h>
 
-#include "../stdlib/lists.h"
+#include "../stdlib/list.h"
 #include "../stdlib/text.h"
 #include "commands.h"
 #include "common.h"

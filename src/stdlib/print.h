@@ -20,7 +20,7 @@
 #include "datatypes.h" // IWYU pragma: export
 #include "integers.h" // IWYU pragma: export
 #include "mapmacro.h"
-#include "paths.h" // IWYU pragma: export
+#include "path.h" // IWYU pragma: export
 #include "stdlib.h" // IWYU pragma: export (USE_COLOR)
 #include "text.h" // IWYU pragma: export
 

@@ -12,9 +12,9 @@
 #include "../naming.h"
 #include "../parse/files.h"
 #include "../stdlib/fail.h"
-#include "../stdlib/lists.h"
+#include "../stdlib/list.h"
 #include "../stdlib/optionals.h"
-#include "../stdlib/paths.h"
+#include "../stdlib/path.h"
 #include "../stdlib/print.h"
 #include "common.h"
 

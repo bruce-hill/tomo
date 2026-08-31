@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#include "../stdlib/bools.h" // IWYU pragma: export
+#include "../stdlib/bool.h" // IWYU pragma: export
 #include "../stdlib/datatypes.h"
 #include "../stdlib/print.h"
 #include "../stdlib/text.h"

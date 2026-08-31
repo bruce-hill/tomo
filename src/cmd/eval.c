@@ -13,7 +13,7 @@
 #include "../sha256.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/files.h"
-#include "../stdlib/paths.h"
+#include "../stdlib/path.h"
 #include "../stdlib/print.h"
 #include "../stdlib/stdlib.h"
 #include "../stdlib/text.h"

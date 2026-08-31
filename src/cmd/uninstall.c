@@ -9,9 +9,9 @@
 #include <unistd.h>
 
 #include "../config.h"
-#include "../stdlib/bools.h"
-#include "../stdlib/lists.h"
-#include "../stdlib/paths.h"
+#include "../stdlib/bool.h"
+#include "../stdlib/list.h"
+#include "../stdlib/path.h"
 #include "../stdlib/print.h"
 #include "../stdlib/text.h"
 #include "commands.h"

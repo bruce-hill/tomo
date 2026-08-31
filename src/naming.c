@@ -9,7 +9,7 @@
 #include "environment.h"
 #include "sha256.h"
 #include "stdlib/fail.h"
-#include "stdlib/paths.h"
+#include "stdlib/path.h"
 #include "stdlib/print.h"
 #include "stdlib/text.h"
 #include "stdlib/util.h"

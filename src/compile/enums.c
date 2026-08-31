@@ -3,7 +3,7 @@
 #include "../ast.h"
 #include "../environment.h"
 #include "../naming.h"
-#include "../stdlib/tables.h"
+#include "../stdlib/table.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
 #include "compilation.h"

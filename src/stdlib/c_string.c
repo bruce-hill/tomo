@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #include "integers.h"
-#include "lists.h"
+#include "list.h"
 #include "metamethods.h"
 #include "siphash.h"
 #include "stdlib.h"

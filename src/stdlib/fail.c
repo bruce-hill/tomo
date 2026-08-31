@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "../util.h"
-#include "bools.h"
+#include "bool.h"
 #include "fail.h"
 #include "files.h"
 #include "stacktrace.h"

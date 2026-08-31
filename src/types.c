@@ -8,7 +8,7 @@
 
 #include "environment.h"
 #include "stdlib/integers.h"
-#include "stdlib/tables.h"
+#include "stdlib/table.h"
 #include "stdlib/text.h"
 #include "types.h"
 #include "util.h"

@@ -7,14 +7,14 @@
 #include <sys/param.h>
 
 #include "../util.h"
-#include "bytes.h"
+#include "byte.h"
 #include "integers.h"
-#include "lists.h"
+#include "list.h"
 #include "math.h"
 #include "metamethods.h"
 #include "number.h"
 #include "optionals.h"
-#include "tables.h"
+#include "table.h"
 #include "text.h"
 #include "util.h"
 

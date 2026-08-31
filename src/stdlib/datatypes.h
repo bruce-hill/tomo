@@ -5,7 +5,7 @@
 // nothing else. Those headers declare no functions, which is what keeps them
 // free of the cycle between the datatypes and the runtime type information
 // that describes them. The functions that operate on each type live in its
-// own header alongside this one: lists.h, tables.h, text.h, and so on.
+// own header alongside this one: list.h, table.h, text.h, and so on.
 //
 // datatypes/typeinfo.h is deliberately not included here: TypeInfo_t is the
 // description of a type rather than one of the datatypes, and a consumer that

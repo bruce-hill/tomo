@@ -10,7 +10,7 @@
 #include "naming.h"
 #include "parse/files.h"
 #include "stdlib/datatypes.h"
-#include "stdlib/tables.h"
+#include "stdlib/table.h"
 #include "stdlib/text.h"
 #include "typecheck.h"
 #include "util.h"
