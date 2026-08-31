@@ -14,6 +14,7 @@
 #include "datatypes.h"
 #include "integers.h"
 #include "metamethods.h"
+#include "number.h"
 #include "optionals.h"
 #include "print.h"
 #include "siphash.h"

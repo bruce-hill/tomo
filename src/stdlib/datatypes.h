@@ -1,169 +1,24 @@
-// Common datastructures (lists, tables, closures)
+// The representations of the built-in datatypes (lists, tables, text, ...)
+//
+// This header declares nothing itself: it is an umbrella over layout/, which
+// holds one header per type, giving that type's memory layout and nothing
+// else. Those headers declare no functions and never mention TypeInfo_t,
+// which is what keeps them free of the cycle between the datatypes and the
+// runtime type information that describes them (see types.h). The functions
+// that operate on each type live in its own header alongside this one:
+// lists.h, tables.h, text.h, and so on.
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#include "number.h" // IWYU pragma: export
-
-#define LIST_LENGTH_BITS 64
-#define LIST_FREE_BITS 48
-#define LIST_ATOMIC_BITS 1
-#define LIST_REFCOUNT_BITS 3
-#define LIST_STRIDE_BITS 12
-
-#define MAX_FOR_N_BITS(N) ((1L << (N)) - 1L)
-#define LIST_MAX_STRIDE MAX_FOR_N_BITS(LIST_STRIDE_BITS - 1)
-#define LIST_MIN_STRIDE (~MAX_FOR_N_BITS(LIST_STRIDE_BITS - 1))
-#define LIST_MAX_DATA_REFCOUNT MAX_FOR_N_BITS(LIST_REFCOUNT_BITS)
-#define LIST_MAX_FREE_ENTRIES MAX_FOR_N_BITS(LIST_FREE_BITS)
-
-#define Float64_t double
-#define Float32_t float
-
-#define Int64_t int64_t
-#define Int32_t int32_t
-#define Int16_t int16_t
-#define Int8_t int8_t
-#define Byte_t uint8_t
-#define Bool_t bool
-
-typedef union {
-    int64_t small;
-    void *big;
-} Int_t;
-
-#define OptionalInt_t Int_t
-
-// Num is an exact computable real: a tagged 64-bit word (see number.h). The
-// all-zeroes word is never a valid one, so it doubles as `none` and an
-// optional Num is the same 8 bytes as a Num.
-#define Num_t number
-#define OptionalNum_t Num_t
-
-typedef struct {
-    void *data;
-    // All of the following fields add up to 64 bits, which means that list
-    // structs can be passed in two 64-bit registers. C will handle doing the
-    // bit arithmetic to extract the necessary values, which is cheaper than
-    // spilling onto the stack and needing to retrieve data from the stack.
-    uint64_t length : LIST_LENGTH_BITS;
-    uint64_t free : LIST_FREE_BITS;
-    bool atomic : LIST_ATOMIC_BITS;
-    uint8_t data_refcount : LIST_REFCOUNT_BITS;
-    int16_t stride : LIST_STRIDE_BITS;
-} List_t;
-
-typedef struct {
-    uint32_t occupied : 1, index : 31;
-    uint32_t next_bucket;
-} bucket_t;
-
-// Maximum bucket size is determined by the maximum value for `index` in the `bucket_t` struct
-#define TABLE_MAX_BUCKETS 0x7fffffff
-#define TABLE_MAX_DATA_REFCOUNT 3
-
-typedef struct {
-    uint32_t count : 31, last_free : 31;
-    uint8_t data_refcount : 2;
-    bucket_t buckets[];
-} bucket_info_t;
-
-typedef struct table_s {
-    List_t entries;
-    uint64_t hash;
-    bucket_info_t *bucket_info;
-    struct table_s *fallback;
-} Table_t;
-
-typedef struct Present$$struct {
-} Present$$type;
-
-#define PRESENT_STRUCT ((Present$$type){})
-
-typedef struct {
-    Present$$type value;
-    bool has_value;
-} $OptionalPresent$$type;
-
-#define NONE_PRESENT_STRUCT (($OptionalPresent$$type){.has_value = false})
-#define OPTIONAL_PRESENT_STRUCT (($OptionalPresent$$type){.has_value = true})
-
-typedef struct {
-    void *fn, *userdata;
-} Closure_t;
-
-enum text_type { TEXT_NONE, TEXT_ASCII, TEXT_GRAPHEMES, TEXT_CONCAT, TEXT_BLOB };
-
-typedef struct Text_s {
-    uint64_t length : 53; // Number of grapheme clusters
-    uint8_t tag : 3;
-    uint8_t depth : 8;
-    union {
-        struct {
-            const char *ascii;
-            // char ascii_buf[8];
-        };
-        struct {
-            const int32_t *graphemes;
-            // int32_t grapheme_buf[2];
-        };
-        struct {
-            const struct Text_s *left, *right;
-        };
-        struct {
-            const int32_t *map;
-            const uint8_t *bytes;
-        } blob;
-    };
-} Text_t;
-
-typedef const char *Path_t;
-
-#define OptionalPath_t Path_t
-
-typedef struct Result$Success$$struct {
-} Result$Success$$type;
-
-typedef struct {
-    Result$Success$$type value;
-    bool has_value;
-} $OptionalResult$Success$$type;
-
-typedef struct Result$Failure$$struct {
-    Text_t reason;
-} Result$Failure$$type;
-
-typedef struct {
-    Result$Failure$$type value;
-    bool has_value;
-} $OptionalResult$Failure$$type;
-
-#define Result$Success ((Result$$type){.$tag = Result$tag$Success})
-#define SuccessResult Result$Success
-#define Result$tagged$Failure(msg) ((Result$$type){.$tag = Result$tag$Failure, .Failure.reason = msg})
-#define FailureResult(...) Result$tagged$Failure(Texts(__VA_ARGS__))
-
-typedef struct Result$$struct {
-    enum { Result$tag$none, Result$tag$Success, Result$tag$Failure } $tag;
-    union {
-        Result$Success$$type Success;
-        Result$Failure$$type Failure;
-    };
-} Result$$type;
-
-#define Result_t Result$$type
-
-#define OptionalBool_t uint8_t
-#define OptionalList_t List_t
-#define OptionalTable_t Table_t
-#define OptionalText_t Text_t
-#define OptionalClosure_t Closure_t
-
-typedef struct {
-    Byte_t value;
-    bool has_value : 1;
-} OptionalByte_t;
-
-#define NONE_BYTE ((OptionalByte_t){.has_value = false})
+#include "layout/bool.h" // IWYU pragma: export
+#include "layout/byte.h" // IWYU pragma: export
+#include "layout/closure.h" // IWYU pragma: export
+#include "layout/float.h" // IWYU pragma: export
+#include "layout/int.h" // IWYU pragma: export
+#include "layout/list.h" // IWYU pragma: export
+#include "layout/num.h" // IWYU pragma: export
+#include "layout/path.h" // IWYU pragma: export
+#include "layout/present.h" // IWYU pragma: export
+#include "layout/result.h" // IWYU pragma: export
+#include "layout/table.h" // IWYU pragma: export
+#include "layout/text.h" // IWYU pragma: export

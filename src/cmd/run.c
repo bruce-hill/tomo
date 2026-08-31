@@ -6,6 +6,7 @@
 
 #include "../config.h"
 #include "../environment.h"
+#include "../stdlib/number.h"
 #include "../stdlib/profiling.h"
 #include "../stdlib/fail.h"
 #include "../stdlib/lists.h"

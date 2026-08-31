@@ -6,6 +6,7 @@
 #include "ast.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/integers.h"
+#include "stdlib/number.h"
 #include "stdlib/nums.h"
 #include "stdlib/optionals.h"
 #include "stdlib/tables.h"

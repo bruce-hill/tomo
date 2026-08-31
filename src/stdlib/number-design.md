@@ -1,11 +1,11 @@
 # Numbers
 
-`number` is a C library for a general-purpose numeric datatype for doing
-numeric calculations with the following properties:
+`number.h` is a C library declaring `Num_t`, a general-purpose numeric
+datatype for doing numeric calculations with the following properties:
 
-- All `number`s represent an **exact** computable real number, including
+- Every `Num_t` represents an **exact** computable real number, including
   irrational numbers.
-- `number`s can be converted to a textual representation with an arbitrary
+- A `Num_t` can be converted to a textual representation with an arbitrary
   number of exact digits, and to a correctly rounded IEEE754 floating point
   number.
 - Common rational arithmetic stays off the heap entirely for performance.
@@ -35,7 +35,7 @@ additional immediate (non-heap) representation beneath it for small rationals.
 
 ## Data Representation
 
-A `number` is a 64-bit value in one of three tiers:
+A `Num_t` is a 64-bit value in one of three tiers:
 
 1. **Small rational**: an immediate value, no heap allocation, holding a 32-bit
    signed numerator, a 30-bit unsigned denominator, and a 2-bit tag.

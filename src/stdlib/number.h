@@ -22,38 +22,37 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// A number is a 64-bit tagged value (see number-design.md "Tagging"):
+#include "layout/num.h" // IWYU pragma: export
+
+// A Num is a 64-bit tagged value (see number-design.md "Tagging"):
 //   low bits 01: small rational immediate
 //   low bits 00: pointer to a GC-allocated heap object
 //   low bits 11: the error value
-// Heap tiers are GC-allocated, so copying a number is always safe and always
+// Heap tiers are GC-allocated, so copying a Num is always safe and always
 // cheap: there is no ownership to transfer and nothing to release. The same
 // goes for the strings number_to_string/number_to_symbolic/number_to_tex
 // return.
-typedef struct number {
-    uint64_t bits;
-} number;
 
 // The distinguished error value: the result of undefined operations (1/0,
 // parse failure, NaN conversion, ...). Errors propagate: any arithmetic
 // involving an error yields an error.
-#define NUMBER_ERROR ((number){.bits = 0x3})
+#define NUMBER_ERROR ((Num_t){.bits = 0x3})
 
 // --- Constructors ---
 
-number number_from_int(int64_t value);
+Num_t number_from_int(int64_t value);
 // Any int64/int64 ratio; denominator 0 yields the error value.
-number number_from_ratio(int64_t numerator, int64_t denominator);
+Num_t number_from_ratio(int64_t numerator, int64_t denominator);
 // Exact conversion, since every finite double is a rational. NaN/Inf -> error.
 // NOTE: for a SOURCE LITERAL, this is a trap: number_from_double(3.15)
 // converts 3.15's nearest double (3.14999999999999991...), not 63/20.
 // Reach for number_from_decimal("3.15") instead, which parses the written
 // decimal exactly. number_from_double is for a double you already hold at
 // runtime, not for text you could have written out.
-number number_from_double(double value);
+Num_t number_from_double(double value);
 // Accepts "123", "-4.56", "6.02e23", and "22/7" (denominator unsigned),
 // with optional surrounding whitespace. Anything else -> error.
-number number_from_string(const char *str);
+Num_t number_from_string(const char *str);
 // The exact decimal-literal constructor: the obvious, named way to turn a
 // written decimal ("3.15", "-4.56", "6.02e23", "100") into the exact
 // rational it denotes, with no double round-trip (63/20 for "3.15", never a
@@ -63,12 +62,12 @@ number number_from_string(const char *str);
 // ratio form is rejected (it is not decimal notation, so use
 // number_from_ratio or number_from_string for a ratio). Anything else ->
 // error.
-number number_from_decimal(const char *str);
+Num_t number_from_decimal(const char *str);
 
 // --- Compile-time literal construction ---
 //
 // For a code generator (e.g. a language that compiles to C) that wants to
-// turn a source literal into a `number` with zero runtime cost, with no
+// turn a source literal into a `Num_t` with zero runtime cost, with no
 // number_from_string call, no heap allocation, nothing but a 64-bit immediate
 // load. NUMBER_SMALL(num, den) is a genuine C constant expression, usable
 // directly in a `static const number x = NUMBER_SMALL(...);` file-scope
@@ -87,7 +86,7 @@ number number_from_decimal(const char *str);
 // alternative to.
 //
 // The caller (not this macro) is responsible for satisfying every one of
-// these before use. Getting any of them wrong produces a `number` that
+// these before use. Getting any of them wrong produces a `Num_t` that
 // looks well-formed but silently violates the small-rational canonical-form
 // invariant every other part of this library relies on (in particular,
 // number_equal's bit-equality fast path for two small rationals):
@@ -111,7 +110,7 @@ number number_from_decimal(const char *str);
 #define NUMBER_SMALL_NUM_MAX 2147483647LL // 2^31 - 1
 #define NUMBER_SMALL_DEN_MAX 1073741823u // 2^30 - 1
 #define NUMBER_SMALL(num, den)                                                                                         \
-    ((number){((uint64_t)(uint32_t)(int32_t)(num) << 32) | ((uint64_t)(uint32_t)(den) << 2) | 0x1u})
+    ((Num_t){((uint64_t)(uint32_t)(int32_t)(num) << 32) | ((uint64_t)(uint32_t)(den) << 2) | 0x1u})
 
 // The three most common numeric literals, #defined for a code generator
 // (or anyone else) that would otherwise write NUMBER_SMALL(0, 1) etc. --
@@ -129,25 +128,25 @@ number number_from_decimal(const char *str);
 // this is one mask-and-compare on a value already in a register.
 #define NUMBER_IS_ERROR(x) (((x).bits & 0x3) == 0x3)
 
-bool number_is_error(number x);
+bool number_is_error(Num_t x);
 // A static, human-readable description of why x is the error value, e.g.
 // "division by zero" or "square root of a negative number", or NULL if x is
 // not the error value. Never free the returned string. When an error
 // propagates from a combination of two already-erroneous values (e.g.
 // 2/0 + sqrt(-1)), the message is whichever operand's reason the
 // implementation happened to check first; both are equally "the" answer.
-const char *number_error_message(number x);
-bool number_is_zero(number x);
-bool number_is_negative(number x);
+const char *number_error_message(Num_t x);
+bool number_is_zero(Num_t x);
+bool number_is_negative(Num_t x);
 // True for tiers 1 and 2 (exact rationals); false for irrational reals.
-bool number_is_rational(number x);
+bool number_is_rational(Num_t x);
 // True iff x is provably an integer (a rational with denominator 1). Like
 // number_is_rational, a general constructive-real value that happens to be
 // mathematically an integer without this library recognizing it reports
 // false, which means "not provably an integer", not "provably not".
-bool number_is_integer(number x);
+bool number_is_integer(Num_t x);
 // -1, 0, or +1. The sign of the error value is reported as 0.
-int number_sign(number x);
+int number_sign(Num_t x);
 
 // --- Arithmetic ---
 //
@@ -188,18 +187,18 @@ int number_sign(number x);
 // The full, general implementation, always available under this name
 // regardless of NUMBER_STATS, and what number_add et al.'s fast path (when
 // present) falls through to for anything outside the small-immediate tier.
-number number_add_general(number a, number b);
-number number_sub_general(number a, number b);
-number number_mul_general(number a, number b);
-number number_div_general(number a, number b); // b == 0 -> error
-number number_neg_general(number x);
+Num_t number_add_general(Num_t a, Num_t b);
+Num_t number_sub_general(Num_t a, Num_t b);
+Num_t number_mul_general(Num_t a, Num_t b);
+Num_t number_div_general(Num_t a, Num_t b); // b == 0 -> error
+Num_t number_neg_general(Num_t x);
 
 #ifdef NUMBER_STATS
-number number_add(number a, number b);
-number number_sub(number a, number b);
-number number_mul(number a, number b);
-number number_div(number a, number b); // b == 0 -> error
-number number_neg(number x);
+Num_t number_add(Num_t a, Num_t b);
+Num_t number_sub(Num_t a, Num_t b);
+Num_t number_mul(Num_t a, Num_t b);
+Num_t number_div(Num_t a, Num_t b); // b == 0 -> error
+Num_t number_neg(Num_t x);
 #else
 // number_add/number_sub's integer fast paths do whole-word tagged
 // arithmetic, with no field extraction and no repack, following Daan Leijen,
@@ -223,25 +222,25 @@ number number_neg(number x);
 //   - Retagging is a single +/-0x5 on the whole word (low half is 0xA
 //     after an add, 0x0 after a subtract; either way the numerator field
 //     is untouched since no carry/borrow crosses bit 32).
-extern inline __attribute__((gnu_inline, always_inline)) number number_add(number a, number b) {
+extern inline __attribute__((gnu_inline, always_inline)) Num_t number_add(Num_t a, Num_t b) {
     if (__builtin_expect((a.bits & 0xFFFFFFFFu) == 0x5u && (b.bits & 0xFFFFFFFFu) == 0x5u, 1)) {
         uint64_t w = a.bits + b.bits;
         if (__builtin_expect((int64_t)((a.bits ^ w) & (b.bits ^ w)) >= 0 && (w >> 32) != 0x80000000u, 1))
-            return (number){w - 0x5u};
+            return (Num_t){w - 0x5u};
     }
     return number_add_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) number number_sub(number a, number b) {
+extern inline __attribute__((gnu_inline, always_inline)) Num_t number_sub(Num_t a, Num_t b) {
     if (__builtin_expect((a.bits & 0xFFFFFFFFu) == 0x5u && (b.bits & 0xFFFFFFFFu) == 0x5u, 1)) {
         uint64_t w = a.bits - b.bits; // low halves cancel exactly: low32(w) == 0
         if (__builtin_expect((int64_t)((a.bits ^ b.bits) & (a.bits ^ w)) >= 0 && (w >> 32) != 0x80000000u, 1))
-            return (number){w + 0x5u};
+            return (Num_t){w + 0x5u};
     }
     return number_sub_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) number number_mul(number a, number b) {
+extern inline __attribute__((gnu_inline, always_inline)) Num_t number_mul(Num_t a, Num_t b) {
     if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {
         uint64_t da = (a.bits >> 2) & NUMBER_SMALL_DEN_MAX, db = (b.bits >> 2) & NUMBER_SMALL_DEN_MAX;
         if (__builtin_expect(da == 1 && db == 1, 1)) { // integer sub-path, matching number_mul
@@ -253,7 +252,7 @@ extern inline __attribute__((gnu_inline, always_inline)) number number_mul(numbe
     return number_mul_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) number number_div(number a, number b) {
+extern inline __attribute__((gnu_inline, always_inline)) Num_t number_div(Num_t a, Num_t b) {
     if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {
         uint64_t da = (a.bits >> 2) & NUMBER_SMALL_DEN_MAX, db = (b.bits >> 2) & NUMBER_SMALL_DEN_MAX;
         if (__builtin_expect(da == 1 && db == 1, 1)) {
@@ -272,21 +271,21 @@ extern inline __attribute__((gnu_inline, always_inline)) number number_div(numbe
     return number_div_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) number number_neg(number x) {
+extern inline __attribute__((gnu_inline, always_inline)) Num_t number_neg(Num_t x) {
     if (__builtin_expect((x.bits & 3) == 1, 1)) {
         // Negating an already-in-bounds small rational is always back in
         // bounds (|-num| == |num|; NUMBER_SMALL_NUM_MIN is -(2^31-1), not
         // INT32_MIN, specifically so this never overflows; see its own
         // comment above), so no bounds check is needed, unlike add/sub/mul.
         int32_t n = (int32_t)(x.bits >> 32);
-        return (number){((uint64_t)(uint32_t)(-n) << 32) | (x.bits & 0xFFFFFFFFu)};
+        return (Num_t){((uint64_t)(uint32_t)(-n) << 32) | (x.bits & 0xFFFFFFFFu)};
     }
     return number_neg_general(x);
 }
 #endif
 
-number number_abs(number x);
-number number_inverse(number x); // 1/x; x == 0 -> error
+Num_t number_abs(Num_t x);
+Num_t number_inverse(Num_t x); // 1/x; x == 0 -> error
 
 // Greatest common divisor and least common multiple, generalized to exact
 // rationals: gcd is the largest g >= 0 with a/g and b/g both integers, lcm the
@@ -295,8 +294,8 @@ number number_inverse(number x); // 1/x; x == 0 -> error
 // lcm(1/2, 1/3) == 1. Both results are non-negative regardless of operand
 // signs; gcd(0, x) == |x| (gcd(0, 0) == 0) and lcm(0, x) == 0. An irrational
 // operand (sqrt(2), pi, ...) has no such divisor structure -> error.
-number number_gcd(number a, number b);
-number number_lcm(number a, number b);
+Num_t number_gcd(Num_t a, Num_t b);
+Num_t number_lcm(Num_t a, Num_t b);
 
 // --- Rounding ---
 //
@@ -313,26 +312,26 @@ number number_lcm(number a, number b);
 // (pi, sqrt(n), and rational combinations thereof) are provably irrational
 // and never hit the cap in practice.
 
-number number_floor(number x); // largest integer <= x
-number number_ceil(number x); // smallest integer >= x
-number number_trunc(number x); // round toward zero: floor for x >= 0, ceil for x < 0
-number number_round(number x); // nearest integer, ties to even (round-half-even,
-                               // matching number_to_string's digit rounding)
+Num_t number_floor(Num_t x); // largest integer <= x
+Num_t number_ceil(Num_t x); // smallest integer >= x
+Num_t number_trunc(Num_t x); // round toward zero: floor for x >= 0, ceil for x < 0
+Num_t number_round(Num_t x); // nearest integer, ties to even (round-half-even,
+                             // matching number_to_string's digit rounding)
 
 // Floored modulus: a - b*floor(a/b). The result has b's sign (or is zero),
 // lies in [0, b) for b > 0 (the right shape for periodic range reduction),
 // and satisfies a == b*floor(a/b) + number_mod(a, b) exactly. b == 0 ->
 // error; an undecidable floor (see above) propagates its error.
-number number_mod(number a, number b);
+Num_t number_mod(Num_t a, Num_t b);
 
 // --- Tier 3: irrational reals ---
 
 // The constant pi. A cached singleton after the first call (see number.c):
 // repeat calls hand back the same object rather than allocating, and share
 // whatever precision a prior call already refined it to.
-number number_pi(void);
+Num_t number_pi(void);
 // 2*pi. Same caching as number_pi.
-number number_tau(void);
+Num_t number_tau(void);
 // Square root. Exact for a rational x: sqrt(4) == 2 and sqrt(2)*sqrt(2) == 2
 // exactly. For an irrational x (already-irrational input, e.g. sqrt(pi) or
 // a nested root like sqrt(sqrt(2))), evaluated by the general
@@ -340,54 +339,54 @@ number number_tau(void);
 // not a closed symbolic form (number_is_rational is false, and identities
 // like sqrt(x)*sqrt(x) == x aren't recognized symbolically for such x).
 // x < 0 -> error.
-number number_sqrt(number x);
+Num_t number_sqrt(Num_t x);
 // sqrt(2). Same caching as number_pi; equivalent to number_sqrt(number_from_int(2)).
-number number_sqrt2(void);
+Num_t number_sqrt2(void);
 
 // e^x. Exact for x == 0 (-> 1); otherwise evaluated by the general
 // constructive-real engine (correct to any requested precision, but not a
 // closed symbolic form: number_is_rational is false, and identities like
 // ln(exp(x)) == x are not recognized symbolically).
-number number_exp(number x);
+Num_t number_exp(Num_t x);
 // Natural log. x <= 0 -> error. Exact for x == 1 (-> 0); otherwise general.
-number number_ln(number x);
+Num_t number_ln(Num_t x);
 // Base-10 log = ln(x)/ln(10). Same domain as number_ln.
-number number_log10(number x);
+Num_t number_log10(Num_t x);
 // Base-2 log = ln(x)/ln(2). Same domain as number_ln. Exact for x == 2^n
 // (any integer n): log2(8) == 3, log2(1/4) == -2.
-number number_log2(number x);
+Num_t number_log2(Num_t x);
 
 // sin/cos, range-reduced modulo 2*pi internally so large arguments are
 // still exact (to the requested output precision). Exact for x == 0
 // (sin -> 0, cos -> 1); otherwise the general engine.
-number number_sin(number x);
-number number_cos(number x);
+Num_t number_sin(Num_t x);
+Num_t number_cos(Num_t x);
 // tan(x) = sin(x)/cos(x); poles (x near pi/2 + k*pi) -> error.
-number number_tan(number x);
+Num_t number_tan(Num_t x);
 
 // atan(x): defined for all x. Exact at x == 0.
-number number_atan(number x);
+Num_t number_atan(Num_t x);
 // atan2(y, x): the angle in (-pi, pi] of the point (x, y), i.e. atan(y/x)
 // placed in the correct quadrant by the signs of x and y. Exact on the axes
 // and wherever number_atan is (atan2(1, 1) == pi/4, atan2(1, -1) == 3*pi/4).
 // atan2(0, 0) is undefined -> error (unlike C's atan2, which returns 0).
-number number_atan2(number y, number x);
+Num_t number_atan2(Num_t y, Num_t x);
 // asin/acos: domain |x| <= 1 -> error otherwise. Exact at x == 0, 1, -1.
 // Accept an already-irrational x too (e.g. asin(sin(0.5))), same as
 // number_sqrt, which they're built on: falls back to the general engine.
-number number_asin(number x);
-number number_acos(number x);
+Num_t number_asin(Num_t x);
+Num_t number_acos(Num_t x);
 
 // Hyperbolic functions, via exp. Exact at x == 0 (sinh/tanh -> 0, cosh -> 1).
-number number_sinh(number x);
-number number_cosh(number x);
-number number_tanh(number x);
+Num_t number_sinh(Num_t x);
+Num_t number_cosh(Num_t x);
+Num_t number_tanh(Num_t x);
 
 // x^y. Exact for y == 0 (-> 1, including 0^0), y == 1, integer y (any
 // sign), and y == 1/2 with x >= 0 (via number_sqrt). 0^negative -> error;
 // negative x with non-integer y -> error (complex result); otherwise the
 // general engine via exp(y*ln(x)), x > 0.
-number number_pow(number x, number y);
+Num_t number_pow(Num_t x, Num_t y);
 
 // --- Comparison ---
 //
@@ -406,7 +405,7 @@ number number_pow(number x, number y);
 // irrational values whose difference is zero without any identity this
 // library recognizes proving it (e.g. sin(x)^2+cos(x)^2 vs. 1) refine up to
 // an internal precision cap and then give up, rather than loop forever.
-int number_compare_general(number a, number b);
+int number_compare_general(Num_t a, Num_t b);
 
 // number_compare, but giving up after max_prec bits of refinement instead of
 // the internal cap. Same answers, except that a difference too small to be
@@ -416,20 +415,20 @@ int number_compare_general(number a, number b);
 // work whose result gets discarded: passing the matching precision here
 // makes the two agree instead of leaving a gap between them (see
 // Num$compare_value, whose cap is NUM_EQUALITY_PREC).
-int number_compare_capped_general(number a, number b, uint32_t max_prec);
+int number_compare_capped_general(Num_t a, Num_t b, uint32_t max_prec);
 
 // Exact equality. The error value is not equal to anything, including
 // itself. See number_compare for the one undecidable case (reported as
 // not-equal here, since equality can't be confirmed).
-bool number_equal_general(number a, number b);
+bool number_equal_general(Num_t a, Num_t b);
 
 #ifdef NUMBER_STATS
-int number_compare(number a, number b);
-int number_compare_capped(number a, number b, uint32_t max_prec);
-bool number_equal(number a, number b);
+int number_compare(Num_t a, Num_t b);
+int number_compare_capped(Num_t a, Num_t b, uint32_t max_prec);
+bool number_equal(Num_t a, Num_t b);
 #else
 extern inline
-    __attribute__((gnu_inline, always_inline)) int number_compare_capped(number a, number b, uint32_t max_prec) {
+    __attribute__((gnu_inline, always_inline)) int number_compare_capped(Num_t a, Num_t b, uint32_t max_prec) {
     // The tier-1 fast path is precision-independent, so it is exactly
     // number_compare's; only the refinement past it takes the cap.
     if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {
@@ -441,7 +440,7 @@ extern inline
     return number_compare_capped_general(a, b, max_prec);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) int number_compare(number a, number b) {
+extern inline __attribute__((gnu_inline, always_inline)) int number_compare(Num_t a, Num_t b) {
     if (__builtin_expect((a.bits & 3) == 1 && (b.bits & 3) == 1, 1)) {
         if (a.bits == b.bits) return 0; // same immediate
         // Cross-multiply, matching number_compare_general's own TAG_SMALL
@@ -454,7 +453,7 @@ extern inline __attribute__((gnu_inline, always_inline)) int number_compare(numb
     return number_compare_general(a, b);
 }
 
-extern inline __attribute__((gnu_inline, always_inline)) bool number_equal(number a, number b) {
+extern inline __attribute__((gnu_inline, always_inline)) bool number_equal(Num_t a, Num_t b) {
     // Single-operand tag test (Leijen, MSR-TR-2022-17, section 2.5): when
     // a is a small immediate, a.bits == b.bits fully decides equality
     // *regardless of what b is*, so only a's tag needs checking, and the
@@ -488,21 +487,21 @@ extern inline __attribute__((gnu_inline, always_inline)) bool number_equal(numbe
 // tie, whether an exact equality or indistinguishability at `digits`, the
 // first operand (a) is returned. An error operand propagates. (`digits` is ignored
 // whenever exact comparison succeeds, which is nearly always.)
-number number_min(number a, number b, uint32_t digits);
-number number_max(number a, number b, uint32_t digits);
+Num_t number_min(Num_t a, Num_t b, uint32_t digits);
+Num_t number_max(Num_t a, Num_t b, uint32_t digits);
 
 // --- Conversion ---
 
 // Correctly rounded (round-to-nearest-even), including subnormals and
 // overflow to infinity. The error value converts to NaN.
-double number_to_double(number x);
+double number_to_double(Num_t x);
 
 // Checked exact conversion: the value of x if x is an integer (see
 // number_is_integer) that fits in int64_t, else 0. If ok is non-NULL it is
 // set to whether the conversion succeeded, so 0 with *ok true really is the
 // value zero. Never rounds: pass x through number_trunc (or floor/ceil/
 // round) first to convert a non-integer.
-int64_t number_to_int64(number x, bool *ok);
+int64_t number_to_int64(Num_t x, bool *ok);
 
 // Decimal representation with at most max_frac_digits fractional digits,
 // correctly rounded (round-half-even) when the value needs more digits.
@@ -511,7 +510,7 @@ int64_t number_to_int64(number x, bool *ok);
 // non-NULL, it is set to whether the returned string is the exact value.
 // Returns a GC-allocated string (do not free it); "(error)" for the error
 // value.
-char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact);
+char *number_to_string(Num_t x, uint32_t max_frac_digits, bool *is_exact);
 
 // Exact symbolic form: "42", "-7/2", "pi", "2*pi", "sqrt(6)", "3 - sqrt(2)",
 // "1/2 + sqrt(5)/2" for the closed forms; an expression-tree description
@@ -525,13 +524,13 @@ char *number_to_string(number x, uint32_t max_frac_digits, bool *is_exact);
 // ("(1 + pi)*sin(2)"), never around the whole expression.
 // Always exact, unlike a decimal expansion, which may not terminate.
 // Returns a GC-allocated string (do not free it).
-char *number_to_symbolic(number x);
+char *number_to_symbolic(Num_t x);
 
 // The inverse of number_to_symbolic: reads back the exact expression it
 // prints ("1/3", "sqrt(2)", "1 + pi", "sin(2)*pi", "pi^3"), so an exact
 // value can round-trip through text. Whitespace around operators is
 // optional. Anything outside that grammar -> error.
-number number_from_symbolic(const char *str);
+Num_t number_from_symbolic(const char *str);
 
 // The same exact forms as number_to_symbolic, rendered as TeX math-mode
 // source: "42", "-\frac{7}{2}", "\pi", "2\pi", "\sqrt{6}", "3 - \sqrt{2}",
@@ -541,7 +540,7 @@ number number_from_symbolic(const char *str);
 // "\arctan", division as "\frac{...}{...}", and repeated identical factors
 // collapse into powers: "\pi^{3}"). Returns a GC-allocated string (do not
 // free it).
-char *number_to_tex(number x);
+char *number_to_tex(Num_t x);
 
 // --- Instrumentation (opt-in via -DNUMBER_STATS) ---
 

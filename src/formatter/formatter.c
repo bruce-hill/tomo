@@ -13,6 +13,7 @@
 #include "../parse/utils.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/integers.h"
+#include "../stdlib/number.h"
 #include "../stdlib/optionals.h"
 #include "../stdlib/text.h"
 #include "../util.h"

@@ -21,6 +21,7 @@
 #include "bools.h"
 #include "files.h"
 #include "metamethods.h"
+#include "number.h"
 #include "optionals.h"
 #include "paths.h"
 #include "print.h"

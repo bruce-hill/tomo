@@ -138,9 +138,7 @@ def typeinfo_for(gdb_type):
 
 
 def _lookup_typeinfo(type_name):
-    if type_name == "number":
-        symbol = "Num$info"  # `Num_t` is a typedef the compiled program doesn't record
-    elif type_name.endswith("_t") or type_name.endswith("_s"):
+    if type_name.endswith("_t") or type_name.endswith("_s"):
         # `_t` is the typedef; `_s` is the struct tag, which is what gdb hands
         # back for a value it has no typedef for (`finish`'s return value).
         symbol = type_name[:-2] + "$info"
@@ -188,7 +186,7 @@ def format_value(address, typeinfo):
     same = "(const void *)(%s) == (const void *)&Num$info" % typeinfo
     if text is None or (typeinfo != NUM_INFO and not attempt(lambda: int(gdb.parse_and_eval(same)), 0)):
         return text
-    decimal = call("number_to_string(*(struct number*)(%s), %d, 0)" % (address, NUM_DIGITS))
+    decimal = call("number_to_string(*(Num_t*)(%s), %d, 0)" % (address, NUM_DIGITS))
     if decimal is None or decimal == re.sub(ESCAPE, "", text):
         return text
     return text + dim(" ≈ " + decimal)

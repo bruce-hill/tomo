@@ -12,12 +12,13 @@
 #include "fail.h"
 #include "integers.h"
 #include "metamethods.h"
+#include "number.h"
 #include "nums.h"
 #include "siphash.h"
 #include "text.h"
 #include "types.h"
 
-// A Num that a Tomo program can actually hold is never the `number` library's
+// A Num that a Tomo program can actually hold is never the number library's
 // error value: an operator that would produce one fails immediately, and a
 // method that would produce one answers `none` instead. So error
 // *propagation*, the reason the library has an error value at all, can't

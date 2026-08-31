@@ -3,6 +3,7 @@
 #include "../ast.h"
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
+#include "../stdlib/number.h"
 #include "../stdlib/text.h"
 #include "../util.h"
 #include "../typecheck.h"
