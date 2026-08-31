@@ -121,7 +121,12 @@ OWNER=$(shell ls -ld '$(PREFIX)' | awk '{print $$3}')
 OS := $(shell uname -s)
 
 EXTRA=
-G=-ggdb
+# No debug info in libtomo. A Tomo stacktrace names the .tm file, function, and
+# line from the *generated* program's own DWARF, which each program compiles
+# for itself; libtomo's would only ever name libtomo's own frames, which a
+# stacktrace doesn't show. Emitting it cost every compiled program ~340KB. Set
+# G=-ggdb to get it back for stepping through the runtime or the compiler.
+G=-g0
 O=-O3
 # Note: older versions of Make have buggy behavior with hash marks inside strings, so this ugly code is necessary:
 TOMO_VERSION=$(shell awk 'BEGIN{hashes=sprintf("%c%c",35,35)} $$1==hashes {print $$2; exit}' CHANGES.md)

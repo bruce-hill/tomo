@@ -56,16 +56,15 @@ ifneq ($(HOST_ARCH)|$(HOST_OS),$(TARGET_ARCH)|$(TARGET_OS))
 endif
 # Vendored-library frames never appear in Tomo stacktraces, and gdb variable
 # inspection matters for libtomo and generated code, not these libraries'
-# internals, so full debug info for them is dead weight in every linked
-# program (autoconf's default `-g -O2` put ~2MB of DWARF into even a
-# hello-world binary). -g1 keeps just enough (function names + line tables) to
-# make sense of a gdb backtrace into these libs; set -g here if you ever need
-# to step through their code with locals visible. libbacktrace overrides this
-# with its own CFLAGS (further down).
+# internals, so debug info for them is dead weight in every linked program
+# (autoconf's default `-g -O2` put ~2MB of DWARF into even a hello-world
+# binary). -g0 emits none; set -g here if you ever need to step through their
+# code. libbacktrace overrides this with its own CFLAGS (further down), also
+# at -g0: it reads other objects' debug info, it doesn't need its own.
 # -ffunction-sections/-fdata-sections so that the --gc-sections in every
 # program link (see tomo.c) can drop the individual functions and tables these
 # libraries' linked-in objects don't actually use:
-VENDOR_CFLAGS = -O2 -g1 -ffunction-sections -fdata-sections
+VENDOR_CFLAGS = -O2 -g0 -ffunction-sections -fdata-sections
 CONFIGURE_FLAGS = CC="$(DEP_CC)" AR="$(AR)" RANLIB="$(RANLIB)" $(CROSS_HOST) \
                   CFLAGS="$(VENDOR_CFLAGS)" --enable-static --disable-shared
 
