@@ -12,8 +12,8 @@ Subcommands:
                            machine is on battery (turbo throttling skews
                            timings); set BENCH_ALLOW_BATTERY=1 to override.
     sizes [benchmark...]   Statically build every compiled language that can
-                           produce a standalone binary and record the stripped
-                           binary size, writing sizes.json.
+                           produce a standalone binary and record the binary
+                           size as built, writing sizes.json.
     list                   Show benchmarks, languages, and toolchain status.
 
 Only Tomo sources (tomo/*.tm) are tracked in git; everything under fetched/
@@ -464,6 +464,11 @@ def _langs_for(cfg, bench):
 # crt-static, Nim `-static`, Zig musl target). Interpreted and bytecode
 # languages (Python, Lua, JS, Java) have no such binary and are skipped, as are
 # toolchains that can't statically link on this box (Swift, Odin, Fortran).
+#
+# Sizes are recorded exactly as each toolchain produces them. Stripping first
+# would measure how small each language *can* be made with extra tooling; what
+# a program actually weighs when you build it is the honest comparison, and it
+# is what anyone shipping one has to carry.
 def _size_build_cmd(spec):
     if spec.get("size_build"):
         return spec["size_build"]
@@ -480,27 +485,6 @@ def _is_static(path):
     except Exception:
         return None
     return ("statically linked" in out) or ("static-pie linked" in out)
-
-
-def _stripped_size(binpath):
-    """Size of the binary after stripping symbols, so the comparison reflects
-    real code+runtime footprint rather than how much debug info a toolchain
-    happens to leave in. Falls back to the raw size if `strip` isn't available
-    or refuses (e.g. an already-stripped or unusual object)."""
-    raw = os.path.getsize(binpath)
-    if not shutil.which("strip"):
-        return raw, raw
-    scopy = binpath + ".stripped"
-    try:
-        shutil.copyfile(binpath, scopy)
-        r = subprocess.run(["strip", "-s", scopy], capture_output=True)
-        stripped = os.path.getsize(scopy) if r.returncode == 0 else raw
-    except Exception:
-        stripped = raw
-    finally:
-        if os.path.exists(scopy):
-            os.remove(scopy)
-    return raw, stripped
 
 
 def sizes(cfg, benchmarks):
@@ -536,14 +520,12 @@ def sizes(cfg, benchmarks):
             if not os.path.exists(binpath):
                 print(f"  FAIL {lang:<11} (no binary produced)")
                 continue
-            raw, stripped = _stripped_size(binpath)
+            size = os.path.getsize(binpath) # as built; see above
             static = _is_static(binpath)
-            rows[lang] = {"bytes": stripped, "raw_bytes": raw,
-                          "static": static, "label": spec["label"],
+            rows[lang] = {"bytes": size, "static": static, "label": spec["label"],
                           "color": spec.get("color", "#888888")}
             tag = "static" if static else "DYNAMIC!"
-            print(f"  ok   {lang:<11} {stripped:>12,} B stripped "
-                  f"({raw:,} raw)  [{tag}]  {spec['label']}")
+            print(f"  ok   {lang:<11} {size:>12,} B  [{tag}]  {spec['label']}")
         results[bname] = {"results": rows}
     with open(SIZES, "w") as f:
         json.dump(results, f, indent=2)

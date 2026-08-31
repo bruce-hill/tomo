@@ -44,18 +44,27 @@ Per-benchmark graphs: [n-body](results-nbody.png) ·
 
 ![Static binary size across languages](sizes.png)
 
-Binary sizes are statically linked and stripped, so each number is the whole
-self-contained footprint, not a stub leaning on a system `libc`. Tomo's is
-**~785 KB and near-constant** across all nine (772–797 KB): the runtime
-dominates and the program is noise. Only Zig's minimal-runtime musl builds
-(15–38 KB) are in a different league. Tomo lands within a few percent of C
-(smaller on fasta, level on binary-trees, 3–5% larger elsewhere), and well
-under Nim (~810 KB),
-Rust (~1.2–1.4 MB), Go (~1.4–1.7 MB), and C++ (up to 2.2 MB). Only a handful
-of languages produce a standalone static binary at all, so benchmarks left
-with fewer than five of them
-(pidigits, reverse-complement, spectral-norm) are dropped from the chart
-rather than shown as a two- or three-way list.
+Binary sizes are statically linked, so each number is the whole self-contained
+footprint rather than a stub leaning on a system `libc`, and they are recorded
+exactly as each toolchain produces them. Nothing is stripped: the question is
+what a program weighs when you build it, not how far it could be squeezed
+afterwards.
+
+Tomo's is **~1.36 MB and near-constant** across all nine (1348–1381 KB), since
+the runtime dominates and the program itself is noise. That puts it at
+1.4–1.6× C, under Rust (1.4–1.6 MB), Go (2.2–2.6 MB), and C++ (up to 2.7 MB),
+and above Nim (~900 KB), Zig (~1.0 MB), and C (837–973 KB).
+
+Roughly 490 KB of Tomo's is DWARF, which is what lets a runtime error name the
+`.tm` file, function, and line it came from. Zig and Go carry debug info in
+their default builds too (970 KB and 756 KB respectively); C, Nim, and Rust
+ship none in these configurations, so a stripped comparison would flatter Tomo
+and Zig for a cost they do actually pay on disk.
+
+Only a handful of languages produce a standalone static binary at all, so
+benchmarks left with fewer than five of them (pidigits, reverse-complement,
+spectral-norm) are dropped from the chart rather than shown as a two- or
+three-way list.
 
 ## Usage
 

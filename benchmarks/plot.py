@@ -224,7 +224,7 @@ def size_panel(ax, bname, block):
 
     ax.set_title(f"{bname}", loc="left", fontsize=13, color=INK,
                  fontweight="bold", pad=8)
-    ax.set_xlabel("static binary size (MB, stripped; smaller is leaner)",
+    ax.set_xlabel("static binary size (MB, as built; smaller is leaner)",
                   fontsize=9, color=MUTED)
 
 
@@ -263,8 +263,8 @@ def main_sizes(path, out):
                  x=0.02, y=1.0 - 0.28 / fig_h, ha="left", va="top",
                  fontsize=14, fontweight="bold", color=INK)
     fig.text(0.02, 0.10 / fig_h,
-             "statically linked · symbols stripped · only languages that can "
-             "produce a standalone static binary",
+             "statically linked · sizes as the toolchain produces them, not "
+             "stripped · only languages that can produce a standalone static binary",
              ha="left", fontsize=8, color=MUTED)
     fig.tight_layout(rect=[0, bottom, 1, top])
     svg = os.path.join(HERE, out + ".svg")
