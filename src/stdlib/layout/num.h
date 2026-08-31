@@ -17,3 +17,7 @@ typedef struct Num_s {
 } Num_t;
 
 typedef Num_t OptionalNum_t;
+
+// number-design.md guarantees the all-zeroes word is never a valid Num, since
+// rational zero is 0/1 with tag 01 and a heap pointer is never NULL.
+#define NONE_NUM ((OptionalNum_t){.bits = 0})

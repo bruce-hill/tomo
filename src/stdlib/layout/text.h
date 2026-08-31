@@ -31,3 +31,7 @@ typedef struct Text_s {
 } Text_t;
 
 typedef Text_t OptionalText_t;
+
+// TEXT_NONE is a tag no real text carries, so an optional Text is the same
+// struct as a Text.
+#define NONE_TEXT ((OptionalText_t){.tag = TEXT_NONE})

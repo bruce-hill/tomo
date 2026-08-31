@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "list.h"
@@ -29,3 +30,5 @@ typedef struct table_s {
 } Table_t;
 
 typedef Table_t OptionalTable_t;
+
+#define NONE_TABLE ((OptionalTable_t){.entries.data = NULL})

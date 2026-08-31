@@ -8,3 +8,5 @@
 typedef bool Bool_t;
 
 typedef uint8_t OptionalBool_t;
+
+#define NONE_BOOL ((OptionalBool_t)2)

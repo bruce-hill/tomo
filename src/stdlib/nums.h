@@ -11,12 +11,6 @@
 #include "types.h"
 #include "util.h"
 
-// `none` is the all-zeroes word. number-design.md guarantees that is never a
-// valid number, since rational zero is 0/1 with tag 01 and a heap pointer is
-// never NULL, so an optional Num costs nothing extra: no tag byte, no
-// widening, same 8 bytes as a Num.
-#define NONE_NUM ((OptionalNum_t){.bits = 0})
-
 // --- Operators ---
 //
 // Defined inline, for the same reason Int$plus is (see bigint.h): these are

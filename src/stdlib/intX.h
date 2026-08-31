@@ -31,11 +31,6 @@
 #define PASTE4(a, b, c, d) PASTE4_(a, b, c, d)
 #define NAMESPACED(method_name) PASTE4(Int, INTX_H__INT_BITS, $, method_name)
 
-typedef struct {
-    INTX_T value;
-    bool has_value : 1;
-} OPT_T;
-
 Text_t NAMESPACED(as_text)(const void *i, bool colorize, const TypeInfo_t *type);
 Text_t NAMESPACED(value_as_text)(INTX_T i);
 PUREFUNC int32_t NAMESPACED(compare)(const void *x, const void *y, const TypeInfo_t *type);

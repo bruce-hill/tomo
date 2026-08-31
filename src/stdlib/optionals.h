@@ -9,14 +9,6 @@
 #include "types.h"
 #include "util.h"
 
-#define NONE_LIST ((List_t){.data = NULL})
-#define NONE_BOOL ((OptionalBool_t)2)
-#define NONE_INT ((OptionalInt_t){.small = 0})
-#define NONE_TABLE ((OptionalTable_t){.entries.data = NULL})
-#define NONE_CLOSURE ((OptionalClosure_t){.fn = NULL})
-#define NONE_TEXT ((OptionalText_t){.tag = TEXT_NONE})
-#define NONE_PATH (Path_t) NULL
-
 PUREFUNC bool is_none(const void *obj, const TypeInfo_t *non_optional_type);
 void set_none(void *obj, const TypeInfo_t *optional_type);
 PUREFUNC uint64_t Optional$hash(const void *obj, const TypeInfo_t *type);

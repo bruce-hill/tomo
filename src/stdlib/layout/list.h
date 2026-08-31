@@ -3,6 +3,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #define LIST_LENGTH_BITS 64
@@ -31,3 +32,7 @@ typedef struct {
 } List_t;
 
 typedef List_t OptionalList_t;
+
+// A list always has a data pointer (the empty list points at a shared
+// sentinel byte), so a NULL one is free to mean `none`.
+#define NONE_LIST ((List_t){.data = NULL})
