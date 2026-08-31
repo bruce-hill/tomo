@@ -14,6 +14,7 @@
 #include "metamethods.h"
 #include "number.h"
 #include "optionals.h"
+#include "random.h"
 #include "table.h"
 #include "text.h"
 #include "util.h"
@@ -317,32 +318,11 @@ List_t List$sorted(List_t list, Closure_t comparison, int64_t padded_item_size) 
     return list;
 }
 
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
-#include <stdlib.h>
-static ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
-    (void)flags;
-    arc4random_buf(buf, buflen);
-    return buflen;
-}
-#elif defined(__linux__)
-// Use getrandom()
-#include <sys/random.h>
-#else
-#error "Unsupported platform for secure random number generation"
-#endif
-
 static int64_t _default_random_int64(int64_t min, int64_t max, void *userdata) {
     (void)userdata;
     if (min > max) fail("Random minimum value (", min, ") is larger than the maximum value (", max, ")");
     if (min == max) return min;
-    uint64_t range = (uint64_t)max - (uint64_t)min + 1;
-    uint64_t min_r = -range % range;
-    uint64_t r = 0;
-    for (;;) {
-        assert(getrandom(&r, sizeof(r), 0) == sizeof(r));
-        if (r >= min_r) break;
-    }
-    return (int64_t)((uint64_t)min + (r % range));
+    return random_range(min, max);
 }
 
 public
