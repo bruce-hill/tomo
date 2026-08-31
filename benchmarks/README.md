@@ -87,11 +87,10 @@ And this is what the bytes *are* (`size_breakdown.py` regenerates it, by
 re-linking a small `Int`/`Num` program with `--print-map` and attributing
 every byte of the file to the archive it came from). Two-fifths is GMP plus
 libunistring: arbitrary-precision integers and correct Unicode text are the
-biggest line items, ahead of the Tomo runtime itself. musl and compiler-rt
-are a tenth. The program is a sliver, and even that sliver is mostly not
-code: it holds the vendored license texts (a ~17 KB deflate zip in
-`.tomo.source`, dominated by GMP's licenses) and the program's own compressed
-DWARF, which is what lets a runtime error name its `.tm` line.
+biggest line items, ahead of the Tomo runtime itself. musl is 6%, the
+vendored license texts embedded in `.tomo.source` are 2%, and the program's
+own code is 1 KB, with its 7 KB of compressed DWARF (what lets a runtime
+error name its `.tm` line) beside it.
 
 Only a handful of languages produce a standalone static binary at all, so
 benchmarks left with fewer than five of them (pidigits, reverse-complement,

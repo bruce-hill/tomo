@@ -27,9 +27,13 @@ BUILD = os.path.join(HERE, ".build", "breakdown")
 LOCAL_TOMO = os.path.join(HERE, "..", "local-tomo")
 
 SURFACE, INK, MUTED = "#fcfcfb", "#202124", "#5f6368"
-# Categorical hues in fixed order (same palette family as plot.py's accent).
-HUES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100",
-        "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
+# One hue per component, assigned by descending size. More slots than a strict
+# categorical palette would allow, on purpose: nothing disparate is lumped to
+# fit a palette, and every slice is direct-labeled so identity never rides on
+# color alone.
+HUES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300",
+        "#4a3aa7", "#e34948", "#8a6d3b", "#0e9aa7", "#b45fbf", "#616a72",
+        "#94b447"]
 
 SAMPLE = """\
 func main()
@@ -84,7 +88,32 @@ def attribute(map_text, binpath):
     """Sum each input archive's contribution to the file, from the map."""
     row = re.compile(r"^\s+([0-9a-f]+)\s+([0-9a-f]+)\s+([0-9a-f]+)\s+(\d+)"
                      r" (\s*)(\S.*)$")
-    per = collections.Counter()
+
+    def bucket(path, out_section):
+        b = os.path.basename(path)
+        if b.startswith("<internal>"):
+            # The linker generates these itself: the symbol table (what
+            # `strip` removes) vs the merged string/constant pools programs
+            # actually read at runtime.
+            if out_section in (".symtab", ".strtab", ".shstrtab"):
+                return "symbol tables"
+            return "linker data\n(merged strings/consts)"
+        if b == "libtomo.a": return "Tomo runtime"
+        if b == "libgmp.a": return "GMP (bignum Int)"
+        if b == "libunistring.a": return "libunistring (Unicode)"
+        if b == "libgc.a": return "Boehm GC"
+        if b == "libbacktrace.a": return "libbacktrace (stacktraces)"
+        if b in ("libc.a", "libzigc.a", "crt1.o"): return "musl libc"
+        if b == "libcompiler_rt.a": return "compiler-rt"
+        if b == "libunwind.a": return "libunwind"
+        # The program's own two objects, split by what the bytes are for:
+        if out_section.startswith(".tomo."):
+            return "embedded licenses\n+ source (.tomo.source)"
+        if out_section.startswith(".debug"):
+            return "program debug info"
+        return "program code"
+
+    grouped = collections.Counter()
     cur_out = None
     for line in map_text.splitlines():
         m = row.match(line)
@@ -100,31 +129,7 @@ def attribute(map_text, binpath):
         # chart of the *file*:
         if cur_out and cur_out.startswith((".bss", ".tbss", ".relro")):
             continue
-        per[what.split(":(")[0].split("(")[0]] += size
-
-    def bucket(path):
-        b = os.path.basename(path)
-        if b.startswith("<internal>"):
-            # Mostly .symtab/.strtab (the symbol table `strip` would remove)
-            # plus the linker's merged string/constant pools.
-            return "symbol tables + linker data"
-        if b == "libtomo.a": return "Tomo runtime"
-        if b == "libgmp.a": return "GMP (bignum Int)"
-        if b == "libunistring.a": return "libunistring (Unicode)"
-        if b == "libgc.a": return "Boehm GC"
-        if b == "libbacktrace.a": return "libbacktrace (stacktraces)"
-        if b in ("libc.a", "libzigc.a", "crt1.o",
-                 "libcompiler_rt.a", "libunwind.a"):
-            return "musl libc + compiler-rt"
-        # The program's own objects. Mostly not code: .tomo.source (a zip of
-        # the vendored license texts plus the .tm source) and the program's
-        # zstd-compressed DWARF, which is what lets a stacktrace name a .tm
-        # line, dominate it.
-        return "your program\n(code + embedded licenses)"
-
-    grouped = collections.Counter()
-    for path, size in per.items():
-        grouped[bucket(path)] += size
+        grouped[bucket(what.split(":(")[0].split("(")[0], cur_out)] += size
     return grouped, os.path.getsize(binpath)
 
 
@@ -132,39 +137,56 @@ def draw(grouped, file_size):
     parts = sorted(grouped.items(), key=lambda t: -t[1])
     total = sum(v for _, v in parts)
 
-    fig, ax = plt.subplots(figsize=(9.5, 6.4))
+    fig, ax = plt.subplots(figsize=(10.5, 8.6))
     fig.patch.set_facecolor(SURFACE)
     ax.set_facecolor(SURFACE)
+    # Start the biggest slice at 3 o'clock: the large slices then fill the
+    # right and bottom, and the tail of small ones fans across the upper arc,
+    # splitting the labels between the two side columns instead of stacking
+    # them all on one side.
     wedges, _ = ax.pie(
-        [v for _, v in parts], startangle=90, counterclock=False,
+        [v for _, v in parts], startangle=0, counterclock=False,
         colors=HUES[:len(parts)],
         wedgeprops=dict(width=0.42, edgecolor=SURFACE, linewidth=2))
 
     # Every slice is direct-labeled, so identity never rides on color alone.
-    # Thin slices land at nearly the same angle; spread each side's labels to
-    # a minimum vertical gap instead of letting them collide.
+    # Many thin slices land at nearly the same angle, so lay each side's
+    # labels out as a 1D no-overlap problem: sort by natural height, walk up
+    # enforcing each pair's minimum separation (derived from the labels' own
+    # line counts), and shift the column back down if it overran the top.
+    LINE_H = 0.135  # one text line, in axis units, at this font size
     placed = []
     for w, (name, val) in zip(wedges, parts):
         ang = (w.theta2 + w.theta1) / 2
         x, y = math.cos(math.radians(ang)), math.sin(math.radians(ang))
-        placed.append({"name": name, "val": val, "x": x, "y": y,
-                       "right": x >= 0})
-    GAP = 0.30
+        text = f"{name}\n{val/1024:.0f} KB · {100*val/total:.1f}%"
+        placed.append({"text": text, "x": x, "y": y, "ang": ang,
+                       "right": x >= 0,
+                       "half": (text.count("\n") + 1) * LINE_H / 2})
+    TOP, BOTTOM = 1.72, -1.72
     for right in (True, False):
         side = sorted((p for p in placed if p["right"] == right),
                       key=lambda p: p["y"])
-        for i in range(1, len(side)):  # push up from the bottom...
-            side[i]["ly"] = max(side[i].get("ly", side[i]["y"]),
-                                side[i - 1].get("ly", side[i - 1]["y"]) + GAP)
-        for i in range(len(side) - 2, -1, -1):  # ...back down if we overran
-            if side[i + 1].get("ly", side[i + 1]["y"]) > 1.35:
-                side[i]["ly"] = min(side[i].get("ly", side[i]["y"]),
-                                    side[i + 1]["ly"] - GAP)
+        gaps = [side[i - 1]["half"] + side[i]["half"] + 0.05
+                for i in range(1, len(side))]
+        for p in side:
+            p["ly"] = p["y"]
+        # Forward pass pushes overlapping labels up; the backward pass then
+        # pulls the column back under TOP, moving labels below their natural
+        # spot where needed. Order is preserved, so leader lines don't cross.
+        for i in range(1, len(side)):
+            side[i]["ly"] = max(side[i]["ly"], side[i - 1]["ly"] + gaps[i - 1])
+        if side:
+            side[-1]["ly"] = min(side[-1]["ly"], TOP - side[-1]["half"])
+        for i in range(len(side) - 2, -1, -1):
+            side[i]["ly"] = min(side[i]["ly"], side[i + 1]["ly"] - gaps[i])
+        if side and side[0]["ly"] - side[0]["half"] < BOTTOM:
+            raise SystemExit("label layout does not fit; grow the figure")
     for p in placed:
         ax.annotate(
-            f"{p['name']}\n{p['val']/1024:.0f} KB · {100*p['val']/total:.1f}%",
+            p["text"],
             xy=(0.98 * p["x"], 0.98 * p["y"]),
-            xytext=(1.30 if p["right"] else -1.30, p.get("ly", p["y"])),
+            xytext=(1.30 if p["right"] else -1.30, p["ly"]),
             ha="left" if p["right"] else "right", va="center",
             fontsize=9.5, color=INK, linespacing=1.35,
             arrowprops=dict(arrowstyle="-", color=MUTED, linewidth=1,
@@ -174,7 +196,7 @@ def draw(grouped, file_size):
             fontsize=30, fontweight="bold", color=INK)
     ax.text(0, -0.14, "static binary\nas built", ha="center", va="center",
             fontsize=10, color=MUTED, linespacing=1.4)
-    ax.set(aspect="equal", xlim=(-2.05, 2.05), ylim=(-1.5, 1.5))
+    ax.set(aspect="equal", xlim=(-2.15, 2.15), ylim=(-1.78, 1.78))
     ax.axis("off")
     fig.suptitle("Where a Tomo binary's bytes go", x=0.02, y=0.97, ha="left",
                  fontsize=15, fontweight="bold", color=INK)
