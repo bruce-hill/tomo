@@ -426,7 +426,25 @@ ifneq ($(call zig_is_static,$(ZIG_PLATFORM)),)
 BUILD_PRODUCTS += $(ZIG_LIBC_DIR)/libc.a
 endif
 
-build: $(BUILD_PRODUCTS)
+build: prune-stale-headers $(BUILD_PRODUCTS)
+
+# Headers are installed by copying, and `install` is itself a `cp -R` of the
+# build tree, so a header that gets renamed or deleted in src/stdlib would
+# otherwise linger in both forever: still installed, still includable, and
+# steadily drifting from the source. Delete anything under the installed
+# tomo/ directory that no longer has a file behind it. Only Tomo's own
+# headers live there (the vendored ones go in the parent directory), so the
+# mapping back to src/stdlib is exact.
+.PHONY: prune-stale-headers
+prune-stale-headers:
+	@dir='$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo'; \
+	[ -d "$$dir" ] || exit 0; \
+	cd "$$dir" && \
+	find . -name '*.h' | while read -r h; do \
+		[ -e '$(CURDIR)'/src/stdlib/"$$h" ] || { rm -f "$$h" && echo "removed stale header $$h"; }; \
+	done; \
+	find . -mindepth 1 -type d -empty -delete
+
 
 # The distribution archive for the current platform: a .tar.xz of the install
 # tree whose contents (bin/, lib/, include/, libexec/, ...) extract directly
