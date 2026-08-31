@@ -23,11 +23,6 @@ typedef struct {
     bool has_value;
 } $OptionalResult$Failure$$type;
 
-#define Result$Success ((Result$$type){.$tag = Result$tag$Success})
-#define SuccessResult Result$Success
-#define Result$tagged$Failure(msg) ((Result$$type){.$tag = Result$tag$Failure, .Failure.reason = msg})
-#define FailureResult(...) Result$tagged$Failure(Texts(__VA_ARGS__))
-
 typedef struct Result$$struct {
     enum { Result$tag$none, Result$tag$Success, Result$tag$Failure } $tag;
     union {

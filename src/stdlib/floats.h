@@ -2,10 +2,8 @@
 
 #pragma once
 
-#define N64(n) ((double)(n))
-#define FLOATX_H__BITS 64
-#include "floatX.h"
+// Kept in descending width to match integers.h, with a blank line between so
+// IncludeBlocks: Preserve does not sort them into ascending name order.
+#include "float64.h" // IWYU pragma: export
 
-#define N32(n) ((float)(n))
-#define FLOATX_H__BITS 32
-#include "floatX.h"
+#include "float32.h" // IWYU pragma: export

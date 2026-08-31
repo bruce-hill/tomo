@@ -29,6 +29,7 @@
 #include "optionals.h"
 #include "paths.h"
 #include "print.h"
+#include "result.h"
 #include "structs.h"
 #include "text.h"
 #include "types.h"
