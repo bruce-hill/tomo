@@ -81,6 +81,18 @@ libraries build at `-g0`, because a Tomo stacktrace resolves the `.tm` file,
 function, and line from the program's *own* line tables rather than the
 runtime's.
 
+![Where a Tomo binary's bytes go](size-breakdown.png)
+
+And this is what the bytes *are* (`size_breakdown.py` regenerates it, by
+re-linking a small `Int`/`Num` program with `--print-map` and attributing
+every byte of the file to the archive it came from). Two-fifths is GMP plus
+libunistring: arbitrary-precision integers and correct Unicode text are the
+biggest line items, ahead of the Tomo runtime itself. musl and compiler-rt
+are a tenth. The program is a sliver, and even that sliver is mostly not
+code: it holds the vendored license texts (a ~17 KB deflate zip in
+`.tomo.source`, dominated by GMP's licenses) and the program's own compressed
+DWARF, which is what lets a runtime error name its `.tm` line.
+
 Only a handful of languages produce a standalone static binary at all, so
 benchmarks left with fewer than five of them (pidigits, reverse-complement,
 spectral-norm) are dropped from the chart rather than shown as a two- or

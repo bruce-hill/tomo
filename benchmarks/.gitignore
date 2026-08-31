@@ -21,3 +21,4 @@ results-*.svg
 # the sizes.png snapshot IS checked in (embedded in README.md), like results.png.
 sizes.json
 sizes.svg
+size-breakdown.svg
