@@ -673,11 +673,7 @@ static List_t parse_arg_list(List_t args, const char *flag, void *dest, const Ty
     if (type->tag == OptionalInfo) {
         const TypeInfo_t *nonnull = type->OptionalInfo.type;
         if (streq(arg, "none")) {
-            // Types with 'none' that use non-zero bits:
-            if (nonnull == &Float64$info) *(double *)dest = (double)NAN;
-            else if (nonnull == &Float32$info) *(float *)dest = (float)NAN;
-            else if (nonnull == &Bool$info) *(OptionalBool_t *)dest = NONE_BOOL;
-            else memset(dest, 0, (size_t)type->size);
+            set_none(dest, type);
             return List$from(args, I(2));
         } else {
             // A list or table parses by appending into whatever is already

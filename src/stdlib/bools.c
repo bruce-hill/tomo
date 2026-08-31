@@ -64,6 +64,11 @@ static void Bool$deserialize(FILE *in, void *outval, List_t *pointers, const Typ
     *(bool *)outval = (bool)c;
 }
 
+static void Bool$set_none(void *dest, const TypeInfo_t *type) {
+    (void)type;
+    *(OptionalBool_t *)dest = NONE_BOOL;
+}
+
 public
 const TypeInfo_t Bool$info = {
     .size = sizeof(bool),
@@ -72,6 +77,7 @@ const TypeInfo_t Bool$info = {
         {
             .as_text = Bool$as_text,
             .is_none = Bool$is_none,
+            .set_none = Bool$set_none,
             .serialize = Bool$serialize,
             .deserialize = Bool$deserialize,
         },

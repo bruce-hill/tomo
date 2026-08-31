@@ -18,6 +18,17 @@ PUREFUNC bool is_none(const void *obj, const TypeInfo_t *non_optional_type) {
     return !(*has_value);
 }
 
+public
+void set_none(void *obj, const TypeInfo_t *optional_type) {
+    const TypeInfo_t *nonnull = optional_type->OptionalInfo.type;
+    // Zeroed bytes are `none` for most types (empty list/table data, a NULL
+    // pointer, a zero enum tag), and for the types with no in-band `none` at
+    // all they clear the has_value byte that stands in for one. See is_none().
+    memset(obj, 0, (size_t)optional_type->size);
+    // The few whose `none` is a specific bit pattern write it themselves:
+    if (nonnull->metamethods.set_none) nonnull->metamethods.set_none(obj, nonnull);
+}
+
 PUREFUNC public uint64_t Optional$hash(const void *obj, const TypeInfo_t *type) {
     return is_none(obj, type->OptionalInfo.type) ? 0 : generic_hash(obj, type->OptionalInfo.type);
 }
@@ -70,14 +81,6 @@ void Optional$deserialize(FILE *in, void *outval, List_t *pointers, const TypeIn
         // the value's own deserializer doesn't write. See `is_none()`.
         if (!nonnull->metamethods.is_none) *(bool *)(outval + nonnull->size) = true;
     } else {
-        // All-zero bytes are `none` for most types (empty list/table data,
-        // a cleared `has_value` flag, a zero enum tag, a NULL pointer); the
-        // rest need `none` to have a specific bit pattern:
-        if (nonnull->tag == TextInfo) *(Text_t *)outval = NONE_TEXT;
-        else if (nonnull->tag == ListInfo) *(List_t *)outval = NONE_LIST;
-        else if (nonnull->tag == TableInfo) *(Table_t *)outval = NONE_TABLE;
-        else if (nonnull == &Float64$info) *(double *)outval = (double)NAN;
-        else if (nonnull == &Float32$info) *(float *)outval = (float)NAN;
-        else if (nonnull == &Bool$info) *(OptionalBool_t *)outval = NONE_BOOL;
+        set_none(outval, type);
     }
 }

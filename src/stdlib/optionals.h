@@ -18,6 +18,7 @@
 #define NONE_PATH (Path_t) NULL
 
 PUREFUNC bool is_none(const void *obj, const TypeInfo_t *non_optional_type);
+void set_none(void *obj, const TypeInfo_t *optional_type);
 PUREFUNC uint64_t Optional$hash(const void *obj, const TypeInfo_t *type);
 PUREFUNC int32_t Optional$compare(const void *x, const void *y, const TypeInfo_t *type);
 PUREFUNC bool Optional$equal(const void *x, const void *y, const TypeInfo_t *type);

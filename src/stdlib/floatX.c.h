@@ -247,6 +247,11 @@ CONSTFUNC bool NAMESPACED(isnan)(FLOAT_T n) {
     return isnan(n);
 }
 
+static void NAMESPACED(set_none)(void *dest, const TypeInfo_t *type) {
+    (void)type;
+    *(FLOAT_T *)dest = (FLOAT_T)NAN;
+}
+
 public
 const TypeInfo_t NAMESPACED(info) = {
     .size = sizeof(FLOAT_T),
@@ -257,6 +262,7 @@ const TypeInfo_t NAMESPACED(info) = {
             .equal = NAMESPACED(equal),
             .as_text = NAMESPACED(as_text),
             .is_none = NAMESPACED(is_none),
+            .set_none = NAMESPACED(set_none),
         },
 };
 
