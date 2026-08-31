@@ -50,16 +50,36 @@ exactly as each toolchain produces them. Nothing is stripped: the question is
 what a program weighs when you build it, not how far it could be squeezed
 afterwards.
 
-Tomo's is **~1.36 MB and near-constant** across all nine (1348–1381 KB), since
-the runtime dominates and the program itself is noise. That puts it at
-1.4–1.6× C, under Rust (1.4–1.6 MB), Go (2.2–2.6 MB), and C++ (up to 2.7 MB),
-and above Nim (~900 KB), Zig (~1.0 MB), and C (837–973 KB).
+Tomo's is **~880 KB and near-constant** across all nine (862–893 KB), since the
+runtime dominates and the program itself is noise. That is level with C
+(837–1023 KB), a shade under Nim (~900 KB) and Zig (929–1016 KB), and well
+under Rust (1.4–1.6 MB), Go (2.1–2.6 MB), and C++ (up to 5.9 MB). On fasta it
+is the smallest binary in the field; elsewhere it sits second or third, within
+a few percent of C.
 
-Roughly 490 KB of Tomo's is DWARF, which is what lets a runtime error name the
-`.tm` file, function, and line it came from. Zig and Go carry debug info in
-their default builds too (970 KB and 756 KB respectively); C, Nim, and Rust
-ship none in these configurations, so a stripped comparison would flatter Tomo
-and Zig for a cost they do actually pay on disk.
+Each bar is the binary as built, split into what survives `strip` (solid) and
+what `strip` removes (hatched). Debug info is a real cost, but it is a
+different kind of cost from code, and which one a toolchain hands you by
+default varies enormously:
+
+- **Zig** ships 988 KB on n-body of which **38 KB is code**. It emits full
+  DWARF even under `-OReleaseFast`; `-fstrip` omits it, and is opt-in.
+- **C (musl)** is the same story: 890 KB, **20 KB of code**. Its `.text` is
+  14 KB against glibc-static's 508 KB, since musl is built so the linker takes
+  only what a program touches. The rest is DWARF inside the musl and
+  compiler-rt objects the toolchain ships, which `-g0` on your own code cannot
+  remove.
+- **Go** carries about a third in symbol and debug tables.
+- **C (gcc)**, **Nim**, **Rust**, and **Tomo** are nearly all content.
+
+So the musl and glibc C rows are both here on purpose: Tomo and Zig target
+musl and the `gcc` entries do not, which would otherwise leave the libc as a
+hidden variable in every comparison.
+
+Tomo's own bar is ~10% strippable, and none of that is the runtime: its
+libraries build at `-g0`, because a Tomo stacktrace resolves the `.tm` file,
+function, and line from the program's *own* line tables rather than the
+runtime's.
 
 Only a handful of languages produce a standalone static binary at all, so
 benchmarks left with fewer than five of them (pidigits, reverse-complement,

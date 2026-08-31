@@ -3,95 +3,346 @@
   "repeats": 3,
   "languages": {
     "tomo": {
-      "label": "Tomo", "ext": "tm", "tracked": true, "color": "#e4572e",
-      "build": ["{tomo}", "build", "-O3", "-o", "{bin}", "{src}"],
-      "run": ["{bin}"], "static_default": true
+      "label": "Tomo",
+      "ext": "tm",
+      "tracked": true,
+      "color": "#e4572e",
+      "build": [
+        "{tomo}",
+        "build",
+        "-O3",
+        "-o",
+        "{bin}",
+        "{src}"
+      ],
+      "run": [
+        "{bin}"
+      ],
+      "static_default": true
     },
     "c": {
-      "label": "C (gcc)", "ext": "c", "color": "#555555",
-      "build": ["gcc", "-O3", "-fomit-frame-pointer", "-march=native", "-o", "{bin}", "{src}", "-lm"],
-      "size_build": ["gcc", "-O3", "-fomit-frame-pointer", "-march=native", "-static", "-o", "{bin}", "{src}", "-lm"],
-      "run": ["{bin}"]
+      "label": "C (gcc)",
+      "ext": "c",
+      "color": "#555555",
+      "build": [
+        "gcc",
+        "-O3",
+        "-fomit-frame-pointer",
+        "-march=native",
+        "-o",
+        "{bin}",
+        "{src}",
+        "-lm"
+      ],
+      "size_build": [
+        "gcc",
+        "-O3",
+        "-fomit-frame-pointer",
+        "-march=native",
+        "-static",
+        "-o",
+        "{bin}",
+        "{src}",
+        "-lm"
+      ],
+      "run": [
+        "{bin}"
+      ]
+    },
+    "c_musl": {
+      "label": "C (musl)",
+      "ext": "c",
+      "source_from": "c",
+      "color": "#8a8a8a",
+      "size_only": true,
+      "size_build": [
+        "{zig}",
+        "cc",
+        "-target",
+        "x86_64-linux-musl",
+        "-static",
+        "-O3",
+        "-g0",
+        "-fomit-frame-pointer",
+        "-o",
+        "{bin}",
+        "{src}",
+        "-lm"
+      ]
     },
     "cpp": {
-      "label": "C++ (g++)", "ext": "cpp", "color": "#8e44ad",
-      "build": ["g++", "-O3", "-fomit-frame-pointer", "-march=native", "-o", "{bin}", "{src}", "-lm"],
-      "size_build": ["g++", "-O3", "-fomit-frame-pointer", "-march=native", "-static", "-o", "{bin}", "{src}", "-lm"],
-      "run": ["{bin}"]
+      "label": "C++ (g++)",
+      "ext": "cpp",
+      "color": "#8e44ad",
+      "build": [
+        "g++",
+        "-O3",
+        "-fomit-frame-pointer",
+        "-march=native",
+        "-o",
+        "{bin}",
+        "{src}",
+        "-lm"
+      ],
+      "size_build": [
+        "g++",
+        "-O3",
+        "-fomit-frame-pointer",
+        "-march=native",
+        "-static",
+        "-o",
+        "{bin}",
+        "{src}",
+        "-lm"
+      ],
+      "run": [
+        "{bin}"
+      ]
+    },
+    "cpp_musl": {
+      "label": "C++ (musl)",
+      "ext": "cpp",
+      "source_from": "cpp",
+      "color": "#8a8a8a",
+      "size_only": true,
+      "size_build": [
+        "{zig}",
+        "c++",
+        "-target",
+        "x86_64-linux-musl",
+        "-static",
+        "-O3",
+        "-g0",
+        "-fomit-frame-pointer",
+        "-o",
+        "{bin}",
+        "{src}",
+        "-lm"
+      ]
     },
     "rust": {
-      "label": "Rust", "ext": "rs", "color": "#d1832f",
-      "build": ["rustc", "-C", "opt-level=3", "-C", "target-cpu=native", "-o", "{bin}", "{src}"],
-      "size_build": ["rustc", "-C", "opt-level=3", "-C", "target-cpu=native", "-C", "target-feature=+crt-static", "-o", "{bin}", "{src}"],
-      "run": ["{bin}"]
+      "label": "Rust",
+      "ext": "rs",
+      "color": "#d1832f",
+      "build": [
+        "rustc",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "target-cpu=native",
+        "-o",
+        "{bin}",
+        "{src}"
+      ],
+      "size_build": [
+        "rustc",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "target-feature=+crt-static",
+        "-o",
+        "{bin}",
+        "{src}"
+      ],
+      "run": [
+        "{bin}"
+      ]
     },
     "go": {
-      "label": "Go", "ext": "go", "color": "#00add8",
-      "build": ["go", "build", "-o", "{bin}", "{src}"],
-      "run": ["{bin}"], "static_default": true
+      "label": "Go",
+      "ext": "go",
+      "color": "#00add8",
+      "build": [
+        "go",
+        "build",
+        "-o",
+        "{bin}",
+        "{src}"
+      ],
+      "run": [
+        "{bin}"
+      ],
+      "static_default": true
     },
     "javascript": {
-      "label": "JavaScript (node)", "ext": "js", "color": "#f0c419",
-      "run": ["node", "{src}"]
+      "label": "JavaScript (node)",
+      "ext": "js",
+      "color": "#f0c419",
+      "run": [
+        "node",
+        "{src}"
+      ]
     },
     "lua": {
-      "label": "Lua", "ext": "lua", "color": "#2c2c8c",
-      "run": ["lua", "{src}"]
+      "label": "Lua",
+      "ext": "lua",
+      "color": "#2c2c8c",
+      "run": [
+        "lua",
+        "{src}"
+      ]
     },
     "luajit": {
-      "label": "LuaJIT", "ext": "lua", "source_from": "lua", "color": "#3355bb",
-      "run": ["luajit", "{src}"],
+      "label": "LuaJIT",
+      "ext": "lua",
+      "source_from": "lua",
+      "color": "#3355bb",
+      "run": [
+        "luajit",
+        "{src}"
+      ],
       "prelude": "if not table.unpack then table.unpack=unpack end"
     },
     "python": {
-      "label": "Python", "ext": "py", "color": "#3572a5",
-      "run": ["python3", "{src}"]
+      "label": "Python",
+      "ext": "py",
+      "color": "#3572a5",
+      "run": [
+        "python3",
+        "{src}"
+      ]
     },
     "pypy": {
-      "label": "PyPy", "ext": "py", "source_from": "python", "color": "#5a9fd4",
-      "run": ["pypy3", "{src}"]
+      "label": "PyPy",
+      "ext": "py",
+      "source_from": "python",
+      "color": "#5a9fd4",
+      "run": [
+        "pypy3",
+        "{src}"
+      ]
     },
     "java": {
-      "label": "Java", "ext": "java", "handler": "java", "color": "#b07219"
+      "label": "Java",
+      "ext": "java",
+      "handler": "java",
+      "color": "#b07219"
     },
     "csharp": {
-      "label": "C#", "ext": "cs", "handler": "csharp", "color": "#178600"
+      "label": "C#",
+      "ext": "cs",
+      "handler": "csharp",
+      "color": "#178600"
     },
     "swift": {
-      "label": "Swift", "ext": "swift", "color": "#f05138",
-      "build": ["swiftc", "-O", "-o", "{bin}", "{src}"],
-      "run": ["{bin}"]
+      "label": "Swift",
+      "ext": "swift",
+      "color": "#f05138",
+      "build": [
+        "swiftc",
+        "-O",
+        "-o",
+        "{bin}",
+        "{src}"
+      ],
+      "run": [
+        "{bin}"
+      ]
     },
     "fortran": {
-      "label": "Fortran", "ext": "f90", "color": "#734f96",
-      "build": ["gfortran", "-O3", "-march=native", "-fomit-frame-pointer", "-J.build", "-o", "{bin}", "{src}"],
-      "run": ["{bin}"]
+      "label": "Fortran",
+      "ext": "f90",
+      "color": "#734f96",
+      "build": [
+        "gfortran",
+        "-O3",
+        "-march=native",
+        "-fomit-frame-pointer",
+        "-J.build",
+        "-o",
+        "{bin}",
+        "{src}"
+      ],
+      "run": [
+        "{bin}"
+      ]
     },
     "zig": {
-      "label": "Zig", "ext": "zig", "color": "#f7a41d", "source": "plb",
-      "build": ["{zig}", "build-exe", "-OReleaseFast", "-lc", "-femit-bin={bin}", "{src}"],
-      "size_build": ["{zig}", "build-exe", "-OReleaseFast", "-target", "x86_64-linux-musl", "-lc", "-femit-bin={bin}", "{src}"],
-      "run": ["{bin}"]
+      "label": "Zig",
+      "ext": "zig",
+      "color": "#f7a41d",
+      "source": "plb",
+      "build": [
+        "{zig}",
+        "build-exe",
+        "-OReleaseFast",
+        "-lc",
+        "-femit-bin={bin}",
+        "{src}"
+      ],
+      "size_build": [
+        "{zig}",
+        "build-exe",
+        "-OReleaseFast",
+        "-target",
+        "x86_64-linux-musl",
+        "-lc",
+        "-femit-bin={bin}",
+        "{src}"
+      ],
+      "run": [
+        "{bin}"
+      ]
     },
     "nim": {
-      "label": "Nim", "ext": "nim", "color": "#ffe953", "source": "plb",
-      "build": ["nim", "c", "-d:danger", "--hints:off", "--warnings:off", "-o:{bin}", "{src}"],
-      "size_build": ["nim", "c", "-d:danger", "--hints:off", "--warnings:off", "--passL:-static", "-o:{bin}", "{src}"],
-      "run": ["{bin}"]
+      "label": "Nim",
+      "ext": "nim",
+      "color": "#ffe953",
+      "source": "plb",
+      "build": [
+        "nim",
+        "c",
+        "-d:danger",
+        "--hints:off",
+        "--warnings:off",
+        "-o:{bin}",
+        "{src}"
+      ],
+      "size_build": [
+        "nim",
+        "c",
+        "-d:danger",
+        "--hints:off",
+        "--warnings:off",
+        "--passL:-static",
+        "-o:{bin}",
+        "{src}"
+      ],
+      "run": [
+        "{bin}"
+      ]
     },
     "odin": {
-      "label": "Odin", "ext": "odin", "color": "#3882d8", "source": "plb",
-      "build": ["odin", "build", "{src}", "-file", "-o:speed", "-out:{bin}"],
-      "run": ["{bin}"]
+      "label": "Odin",
+      "ext": "odin",
+      "color": "#3882d8",
+      "source": "plb",
+      "build": [
+        "odin",
+        "build",
+        "{src}",
+        "-file",
+        "-o:speed",
+        "-out:{bin}"
+      ],
+      "run": [
+        "{bin}"
+      ]
     }
   },
   "benchmarks": {
     "nbody": {
-      "args": ["5000000"],
+      "args": [
+        "5000000"
+      ],
       "reference": "c",
       "programs": {
         "c": "gcc-1",
+        "c_musl": "gcc-1",
         "cpp": "gpp-1",
+        "cpp_musl": "gpp-1",
         "rust": "rust-2",
         "go": "go-1",
         "javascript": "node-6",
@@ -109,11 +360,15 @@
       }
     },
     "fannkuchredux": {
-      "args": ["10"],
+      "args": [
+        "10"
+      ],
       "reference": "c",
       "programs": {
         "c": "gcc-1",
+        "c_musl": "gcc-1",
         "cpp": "gpp-1",
+        "cpp_musl": "gpp-1",
         "rust": "rust-2",
         "go": "go-1",
         "javascript": "node-5",
@@ -129,11 +384,15 @@
       }
     },
     "fasta": {
-      "args": ["2500000"],
+      "args": [
+        "2500000"
+      ],
       "reference": "c",
       "programs": {
         "c": "gcc-1",
+        "c_musl": "gcc-1",
         "cpp": "gpp-1",
+        "cpp_musl": "gpp-1",
         "rust": "rust-1",
         "go": "go-1",
         "javascript": "node-1",
@@ -150,13 +409,21 @@
       }
     },
     "knucleotide": {
-      "args": ["1000000"],
+      "args": [
+        "1000000"
+      ],
       "reference": "c",
       "stdin_fasta": true,
-      "cflags": {"c": ["-I/usr/include/klib"]},
+      "cflags": {
+        "c": [
+          "-I/usr/include/klib"
+        ]
+      },
       "programs": {
         "c": "gcc-1",
+        "c_musl": "gcc-1",
         "cpp": "gpp-1",
+        "cpp_musl": "gpp-1",
         "rust": "rust-1",
         "go": "go-3",
         "javascript": "node-1",
@@ -169,11 +436,15 @@
       }
     },
     "binarytrees": {
-      "args": ["16"],
+      "args": [
+        "16"
+      ],
       "reference": "c",
       "programs": {
         "c": "gcc-1",
+        "c_musl": "gcc-1",
         "cpp": "gpp-2",
+        "cpp_musl": "gpp-2",
         "go": "go-1",
         "javascript": "node-1",
         "lua": "lua-2",
@@ -190,12 +461,23 @@
       }
     },
     "pidigits": {
-      "args": ["10000"],
+      "args": [
+        "10000"
+      ],
       "reference": "c",
-      "cflags": {"c": ["-lgmp"], "cpp": ["-lgmp"]},
+      "cflags": {
+        "c": [
+          "-lgmp"
+        ],
+        "cpp": [
+          "-lgmp"
+        ]
+      },
       "programs": {
         "c": "gcc-1",
+        "c_musl": "gcc-1",
         "cpp": "gpp-5",
+        "cpp_musl": "gpp-5",
         "go": "go-7",
         "javascript": "node-3",
         "python": "python3-4",
@@ -205,13 +487,17 @@
       }
     },
     "reversecomplement": {
-      "args": ["5000000"],
+      "args": [
+        "5000000"
+      ],
       "reference": "c",
       "site_name": "revcomp",
       "stdin_fasta": true,
       "programs": {
         "c": "gcc-4",
+        "c_musl": "gcc-4",
         "cpp": "gpp-5",
+        "cpp_musl": "gpp-5",
         "go": "go-3",
         "javascript": "node-2",
         "lua": "lua-2",
@@ -224,12 +510,23 @@
       }
     },
     "mandelbrot": {
-      "args": ["4000"],
+      "args": [
+        "4000"
+      ],
       "reference": "c",
-      "cflags": {"c": ["-ffp-contract=off"], "cpp": ["-ffp-contract=off"]},
+      "cflags": {
+        "c": [
+          "-ffp-contract=off"
+        ],
+        "cpp": [
+          "-ffp-contract=off"
+        ]
+      },
       "programs": {
         "c": "gcc-2",
+        "c_musl": "gcc-2",
         "cpp": "gpp-2",
+        "cpp_musl": "gpp-2",
         "rust": "rust-1",
         "go": "go-2",
         "javascript": "node-2",
@@ -243,12 +540,20 @@
       }
     },
     "spectralnorm": {
-      "args": ["5500"],
+      "args": [
+        "5500"
+      ],
       "reference": "c",
-      "cflags": {"cpp": ["-fopenmp"]},
+      "cflags": {
+        "cpp": [
+          "-fopenmp"
+        ]
+      },
       "programs": {
         "c": "gcc-5",
+        "c_musl": "gcc-5",
         "cpp": "gpp-5",
+        "cpp_musl": "gpp-5",
         "rust": "rust-2",
         "go": "go-2",
         "javascript": "node-1",

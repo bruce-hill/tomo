@@ -27,6 +27,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
+# Hatching marks the strippable part of a size bar (see size_panel). The 1.0
+# default is faint enough to read as texture rather than as a distinct region,
+# which is the whole point of drawing it.
+plt.rcParams["hatch.linewidth"] = 2.0
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # "Tomo vs the field": one accent + one neutral. Ink tokens for all text.
@@ -180,16 +185,29 @@ def human_bytes(n):
 def size_panel(ax, bname, block):
     rows = []
     for lang, r in block["results"].items():
-        rows.append((lang, r["label"], r["bytes"]))
+        # Older sizes.json files carry no stripped measurement; treat the whole
+        # binary as content rather than inventing a band.
+        rows.append((lang, r["label"], r["bytes"],
+                     r.get("stripped_bytes", r["bytes"])))
     rows.sort(key=lambda t: t[2])  # smallest first
     smallest = rows[0][2] if rows else 1
 
-    labels = [lbl for _, lbl, _ in rows]
-    vals = [b for *_, b in rows]
+    labels = [lbl for _, lbl, _, _ in rows]
+    vals = [b for _, _, b, _ in rows]
+    kept = [k for *_, k in rows]
     y = range(len(rows))
 
-    colors = [ACCENT if lang == "tomo" else NEUTRAL for lang, _, _ in rows]
-    ax.barh(y, vals, color=colors, height=0.68, zorder=3)
+    colors = [ACCENT if lang == "tomo" else NEUTRAL for lang, _, _, _ in rows]
+    # Two segments per bar: what survives `strip` drawn solid, and what it
+    # removes (debug info, symbol tables) hatched onto the end. The bar's full
+    # length is still the size as built, which is what actually ships.
+    ax.barh(y, kept, color=colors, height=0.68, zorder=3)
+    # linewidth=0 on purpose: a stroked edge is centred on the bar's boundary,
+    # so it would make this segment render a pixel or two taller than the solid
+    # one beside it. The hatch lines still take their color from edgecolor.
+    ax.barh(y, [v - k for v, k in zip(vals, kept)], left=kept, height=0.68,
+            color="white", edgecolor=colors, hatch="/////", linewidth=0,
+            zorder=3)
     ax.invert_yaxis()
     ax.set_yticks(list(y))
     ax.set_yticklabels(labels, fontsize=10, color=INK)
@@ -199,7 +217,7 @@ def size_panel(ax, bname, block):
             tick.set_fontweight("bold")
 
     xmax = max(vals) if vals else 1
-    ax.set_xlim(0, xmax * 1.20)
+    ax.set_xlim(0, xmax * 1.34) # room for the longest "N KB (M×) · K KB code"
     for spine in ("top", "right", "left"):
         ax.spines[spine].set_visible(False)
     ax.spines["bottom"].set_color(GRID)
@@ -210,7 +228,7 @@ def size_panel(ax, bname, block):
     ax.xaxis.grid(True, color=GRID, linewidth=1, zorder=0)
     ax.set_axisbelow(True)
 
-    for yi, (lang, _, b) in zip(y, rows):
+    for yi, (lang, _, b, k) in zip(y, rows):
         # rows is sorted ascending, so only the first row is actually the
         # smallest; everything else carries its ratio. A second decimal when
         # the ratio would round to 1.0 keeps a genuinely larger binary from
@@ -218,6 +236,8 @@ def size_panel(ax, bname, block):
         rel = b / smallest if smallest else 1.0
         ratio = f"{rel:.2f}×" if rel < 1.05 else f"{rel:.1f}×"
         txt = human_bytes(b) + ("  (smallest)" if yi == 0 else f"  ({ratio})")
+        if b - k > 0.02 * b:
+            txt += f"  ·  {human_bytes(k)} code"
         ax.text(b + xmax * 0.012, yi, txt, va="center", ha="left",
                 fontsize=9, color=INK if lang == "tomo" else MUTED,
                 fontweight="bold" if lang == "tomo" else "normal", zorder=4)
@@ -251,6 +271,8 @@ def main_sizes(path, out):
     legend = [
         Patch(facecolor=ACCENT, label="Tomo"),
         Patch(facecolor=NEUTRAL, label="other languages"),
+        Patch(facecolor="white", edgecolor=MUTED, hatch="////",
+              label="removed by `strip`"),
     ]
     axes[0, 0].legend(handles=legend, loc="upper right", frameon=False,
                       fontsize=9, borderaxespad=0.6)
@@ -263,8 +285,9 @@ def main_sizes(path, out):
                  x=0.02, y=1.0 - 0.28 / fig_h, ha="left", va="top",
                  fontsize=14, fontweight="bold", color=INK)
     fig.text(0.02, 0.10 / fig_h,
-             "statically linked · sizes as the toolchain produces them, not "
-             "stripped · only languages that can produce a standalone static binary",
+             "statically linked · bars are the size as built; the hatched part "
+             "is what `strip` removes · only languages that can produce a "
+             "standalone static binary",
              ha="left", fontsize=8, color=MUTED)
     fig.tight_layout(rect=[0, bottom, 1, top])
     svg = os.path.join(HERE, out + ".svg")

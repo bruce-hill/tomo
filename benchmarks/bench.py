@@ -144,7 +144,9 @@ def tool_available(spec):
     if handler == "csharp":
         # Native AOT needs the .NET SDK plus clang to link the native binary.
         return bool(shutil.which("dotnet") and shutil.which("clang"))
-    exe = (spec.get("build") or spec.get("run"))[0]
+    # size_only languages have neither: they are built for the size chart and
+    # never run.
+    exe = (spec.get("build") or spec.get("run") or spec.get("size_build"))[0]
     if exe == "{tomo}":
         return os.access(LOCAL_TOMO, os.X_OK)
     if exe == "{zig}":
@@ -378,7 +380,8 @@ def run(cfg, benchmarks):
 
         # Order: reference first (defines expected output), then Tomo (the
         # language under test), then the remaining reference languages.
-        rest = [l for l in _langs_for(cfg, bench) if l not in (ref_lang, "tomo")]
+        rest = [l for l in _langs_for(cfg, bench, sizes_only_ok=False)
+                if l not in (ref_lang, "tomo")]
         order = [ref_lang, "tomo"] + rest
         expected = None
         prev_rows = results.get(bname, {}).get("results", {})
@@ -449,8 +452,14 @@ def run(cfg, benchmarks):
     print(f"\nwrote {RESULTS}")
 
 
-def _langs_for(cfg, bench):
-    return list(bench["programs"].keys()) + ["tomo"]
+def _langs_for(cfg, bench, sizes_only_ok=True):
+    langs = list(bench["programs"].keys()) + ["tomo"]
+    # `size_only` languages exist to isolate one variable in the size
+    # comparison (the musl C/C++ builds separate the libc from the language)
+    # and are not timed, so they never appear in a timing chart.
+    if not sizes_only_ok:
+        langs = [l for l in langs if not cfg["languages"][l].get("size_only")]
+    return langs
 
 
 # ---------------------------------------------------------------------------
@@ -465,10 +474,13 @@ def _langs_for(cfg, bench):
 # languages (Python, Lua, JS, Java) have no such binary and are skipped, as are
 # toolchains that can't statically link on this box (Swift, Odin, Fortran).
 #
-# Sizes are recorded exactly as each toolchain produces them. Stripping first
-# would measure how small each language *can* be made with extra tooling; what
-# a program actually weighs when you build it is the honest comparison, and it
-# is what anyone shipping one has to carry.
+# Sizes are recorded exactly as each toolchain produces them: what a program
+# actually weighs when you build it is what anyone shipping one has to carry.
+# Each binary is *also* measured after `strip`, and the chart draws the
+# difference as a hatched band, so the split between real content and the
+# debug info a toolchain leaves behind is visible instead of assumed. Whether
+# a toolchain hands you that debug info by default is part of the comparison,
+# not noise to normalize away.
 def _size_build_cmd(spec):
     if spec.get("size_build"):
         return spec["size_build"]
@@ -485,6 +497,24 @@ def _is_static(path):
     except Exception:
         return None
     return ("statically linked" in out) or ("static-pie linked" in out)
+
+
+def _stripped_size(binpath, raw):
+    """`binpath` after `strip -s`, i.e. how much of it is real content. Falls
+    back to the size as built when `strip` is unavailable or declines, which
+    just renders as a bar with no hatched band."""
+    if not shutil.which("strip"):
+        return raw
+    scopy = binpath + ".stripped"
+    try:
+        shutil.copyfile(binpath, scopy)
+        r = subprocess.run(["strip", "-s", scopy], capture_output=True)
+        return os.path.getsize(scopy) if r.returncode == 0 else raw
+    except Exception:
+        return raw
+    finally:
+        if os.path.exists(scopy):
+            os.remove(scopy)
 
 
 def sizes(cfg, benchmarks):
@@ -521,11 +551,15 @@ def sizes(cfg, benchmarks):
                 print(f"  FAIL {lang:<11} (no binary produced)")
                 continue
             size = os.path.getsize(binpath) # as built; see above
+            stripped = _stripped_size(binpath, size)
             static = _is_static(binpath)
-            rows[lang] = {"bytes": size, "static": static, "label": spec["label"],
+            rows[lang] = {"bytes": size, "stripped_bytes": stripped,
+                          "static": static, "label": spec["label"],
                           "color": spec.get("color", "#888888")}
             tag = "static" if static else "DYNAMIC!"
-            print(f"  ok   {lang:<11} {size:>12,} B  [{tag}]  {spec['label']}")
+            pct = 100 * (size - stripped) / size if size else 0
+            print(f"  ok   {lang:<11} {size:>12,} B  ({pct:4.1f}% strippable)"
+                  f"  [{tag}]  {spec['label']}")
         results[bname] = {"results": rows}
     with open(SIZES, "w") as f:
         json.dump(results, f, indent=2)
