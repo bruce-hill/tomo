@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 #include "../stdlib/datatypes.h"
+#include "../stdlib/datatypes/typeinfo.h"
 #include "../stdlib/files.h"
-#include "../stdlib/types.h"
 
 extern const TypeInfo_t *parse_comments_info;
 

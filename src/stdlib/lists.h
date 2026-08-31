@@ -4,10 +4,10 @@
 
 #include <stdbool.h>
 
+#include "datatypes/closure.h"
+#include "datatypes/list.h" // IWYU pragma: export
+#include "datatypes/typeinfo.h"
 #include "integers.h"
-#include "layout/closure.h"
-#include "layout/list.h" // IWYU pragma: export
-#include "types.h"
 #include "util.h"
 
 extern char _EMPTY_LIST_SENTINEL;

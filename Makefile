@@ -229,10 +229,10 @@ BUILD_DIR=$(BUILD_BASE)/tomo
 # umbrella tomo.h at include/tomo@VER/tomo.h, and compiled programs get
 # -I PREFIX/include/tomo@VER, so they say `#include <tomo.h>`. (The headers
 # can't live flat at the -I root: some share names with libc headers, like
-# stdlib.h, and would shadow them.) The layout/ subdirectory comes along with
+# stdlib.h, and would shadow them.) The datatypes/ subdirectory comes along with
 # them, keeping the same shape it has in the source tree, since datatypes.h
 # includes its members by that relative path.
-headers := $(filter-out src/stdlib/tomo.h,$(wildcard src/stdlib/*.h)) $(wildcard src/stdlib/layout/*.h)
+headers := $(filter-out src/stdlib/tomo.h,$(wildcard src/stdlib/*.h)) $(wildcard src/stdlib/datatypes/*.h)
 build_headers := $(patsubst src/stdlib/%.h, $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/%.h, $(headers)) \
 	$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo.h
 
@@ -245,7 +245,7 @@ build_manpages := $(patsubst man/%,$(BUILD_DIR)/man/tomo@$(TOMO_VERSION)/%.gz,$(
 
 # Ensure directories exist
 dirs := $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo \
-        $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/layout \
+        $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/datatypes \
         $(BUILD_DIR)/lib \
         $(BUILD_DIR)/lib/tomo@$(TOMO_VERSION) \
         $(BUILD_DIR)/bin \
@@ -259,7 +259,7 @@ $(dirs):
 	mkdir -p $@
 
 # Rule for copying headers
-$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/%.h: src/stdlib/%.h | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/layout
+$(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/%.h: src/stdlib/%.h | $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo $(BUILD_DIR)/include/tomo@$(TOMO_VERSION)/tomo/datatypes
 	cp $< $@
 
 # The umbrella header: in the (flat) source tree it includes its siblings as
@@ -458,7 +458,7 @@ check-zig:
 		|| { printf '\033[91;1m%s\033[m\n' "I can't run '$(CC)'! Tomo is built with Zig; please install it (https://ziglang.org/download/) and make sure 'zig' is on your PATH."; exit 1; }
 
 tags:
-	ctags src/*.{c,h} src/cmd/*.{c,h} src/stdlib/*.{c,h} src/stdlib/layout/*.h src/compile/*.{c,h} src/parse/*.{c,h} src/formatter/*.{c,h}
+	ctags src/*.{c,h} src/cmd/*.{c,h} src/stdlib/*.{c,h} src/stdlib/datatypes/*.h src/compile/*.{c,h} src/parse/*.{c,h} src/formatter/*.{c,h}
 
 $(OBJ_DIR)/%.o: %.c config.mk | deps
 	@mkdir -p $(dir $@)
@@ -479,7 +479,7 @@ test-tm: build test/api.tm
 # rather than `zig cc`, because it runs under ASan/UBSan and the static musl
 # builds everything else uses can't host the sanitizer runtimes. It needs
 # only number.c, so it links the host's gmp/gc rather than the vendored ones.
-$(BUILD_BASE)/number_test: test/c/number_test.c src/stdlib/number.c src/stdlib/number.h src/stdlib/layout/num.h
+$(BUILD_BASE)/number_test: test/c/number_test.c src/stdlib/number.c src/stdlib/number.h src/stdlib/datatypes/num.h
 	@mkdir -p $(dir $@)
 	@$(ECHO) cc -fsanitize=address,undefined -o $@ test/c/number_test.c src/stdlib/number.c
 	@# -iquote, not -I: src/stdlib/ has its own stdlib.h, which -I would make

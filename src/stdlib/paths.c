@@ -23,6 +23,7 @@
 #include "../unistr-fixed.h"
 #include "../util.h"
 #include "c_strings.h"
+#include "datatypes/typeinfo.h"
 #include "enums.h"
 #include "integers.h"
 #include "lists.h"
@@ -32,7 +33,6 @@
 #include "result.h"
 #include "structs.h"
 #include "text.h"
-#include "types.h"
 #include "util.h"
 
 static const Path_t HOME_PATH = (Path_t){"~"}, ROOT_PATH = (Path_t){"/"}, CURDIR_PATH = (Path_t){"."},

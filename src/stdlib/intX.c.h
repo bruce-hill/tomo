@@ -13,14 +13,14 @@
 #include <stdlib.h>
 
 #include "../util.h"
+#include "datatypes/closure.h"
+#include "datatypes/float.h"
+#include "datatypes/num.h"
+#include "datatypes/typeinfo.h"
 #include "fail.h"
 #include "integers.h"
-#include "layout/closure.h"
-#include "layout/float.h"
-#include "layout/num.h"
 #include "metamethods.h"
 #include "text.h"
-#include "types.h"
 
 #ifndef INTX_C_H__INT_BITS
 #define INTX_C_H__INT_BITS 32

@@ -5,11 +5,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "datatypes/closure.h"
+#include "datatypes/path.h" // IWYU pragma: export
+#include "datatypes/result.h"
+#include "datatypes/typeinfo.h"
 #include "integers.h"
-#include "layout/closure.h"
-#include "layout/path.h" // IWYU pragma: export
-#include "layout/result.h"
-#include "types.h"
 
 Path_t Path$from_str(const char *str);
 Path_t Path$from_text(Text_t text);

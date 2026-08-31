@@ -14,6 +14,7 @@
 
 #include "c_strings.h"
 #include "datatypes.h"
+#include "datatypes/typeinfo.h"
 #include "fail.h"
 #include "lists.h"
 #include "memory.h"
@@ -23,7 +24,6 @@
 #include "structs.h"
 #include "tables.h"
 #include "text.h"
-#include "types.h"
 #include "util.h"
 
 // Helper accessors for type functions/values:

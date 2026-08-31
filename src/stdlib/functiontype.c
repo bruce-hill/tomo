@@ -3,10 +3,10 @@
 #include <stdbool.h>
 
 #include "datatypes.h"
+#include "datatypes/typeinfo.h"
 #include "functiontype.h"
 #include "structs.h"
 #include "text.h"
-#include "types.h"
 #include "util.h"
 
 public

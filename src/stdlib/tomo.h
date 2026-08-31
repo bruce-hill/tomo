@@ -12,6 +12,7 @@
 #include "c_strings.h" // IWYU pragma: export
 #include "cli.h" // IWYU pragma: export
 #include "datatypes.h" // IWYU pragma: export
+#include "datatypes/typeinfo.h" // IWYU pragma: export
 #include "debugger.h" // IWYU pragma: export
 #include "enums.h" // IWYU pragma: export
 #include "fail.h" // IWYU pragma: export
@@ -36,4 +37,3 @@
 #include "tables.h" // IWYU pragma: export
 #include "test_harness.h" // IWYU pragma: export
 #include "text.h" // IWYU pragma: export
-#include "types.h" // IWYU pragma: export

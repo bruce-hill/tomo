@@ -5,13 +5,13 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "datatypes/typeinfo.h"
 #include "fail.h"
 #include "lists.h"
 #include "metamethods.h"
 #include "siphash.h"
 #include "tables.h"
 #include "text.h"
-#include "types.h"
 #include "util.h"
 
 PUREFUNC public uint64_t generic_hash(const void *obj, const TypeInfo_t *type) {

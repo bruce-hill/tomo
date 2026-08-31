@@ -5,11 +5,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "datatypes/byte.h" // IWYU pragma: export
+#include "datatypes/closure.h"
+#include "datatypes/num.h"
+#include "datatypes/typeinfo.h"
 #include "integers.h"
-#include "layout/byte.h" // IWYU pragma: export
-#include "layout/closure.h"
-#include "layout/num.h"
-#include "types.h"
 #include "util.h"
 
 #define Byte(b) ((Byte_t)(b))

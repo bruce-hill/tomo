@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "types.h"
+#include "datatypes/typeinfo.h"
 #include "util.h"
 
 Text_t CString$as_text(const char **str, bool colorize, const TypeInfo_t *info);

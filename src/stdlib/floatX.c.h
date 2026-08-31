@@ -12,12 +12,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "datatypes/int.h"
+#include "datatypes/num.h"
+#include "datatypes/typeinfo.h"
 #include "fail.h"
-#include "layout/int.h"
-#include "layout/num.h"
 #include "number.h"
 #include "text.h"
-#include "types.h"
 
 #ifndef FLOATX_C_H__BITS
 #define FLOATX_C_H__BITS 64

@@ -8,13 +8,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "layout/bool.h"
-#include "layout/byte.h"
-#include "layout/closure.h"
-#include "layout/float.h"
-#include "layout/int.h" // IWYU pragma: export
-#include "layout/num.h"
-#include "types.h"
+#include "datatypes/bool.h"
+#include "datatypes/byte.h"
+#include "datatypes/closure.h"
+#include "datatypes/float.h"
+#include "datatypes/int.h" // IWYU pragma: export
+#include "datatypes/num.h"
+#include "datatypes/typeinfo.h"
 #include "util.h"
 
 #ifndef INTX_H__INT_BITS

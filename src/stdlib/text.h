@@ -7,13 +7,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "datatypes/closure.h"
+#include "datatypes/num.h"
+#include "datatypes/text.h" // IWYU pragma: export
+#include "datatypes/typeinfo.h"
 #include "floats.h" // IWYU pragma: export
 #include "integers.h" // IWYU pragma: export
-#include "layout/closure.h"
-#include "layout/num.h"
-#include "layout/text.h" // IWYU pragma: export
 #include "mapmacro.h"
-#include "types.h"
 #include "util.h"
 
 #define MAX_TEXT_DEPTH 48

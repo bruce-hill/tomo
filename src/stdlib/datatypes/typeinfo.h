@@ -1,4 +1,9 @@
-// Type information and methods for TypeInfos (i.e. runtime representations of types)
+// Representation of TypeInfo_t, the runtime description of a type
+//
+// Every Tomo type has a `T$info` that is one of these. The struct is here,
+// beside the datatype layouts, rather than with the functions in typeinfo.h,
+// so that a header naming TypeInfo_t in a signature -- which is nearly all of
+// them -- need not drag in the type's own API.
 
 #pragma once
 
@@ -11,9 +16,9 @@
 // deserializes through a List_t of them. They are part of this interface
 // rather than an accident of layering, so this header re-exports them and a
 // consumer of TypeInfo_t need not name them itself.
-#include "layout/list.h" // IWYU pragma: export
-#include "layout/table.h" // IWYU pragma: export
-#include "layout/text.h" // IWYU pragma: export
+#include "list.h" // IWYU pragma: export
+#include "table.h" // IWYU pragma: export
+#include "text.h" // IWYU pragma: export
 
 typedef struct TypeInfo_s TypeInfo_t;
 
@@ -97,16 +102,3 @@ struct TypeInfo_s {
         };
     };
 };
-
-extern const TypeInfo_t Void$info;
-extern const TypeInfo_t Abort$info;
-
-Text_t Type$as_text(const void *typeinfo, bool colorize, const TypeInfo_t *type);
-
-#define Type$info(typestr)                                                                                             \
-    &((TypeInfo_t){                                                                                                    \
-        .size = sizeof(TypeInfo_t),                                                                                    \
-        .align = __alignof__(TypeInfo_t),                                                                              \
-        .tag = TypeInfoInfo,                                                                                           \
-        .TypeInfoInfo.type_str = typestr,                                                                              \
-        .metamethods = {.serialize = cannot_serialize, .deserialize = cannot_deserialize, .as_text = Type$as_text}})

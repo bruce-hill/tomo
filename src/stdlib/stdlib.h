@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "layout/closure.h"
-#include "layout/num.h"
-#include "types.h"
+#include "datatypes/closure.h"
+#include "datatypes/num.h"
+#include "datatypes/typeinfo.h"
 
 extern bool USE_COLOR;
 extern Text_t TOMO_VERSION_TEXT;

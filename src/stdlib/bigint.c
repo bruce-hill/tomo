@@ -12,6 +12,7 @@
 
 #include "../util.h"
 #include "datatypes.h"
+#include "datatypes/typeinfo.h"
 #include "integers.h"
 #include "metamethods.h"
 #include "number.h"
@@ -19,7 +20,6 @@
 #include "print.h"
 #include "siphash.h"
 #include "text.h"
-#include "types.h"
 
 #define mpz_init_set_int(mpz, i)                                                                                       \
     do {                                                                                                               \

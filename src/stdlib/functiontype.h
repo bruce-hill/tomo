@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "types.h"
+#include "datatypes/typeinfo.h"
 #include "util.h"
 
 void register_function(void *fn, Text_t filename, int64_t line_num, Text_t name);

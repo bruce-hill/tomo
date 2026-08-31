@@ -22,7 +22,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "layout/num.h" // IWYU pragma: export
+#include "datatypes/num.h" // IWYU pragma: export
 
 // A Num is a 64-bit tagged value (see number-design.md "Tagging"):
 //   low bits 01: small rational immediate

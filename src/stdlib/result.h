@@ -2,10 +2,10 @@
 
 // Result type for Success/Failure
 
-#include "layout/result.h" // IWYU pragma: export
+#include "datatypes/result.h" // IWYU pragma: export
 // FailureResult expands to Texts() at the caller's site:
+#include "datatypes/typeinfo.h"
 #include "text.h" // IWYU pragma: export
-#include "types.h"
 
 #define Result$Success ((Result$$type){.$tag = Result$tag$Success})
 #define SuccessResult Result$Success

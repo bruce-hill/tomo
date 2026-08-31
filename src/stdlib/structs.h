@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "types.h"
+#include "datatypes/typeinfo.h"
 #include "util.h"
 
 PUREFUNC uint64_t Struct$hash(const void *obj, const TypeInfo_t *type);

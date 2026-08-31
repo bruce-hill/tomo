@@ -6,13 +6,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "layout/bool.h"
-#include "layout/byte.h"
-#include "layout/float.h"
-#include "layout/int.h"
-#include "layout/num.h" // IWYU pragma: export
+#include "datatypes/bool.h"
+#include "datatypes/byte.h"
+#include "datatypes/float.h"
+#include "datatypes/int.h"
+#include "datatypes/num.h" // IWYU pragma: export
+#include "datatypes/typeinfo.h"
 #include "number.h"
-#include "types.h"
 #include "util.h"
 
 // --- Operators ---

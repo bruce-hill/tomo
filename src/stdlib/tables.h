@@ -6,11 +6,11 @@
 #include <stdint.h>
 #include <string.h> // IWYU pragma: export
 
-#include "layout/closure.h"
-#include "layout/present.h"
-#include "layout/table.h" // IWYU pragma: export
+#include "datatypes/closure.h"
+#include "datatypes/present.h"
+#include "datatypes/table.h" // IWYU pragma: export
 #include "lists.h"
-#include "types.h"
+#include "typeinfo.h"
 #include "util.h"
 
 #define EMPTY_TABLE ((Table_t){.entries.data = &_EMPTY_LIST_SENTINEL})

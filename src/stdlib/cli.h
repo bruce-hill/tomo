@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 
-#include "types.h"
+#include "datatypes/typeinfo.h"
 
 typedef struct {
     const char *name;

@@ -9,6 +9,7 @@
 #include <gmp.h>
 #include <stdio.h>
 
+#include "datatypes/typeinfo.h"
 #include "fail.h"
 #include "integers.h"
 #include "metamethods.h"
@@ -16,7 +17,6 @@
 #include "nums.h"
 #include "siphash.h"
 #include "text.h"
-#include "types.h"
 
 // A Num that a Tomo program can actually hold is never the number library's
 // error value: an operator that would produce one fails immediately, and a

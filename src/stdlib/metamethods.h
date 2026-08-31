@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "types.h"
+#include "datatypes/typeinfo.h"
 #include "util.h"
 
 PUREFUNC uint64_t generic_hash(const void *obj, const TypeInfo_t *type);

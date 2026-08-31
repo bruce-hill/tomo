@@ -8,11 +8,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "layout/byte.h"
-#include "layout/float.h" // IWYU pragma: export
-#include "layout/int.h"
-#include "layout/num.h"
-#include "types.h"
+#include "datatypes/byte.h"
+#include "datatypes/float.h" // IWYU pragma: export
+#include "datatypes/int.h"
+#include "datatypes/num.h"
+#include "datatypes/typeinfo.h"
 #include "util.h"
 
 #ifndef FLOATX_H__BITS

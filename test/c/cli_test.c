@@ -18,6 +18,7 @@
 #include "bytes.h"
 #include "c_strings.h"
 #include "datatypes.h"
+#include "datatypes/typeinfo.h"
 #include "enums.h"
 #include "floats.h"
 #include "integers.h"
@@ -31,7 +32,6 @@
 #include "structs.h"
 #include "tables.h"
 #include "text.h"
-#include "types.h"
 
 static int checks = 0;
 static int failures = 0;

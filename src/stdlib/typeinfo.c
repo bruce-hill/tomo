@@ -4,7 +4,7 @@
 #include <sys/param.h>
 
 #include "text.h"
-#include "types.h"
+#include "typeinfo.h"
 #include "util.h"
 
 public

@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "layout/bool.h" // IWYU pragma: export
-#include "layout/int.h"
-#include "types.h"
+#include "datatypes/bool.h" // IWYU pragma: export
+#include "datatypes/int.h"
+#include "datatypes/typeinfo.h"
 #include "util.h"
 
 #define yes (Bool_t) true

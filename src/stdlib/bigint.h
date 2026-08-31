@@ -4,12 +4,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "layout/bool.h"
-#include "layout/byte.h"
-#include "layout/closure.h"
-#include "layout/int.h" // IWYU pragma: export
-#include "layout/num.h"
-#include "types.h"
+#include "datatypes/bool.h"
+#include "datatypes/byte.h"
+#include "datatypes/closure.h"
+#include "datatypes/int.h" // IWYU pragma: export
+#include "datatypes/num.h"
+#include "datatypes/typeinfo.h"
 #include "util.h"
 
 Text_t Int$as_text(const void *i, bool colorize, const TypeInfo_t *type);
