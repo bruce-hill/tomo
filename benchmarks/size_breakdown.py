@@ -98,7 +98,9 @@ def attribute(map_text, binpath):
             if out_section in (".symtab", ".strtab", ".shstrtab"):
                 return "symbol tables"
             return "linker data\n(merged strings/consts)"
-        if b == "libtomo.a": return "Tomo runtime"
+        # libtomo.a is built from exactly src/stdlib/*.c (Makefile's
+        # STDLIB_OBJS), so this really is the standard library.
+        if b == "libtomo.a": return "Tomo standard library"
         if b == "libgmp.a": return "GMP (bignum Int)"
         if b == "libunistring.a": return "libunistring (Unicode)"
         if b == "libgc.a": return "Boehm GC"

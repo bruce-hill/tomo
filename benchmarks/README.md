@@ -87,7 +87,7 @@ And this is what the bytes *are* (`size_breakdown.py` regenerates it, by
 re-linking a small `Int`/`Num` program with `--print-map` and attributing
 every byte of the file to the archive it came from). Two-fifths is GMP plus
 libunistring: arbitrary-precision integers and correct Unicode text are the
-biggest line items, ahead of the Tomo runtime itself. musl is 6%, the
+biggest line items, ahead of the Tomo standard library itself. musl is 6%, the
 vendored license texts embedded in `.tomo.source` are 2%, and the program's
 own code is 1 KB, with its 7 KB of compressed DWARF (what lets a runtime
 error name its `.tm` line) beside it.
