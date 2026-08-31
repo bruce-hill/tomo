@@ -7,7 +7,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "datatypes.h"
+#include "layout/closure.h"
+#include "layout/num.h"
+#include "layout/text.h" // IWYU pragma: export
 #include "integers.h" // IWYU pragma: export
 #include "mapmacro.h"
 #include "floats.h" // IWYU pragma: export

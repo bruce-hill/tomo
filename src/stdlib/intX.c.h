@@ -13,7 +13,9 @@
 #include <stdlib.h>
 
 #include "../util.h"
-#include "datatypes.h"
+#include "layout/closure.h"
+#include "layout/float.h"
+#include "layout/num.h"
 #include "fail.h"
 #include "metamethods.h"
 #include "integers.h"

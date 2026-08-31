@@ -13,6 +13,8 @@
 #include <stdlib.h>
 
 #include "fail.h"
+#include "layout/int.h"
+#include "layout/num.h"
 #include "number.h"
 #include "text.h"
 #include "types.h"

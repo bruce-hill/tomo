@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "datatypes.h"
 #include "types.h"
 #include "util.h"
 

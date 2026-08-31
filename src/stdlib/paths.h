@@ -5,8 +5,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "datatypes.h"
 #include "integers.h"
+#include "layout/closure.h"
+#include "layout/path.h" // IWYU pragma: export
+#include "layout/result.h"
 #include "types.h"
 
 Path_t Path$from_str(const char *str);

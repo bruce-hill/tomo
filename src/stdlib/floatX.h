@@ -8,7 +8,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "datatypes.h"
+#include "layout/byte.h"
+#include "layout/float.h" // IWYU pragma: export
+#include "layout/int.h"
+#include "layout/num.h"
 #include "types.h"
 #include "util.h"
 

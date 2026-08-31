@@ -6,7 +6,9 @@
 #include <stdint.h>
 #include <string.h> // IWYU pragma: export
 
-#include "datatypes.h"
+#include "layout/closure.h"
+#include "layout/present.h"
+#include "layout/table.h" // IWYU pragma: export
 #include "lists.h"
 #include "types.h"
 #include "util.h"

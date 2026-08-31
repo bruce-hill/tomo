@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "datatypes.h"
 #include "types.h"
 #include "util.h"
 

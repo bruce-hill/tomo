@@ -5,6 +5,7 @@
 #include <sys/param.h>
 
 #include "enums.h"
+#include "result.h"
 #include "structs.h"
 #include "text.h"
 #include "util.h"

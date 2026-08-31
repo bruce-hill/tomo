@@ -6,7 +6,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "datatypes.h"
+#include "layout/bool.h"
+#include "layout/byte.h"
+#include "layout/float.h"
+#include "layout/int.h"
+#include "layout/num.h" // IWYU pragma: export
 #include "number.h"
 #include "types.h"
 #include "util.h"

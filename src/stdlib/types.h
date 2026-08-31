@@ -6,7 +6,14 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "datatypes.h"
+// A TypeInfo_t's metamethods are written in terms of these three: every type
+// renders as a Text_t, serializes through a Table_t of back-references, and
+// deserializes through a List_t of them. They are part of this interface
+// rather than an accident of layering, so this header re-exports them and a
+// consumer of TypeInfo_t need not name them itself.
+#include "layout/list.h" // IWYU pragma: export
+#include "layout/table.h" // IWYU pragma: export
+#include "layout/text.h" // IWYU pragma: export
 
 typedef struct TypeInfo_s TypeInfo_t;
 

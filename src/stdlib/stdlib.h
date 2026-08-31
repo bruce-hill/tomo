@@ -5,7 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "datatypes.h"
+#include "layout/closure.h"
+#include "layout/num.h"
 #include "types.h"
 
 extern bool USE_COLOR;

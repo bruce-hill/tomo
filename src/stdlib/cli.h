@@ -4,7 +4,6 @@
 
 #include <stdbool.h>
 
-#include "datatypes.h"
 #include "types.h"
 
 typedef struct {

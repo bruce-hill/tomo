@@ -5,8 +5,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "datatypes.h"
 #include "integers.h"
+#include "layout/byte.h" // IWYU pragma: export
+#include "layout/closure.h"
+#include "layout/num.h"
 #include "types.h"
 #include "util.h"
 

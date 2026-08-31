@@ -2,6 +2,7 @@
 
 // Result type for Success/Failure
 
+#include "layout/result.h" // IWYU pragma: export
 #include "types.h"
 
 extern const TypeInfo_t Result$Success$$info;
