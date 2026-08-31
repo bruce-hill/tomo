@@ -94,7 +94,8 @@ ast_t *parse_comprehension_suffix(parse_ctx_t *ctx, ast_t *expr) {
         filter = expect(ctx, pos - 2, &pos, parse_expr, "I expected a condition for this 'unless'");
         filter = WrapAST(filter, Not, filter);
     }
-    return NewAST(ctx->file, start, pos, Comprehension, .expr = expr, .vars = vars, .at = at_var, .iters = iters, .filter = filter);
+    return NewAST(ctx->file, start, pos, Comprehension, .expr = expr, .vars = vars, .at = at_var, .iters = iters,
+                  .filter = filter);
 }
 
 ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {

@@ -6,8 +6,8 @@
 #include "../naming.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
+#include "../util.h"
 #include "compilation.h"
 
 public
@@ -88,9 +88,8 @@ Text_t compile_match_statement(env_t *env, ast_t *ast) {
                 Text_t var = Texts("_$", var_name);
                 ast_t *member =
                     WrapLiteralCode(ast, Texts("_match_subject.", valid_c_name(clause_tag_name)), .type = tag_type);
-                code = Texts(code, compile_debug_typeinfo(env, var_name, tag_type),
-                             compile_declaration(tag_type, var), " = ",
-                             compile_maybe_incref(env, member, tag_type), ";\n");
+                code = Texts(code, compile_debug_typeinfo(env, var_name, tag_type), compile_declaration(tag_type, var),
+                             " = ", compile_maybe_incref(env, member, tag_type), ";\n");
                 scope = fresh_scope(scope);
                 set_binding(scope, Match(args->value, Var)->name, tag_type, EMPTY_TEXT);
             }
@@ -172,6 +171,6 @@ Text_t compile_match_expression(env_t *env, ast_t *ast) {
     set_binding(match_env, "match", t, Text("match"));
     return Texts("({ ", compile_declaration(t, Text("match")), ";\n",
                  compile_statement(match_env, WrapAST(ast, Match, .subject = original->subject, .clauses = new_clauses,
-                                                     .else_body = else_body)),
+                                                      .else_body = else_body)),
                  "match; })");
 }

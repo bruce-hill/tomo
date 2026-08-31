@@ -200,8 +200,7 @@ static int64_t check_all(List_t paths, int64_t max_jobs) {
                 report_duration(time_str, sizeof(time_str), elapsed);
                 style_t style = report_style();
                 // cwd-relative, the way `tomo test` names its files:
-                const char *name =
-                    Path$as_c_string(Path$relative_to(in_flight_jobs[i].path, Path$current_dir()));
+                const char *name = Path$as_c_string(Path$relative_to(in_flight_jobs[i].path, Path$current_dir()));
                 report_leader(stdout, indent, ok, name, time_w);
                 print(style.dim, time_str, style.reset);
             }

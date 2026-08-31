@@ -51,8 +51,8 @@ extern char _EMPTY_LIST_SENTINEL;
     *({                                                                                                                \
         List_t *list = list_expr;                                                                                      \
         int64_t off = List_checked_offset(index_expr, list->length, start, end);                                       \
-        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                           \
-        (item_type *)(list->data + list->stride * off);                                                               \
+        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                            \
+        (item_type *)(list->data + list->stride * off);                                                                \
     })
 // Hoisted-header list accessors: variants of List_get_checked / List_lvalue /
 // List_swap that take the list's data pointer, stride, and length as values
@@ -74,7 +74,7 @@ extern char _EMPTY_LIST_SENTINEL;
 #define List_lvalue_hoisted(item_type, data_val, stride_val, length_val, index_expr, start, end)                       \
     (*({                                                                                                               \
         int64_t off = List_checked_offset(index_expr, length_val, start, end);                                         \
-        (item_type *)((data_val) + (stride_val) * off);                                                               \
+        (item_type *)((data_val) + (stride_val) * off);                                                                \
     }))
 // `xs.swap(i, j)`: exchange two elements in place, checking each index with
 // List_checked_offset in turn (so a failure names whichever index, i first,
@@ -83,8 +83,8 @@ extern char _EMPTY_LIST_SENTINEL;
 // CoW checks). Swapping an index with itself is a no-op, not an error.
 #define List_swap_hoisted(item_type, data_val, stride_val, length_val, i_expr, j_expr, start, end)                     \
     ({                                                                                                                 \
-        int64_t i_off = List_checked_offset(i_expr, length_val, start, end);                                          \
-        int64_t j_off = List_checked_offset(j_expr, length_val, start, end);                                          \
+        int64_t i_off = List_checked_offset(i_expr, length_val, start, end);                                           \
+        int64_t j_off = List_checked_offset(j_expr, length_val, start, end);                                           \
         item_type *i_ptr = (item_type *)((data_val) + (stride_val) * i_off);                                           \
         item_type *j_ptr = (item_type *)((data_val) + (stride_val) * j_off);                                           \
         item_type tmp = *i_ptr;                                                                                        \
@@ -95,9 +95,9 @@ extern char _EMPTY_LIST_SENTINEL;
 #define List_swap(item_type, list_expr, i_expr, j_expr, start, end)                                                    \
     ({                                                                                                                 \
         List_t *list = list_expr;                                                                                      \
-        int64_t i_off = List_checked_offset(i_expr, list->length, start, end);                                        \
-        int64_t j_off = List_checked_offset(j_expr, list->length, start, end);                                        \
-        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                           \
+        int64_t i_off = List_checked_offset(i_expr, list->length, start, end);                                         \
+        int64_t j_off = List_checked_offset(j_expr, list->length, start, end);                                         \
+        if (list->data_refcount > 0) List$compact(list, sizeof(item_type));                                            \
         item_type *i_ptr = (item_type *)(list->data + list->stride * i_off);                                           \
         item_type *j_ptr = (item_type *)(list->data + list->stride * j_off);                                           \
         item_type tmp = *i_ptr;                                                                                        \
@@ -139,9 +139,9 @@ extern char _EMPTY_LIST_SENTINEL;
         int32_t: true,                                                                                                 \
         int64_t: true,                                                                                                 \
         uint8_t: true,                                                                                                 \
-        uint16_t: true,                                                                                                 \
-        uint32_t: true,                                                                                                 \
-        uint64_t: true,                                                                                                 \
+        uint16_t: true,                                                                                                \
+        uint32_t: true,                                                                                                \
+        uint64_t: true,                                                                                                \
         float: true,                                                                                                   \
         double: true,                                                                                                  \
         default: false)
@@ -150,10 +150,10 @@ extern char _EMPTY_LIST_SENTINEL;
         t items[] = {__VA_ARGS__};                                                                                     \
         (List_t){.length = sizeof(items) / sizeof(items[0]),                                                           \
                  .stride = (int64_t)&items[1] - (int64_t)&items[0],                                                    \
-                 .data = sizeof(items) == 0 ? &_EMPTY_LIST_SENTINEL                                                    \
-                                            : memcpy(is_atomic((t){0}) ? GC_MALLOC_ATOMIC(sizeof(items))              \
-                                                                       : GC_MALLOC(sizeof(items)),                     \
-                                                     items, sizeof(items)),                                            \
+                 .data = sizeof(items) == 0                                                                            \
+                             ? &_EMPTY_LIST_SENTINEL                                                                   \
+                             : memcpy(is_atomic((t){0}) ? GC_MALLOC_ATOMIC(sizeof(items)) : GC_MALLOC(sizeof(items)),  \
+                                      items, sizeof(items)),                                                           \
                  .atomic = is_atomic((t){0}),                                                                          \
                  .data_refcount = 0};                                                                                  \
     })
@@ -162,10 +162,10 @@ extern char _EMPTY_LIST_SENTINEL;
         t items[N] = {__VA_ARGS__};                                                                                    \
         (List_t){.length = N,                                                                                          \
                  .stride = (int64_t)&items[1] - (int64_t)&items[0],                                                    \
-                 .data = N == 0 ? &_EMPTY_LIST_SENTINEL                                                                \
-                                : memcpy(is_atomic((t){0}) ? GC_MALLOC_ATOMIC(sizeof(items))                          \
-                                                           : GC_MALLOC(sizeof(items)),                                 \
-                                         items, sizeof(items)),                                                        \
+                 .data = N == 0                                                                                        \
+                             ? &_EMPTY_LIST_SENTINEL                                                                   \
+                             : memcpy(is_atomic((t){0}) ? GC_MALLOC_ATOMIC(sizeof(items)) : GC_MALLOC(sizeof(items)),  \
+                                      items, sizeof(items)),                                                           \
                  .atomic = is_atomic((t){0}),                                                                          \
                  .data_refcount = 0};                                                                                  \
     })
@@ -179,12 +179,12 @@ extern char _EMPTY_LIST_SENTINEL;
 // (copy-on-write), never touching the const data. The compiler emits this only
 // when every element compiles to a C constant (see is_constant() /
 // compile_typed_list); N is always >= 1 (empty literals use EMPTY_LIST).
-#define ConstList(t, N, data_ptr)                                                                                     \
+#define ConstList(t, N, data_ptr)                                                                                      \
     ((List_t){.length = (N),                                                                                           \
               .stride = sizeof(t),                                                                                     \
               .data = (void *)(data_ptr),                                                                              \
-              .atomic = is_atomic((t){0}),                                                                            \
-              .free = 0,                                                                                              \
+              .atomic = is_atomic((t){0}),                                                                             \
+              .free = 0,                                                                                               \
               .data_refcount = LIST_MAX_DATA_REFCOUNT})
 #define List(x, ...)                                                                                                   \
     ({                                                                                                                 \
@@ -220,7 +220,7 @@ extern char _EMPTY_LIST_SENTINEL;
         List_t *_ins_l = (list);                                                                                       \
         Int_t _ins_idx = (index);                                                                                      \
         __typeof(item_expr) _ins_it = (item_expr);                                                                     \
-        if (likely(_ins_idx.small == I_small(0).small && _ins_l->free > 0 && _ins_l->data_refcount == 0               \
+        if (likely(_ins_idx.small == I_small(0).small && _ins_l->free > 0 && _ins_l->data_refcount == 0                \
                    && (int64_t)_ins_l->stride == (int64_t)(padded_item_size))) {                                       \
             int64_t _ins_n = (int64_t)_ins_l->length;                                                                  \
             memcpy_fixed((void *)_ins_l->data + _ins_n * (int64_t)(padded_item_size), &_ins_it, padded_item_size);     \
@@ -241,7 +241,10 @@ extern char _EMPTY_LIST_SENTINEL;
         int64_t _isz = (int64_t)sizeof(zero_item);                                                                     \
         _cap > 0 ? (List_t){.data = is_atomic(zero_item) ? GC_MALLOC_ATOMIC((size_t)(_cap * _isz))                     \
                                                          : GC_MALLOC((size_t)(_cap * _isz)),                           \
-                            .length = 0, .free = _cap, .stride = _isz, .atomic = is_atomic(zero_item),                 \
+                            .length = 0,                                                                               \
+                            .free = _cap,                                                                              \
+                            .stride = _isz,                                                                            \
+                            .atomic = is_atomic(zero_item),                                                            \
                             .data_refcount = 0}                                                                        \
                  : (is_atomic(zero_item) ? EMPTY_ATOMIC_LIST : EMPTY_LIST);                                            \
     })
@@ -264,11 +267,15 @@ extern char _EMPTY_LIST_SENTINEL;
         } else if (is_atomic(zero_item)) {                                                                             \
             void *_zd = GC_MALLOC_ATOMIC((size_t)(_zn * _zsz));                                                        \
             memset(_zd, 0, (size_t)(_zn * _zsz));                                                                      \
-            _zlist = (List_t){.data = _zd, .length = (uint64_t)_zn, .free = 0, .stride = _zsz, .atomic = 1,            \
-                              .data_refcount = 0};                                                                     \
+            _zlist = (List_t){                                                                                         \
+                .data = _zd, .length = (uint64_t)_zn, .free = 0, .stride = _zsz, .atomic = 1, .data_refcount = 0};     \
         } else {                                                                                                       \
-            _zlist = (List_t){.data = GC_MALLOC((size_t)(_zn * _zsz)), .length = (uint64_t)_zn, .free = 0,             \
-                              .stride = _zsz, .atomic = 0, .data_refcount = 0};                                        \
+            _zlist = (List_t){.data = GC_MALLOC((size_t)(_zn * _zsz)),                                                 \
+                              .length = (uint64_t)_zn,                                                                 \
+                              .free = 0,                                                                               \
+                              .stride = _zsz,                                                                          \
+                              .atomic = 0,                                                                             \
+                              .data_refcount = 0};                                                                     \
         }                                                                                                              \
         _zlist;                                                                                                        \
     })

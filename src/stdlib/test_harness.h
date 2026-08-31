@@ -25,8 +25,8 @@
 // One test case, emitted by codegen:
 typedef struct {
     const char *label;
-    void (*fn)(void);      // the compiled test body
-    bool expect_failure;   // true for `fails "..."`
+    void (*fn)(void); // the compiled test body
+    bool expect_failure; // true for `fails "..."`
     const char *expected_msg; // substring the failure must contain, or NULL for "any failure"
     int first_line, last_line; // source line range of the `test` block
 } tomo_test_t;
@@ -35,8 +35,8 @@ typedef enum {
     TEST_RESULT_PASS,
     TEST_RESULT_UNEXPECTED_FAILURE, // expected to pass, but it failed
     TEST_RESULT_UNEXPECTED_SUCCESS, // expected to fail, but it passed
-    TEST_RESULT_WRONG_MESSAGE,      // failed, but the message didn't match
-    TEST_RESULT_TIMEOUT,            // exceeded the per-test time limit
+    TEST_RESULT_WRONG_MESSAGE, // failed, but the message didn't match
+    TEST_RESULT_TIMEOUT, // exceeded the per-test time limit
 } test_outcome_t;
 
 // The classified result of running one test (also produced by the driver for
@@ -46,8 +46,8 @@ typedef struct {
     const char *label;
     const char *expected_msg; // for rendering "expected: ..."
     bool expect_failure;
-    char *output;      // captured child output (never NULL; may be "")
-    const char *file;  // source file this test came from (NULL if unknown), set by the `tomo test` driver
+    char *output; // captured child output (never NULL; may be "")
+    const char *file; // source file this test came from (NULL if unknown), set by the `tomo test` driver
     int first_line, last_line; // source line range of the `test` block (0 if unknown)
     // The exact span that failed, recovered from the TOMO_FAIL_SPAN_TAG trailer (NULL/0 if the failure had no
     // source location, e.g. a bare `fail()` or a timeout):

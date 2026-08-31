@@ -235,13 +235,12 @@ Text_t compile_test_runner(env_t *env, ast_t *ast, int64_t *out_count) {
         Text_t body = compile_block(scope, test->body);
         Text_t fn_name = Texts("test$", count);
         test_fns = Texts(test_fns, "static void ", fn_name, "(void) ", body, "\n");
-        descriptors =
-            Texts(descriptors, "{.label=", quoted_str(test->label), ", .fn=", fn_name,
-                  ", .expect_failure=", test->expected_failure ? "true" : "false", ", .expected_msg=",
-                  (test->expected_failure && test->expected_failure[0]) ? quoted_str(test->expected_failure)
-                                                                        : Text("NULL"),
-                  ", .first_line=", get_line_number(ast->file, stmt->ast->start), ", .last_line=",
-                  get_line_number(ast->file, stmt->ast->end), "},\n");
+        descriptors = Texts(descriptors, "{.label=", quoted_str(test->label), ", .fn=", fn_name,
+                            ", .expect_failure=", test->expected_failure ? "true" : "false", ", .expected_msg=",
+                            (test->expected_failure && test->expected_failure[0]) ? quoted_str(test->expected_failure)
+                                                                                  : Text("NULL"),
+                            ", .first_line=", get_line_number(ast->file, stmt->ast->start),
+                            ", .last_line=", get_line_number(ast->file, stmt->ast->end), "},\n");
         count += 1;
     }
     *out_count = count;

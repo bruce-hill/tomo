@@ -12,12 +12,12 @@
 #include "cmd/common.h"
 #include "config.h"
 #include "naming.h"
-#include "stdlib/profiling.h"
 #include "stdlib/bools.h"
 #include "stdlib/cli.h"
 #include "stdlib/datatypes.h"
 #include "stdlib/paths.h"
 #include "stdlib/print.h"
+#include "stdlib/profiling.h"
 #include "stdlib/stdlib.h"
 #include "stdlib/text.h"
 #include "util.h"
@@ -32,8 +32,7 @@ static cli_arg_t global_spec[] = {
      .description = "cross-compile for another platform; one of: " TOMO_DIST_PLATFORMS}, //
     {"install-target", &install_target, &Bool$info,
      .description = "install the --target platform's libraries without asking"}, //
-    {"profile", &profiling, &Bool$info,
-     .description = "print a breakdown of where compile time is spent"}, //
+    {"profile", &profiling, &Bool$info, .description = "print a breakdown of where compile time is spent"}, //
 };
 
 static cli_command_t *commands[] = {
@@ -80,8 +79,8 @@ static void after_globals(void) {
     // Compile against the headers and libraries of the platform being compiled
     // for: the target's when cross-compiling, this installation's otherwise.
     lib_root = cross_compiling ? target_root : Text$from_str(TOMO_PATH);
-    cflags = Texts("-I'", lib_root, "/include/tomo@", TOMO_VERSION, "' -I'", lib_root, "/lib/tomo@", TOMO_VERSION,
-                   "' ", cflags);
+    cflags = Texts("-I'", lib_root, "/include/tomo@", TOMO_VERSION, "' -I'", lib_root, "/lib/tomo@", TOMO_VERSION, "' ",
+                   cflags);
     if (cross_compiling) {
         // Point the system-header search env vars at the target's too:
         setenv("C_INCLUDE_PATH", String(lib_root, "/include/tomo@", TOMO_VERSION), 1);
@@ -213,9 +212,9 @@ int main(int argc, char *argv[]) {
     tomo_cli = (cli_spec_t){
         .name = "tomo",
         .summary = "a compiler for the Tomo programming language",
-        .description = String("Running ", style.bold, "tomo file.tm", style.reset,
-                              " without a command runs the file, and bare\n", style.bold, "tomo", style.reset,
-                              " opens a scratch file to edit and run."),
+        .description =
+            String("Running ", style.bold, "tomo file.tm", style.reset, " without a command runs the file, and bare\n",
+                   style.bold, "tomo", style.reset, " opens a scratch file to edit and run."),
         .global_len = (int)(sizeof(global_spec) / sizeof(global_spec[0])),
         .global_spec = global_spec,
         // Long-only: `-v` already means --verbose for most commands. This is
@@ -230,13 +229,14 @@ int main(int argc, char *argv[]) {
         // The root command takes the same arguments `tomo run` does, so bare
         // `tomo file.tm` means `tomo run file.tm`. tomo_main() forwards to run
         // after checking for a mistyped command name:
-        .root = {
-            .spec_len = run_command.spec_len,
-            .spec = run_command.spec,
-            .num_children = (int)(sizeof(commands) / sizeof(commands[0])),
-            .children = commands,
-            .handler = tomo_main,
-        },
+        .root =
+            {
+                .spec_len = run_command.spec_len,
+                .spec = run_command.spec,
+                .num_children = (int)(sizeof(commands) / sizeof(commands[0])),
+                .children = commands,
+                .handler = tomo_main,
+            },
     };
     return tomo_dispatch_command(argc, argv, &tomo_cli);
 }

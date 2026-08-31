@@ -7,8 +7,8 @@
 // typechecking the block in a child, with no C compiler involved. Both kinds of
 // result flow into one merged summary.
 
-#include <gc.h>
 #include <errno.h>
+#include <gc.h>
 #include <poll.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,8 +28,8 @@
 #include "../stdlib/paths.h"
 #include "../stdlib/print.h"
 #include "../stdlib/stdlib.h"
-#include "../stdlib/test_harness.h"
 #include "../stdlib/tables.h"
+#include "../stdlib/test_harness.h"
 #include "../stdlib/text.h"
 #include "commands.h"
 #include "common.h"

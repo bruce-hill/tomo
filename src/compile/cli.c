@@ -3,12 +3,12 @@
 #include <gc.h>
 #include <string.h>
 
-#include "../stdlib/cli.h"
 #include "../environment.h"
+#include "../naming.h"
+#include "../stdlib/cli.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/optionals.h"
 #include "../stdlib/text.h"
-#include "../naming.h"
 #include "../typecheck.h"
 #include "../types.h"
 #include "../util.h"
@@ -153,21 +153,20 @@ static Text_t compile_command_spec(env_t *env, cli_command_def_t *node, Text_t c
 
         *defs = Texts(*defs, "static cli_arg_t cli_spec$", c_path, "[] = {\n");
         for (arg_t *arg = args; arg; arg = arg->next) {
-            *defs = Texts(*defs, "{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))),
-                          ", &cli_arg$", c_path, "$", Text$from_str(arg->name), ", ", compile_type_info(arg->type),
-                          arg->default_val ? EMPTY_TEXT : Text(", .required=true"),
-                          arg->alias ? Texts(", .short_flag=", quoted_text(Text$from_str(arg->alias)),
-                                             "[0]") // TODO: escape char properly
-                                     : EMPTY_TEXT,
-                          arg->comment.length > 0 ? Texts(", .description=", compile_text_literal(arg->comment))
-                                                  : EMPTY_TEXT,
-                          arg->default_val
-                              ? Texts(", .default_text=",
-                                      compile_text_literal(Text$from_strn(
-                                          arg->default_val->start,
-                                          (size_t)(arg->default_val->end - arg->default_val->start))))
-                              : EMPTY_TEXT,
-                          "},\n");
+            *defs = Texts(
+                *defs, "{", quoted_text(Text$replace(Text$from_str(arg->name), Text("_"), Text("-"))), ", &cli_arg$",
+                c_path, "$", Text$from_str(arg->name), ", ", compile_type_info(arg->type),
+                arg->default_val ? EMPTY_TEXT : Text(", .required=true"),
+                arg->alias ? Texts(", .short_flag=", quoted_text(Text$from_str(arg->alias)),
+                                   "[0]") // TODO: escape char properly
+                           : EMPTY_TEXT,
+                arg->comment.length > 0 ? Texts(", .description=", compile_text_literal(arg->comment)) : EMPTY_TEXT,
+                arg->default_val
+                    ? Texts(", .default_text=",
+                            compile_text_literal(Text$from_strn(
+                                arg->default_val->start, (size_t)(arg->default_val->end - arg->default_val->start))))
+                    : EMPTY_TEXT,
+                "},\n");
             num_args += 1;
         }
         *defs = Texts(*defs, "};\n");
@@ -180,8 +179,8 @@ static Text_t compile_command_spec(env_t *env, cli_command_def_t *node, Text_t c
         int64_t i = 0;
         for (arg_t *arg = args; arg; arg = arg->next) {
             if (arg->default_val) {
-                Text_t default_val = arg->type ? compile_to_type(env, arg->default_val, arg->type)
-                                               : compile(env, arg->default_val);
+                Text_t default_val =
+                    arg->type ? compile_to_type(env, arg->default_val, arg->type) : compile(env, arg->default_val);
                 *defs = Texts(*defs, "if (!cli_spec$", c_path, "[", i, "].populated) cli_arg$", c_path, "$",
                               Text$from_str(arg->name), " = ", default_val, ";\n");
             }
@@ -189,23 +188,23 @@ static Text_t compile_command_spec(env_t *env, cli_command_def_t *node, Text_t c
         }
         *defs = Texts(*defs, node->binding->code, "(");
         for (arg_t *arg = args; arg; arg = arg->next)
-            *defs = Texts(*defs, "cli_arg$", c_path, "$", Text$from_str(arg->name), arg->next ? Text(", ") : EMPTY_TEXT);
+            *defs =
+                Texts(*defs, "cli_arg$", c_path, "$", Text$from_str(arg->name), arg->next ? Text(", ") : EMPTY_TEXT);
         *defs = Texts(*defs, ");\nreturn 0;\n}\n");
     }
 
     Text_t command_name = Texts("cli_command$", c_path);
-    *defs = Texts(*defs, "static cli_command_t ", command_name, " = {",
-                  node->word ? Texts(".name=", quoted_text(Text$from_str(node->word)), ", ") : EMPTY_TEXT,
-                  node->def && Match(node->def, FunctionDef)->comment.length > 0
-                      ? Texts(".summary=", compile_text_literal(Match(node->def, FunctionDef)->comment), ", ")
-                      : EMPTY_TEXT,
-                  node->def ? Texts(".spec_len=", num_args, ", .spec=cli_spec$", c_path, ", .handler=cli_handler$",
-                                    c_path, ", ")
-                            : EMPTY_TEXT,
-                  num_children > 0
-                      ? Texts(".num_children=", (int64_t)num_children, ", .children=cli_children$", c_path)
-                      : EMPTY_TEXT,
-                  "};\n");
+    *defs = Texts(
+        *defs, "static cli_command_t ", command_name, " = {",
+        node->word ? Texts(".name=", quoted_text(Text$from_str(node->word)), ", ") : EMPTY_TEXT,
+        node->def && Match(node->def, FunctionDef)->comment.length > 0
+            ? Texts(".summary=", compile_text_literal(Match(node->def, FunctionDef)->comment), ", ")
+            : EMPTY_TEXT,
+        node->def ? Texts(".spec_len=", num_args, ", .spec=cli_spec$", c_path, ", .handler=cli_handler$", c_path, ", ")
+                  : EMPTY_TEXT,
+        num_children > 0 ? Texts(".num_children=", (int64_t)num_children, ", .children=cli_children$", c_path)
+                         : EMPTY_TEXT,
+        "};\n");
     return command_name;
 }
 
@@ -246,8 +245,9 @@ Text_t compile_cli_dispatch(env_t *env, ast_t *file_ast, cli_command_def_t *comm
     if (usage.tag != TEXT_NONE)
         // Built at startup so it picks up the palette (which depends on whether
         // the output is colored), same as the autogenerated usage text:
-        inits = Texts(inits, "cli_spec$program.root.usage = Texts(tomo_cli_style().usage, \"Usage:\", "
-                             "tomo_cli_style().reset, \" \", Text$from_str(argv[0]), Text(\" \"), ",
+        inits = Texts(inits,
+                      "cli_spec$program.root.usage = Texts(tomo_cli_style().usage, \"Usage:\", "
+                      "tomo_cli_style().reset, \" \", Text$from_str(argv[0]), Text(\" \"), ",
                       text_literal(usage), ");\n");
     if (help.tag != TEXT_NONE) inits = Texts(inits, "cli_spec$program.root.help = ", text_literal(help), ";\n");
 
@@ -311,7 +311,7 @@ Text_t compile_manpage(Text_t program, ast_t *ast, arg_t *args, cli_command_def_
     OptionalText_t description = ast_metadata(ast, "MANPAGE_DESCRIPTION");
     Text_t date = Text(""); // TODO: use date
     Text_t man = Texts(TOMO_MANPAGE_MARKER "\n"
-                       ".TH \"",
+                                           ".TH \"",
                        Text$upper(program, Text("C")), "\" \"1\" \"", date,
                        "\" \"\" \"\"\n"
                        ".SH NAME\n",

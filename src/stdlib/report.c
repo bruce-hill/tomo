@@ -16,15 +16,36 @@ public
 style_t report_style(void) {
     if (USE_COLOR)
         return (style_t){
-            .green = "\x1b[92m", .red = "\x1b[91m", .dim = "\x1b[2m", .bold = "\x1b[1m", .reset = "\x1b[m",
+            .green = "\x1b[92m",
+            .red = "\x1b[91m",
+            .dim = "\x1b[2m",
+            .bold = "\x1b[1m",
+            .reset = "\x1b[m",
             .hdr = "\x1b[93;1;4m",
-            .pass_mark = "✔", .fail_mark = "✘", .gutter = "│",
-            .point = "▸", .dot = "·", .rule = "─", .under = "━", .sep = "·",
+            .pass_mark = "✔",
+            .fail_mark = "✘",
+            .gutter = "│",
+            .point = "▸",
+            .dot = "·",
+            .rule = "─",
+            .under = "━",
+            .sep = "·",
         };
     return (style_t){
-        .green = "", .red = "", .dim = "", .bold = "", .reset = "", .hdr = "",
-        .pass_mark = "ok", .fail_mark = "FAIL", .gutter = "|",
-        .point = ">", .dot = ".", .rule = "-", .under = "^", .sep = ",",
+        .green = "",
+        .red = "",
+        .dim = "",
+        .bold = "",
+        .reset = "",
+        .hdr = "",
+        .pass_mark = "ok",
+        .fail_mark = "FAIL",
+        .gutter = "|",
+        .point = ">",
+        .dot = ".",
+        .rule = "-",
+        .under = "^",
+        .sep = ",",
     };
 }
 

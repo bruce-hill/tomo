@@ -15,7 +15,7 @@
 // One node in a program's subcommand tree (`func main.submodule.init(...)`):
 typedef struct cli_command_def_s {
     const char *word; // the CLI word ("init"), with underscores converted to dashes
-    ast_t *def;       // the FunctionDef, or NULL for a pure namespace node
+    ast_t *def; // the FunctionDef, or NULL for a pure namespace node
     binding_t *binding;
     struct cli_command_def_s *children, *next;
 } cli_command_def_t;

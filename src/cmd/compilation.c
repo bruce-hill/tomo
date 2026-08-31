@@ -19,13 +19,12 @@
 #include "../ast.h"
 #include "../compile/cli.h"
 #include "../compile/files.h"
-#include "../compile/text.h"
 #include "../compile/headers.h"
+#include "../compile/text.h"
 #include "../config.h"
 #include "../naming.h"
 #include "../packages.h"
 #include "../parse/files.h"
-#include "../stdlib/profiling.h"
 #include "../sha256.h"
 #include "../stdlib/bytes.h"
 #include "../stdlib/datatypes.h"
@@ -34,6 +33,7 @@
 #include "../stdlib/optionals.h"
 #include "../stdlib/paths.h"
 #include "../stdlib/print.h"
+#include "../stdlib/profiling.h"
 #include "../stdlib/random.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
@@ -820,8 +820,8 @@ static OptionalPath_t get_precompiled_header(void) {
     (void)Path$create_directory(cache_dir, 0755, /*recursive=*/true);
     Path_t temp = artifact_temp(pch);
     TOMO_PROFILE_SPAN_BEGIN(span, "cc precompile tomo.h");
-    FILE *prog =
-        run_cmd(cc, " ", cflags, " -O", optimization, precompiled_header_stamp, " -x c-header ", umbrella, " -o ", temp);
+    FILE *prog = run_cmd(cc, " ", cflags, " -O", optimization, precompiled_header_stamp, " -x c-header ", umbrella,
+                         " -o ", temp);
     int status = prog ? pclose(prog) : -1;
     TOMO_PROFILE_SPAN_END(span);
     if (!prog || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
@@ -905,7 +905,7 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             print_err("Not a valid .tm file: \x1b[91;1m", filename, "\x1b[m");
         if (!Path$is_file(filename, true)) print_err("Couldn't find file: ", filename);
         TOMO_PROFILE_SPAN("dependency graph",
-                build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link));
+                          build_file_dependency_graph(env->build_info, filename, &dependency_files, &to_link));
     }
 
     // Make sure all files and dependencies have a .id file:
@@ -1305,8 +1305,8 @@ void transpile_code(env_t *base_env, Path_t path) {
             }
             // `line` is now the directive's own line, and a `#line` numbers the
             // line after itself:
-            dispatch = Texts(newline, "#line ", line + 1, " ", quoted_str(Path$as_c_string(c_filename)), "\n",
-                             dispatch);
+            dispatch =
+                Texts(newline, "#line ", line + 1, " ", quoted_str(Path$as_c_string(c_filename)), "\n", dispatch);
         }
         c_code = Texts(c_code, dispatch);
     }
@@ -1435,9 +1435,7 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
             Texts("extern int parse_and_run$$", entry, "(int argc, char *argv[]);\n", profiler_decl,
                   "__attribute__ ((noinline))\n"
                   "int main(int argc, char *argv[]) {\n",
-                  start_profiler,
-                  "\treturn parse_and_run$$",
-                  entry,
+                  start_profiler, "\treturn parse_and_run$$", entry,
                   "(argc, argv);\n"
                   "}\n",
                   compile_build_info(env, "build_info"), link_macho ? EMPTY_TEXT : compile_source_asm(source_blob));
@@ -1445,12 +1443,11 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         program =
             Texts("extern void ", namespace_name(env, env->namespace, Text("$initialize")),
                   "(void);\n"
-                  "extern void tomo_init(void);\n", profiler_decl,
+                  "extern void tomo_init(void);\n",
+                  profiler_decl,
                   "__attribute__ ((noinline))\n"
                   "int main(int argc, char *argv[]) {\n",
-                  start_profiler,
-                  "tomo_init();\n",
-                  namespace_name(env, env->namespace, Text("$initialize")),
+                  start_profiler, "tomo_init();\n", namespace_name(env, env->namespace, Text("$initialize")),
                   "();\n"
                   "\n",
                   "return 0;\n"

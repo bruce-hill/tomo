@@ -4,8 +4,8 @@
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
+#include "../util.h"
 #include "compilation.h"
 
 public
@@ -53,7 +53,8 @@ static _Noreturn void report_incomplete_type(env_t *env, ast_t *ast) {
             if (e->ast->tag != TableEntry) continue;
             DeclareMatch(entry, e->ast, TableEntry);
             if (entry->key && is_incomplete_type(get_type(env, entry->key))) report_incomplete_type(env, entry->key);
-            if (entry->value && is_incomplete_type(get_type(env, entry->value))) report_incomplete_type(env, entry->value);
+            if (entry->value && is_incomplete_type(get_type(env, entry->value)))
+                report_incomplete_type(env, entry->value);
         }
         break;
     }

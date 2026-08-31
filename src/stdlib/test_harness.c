@@ -259,8 +259,8 @@ static void print_failure(FILE *f, const test_result_t *r, int indent, style_t s
         break;
     case TEST_RESULT_WRONG_MESSAGE: print_mismatch(f, r, sub, s); break;
     case TEST_RESULT_TIMEOUT:
-        fprintf(f, "%*s%sit hit the time limit and was killed; raise it with TOMO_TEST_TIMEOUT=<seconds>%s\n", sub,
-                "", s.dim, s.reset);
+        fprintf(f, "%*s%sit hit the time limit and was killed; raise it with TOMO_TEST_TIMEOUT=<seconds>%s\n", sub, "",
+                s.dim, s.reset);
         print_output(f, r->output, sub, s, "");
         break;
     case TEST_RESULT_PASS:

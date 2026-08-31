@@ -36,7 +36,8 @@ ast_t *parse_path(parse_ctx_t *ctx, const char *pos) {
         if (pos[len] == '\\') {
             len += 2;
             continue;
-        } else if (!inside_parens && paren_depth == 0 && c < sizeof(needs_escaping) / sizeof(needs_escaping[0]) && needs_escaping[c]) {
+        } else if (!inside_parens && paren_depth == 0 && c < sizeof(needs_escaping) / sizeof(needs_escaping[0])
+                   && needs_escaping[c]) {
             pos += len;
             terminated = true;
             break;

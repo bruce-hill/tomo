@@ -94,8 +94,8 @@ static void install_program(Path_t src_file, Path_t exe_path) {
     if (have_manpage) xsystem("cp -v '", manpage_file, "' '", man_dest, "'");
     print("Installed \033[1m", name, "\033[m into ", prefix_dir);
     if (!dir_on_path(bin_dir))
-        fprint(stderr, "\x1b[33mWarning:\x1b[m ", bin_dir,
-               " is not on your $PATH, so `", name, "` won't be found by name until you add it.");
+        fprint(stderr, "\x1b[33mWarning:\x1b[m ", bin_dir, " is not on your $PATH, so `", name,
+               "` won't be found by name until you add it.");
 }
 
 static int cmd_build(cli_command_t *self, List_t extra_args) {

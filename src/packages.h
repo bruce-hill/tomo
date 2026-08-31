@@ -11,7 +11,8 @@ Text_t get_package_name(Path_t lib_dir);
 OptionalPath_t find_installed_package(Table_t *build_info, ast_t *use);
 // The store entry (a .tomo/store/<digest>/ directory) containing the given path, if any:
 OptionalPath_t package_store_entry(Path_t path);
-// The store directory a digest installs to (strips the "sha256:" prefix, since a colon isn't a valid Windows filename character):
+// The store directory a digest installs to (strips the "sha256:" prefix, since a colon isn't a valid Windows filename
+// character):
 Path_t package_store_path(Path_t store_root, const char *digest);
 // The hex part of a "sha256:<hex>" digest, i.e. what package_store_path() uses as the directory name:
 const char *package_digest_hex(const char *digest);

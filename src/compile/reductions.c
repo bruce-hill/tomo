@@ -4,8 +4,8 @@
 #include "../config.h"
 #include "../environment.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
+#include "../util.h"
 #include "compilation.h"
 
 public
@@ -22,7 +22,8 @@ Text_t compile_reduction(env_t *env, ast_t *ast) {
     static int64_t next_id = 1;
     ast_t *item = FakeAST(Var, String("$it", next_id++));
     ast_t *body = LiteralCode(Text("{}")); // placeholder
-    ast_t *loop = FakeAST(For, .vars = new (ast_list_t, .ast = item), .iters = new (ast_list_t, .ast = reduction->iter), .body = body);
+    ast_t *loop = FakeAST(For, .vars = new (ast_list_t, .ast = item), .iters = new (ast_list_t, .ast = reduction->iter),
+                          .body = body);
     env_t *body_scope = for_scope(env, loop);
     if (op == Equals || op == NotEquals || op == LessThan || op == LessThanOrEquals || op == GreaterThan
         || op == GreaterThanOrEquals) {

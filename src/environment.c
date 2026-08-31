@@ -748,8 +748,7 @@ arg_t *iteration_slots(env_t *env, ast_t *iter_ast) {
         }
         type_t *ret = iter_t->tag == ClosureType ? Match(Match(iter_t, ClosureType)->fn, FunctionType)->ret
                                                  : Match(iter_t, FunctionType)->ret;
-        return new (arg_t, .name = "item",
-                    .type = ret->tag == OptionalType ? Match(ret, OptionalType)->type : ret);
+        return new (arg_t, .name = "item", .type = ret->tag == OptionalType ? Match(ret, OptionalType)->type : ret);
     }
     default: code_err(iter_ast, "Iteration is not implemented for type: ", type_to_text(iter_t));
     }
@@ -773,8 +772,7 @@ env_t *for_scope(env_t *env, ast_t *ast) {
 
     // The `at` variable is an Int64 iteration counter (1, 2, 3, ...) for any
     // kind of iteration:
-    if (for_->at)
-        set_binding(scope, Match(for_->at, Var)->name, INT64_TYPE, Texts("_$", Match(for_->at, Var)->name));
+    if (for_->at) set_binding(scope, Match(for_->at, Var)->name, INT64_TYPE, Texts("_$", Match(for_->at, Var)->name));
 
     // Lockstep iteration (`for x, y in xs, ys`): every iterable's yielded
     // values get variables, in order, and the arity must match exactly (`_`
@@ -784,7 +782,8 @@ env_t *for_scope(env_t *env, ast_t *ast) {
         Text_t breakdown = EMPTY_TEXT;
         for (ast_list_t *it = for_->iters; it; it = it->next) {
             int64_t n = 0;
-            for (arg_t *s = iteration_slots(env, it->ast); s; s = s->next) n += 1;
+            for (arg_t *s = iteration_slots(env, it->ast); s; s = s->next)
+                n += 1;
             total_slots += n;
             breakdown = Texts(breakdown, breakdown.length > 0 ? ", " : "", "`", ast_source(it->ast), "` yields ", n,
                               " value", n == 1 ? "" : "s");
@@ -804,8 +803,8 @@ env_t *for_scope(env_t *env, ast_t *ast) {
                 last_iter = last_iter->next;
             const char *start = for_->vars ? for_->vars->ast->start : for_->iters->ast->start;
             compiler_err(ast->file, start, last_iter->ast->end, "These iterables yield a total of ", total_slots,
-                         " value", total_slots == 1 ? "" : "s", " per iteration (", breakdown,
-                         "), but this loop has ", num_vars, " variable", num_vars == 1 ? "" : "s",
+                         " value", total_slots == 1 ? "" : "s", " per iteration (", breakdown, "), but this loop has ",
+                         num_vars, " variable", num_vars == 1 ? "" : "s",
                          ". Use `_` to discard a value you don't need, or `at` to bind an iteration counter.");
         }
 
@@ -828,8 +827,7 @@ env_t *for_scope(env_t *env, ast_t *ast) {
         if (raw_iter_t->tag != PointerType)
             code_err(iter_ast, "This is an immutable list value, so it can't be iterated by reference. "
                                "You need a pointer to a list (`@` or `&`) to update its elements in place.");
-        if (var->next != NULL)
-            code_err(var->ast, "Only the value variable of a list iteration can be a `&` reference");
+        if (var->next != NULL) code_err(var->ast, "Only the value variable of a list iteration can be a `&` reference");
     }
 
     switch (iter_t->tag) {
@@ -861,7 +859,8 @@ env_t *for_scope(env_t *env, ast_t *ast) {
     case IntType: {
         // The loop variable has the count's own type:
         ast_t *value_var = single_loop_var(for_->vars);
-        if (value_var) set_binding(scope, Match(value_var, Var)->name, iter_t, Texts("_$", Match(value_var, Var)->name));
+        if (value_var)
+            set_binding(scope, Match(value_var, Var)->name, iter_t, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
     case FunctionType:
@@ -873,9 +872,11 @@ env_t *for_scope(env_t *env, ast_t *ast) {
         arg_t *yields = iterator_yield_args(iter_t);
         if (yields) {
             int64_t num_yields = 0;
-            for (arg_t *a = yields; a; a = a->next) num_yields += 1;
+            for (arg_t *a = yields; a; a = a->next)
+                num_yields += 1;
             int64_t num_vars = 0;
-            for (ast_list_t *v = for_->vars; v; v = v->next) num_vars += 1;
+            for (ast_list_t *v = for_->vars; v; v = v->next)
+                num_vars += 1;
             if (num_vars != 0 && num_vars != num_yields) {
                 if (num_vars == num_yields + 1)
                     code_err(for_->vars->ast, "This iterator yields ", num_yields, " value", num_yields == 1 ? "" : "s",
@@ -895,12 +896,14 @@ env_t *for_scope(env_t *env, ast_t *ast) {
         }
         type_t *non_opt_type = fn->ret->tag == OptionalType ? Match(fn->ret, OptionalType)->type : fn->ret;
         ast_t *value_var = single_loop_var(for_->vars);
-        if (value_var) set_binding(scope, Match(value_var, Var)->name, non_opt_type, Texts("_$", Match(value_var, Var)->name));
+        if (value_var)
+            set_binding(scope, Match(value_var, Var)->name, non_opt_type, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
     case TextType: {
         ast_t *value_var = single_loop_var(for_->vars);
-        if (value_var) set_binding(scope, Match(value_var, Var)->name, TEXT_TYPE, Texts("_$", Match(value_var, Var)->name));
+        if (value_var)
+            set_binding(scope, Match(value_var, Var)->name, TEXT_TYPE, Texts("_$", Match(value_var, Var)->name));
         return scope;
     }
     default: code_err(iter_ast, "Iteration is not implemented for type: ", type_to_text(iter_t));

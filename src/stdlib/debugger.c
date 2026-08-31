@@ -30,4 +30,6 @@ __attribute__((noinline)) void tomo_debug_breakpoint(void) {
 // to, since stopping on tomo_debug_breakpoint() is a no-op unless a debugger
 // is there to notice.
 public
-void tomo_breakpoint(void) { tomo_debug_breakpoint(); }
+void tomo_breakpoint(void) {
+    tomo_debug_breakpoint();
+}

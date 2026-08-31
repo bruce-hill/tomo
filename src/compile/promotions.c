@@ -44,9 +44,8 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
             }
             Text_t call = Texts("((", fn_type_code, ")fn)(", args, ")");
             bool no_ret = fn->ret->tag == VoidType || fn->ret->tag == AbortType;
-            env->code->staticdefs =
-                Texts(env->code->staticdefs, "static ", compile_type(fn->ret), " ", shim_name, "(", params,
-                      "void *fn) { ", no_ret ? EMPTY_TEXT : Text("return "), call, "; }\n");
+            env->code->staticdefs = Texts(env->code->staticdefs, "static ", compile_type(fn->ret), " ", shim_name, "(",
+                                          params, "void *fn) { ", no_ret ? EMPTY_TEXT : Text("return "), call, "; }\n");
             Table$str_set(&env->code->closure_shims, type_key, Text$as_c_string(shim_name));
         }
         *code = Texts("((Closure_t){(void*)", shim_name, ", (void*)", *code, "})");
@@ -74,7 +73,8 @@ bool promote(env_t *env, ast_t *ast, Text_t *code, type_t *actual, type_t *neede
     if (actual->tag == TextType && needed->tag == TextType && streq(Match(needed, TextType)->lang, "Text")) return true;
 
     // Automatic optional checking for nums:
-    if (needed->tag == FloatType && actual->tag == OptionalType && Match(actual, OptionalType)->type->tag == FloatType) {
+    if (needed->tag == FloatType && actual->tag == OptionalType
+        && Match(actual, OptionalType)->type->tag == FloatType) {
         int64_t line = get_line_number(ast->file, ast->start);
         *code = Texts("({ ", compile_declaration(actual, Text("opt")), " = ", *code, "; ", "if unlikely (",
                       check_none(actual, Text("opt")), ")\n", "#line ", line, "\n", "fail_source(",

@@ -23,8 +23,7 @@ Text_t compile_type(type_t *t) {
     case BigIntType: return Text("Int_t");
     case IntType: return Texts("Int", (int32_t)Match(t, IntType)->bits, "_t");
     case NumType: return Text("Num_t");
-    case FloatType:
-        return Texts("Float", (int32_t)Match(t, FloatType)->bits, "_t");
+    case FloatType: return Texts("Float", (int32_t)Match(t, FloatType)->bits, "_t");
     case TextType: {
         DeclareMatch(text, t, TextType);
         if (!text->lang || streq(text->lang, "Text")) return Text("Text_t");

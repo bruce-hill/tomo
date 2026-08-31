@@ -11,8 +11,8 @@
 #include "../environment.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
+#include "../util.h"
 #include "compilation.h"
 
 // Is `ast` a literal whose value for `item_type` is all-bits-zero? (So a
@@ -96,8 +96,8 @@ Text_t compile_typed_list(env_t *env, ast_t *ast, type_t *list_type) {
             for (ast_list_t *item = list->items; item; item = item->next)
                 items = Texts(items, items.length > 0 ? Text(", ") : EMPTY_TEXT,
                               compile_to_type(scope, item->ast, item_type));
-            env->code->constants = Texts(env->code->constants, "static const ", compile_type(item_type), " ",
-                                         data_name, "[", n, "] = {", items, "};\n");
+            env->code->constants = Texts(env->code->constants, "static const ", compile_type(item_type), " ", data_name,
+                                         "[", n, "] = {", items, "};\n");
             return Texts("ConstList(", compile_type(item_type), ", ", n, ", ", data_name, ")");
         }
         Text_t code = Texts("TypedListN(", compile_type(item_type), ", ", n);
@@ -144,8 +144,8 @@ list_comprehension: {
                 // (`[Byte(0) for _ in n]`), every slot is zero, so skip the loop
                 // entirely and just allocate a zeroed block of `capacity` items.
                 if (!comp->filter && is_zero_valued_literal(env, comp->expr, item_type))
-                    return Texts("({ ", compile_type(src_t), " ", src_name, " = ", src_code, ";\n",
-                                 "List$zeroed(", capacity, ", ", zero, "); })");
+                    return Texts("({ ", compile_type(src_t), " ", src_name, " = ", src_code, ";\n", "List$zeroed(",
+                                 capacity, ", ", zero, "); })");
                 ast_t *src_ref = LiteralCode(Texts(src_name), .type = src_t);
                 ast_t *body = add_to_list_comprehension(comp->expr, comprehension_var);
                 if (comp->filter) body = WrapAST(comp->expr, If, .condition = comp->filter, .body = body);
@@ -292,9 +292,9 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
                      padded_item_size, ")");
     } else if (streq(call->name, "remove_item")) {
         EXPECT_POINTER();
-        arg_t *arg_spec =
-            new (arg_t, .name = "item", .type = item_t,
-                 .next = new (arg_t, .name = "max_count", .type = INT_TYPE, .default_val = FakeAST(Int, .i = I_small(-1))));
+        arg_t *arg_spec = new (
+            arg_t, .name = "item", .type = item_t,
+            .next = new (arg_t, .name = "max_count", .type = INT_TYPE, .default_val = FakeAST(Int, .i = I_small(-1))));
         return Texts("List$remove_item_value(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      compile_type_info(self_value_t), ")");
     } else if (streq(call->name, "has")) {
@@ -305,12 +305,11 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
     } else if (streq(call->name, "sample")) {
         type_t *random_num_type = parse_type_string(env, "func(->Num)?");
         self = compile_to_pointer_depth(env, call->self, 0, false);
-        arg_t *arg_spec =
-            new (arg_t, .name = "count", .type = INT_TYPE,
-                 .next = new (
-                     arg_t, .name = "weights", .type = Type(ListType, .item_type = Type(NumType)),
-                     .default_val = FakeAST(None),
-                     .next = new (arg_t, .name = "random", .type = random_num_type, .default_val = FakeAST(None))));
+        arg_t *arg_spec = new (
+            arg_t, .name = "count", .type = INT_TYPE,
+            .next = new (arg_t, .name = "weights", .type = Type(ListType, .item_type = Type(NumType)),
+                         .default_val = FakeAST(None),
+                         .next = new (arg_t, .name = "random", .type = random_num_type, .default_val = FakeAST(None))));
         return Texts("List$sample(", self, ", ", compile_arguments(env, ast, arg_spec, call->args), ", ",
                      padded_item_size, ")");
     } else if (streq(call->name, "shuffle")) {
@@ -348,7 +347,8 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
             type_t *arg_t = get_type(env, arg->value);
             if (is_int_literal(arg->value, NULL))
                 index_codes[n] = compile_int_to_type(env, arg->value, Type(IntType, .bits = TYPE_IBITS64));
-            else if (arg_t->tag == BigIntType) index_codes[n] = Texts("Int64$from_int(", compile(env, arg->value), ", no)");
+            else if (arg_t->tag == BigIntType)
+                index_codes[n] = Texts("Int64$from_int(", compile(env, arg->value), ", no)");
             else if (is_int_type(arg_t)) index_codes[n] = Texts("(Int64_t)(", compile(env, arg->value), ")");
             else code_err(arg->value, "swap() indexes must be integers, not ", type_to_text(arg_t));
         }
@@ -404,14 +404,15 @@ Text_t compile_list_method_call(env_t *env, ast_t *ast) {
         if (!item_arg) item_arg = positional[p++];
         if (!by_arg && p < np) by_arg = positional[p++];
         if (!item_arg) code_err(ast, "heap_push() requires an item to push");
-        if (p < np) code_err(positional[p]->value, "This positional argument to heap_push() has no slot to fill "
-                                                   "(item and comparison are already provided)");
+        if (p < np)
+            code_err(positional[p]->value, "This positional argument to heap_push() has no slot to fill "
+                                           "(item and comparison are already provided)");
 
         arg_t *item_spec = new (arg_t, .name = "item", .type = item_t);
         Text_t item_code = compile_arguments(env, ast, item_spec, new (arg_ast_t, .value = item_arg->value));
         if (by_arg) {
-            Text_t decl, cmp = compile_byval_closure(env, ast, item_t, true, "by", new (arg_ast_t, .value = by_arg->value),
-                                                     &decl);
+            Text_t decl, cmp = compile_byval_closure(env, ast, item_t, true, "by",
+                                                     new (arg_ast_t, .value = by_arg->value), &decl);
             return Texts("({ ", decl, "List$heap_push_value(", self, ", ", item_code, ", ", cmp, ", ", padded_item_size,
                          "); })");
         }

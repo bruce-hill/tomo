@@ -6,8 +6,8 @@
 #include "../environment.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../types.h"
+#include "../util.h"
 
 Text_t compile_text_ast(env_t *env, ast_t *ast);
 Text_t compile_text(env_t *env, ast_t *ast, Text_t color);

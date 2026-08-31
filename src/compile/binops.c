@@ -5,9 +5,9 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/number.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
 #include "../types.h"
+#include "../util.h"
 #include "compilation.h"
 
 static PUREFUNC Text_t compile_unsigned_type(type_t *t) {
@@ -38,8 +38,8 @@ static Text_t compile_checked_int_divmod(env_t *env, ast_t *ast, type_t *overall
     Text_t op_code;
     if (overall_t->tag == ByteType) {
         op_code = ast->tag == FloorDivide ? Text("($numerator / $divisor)")
-                : ast->tag == Mod    ? Text("($numerator % $divisor)")
-                                     : Text("((($numerator - 1) % $divisor) + 1)");
+                  : ast->tag == Mod       ? Text("($numerator % $divisor)")
+                                          : Text("((($numerator - 1) % $divisor) + 1)");
     } else {
         binding_t *b = get_binding(get_namespace_by_type(env, overall_t), binop_info[ast->tag].method_name);
         op_code = Texts(b->code, "($numerator, $divisor)");
@@ -93,7 +93,8 @@ Text_t compile_binary_op_to_type(env_t *env, ast_t *ast, type_t *overall_t) {
     // `/` on integers is exact: both operands convert to Num (losslessly) and
     // the division happens there. The typechecker picked NumType for exactly
     // this case; Num/Num operands take the metamethod path below instead.
-    if (ast->tag == Divide && overall_t->tag == NumType && (get_type(env, binop.lhs)->tag != NumType || get_type(env, binop.rhs)->tag != NumType))
+    if (ast->tag == Divide && overall_t->tag == NumType
+        && (get_type(env, binop.lhs)->tag != NumType || get_type(env, binop.rhs)->tag != NumType))
         return Texts("Num$divided_by(", compile_to_type(env, binop.lhs, overall_t), ", ",
                      compile_to_type(env, binop.rhs, overall_t), ")");
 

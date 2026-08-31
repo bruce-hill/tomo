@@ -6,11 +6,11 @@
 
 #include "../config.h"
 #include "../environment.h"
-#include "../stdlib/number.h"
-#include "../stdlib/profiling.h"
 #include "../stdlib/fail.h"
 #include "../stdlib/lists.h"
+#include "../stdlib/number.h"
 #include "../stdlib/paths.h"
+#include "../stdlib/profiling.h"
 #include "../stdlib/text.h"
 #include "commands.h"
 #include "common.h"
@@ -225,10 +225,9 @@ void style_run_command(void) {
     cli_style_t style = tomo_cli_style();
     run_command.usage = Texts(style.usage, "Usage:", style.reset, " tomo run ", style.bold, "file.tm", style.reset,
                               " [", style.bold, "--", style.reset, " program args...]");
-    run_command.description =
-        String("Anything after a ", style.bold, "--", style.reset,
-               " is passed to the program as its own arguments.\n"
-               "The command name is optional: `tomo file.tm` does the same thing.");
+    run_command.description = String("Anything after a ", style.bold, "--", style.reset,
+                                     " is passed to the program as its own arguments.\n"
+                                     "The command name is optional: `tomo file.tm` does the same thing.");
 }
 
 cli_command_t run_command = {

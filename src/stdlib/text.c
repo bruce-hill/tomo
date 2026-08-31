@@ -112,10 +112,10 @@
 #include "../util.h"
 #include "bytes.h"
 #include "datatypes.h"
-#include "number.h"
 #include "integers.h"
 #include "lists.h"
 #include "metamethods.h"
+#include "number.h"
 #include "optionals.h"
 #include "tables.h"
 #include "text.h"
@@ -1097,7 +1097,8 @@ bool _matches(TextIter_t *text_state, TextIter_t *target_state, int64_t pos) {
     return true;
 }
 
-public bool Text$starts_with(Text_t text, Text_t prefix, Text_t *remainder) {
+public
+bool Text$starts_with(Text_t text, Text_t prefix, Text_t *remainder) {
     if (text.length < prefix.length) return false;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), prefix_state = NEW_TEXT_ITER_STATE(prefix);
     if (_matches(&text_state, &prefix_state, 0)) {
@@ -1109,7 +1110,8 @@ public bool Text$starts_with(Text_t text, Text_t prefix, Text_t *remainder) {
     }
 }
 
-public bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainder) {
+public
+bool Text$ends_with(Text_t text, Text_t suffix, Text_t *remainder) {
     if (text.length < suffix.length) return false;
     TextIter_t text_state = NEW_TEXT_ITER_STATE(text), suffix_state = NEW_TEXT_ITER_STATE(suffix);
     if (_matches(&text_state, &suffix_state, text.length - suffix.length)) {

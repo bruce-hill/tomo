@@ -56,7 +56,7 @@ static Text_t index_counter_step(Text_t index) {
 // ---------------------------------------------------------------------------
 
 typedef struct {
-    Table_t *written;  // variable name -> Var ast of lists written by index/swap
+    Table_t *written; // variable name -> Var ast of lists written by index/swap
     Table_t *accessed; // variable name -> Var ast of ALL lists indexed (reads + writes)
 } cow_scan_t;
 
@@ -147,8 +147,7 @@ static bool cow_expr_ok(env_t *env, ast_t *ast, cow_scan_t *scan) {
         // signature is all scalars.
         DeclareMatch(call, ast, FunctionCall);
         type_t *fn_t = cow_var_type(env, call->fn);
-        if (fn_t == NULL || fn_t->tag != TypeInfoType || !cow_type_ok(Match(fn_t, TypeInfoType)->type))
-            return false;
+        if (fn_t == NULL || fn_t->tag != TypeInfoType || !cow_type_ok(Match(fn_t, TypeInfoType)->type)) return false;
         return cow_call_args_ok(env, call->args, scan);
     }
     case MethodCall: {
@@ -424,7 +423,8 @@ static Text_t compile_for_reference_loop(env_t *env, ast_t *ast, Text_t naked_bo
 
     if (for_->empty) loop = Texts("if (n0 > 0) {\n", loop, "\n} else ", compile_statement(env, for_->empty));
 
-    return Texts("{ // for &", name, " in ...\n"
+    return Texts("{ // for &", name,
+                 " in ...\n"
                  "List_t *ptr = ",
                  compile_to_pointer_depth(env, iter, 1, false),
                  ";\n"
@@ -502,8 +502,8 @@ static void compile_combinatoric_fragment(env_t *env, env_t *body_scope, ast_t *
             *setup = Texts(*setup, "List_t ", list, " = ", compile_to_pointer_depth(env, self, 0, false), ";\n");
         }
         *setup = Texts(*setup, "int64_t ", i, " = 1, ", j, " = 1;\n");
-        *advance = Texts(*advance, j, " += 1;\nif (", j, " > (int64_t)", list, ".length) { ", i, " += 1; ", j, " = ",
-                         i, " + 1; }\nif (", j, " > (int64_t)", list, ".length) break;\n");
+        *advance = Texts(*advance, j, " += 1;\nif (", j, " > (int64_t)", list, ".length) { ", i, " += 1; ", j, " = ", i,
+                         " + 1; }\nif (", j, " > (int64_t)", list, ".length) break;\n");
         ast_t *va = (*var_p)->ast;
         *var_p = (*var_p)->next;
         if (!streq(Match(va, Var)->name, "_"))
@@ -524,8 +524,8 @@ static void compile_combinatoric_fragment(env_t *env, env_t *body_scope, ast_t *
                            ";\nLIST_INCREF(", ptr, "->entries);\nList_t ", list, " = ", ptr, "->entries;\n");
             *cleanup = Texts(*cleanup, "LIST_DECREF(", ptr, "->entries);\n");
         } else {
-            *setup = Texts(*setup, "List_t ", list, " = (", compile_to_pointer_depth(env, self, 0, false),
-                           ").entries;\n");
+            *setup =
+                Texts(*setup, "List_t ", list, " = (", compile_to_pointer_depth(env, self, 0, false), ").entries;\n");
         }
         *setup = Texts(*setup, "int64_t ", idx, " = 0;\n");
         *advance = Texts(*advance, "if (", idx, " >= ", list, ".length) break;\n", idx, " += 1;\n");
@@ -581,8 +581,7 @@ static Text_t compile_lockstep_loop(env_t *env, ast_t *ast, env_t *body_scope, T
                               ";\nLIST_INCREF(*", ptr, ");\nList_t ", list, " = *", ptr, ";\n");
                 cleanup = Texts(cleanup, "LIST_DECREF(*", ptr, ");\n");
             } else {
-                setup =
-                    Texts(setup, "List_t ", list, " = ", compile_to_pointer_depth(env, it->ast, 0, false), ";\n");
+                setup = Texts(setup, "List_t ", list, " = ", compile_to_pointer_depth(env, it->ast, 0, false), ";\n");
             }
             setup = Texts(setup, "int64_t ", idx, " = 0;\n");
             advance = Texts(advance, "if (", idx, " >= ", list, ".length) break;\n", idx, " += 1;\n");
@@ -674,8 +673,7 @@ static Text_t compile_lockstep_loop(env_t *env, ast_t *ast, env_t *body_scope, T
                     type_t *val_t = Match(arg->type, PointerType)->pointed;
                     ast_t *v = var->ast;
                     var = var->next;
-                    Text_t name = streq(Match(v, Var)->name, "_") ? Texts(temp, "$yield", pos)
-                                                                  : compile(body_scope, v);
+                    Text_t name = streq(Match(v, Var)->name, "_") ? Texts(temp, "$yield", pos) : compile(body_scope, v);
                     setup = Texts(setup, compile_declaration(val_t, name), ";\n");
                     args_joined = pos == 1 ? Texts("&", name) : Texts(args_joined, ", &", name);
                 }
@@ -695,8 +693,7 @@ static Text_t compile_lockstep_loop(env_t *env, ast_t *ast, env_t *body_scope, T
                     advance = Texts(advance, cur, " = ", call, ";\nif (", check_none(fn->ret, cur), ") break;\n");
                     if (!discard)
                         advance = Texts(advance,
-                                        compile_declaration(Match(fn->ret, OptionalType)->type,
-                                                            compile(body_scope, v)),
+                                        compile_declaration(Match(fn->ret, OptionalType)->type, compile(body_scope, v)),
                                         " = ", optional_into_nonnone(fn->ret, cur), ";\n");
                 } else if (!discard) {
                     advance = Texts(advance, compile_declaration(fn->ret, compile(body_scope, v)), " = ", call, ";\n");
@@ -847,9 +844,7 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
                          "; "
                          "Int$compare_value(",
                          value, ", last) != Int$compare_value(step, I_small(0)); ", value, " = Int$plus(", value,
-                         ", step)) {\n", index_decl,
-                         "\t",
-                         naked_body, "}", stop, close);
+                         ", step)) {\n", index_decl, "\t", naked_body, "}", stop, close);
         } else {
             if (optional_step.length > 0)
                 step = Texts("({ ", compile_type(Type(OptionalType, step_type)), " maybe_step = ", optional_step,
@@ -859,10 +854,8 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
             else if (step.length == 0) step = Texts("(", type_code, ")(last >= first ? 1 : -1)");
             return Texts(open, counter_decl, "for (", type_code,
                          " first = ", compile(env, Match(iter, MethodCall)->self), ", ", value,
-                         " = first, last = ", last, ", step = ", step, "; (", compile_type(step_type),
-                         ")step > 0 ? ", value, " <= last : ", value, " >= last; ", value,
-                         " += step) {\n", index_decl,
-                         "\t",
+                         " = first, last = ", last, ", step = ", step, "; (", compile_type(step_type), ")step > 0 ? ",
+                         value, " <= last : ", value, " >= last; ", value, " += step) {\n", index_decl, "\t",
                          naked_body, "}", stop, close);
         }
     } else if (iter->tag == MethodCall && streq(Match(iter, MethodCall)->name, "onward")
@@ -879,11 +872,8 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
         Text_t open = index.length > 0 ? Text("{\n") : EMPTY_TEXT;
         Text_t close = index.length > 0 ? Text("\n}\n") : EMPTY_TEXT;
         return Texts(open, index_counter_decl(index), "for (Int_t ", value, " = ",
-                     compile(env, Match(iter, MethodCall)->self), ", ", "step = ", step, "; ; ", value,
-                     " = Int$plus(", value,
-                     ", step)) {\n", index_counter_step(index),
-                     "\t",
-                     naked_body, "}", stop, close);
+                     compile(env, Match(iter, MethodCall)->self), ", ", "step = ", step, "; ; ", value, " = Int$plus(",
+                     value, ", step)) {\n", index_counter_step(index), "\t", naked_body, "}", stop, close);
     }
 
     type_t *iter_t = get_type(env, iter);
@@ -965,8 +955,8 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
                          "\nLIST_DECREF(t->entries);\n"
                          "}\n");
         } else {
-            loop = Texts("{\n", "List_t iterating = (", compile_to_pointer_depth(env, iter, 0, false),
-                         ").entries;\n", loop, stop, "}\n");
+            loop = Texts("{\n", "List_t iterating = (", compile_to_pointer_depth(env, iter, 0, false), ").entries;\n",
+                         loop, stop, "}\n");
         }
         return loop;
     }
@@ -1004,9 +994,7 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
         Text_t counter_decl = index_counter_decl(index);
         Text_t index_decl = index_counter_step(index);
         if (for_->empty) {
-            return Texts("{\n", counter_decl,
-                         "Int_t ",
-                         n_var, " = ", n,
+            return Texts("{\n", counter_decl, "Int_t ", n_var, " = ", n,
                          ";\n"
                          "if (Int$compare_value(",
                          n_var,
@@ -1022,9 +1010,9 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
         } else {
             Text_t open = index.length > 0 ? Text("{\n") : EMPTY_TEXT;
             Text_t close = index.length > 0 ? Text("\n}\n") : EMPTY_TEXT;
-            return Texts(open, counter_decl, "for (Int_t ", i, " = I(1), ", n_var, " = ", n,
-                         "; Int$compare_value(", i, ", ", n_var, ") <= 0; ", i, " = Int$plus(", i, ", I(1))) {\n",
-                         index_decl, "\t", naked_body, "}\n", stop, close);
+            return Texts(open, counter_decl, "for (Int_t ", i, " = I(1), ", n_var, " = ", n, "; Int$compare_value(", i,
+                         ", ", n_var, ") <= 0; ", i, " = Int$plus(", i, ", I(1))) {\n", index_decl, "\t", naked_body,
+                         "}\n", stop, close);
         }
     }
     case IntType: {
@@ -1039,8 +1027,7 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
         Text_t type_code = compile_type(iter_value_t);
         Text_t n = compile_to_pointer_depth(env, iter, 0, false);
         Text_t decls = Texts(index.length > 0 ? Texts("Int64_t ", index, " = i$;\n") : EMPTY_TEXT,
-                             value.length > 0 ? Texts(type_code, " ", value, " = (", type_code, ")i$;\n")
-                                              : EMPTY_TEXT);
+                             value.length > 0 ? Texts(type_code, " ", value, " = (", type_code, ")i$;\n") : EMPTY_TEXT);
         Text_t n_var = value.length > 0 ? Texts("max", value) : Text("n");
         if (for_->empty) {
             return Texts("{\n"
@@ -1050,15 +1037,16 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
                          "if (",
                          n_var,
                          " > 0) {\n"
-                         "for (Int64_t i$ = 1; i$ <= ", n_var, "; ++i$) {\n", decls, "\t", naked_body,
+                         "for (Int64_t i$ = 1; i$ <= ",
+                         n_var, "; ++i$) {\n", decls, "\t", naked_body,
                          "}\n"
                          "} else ",
                          compile_statement(env, for_->empty), stop,
                          "\n"
                          "}\n");
         } else {
-            return Texts("for (Int64_t i$ = 1, ", n_var, " = (Int64_t)(", n, "); i$ <= ", n_var, "; ++i$) {\n",
-                         decls, "\t", naked_body, "}\n", stop, "\n");
+            return Texts("for (Int64_t i$ = 1, ", n_var, " = (Int64_t)(", n, "); i$ <= ", n_var, "; ++i$) {\n", decls,
+                         "\t", naked_body, "}\n", stop, "\n");
         }
     }
     case FunctionType:
@@ -1130,9 +1118,9 @@ static Text_t compile_for_loop_impl(env_t *env, ast_t *ast) {
             code = Texts(code, compile_declaration(fn->ret, Text("cur")), ";\n");
             get_next = Texts("(cur=", get_next, ", !", check_none(fn->ret, Text("cur")), ")");
             if (value_var) {
-                naked_body = Texts(compile_declaration(Match(fn->ret, OptionalType)->type,
-                                                       Texts("_$", Match(value_var, Var)->name)),
-                                   " = ", optional_into_nonnone(fn->ret, Text("cur")), ";\n", naked_body);
+                naked_body = Texts(
+                    compile_declaration(Match(fn->ret, OptionalType)->type, Texts("_$", Match(value_var, Var)->name)),
+                    " = ", optional_into_nonnone(fn->ret, Text("cur")), ";\n", naked_body);
             }
             if (for_->empty) {
                 code = Texts(code, "if (", get_next,

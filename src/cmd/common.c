@@ -19,12 +19,12 @@
 #include "common.h"
 
 OptionalBool_t verbose = false, quiet = false, clean_build = false, source_mapping = true, install_target = false,
-              instrument = false, profiling = false, debugging = false;
+               instrument = false, profiling = false, debugging = false;
 bool zig_cache_dir_from_env = false, cross_compiling = false, link_macho = false;
 uint32_t enabled_logs = 0;
 Text_t target_root = Text(""), lib_root = Text(""), zig_libc_dir = Text(""), cc = Text(""), ar = Text(""),
-       optimization = Text("2"), link_optimizations = Text(""), config_summary = Text(""),
-       ldlibs = Text("-lm"), ldflags = Text("");
+       optimization = Text("2"), link_optimizations = Text(""), config_summary = Text(""), ldlibs = Text("-lm"),
+       ldflags = Text("");
 OptionalText_t cflags = Text("-Werror -fdollars-in-identifiers -std=gnu23 -Wno-trigraphs"
                              " -ffunction-sections -fdata-sections"
                              " -fno-signed-zeros"
@@ -79,7 +79,8 @@ void configure_codegen(Text_t opt_level, bool optimize) {
     // silently. Trap mode needs no UBSan runtime library, which the -nostdlib
     // link couldn't provide anyway. Optimized builds skip the instrumentation
     // for performance:
-    if (Text$equal_values(opt_level, Text("0"))) cflags = Texts(cflags, " -fsanitize=undefined -fsanitize-trap=undefined");
+    if (Text$equal_values(opt_level, Text("0")))
+        cflags = Texts(cflags, " -fsanitize=undefined -fsanitize-trap=undefined");
     else cflags = Texts(cflags, " -fno-sanitize=undefined");
     // Dead-code stripping (--gc-sections / -dead_strip) and debug-section
     // compression (zstd) make smaller binaries but slow linking noticeably.
@@ -90,7 +91,7 @@ void configure_codegen(Text_t opt_level, bool optimize) {
         // libbacktrace decompresses it natively for runtime stacktraces, but
         // an external debugger only reads those sections if its own build has
         // zstd support, so a debug build keeps its DWARF uncompressed.
-        link_optimizations = link_macho ? Text(" -Wl,-w,-dead_strip")
+        link_optimizations = link_macho  ? Text(" -Wl,-w,-dead_strip")
                              : debugging ? Text(" -Wl,--gc-sections")
                                          : Text(" -Wl,--gc-sections -Wl,--compress-debug-sections=zstd");
     } else {

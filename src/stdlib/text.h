@@ -7,12 +7,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "floats.h" // IWYU pragma: export
+#include "integers.h" // IWYU pragma: export
 #include "layout/closure.h"
 #include "layout/num.h"
 #include "layout/text.h" // IWYU pragma: export
-#include "integers.h" // IWYU pragma: export
 #include "mapmacro.h"
-#include "floats.h" // IWYU pragma: export
 #include "types.h"
 #include "util.h"
 
@@ -67,8 +67,8 @@ static inline Text_t Text_from_text(Text_t t) {
         int16_t: Int16$value_as_text,                                                                                  \
         int32_t: Int32$value_as_text,                                                                                  \
         int64_t: Int64$value_as_text,                                                                                  \
-        double: Float64$value_as_text,                                                                                     \
-        float: Float32$value_as_text,                                                                                    \
+        double: Float64$value_as_text,                                                                                 \
+        float: Float32$value_as_text,                                                                                  \
         Int_t: Int$value_as_text)(x)
 
 Text_t Text$_concat(int n, Text_t items[n]);

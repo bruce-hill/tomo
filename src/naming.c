@@ -176,8 +176,7 @@ Path_t tomo_root_for(Path_t dir) {
     Result_t made = Path$create_directory(root, 0755, true);
     if (made.Failure.reason.tag != TEXT_NONE) fail("Could not create build cache directory: ", made.Failure.reason);
     if (!already_existed) {
-        fprint(stderr, "Warning: ", dir, " is ", reason, "; using a temporary build directory instead: ", root,
-               "\n");
+        fprint(stderr, "Warning: ", dir, " is ", reason, "; using a temporary build directory instead: ", root, "\n");
         prune_stale_build_dirs(build_cache);
     }
     return root;

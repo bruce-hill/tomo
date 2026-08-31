@@ -215,9 +215,9 @@ ast_t *parse_statement(parse_ctx_t *ctx, const char *pos) {
         ast_t *new_stmt;
         progress = false;
         if (stmt->tag == Var) {
-            progress = (false || (new_stmt = parse_method_call_suffix(ctx, stmt))
-                        || (new_stmt = parse_fncall_suffix(ctx, stmt))
-                        || (new_stmt = parse_record_literal_suffix(ctx, stmt)));
+            progress =
+                (false || (new_stmt = parse_method_call_suffix(ctx, stmt))
+                 || (new_stmt = parse_fncall_suffix(ctx, stmt)) || (new_stmt = parse_record_literal_suffix(ctx, stmt)));
         } else if (stmt->tag == FunctionCall || stmt->tag == RecordLiteral) {
             new_stmt = parse_optional_conditional_suffix(ctx, stmt);
             progress = (new_stmt != stmt);

@@ -5,13 +5,13 @@
 #include "../naming.h"
 #include "../stdlib/c_strings.h"
 #include "../stdlib/datatypes.h"
-#include "../stdlib/integers.h"
+#include "../stdlib/files.h"
 #include "../stdlib/floats.h"
+#include "../stdlib/integers.h"
 #include "../stdlib/optionals.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
-#include "../stdlib/files.h"
 #include "../types.h"
 #include "../util.h"
 #include "compilation.h"
@@ -34,8 +34,7 @@ Text_t compile_function_declaration(env_t *env, ast_t *ast) {
     type_t *ret_t = fndef->ret_type ? parse_type_ast(env, fndef->ret_type) : Type(VoidType);
     Text_t ret_type_code = compile_type(ret_t);
     if (ret_t->tag == AbortType) ret_type_code = Texts("__attribute__((noreturn)) _Noreturn ", ret_type_code);
-    Text_t name =
-        namespace_name(env, env->namespace, Text$replace(Text$from_str(decl_name), Text("."), Text("$")));
+    Text_t name = namespace_name(env, env->namespace, Text$replace(Text$from_str(decl_name), Text("."), Text("$")));
     if (env->namespace && env->namespace->parent && env->namespace->name && streq(decl_name, env->namespace->name))
         name = namespace_name(env, env->namespace, Texts(get_line_number(ast->file, ast->start)));
     return Texts(ret_type_code, " ", name, arg_signature, ";\n");
@@ -154,8 +153,8 @@ Text_t compile_function_call(env_t *env, ast_t *ast) {
     DeclareMatch(call, ast, FunctionCall);
     type_t *fn_t = get_type(env, call->fn);
     if (get_variant_constructor(env, call->fn))
-        code_err(ast, "Enum variants are built with curly braces, not parentheses. Use ",
-                 record_literal_name(call->fn), "{...} instead");
+        code_err(ast, "Enum variants are built with curly braces, not parentheses. Use ", record_literal_name(call->fn),
+                 "{...} instead");
     if (fn_t->tag == FunctionType) {
         Text_t fn = compile(env, call->fn);
         if (!is_valid_call(env, Match(fn_t, FunctionType)->args, call->args, (call_opts_t){.promotion = true})) {
@@ -496,8 +495,8 @@ static void add_closed_vars(Table_t *closed_vars, env_t *enclosing_scope, env_t 
         add_closed_vars(closed_vars, enclosing_scope, env, reduction->iter);
         static int64_t next_id = 1;
         ast_t *item = FakeAST(Var, String("$it", next_id++));
-        ast_t *loop =
-            FakeAST(For, .vars = new (ast_list_t, .ast = item), .iters = new (ast_list_t, .ast = reduction->iter), .body = FakeAST(Pass));
+        ast_t *loop = FakeAST(For, .vars = new (ast_list_t, .ast = item),
+                              .iters = new (ast_list_t, .ast = reduction->iter), .body = FakeAST(Pass));
         env_t *scope = for_scope(env, loop);
         add_closed_vars(closed_vars, enclosing_scope, scope, reduction->key ? reduction->key : item);
         break;
@@ -714,9 +713,9 @@ static Text_t compile_debug_arg_typeinfos(env_t *env, arg_ast_t *args) {
 static Text_t compile_profiling(env_t *env, ast_t *ast, Text_t name_code, Text_t display_name, Text_t *site_def) {
     if (!env->do_profiling) return EMPTY_TEXT;
     Text_t site = Texts("_tomo_profile$", name_code);
-    *site_def = Texts("static tomo_profile_site_t ", site, " = {.name=", quoted_text(display_name), ", .file=",
-                      quoted_str(ast->file->filename), ", .line=", (int64_t)get_line_number(ast->file, ast->start),
-                      "};\n");
+    *site_def = Texts("static tomo_profile_site_t ", site, " = {.name=", quoted_text(display_name),
+                      ", .file=", quoted_str(ast->file->filename),
+                      ", .line=", (int64_t)get_line_number(ast->file, ast->start), "};\n");
     return Texts("TOMO_PROFILED(&", site, ");\n");
 }
 
@@ -839,9 +838,8 @@ static Text_t compile_lambda_ex(env_t *env, ast_t *ast, bool args_by_pointer) {
         }
     }
 
-    Text_t userdata_cast = Table$length(closed_vars) > 0
-                               ? Texts(name, "$userdata_t *userdata = $userdata;\n")
-                               : EMPTY_TEXT;
+    Text_t userdata_cast =
+        Table$length(closed_vars) > 0 ? Texts(name, "$userdata_t *userdata = $userdata;\n") : EMPTY_TEXT;
     Text_t site_def = EMPTY_TEXT;
     // Lambdas have no name of their own, so the report identifies them by the
     // source location in the site (`lambda (file.tm:12)`):

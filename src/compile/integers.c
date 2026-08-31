@@ -53,8 +53,7 @@ Text_t compile_int_to_type(env_t *env, ast_t *ast, type_t *target) {
         // literal's base: `0xFF` becomes 255. Big ones fall back to a runtime
         // constructor, since only the immediate tier is a C constant.
         char *decimal = mpz_get_str(NULL, 10, i);
-        return compile_num_value(number_from_decimal(decimal),
-                                 Texts("number_from_decimal(\"", decimal, "\")"));
+        return compile_num_value(number_from_decimal(decimal), Texts("number_from_decimal(\"", decimal, "\")"));
     } else if (target->tag == FloatType) {
         if (Match(target, FloatType)->bits == TYPE_NBITS64) {
             return Texts("N64(", c_literal, ")");

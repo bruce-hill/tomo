@@ -1,16 +1,17 @@
 // Built-in functions
 
+#include <stdio.h> // Must be before gmp.h
+
 #include <errno.h>
 #include <fcntl.h>
 #include <gc.h>
+#include <gmp.h>
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h> // Must be before gmp.h
-#include <gmp.h>
 #include <stdlib.h>
 #include <sys/param.h>
 #include <time.h>
@@ -172,7 +173,9 @@ static _Noreturn void signal_handler(int sig, siginfo_t *info, void *userdata) {
 // pointers, so atomic allocation is both safe and keeps them off the GC's scan
 // set (important: limb bit-patterns would otherwise look like pointers and
 // falsely retain garbage). GC_REALLOC preserves the atomic kind of the block.
-static void *gc_gmp_alloc(size_t size) { return GC_MALLOC_ATOMIC(size); }
+static void *gc_gmp_alloc(size_t size) {
+    return GC_MALLOC_ATOMIC(size);
+}
 static void *gc_gmp_realloc(void *ptr, size_t old_size, size_t new_size) {
     (void)old_size;
     return GC_REALLOC(ptr, new_size);

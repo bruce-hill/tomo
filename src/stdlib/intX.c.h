@@ -13,12 +13,12 @@
 #include <stdlib.h>
 
 #include "../util.h"
+#include "fail.h"
+#include "integers.h"
 #include "layout/closure.h"
 #include "layout/float.h"
 #include "layout/num.h"
-#include "fail.h"
 #include "metamethods.h"
-#include "integers.h"
 #include "text.h"
 #include "types.h"
 
@@ -203,8 +203,8 @@ public
 PUREFUNC INT_T NAMESPACED(from_float64)(Float64_t n, bool truncate) {
     INT_T i = (INT_T)n;
     if (!truncate && unlikely((Float64_t)i != n))
-        fail_text(
-            Text$concat(Text("Could not convert Num to an " NAME_STR " without truncation: "), Float64$value_as_text(n)));
+        fail_text(Text$concat(Text("Could not convert Num to an " NAME_STR " without truncation: "),
+                              Float64$value_as_text(n)));
     return i;
 }
 
@@ -240,7 +240,9 @@ PUREFUNC INT_T NAMESPACED(from_int64)(Int64_t i64, bool truncate) {
 }
 #elif INTX_C_H__INT_BITS > 64
 public
-CONSTFUNC INT_T NAMESPACED(from_int64)(Int64_t i) { return (INT_T)i; }
+CONSTFUNC INT_T NAMESPACED(from_int64)(Int64_t i) {
+    return (INT_T)i;
+}
 #endif
 
 #if INTX_C_H__INT_BITS < 32
@@ -252,7 +254,9 @@ PUREFUNC INT_T NAMESPACED(from_int32)(Int32_t i32, bool truncate) {
 }
 #elif INTX_C_H__INT_BITS > 32
 public
-CONSTFUNC INT_T NAMESPACED(from_int32)(Int32_t i) { return (INT_T)i; }
+CONSTFUNC INT_T NAMESPACED(from_int32)(Int32_t i) {
+    return (INT_T)i;
+}
 #endif
 
 #if INTX_C_H__INT_BITS < 16
@@ -264,12 +268,16 @@ PUREFUNC INT_T NAMESPACED(from_int16)(Int16_t i16, bool truncate) {
 }
 #elif INTX_C_H__INT_BITS > 16
 public
-CONSTFUNC INT_T NAMESPACED(from_int16)(Int16_t i) { return (INT_T)i; }
+CONSTFUNC INT_T NAMESPACED(from_int16)(Int16_t i) {
+    return (INT_T)i;
+}
 #endif
 
 #if INTX_C_H__INT_BITS > 8
 public
-CONSTFUNC INT_T NAMESPACED(from_int8)(Int8_t i) { return (INT_T)i; }
+CONSTFUNC INT_T NAMESPACED(from_int8)(Int8_t i) {
+    return (INT_T)i;
+}
 #endif
 
 public

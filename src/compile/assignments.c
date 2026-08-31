@@ -5,8 +5,8 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/tables.h"
 #include "../stdlib/text.h"
-#include "../util.h"
 #include "../typecheck.h"
+#include "../util.h"
 #include "compilation.h"
 
 public
@@ -40,7 +40,8 @@ Text_t compile_update_assignment(env_t *env, ast_t *ast) {
     case DivideUpdate: {
         // Integer/byte division falls through to the reconstructed binop so it goes through the
         // guarded (divide-by-zero checked, Euclidean) division; only Num divides in place here.
-        if (lhs_t->tag == FloatType) update_assignment = Texts(lhs, " /= ", compile_to_type(env, update.rhs, lhs_t), ";");
+        if (lhs_t->tag == FloatType)
+            update_assignment = Texts(lhs, " /= ", compile_to_type(env, update.rhs, lhs_t), ";");
         break;
     }
     case LeftShiftUpdate: {

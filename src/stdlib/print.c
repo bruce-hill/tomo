@@ -165,9 +165,9 @@ int _print_hex_double(FILE *f, hex_double_t hex) {
 public
 int _print_char(FILE *f, char c) {
 #define ESC(e) "'\\" e "'"
-    const char *named[256] = {
-        ['\''] = ESC("'"),   ['\\'] = ESC("\\"), ['\n'] = ESC("n"), ['\t'] = ESC("t"), ['\r'] = ESC("r"),
-        ['\033'] = ESC("e"), ['\v'] = ESC("v"),  ['\a'] = ESC("a"), ['\b'] = ESC("b")};
+    const char *named[256] = {['\''] = ESC("'"), ['\\'] = ESC("\\"), ['\n'] = ESC("n"),
+                              ['\t'] = ESC("t"), ['\r'] = ESC("r"),  ['\033'] = ESC("e"),
+                              ['\v'] = ESC("v"), ['\a'] = ESC("a"),  ['\b'] = ESC("b")};
     const char *name = named[(uint8_t)c];
     if (name != NULL) return fputs(name, f);
     else if (isprint(c)) return fputc('\'', f) + fputc(c, f) + fputc('\'', f);
@@ -180,9 +180,9 @@ int _print_char(FILE *f, char c) {
 public
 int _print_quoted(FILE *f, quoted_t quoted) {
 #define ESC(e) "\\" e
-    const char *named[256] = {
-        ['"'] = ESC("\""),   ['\\'] = ESC("\\"), ['\n'] = ESC("n"), ['\t'] = ESC("t"), ['\r'] = ESC("r"),
-        ['\033'] = ESC("e"), ['\v'] = ESC("v"),  ['\a'] = ESC("a"), ['\b'] = ESC("b")};
+    const char *named[256] = {['"'] = ESC("\""), ['\\'] = ESC("\\"), ['\n'] = ESC("n"),
+                              ['\t'] = ESC("t"), ['\r'] = ESC("r"),  ['\033'] = ESC("e"),
+                              ['\v'] = ESC("v"), ['\a'] = ESC("a"),  ['\b'] = ESC("b")};
     int printed = fputc('"', f);
     for (const char *p = quoted.str; *p; p++) {
         const char *name = named[(uint8_t)*p];
