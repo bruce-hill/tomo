@@ -128,6 +128,15 @@
   - The transposition check compared `b[i-2]` instead of `b[j-2]`, so
     transpositions were detected at the wrong offset whenever the two texts
     were different lengths.
+- **Breaking:** `Text.distance()` no longer takes a `language` argument, and
+  its half-cost discount for two graphemes that differ only in case is now
+  ASCII-only. `Bool.parse()` likewise now does its own ASCII comparison, so it
+  accepts `true`, `TRUE`, and `True` but no longer scrambled casings like
+  `tRuE`. Both previously went through libunistring's case folding, which
+  linked its case-mapping tables into every compiled program, since
+  `Text.nearest()` and `Bool`'s metamethods keep them reachable. A non-ASCII
+  case mismatch now scores as a full substitution instead of half, which nudges
+  a suggestion's ranking rather than breaking it.
 - Command-line help, usage, and error messages now respect `NO_COLOR` and
   `COLOR=0`, and drop their color when output isn't a terminal. The escapes
   were previously unconditional, so piping `--help` into a file or pager (or

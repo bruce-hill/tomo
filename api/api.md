@@ -234,7 +234,7 @@ sleep(1.5)
 Bool.parse : func(text: Text, remainder: &Text? = none -> Bool?)
 ```
 
-Converts a text representation of a boolean value into a boolean. Acceptable boolean values are case-insensitive variations of `yes`/`no`, `y`/`n`, `true`/`false`, `on`/`off`.
+Converts a text representation of a boolean value into a boolean. The accepted values are `yes`/`no`, `true`/`false`, `on`/`off`, and `1`/`0`, each written in lowercase (`true`), uppercase (`TRUE`), or capitalized (`True`). Mixed casings like `tRuE` are not accepted.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -5005,7 +5005,7 @@ assert "Amélie".codepoint_names() == [
 ## Text.distance
 
 ```tomo
-Text.distance : func(a: Text, b: Text, language: Text = "C" -> Num)
+Text.distance : func(a: Text, b: Text -> Num)
 ```
 
 Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar.
@@ -5016,7 +5016,6 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 a | `Text` | The first text to compare.  | -
 b | `Text` | The second text to compare.  | -
-language | `Text` | The ISO 639 language code for which character width to use.  | `"C"`
 
 **Return:** The distance between the two texts (larger means more dissimilar).
 

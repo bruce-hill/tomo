@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Bool 3 2025-11-29 "Tomo man-pages"
+.TH Bool 3 2026-08-30 "Tomo man-pages"
 .SH NAME
 Bool \- a Tomo type
 .SH LIBRARY
@@ -12,7 +12,7 @@ Tomo Standard Library
 
 .TP
 .BI Bool.parse\ :\ func(text:\ Text,\ remainder:\ &Text?\ =\ none\ ->\ Bool?)
-Converts a text representation of a boolean value into a boolean. Acceptable boolean values are case-insensitive variations of \fByes\fR/\fBno\fR, \fBy\fR/\fBn\fR, \fBtrue\fR/\fBfalse\fR, \fBon\fR/\fBoff\fR. 
+Converts a text representation of a boolean value into a boolean. The accepted values are \fByes\fR/\fBno\fR, \fBtrue\fR/\fBfalse\fR, \fBon\fR/\fBoff\fR, and \fB1\fR/\fB0\fR, each written in lowercase (\fBtrue\fR), uppercase (\fBTRUE\fR), or capitalized (\fBTrue\fR). Mixed casings like \fBtRuE\fR are not accepted. 
 
 For more, see:
 .BR Tomo-Bool.parse (3)

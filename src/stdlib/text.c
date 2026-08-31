@@ -1454,8 +1454,18 @@ Text_t Text$title(Text_t text, Text_t language) {
     return ret;
 }
 
+// The case discount below is ASCII-only on purpose. Doing it for all of
+// Unicode means u32_casecmp(), and uc_tolower() is no better: either one links
+// a ~21KB case-mapping table (plus special-casing and `cased` data) into every
+// binary, since Text$nearest() keeps this reachable for "did you mean" hints.
+// A non-ASCII case mismatch just scores as a full substitution instead of half,
+// which nudges a suggestion's ranking rather than breaking it.
+static inline PUREFUNC ucs4_t ascii_lower(ucs4_t c) {
+    return (c >= 'A' && c <= 'Z') ? c + ('a' - 'A') : c;
+}
+
 public
-Num_t Text$distance(Text_t a, Text_t b, Text_t language) {
+Num_t Text$distance(Text_t a, Text_t b) {
     if (a.length <= 0) return number_from_int((int64_t)b.length);
     if (b.length <= 0) return number_from_int((int64_t)a.length);
 
@@ -1474,7 +1484,6 @@ Num_t Text$distance(Text_t a, Text_t b, Text_t language) {
 
     TextIter_t a_state = NEW_TEXT_ITER_STATE(a);
     TextIter_t b_state = NEW_TEXT_ITER_STATE(b);
-    const char *uc_language = Text$as_c_string(language);
     for (int64_t i = 1; i <= (int64_t)a.length; i++) {
         for (int64_t j = 1; j <= (int64_t)b.length; j++) {
             int32_t ai = Text$get_grapheme_fast(&a_state, i - 1);
@@ -1486,10 +1495,9 @@ Num_t Text$distance(Text_t a, Text_t b, Text_t language) {
                 if (main_ai == main_bj) {
                     // Same main grapheme (different modifiers)
                     cost = 0.25;
-                } else {
-                    int cmp;
-                    (void)u32_casecmp(&main_ai, 1, &main_bj, 1, uc_language, UNINORM_NFC, &cmp);
-                    if (cmp == 0) cost = 0.5;
+                } else if (ascii_lower(main_ai) == ascii_lower(main_bj)) {
+                    // Same letter, different case
+                    cost = 0.5;
                 }
             }
 
@@ -1952,10 +1960,9 @@ OptionalText_t Text$nearest(Text_t text, List_t candidates, Num_t max_distance) 
     // different word entirely.
     OptionalText_t nearest = NONE_TEXT;
     Num_t nearest_distance = number_from_int(0);
-    Text_t lang = Text("C");
     for (int64_t i = 0; i < (int64_t)candidates.length; i++) {
         Text_t candidate = *(Text_t *)(candidates.data + i * candidates.stride);
-        Num_t distance = Text$distance(text, candidate, lang);
+        Num_t distance = Text$distance(text, candidate);
         int64_t shorter = MIN((int64_t)text.length, (int64_t)candidate.length);
         Num_t limit = number_mul(max_distance, number_from_int(shorter));
         if (number_compare(distance, limit) > 0) continue;

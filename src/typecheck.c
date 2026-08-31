@@ -2181,7 +2181,7 @@ OptionalText_t suggest_best_name(const char *wrong, List_t names) {
     // The per-grapheme ratio alone isn't enough at the long end: 0.6 of a
     // 20-character identifier is 12 edits, which is a different name, not a
     // typo. Cap the absolute distance too.
-    if (number_compare(Text$distance(target, nearest, Text("C")), number_from_int(6)) > 0) return NONE_TEXT;
+    if (number_compare(Text$distance(target, nearest), number_from_int(6)) > 0) return NONE_TEXT;
     return Texts("\nDid you mean '", nearest, "'?");
 }
 

@@ -2,14 +2,14 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.distance 3 2026-08-27 "Tomo man-pages"
+.TH Text.distance 3 2026-08-30 "Tomo man-pages"
 .SH NAME
 Text.distance \- distance between two texts
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Text.distance\ :\ func(a:\ Text,\ b:\ Text,\ language:\ Text\ =\ "C"\ ->\ Num)
+.BI Text.distance\ :\ func(a:\ Text,\ b:\ Text\ ->\ Num)
 .fi
 .SH DESCRIPTION
 Get an approximate distance between two texts, such that when the distance is small, the texts are similar and when the distance is large, the texts are dissimilar.
@@ -19,12 +19,11 @@ Get an approximate distance between two texts, such that when the distance is sm
 
 .TS
 allbox;
-lb lb lbx lb
-l l l l.
-Name	Type	Description	Default
-a	Text	The first text to compare. 	-
-b	Text	The second text to compare. 	-
-language	Text	The ISO 639 language code for which character width to use. 	"C"
+lb lb lbx
+l l l.
+Name	Type	Description
+a	Text	The first text to compare. 
+b	Text	The second text to compare. 
 .TE
 .SH RETURN
 The distance between the two texts (larger means more dissimilar).

@@ -244,11 +244,6 @@ Text.distance:
       type: 'Text'
       description: >
         The second text to compare.
-    language:
-      type: 'Text'
-      default: '"C"'
-      description: >
-        The ISO 639 language code for which character width to use.
   example: |
     assert "hello".distance("hello") == 0
     texts := &["goodbye", "hello", "hallo"]
