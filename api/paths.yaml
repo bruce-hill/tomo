@@ -275,6 +275,10 @@ Path.children:
     Returns a list of children (files and directories) within the directory at
     the specified path. Optionally includes hidden files. Child ordering is not
     specified.
+  note: >
+    The paths returned keep the form of the path they came from: the children
+    of `(./foo)` are relative and the children of `(~/foo)` stay home-based.
+    Use `.resolved()` on them if you need absolute paths.
   return:
     type: '[Path]'
     description: >
@@ -364,6 +368,10 @@ Path.each_child:
     Returns an iterator over the children (files and directories) within the
     directory at the specified path. Optionally includes hidden files.
     Iteration order is not specified.
+  note: >
+    The paths returned keep the form of the path they came from: the children
+    of `(./foo)` are relative and the children of `(~/foo)` stay home-based.
+    Use `.resolved()` on them if you need absolute paths.
   return:
     type: 'func(->Path?)?'
     description: >
@@ -449,6 +457,10 @@ Path.files:
   short: list files in a directory
   description: >
     Returns a list of files within the directory at the specified path. Optionally includes hidden files.
+  note: >
+    The paths returned keep the form of the path they came from: the children
+    of `(./foo)` are relative and the children of `(~/foo)` stay home-based.
+    Use `.resolved()` on them if you need absolute paths.
   return:
     type: '[Path]'
     description: >
@@ -480,6 +492,9 @@ Path.glob:
       choices of patterns.
 
     - The shell-style syntax `**` for matching subdirectories is not supported.
+  note: >
+    Matches keep the form of the pattern they came from: `(./*.txt)` yields
+    relative paths and `(~/*.txt)` yields home-based ones.
   return:
     type: '[Path]'
     description: >
@@ -892,6 +907,10 @@ Path.subdirectories:
   short: get subdirectories
   description: >
     Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
+  note: >
+    The paths returned keep the form of the path they came from: the children
+    of `(./foo)` are relative and the children of `(~/foo)` stay home-based.
+    Use `.resolved()` on them if you need absolute paths.
   return:
     type: '[Path]'
     description: >
@@ -934,7 +953,9 @@ Path.walk:
     subdirectory in a given directory. The iteration order is not defined, but
     in practice it may look a lot like a breadth-first traversal.
   note: >
-    The path itself is always included in the iteration.
+    The path itself is always included in the iteration. The paths returned keep
+    the form of the path they came from: walking `(./foo)` yields relative paths
+    and walking `(~/foo)` yields home-based ones.
   return:
     type: 'func(->Path?)'
     description: >

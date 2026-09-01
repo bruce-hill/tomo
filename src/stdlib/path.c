@@ -118,6 +118,17 @@ char *path_from_buf(char buf[PATH_MAX]) {
     return ret;
 }
 
+// Normalize a string built with String(). normalize_inplace() wants a PATH_MAX
+// buffer, so an over-long path fails here rather than being quietly truncated
+// into a path naming some other file.
+static Path_t path_from_string(const char *str) {
+    size_t len = strlen(str);
+    if (len >= PATH_MAX) fail("Path is too long: ", str);
+    static char buf[PATH_MAX];
+    memcpy(buf, str, len + 1);
+    return path_from_buf(buf);
+}
+
 public
 PUREFUNC
 Path_t Path$from_str(const char *str) {
@@ -138,9 +149,7 @@ static OptionalPath_t Path$_concat2(OptionalPath_t a, OptionalPath_t b) {
         fail("Cannot concatenate an absolute or home-based path onto another path: (", b, ")");
 
     if (b[0] == '.' && b[1] == '\0') return a;
-    static char buf[PATH_MAX];
-    snprintf(buf, sizeof(buf), "%s/%s", a, b);
-    return path_from_buf(buf);
+    return path_from_string(String(a, "/", b));
 }
 
 public
@@ -151,6 +160,20 @@ Path_t Path$expand_home(Path_t path) {
         else if (path[1] == '\0') return home;
     }
     return path;
+}
+
+// The inverse of expand_home(), for methods that must hand libc a real path but
+// should still hand the caller back a path in the form they wrote it.
+static Path_t unexpand_home(Path_t path) {
+    const char *home = getenv("HOME");
+    if (!path || !home || home[0] == '\0') return path;
+    size_t home_len = strlen(home);
+    while (home_len > 1 && home[home_len - 1] == '/')
+        --home_len;
+    if (strncmp(path, home, home_len) != 0) return path;
+    if (path[home_len] == '\0') return HOME_PATH;
+    if (path[home_len] != '/') return path;
+    return Path$from_str(String("~", path + home_len));
 }
 
 public
@@ -624,25 +647,23 @@ retry:
 }
 
 static OptionalList_t _filtered_children(Path_t path, bool include_hidden, mode_t filter) {
-    path = Path$resolved(path, Path$current_dir());
     List_t children = EMPTY_LIST;
     size_t path_len = strlen(path);
-    DIR *d = opendir(path);
+    DIR *d = opendir(Path$expand_home(path));
     if (!d) return NONE_LIST;
 
-    if (path[path_len - 1] == '/') --path_len;
+    if (path_len > 0 && path[path_len - 1] == '/') --path_len;
 
     struct dirent *ent;
     while ((ent = readdir(d)) != NULL) {
         if (!include_hidden && ent->d_name[0] == '.') continue;
         if (streq(ent->d_name, ".") || streq(ent->d_name, "..")) continue;
 
-        const char *child_str = String(string_slice(path, path_len), "/", ent->d_name);
+        Path_t child = Path$from_str(String(string_slice(path, path_len), "/", ent->d_name));
         struct stat sb;
-        if (stat(child_str, &sb) != 0) continue;
+        if (stat(Path$expand_home(child), &sb) != 0) continue;
         if (!((sb.st_mode & S_IFMT) & filter)) continue;
 
-        Path_t child = Path$from_str(child_str);
         List$insert(&children, &child, I(0), sizeof(Path_t));
     }
     closedir(d);
@@ -686,9 +707,7 @@ static OptionalPath_t _next_child(child_info_t *info) {
 
 public
 Closure_t Path$each_child(Path_t path, bool include_hidden) {
-    path = Path$resolved(path, Path$current_dir());
-
-    DIR *d = opendir(path);
+    DIR *d = opendir(Path$expand_home(path));
     if (!d) return NONE_CLOSURE;
 
     child_info_t *info = GC_malloc(sizeof(child_info_t));
@@ -700,6 +719,7 @@ Closure_t Path$each_child(Path_t path, bool include_hidden) {
 
 public
 OptionalPath_t Path$unique_directory(Path_t path) {
+    bool home_based = (path_type(path) == PATH_HOME);
     path = Path$expand_home(path);
     size_t len = strlen(path);
     if (len >= PATH_MAX) fail("Path is too long: ", path);
@@ -709,11 +729,12 @@ OptionalPath_t Path$unique_directory(Path_t path) {
     if (buf[len - 1] == '/') buf[--len] = '\0';
     char *created = mkdtemp(buf);
     if (!created) return NULL;
-    return Path$from_str(created);
+    return home_based ? unexpand_home(Path$from_str(created)) : Path$from_str(created);
 }
 
 public
 OptionalPath_t Path$write_unique_bytes(Path_t path, List_t bytes) {
+    bool home_based = (path_type(path) == PATH_HOME);
     path = Path$expand_home(path);
     size_t len = strlen(path);
     if (len >= PATH_MAX) fail("Path is too long: ", path);
@@ -735,7 +756,7 @@ OptionalPath_t Path$write_unique_bytes(Path_t path, List_t bytes) {
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
     if (written != (ssize_t)bytes.length) fail("Could not write to file: ", buf, " (", strerror(errno), ")");
     close(fd);
-    return Path$from_str(buf);
+    return home_based ? unexpand_home(Path$from_str(buf)) : Path$from_str(buf);
 }
 
 public
@@ -750,9 +771,7 @@ OptionalPath_t Path$parent(Path_t path) {
         return NULL;
     }
     if (streq(path, ".")) return PARENT_PATH;
-    static char buf[PATH_MAX];
-    snprintf(buf, sizeof(buf), "%s/..", path);
-    return path_from_buf(buf);
+    return path_from_string(String(path, "/.."));
 }
 
 static const char *base_name_start(Path_t path) {
@@ -833,36 +852,29 @@ List_t Path$components(Path_t path) {
 
 public
 Path_t Path$child(Path_t path, Text_t name) {
-    static char buf[PATH_MAX];
-    snprintf(buf, sizeof(buf), "%s/%s", path, Text$as_c_string(name));
-    return path_from_buf(buf);
+    return path_from_string(String(path, "/", Text$as_c_string(name)));
 }
 
 public
 Path_t Path$sibling(Path_t path, Text_t name) {
-    static char buf[PATH_MAX];
-    snprintf(buf, sizeof(buf), "%s/../%s", path, Text$as_c_string(name));
-    return path_from_buf(buf);
+    return path_from_string(String(path, "/../", Text$as_c_string(name)));
 }
 
 public
 OptionalPath_t Path$with_extension(Path_t path, Text_t extension, bool replace) {
     if (!path || path[0] == '\0') return NULL;
 
-    static char buf[PATH_MAX];
     const char *ext = Text$as_c_string(extension);
+    const char *dot_or_empty = (ext[0] == '.' || ext[0] == '\0') ? "" : ".";
     if (replace) {
-        char *base = (char *)base_name_start(path);
-        char *dot = base;
+        const char *base = base_name_start(path);
+        const char *dot = base;
         while (*dot && *dot != '.')
             dot += 1;
-        if (ext[0] == '.' || ext[0] == '\0') snprintf(buf, sizeof(buf), "%.*s%s", (int)(dot - path), path, ext);
-        else snprintf(buf, sizeof(buf), "%.*s.%s", (int)(dot - path), path, ext);
+        return path_from_string(String(string_slice(path, (size_t)(dot - path)), dot_or_empty, ext));
     } else {
-        if (ext[0] == '.' || ext[0] == '\0') snprintf(buf, sizeof(buf), "%s%s", path, ext);
-        else snprintf(buf, sizeof(buf), "%s.%s", path, ext);
+        return path_from_string(String(path, dot_or_empty, ext));
     }
-    return path_from_buf(buf);
 }
 
 static void _line_reader_cleanup(FILE **f) {
@@ -943,6 +955,7 @@ OptionalList_t Path$lines(Path_t path) {
 
 public
 List_t Path$glob(Path_t path) {
+    bool home_based = (path_type(path) == PATH_HOME);
     path = Path$expand_home(path);
     glob_t glob_result;
     int status = glob(Path$as_c_string(path), 0, NULL, &glob_result);
@@ -956,6 +969,7 @@ List_t Path$glob(Path_t path) {
                 && glob_result.gl_pathv[i][len - 3] == '/'))
             continue;
         Path_t p = Path$from_str(glob_result.gl_pathv[i]);
+        if (home_based) p = unexpand_home(p);
         List$insert(&glob_files, &p, I(0), sizeof(Path_t));
     }
     return glob_files;
@@ -986,7 +1000,7 @@ static OptionalPath_t _walk_next_path(walk_info_t *info) {
 
         Path_t p = *(Path_t *)info->dir_stack.data;
         List$remove_at(&info->dir_stack, I(1), I(1), sizeof(Path_t));
-        info->dir = opendir(p);
+        info->dir = opendir(Path$expand_home(p));
         info->current = p;
         return p;
     }
@@ -1010,7 +1024,6 @@ static OptionalPath_t _walk_next_path(walk_info_t *info) {
 
 public
 Closure_t Path$walk(Path_t dir, bool include_hidden, bool follow_symlinks) {
-    dir = Path$resolved(dir, Path$current_dir());
     walk_info_t *info = GC_malloc(sizeof(walk_info_t));
     info->dir_stack = List(dir);
     info->current = dir;

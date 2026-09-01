@@ -46,6 +46,24 @@ the possibility of a file operation failing, you can use `!` as a suffix as a
 shorthand for "if this returns `Failure{reason}`, then fail and print the
 reason."
 
+## Path Form is Preserved
+
+Methods that hand back paths derived from a path you gave them --
+`children()`, `files()`, `subdirectories()`, `each_child()`, `walk()`, `glob()`,
+`child()`, `parent()`, `unique_directory()`, and `write_unique()` -- return
+paths in the same form as the one they started from. A relative path stays
+relative and a `~` path stays home-based:
+
+```tomo
+assert (./foo).children() == [(./foo/a.txt)]
+assert (~/foo).children() == [(~/foo/a.txt)]
+assert (/foo).children() == [(/foo/a.txt)]
+```
+
+This means a path can be printed back to the user, or written to a file, in
+the terms they wrote it in. When you do want an absolute path, ask for one with
+`.resolved()`.
+
 ## Internal Representation
 
 Paths are internally represented as C-style NUL-terminated char strings. This

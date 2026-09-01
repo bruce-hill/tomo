@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.subdirectories 3 2026-03-14 "Tomo man-pages"
+.TH Path.subdirectories 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.subdirectories \- get subdirectories
 .SH LIBRARY
@@ -27,6 +27,9 @@ include_hidden		Whether to include hidden subdirectories (those starting with a 
 .TE
 .SH RETURN
 A list of subdirectory paths.
+
+.SH NOTES
+The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
 
 .SH EXAMPLES
 .EX

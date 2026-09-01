@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.walk 3 2026-03-14 "Tomo man-pages"
+.TH Path.walk 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.walk \- walk a filetree
 .SH LIBRARY
@@ -30,7 +30,7 @@ follow_symlinks	Bool	Whether to follow symbolic links. Caution: if set to 'yes',
 An iterator that recursively walks over every file and subdirectory.
 
 .SH NOTES
-The path itself is always included in the iteration.
+The path itself is always included in the iteration. The paths returned keep the form of the path they came from: walking `(./foo)` yields relative paths and walking `(~/foo)` yields home-based ones.
 
 .SH EXAMPLES
 .EX

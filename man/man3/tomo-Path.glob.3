@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.glob 3 2025-11-29 "Tomo man-pages"
+.TH Path.glob 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.glob \- perform file globbing
 .SH LIBRARY
@@ -32,6 +32,9 @@ path	Path	The path of the directory which may contain special globbing character
 .TE
 .SH RETURN
 A list of file paths that match the glob.
+
+.SH NOTES
+Matches keep the form of the pattern they came from: `(./*.txt)` yields relative paths and `(~/*.txt)` yields home-based ones.
 
 .SH EXAMPLES
 .EX

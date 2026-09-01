@@ -283,6 +283,8 @@ Path.children : func(path: Path, include_hidden = no -> [Path])
 
 Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. Child ordering is not specified.
 
+The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
@@ -387,6 +389,8 @@ Path.each_child : func(path: Path, include_hidden = no -> func(->Path?)?)
 
 Returns an iterator over the children (files and directories) within the directory at the specified path. Optionally includes hidden files. Iteration order is not specified.
 
+The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
@@ -476,6 +480,8 @@ Path.files : func(path: Path, include_hidden: Bool = no -> [Path])
 
 Returns a list of files within the directory at the specified path. Optionally includes hidden files.
 
+The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
@@ -502,6 +508,8 @@ Perform a globbing operation and return a list of matching paths. Some glob spec
   choices of patterns.
 
 - The shell-style syntax `**` for matching subdirectories is not supported.
+
+Matches keep the form of the pattern they came from: `(./*.txt)` yields relative paths and `(~/*.txt)` yields home-based ones.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -941,6 +949,8 @@ Path.subdirectories : func(path: Path, include_hidden = no -> [Path])
 
 Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
 
+The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
@@ -985,7 +995,7 @@ Path.walk : func(path: Path, include_hidden = no, follow_symlinks: Bool = no -> 
 
 Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal.
 
-The path itself is always included in the iteration.
+The path itself is always included in the iteration. The paths returned keep the form of the path they came from: walking `(./foo)` yields relative paths and walking `(~/foo)` yields home-based ones.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------

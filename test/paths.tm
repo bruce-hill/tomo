@@ -58,6 +58,42 @@ test "reading and writing files"
 
     >> tmpdir.remove()!
 
+test "enumeration preserves the form of the path"
+    # children(), files(), subdirectories(), each_child(), walk() and glob() used
+    # to resolve their argument against the current directory before reading it,
+    # so every path they handed back was absolute no matter which form it was
+    # asked about. Only the syscalls need a real path now, so `~` is expanded for
+    # those and the caller still gets back what they asked in.
+    home_dir := (~/.tomo-test-form-XXXXXX).unique_directory()
+    (home_dir ++ ./a.txt).write("")!
+    (home_dir ++ ./sub).create_directory()!
+    >> home_dir.components()[1]
+    assert home_dir.components()[1] == "~"
+    >> home_dir.children()
+    # Child ordering is unspecified, so these compare sorted:
+    assert home_dir.children().sorted() == [home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
+    assert home_dir.files() == [home_dir ++ ./a.txt]
+    assert home_dir.subdirectories() == [home_dir ++ ./sub]
+    assert [c for c in home_dir.each_child()].sorted() == [home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
+    assert [p for p in home_dir.walk()].sorted() == [home_dir, home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
+    assert (home_dir ++ ./*.txt).glob() == [home_dir ++ ./a.txt]
+    >> home_dir.remove()!
+
+    rel_dir := (./tomo-test-form-XXXXXX).unique_directory()
+    (rel_dir ++ ./a.txt).write("")!
+    >> rel_dir.components()[1]
+    assert rel_dir.components()[1] == "."
+    >> rel_dir.children()
+    assert rel_dir.children() == [rel_dir ++ ./a.txt]
+    assert [p for p in rel_dir.walk()].sorted() == [rel_dir, rel_dir ++ ./a.txt].sorted()
+    assert (rel_dir ++ ./*.txt).glob() == [rel_dir ++ ./a.txt]
+    >> rel_dir.remove()!
+
+    abs_dir := (/tmp/tomo-test-form-XXXXXX).unique_directory()
+    (abs_dir ++ ./a.txt).write("")!
+    assert abs_dir.children() == [abs_dir ++ ./a.txt]
+    >> abs_dir.remove()!
+
 test "path components"
     >> p := /foo/baz.x/qux.tar.gz
     >> p.base_name()
