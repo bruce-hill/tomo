@@ -183,7 +183,8 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
     switch (use->what) {
     case USE_LOCAL: {
         Path_t source_path = Path$from_str(use_ast->file->filename);
-        Path_t source_dir = Path$parent(source_path);
+        OptionalPath_t source_dir = Path$parent(source_path);
+        assert(source_dir); // A source file always has a directory
         Path_t used_path = Path$resolved(Path$from_str(use->path), source_dir);
 
         if (!Path$exists(used_path)) code_err(use_ast, "No such file exists: ", quoted(use->path));
@@ -1221,7 +1222,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
         switch (Match(ast, Use)->what) {
         case USE_LOCAL: {
             Path_t source_path = Path$from_str(ast->file->filename);
-            Path_t source_dir = Path$parent(source_path);
+            OptionalPath_t source_dir = Path$parent(source_path);
+            assert(source_dir); // A source file always has a directory
             Path_t used_path = Path$resolved(Path$from_str(Match(ast, Use)->path), source_dir);
             return Type(ModuleType, Path$as_c_string(used_path));
         }
@@ -2027,7 +2029,9 @@ public
 List_t get_embed_bytes(ast_t *ast) {
     DeclareMatch(embed, ast, Embed);
     const char *path = Match(embed->path, Path)->path;
-    Path_t resolved = Path$resolved(Path$from_str(path), Path$parent(Path$from_str(ast->file->filename)));
+    OptionalPath_t source_dir = Path$parent(Path$from_str(ast->file->filename));
+    assert(source_dir); // A source file always has a directory
+    Path_t resolved = Path$resolved(Path$from_str(path), source_dir);
     OptionalList_t bytes = Path$read_bytes(resolved, NONE_INT);
     if (bytes.data == NULL) code_err(ast, "I couldn't read this file: ", resolved);
     return bytes;

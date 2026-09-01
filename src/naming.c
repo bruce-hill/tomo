@@ -185,7 +185,9 @@ Path_t tomo_root_for(Path_t dir) {
 
 public
 Path_t tm_build_dir(Path_t tm_path) {
-    Path_t build_dir = tomo_root_for(Path$sibling(tm_path, Text(".")));
+    OptionalPath_t tm_dir = Path$sibling(tm_path, Text("."));
+    assert(tm_dir); // A .tm file always has a directory
+    Path_t build_dir = tomo_root_for(tm_dir);
     if (build_target_platform.length > 0) {
         build_dir = Path$child(build_dir, build_target_platform);
         if (mkdir(Path$as_c_string(build_dir), 0755) != 0) {

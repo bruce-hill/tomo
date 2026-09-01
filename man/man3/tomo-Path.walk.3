@@ -9,7 +9,7 @@ Path.walk \- walk a filetree
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.walk\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no,\ follow_symlinks:\ Bool\ =\ no\ ->\ func(->Path?))
+.BI Path.walk\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no,\ follow_symlinks:\ Bool\ =\ no\ ->\ func(->Path?)?)
 .fi
 .SH DESCRIPTION
 Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal.
@@ -27,18 +27,24 @@ include_hidden	Bool	Whether to include hidden files (those starting with a \fB.\
 follow_symlinks	Bool	Whether to follow symbolic links. Caution: if set to 'yes', it is possible for this iterator to get stuck in a loop, using increasingly large amounts of memory. 	no
 .TE
 .SH RETURN
-An iterator that recursively walks over every file and subdirectory.
+An iterator that recursively walks over every file and subdirectory, or `none` if the path does not exist.
 
 .SH NOTES
 The path itself is always included in the iteration. The paths returned keep the form of the path they came from: walking `(./foo)` yields relative paths and walking `(~/foo)` yields home-based ones.
 
+.SH ERRORS
+Returns `none` if there is nothing at the given path. A path that exists but is not a directory walks over just itself.
+
 .SH EXAMPLES
 .EX
-for p in (/tmp).walk()
+for p in (/tmp).walk()!
     say("File or dir: $p")
 
 # The path itself is always included:
-assert [p for p in (./file.txt).walk()] == [(./file.txt)]
+assert [p for p in (./file.txt).walk()!] == [(./file.txt)]
+
+# A path that isn't there has nothing to walk:
+assert (./not-a-path).walk() == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

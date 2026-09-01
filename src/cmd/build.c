@@ -129,7 +129,9 @@ static int cmd_build(cli_command_t *self, List_t extra_args) {
         OptionalText_t exe_name = Path$base_name(exe_path);
         if (exe_name.tag == TEXT_NONE) print_err("This executable's name is not valid UTF-8: ", exe_path);
         if (cross_compiling) exe_name = Texts(exe_name, ".", target);
-        exe_path = Path$sibling(path, exe_name);
+        OptionalPath_t sibling = Path$sibling(path, exe_name);
+        assert(sibling); // A source file always has a directory
+        exe_path = sibling;
     }
 
     env_t *env = global_env(source_mapping, instrument, debugging);

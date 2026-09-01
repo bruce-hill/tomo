@@ -340,7 +340,7 @@ For more, see:
 
 .TP
 .BI Path.resolved\ :\ func(path:\ Path,\ relative_to:\ Path\ =\ (./)\ ->\ Path)
-Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory. 
+Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory. A relative base is itself resolved against the current directory first, so the result is always absolute. 
 
 For more, see:
 .BR Tomo-Path.resolved (3)
@@ -355,7 +355,7 @@ For more, see:
 
 
 .TP
-.BI Path.sibling\ :\ func(path:\ Path,\ name:\ Text\ ->\ Path)
+.BI Path.sibling\ :\ func(path:\ Path,\ name:\ Text\ ->\ Path?)
 Return a path that is a sibling of another path (i.e. has the same parent, but a different name). This is equivalent to \fB.parent().child(name)\fR 
 
 For more, see:
@@ -379,7 +379,7 @@ For more, see:
 
 
 .TP
-.BI Path.walk\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no,\ follow_symlinks:\ Bool\ =\ no\ ->\ func(->Path?))
+.BI Path.walk\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no,\ follow_symlinks:\ Bool\ =\ no\ ->\ func(->Path?)?)
 Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal. 
 
 For more, see:

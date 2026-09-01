@@ -1,15 +1,15 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.sibling 3 2025-11-29 "Tomo man-pages"
+.TH Path.sibling 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.sibling \- get another path in the same directory
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.sibling\ :\ func(path:\ Path,\ name:\ Text\ ->\ Path)
+.BI Path.sibling\ :\ func(path:\ Path,\ name:\ Text\ ->\ Path?)
 .fi
 .SH DESCRIPTION
 Return a path that is a sibling of another path (i.e. has the same parent, but a different name). This is equivalent to `.parent().child(name)`
@@ -26,11 +26,15 @@ path	Path	A path.
 name	Text	The name of a sibling file or directory. 
 .TE
 .SH RETURN
-A new path representing the sibling.
+A new path representing the sibling, or `none` if the path is `(/)`.
+
+.SH ERRORS
+Returns `none` for a path with no parent to put a sibling beside, which is the file root `(/)`.
 
 .SH EXAMPLES
 .EX
 assert (/foo/baz).sibling("doop") == (/foo/doop)
+assert (/).sibling("doop") == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

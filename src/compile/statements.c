@@ -223,7 +223,9 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         if (use->what == USE_LOCAL) {
             Path_t path = Path$from_str(Match(ast, Use)->path);
             Path_t in_file = Path$from_str(ast->file->filename);
-            path = Path$resolved(path, Path$parent(in_file));
+            OptionalPath_t in_dir = Path$parent(in_file);
+            assert(in_dir); // A source file always has a directory
+            path = Path$resolved(path, in_dir);
             Text_t suffix = get_id_suffix(Path$as_c_string(path));
             return with_source_info(env, ast, Texts("$initialize", suffix, "();\n"));
         } else if (use->what == USE_PACKAGE) {

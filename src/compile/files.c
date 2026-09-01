@@ -198,7 +198,8 @@ Text_t compile_file(env_t *env, ast_t *ast) {
                 if (path[0] != '/') {
                     // If we have `use ./foo.c`, then we need to remap it in source code to
                     // `#include "../foo.c"`, since it will be inside the .tomo directory.
-                    Path_t parent = Path$parent(Path(ast->file->filename));
+                    OptionalPath_t parent = Path$parent(Path(ast->file->filename));
+                    assert(parent); // A source file always has a directory
                     path = Path$relative_to(Path$resolved(Path$from_str(use->path), parent), parent);
                     path = Path$concat("..", path);
                 }

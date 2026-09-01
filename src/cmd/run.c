@@ -153,7 +153,9 @@ static int run_file(List_t extra_args) {
             Path_t path =
                 Path$child(Path$child(xdg_tomo_dir("XDG_STATE_HOME", "~/.local/state"), Texts("tomo@", TOMO_VERSION)),
                            Text("run.tm"));
-            Path$create_directory(Path$parent(path), 0755, true);
+            OptionalPath_t parent = Path$parent(path);
+            assert(parent); // The path names a file to write
+            Path$create_directory(parent, 0755, true);
             if (!Path$exists(path)) {
                 Path$write(path,
                            Text("# This is a handy Tomo REPL-like runner\n" //

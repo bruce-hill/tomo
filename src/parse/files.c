@@ -53,7 +53,9 @@ static ast_t *parse_metadata(parse_ctx_t *ctx, const char *pos) {
         value = parse_path(ctx, pos);
         if (!value) return NULL;
         Path_t path = Path$from_str(Match(value, Path)->path);
-        path = Path$resolved(path, Path$parent(Path$from_str(ctx->file->filename)));
+        OptionalPath_t source_dir = Path$parent(Path$from_str(ctx->file->filename));
+        assert(source_dir); // A source file always has a directory
+        path = Path$resolved(path, source_dir);
         OptionalText_t contents = Path$read(path);
         if (contents.tag == TEXT_NONE) parser_err(ctx, value->start, value->end, "File not found: ", path);
         value_text = Text$trim(contents, Text("\r\n\t "), true, true);

@@ -192,8 +192,11 @@ static void add_dir_files(Table_t *files, Path_t dir, const char *prefix) {
 }
 
 static bool is_store_entry_dir(Path_t dir) {
-    return Text$equal_values(Path$base_name(Path$parent(dir)), Text("store"))
-           && Text$equal_values(Path$base_name(Path$parent(Path$parent(dir))), Text(".tomo"));
+    OptionalPath_t parent = Path$parent(dir);
+    OptionalPath_t grandparent = parent ? Path$parent(parent) : NULL;
+    if (grandparent == NULL) return false; // Too close to the root to be one
+    return Text$equal_values(Path$base_name(parent), Text("store"))
+           && Text$equal_values(Path$base_name(grandparent), Text(".tomo"));
 }
 
 // Collect the binding names and (transitively) the store-entry digests that
@@ -322,7 +325,8 @@ static void add_package_bindings(env_t *env, Table_t *bindings, Path_t consumer_
 void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
     Table_t dep_files = EMPTY_TABLE, to_link = EMPTY_TABLE;
     build_file_dependency_graph(env->build_info, main_file, &dep_files, &to_link);
-    Path_t root = Path$parent(main_file);
+    OptionalPath_t root = Path$parent(main_file);
+    assert(root); // A source file always has a directory
 
     // Zip entry name -> source file path, deduplicated (several sources can
     // share a directory and thus a packages.ini). Files outside the project
@@ -350,7 +354,8 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
         }
         Table$str_set(&files, rel, Path$as_c_string(entry->filename));
         add_package_bindings(env, &bindings, entry->filename, "", root);
-        Path_t ini = Path$sibling(entry->filename, Text("packages.ini"));
+        OptionalPath_t ini = Path$sibling(entry->filename, Text("packages.ini"));
+        assert(ini); // The entry names a file
         if (Path$is_file(ini, true))
             Table$str_set(&files, Path$as_c_string(Path$relative_to(ini, root)), Path$as_c_string(ini));
     }
@@ -360,7 +365,8 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
     for (int64_t i = 0; i < (int64_t)to_link.entries.length; i++) {
         Text_t lib = *(Text_t *)(to_link.entries.data + i * to_link.entries.stride);
         if (!Text$ends_with(lib, Text("/package.a"), NULL)) continue;
-        Path_t pkg_dir = Path$parent(Path$from_text(lib));
+        OptionalPath_t pkg_dir = Path$parent(Path$from_text(lib));
+        assert(pkg_dir); // The library path names a file
         Table$str_set(&package_dirs, Path$as_c_string(pkg_dir), Path$as_c_string(pkg_dir));
     }
 
@@ -472,7 +478,9 @@ static void create_extracted_links(Path_t outdir, char *manifest) {
                              : Path$child(outdir, Text$from_str(dep));
         Path_t link_dir = *consumer ? Path$child(Path$child(store, Text$from_str(consumer)), Text("packages"))
                                     : Path$child(Path$child(outdir, Text(".tomo")), Text("packages"));
-        if (Path$is_directory(dep_dir, true) && (!*consumer || Path$is_directory(Path$parent(link_dir), true))) {
+        OptionalPath_t link_parent = Path$parent(link_dir);
+        assert(link_parent); // packages/<name> always has a packages/ above it
+        if (Path$is_directory(dep_dir, true) && (!*consumer || Path$is_directory(link_parent, true))) {
             Result_t result = Path$create_directory(link_dir, 0755, true);
             if (result.Failure.reason.tag == TEXT_NONE) {
                 Path_t link = Path$child(link_dir, Text$from_str(name));
@@ -508,7 +516,10 @@ void extract_embedded_source(Path_t binary) {
     mz_zip_archive zip = {};
     if (!mz_zip_reader_init_mem(&zip, zip_start, (size_t)(zip_end - zip_start), 0))
         print_err("The embedded Tomo source in ", binary, " is not a valid zip file");
-    Path_t outdir = Path$sibling(binary, Texts(Path$base_name(binary), Text("-source")));
+    OptionalText_t binary_name = Path$base_name(binary);
+    assert(binary_name.tag != TEXT_NONE);
+    OptionalPath_t outdir = Path$sibling(binary, Texts(binary_name, Text("-source")));
+    assert(outdir); // The binary always has a directory
     bool extracted_packages = false;
     char *links_manifest = NULL;
     for (mz_uint i = 0; i < mz_zip_reader_get_num_files(&zip); i++) {
@@ -536,7 +547,9 @@ void extract_embedded_source(Path_t binary) {
         const char *out_name = stat.m_filename;
         if (strncmp(out_name, "store/", strlen("store/")) == 0) out_name = String(".tomo/", out_name);
         Path_t out = Path$child(outdir, Text$from_str(out_name));
-        Path$create_directory(Path$parent(out), 0755, true);
+        OptionalPath_t out_dir = Path$parent(out);
+        assert(out_dir); // The output path names a file
+        Path$create_directory(out_dir, 0755, true);
         int out_fd = open(out, O_CREAT | O_TRUNC | O_WRONLY, 0644);
         if (out_fd < 0) print_err("Could not write extracted file: ", out);
         write_all(out_fd, data, size, out);
@@ -1104,11 +1117,13 @@ bool is_config_outdated(Path_t path) {
 void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_compile, Table_t *to_link) {
     if (Table$has_value(*to_compile, path, Table$info(&Path$info, &Byte$info))) return;
 
+    OptionalPath_t packages_ini = Path$sibling(path, Text("packages.ini"));
+    assert(packages_ini); // A source file always has a directory
     staleness_t staleness = {
-        .h = is_stale(build_file(path, ".h"), Path$sibling(path, Text("packages.ini")), true)
+        .h = is_stale(build_file(path, ".h"), packages_ini, true)
              || is_stale(build_file(path, ".h"), path, false)
              || is_stale(build_file(path, ".h"), build_file(path, ".id"), false),
-        .c = is_stale(build_file(path, ".c"), Path$sibling(path, Text("packages.ini")), true)
+        .c = is_stale(build_file(path, ".c"), packages_ini, true)
              || is_stale(build_file(path, ".c"), path, false)
              || is_stale(build_file(path, ".c"), build_file(path, ".id"), false),
     };
@@ -1129,7 +1144,9 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
 
         switch (use->what) {
         case USE_LOCAL: {
-            Path_t dep_tm = Path$resolved(Path$from_str(use->path), Path$parent(path));
+            OptionalPath_t source_dir = Path$parent(path);
+            assert(source_dir); // A source file always has a directory
+            Path_t dep_tm = Path$resolved(Path$from_str(use->path), source_dir);
             if (!Path$is_file(dep_tm, true)) code_err(stmt_ast, "Not a valid file: ", dep_tm);
             if (is_stale(build_file(path, ".h"), dep_tm, false)) staleness.h = true;
             if (is_stale(build_file(path, ".c"), dep_tm, false)) staleness.c = true;
@@ -1173,7 +1190,9 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
         }
         case USE_ASM: {
             Path_t asm_path = Path$from_str(use->path);
-            asm_path = Path$concat(Path$parent(path), asm_path);
+            OptionalPath_t source_dir = Path$parent(path);
+            assert(source_dir); // A source file always has a directory
+            asm_path = Path$concat(source_dir, asm_path);
             Text_t linker_text = Path$as_text(&asm_path, NULL, &Path$info);
             Table$set(to_link, &linker_text, NULL, Table$info(&Text$info, &Void$info));
             if (is_stale(build_file(path, ".o"), asm_path, false)) {
@@ -1186,7 +1205,9 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
         case USE_C_CODE: {
             if (use->path[0] == '<') break;
 
-            Path_t dep_path = Path$resolved(Path$from_str(use->path), Path$parent(path));
+            OptionalPath_t source_dir = Path$parent(path);
+            assert(source_dir); // A source file always has a directory
+            Path_t dep_path = Path$resolved(Path$from_str(use->path), source_dir);
             if (is_stale(build_file(path, ".o"), dep_path, false)) {
                 staleness.o = true;
                 Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
@@ -1212,7 +1233,8 @@ time_t latest_included_modification_time(Path_t path) {
     OptionalClosure_t by_line = Path$by_line(path);
     if (by_line.fn == NULL) return 0;
     OptionalText_t (*next_line)(void *) = by_line.fn;
-    Path_t parent = Path$parent(path);
+    OptionalPath_t parent = Path$parent(path);
+    assert(parent); // A source file always has a directory
     bool allow_dot_include = Path$has_extension(path, Text("s")) || Path$has_extension(path, Text("S"));
     for (OptionalText_t line; (line = next_line(by_line.userdata)).tag != TEXT_NONE;) {
         line = Text$trim(line, Text(" \t"), true, false);
@@ -1432,9 +1454,11 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
         List$insert(&linked_archives, &archive_path, I(0), sizeof(Path_t));
     }
 
+    OptionalPath_t exe_packages_ini = Path$sibling(path, Text("packages.ini"));
+    assert(exe_packages_ini); // A source file always has a directory
     if (!clean_build && Path$is_file(exe_path, true) && !is_config_outdated(path)
         && !is_stale_for_any(exe_path, object_files, false) && !is_stale_for_any(exe_path, linked_archives, true)
-        && !is_stale(exe_path, Path$sibling(path, Text("packages.ini")), true)) {
+        && !is_stale(exe_path, exe_packages_ini, true)) {
         LOG(LOG_SKIP, "Unchanged: ", exe_path);
         return exe_path;
     }
@@ -1443,7 +1467,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     // build_info. It costs a few git subprocesses, so skip it for ephemeral
     // `tomo run`/`eval` executables, where the metadata is thrown away with the
     // binary; only persistent `build`/`install` artifacts pay for it:
-    if (embed_git_info) TOMO_PROFILE_SPAN("git info", add_git_info(env, Path$parent(path)));
+    OptionalPath_t source_dir = Path$parent(path);
+    assert(source_dir); // A source file always has a directory
+    if (embed_git_info) TOMO_PROFILE_SPAN("git info", add_git_info(env, source_dir));
 
     // Zip up the program's sources for embedding into the executable:
     Path_t source_blob = build_file(path, ".source.zip");
@@ -1562,7 +1588,9 @@ Path_t compile_executable(env_t *base_env, Path_t path, Path_t exe_path, List_t 
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) exit(EXIT_FAILURE);
 
     LOG(LOG_BUILD, "Compiled executable:\t", Path$relative_to(exe_path, Path$current_dir()));
-    gc_package_dir(Path$parent(path));
+    OptionalPath_t package_dir = Path$parent(path);
+    assert(package_dir); // A source file always has a directory
+    gc_package_dir(package_dir);
     return exe_path;
 }
 

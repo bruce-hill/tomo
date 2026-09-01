@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Path.resolved\ :\ func(path:\ Path,\ relative_to:\ Path\ =\ (./)\ ->\ Path)
 .fi
 .SH DESCRIPTION
-Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
+Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory. A relative base is itself resolved against the current directory first, so the result is always absolute.
 
 
 .SH ARGUMENTS
@@ -30,7 +30,9 @@ The resolved absolute path.
 
 .SH EXAMPLES
 .EX
+# Assume the current directory is /home/user
 assert (~/foo).resolved() == (/home/user/foo)
+assert (./foo).resolved() == (/home/user/foo)
 assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.txt)
 .EE
 .SH SEE ALSO

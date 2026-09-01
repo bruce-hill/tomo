@@ -68,7 +68,8 @@ static int cmd_package(cli_command_t *self, List_t extra_args) {
 
     if (files.length > 0) {
         files = normalize_tm_paths(files);
-        Path_t pkg_dir = Path$parent(*(Path_t *)files.data);
+        OptionalPath_t pkg_dir = Path$parent(*(Path_t *)files.data);
+        assert(pkg_dir); // The list holds .tm files, which have a directory
         Path_t archive = output != NULL ? Path$resolved(output, cwd) : Path$child(pkg_dir, Text("package.a"));
         pid_t child = fork();
         if (child == 0) {

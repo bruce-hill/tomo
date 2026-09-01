@@ -409,10 +409,10 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
             {"resolved", "Path$resolved", "func(path:Path, relative_to=(./) -> Path)"}, //
             {"set_owner", "Path$set_owner",
              "func(path:Path, owner:Text?=none, group:Text?=none, follow_symlinks=yes -> Result)"}, //
-            {"sibling", "Path$sibling", "func(path:Path, name:Text -> Path)"}, //
+            {"sibling", "Path$sibling", "func(path:Path, name:Text -> Path?)"}, //
             {"subdirectories", "Path$subdirectories", "func(path:Path, include_hidden=no -> [Path]?)"}, //
             {"unique_directory", "Path$unique_directory", "func(path:Path -> Path?)"}, //
-            {"walk", "Path$walk", "func(path:Path, include_hidden=no, follow_symlinks=no -> func(->Path?))"}, //
+            {"walk", "Path$walk", "func(path:Path, include_hidden=no, follow_symlinks=no -> func(->Path?)?)"}, //
             {"with_extension", "Path$with_extension", "func(path:Path, extension:Text, replace:Bool=yes -> Path)"}, //
             {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
             {"writer", "Path$writer",
@@ -425,7 +425,7 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
         MAKE_TYPE( //
             "Text", TEXT_TYPE, Text("Text_t"), Text("Text$info"), //
             {"as_c_string", "Text$as_c_string", "func(text:Text -> CString)"}, //
-            {"at", "Text$cluster", "func(text:Text, index:Int -> Text)"}, //
+            {"at", "Text$cluster", "func(text:Text, index:Int -> Text?)"}, //
             {"by_line", "Text$by_line", "func(text:Text -> func(->Text?))"}, //
             {"by_split", "Text$by_split", "func(text:Text, delimiter='' -> func(->Text?))"}, //
             {"by_split_any", "Text$by_split_any", "func(text:Text, delimiters=' \\t\\r\\n' -> func(->Text?))"}, //

@@ -39,8 +39,9 @@ OptionalPath_t package_store_entry(Path_t path) {
         if (parent == NULL || parent[0] == '\0' || streq(parent, path) || streq(parent, ".")
             || Text$equal_values(Path$base_name(parent), Text("..")))
             return NONE_PATH;
-        if (Text$equal_values(Path$base_name(parent), Text("store"))
-            && Text$equal_values(Path$base_name(Path$parent(parent)), Text(".tomo")))
+        OptionalPath_t grandparent = Path$parent(parent);
+        if (grandparent != NULL && Text$equal_values(Path$base_name(parent), Text("store"))
+            && Text$equal_values(Path$base_name(grandparent), Text(".tomo")))
             return path;
         path = parent;
     }
@@ -52,8 +53,14 @@ OptionalPath_t package_store_entry(Path_t path) {
 // or its own directory's .tomo/store:
 static Path_t package_store_root(Path_t using_file) {
     OptionalPath_t entry = package_store_entry(using_file);
-    if (entry != NULL) return Path$parent(entry);
-    return Path$child(tomo_root_for(Path$parent(using_file)), Text("store"));
+    if (entry != NULL) {
+        OptionalPath_t store = Path$parent(entry);
+        assert(store); // A store entry sits inside a store directory
+        return store;
+    }
+    OptionalPath_t using_dir = Path$parent(using_file);
+    assert(using_dir); // A source file always has a directory
+    return Path$child(tomo_root_for(using_dir), Text("store"));
 }
 
 // A literal ":" isn't valid in a filename on Windows, so this gets stripped
@@ -88,9 +95,11 @@ static Path_t download_cache_dir(Text_t digest) {
 // directory-source packages) get absolute link targets.
 static void create_binding_link(Path_t using_file, const char *name, Path_t installed) {
     if (strchr(name, '/') != NULL) return; // Just in case: never write outside packages/
-    Path_t using_dir = Path$parent(using_file);
+    OptionalPath_t using_dir = Path$parent(using_file);
+    OptionalPath_t installed_parent = Path$parent(installed);
+    assert(using_dir && installed_parent); // Both name things inside a directory
     bool consumer_in_store = package_store_entry(using_file) != NULL;
-    bool dep_in_this_store = streq(Path$parent(installed), package_store_root(using_file));
+    bool dep_in_this_store = streq(installed_parent, package_store_root(using_file));
 
     Path_t link_dir = consumer_in_store ? Path$child(using_dir, Text("packages"))
                                         : Path$child(tomo_root_for(using_dir), Text("packages"));
@@ -206,7 +215,9 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
     Table$str_set(&pkg->info, "source", source);
     if (source[0] == '.' || source[0] == '/' || source[0] == '~') {
         Path_t source_path = Path$from_str(source);
-        source_path = Path$resolved(source_path, Path$parent(ini_file));
+        OptionalPath_t ini_dir = Path$parent(ini_file);
+        assert(ini_dir); // packages.ini always sits in a directory
+        source_path = Path$resolved(source_path, ini_dir);
         if (!Path$exists(source_path)) {
             print("No such file: ", source_path);
             return NONE_PATH;
@@ -222,7 +233,9 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
             xsystem(quoted(tomo_exe()), " package ", source_path);
             return source_path;
         } else {
-            return try_install_package_from_file(pkg, source, Path$resolved(source, Path$parent(ini_file)), NULL,
+            OptionalPath_t file_ini_dir = Path$parent(ini_file);
+            assert(file_ini_dir); // packages.ini always sits in a directory
+            return try_install_package_from_file(pkg, source, Path$resolved(source, file_ini_dir), NULL,
                                                  store_root);
         }
     }
@@ -381,7 +394,10 @@ static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool
 }
 
 static bool ini_is_writable(Path_t ini_file) {
-    return Path$exists(ini_file) ? Path$can_write(ini_file) : Path$can_write(Path$parent(ini_file));
+    if (Path$exists(ini_file)) return Path$can_write(ini_file);
+    OptionalPath_t ini_dir = Path$parent(ini_file);
+    assert(ini_dir); // packages.ini always sits in a directory
+    return Path$can_write(ini_dir);
 }
 
 // Package pins are just an optimization, so skip the write instead of
@@ -455,7 +471,8 @@ OptionalPath_t find_installed_package(Table_t *build_info, ast_t *use) {
     Path_t store_root = package_store_root(using_file);
     OptionalPath_t installed = NONE_PATH;
 
-    Path_t local_package = Path$sibling(using_file, Text("packages.ini"));
+    OptionalPath_t local_package = Path$sibling(using_file, Text("packages.ini"));
+    assert(local_package); // A source file always has a directory
     installed = get_package_install_location(build_info, local_package, name, store_root);
 
     if (installed == NULL) {
@@ -475,8 +492,10 @@ static bool parse_package_entry(Path_t ini_file, const char *name, pkg_info_t *p
 // nothing. NULL if the package isn't pinned by digest (e.g. a
 // directory-source package) or isn't found at all:
 const char *find_pinned_digest(Path_t using_file, const char *name) {
+    OptionalPath_t local_ini = Path$sibling(using_file, Text("packages.ini"));
+    assert(local_ini); // A source file always has a directory
     Path_t candidates[] = {
-        Path$sibling(using_file, Text("packages.ini")),
+        local_ini,
         Path$from_text(Texts(Text$from_str(TOMO_PATH), "/lib/tomo@", TOMO_VERSION, "/packages.ini")),
     };
     for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {

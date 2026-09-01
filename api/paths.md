@@ -986,6 +986,8 @@ relative_to | `Path` | The base path for the relative path. Unlike `Path.resolve
 
 **Example:**
 ```tomo
+# A path relative to itself is the current directory:
+assert (/tmp).relative_to((/tmp)) == (.)
 assert "$((./path/to/file.txt).relative_to((./path)))" == "to/file.txt"
 assert "$((/tmp/foo).relative_to((/tmp)))" == "foo"
 assert (/a/b/c).relative_to((/a/x)) == (../b/c)
@@ -1018,7 +1020,7 @@ ignore_missing | `Bool` | Whether to ignore errors if the file or directory does
 Path.resolved : func(path: Path, relative_to: Path = (./) -> Path)
 ```
 
-Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
+Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory. A relative base is itself resolved against the current directory first, so the result is always absolute.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -1030,7 +1032,9 @@ relative_to | `Path` | The base path for resolution.  | `(./)`
 
 **Example:**
 ```tomo
+# Assume the current directory is /home/user
 assert (~/foo).resolved() == (/home/user/foo)
+assert (./foo).resolved() == (/home/user/foo)
 assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.txt)
 
 ```
@@ -1060,22 +1064,25 @@ follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 ## Path.sibling
 
 ```tomo
-Path.sibling : func(path: Path, name: Text -> Path)
+Path.sibling : func(path: Path, name: Text -> Path?)
 ```
 
 Return a path that is a sibling of another path (i.e. has the same parent, but a different name). This is equivalent to `.parent().child(name)`
+
+Returns `none` for a path with no parent to put a sibling beside, which is the file root `(/)`.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | A path.  | -
 name | `Text` | The name of a sibling file or directory.  | -
 
-**Return:** A new path representing the sibling.
+**Return:** A new path representing the sibling, or `none` if the path is `(/)`.
 
 
 **Example:**
 ```tomo
 assert (/foo/baz).sibling("doop") == (/foo/doop)
+assert (/).sibling("doop") == none
 
 ```
 ## Path.subdirectories
@@ -1131,12 +1138,14 @@ created.remove()!
 ## Path.walk
 
 ```tomo
-Path.walk : func(path: Path, include_hidden: Bool = no, follow_symlinks: Bool = no -> func(->Path?))
+Path.walk : func(path: Path, include_hidden: Bool = no, follow_symlinks: Bool = no -> func(->Path?)?)
 ```
 
 Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal.
 
 The path itself is always included in the iteration. The paths returned keep the form of the path they came from: walking `(./foo)` yields relative paths and walking `(~/foo)` yields home-based ones.
+
+Returns `none` if there is nothing at the given path. A path that exists but is not a directory walks over just itself.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -1144,16 +1153,19 @@ path | `Path` | The path to begin the walk.  | -
 include_hidden | `Bool` | Whether to include hidden files (those starting with a `.`)  | `no`
 follow_symlinks | `Bool` | Whether to follow symbolic links. Caution: if set to 'yes', it is possible for this iterator to get stuck in a loop, using increasingly large amounts of memory.  | `no`
 
-**Return:** An iterator that recursively walks over every file and subdirectory.
+**Return:** An iterator that recursively walks over every file and subdirectory, or `none` if the path does not exist.
 
 
 **Example:**
 ```tomo
-for p in (/tmp).walk()
+for p in (/tmp).walk()!
     say("File or dir: $p")
 
 # The path itself is always included:
-assert [p for p in (./file.txt).walk()] == [(./file.txt)]
+assert [p for p in (./file.txt).walk()!] == [(./file.txt)]
+
+# A path that isn't there has nothing to walk:
+assert (./not-a-path).walk() == none
 
 ```
 ## Path.with_extension

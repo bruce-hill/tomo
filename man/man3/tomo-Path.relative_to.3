@@ -33,6 +33,8 @@ The result has no leading `./`, so a path naming something inside the base path 
 
 .SH EXAMPLES
 .EX
+# A path relative to itself is the current directory:
+assert (/tmp).relative_to((/tmp)) == (.)
 assert "$((./path/to/file.txt).relative_to((./path)))" == "to/file.txt"
 assert "$((/tmp/foo).relative_to((/tmp)))" == "foo"
 assert (/a/b/c).relative_to((/a/x)) == (../b/c)

@@ -26,24 +26,28 @@ assert "Hello".as_c_string() == CString("Hello")
 ## Text.at
 
 ```tomo
-Text.at : func(text: Text, index: Int -> Text)
+Text.at : func(text: Text, index: Int -> Text?)
 ```
 
 Get the graphical cluster at a given index. This is similar to `str[i]` with ASCII text, but has more correct behavior for unicode text.
 
 Negative indices are counted from the back of the text, so `-1` means the last cluster, `-2` means the second-to-last, and so on.
 
+Returns `none` if the index is out of range, the same as `text[i]` does.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 text | `Text` | The text from which to get a cluster.  | -
 index | `Int` | The index of the graphical cluster (1-indexed).  | -
 
-**Return:** A `Text` with the single graphical cluster at the given index.
+**Return:** A `Text` with the single graphical cluster at the given index, or `none` if there is no cluster there.
 
 
 **Example:**
 ```tomo
 assert "Amélie".at(3) == "é"
+assert "Amélie".at(-1) == "e"
+assert "Amélie".at(99) == none
 
 ```
 ## Text.by_line

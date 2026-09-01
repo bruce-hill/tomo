@@ -1,15 +1,15 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Text.at 3 2025-11-29 "Tomo man-pages"
+.TH Text.at 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Text.at \- get a letter
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Text.at\ :\ func(text:\ Text,\ index:\ Int\ ->\ Text)
+.BI Text.at\ :\ func(text:\ Text,\ index:\ Int\ ->\ Text?)
 .fi
 .SH DESCRIPTION
 Get the graphical cluster at a given index. This is similar to `str[i]` with ASCII text, but has more correct behavior for unicode text.
@@ -26,14 +26,19 @@ text	Text	The text from which to get a cluster.
 index	Int	The index of the graphical cluster (1-indexed). 
 .TE
 .SH RETURN
-A `Text` with the single graphical cluster at the given index.
+A `Text` with the single graphical cluster at the given index, or `none` if there is no cluster there.
 
 .SH NOTES
 Negative indices are counted from the back of the text, so `-1` means the last cluster, `-2` means the second-to-last, and so on.
 
+.SH ERRORS
+Returns `none` if the index is out of range, the same as `text[i]` does.
+
 .SH EXAMPLES
 .EX
 assert "Amélie".at(3) == "é"
+assert "Amélie".at(-1) == "e"
+assert "Amélie".at(99) == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Text (3)

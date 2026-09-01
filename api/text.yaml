@@ -19,10 +19,13 @@ Text.at:
   description: >
     Get the graphical cluster at a given index. This is similar to `str[i]` with
     ASCII text, but has more correct behavior for unicode text.
+  errors: >
+    Returns `none` if the index is out of range, the same as `text[i]` does.
   return:
-    type: 'Text'
+    type: 'Text?'
     description: >
-      A `Text` with the single graphical cluster at the given index.
+      A `Text` with the single graphical cluster at the given index, or `none`
+      if there is no cluster there.
   note: >
     Negative indices are counted from the back of the text, so `-1` means the
     last cluster, `-2` means the second-to-last, and so on.
@@ -37,6 +40,8 @@ Text.at:
         The index of the graphical cluster (1-indexed).
   example: |
     assert "Amélie".at(3) == "é"
+    assert "Amélie".at(-1) == "e"
+    assert "Amélie".at(99) == none
 
 Text.by_line:
   short: iterate by line

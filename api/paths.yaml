@@ -980,6 +980,8 @@ Path.relative_to:
         The base path for the relative path. Unlike `Path.resolved`, this
         argument is required.
   example: |
+    # A path relative to itself is the current directory:
+    assert (/tmp).relative_to((/tmp)) == (.)
     assert "$((./path/to/file.txt).relative_to((./path)))" == "to/file.txt"
     assert "$((/tmp/foo).relative_to((/tmp)))" == "foo"
     assert (/a/b/c).relative_to((/a/x)) == (../b/c)
@@ -1008,7 +1010,10 @@ Path.remove:
 Path.resolved:
   short: resolve a path
   description: >
-    Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
+    Resolves the absolute path of the given path relative to a base path. By
+    default, the base path is the current directory. A relative base is itself
+    resolved against the current directory first, so the result is always
+    absolute.
   return:
     type: 'Path'
     description: >
@@ -1024,7 +1029,9 @@ Path.resolved:
       description: >
         The base path for resolution.
   example: |
+    # Assume the current directory is /home/user
     assert (~/foo).resolved() == (/home/user/foo)
+    assert (./foo).resolved() == (/home/user/foo)
     assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.txt)
 
 Path.set_owner:
@@ -1063,10 +1070,13 @@ Path.sibling:
   description: >
     Return a path that is a sibling of another path (i.e. has the same parent,
     but a different name). This is equivalent to `.parent().child(name)`
+  errors: >
+    Returns `none` for a path with no parent to put a sibling beside, which is
+    the file root `(/)`.
   return:
-    type: 'Path'
+    type: 'Path?'
     description: >
-      A new path representing the sibling.
+      A new path representing the sibling, or `none` if the path is `(/)`.
   args:
     path:
       type: 'Path'
@@ -1078,6 +1088,7 @@ Path.sibling:
         The name of a sibling file or directory.
   example: |
     assert (/foo/baz).sibling("doop") == (/foo/doop)
+    assert (/).sibling("doop") == none
 
 Path.subdirectories:
   short: get subdirectories
@@ -1139,10 +1150,14 @@ Path.walk:
     The path itself is always included in the iteration. The paths returned keep
     the form of the path they came from: walking `(./foo)` yields relative paths
     and walking `(~/foo)` yields home-based ones.
+  errors: >
+    Returns `none` if there is nothing at the given path. A path that exists but
+    is not a directory walks over just itself.
   return:
-    type: 'func(->Path?)'
+    type: 'func(->Path?)?'
     description: >
-      An iterator that recursively walks over every file and subdirectory.
+      An iterator that recursively walks over every file and subdirectory, or
+      `none` if the path does not exist.
   args:
     path:
       type: 'Path'
@@ -1161,11 +1176,14 @@ Path.walk:
         possible for this iterator to get stuck in a loop, using increasingly
         large amounts of memory.
   example: |
-    for p in (/tmp).walk()
+    for p in (/tmp).walk()!
         say("File or dir: $p")
 
     # The path itself is always included:
-    assert [p for p in (./file.txt).walk()] == [(./file.txt)]
+    assert [p for p in (./file.txt).walk()!] == [(./file.txt)]
+
+    # A path that isn't there has nothing to walk:
+    assert (./not-a-path).walk() == none
 
 Path.with_extension:
   short: replace or add a file extension

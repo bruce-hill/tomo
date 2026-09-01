@@ -76,7 +76,9 @@ static void normalize_inplace(char path[PATH_MAX]) {
                 *dest = '\0';
             }
             // For ".."
-            if (component_len == 2 && src[0] == '.' && src[1] == '.') {
+            if (component_len == 2 && src[0] == '.' && src[1] == '.' && buf[0] == '/' && dest == buf + 1) {
+                ; // Nothing above the root: "/.." is "/", as Path$parent() agrees
+            } else if (component_len == 2 && src[0] == '.' && src[1] == '.') {
                 // Find previous component:
                 char *prev_slash = dest - 2;
                 while (prev_slash >= buf && *prev_slash != '/')
@@ -102,7 +104,7 @@ static void normalize_inplace(char path[PATH_MAX]) {
         if (src[component_len] == '\0') break;
     }
 
-    *(dest++) = '\0';
+    *dest = '\0';
 
     if (dest == buf) {
         path[0] = '.';
@@ -204,7 +206,10 @@ Path_t Path$resolved(Path_t path, Path_t relative_to) {
     switch (path_type(path)) {
     case PATH_HOME: return Path$expand_home(path);
     case PATH_ABSOLUTE: return path;
-    case PATH_RELATIVE: return Path$_concat2(relative_to, path);
+    case PATH_RELATIVE:
+        // Path$relative_to() already does this to its own base:
+        if (path_type(relative_to) != PATH_ABSOLUTE) relative_to = Path$resolved(relative_to, Path$current_dir());
+        return Path$_concat2(relative_to, path);
     default: return path;
     }
 }
@@ -901,8 +906,13 @@ Path_t Path$child(Path_t path, Text_t name) {
 }
 
 public
-Path_t Path$sibling(Path_t path, Text_t name) {
-    return path_from_string(String(path, "/../", Text$as_c_string(name)));
+OptionalPath_t Path$sibling(Path_t path, Text_t name) {
+    // Written as the ".parent().child(name)" it is documented to be, rather
+    // than by appending "/../name": that spelling gave the root a sibling,
+    // while Path$parent() says the root has no parent to put one beside.
+    OptionalPath_t parent = Path$parent(path);
+    if (parent == NULL) return NONE_PATH;
+    return Path$child(parent, name);
 }
 
 public
@@ -1220,7 +1230,13 @@ static OptionalPath_t _walk_next_path(walk_info_t *info) {
 }
 
 public
-Closure_t Path$walk(Path_t dir, bool include_hidden, bool follow_symlinks) {
+OptionalClosure_t Path$walk(Path_t dir, bool include_hidden, bool follow_symlinks) {
+    // There is nothing to walk if the path is not there. lstat(), not stat():
+    // a dangling symlink is still an entry, and walk() yields the path itself
+    // before descending into it.
+    struct stat sb;
+    if (lstat(Path$expand_home(dir), &sb) != 0) return NONE_CLOSURE;
+
     walk_info_t *info = GC_malloc(sizeof(walk_info_t));
     info->dir_stack = List(dir);
     info->current = dir;

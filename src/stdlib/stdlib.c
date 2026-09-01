@@ -125,7 +125,10 @@ void tomo_configure(void) {
     const char *p = get_library_path(get_library_path);
     p = find_in_path(p);
     Path_t path = Path$from_str(p);
-    TOMO_PATH = Path$as_c_string(Path$parent(Path$parent(path)));
+    OptionalPath_t lib_dir = Path$parent(path);
+    OptionalPath_t prefix = lib_dir ? Path$parent(lib_dir) : NULL;
+    assert(prefix); // Tomo installs as PREFIX/lib/libtomo@<version>.so
+    TOMO_PATH = Path$as_c_string(prefix);
     OptionalText_t base_name = Path$base_name(path);
     if (base_name.tag == TEXT_NONE) fail("Tomo is installed at a path that is not valid UTF-8: ", path);
     TOMO_VERSION_TEXT = Text$without_suffix(

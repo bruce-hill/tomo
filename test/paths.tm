@@ -75,7 +75,7 @@ test "enumeration preserves the form of the path"
     assert home_dir.files()! == [home_dir ++ ./a.txt]
     assert home_dir.subdirectories()! == [home_dir ++ ./sub]
     assert [c for c in home_dir.each_child()!].sorted() == [home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
-    assert [p for p in home_dir.walk()].sorted() == [home_dir, home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
+    assert [p for p in home_dir.walk()!].sorted() == [home_dir, home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
     assert home_dir.glob("*.txt")! == [home_dir ++ ./a.txt]
     >> home_dir.remove()!
 
@@ -85,7 +85,7 @@ test "enumeration preserves the form of the path"
     assert rel_dir.components()![1] == "."
     >> rel_dir.children()
     assert rel_dir.children()! == [rel_dir ++ ./a.txt]
-    assert [p for p in rel_dir.walk()].sorted() == [rel_dir, rel_dir ++ ./a.txt].sorted()
+    assert [p for p in rel_dir.walk()!].sorted() == [rel_dir, rel_dir ++ ./a.txt].sorted()
     assert rel_dir.glob("*.txt")! == [rel_dir ++ ./a.txt]
     >> rel_dir.remove()!
 
@@ -134,7 +134,7 @@ test "move refuses to overwrite unless asked, and understands ~"
 
     # Home-based paths reach rename(2) expanded now:
     home_src := (~/.tomo-test-move-XXXXXX).unique_directory()!
-    home_dest := home_src.sibling("tomo-test-move-destination")
+    home_dest := home_src.sibling("tomo-test-move-destination")!
     assert home_src.move(home_dest).Success
     assert home_dest.is_directory()
     assert not home_src.exists()
@@ -175,6 +175,55 @@ test "unique paths do not alias each other"
     assert g.read()! == "second"
     >> f.remove()!
     >> g.remove()!
+
+test "the root has no parent and so no siblings"
+    # sibling() appended "/../name" and normalized, so (/).sibling("x") gave
+    # (/x) while (/).parent() gave none: the root had a sibling but nothing to
+    # be a sibling of. It is written as the .parent().child(name) it is
+    # documented to be now, so the two agree.
+    assert (/).parent() == none
+    assert (/).sibling("x") == none
+    assert (/foo/baz).sibling("doop") == (/foo/doop)
+    assert (/foo).sibling("bar") == (/bar)
+    # It really is parent-then-child, for every form:
+    for p in [(/foo/baz), (./foo/baz), (~/foo/baz), (../baz)]
+        assert p.sibling("doop") == p.parent()!.child("doop")
+
+    # "/.." is "/", so climbing past the root stays there:
+    assert ((/) ++ (../..)) == (/)
+    assert ((/foo/bar) ++ (../../..)) == (/)
+    # ...while a relative path keeps climbing, having no root to stop at:
+    assert ((..) ++ (..)) == (../..)
+
+test "relative_to and resolved agree about the current directory"
+    # relative_to() returned an empty path when the two sides matched, because
+    # normalize_inplace()'s "nothing was written" fallback compared a pointer it
+    # had already incremented and so never fired. An empty path is one the type
+    # cannot otherwise hold: Path$from_str() maps "" to (/).
+    assert (/tmp).relative_to((/tmp)) == (.)
+    assert (/).relative_to((/)) == (.)
+
+    # resolved() concatenated onto its base without making the base absolute,
+    # so with the default base of (./) it returned a relative path despite its
+    # name and its documented return value.
+    assert (./foo).resolved() == Path.current_dir().child("foo")
+    assert (.).resolved() == Path.current_dir()
+    assert (./a/b).resolved(relative_to=(/tmp)) == (/tmp/a/b)
+
+test "walking something that isn't there gives none"
+    # walk() handed back an iterator over the path itself even when nothing was
+    # at that path, so an empty tree and a missing one looked the same. It is
+    # optional now, like each_child().
+    assert (./tomo-no-such-path).walk() == none
+    assert (.).walk() != none
+
+    # A path that exists but is not a directory still walks over just itself:
+    dir := (/tmp/tomo-test-walk-XXXXXX).unique_directory()!
+    file := dir ++ ./only.txt
+    file.write("")!
+    assert [p for p in file.walk()!] == [file]
+    assert [p for p in dir.walk()!].sorted() == [dir, file].sorted()
+    >> dir.remove()!
 
 test "path components"
     >> p := /foo/baz.x/qux.tar.gz

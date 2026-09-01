@@ -848,6 +848,8 @@ test "Path.read_bytes"
 
 test "Path.relative_to"
     if no
+        # A path relative to itself is the current directory:
+        assert (/tmp).relative_to((/tmp)) == (.)
         assert "$((./path/to/file.txt).relative_to((./path)))" == "to/file.txt"
         assert "$((/tmp/foo).relative_to((/tmp)))" == "foo"
         assert (/a/b/c).relative_to((/a/x)) == (../b/c)
@@ -858,7 +860,9 @@ test "Path.remove"
 
 test "Path.resolved"
     if no
+        # Assume the current directory is /home/user
         assert (~/foo).resolved() == (/home/user/foo)
+        assert (./foo).resolved() == (/home/user/foo)
         assert (./path/to/file.txt).resolved(relative_to=(/foo)) == (/foo/path/to/file.txt)
 
 test "Path.set_owner"
@@ -868,6 +872,7 @@ test "Path.set_owner"
 test "Path.sibling"
     if no
         assert (/foo/baz).sibling("doop") == (/foo/doop)
+        assert (/).sibling("doop") == none
 
 test "Path.subdirectories"
     if no
@@ -882,11 +887,14 @@ test "Path.unique_directory"
 
 test "Path.walk"
     if no
-        for p in (/tmp).walk()
+        for p in (/tmp).walk()!
             say("File or dir: $p")
         
         # The path itself is always included:
-        assert [p for p in (./file.txt).walk()] == [(./file.txt)]
+        assert [p for p in (./file.txt).walk()!] == [(./file.txt)]
+        
+        # A path that isn't there has nothing to walk:
+        assert (./not-a-path).walk() == none
 
 test "Path.with_extension"
     if no
@@ -994,6 +1002,8 @@ test "Text.as_c_string"
 
 test "Text.at"
     assert "Amélie".at(3) == "é"
+    assert "Amélie".at(-1) == "e"
+    assert "Amélie".at(99) == none
 
 test "Text.by_line"
     text := "

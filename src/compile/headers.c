@@ -154,8 +154,10 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
     case Use: {
         DeclareMatch(use, ast, Use);
         Path_t source_path = Path$from_str(ast->file->filename);
-        Path_t source_dir = Path$parent(source_path);
-        Path_t build_dir = Path$resolved(Path$parent(header_path), Path$current_dir());
+        OptionalPath_t source_dir = Path$parent(source_path);
+        OptionalPath_t header_dir = Path$parent(header_path);
+        assert(source_dir && header_dir); // Both name files, so both have a parent
+        Path_t build_dir = Path$resolved(header_dir, Path$current_dir());
         switch (use->what) {
         case USE_PACKAGE: {
             OptionalPath_t installed = find_installed_package(env->build_info, ast);
