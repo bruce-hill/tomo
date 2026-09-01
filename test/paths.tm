@@ -67,8 +67,8 @@ test "enumeration preserves the form of the path"
     home_dir := (~/.tomo-test-form-XXXXXX).unique_directory()!
     (home_dir ++ ./a.txt).write("")!
     (home_dir ++ ./sub).create_directory()!
-    >> home_dir.components()[1]
-    assert home_dir.components()[1] == "~"
+    >> home_dir.components()![1]
+    assert home_dir.components()![1] == "~"
     >> home_dir.children()
     # Child ordering is unspecified, so these compare sorted:
     assert home_dir.children()!.sorted() == [home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
@@ -81,8 +81,8 @@ test "enumeration preserves the form of the path"
 
     rel_dir := (./tomo-test-form-XXXXXX).unique_directory()!
     (rel_dir ++ ./a.txt).write("")!
-    >> rel_dir.components()[1]
-    assert rel_dir.components()[1] == "."
+    >> rel_dir.components()![1]
+    assert rel_dir.components()![1] == "."
     >> rel_dir.children()
     assert rel_dir.children()! == [rel_dir ++ ./a.txt]
     assert [p for p in rel_dir.walk()].sorted() == [rel_dir, rel_dir ++ ./a.txt].sorted()
@@ -134,8 +134,11 @@ test "path components"
     assert (./foo).has_extension("")
     assert (..).has_extension("")
     assert not (~/.foo).has_extension("foo")
-    assert (~/.foo).extension() == ""
-    assert (~/foo).extension() == ""
+    # No "." in the name at all means no extension, which is none, not "":
+    assert (~/.foo).extension() == none
+    assert (~/foo).extension() == none
+    assert (./foo.).extension() == none
+    assert (..).extension() == none
     assert (~/.foo.baz.qux).extension() == "baz.qux"
     assert (~/x/.).parent() == (~)
     assert (~/x).parent() == (~)
@@ -143,6 +146,15 @@ test "path components"
     assert (..).parent() == (../..)
     assert (../foo).parent() == (..)
     assert (/).parent() == none
+
+test "extension() and has_extension(\"\") agree"
+    # For any name that is valid UTF-8, "the extension is none" and "it has no
+    # extension" have to be the same question. The root used to answer no to
+    # has_extension("") while reporting no extension.
+    for p in [(./foo), (./foo.txt), (./.git), (./foo.), (./a.tar.gz), (..), (.), (/), (~), (~/x.y)]
+        no_ext := p.has_extension("")
+        assert (p.extension() == none) == no_ext,
+            "$p: extension() is $(p.extension()) but has_extension of an empty text is $no_ext"
 
 test "path concatenation"
     # Concatenation tests:

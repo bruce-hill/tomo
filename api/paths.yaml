@@ -77,10 +77,14 @@ Path.base_name:
   short: base name of a file
   description: >
     Returns the base name of the file or directory at the specified path.
+  errors: >
+    A POSIX filename is an arbitrary sequence of bytes, but `Text` holds
+    Unicode, so this returns `none` when the name is not valid UTF-8.
   return:
-    type: 'Text'
+    type: 'Text?'
     description: >
-      The base name of the file or directory.
+      The base name of the file or directory, or `none` if it is not valid
+      UTF-8.
   args:
     path:
       type: 'Path'
@@ -138,11 +142,15 @@ Path.components:
   short: Get the components of a path
   description: >
     Returns a list of the file components of a path.
+  errors: >
+    A POSIX filename is an arbitrary sequence of bytes, but `Text` holds
+    Unicode, so this returns `none` when the name is not valid UTF-8.
   return:
-    type: '[Text]'
+    type: '[Text]?'
     description: >
-      Each of the file components of the path in a list. Note: for absolute
-      paths, the first component will be "/". Trailing slashes are ignored.
+      Each of the file components of the path in a list, or `none` if any
+      component is not valid UTF-8. Note: for absolute paths, the first
+      component will be "/". Trailing slashes are ignored.
   args:
     path:
       type: 'Path'
@@ -474,11 +482,18 @@ Path.extension:
   short: get file extension
   description: >
     Returns the file extension of the file at the specified path. Optionally returns the full extension.
+  note: >
+    A name with no `.` in it has no extension, and gives `none` rather than an
+    empty text. A leading `.` does not count, so a dotfile like `(./.git)` has
+    no extension, and neither does a name ending in a `.`.
+  errors: >
+    Also returns `none` when the name is not valid UTF-8, a POSIX filename
+    being an arbitrary sequence of bytes while `Text` holds Unicode.
   return:
-    type: 'Text'
+    type: 'Text?'
     description: >
-      The file extension (not including the leading `.`) or an empty text if there is
-      no file extension.
+      The file extension, not including the leading `.`, or `none` if there is
+      no extension.
   args:
     path:
       type: 'Path'
@@ -493,8 +508,11 @@ Path.extension:
   example: |
     assert (./file.tar.gz).extension() == "tar.gz"
     assert (./file.tar.gz).extension(full=no) == "gz"
-    assert (/foo).extension() == ""
-    assert (./.git).extension() == ""
+
+    # No "." in the name means no extension:
+    assert (/foo).extension() == none
+    assert (./.git).extension() == none
+    assert (./foo.).extension() == none
 
 Path.files:
   short: list files in a directory
@@ -584,7 +602,9 @@ Path.group:
 Path.has_extension:
   short: check if a path has a given extension
   description: >
-    Return whether or not a path has a given file extension.
+    Return whether or not a path has a given file extension. Unlike
+    `Path.extension`, this reads the raw bytes of the name and so works on
+    names that are not valid UTF-8.
   return:
     type: 'Bool'
     description: >
@@ -604,6 +624,11 @@ Path.has_extension:
     assert (/foo.txt).has_extension(".txt")
     assert (/foo.tar.gz).has_extension("gz")
     assert not (/foo.tar.gz).has_extension("zip")
+
+    # Asking for an empty extension is the same question as `.extension()`
+    # being `none`, for any name that is valid UTF-8:
+    assert (/foo).has_extension("")
+    assert (/).has_extension("")
 
 Path.is_directory:
   short: check if a path is a directory

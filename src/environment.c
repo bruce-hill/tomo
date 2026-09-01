@@ -368,7 +368,7 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
             {"append", "Path$append", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //
             {"append_bytes", "Path$append_bytes",
              "func(path:Path, bytes:[Byte], permissions=Int32(0o644) -> Result)"}, //
-            {"base_name", "Path$base_name", "func(path:Path -> Text)"}, //
+            {"base_name", "Path$base_name", "func(path:Path -> Text?)"}, //
             {"bytes", "Path$bytes", "func(path:Path -> [Byte])"}, //
             {"by_line", "Path$by_line", "func(path:Path -> func(->Text?)?)"}, //
             {"can_execute", "Path$can_execute", "func(path:Path -> Bool)"}, //
@@ -378,7 +378,7 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
             {"child", "Path$child", "func(path:Path, child:Text -> Path)"}, //
             {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path]?)"}, //
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"}, //
-            {"components", "Path$components", "func(path:Path -> [Text])"}, //
+            {"components", "Path$components", "func(path:Path -> [Text]?)"}, //
             {"copy_to", "Path$copy_to", "func(path:Path, dest:Path, overwrite=no -> Result)"}, //
             {"create_directory", "Path$create_directory",
              "func(path:Path, permissions=Int32(0o755), recursive=yes -> Result)"}, //
@@ -386,7 +386,7 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
             {"each_child", "Path$each_child", "func(path:Path, include_hidden=no -> func(->Path?)?)"}, //
             {"exists", "Path$exists", "func(path:Path -> Bool)"}, //
             {"expand_home", "Path$expand_home", "func(path:Path -> Path)"}, //
-            {"extension", "Path$extension", "func(path:Path, full=yes -> Text)"}, //
+            {"extension", "Path$extension", "func(path:Path, full=yes -> Text?)"}, //
             {"files", "Path$files", "func(path:Path, include_hidden=no -> [Path]?)"}, //
             {"glob", "Path$glob", "func(path:Path -> [Path])"}, //
             {"group", "Path$group", "func(path:Path, follow_symlinks=yes -> Text?)"}, //

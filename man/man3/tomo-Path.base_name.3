@@ -1,15 +1,15 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.base_name 3 2025-11-29 "Tomo man-pages"
+.TH Path.base_name 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.base_name \- base name of a file
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.base_name\ :\ func(path:\ Path\ ->\ Text)
+.BI Path.base_name\ :\ func(path:\ Path\ ->\ Text?)
 .fi
 .SH DESCRIPTION
 Returns the base name of the file or directory at the specified path.
@@ -25,7 +25,10 @@ Name	Type	Description
 path	Path	The path of the file or directory. 
 .TE
 .SH RETURN
-The base name of the file or directory.
+The base name of the file or directory, or `none` if it is not valid UTF-8.
+
+.SH ERRORS
+A POSIX filename is an arbitrary sequence of bytes, but `Text` holds Unicode, so this returns `none` when the name is not valid UTF-8.
 
 .SH EXAMPLES
 .EX

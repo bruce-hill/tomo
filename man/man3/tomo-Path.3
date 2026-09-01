@@ -35,7 +35,7 @@ For more, see:
 
 
 .TP
-.BI Path.base_name\ :\ func(path:\ Path\ ->\ Text)
+.BI Path.base_name\ :\ func(path:\ Path\ ->\ Text?)
 Returns the base name of the file or directory at the specified path. 
 
 For more, see:
@@ -115,7 +115,7 @@ For more, see:
 
 
 .TP
-.BI Path.components\ :\ func(path:\ Path\ ->\ [Text])
+.BI Path.components\ :\ func(path:\ Path\ ->\ [Text]?)
 Returns a list of the file components of a path. 
 
 For more, see:
@@ -179,7 +179,7 @@ For more, see:
 
 
 .TP
-.BI Path.extension\ :\ func(path:\ Path,\ full:\ Bool\ =\ yes\ ->\ Text)
+.BI Path.extension\ :\ func(path:\ Path,\ full:\ Bool\ =\ yes\ ->\ Text?)
 Returns the file extension of the file at the specified path. Optionally returns the full extension. 
 
 For more, see:
@@ -212,7 +212,7 @@ For more, see:
 
 .TP
 .BI Path.has_extension\ :\ func(path:\ Path,\ extension:\ Text\ ->\ Bool)
-Return whether or not a path has a given file extension. 
+Return whether or not a path has a given file extension. Unlike \fBPath.extension\fR, this reads the raw bytes of the name and so works on names that are not valid UTF-8. 
 
 For more, see:
 .BR Tomo-Path.has_extension (3)

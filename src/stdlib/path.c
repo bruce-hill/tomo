@@ -790,31 +790,40 @@ static const char *base_name_start(Path_t path) {
 }
 
 public
-PUREFUNC Text_t Path$base_name(Path_t path) {
+PUREFUNC OptionalText_t Path$base_name(Path_t path) {
+    // A POSIX filename is any byte sequence, so this is none when the name is
+    // not valid UTF-8. Text$from_strn() already reports that; it used to be
+    // discarded by a non-optional return type.
     const char *base = base_name_start(path);
     return Text$from_strn(base, strcspn(base, "/"));
 }
 
 public
-Text_t Path$extension(Path_t path, bool full) {
+OptionalText_t Path$extension(Path_t path, bool full) {
     const char *base = base_name_start(path);
-    if (!base || base[0] == '\0') return EMPTY_TEXT;
+    if (!base || base[0] == '\0') return NONE_TEXT;
     if (base[0] == '.') base += 1;
     const char *dot = full ? strchr(base + 1, '.') : strrchr(base + 1, '.');
-    const char *extension = dot ? dot + 1 : "";
-    return Text$from_strn(extension, strcspn(extension, "/"));
+    if (!dot) return NONE_TEXT; // No "." in the name at all
+    const char *extension = dot + 1;
+    size_t len = strcspn(extension, "/");
+    if (len == 0) return NONE_TEXT; // A trailing "." is not an extension
+    return Text$from_strn(extension, len);
 }
 
 public
 bool Path$has_extension(Path_t path, Text_t extension) {
     const char *base = base_name_start(path);
-    if (!base || base[0] == '\0') return false;
+    // A path with no base name, such as the root, has no extension, so it
+    // answers yes only to the "does it lack one?" question:
+    if (!base || base[0] == '\0') return extension.length == 0;
     if (base[0] == '.') base += 1;
     const char *end = base;
     while (*end && *end != '/')
         end += 1;
     int64_t base_len = (int64_t)(end - base);
-    if (base_len <= 0) return false;
+    // Nothing after the leading ".", as in (.) itself: no extension.
+    if (base_len <= 0) return extension.length == 0;
     if (extension.length == 0) {
         const char *dot = strrchr(base, '.');
         return dot == NULL || dot[1] == '\0' || dot == base;
@@ -831,7 +840,7 @@ bool Path$has_extension(Path_t path, Text_t extension) {
 }
 
 public
-List_t Path$components(Path_t path) {
+OptionalList_t Path$components(Path_t path) {
     char buf[PATH_MAX + 1] = {};
     size_t len = MIN(strlen(path), PATH_MAX);
     memcpy(buf, path, len);
@@ -843,7 +852,10 @@ List_t Path$components(Path_t path) {
     }
     for (char *comp = buf, *next = buf; (comp = strsep(&next, "/"));) {
         if (comp[0] != '\0') {
-            Text_t comp_text = Text$from_str(comp);
+            OptionalText_t comp_text = Text$from_str(comp);
+            // One undecodable component makes the whole split meaningless,
+            // rather than leaving a silent "" in the middle of the list:
+            if (comp_text.tag == TEXT_NONE) return NONE_LIST;
             List$insert(&components, &comp_text, I(0), sizeof(comp_text));
         }
     }

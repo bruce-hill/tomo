@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.has_extension 3 2025-11-29 "Tomo man-pages"
+.TH Path.has_extension 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.has_extension \- check if a path has a given extension
 .SH LIBRARY
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Path.has_extension\ :\ func(path:\ Path,\ extension:\ Text\ ->\ Bool)
 .fi
 .SH DESCRIPTION
-Return whether or not a path has a given file extension.
+Return whether or not a path has a given file extension. Unlike `Path.extension`, this reads the raw bytes of the name and so works on names that are not valid UTF-8.
 
 
 .SH ARGUMENTS
@@ -34,6 +34,11 @@ assert (/foo.txt).has_extension("txt")
 assert (/foo.txt).has_extension(".txt")
 assert (/foo.tar.gz).has_extension("gz")
 assert not (/foo.tar.gz).has_extension("zip")
+
+# Asking for an empty extension is the same question as `.extension()`
+# being `none`, for any name that is valid UTF-8:
+assert (/foo).has_extension("")
+assert (/).has_extension("")
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

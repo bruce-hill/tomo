@@ -725,8 +725,11 @@ test "Path.extension"
     if no
         assert (./file.tar.gz).extension() == "tar.gz"
         assert (./file.tar.gz).extension(full=no) == "gz"
-        assert (/foo).extension() == ""
-        assert (./.git).extension() == ""
+        
+        # No "." in the name means no extension:
+        assert (/foo).extension() == none
+        assert (./.git).extension() == none
+        assert (./foo.).extension() == none
 
 test "Path.files"
     if no
@@ -753,6 +756,11 @@ test "Path.has_extension"
         assert (/foo.txt).has_extension(".txt")
         assert (/foo.tar.gz).has_extension("gz")
         assert not (/foo.tar.gz).has_extension("zip")
+        
+        # Asking for an empty extension is the same question as `.extension()`
+        # being `none`, for any name that is valid UTF-8:
+        assert (/foo).has_extension("")
+        assert (/).has_extension("")
 
 test "Path.is_directory"
     if no

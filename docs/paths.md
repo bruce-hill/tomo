@@ -87,6 +87,11 @@ name := Text(path)!
 
 The same is true of `Text(cstring)` and `CString.as_text`, for the same reason.
 
+`Path.base_name`, `Path.extension`, and `Path.components` produce `Text` out of
+the same bytes, so they are optional too. `Path.has_extension` is not: it
+compares raw bytes and never decodes, so it keeps working on names that
+`Path.extension` cannot represent.
+
 # API
 
 [API documentation](../api/paths.md)

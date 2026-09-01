@@ -1,15 +1,15 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.extension 3 2025-11-29 "Tomo man-pages"
+.TH Path.extension 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.extension \- get file extension
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.extension\ :\ func(path:\ Path,\ full:\ Bool\ =\ yes\ ->\ Text)
+.BI Path.extension\ :\ func(path:\ Path,\ full:\ Bool\ =\ yes\ ->\ Text?)
 .fi
 .SH DESCRIPTION
 Returns the file extension of the file at the specified path. Optionally returns the full extension.
@@ -26,14 +26,23 @@ path	Path	The path of the file. 	-
 full	Bool	Whether to return everything after the first \fB.\fR in the base name, or only the last part of the extension. 	yes
 .TE
 .SH RETURN
-The file extension (not including the leading `.`) or an empty text if there is no file extension.
+The file extension, not including the leading `.`, or `none` if there is no extension.
+
+.SH NOTES
+A name with no `.` in it has no extension, and gives `none` rather than an empty text. A leading `.` does not count, so a dotfile like `(./.git)` has no extension, and neither does a name ending in a `.`.
+
+.SH ERRORS
+Also returns `none` when the name is not valid UTF-8, a POSIX filename being an arbitrary sequence of bytes while `Text` holds Unicode.
 
 .SH EXAMPLES
 .EX
 assert (./file.tar.gz).extension() == "tar.gz"
 assert (./file.tar.gz).extension(full=no) == "gz"
-assert (/foo).extension() == ""
-assert (./.git).extension() == ""
+
+# No "." in the name means no extension:
+assert (/foo).extension() == none
+assert (./.git).extension() == none
+assert (./foo.).extension() == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

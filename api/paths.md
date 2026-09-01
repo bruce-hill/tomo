@@ -72,16 +72,18 @@ permissions | `Int32` | The permissions to set on the file if it is being create
 ## Path.base_name
 
 ```tomo
-Path.base_name : func(path: Path -> Text)
+Path.base_name : func(path: Path -> Text?)
 ```
 
 Returns the base name of the file or directory at the specified path.
+
+A POSIX filename is an arbitrary sequence of bytes, but `Text` holds Unicode, so this returns `none` when the name is not valid UTF-8.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file or directory.  | -
 
-**Return:** The base name of the file or directory.
+**Return:** The base name of the file or directory, or `none` if it is not valid UTF-8.
 
 
 **Example:**
@@ -306,16 +308,18 @@ assert (./not-a-directory).children() == none
 ## Path.components
 
 ```tomo
-Path.components : func(path: Path -> [Text])
+Path.components : func(path: Path -> [Text]?)
 ```
 
 Returns a list of the file components of a path.
+
+A POSIX filename is an arbitrary sequence of bytes, but `Text` holds Unicode, so this returns `none` when the name is not valid UTF-8.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file or directory.  | -
 
-**Return:** Each of the file components of the path in a list. Note: for absolute paths, the first component will be "/". Trailing slashes are ignored.
+**Return:** Each of the file components of the path in a list, or `none` if any component is not valid UTF-8. Note: for absolute paths, the first component will be "/". Trailing slashes are ignored.
 
 
 **Example:**
@@ -487,25 +491,32 @@ assert (/foo).expand_home() == (/foo)
 ## Path.extension
 
 ```tomo
-Path.extension : func(path: Path, full: Bool = yes -> Text)
+Path.extension : func(path: Path, full: Bool = yes -> Text?)
 ```
 
 Returns the file extension of the file at the specified path. Optionally returns the full extension.
+
+A name with no `.` in it has no extension, and gives `none` rather than an empty text. A leading `.` does not count, so a dotfile like `(./.git)` has no extension, and neither does a name ending in a `.`.
+
+Also returns `none` when the name is not valid UTF-8, a POSIX filename being an arbitrary sequence of bytes while `Text` holds Unicode.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file.  | -
 full | `Bool` | Whether to return everything after the first `.` in the base name, or only the last part of the extension.  | `yes`
 
-**Return:** The file extension (not including the leading `.`) or an empty text if there is no file extension.
+**Return:** The file extension, not including the leading `.`, or `none` if there is no extension.
 
 
 **Example:**
 ```tomo
 assert (./file.tar.gz).extension() == "tar.gz"
 assert (./file.tar.gz).extension(full=no) == "gz"
-assert (/foo).extension() == ""
-assert (./.git).extension() == ""
+
+# No "." in the name means no extension:
+assert (/foo).extension() == none
+assert (./.git).extension() == none
+assert (./foo.).extension() == none
 
 ```
 ## Path.files
@@ -593,7 +604,7 @@ assert (/non/existent/file).group() == none
 Path.has_extension : func(path: Path, extension: Text -> Bool)
 ```
 
-Return whether or not a path has a given file extension.
+Return whether or not a path has a given file extension. Unlike `Path.extension`, this reads the raw bytes of the name and so works on names that are not valid UTF-8.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -609,6 +620,11 @@ assert (/foo.txt).has_extension("txt")
 assert (/foo.txt).has_extension(".txt")
 assert (/foo.tar.gz).has_extension("gz")
 assert not (/foo.tar.gz).has_extension("zip")
+
+# Asking for an empty extension is the same question as `.extension()`
+# being `none`, for any name that is valid UTF-8:
+assert (/foo).has_extension("")
+assert (/).has_extension("")
 
 ```
 ## Path.is_directory
