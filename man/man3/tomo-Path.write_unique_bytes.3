@@ -2,14 +2,14 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.write_unique_bytes 3 2026-03-08 "Tomo man-pages"
+.TH Path.write_unique_bytes 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.write_unique_bytes \- write bytes to a uniquely named file
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.write_unique_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte]\ ->\ Path)
+.BI Path.write_unique_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte]\ ->\ Path?)
 .fi
 .SH DESCRIPTION
 Writes the given bytes to a unique file path based on the specified path. The file is created if it doesn't exist. This is useful for creating temporary files.
@@ -26,12 +26,13 @@ path	Path	The base path for generating the unique file. This path must include t
 bytes	[Byte]	The bytes to write to the file. 
 .TE
 .SH RETURN
-The path of the newly created unique file.
+The path of the newly created unique file, or `none` if the file could not be created.
 
 .SH EXAMPLES
 .EX
+# The created path has the XXXXXX replaced by random characters,
+# e.g. (./file-27QHtq.txt):
 created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])!
-assert created == (./file-27QHtq.txt)
 assert created.read_bytes()! == [1, 2, 3]
 created.remove()!
 .EE

@@ -18,9 +18,9 @@ test "child paths"
     assert (~).child(filename) == ~/example.txt
 
 test "unique directory and subdirectories"
-    >> tmpdir := (/tmp/tomo-test-path-XXXXXX).unique_directory()
-    >> (/tmp).subdirectories().has(tmpdir)
-    assert (/tmp).subdirectories().has(tmpdir)
+    >> tmpdir := (/tmp/tomo-test-path-XXXXXX).unique_directory()!
+    >> (/tmp).subdirectories()!.has(tmpdir)
+    assert (/tmp).subdirectories()!.has(tmpdir)
 
 test "optional path"
     >> optional_path : Path? = ./foo
@@ -28,16 +28,16 @@ test "optional path"
     assert optional_path == ./foo
 
 test "reading and writing files"
-    >> tmpdir := (/tmp/tomo-test-path-XXXXXX).unique_directory()
+    >> tmpdir := (/tmp/tomo-test-path-XXXXXX).unique_directory()!
     >> tmpfile := tmpdir ++ ./one.txt
     >> tmpfile.write("Hello world")!
     >> tmpfile.append("!")!
     >> tmpfile.read()
     >> tmpfile.read_bytes()!
-    >> tmpdir.files().has(tmpfile)
+    >> tmpdir.files()!.has(tmpfile)
     assert tmpfile.read() == "Hello world!"
     assert tmpfile.read_bytes()! == [0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6C, 0x64, 0x21]
-    assert tmpdir.files().has(tmpfile)
+    assert tmpdir.files()!.has(tmpfile)
 
     if tmp_lines := tmpfile.by_line() then
         assert [line for line in tmp_lines] == ["Hello world!"]
@@ -53,8 +53,8 @@ test "reading and writing files"
 
     >> tmpfile.remove()!
 
-    >> tmpdir.files().has(tmpfile)
-    assert not tmpdir.files().has(tmpfile)
+    >> tmpdir.files()!.has(tmpfile)
+    assert not tmpdir.files()!.has(tmpfile)
 
     >> tmpdir.remove()!
 
@@ -64,35 +64,57 @@ test "enumeration preserves the form of the path"
     # so every path they handed back was absolute no matter which form it was
     # asked about. Only the syscalls need a real path now, so `~` is expanded for
     # those and the caller still gets back what they asked in.
-    home_dir := (~/.tomo-test-form-XXXXXX).unique_directory()
+    home_dir := (~/.tomo-test-form-XXXXXX).unique_directory()!
     (home_dir ++ ./a.txt).write("")!
     (home_dir ++ ./sub).create_directory()!
     >> home_dir.components()[1]
     assert home_dir.components()[1] == "~"
     >> home_dir.children()
     # Child ordering is unspecified, so these compare sorted:
-    assert home_dir.children().sorted() == [home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
-    assert home_dir.files() == [home_dir ++ ./a.txt]
-    assert home_dir.subdirectories() == [home_dir ++ ./sub]
-    assert [c for c in home_dir.each_child()].sorted() == [home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
+    assert home_dir.children()!.sorted() == [home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
+    assert home_dir.files()! == [home_dir ++ ./a.txt]
+    assert home_dir.subdirectories()! == [home_dir ++ ./sub]
+    assert [c for c in home_dir.each_child()!].sorted() == [home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
     assert [p for p in home_dir.walk()].sorted() == [home_dir, home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
     assert (home_dir ++ ./*.txt).glob() == [home_dir ++ ./a.txt]
     >> home_dir.remove()!
 
-    rel_dir := (./tomo-test-form-XXXXXX).unique_directory()
+    rel_dir := (./tomo-test-form-XXXXXX).unique_directory()!
     (rel_dir ++ ./a.txt).write("")!
     >> rel_dir.components()[1]
     assert rel_dir.components()[1] == "."
     >> rel_dir.children()
-    assert rel_dir.children() == [rel_dir ++ ./a.txt]
+    assert rel_dir.children()! == [rel_dir ++ ./a.txt]
     assert [p for p in rel_dir.walk()].sorted() == [rel_dir, rel_dir ++ ./a.txt].sorted()
     assert (rel_dir ++ ./*.txt).glob() == [rel_dir ++ ./a.txt]
     >> rel_dir.remove()!
 
-    abs_dir := (/tmp/tomo-test-form-XXXXXX).unique_directory()
+    abs_dir := (/tmp/tomo-test-form-XXXXXX).unique_directory()!
     (abs_dir ++ ./a.txt).write("")!
-    assert abs_dir.children() == [abs_dir ++ ./a.txt]
+    assert abs_dir.children()! == [abs_dir ++ ./a.txt]
     >> abs_dir.remove()!
+
+test "enumerating a directory that isn't there gives none"
+    # These were typed as non-optional while the C returned a none sentinel:
+    # children() surfaced as an empty list, indistinguishable from a real empty
+    # directory, and each_child() surfaced as a null closure that segfaulted the
+    # moment the loop called it.
+    missing := (./tomo-no-such-directory)
+    assert not missing.exists()
+    assert missing.children() == none
+    assert missing.files() == none
+    assert missing.subdirectories() == none
+    assert missing.each_child() == none
+
+    # ...but a directory that exists and is empty is still an empty list:
+    empty_dir := (/tmp/tomo-test-empty-XXXXXX).unique_directory()!
+    no_paths : [Path] = []
+    >> empty_dir.children()
+    assert empty_dir.children()! == no_paths
+    assert empty_dir.files()! == no_paths
+    assert empty_dir.subdirectories()! == no_paths
+    assert [c for c in empty_dir.each_child()!] == no_paths
+    >> empty_dir.remove()!
 
 test "path components"
     >> p := /foo/baz.x/qux.tar.gz

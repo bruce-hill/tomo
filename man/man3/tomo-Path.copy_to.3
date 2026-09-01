@@ -2,14 +2,14 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.copy_to 3 2026-08-20 "Tomo man-pages"
+.TH Path.copy_to 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.copy_to \- copy a file or directory
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.copy_to\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite\ =\ no\ ->\ Result)
+.BI Path.copy_to\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite:\ Bool\ =\ no\ ->\ Result)
 .fi
 .SH DESCRIPTION
 Copies the file or directory from one location to another. This is the same behavior as `cp -r -T src dest` or `cp -rf -T src dest` (if `overwrite` is enabled).
@@ -24,14 +24,14 @@ l l l l.
 Name	Type	Description	Default
 path	Path	The path to copy. 	-
 dest	Path	The destination to copy the path to. 	-
-overwrite		Whether to permit overwriting the destination if it is an existing file or directory. 	no
+overwrite	Bool	Whether to permit overwriting the destination if it is an existing file or directory. 	no
 .TE
 .SH RETURN
 Either `Success` or `Failure{reason}`.
 
 .SH EXAMPLES
 .EX
-(./file.txt).move(/tmp/renamed.txt)!
+(./file.txt).copy_to(/tmp/copy.txt)!
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

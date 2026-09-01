@@ -706,7 +706,7 @@ static OptionalPath_t _next_child(child_info_t *info) {
 }
 
 public
-Closure_t Path$each_child(Path_t path, bool include_hidden) {
+OptionalClosure_t Path$each_child(Path_t path, bool include_hidden) {
     DIR *d = opendir(Path$expand_home(path));
     if (!d) return NONE_CLOSURE;
 
@@ -861,8 +861,11 @@ Path_t Path$sibling(Path_t path, Text_t name) {
 }
 
 public
-OptionalPath_t Path$with_extension(Path_t path, Text_t extension, bool replace) {
-    if (!path || path[0] == '\0') return NULL;
+Path_t Path$with_extension(Path_t path, Text_t extension, bool replace) {
+    // Path$from_str() maps "" to "/", so a well-typed Path is never empty and
+    // this never fires; the declared type stays non-optional rather than making
+    // every caller unwrap a failure that cannot happen.
+    if (!path || path[0] == '\0') fail("Cannot set the extension of an empty path");
 
     const char *ext = Text$as_c_string(extension);
     const char *dot_or_empty = (ext[0] == '.' || ext[0] == '\0') ? "" : ".";

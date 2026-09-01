@@ -9,7 +9,7 @@ Path.files \- list files in a directory
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.files\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no\ ->\ [Path])
+.BI Path.files\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no\ ->\ [Path]?)
 .fi
 .SH DESCRIPTION
 Returns a list of files within the directory at the specified path. Optionally includes hidden files.
@@ -26,14 +26,17 @@ path	Path	The path of the directory. 	-
 include_hidden	Bool	Whether to include hidden files (those starting with a \fB.\fR). 	no
 .TE
 .SH RETURN
-A list of file paths.
+A list of file paths, or `none` if the directory could not be read. A directory with no files in it gives an empty list, not `none`.
 
 .SH NOTES
 The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
 
+.SH ERRORS
+Returns `none` if the path is not a readable directory.
+
 .SH EXAMPLES
 .EX
-assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
+assert (./directory).files(include_hidden=yes)!.sorted() == [(./directory/file1.txt), (./directory/file2.txt)]
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

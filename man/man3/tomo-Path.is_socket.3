@@ -1,15 +1,15 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.is_socket 3 2025-11-29 "Tomo man-pages"
+.TH Path.is_socket 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.is_socket \- check if a path is a socket
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.is_socket\ :\ func(path:\ Path,\ follow_symlinks\ =\ yes\ ->\ Bool)
+.BI Path.is_socket\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Bool)
 .fi
 .SH DESCRIPTION
 Checks if the path represents a socket. Optionally follows symbolic links.
@@ -23,10 +23,10 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 path	Path	The path to check. 	-
-follow_symlinks		Whether to follow symbolic links. 	yes
+follow_symlinks	Bool	Whether to follow symbolic links. 	yes
 .TE
 .SH RETURN
-`True` if the path is a socket, `False` otherwise.
+`yes` if the path is a socket, otherwise `no`.
 
 .SH EXAMPLES
 .EX

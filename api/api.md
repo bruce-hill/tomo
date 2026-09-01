@@ -3693,24 +3693,29 @@ assert (./directory).child("file.txt") == (./directory/file.txt)
 ## Path.children
 
 ```tomo
-Path.children : func(path: Path, include_hidden = no -> [Path])
+Path.children : func(path: Path, include_hidden: Bool = no -> [Path]?)
 ```
 
 Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. Child ordering is not specified.
 
 The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
 
+Returns `none` if the path is not a readable directory.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `` | Whether to include hidden files (those starting with a `.`).  | `no`
+include_hidden | `Bool` | Whether to include hidden files (those starting with a `.`).  | `no`
 
-**Return:** A list of paths for the children.
+**Return:** A list of paths for the children, or `none` if the directory could not be read. An existing but empty directory gives an empty list, not `none`.
 
 
 **Example:**
 ```tomo
-assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
+assert (./directory).children(include_hidden=yes)!.sorted() == [(./directory/.git), (./directory/foo.txt)]
+
+# A directory that can't be read gives `none`, not an empty list:
+assert (./not-a-directory).children() == none
 
 ```
 ## Path.components
@@ -3734,10 +3739,32 @@ assert (./foo/baz.txt).components() == [".", "foo", "baz.txt"]
 assert (/absolute/path/).components() == ["/", "absolute", "path"]
 
 ```
+## Path.concatenated_with
+
+```tomo
+Path.concatenated_with : func(a: Path, b: Path -> Path)
+```
+
+Return the concatenation of two paths. This is what the `++` operator does on paths. The result is normalized, so `.` and `..` components in the second path are resolved away.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+a | `Path` | The base path.  | -
+b | `Path` | A relative path to append. It is a runtime error if this is an absolute or home-based path.  | -
+
+**Return:** The second path appended to the first.
+
+
+**Example:**
+```tomo
+assert (/foo/bar).concatenated_with((./baz)) == (/foo/bar/baz)
+assert ((/foo/bar) ++ (./baz/../qux)) == (/foo/bar/qux)
+
+```
 ## Path.copy_to
 
 ```tomo
-Path.copy_to : func(path: Path, dest: Path, overwrite = no -> Result)
+Path.copy_to : func(path: Path, dest: Path, overwrite: Bool = no -> Result)
 ```
 
 Copies the file or directory from one location to another. This is the same behavior as `cp -r -T src dest` or `cp -rf -T src dest` (if `overwrite` is enabled).
@@ -3746,30 +3773,29 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to copy.  | -
 dest | `Path` | The destination to copy the path to.  | -
-overwrite | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
+overwrite | `Bool` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
 
 **Return:** Either `Success` or `Failure{reason}`.
 
 
 **Example:**
 ```tomo
-(./file.txt).move(/tmp/renamed.txt)!
+(./file.txt).copy_to(/tmp/copy.txt)!
 
 ```
 ## Path.create_directory
 
 ```tomo
-Path.create_directory : func(path: Path, permissions = Int32(0o755), recursive = yes -> Result)
+Path.create_directory : func(path: Path, permissions: Int32 = Int32(0o755), recursive: Bool = yes -> Result)
 ```
 
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
 
-
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory to create.  | -
-permissions | `` | The permissions to set on the new directory.  | `Int32(0o755)`
-recursive | `` | If set to `yes`, then recursively create any parent directories if they don't exist, otherwise fail if the parent directory does not exist. When set to `yes`, this function behaves like `mkdir -p`.  | `yes`
+permissions | `Int32` | The permissions to set on the new directory.  | `Int32(0o755)`
+recursive | `Bool` | If set to `yes`, then recursively create any parent directories if they don't exist, otherwise fail if the parent directory does not exist. When set to `yes`, this function behaves like `mkdir -p`.  | `yes`
 
 **Return:** Either `Success` or `Failure{reason}`.
 
@@ -3785,7 +3811,7 @@ recursive | `` | If set to `yes`, then recursively create any parent directories
 Path.current_dir : func(-> Path)
 ```
 
-Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
+Returns the absolute path of the current working directory.
 
 
 **Return:** The absolute path of the current directory.
@@ -3799,24 +3825,34 @@ assert Path.current_dir() == (/home/user/tomo)
 ## Path.each_child
 
 ```tomo
-Path.each_child : func(path: Path, include_hidden = no -> func(->Path?)?)
+Path.each_child : func(path: Path, include_hidden: Bool = no -> func(->Path?)?)
 ```
 
 Returns an iterator over the children (files and directories) within the directory at the specified path. Optionally includes hidden files. Iteration order is not specified.
 
 The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
 
+Returns `none` if the path is not a readable directory.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `` | Whether to include hidden files (those starting with a `.`).  | `no`
+include_hidden | `Bool` | Whether to include hidden files (those starting with a `.`).  | `no`
 
-**Return:** An iterator over the children in a directory or `none` if the path is not a directory or a symlink to a directory.
+**Return:** An iterator over the children in a directory, or `none` if the directory could not be read.
 
 
 **Example:**
 ```tomo
-for child in (/dir).each_child()
+# Safely handle the directory not being readable:
+if children := (/dir).each_child()
+    for child in children
+        say("Child: $child")
+else
+    say("Couldn't read the directory!")
+
+# Assume the directory is readable and error if that's not the case:
+for child in (/dir).each_child()!
     say("Child: $child")
 
 ```
@@ -3832,7 +3868,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to check.  | -
 
-**Return:** `True` if the file or directory exists, `False` otherwise.
+**Return:** `yes` if the file or directory exists, otherwise `no`.
 
 
 **Example:**
@@ -3890,24 +3926,26 @@ assert (./.git).extension() == ""
 ## Path.files
 
 ```tomo
-Path.files : func(path: Path, include_hidden: Bool = no -> [Path])
+Path.files : func(path: Path, include_hidden: Bool = no -> [Path]?)
 ```
 
 Returns a list of files within the directory at the specified path. Optionally includes hidden files.
 
 The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
 
+Returns `none` if the path is not a readable directory.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
 include_hidden | `Bool` | Whether to include hidden files (those starting with a `.`).  | `no`
 
-**Return:** A list of file paths.
+**Return:** A list of file paths, or `none` if the directory could not be read. A directory with no files in it gives an empty list, not `none`.
 
 
 **Example:**
 ```tomo
-assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
+assert (./directory).files(include_hidden=yes)!.sorted() == [(./directory/file1.txt), (./directory/file2.txt)]
 
 ```
 ## Path.glob
@@ -3919,10 +3957,8 @@ Path.glob : func(path: Path -> [Path])
 Perform a globbing operation and return a list of matching paths. Some glob specific details:
 - The paths "." and ".." are *not* included in any globbing results.
 - Files or directories that begin with "." will not match `*`, but will match `.*`.
-- Globs do support `{a,b}` syntax for matching files that match any of several
-  choices of patterns.
-
 - The shell-style syntax `**` for matching subdirectories is not supported.
+- The `{a,b}` alternation syntax is not supported.
 
 Matches keep the form of the pattern they came from: `(./*.txt)` yields relative paths and `(~/*.txt)` yields home-based ones.
 
@@ -3936,9 +3972,8 @@ path | `Path` | The path of the directory which may contain special globbing cha
 **Example:**
 ```tomo
 # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
-assert (./*).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
-assert (./*.txt).glob() == [(./foo.txt), (./baz.txt)]
-assert (./*.{txt,jpg}).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+assert (./*).glob() == [(./baz.txt), (./foo.txt), (./qux.jpg)]
+assert (./*.txt).glob() == [(./baz.txt), (./foo.txt)]
 assert (./.*).glob() == [(./.hidden)]
 
 # Globs with no matches return an empty list:
@@ -3994,7 +4029,7 @@ assert not (/foo.tar.gz).has_extension("zip")
 ## Path.is_directory
 
 ```tomo
-Path.is_directory : func(path: Path, follow_symlinks = yes -> Bool)
+Path.is_directory : func(path: Path, follow_symlinks: Bool = yes -> Bool)
 ```
 
 Checks if the path represents a directory. Optionally follows symbolic links.
@@ -4002,9 +4037,9 @@ Checks if the path represents a directory. Optionally follows symbolic links.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to check.  | -
-follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
-**Return:** `True` if the path is a directory, `False` otherwise.
+**Return:** `yes` if the path is a directory, otherwise `no`.
 
 
 **Example:**
@@ -4016,7 +4051,7 @@ assert not (./file.txt).is_directory()
 ## Path.is_file
 
 ```tomo
-Path.is_file : func(path: Path, follow_symlinks = yes -> Bool)
+Path.is_file : func(path: Path, follow_symlinks: Bool = yes -> Bool)
 ```
 
 Checks if the path represents a file. Optionally follows symbolic links.
@@ -4024,9 +4059,9 @@ Checks if the path represents a file. Optionally follows symbolic links.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to check.  | -
-follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
-**Return:** `True` if the path is a file, `False` otherwise.
+**Return:** `yes` if the path is a file, otherwise `no`.
 
 
 **Example:**
@@ -4035,10 +4070,32 @@ assert (./file.txt).is_file()
 assert not (./directory/).is_file()
 
 ```
+## Path.is_pipe
+
+```tomo
+Path.is_pipe : func(path: Path, follow_symlinks: Bool = yes -> Bool)
+```
+
+Checks if the path represents a named pipe (a FIFO). Optionally follows symbolic links.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | The path to check.  | -
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
+
+**Return:** `yes` if the path is a named pipe, otherwise `no`.
+
+
+**Example:**
+```tomo
+assert (./my-fifo).is_pipe()
+assert not (./file.txt).is_pipe()
+
+```
 ## Path.is_socket
 
 ```tomo
-Path.is_socket : func(path: Path, follow_symlinks = yes -> Bool)
+Path.is_socket : func(path: Path, follow_symlinks: Bool = yes -> Bool)
 ```
 
 Checks if the path represents a socket. Optionally follows symbolic links.
@@ -4046,9 +4103,9 @@ Checks if the path represents a socket. Optionally follows symbolic links.
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to check.  | -
-follow_symlinks | `` | Whether to follow symbolic links.  | `yes`
+follow_symlinks | `Bool` | Whether to follow symbolic links.  | `yes`
 
-**Return:** `True` if the path is a socket, `False` otherwise.
+**Return:** `yes` if the path is a socket, otherwise `no`.
 
 
 **Example:**
@@ -4068,7 +4125,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to check.  | -
 
-**Return:** `True` if the path is a symbolic link, `False` otherwise.
+**Return:** `yes` if the path is a symbolic link, otherwise `no`.
 
 
 **Example:**
@@ -4102,7 +4159,15 @@ lines := (./file.txt).lines()!
 Path.matches_glob : func(path: Path, glob: Text -> Bool)
 ```
 
-Return whether or not a path matches a given glob.
+Return whether or not a path matches a given glob. The glob is matched against the path's entire text, not just its base name, so a pattern for `(./file.txt)` must account for the leading `./`.
+
+This is a pattern match, not a filesystem operation, and it accepts a narrower syntax than `Path.glob`:
+- `/` must be matched by a literal `/`; `*` and `?` will not match it.
+- A `.` at the start of the path or just after a `/` must be matched by a
+  literal `.`.
+
+- Character classes like `[ch]` work, but the `{a,b}` alternation syntax
+  does not.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -4114,8 +4179,14 @@ glob | `Text` | The glob pattern to check.  | -
 
 **Example:**
 ```tomo
-assert (./file.txt).matches_glob("*.txt")
-assert (./file.c).matches_glob("*.{c,h}")
+assert (./file.txt).matches_glob("./*.txt")
+assert (./src/file.c).matches_glob("./*/*.[ch]")
+
+# The leading "./" and the "/" separators are not matched by `*`:
+assert not (./file.txt).matches_glob("*.txt")
+
+# Brace alternation is not supported here (it is in `Path.glob`):
+assert not (./src/file.c).matches_glob("./*.{c,h}")
 
 ```
 ## Path.modified
@@ -4143,7 +4214,7 @@ assert (./not-a-file).modified() == none
 ## Path.move
 
 ```tomo
-Path.move : func(path: Path, dest: Path, overwrite = no -> Result)
+Path.move : func(path: Path, dest: Path, overwrite: Bool = no -> Result)
 ```
 
 Moves the file or directory from one location to another.
@@ -4152,7 +4223,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to move.  | -
 dest | `Path` | The destination to move the path to.  | -
-overwrite | `` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
+overwrite | `Bool` | Whether to permit overwriting the destination if it is an existing file or directory.  | `no`
 
 **Return:** Either `Success` or `Failure{reason}`.
 
@@ -4201,7 +4272,7 @@ path | `Path` | The path of the file or directory.  | -
 
 **Example:**
 ```tomo
-assert (./path/to/file.txt).parent() == (./path/to/)
+assert (./path/to/file.txt).parent() == (./path/to)
 
 ```
 ## Path.read
@@ -4250,29 +4321,32 @@ assert (./nosuchfile.xxx).read_bytes() == none
 ## Path.relative_to
 
 ```tomo
-Path.relative_to : func(path: Path, relative_to = (./) -> Path)
+Path.relative_to : func(path: Path, relative_to: Path -> Path)
 ```
 
-Returns the path relative to a given base path. By default, the base path is the current directory.
+Returns the path relative to a given base path.
+
+The result has no leading `./`, so a path naming something inside the base path cannot be written as a path literal. Results that climb out of the base path begin with `../` and can.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to convert.  | -
-relative_to | `` | The base path for the relative path.  | `(./)`
+relative_to | `Path` | The base path for the relative path. Unlike `Path.resolved`, this argument is required.  | -
 
 **Return:** A relative path from the reference point to the given path.
 
 
 **Example:**
 ```tomo
-assert (./path/to/file.txt).relative_to((./path)) == (./to/file.txt)
-assert (/tmp/foo).relative_to((/tmp)) == (./foo)
+assert "$((./path/to/file.txt).relative_to((./path)))" == "to/file.txt"
+assert "$((/tmp/foo).relative_to((/tmp)))" == "foo"
+assert (/a/b/c).relative_to((/a/x)) == (../b/c)
 
 ```
 ## Path.remove
 
 ```tomo
-Path.remove : func(path: Path, ignore_missing = no -> Result)
+Path.remove : func(path: Path, ignore_missing: Bool = no -> Result)
 ```
 
 Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
@@ -4280,7 +4354,7 @@ Removes the file or directory at the specified path. A runtime error is raised i
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to remove.  | -
-ignore_missing | `` | Whether to ignore errors if the file or directory does not exist.  | `no`
+ignore_missing | `Bool` | Whether to ignore errors if the file or directory does not exist.  | `no`
 
 **Return:** Either `Success` or `Failure{reason}`.
 
@@ -4293,7 +4367,7 @@ ignore_missing | `` | Whether to ignore errors if the file or directory does not
 ## Path.resolved
 
 ```tomo
-Path.resolved : func(path: Path, relative_to = (./) -> Path)
+Path.resolved : func(path: Path, relative_to: Path = (./) -> Path)
 ```
 
 Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory.
@@ -4301,7 +4375,7 @@ Resolves the absolute path of the given path relative to a base path. By default
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to resolve.  | -
-relative_to | `` | The base path for resolution.  | `(./)`
+relative_to | `Path` | The base path for resolution.  | `(./)`
 
 **Return:** The resolved absolute path.
 
@@ -4359,45 +4433,49 @@ assert (/foo/baz).sibling("doop") == (/foo/doop)
 ## Path.subdirectories
 
 ```tomo
-Path.subdirectories : func(path: Path, include_hidden = no -> [Path])
+Path.subdirectories : func(path: Path, include_hidden: Bool = no -> [Path]?)
 ```
 
 Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories.
 
 The paths returned keep the form of the path they came from: the children of `(./foo)` are relative and the children of `(~/foo)` stay home-based. Use `.resolved()` on them if you need absolute paths.
 
+Returns `none` if the path is not a readable directory.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the directory.  | -
-include_hidden | `` | Whether to include hidden subdirectories (those starting with a `.`)  | `no`
+include_hidden | `Bool` | Whether to include hidden subdirectories (those starting with a `.`)  | `no`
 
-**Return:** A list of subdirectory paths.
+**Return:** A list of subdirectory paths, or `none` if the directory could not be read. A directory with no subdirectories gives an empty list, not `none`.
 
 
 **Example:**
 ```tomo
-assert (./directory).subdirectories() == [(./directory/subdir1), (./directory/subdir2)]
-assert (./directory).subdirectories(include_hidden=yes) == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
+assert (./directory).subdirectories()!.sorted() == [(./directory/subdir1), (./directory/subdir2)]
+assert (./directory).subdirectories(include_hidden=yes)!.sorted() == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
 
 ```
 ## Path.unique_directory
 
 ```tomo
-Path.unique_directory : func(path: Path -> Path)
+Path.unique_directory : func(path: Path -> Path?)
 ```
 
 Generates a unique directory path based on the given path. Useful for creating temporary directories.
+
+Returns `none` if the directory could not be created.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.  | -
 
-**Return:** A unique directory path after creating the directory.
+**Return:** A unique directory path after creating the directory, or `none` if it could not be created.
 
 
 **Example:**
 ```tomo
-created := (/tmp/my-dir.XXXXXX).unique_directory()
+created := (/tmp/my-dir.XXXXXX).unique_directory()!
 assert created.is_directory()
 created.remove()!
 
@@ -4405,7 +4483,7 @@ created.remove()!
 ## Path.walk
 
 ```tomo
-Path.walk : func(path: Path, include_hidden = no, follow_symlinks: Bool = no -> func(->Path?))
+Path.walk : func(path: Path, include_hidden: Bool = no, follow_symlinks: Bool = no -> func(->Path?))
 ```
 
 Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal.
@@ -4415,7 +4493,7 @@ The path itself is always included in the iteration. The paths returned keep the
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path to begin the walk.  | -
-include_hidden | `` | Whether to include hidden files (those starting with a `.`)  | `no`
+include_hidden | `Bool` | Whether to include hidden files (those starting with a `.`)  | `no`
 follow_symlinks | `Bool` | Whether to follow symbolic links. Caution: if set to 'yes', it is possible for this iterator to get stuck in a loop, using increasingly large amounts of memory.  | `no`
 
 **Return:** An iterator that recursively walks over every file and subdirectory.
@@ -4430,10 +4508,36 @@ for p in (/tmp).walk()
 assert [p for p in (./file.txt).walk()] == [(./file.txt)]
 
 ```
+## Path.with_extension
+
+```tomo
+Path.with_extension : func(path: Path, extension: Text, replace: Bool = yes -> Path)
+```
+
+Return a path with the given file extension, either replacing the path's existing extension or adding to it.
+
+Argument | Type | Description | Default
+---------|------|-------------|---------
+path | `Path` | A path.  | -
+extension | `Text` | The file extension to apply (a leading `.` is optional). If empty, the extension is removed entirely.  | -
+replace | `Bool` | If `yes`, the path's existing extension is replaced. If `no`, the new extension is appended to the existing one.  | `yes`
+
+**Return:** A new path with the requested extension.
+
+
+**Example:**
+```tomo
+assert (./file.tar.gz).with_extension("zip") == (./file.zip)
+assert (./file.tar.gz).with_extension(".zip") == (./file.zip)
+assert (./file.tar.gz).with_extension("") == (./file)
+assert (./file.tar.gz).with_extension("zip", replace=no) == (./file.tar.gz.zip)
+assert (./file).with_extension("txt") == (./file.txt)
+
+```
 ## Path.write
 
 ```tomo
-Path.write : func(path: Path, text: Text, permissions = Int32(0o644) -> Result)
+Path.write : func(path: Path, text: Text, permissions: Int32 = Int32(0o644) -> Result)
 ```
 
 Writes the given text to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised.
@@ -4442,7 +4546,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file to write to.  | -
 text | `Text` | The text to write to the file.  | -
-permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
+permissions | `Int32` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
 **Return:** Either `Success` or `Failure{reason}`.
 
@@ -4455,7 +4559,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 ## Path.write_bytes
 
 ```tomo
-Path.write_bytes : func(path: Path, bytes: [Byte], permissions = Int32(0o644) -> Result)
+Path.write_bytes : func(path: Path, bytes: [Byte], permissions: Int32 = Int32(0o644) -> Result)
 ```
 
 Writes the given bytes to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised.
@@ -4464,7 +4568,7 @@ Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file to write to.  | -
 bytes | `[Byte]` | A list of bytes to write to the file.  | -
-permissions | `` | The permissions to set on the file if it is created.  | `Int32(0o644)`
+permissions | `Int32` | The permissions to set on the file if it is created.  | `Int32(0o644)`
 
 **Return:** Either `Success` or `Failure{reason}`.
 
@@ -4477,7 +4581,7 @@ permissions | `` | The permissions to set on the file if it is created.  | `Int3
 ## Path.write_unique
 
 ```tomo
-Path.write_unique : func(path: Path, text: Text -> Path)
+Path.write_unique : func(path: Path, text: Text -> Path?)
 ```
 
 Writes the given text to a unique file path based on the specified path. The file is created if it doesn't exist. This is useful for creating temporary files.
@@ -4487,13 +4591,14 @@ Argument | Type | Description | Default
 path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | -
 text | `Text` | The text to write to the file.  | -
 
-**Return:** The path of the newly created unique file.
+**Return:** The path of the newly created unique file, or `none` if the file could not be created.
 
 
 **Example:**
 ```tomo
+# The created path has the XXXXXX replaced by random characters,
+# e.g. (./file-27QHtq.txt):
 created := (./file-XXXXXX.txt).write_unique("Hello, world!")!
-assert created == (./file-27QHtq.txt)
 assert created.read()! == "Hello, world!"
 created.remove()!
 
@@ -4501,7 +4606,7 @@ created.remove()!
 ## Path.write_unique_bytes
 
 ```tomo
-Path.write_unique_bytes : func(path: Path, bytes: [Byte] -> Path)
+Path.write_unique_bytes : func(path: Path, bytes: [Byte] -> Path?)
 ```
 
 Writes the given bytes to a unique file path based on the specified path. The file is created if it doesn't exist. This is useful for creating temporary files.
@@ -4511,13 +4616,14 @@ Argument | Type | Description | Default
 path | `Path` | The base path for generating the unique file. This path must include the string `XXXXXX` in the file base name.  | -
 bytes | `[Byte]` | The bytes to write to the file.  | -
 
-**Return:** The path of the newly created unique file.
+**Return:** The path of the newly created unique file, or `none` if the file could not be created.
 
 
 **Example:**
 ```tomo
+# The created path has the XXXXXX replaced by random characters,
+# e.g. (./file-27QHtq.txt):
 created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])!
-assert created == (./file-27QHtq.txt)
 assert created.read_bytes()! == [1, 2, 3]
 created.remove()!
 

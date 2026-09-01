@@ -2,14 +2,14 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.remove 3 2026-08-20 "Tomo man-pages"
+.TH Path.remove 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.remove \- remove a file or directory
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.remove\ :\ func(path:\ Path,\ ignore_missing\ =\ no\ ->\ Result)
+.BI Path.remove\ :\ func(path:\ Path,\ ignore_missing:\ Bool\ =\ no\ ->\ Result)
 .fi
 .SH DESCRIPTION
 Removes the file or directory at the specified path. A runtime error is raised if something goes wrong.
@@ -23,7 +23,7 @@ lb lb lbx lb
 l l l l.
 Name	Type	Description	Default
 path	Path	The path to remove. 	-
-ignore_missing		Whether to ignore errors if the file or directory does not exist. 	no
+ignore_missing	Bool	Whether to ignore errors if the file or directory does not exist. 	no
 .TE
 .SH RETURN
 Either `Success` or `Failure{reason}`.

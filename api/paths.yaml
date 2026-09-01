@@ -279,21 +279,52 @@ Path.children:
     The paths returned keep the form of the path they came from: the children
     of `(./foo)` are relative and the children of `(~/foo)` stay home-based.
     Use `.resolved()` on them if you need absolute paths.
+  errors: >
+    Returns `none` if the path is not a readable directory.
   return:
-    type: '[Path]'
+    type: '[Path]?'
     description: >
-      A list of paths for the children.
+      A list of paths for the children, or `none` if the directory could not
+      be read. An existing but empty directory gives an empty list, not `none`.
   args:
     path:
       type: 'Path'
       description: >
         The path of the directory.
     include_hidden:
+      type: 'Bool'
       default: 'no'
       description: >
         Whether to include hidden files (those starting with a `.`).
   example: |
-    assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
+    assert (./directory).children(include_hidden=yes)!.sorted() == [(./directory/.git), (./directory/foo.txt)]
+
+    # A directory that can't be read gives `none`, not an empty list:
+    assert (./not-a-directory).children() == none
+
+Path.concatenated_with:
+  short: concatenate two paths
+  description: >
+    Return the concatenation of two paths. This is what the `++` operator does
+    on paths. The result is normalized, so `.` and `..` components in the
+    second path are resolved away.
+  return:
+    type: 'Path'
+    description: >
+      The second path appended to the first.
+  args:
+    a:
+      type: 'Path'
+      description: >
+        The base path.
+    b:
+      type: 'Path'
+      description: >
+        A relative path to append. It is a runtime error if this is an
+        absolute or home-based path.
+  example: |
+    assert (/foo/bar).concatenated_with((./baz)) == (/foo/bar/baz)
+    assert ((/foo/bar) ++ (./baz/../qux)) == (/foo/bar/qux)
 
 Path.copy_to:
   short: copy a file or directory
@@ -315,18 +346,18 @@ Path.copy_to:
       description: >
         The destination to copy the path to.
     overwrite:
+      type: 'Bool'
       default: 'no'
       description: >
         Whether to permit overwriting the destination if it is an existing file or directory.
   example: |
-    (./file.txt).move(/tmp/renamed.txt)!
+    (./file.txt).copy_to(/tmp/copy.txt)!
 
 Path.create_directory:
   short: make a directory
   description: >
     Creates a new directory at the specified path with the given permissions. If
     any of the parent directories do not exist, they will be created as needed.
-  note: >
   return:
     type: 'Result'
     description: >
@@ -337,10 +368,12 @@ Path.create_directory:
       description: >
         The path of the directory to create.
     permissions:
+      type: 'Int32'
       default: 'Int32(0o755)'
       description: >
         The permissions to set on the new directory.
     recursive:
+      type: 'Bool'
       default: 'yes'
       description: >
         If set to `yes`, then recursively create any parent directories if they
@@ -352,8 +385,7 @@ Path.create_directory:
 Path.current_dir:
   short: get current directory
   description: >
-    Creates a new directory at the specified path with the given permissions. If
-    any of the parent directories do not exist, they will be created as needed.
+    Returns the absolute path of the current working directory.
   return:
     type: 'Path'
     description: >
@@ -372,22 +404,33 @@ Path.each_child:
     The paths returned keep the form of the path they came from: the children
     of `(./foo)` are relative and the children of `(~/foo)` stay home-based.
     Use `.resolved()` on them if you need absolute paths.
+  errors: >
+    Returns `none` if the path is not a readable directory.
   return:
     type: 'func(->Path?)?'
     description: >
-      An iterator over the children in a directory or `none` if the path is not
-      a directory or a symlink to a directory.
+      An iterator over the children in a directory, or `none` if the directory
+      could not be read.
   args:
     path:
       type: 'Path'
       description: >
         The path of the directory.
     include_hidden:
+      type: 'Bool'
       default: 'no'
       description: >
         Whether to include hidden files (those starting with a `.`).
   example: |
-    for child in (/dir).each_child()
+    # Safely handle the directory not being readable:
+    if children := (/dir).each_child()
+        for child in children
+            say("Child: $child")
+    else
+        say("Couldn't read the directory!")
+
+    # Assume the directory is readable and error if that's not the case:
+    for child in (/dir).each_child()!
         say("Child: $child")
 
 Path.exists:
@@ -397,7 +440,7 @@ Path.exists:
   return:
     type: 'Bool'
     description: >
-      `True` if the file or directory exists, `False` otherwise.
+      `yes` if the file or directory exists, otherwise `no`.
   args:
     path:
       type: 'Path'
@@ -461,10 +504,13 @@ Path.files:
     The paths returned keep the form of the path they came from: the children
     of `(./foo)` are relative and the children of `(~/foo)` stay home-based.
     Use `.resolved()` on them if you need absolute paths.
+  errors: >
+    Returns `none` if the path is not a readable directory.
   return:
-    type: '[Path]'
+    type: '[Path]?'
     description: >
-      A list of file paths.
+      A list of file paths, or `none` if the directory could not be read. A
+      directory with no files in it gives an empty list, not `none`.
   args:
     path:
       type: 'Path'
@@ -476,7 +522,7 @@ Path.files:
       description: >
         Whether to include hidden files (those starting with a `.`).
   example: |
-    assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
+    assert (./directory).files(include_hidden=yes)!.sorted() == [(./directory/file1.txt), (./directory/file2.txt)]
 
 Path.glob:
   short: perform file globbing
@@ -488,10 +534,9 @@ Path.glob:
 
     - Files or directories that begin with "." will not match `*`, but will match `.*`.
 
-    - Globs do support `{a,b}` syntax for matching files that match any of several
-      choices of patterns.
-
     - The shell-style syntax `**` for matching subdirectories is not supported.
+
+    - The `{a,b}` alternation syntax is not supported.
   note: >
     Matches keep the form of the pattern they came from: `(./*.txt)` yields
     relative paths and `(~/*.txt)` yields home-based ones.
@@ -507,9 +552,8 @@ Path.glob:
         like `*`, `?`, or `{...}`
   example: |
     # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
-    assert (./*).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
-    assert (./*.txt).glob() == [(./foo.txt), (./baz.txt)]
-    assert (./*.{txt,jpg}).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+    assert (./*).glob() == [(./baz.txt), (./foo.txt), (./qux.jpg)]
+    assert (./*.txt).glob() == [(./baz.txt), (./foo.txt)]
     assert (./.*).glob() == [(./.hidden)]
 
     # Globs with no matches return an empty list:
@@ -568,13 +612,14 @@ Path.is_directory:
   return:
     type: 'Bool'
     description: >
-      `True` if the path is a directory, `False` otherwise.
+      `yes` if the path is a directory, otherwise `no`.
   args:
     path:
       type: 'Path'
       description: >
         The path to check.
     follow_symlinks:
+      type: 'Bool'
       default: 'yes'
       description: >
         Whether to follow symbolic links.
@@ -589,19 +634,43 @@ Path.is_file:
   return:
     type: 'Bool'
     description: >
-      `True` if the path is a file, `False` otherwise.
+      `yes` if the path is a file, otherwise `no`.
   args:
     path:
       type: 'Path'
       description: >
         The path to check.
     follow_symlinks:
+      type: 'Bool'
       default: 'yes'
       description: >
         Whether to follow symbolic links.
   example: |
     assert (./file.txt).is_file()
     assert not (./directory/).is_file()
+
+Path.is_pipe:
+  short: check if a path is a named pipe
+  description: >
+    Checks if the path represents a named pipe (a FIFO). Optionally follows
+    symbolic links.
+  return:
+    type: 'Bool'
+    description: >
+      `yes` if the path is a named pipe, otherwise `no`.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        The path to check.
+    follow_symlinks:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        Whether to follow symbolic links.
+  example: |
+    assert (./my-fifo).is_pipe()
+    assert not (./file.txt).is_pipe()
 
 Path.is_socket:
   short: check if a path is a socket
@@ -610,13 +679,14 @@ Path.is_socket:
   return:
     type: 'Bool'
     description: >
-      `True` if the path is a socket, `False` otherwise.
+      `yes` if the path is a socket, otherwise `no`.
   args:
     path:
       type: 'Path'
       description: >
         The path to check.
     follow_symlinks:
+      type: 'Bool'
       default: 'yes'
       description: >
         Whether to follow symbolic links.
@@ -630,7 +700,7 @@ Path.is_symlink:
   return:
     type: 'Bool'
     description: >
-      `True` if the path is a symbolic link, `False` otherwise.
+      `yes` if the path is a symbolic link, otherwise `no`.
   args:
     path:
       type: 'Path'
@@ -642,7 +712,20 @@ Path.is_symlink:
 Path.matches_glob:
   short: check if a path matches a glob
   description: >
-    Return whether or not a path matches a given glob.
+    Return whether or not a path matches a given glob. The glob is matched
+    against the path's entire text, not just its base name, so a pattern for
+    `(./file.txt)` must account for the leading `./`.
+  note: >
+    This is a pattern match, not a filesystem operation, and it accepts a
+    narrower syntax than `Path.glob`:
+
+    - `/` must be matched by a literal `/`; `*` and `?` will not match it.
+
+    - A `.` at the start of the path or just after a `/` must be matched by a
+      literal `.`.
+
+    - Character classes like `[ch]` work, but the `{a,b}` alternation syntax
+      does not.
   return:
     type: 'Bool'
     description: >
@@ -657,8 +740,14 @@ Path.matches_glob:
       description: >
         The glob pattern to check.
   example: |
-    assert (./file.txt).matches_glob("*.txt")
-    assert (./file.c).matches_glob("*.{c,h}")
+    assert (./file.txt).matches_glob("./*.txt")
+    assert (./src/file.c).matches_glob("./*/*.[ch]")
+
+    # The leading "./" and the "/" separators are not matched by `*`:
+    assert not (./file.txt).matches_glob("*.txt")
+
+    # Brace alternation is not supported here (it is in `Path.glob`):
+    assert not (./src/file.c).matches_glob("./*.{c,h}")
 
 Path.modified:
   short: get file modification time
@@ -701,6 +790,7 @@ Path.move:
       description: >
         The destination to move the path to.
     overwrite:
+      type: 'Bool'
       default: 'no'
       description: >
         Whether to permit overwriting the destination if it is an existing file or directory.
@@ -743,7 +833,7 @@ Path.parent:
       description: >
         The path of the file or directory.
   example: |
-    assert (./path/to/file.txt).parent() == (./path/to/)
+    assert (./path/to/file.txt).parent() == (./path/to)
 
 Path.read:
   short: read file contents
@@ -792,7 +882,11 @@ Path.read_bytes:
 Path.relative_to:
   short: apply a relative path to another
   description: >
-    Returns the path relative to a given base path. By default, the base path is the current directory.
+    Returns the path relative to a given base path.
+  note: >
+    The result has no leading `./`, so a path naming something inside the base
+    path cannot be written as a path literal. Results that climb out of the
+    base path begin with `../` and can.
   return:
     type: 'Path'
     description: >
@@ -803,12 +897,14 @@ Path.relative_to:
       description: >
         The path to convert.
     relative_to:
-      default: '(./)'
+      type: 'Path'
       description: >
-        The base path for the relative path.
+        The base path for the relative path. Unlike `Path.resolved`, this
+        argument is required.
   example: |
-    assert (./path/to/file.txt).relative_to((./path)) == (./to/file.txt)
-    assert (/tmp/foo).relative_to((/tmp)) == (./foo)
+    assert "$((./path/to/file.txt).relative_to((./path)))" == "to/file.txt"
+    assert "$((/tmp/foo).relative_to((/tmp)))" == "foo"
+    assert (/a/b/c).relative_to((/a/x)) == (../b/c)
 
 Path.remove:
   short: remove a file or directory
@@ -824,6 +920,7 @@ Path.remove:
       description: >
         The path to remove.
     ignore_missing:
+      type: 'Bool'
       default: 'no'
       description: >
         Whether to ignore errors if the file or directory does not exist.
@@ -844,6 +941,7 @@ Path.resolved:
       description: >
         The path to resolve.
     relative_to:
+      type: 'Path'
       default: '(./)'
       description: >
         The base path for resolution.
@@ -911,38 +1009,45 @@ Path.subdirectories:
     The paths returned keep the form of the path they came from: the children
     of `(./foo)` are relative and the children of `(~/foo)` stay home-based.
     Use `.resolved()` on them if you need absolute paths.
+  errors: >
+    Returns `none` if the path is not a readable directory.
   return:
-    type: '[Path]'
+    type: '[Path]?'
     description: >
-      A list of subdirectory paths.
+      A list of subdirectory paths, or `none` if the directory could not be
+      read. A directory with no subdirectories gives an empty list, not `none`.
   args:
     path:
       type: 'Path'
       description: >
         The path of the directory.
     include_hidden:
+      type: 'Bool'
       default: 'no'
       description: >
         Whether to include hidden subdirectories (those starting with a `.`)
   example: |
-    assert (./directory).subdirectories() == [(./directory/subdir1), (./directory/subdir2)]
-    assert (./directory).subdirectories(include_hidden=yes) == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
+    assert (./directory).subdirectories()!.sorted() == [(./directory/subdir1), (./directory/subdir2)]
+    assert (./directory).subdirectories(include_hidden=yes)!.sorted() == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
 
 Path.unique_directory:
   short: create a directory with a unique name
   description: >
     Generates a unique directory path based on the given path. Useful for creating temporary directories.
+  errors: >
+    Returns `none` if the directory could not be created.
   return:
-    type: 'Path'
+    type: 'Path?'
     description: >
-      A unique directory path after creating the directory.
+      A unique directory path after creating the directory, or `none` if it
+      could not be created.
   args:
     path:
       type: 'Path'
       description: >
         The base path for generating the unique directory. The last six letters of this path must be `XXXXXX`.
   example: |
-    created := (/tmp/my-dir.XXXXXX).unique_directory()
+    created := (/tmp/my-dir.XXXXXX).unique_directory()!
     assert created.is_directory()
     created.remove()!
 
@@ -966,6 +1071,7 @@ Path.walk:
       description: >
         The path to begin the walk.
     include_hidden:
+      type: 'Bool'
       default: 'no'
       description: >
         Whether to include hidden files (those starting with a `.`)
@@ -982,6 +1088,38 @@ Path.walk:
 
     # The path itself is always included:
     assert [p for p in (./file.txt).walk()] == [(./file.txt)]
+
+Path.with_extension:
+  short: replace or add a file extension
+  description: >
+    Return a path with the given file extension, either replacing the path's
+    existing extension or adding to it.
+  return:
+    type: 'Path'
+    description: >
+      A new path with the requested extension.
+  args:
+    path:
+      type: 'Path'
+      description: >
+        A path.
+    extension:
+      type: 'Text'
+      description: >
+        The file extension to apply (a leading `.` is optional). If empty, the
+        extension is removed entirely.
+    replace:
+      type: 'Bool'
+      default: 'yes'
+      description: >
+        If `yes`, the path's existing extension is replaced. If `no`, the new
+        extension is appended to the existing one.
+  example: |
+    assert (./file.tar.gz).with_extension("zip") == (./file.zip)
+    assert (./file.tar.gz).with_extension(".zip") == (./file.zip)
+    assert (./file.tar.gz).with_extension("") == (./file)
+    assert (./file.tar.gz).with_extension("zip", replace=no) == (./file.tar.gz.zip)
+    assert (./file).with_extension("txt") == (./file.txt)
 
 Path.write:
   short: write to a file
@@ -1003,6 +1141,7 @@ Path.write:
       description: >
         The text to write to the file.
     permissions:
+      type: 'Int32'
       default: 'Int32(0o644)'
       description: >
         The permissions to set on the file if it is created.
@@ -1105,6 +1244,7 @@ Path.write_bytes:
       description: >
         A list of bytes to write to the file.
     permissions:
+      type: 'Int32'
       default: 'Int32(0o644)'
       description: >
         The permissions to set on the file if it is created.
@@ -1118,9 +1258,10 @@ Path.write_unique:
     file is created if it doesn't exist. This is useful for creating temporary
     files.
   return:
-    type: 'Path'
+    type: 'Path?'
     description: >
-      The path of the newly created unique file.
+      The path of the newly created unique file, or `none` if the file could
+      not be created.
   args:
     path:
       type: 'Path'
@@ -1132,8 +1273,9 @@ Path.write_unique:
       description: >
         The text to write to the file.
   example: |
+    # The created path has the XXXXXX replaced by random characters,
+    # e.g. (./file-27QHtq.txt):
     created := (./file-XXXXXX.txt).write_unique("Hello, world!")!
-    assert created == (./file-27QHtq.txt)
     assert created.read()! == "Hello, world!"
     created.remove()!
 
@@ -1144,9 +1286,10 @@ Path.write_unique_bytes:
     file is created if it doesn't exist. This is useful for creating temporary
     files.
   return:
-    type: 'Path'
+    type: 'Path?'
     description: >
-      The path of the newly created unique file.
+      The path of the newly created unique file, or `none` if the file could
+      not be created.
   args:
     path:
       type: 'Path'
@@ -1158,7 +1301,8 @@ Path.write_unique_bytes:
       description: >
         The bytes to write to the file.
   example: |
+    # The created path has the XXXXXX replaced by random characters,
+    # e.g. (./file-27QHtq.txt):
     created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])!
-    assert created == (./file-27QHtq.txt)
     assert created.read_bytes()! == [1, 2, 3]
     created.remove()!

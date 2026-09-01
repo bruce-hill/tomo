@@ -376,18 +376,18 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
             {"can_write", "Path$can_write", "func(path:Path -> Bool)"}, //
             {"changed", "Path$changed", "func(path:Path, follow_symlinks=yes -> Int64?)"}, //
             {"child", "Path$child", "func(path:Path, child:Text -> Path)"}, //
-            {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path])"}, //
+            {"children", "Path$children", "func(path:Path, include_hidden=no -> [Path]?)"}, //
             {"concatenated_with", "Path$concat", "func(a,b:Path -> Path)"}, //
             {"components", "Path$components", "func(path:Path -> [Text])"}, //
             {"copy_to", "Path$copy_to", "func(path:Path, dest:Path, overwrite=no -> Result)"}, //
             {"create_directory", "Path$create_directory",
              "func(path:Path, permissions=Int32(0o755), recursive=yes -> Result)"}, //
             {"current_dir", "Path$current_dir", "func(->Path)"}, //
-            {"each_child", "Path$each_child", "func(path:Path, include_hidden=no -> func(->Path?))"}, //
+            {"each_child", "Path$each_child", "func(path:Path, include_hidden=no -> func(->Path?)?)"}, //
             {"exists", "Path$exists", "func(path:Path -> Bool)"}, //
             {"expand_home", "Path$expand_home", "func(path:Path -> Path)"}, //
             {"extension", "Path$extension", "func(path:Path, full=yes -> Text)"}, //
-            {"files", "Path$files", "func(path:Path, include_hidden=no -> [Path])"}, //
+            {"files", "Path$files", "func(path:Path, include_hidden=no -> [Path]?)"}, //
             {"glob", "Path$glob", "func(path:Path -> [Path])"}, //
             {"group", "Path$group", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
             {"has_extension", "Path$has_extension", "func(path:Path, extension:Text -> Bool)"}, //
@@ -410,8 +410,8 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
             {"set_owner", "Path$set_owner",
              "func(path:Path, owner:Text?=none, group:Text?=none, follow_symlinks=yes -> Result)"}, //
             {"sibling", "Path$sibling", "func(path:Path, name:Text -> Path)"}, //
-            {"subdirectories", "Path$subdirectories", "func(path:Path, include_hidden=no -> [Path])"}, //
-            {"unique_directory", "Path$unique_directory", "func(path:Path -> Path)"}, //
+            {"subdirectories", "Path$subdirectories", "func(path:Path, include_hidden=no -> [Path]?)"}, //
+            {"unique_directory", "Path$unique_directory", "func(path:Path -> Path?)"}, //
             {"walk", "Path$walk", "func(path:Path, include_hidden=no, follow_symlinks=no -> func(->Path?))"}, //
             {"with_extension", "Path$with_extension", "func(path:Path, extension:Text, replace:Bool=yes -> Path)"}, //
             {"write", "Path$write", "func(path:Path, text:Text, permissions=Int32(0o644) -> Result)"}, //

@@ -1,0 +1,37 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.concatenated_with 3 2026-09-01 "Tomo man-pages"
+.SH NAME
+Path.concatenated_with \- concatenate two paths
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.concatenated_with\ :\ func(a:\ Path,\ b:\ Path\ ->\ Path)
+.fi
+.SH DESCRIPTION
+Return the concatenation of two paths. This is what the `++` operator does on paths. The result is normalized, so `.` and `..` components in the second path are resolved away.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx
+l l l.
+Name	Type	Description
+a	Path	The base path. 
+b	Path	A relative path to append. It is a runtime error if this is an absolute or home-based path. 
+.TE
+.SH RETURN
+The second path appended to the first.
+
+.SH EXAMPLES
+.EX
+assert (/foo/bar).concatenated_with((./baz)) == (/foo/bar/baz)
+assert ((/foo/bar) ++ (./baz/../qux)) == (/foo/bar/qux)
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

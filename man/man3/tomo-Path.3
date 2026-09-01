@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path 3 2026-08-20 "Tomo man-pages"
+.TH Path 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path \- a Tomo type
 .SH LIBRARY
@@ -107,7 +107,7 @@ For more, see:
 
 
 .TP
-.BI Path.children\ :\ func(path:\ Path,\ include_hidden\ =\ no\ ->\ [Path])
+.BI Path.children\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no\ ->\ [Path]?)
 Returns a list of children (files and directories) within the directory at the specified path. Optionally includes hidden files. Child ordering is not specified. 
 
 For more, see:
@@ -123,7 +123,15 @@ For more, see:
 
 
 .TP
-.BI Path.copy_to\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite\ =\ no\ ->\ Result)
+.BI Path.concatenated_with\ :\ func(a:\ Path,\ b:\ Path\ ->\ Path)
+Return the concatenation of two paths. This is what the \fB++\fR operator does on paths. The result is normalized, so \fB.\fR and \fB..\fR components in the second path are resolved away. 
+
+For more, see:
+.BR Tomo-Path.concatenated_with (3)
+
+
+.TP
+.BI Path.copy_to\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite:\ Bool\ =\ no\ ->\ Result)
 Copies the file or directory from one location to another. This is the same behavior as \fBcp -r -T src dest\fR or \fBcp -rf -T src dest\fR (if \fBoverwrite\fR is enabled). 
 
 For more, see:
@@ -131,7 +139,7 @@ For more, see:
 
 
 .TP
-.BI Path.create_directory\ :\ func(path:\ Path,\ permissions\ =\ Int32(0o755),\ recursive\ =\ yes\ ->\ Result)
+.BI Path.create_directory\ :\ func(path:\ Path,\ permissions:\ Int32\ =\ Int32(0o755),\ recursive:\ Bool\ =\ yes\ ->\ Result)
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed. 
 
 For more, see:
@@ -140,14 +148,14 @@ For more, see:
 
 .TP
 .BI Path.current_dir\ :\ func(->\ Path)
-Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed. 
+Returns the absolute path of the current working directory. 
 
 For more, see:
 .BR Tomo-Path.current_dir (3)
 
 
 .TP
-.BI Path.each_child\ :\ func(path:\ Path,\ include_hidden\ =\ no\ ->\ func(->Path?)?)
+.BI Path.each_child\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no\ ->\ func(->Path?)?)
 Returns an iterator over the children (files and directories) within the directory at the specified path. Optionally includes hidden files. Iteration order is not specified. 
 
 For more, see:
@@ -179,7 +187,7 @@ For more, see:
 
 
 .TP
-.BI Path.files\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no\ ->\ [Path])
+.BI Path.files\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no\ ->\ [Path]?)
 Returns a list of files within the directory at the specified path. Optionally includes hidden files. 
 
 For more, see:
@@ -188,7 +196,7 @@ For more, see:
 
 .TP
 .BI Path.glob\ :\ func(path:\ Path\ ->\ [Path])
-Perform a globbing operation and return a list of matching paths. Some glob specific details: - The paths "." and ".." are *not* included in any globbing results. - Files or directories that begin with "." will not match \fB*\fR, but will match \fB.*\fR. - Globs do support \fB{a,b}\fR syntax for matching files that match any of several   choices of patterns.  - The shell-style syntax \fB**\fR for matching subdirectories is not supported. 
+Perform a globbing operation and return a list of matching paths. Some glob specific details: - The paths "." and ".." are *not* included in any globbing results. - Files or directories that begin with "." will not match \fB*\fR, but will match \fB.*\fR. - The shell-style syntax \fB**\fR for matching subdirectories is not supported. - The \fB{a,b}\fR alternation syntax is not supported. 
 
 For more, see:
 .BR Tomo-Path.glob (3)
@@ -211,7 +219,7 @@ For more, see:
 
 
 .TP
-.BI Path.is_directory\ :\ func(path:\ Path,\ follow_symlinks\ =\ yes\ ->\ Bool)
+.BI Path.is_directory\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Bool)
 Checks if the path represents a directory. Optionally follows symbolic links. 
 
 For more, see:
@@ -219,7 +227,7 @@ For more, see:
 
 
 .TP
-.BI Path.is_file\ :\ func(path:\ Path,\ follow_symlinks\ =\ yes\ ->\ Bool)
+.BI Path.is_file\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Bool)
 Checks if the path represents a file. Optionally follows symbolic links. 
 
 For more, see:
@@ -227,7 +235,15 @@ For more, see:
 
 
 .TP
-.BI Path.is_socket\ :\ func(path:\ Path,\ follow_symlinks\ =\ yes\ ->\ Bool)
+.BI Path.is_pipe\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Bool)
+Checks if the path represents a named pipe (a FIFO). Optionally follows symbolic links. 
+
+For more, see:
+.BR Tomo-Path.is_pipe (3)
+
+
+.TP
+.BI Path.is_socket\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Bool)
 Checks if the path represents a socket. Optionally follows symbolic links. 
 
 For more, see:
@@ -252,7 +268,7 @@ For more, see:
 
 .TP
 .BI Path.matches_glob\ :\ func(path:\ Path,\ glob:\ Text\ ->\ Bool)
-Return whether or not a path matches a given glob. 
+Return whether or not a path matches a given glob. The glob is matched against the path's entire text, not just its base name, so a pattern for \fB(./file.txt)\fR must account for the leading \fB./\fR. 
 
 For more, see:
 .BR Tomo-Path.matches_glob (3)
@@ -267,7 +283,7 @@ For more, see:
 
 
 .TP
-.BI Path.move\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite\ =\ no\ ->\ Result)
+.BI Path.move\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite:\ Bool\ =\ no\ ->\ Result)
 Moves the file or directory from one location to another. 
 
 For more, see:
@@ -307,15 +323,15 @@ For more, see:
 
 
 .TP
-.BI Path.relative_to\ :\ func(path:\ Path,\ relative_to\ =\ (./)\ ->\ Path)
-Returns the path relative to a given base path. By default, the base path is the current directory. 
+.BI Path.relative_to\ :\ func(path:\ Path,\ relative_to:\ Path\ ->\ Path)
+Returns the path relative to a given base path. 
 
 For more, see:
 .BR Tomo-Path.relative_to (3)
 
 
 .TP
-.BI Path.remove\ :\ func(path:\ Path,\ ignore_missing\ =\ no\ ->\ Result)
+.BI Path.remove\ :\ func(path:\ Path,\ ignore_missing:\ Bool\ =\ no\ ->\ Result)
 Removes the file or directory at the specified path. A runtime error is raised if something goes wrong. 
 
 For more, see:
@@ -323,7 +339,7 @@ For more, see:
 
 
 .TP
-.BI Path.resolved\ :\ func(path:\ Path,\ relative_to\ =\ (./)\ ->\ Path)
+.BI Path.resolved\ :\ func(path:\ Path,\ relative_to:\ Path\ =\ (./)\ ->\ Path)
 Resolves the absolute path of the given path relative to a base path. By default, the base path is the current directory. 
 
 For more, see:
@@ -347,7 +363,7 @@ For more, see:
 
 
 .TP
-.BI Path.subdirectories\ :\ func(path:\ Path,\ include_hidden\ =\ no\ ->\ [Path])
+.BI Path.subdirectories\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no\ ->\ [Path]?)
 Returns a list of subdirectories within the directory at the specified path. Optionally includes hidden subdirectories. 
 
 For more, see:
@@ -355,7 +371,7 @@ For more, see:
 
 
 .TP
-.BI Path.unique_directory\ :\ func(path:\ Path\ ->\ Path)
+.BI Path.unique_directory\ :\ func(path:\ Path\ ->\ Path?)
 Generates a unique directory path based on the given path. Useful for creating temporary directories. 
 
 For more, see:
@@ -363,7 +379,7 @@ For more, see:
 
 
 .TP
-.BI Path.walk\ :\ func(path:\ Path,\ include_hidden\ =\ no,\ follow_symlinks:\ Bool\ =\ no\ ->\ func(->Path?))
+.BI Path.walk\ :\ func(path:\ Path,\ include_hidden:\ Bool\ =\ no,\ follow_symlinks:\ Bool\ =\ no\ ->\ func(->Path?))
 Returns an iterator that efficiently recursively walks over every file and subdirectory in a given directory. The iteration order is not defined, but in practice it may look a lot like a breadth-first traversal. 
 
 For more, see:
@@ -371,7 +387,15 @@ For more, see:
 
 
 .TP
-.BI Path.write\ :\ func(path:\ Path,\ text:\ Text,\ permissions\ =\ Int32(0o644)\ ->\ Result)
+.BI Path.with_extension\ :\ func(path:\ Path,\ extension:\ Text,\ replace:\ Bool\ =\ yes\ ->\ Path)
+Return a path with the given file extension, either replacing the path's existing extension or adding to it. 
+
+For more, see:
+.BR Tomo-Path.with_extension (3)
+
+
+.TP
+.BI Path.write\ :\ func(path:\ Path,\ text:\ Text,\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Result)
 Writes the given text to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised. 
 
 For more, see:
@@ -379,7 +403,7 @@ For more, see:
 
 
 .TP
-.BI Path.write_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions\ =\ Int32(0o644)\ ->\ Result)
+.BI Path.write_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte],\ permissions:\ Int32\ =\ Int32(0o644)\ ->\ Result)
 Writes the given bytes to the file at the specified path, creating the file if it doesn't already exist. Sets the file permissions as specified. If the file writing cannot be successfully completed, a runtime error is raised. 
 
 For more, see:
@@ -387,7 +411,7 @@ For more, see:
 
 
 .TP
-.BI Path.write_unique\ :\ func(path:\ Path,\ text:\ Text\ ->\ Path)
+.BI Path.write_unique\ :\ func(path:\ Path,\ text:\ Text\ ->\ Path?)
 Writes the given text to a unique file path based on the specified path. The file is created if it doesn't exist. This is useful for creating temporary files. 
 
 For more, see:
@@ -395,7 +419,7 @@ For more, see:
 
 
 .TP
-.BI Path.write_unique_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte]\ ->\ Path)
+.BI Path.write_unique_bytes\ :\ func(path:\ Path,\ bytes:\ [Byte]\ ->\ Path?)
 Writes the given bytes to a unique file path based on the specified path. The file is created if it doesn't exist. This is useful for creating temporary files. 
 
 For more, see:

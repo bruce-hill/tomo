@@ -1,0 +1,41 @@
+'\" t
+.\" Copyright (c) 2026 Bruce Hill
+.\" All rights reserved.
+.\"
+.TH Path.with_extension 3 2026-09-01 "Tomo man-pages"
+.SH NAME
+Path.with_extension \- replace or add a file extension
+.SH LIBRARY
+Tomo Standard Library
+.SH SYNOPSIS
+.nf
+.BI Path.with_extension\ :\ func(path:\ Path,\ extension:\ Text,\ replace:\ Bool\ =\ yes\ ->\ Path)
+.fi
+.SH DESCRIPTION
+Return a path with the given file extension, either replacing the path's existing extension or adding to it.
+
+
+.SH ARGUMENTS
+
+.TS
+allbox;
+lb lb lbx lb
+l l l l.
+Name	Type	Description	Default
+path	Path	A path. 	-
+extension	Text	The file extension to apply (a leading \fB.\fR is optional). If empty, the extension is removed entirely. 	-
+replace	Bool	If \fByes\fR, the path's existing extension is replaced. If \fBno\fR, the new extension is appended to the existing one. 	yes
+.TE
+.SH RETURN
+A new path with the requested extension.
+
+.SH EXAMPLES
+.EX
+assert (./file.tar.gz).with_extension("zip") == (./file.zip)
+assert (./file.tar.gz).with_extension(".zip") == (./file.zip)
+assert (./file.tar.gz).with_extension("") == (./file)
+assert (./file.tar.gz).with_extension("zip", replace=no) == (./file.tar.gz.zip)
+assert (./file).with_extension("txt") == (./file.txt)
+.EE
+.SH SEE ALSO
+.BR Tomo-Path (3)

@@ -2,17 +2,17 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.is_file 3 2026-09-01 "Tomo man-pages"
+.TH Path.is_pipe 3 2026-09-01 "Tomo man-pages"
 .SH NAME
-Path.is_file \- check if a path is a file
+Path.is_pipe \- check if a path is a named pipe
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.is_file\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Bool)
+.BI Path.is_pipe\ :\ func(path:\ Path,\ follow_symlinks:\ Bool\ =\ yes\ ->\ Bool)
 .fi
 .SH DESCRIPTION
-Checks if the path represents a file. Optionally follows symbolic links.
+Checks if the path represents a named pipe (a FIFO). Optionally follows symbolic links.
 
 
 .SH ARGUMENTS
@@ -26,12 +26,12 @@ path	Path	The path to check. 	-
 follow_symlinks	Bool	Whether to follow symbolic links. 	yes
 .TE
 .SH RETURN
-`yes` if the path is a file, otherwise `no`.
+`yes` if the path is a named pipe, otherwise `no`.
 
 .SH EXAMPLES
 .EX
-assert (./file.txt).is_file()
-assert not (./directory/).is_file()
+assert (./my-fifo).is_pipe()
+assert not (./file.txt).is_pipe()
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

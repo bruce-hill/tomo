@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.matches_glob 3 2026-03-14 "Tomo man-pages"
+.TH Path.matches_glob 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.matches_glob \- check if a path matches a glob
 .SH LIBRARY
@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Path.matches_glob\ :\ func(path:\ Path,\ glob:\ Text\ ->\ Bool)
 .fi
 .SH DESCRIPTION
-Return whether or not a path matches a given glob.
+Return whether or not a path matches a given glob. The glob is matched against the path's entire text, not just its base name, so a pattern for `(./file.txt)` must account for the leading `./`.
 
 
 .SH ARGUMENTS
@@ -28,10 +28,25 @@ glob	Text	The glob pattern to check.
 .SH RETURN
 Whether or not the path matches the given glob.
 
+.SH NOTES
+This is a pattern match, not a filesystem operation, and it accepts a narrower syntax than `Path.glob`:
+- `/` must be matched by a literal `/`; `*` and `?` will not match it.
+- A `.` at the start of the path or just after a `/` must be matched by a
+  literal `.`.
+
+- Character classes like `[ch]` work, but the `{a,b}` alternation syntax
+  does not.
+
 .SH EXAMPLES
 .EX
-assert (./file.txt).matches_glob("*.txt")
-assert (./file.c).matches_glob("*.{c,h}")
+assert (./file.txt).matches_glob("./*.txt")
+assert (./src/file.c).matches_glob("./*/*.[ch]")
+
+# The leading "./" and the "/" separators are not matched by `*`:
+assert not (./file.txt).matches_glob("*.txt")
+
+# Brace alternation is not supported here (it is in `Path.glob`):
+assert not (./src/file.c).matches_glob("./*.{c,h}")
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

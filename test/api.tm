@@ -669,16 +669,24 @@ test "Path.child"
 
 test "Path.children"
     if no
-        assert (./directory).children(include_hidden=yes) == [(./directory/.git), (./directory/foo.txt)]
+        assert (./directory).children(include_hidden=yes)!.sorted() == [(./directory/.git), (./directory/foo.txt)]
+        
+        # A directory that can't be read gives `none`, not an empty list:
+        assert (./not-a-directory).children() == none
 
 test "Path.components"
     if no
         assert (./foo/baz.txt).components() == [".", "foo", "baz.txt"]
         assert (/absolute/path/).components() == ["/", "absolute", "path"]
 
+test "Path.concatenated_with"
+    if no
+        assert (/foo/bar).concatenated_with((./baz)) == (/foo/bar/baz)
+        assert ((/foo/bar) ++ (./baz/../qux)) == (/foo/bar/qux)
+
 test "Path.copy_to"
     if no
-        (./file.txt).move(/tmp/renamed.txt)!
+        (./file.txt).copy_to(/tmp/copy.txt)!
 
 test "Path.create_directory"
     if no
@@ -690,7 +698,15 @@ test "Path.current_dir"
 
 test "Path.each_child"
     if no
-        for child in (/dir).each_child()
+        # Safely handle the directory not being readable:
+        if children := (/dir).each_child()
+            for child in children
+                say("Child: $child")
+        else
+            say("Couldn't read the directory!")
+        
+        # Assume the directory is readable and error if that's not the case:
+        for child in (/dir).each_child()!
             say("Child: $child")
 
 test "Path.exists"
@@ -713,14 +729,13 @@ test "Path.extension"
 
 test "Path.files"
     if no
-        assert (./directory).files(include_hidden=yes) == [(./directory/file1.txt), (./directory/file2.txt)]
+        assert (./directory).files(include_hidden=yes)!.sorted() == [(./directory/file1.txt), (./directory/file2.txt)]
 
 test "Path.glob"
     if no
         # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
-        assert (./*).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
-        assert (./*.txt).glob() == [(./foo.txt), (./baz.txt)]
-        assert (./*.{txt,jpg}).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+        assert (./*).glob() == [(./baz.txt), (./foo.txt), (./qux.jpg)]
+        assert (./*.txt).glob() == [(./baz.txt), (./foo.txt)]
         assert (./.*).glob() == [(./.hidden)]
         
         # Globs with no matches return an empty list:
@@ -748,6 +763,11 @@ test "Path.is_file"
         assert (./file.txt).is_file()
         assert not (./directory/).is_file()
 
+test "Path.is_pipe"
+    if no
+        assert (./my-fifo).is_pipe()
+        assert not (./file.txt).is_pipe()
+
 test "Path.is_socket"
     if no
         assert (./socket).is_socket()
@@ -762,8 +782,14 @@ test "Path.lines"
 
 test "Path.matches_glob"
     if no
-        assert (./file.txt).matches_glob("*.txt")
-        assert (./file.c).matches_glob("*.{c,h}")
+        assert (./file.txt).matches_glob("./*.txt")
+        assert (./src/file.c).matches_glob("./*/*.[ch]")
+        
+        # The leading "./" and the "/" separators are not matched by `*`:
+        assert not (./file.txt).matches_glob("*.txt")
+        
+        # Brace alternation is not supported here (it is in `Path.glob`):
+        assert not (./src/file.c).matches_glob("./*.{c,h}")
 
 test "Path.modified"
     if no
@@ -781,7 +807,7 @@ test "Path.owner"
 
 test "Path.parent"
     if no
-        assert (./path/to/file.txt).parent() == (./path/to/)
+        assert (./path/to/file.txt).parent() == (./path/to)
 
 test "Path.read"
     if no
@@ -795,8 +821,9 @@ test "Path.read_bytes"
 
 test "Path.relative_to"
     if no
-        assert (./path/to/file.txt).relative_to((./path)) == (./to/file.txt)
-        assert (/tmp/foo).relative_to((/tmp)) == (./foo)
+        assert "$((./path/to/file.txt).relative_to((./path)))" == "to/file.txt"
+        assert "$((/tmp/foo).relative_to((/tmp)))" == "foo"
+        assert (/a/b/c).relative_to((/a/x)) == (../b/c)
 
 test "Path.remove"
     if no
@@ -817,12 +844,12 @@ test "Path.sibling"
 
 test "Path.subdirectories"
     if no
-        assert (./directory).subdirectories() == [(./directory/subdir1), (./directory/subdir2)]
-        assert (./directory).subdirectories(include_hidden=yes) == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
+        assert (./directory).subdirectories()!.sorted() == [(./directory/subdir1), (./directory/subdir2)]
+        assert (./directory).subdirectories(include_hidden=yes)!.sorted() == [(./directory/.git), (./directory/subdir1), (./directory/subdir2)]
 
 test "Path.unique_directory"
     if no
-        created := (/tmp/my-dir.XXXXXX).unique_directory()
+        created := (/tmp/my-dir.XXXXXX).unique_directory()!
         assert created.is_directory()
         created.remove()!
 
@@ -834,6 +861,14 @@ test "Path.walk"
         # The path itself is always included:
         assert [p for p in (./file.txt).walk()] == [(./file.txt)]
 
+test "Path.with_extension"
+    if no
+        assert (./file.tar.gz).with_extension("zip") == (./file.zip)
+        assert (./file.tar.gz).with_extension(".zip") == (./file.zip)
+        assert (./file.tar.gz).with_extension("") == (./file)
+        assert (./file.tar.gz).with_extension("zip", replace=no) == (./file.tar.gz.zip)
+        assert (./file).with_extension("txt") == (./file.txt)
+
 test "Path.write"
     if no
         (./file.txt).write("Hello, world!")!
@@ -844,15 +879,17 @@ test "Path.write_bytes"
 
 test "Path.write_unique"
     if no
+        # The created path has the XXXXXX replaced by random characters,
+        # e.g. (./file-27QHtq.txt):
         created := (./file-XXXXXX.txt).write_unique("Hello, world!")!
-        assert created == (./file-27QHtq.txt)
         assert created.read()! == "Hello, world!"
         created.remove()!
 
 test "Path.write_unique_bytes"
     if no
+        # The created path has the XXXXXX replaced by random characters,
+        # e.g. (./file-27QHtq.txt):
         created := (./file-XXXXXX.txt).write_unique_bytes([1, 2, 3])!
-        assert created == (./file-27QHtq.txt)
         assert created.read_bytes()! == [1, 2, 3]
         created.remove()!
 

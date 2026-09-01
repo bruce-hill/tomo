@@ -15,10 +15,8 @@ Tomo Standard Library
 Perform a globbing operation and return a list of matching paths. Some glob specific details:
 - The paths "." and ".." are *not* included in any globbing results.
 - Files or directories that begin with "." will not match `*`, but will match `.*`.
-- Globs do support `{a,b}` syntax for matching files that match any of several
-  choices of patterns.
-
 - The shell-style syntax `**` for matching subdirectories is not supported.
+- The `{a,b}` alternation syntax is not supported.
 
 
 .SH ARGUMENTS
@@ -39,9 +37,8 @@ Matches keep the form of the pattern they came from: `(./*.txt)` yields relative
 .SH EXAMPLES
 .EX
 # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
-assert (./*).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
-assert (./*.txt).glob() == [(./foo.txt), (./baz.txt)]
-assert (./*.{txt,jpg}).glob() == [(./foo.txt), (./baz.txt), (./qux.jpg)]
+assert (./*).glob() == [(./baz.txt), (./foo.txt), (./qux.jpg)]
+assert (./*.txt).glob() == [(./baz.txt), (./foo.txt)]
 assert (./.*).glob() == [(./.hidden)]
 
 # Globs with no matches return an empty list:

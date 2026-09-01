@@ -2,14 +2,14 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.unique_directory 3 2026-03-08 "Tomo man-pages"
+.TH Path.unique_directory 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.unique_directory \- create a directory with a unique name
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.unique_directory\ :\ func(path:\ Path\ ->\ Path)
+.BI Path.unique_directory\ :\ func(path:\ Path\ ->\ Path?)
 .fi
 .SH DESCRIPTION
 Generates a unique directory path based on the given path. Useful for creating temporary directories.
@@ -25,11 +25,14 @@ Name	Type	Description
 path	Path	The base path for generating the unique directory. The last six letters of this path must be \fBXXXXXX\fR. 
 .TE
 .SH RETURN
-A unique directory path after creating the directory.
+A unique directory path after creating the directory, or `none` if it could not be created.
+
+.SH ERRORS
+Returns `none` if the directory could not be created.
 
 .SH EXAMPLES
 .EX
-created := (/tmp/my-dir.XXXXXX).unique_directory()
+created := (/tmp/my-dir.XXXXXX).unique_directory()!
 assert created.is_directory()
 created.remove()!
 .EE
