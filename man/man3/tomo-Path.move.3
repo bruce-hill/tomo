@@ -29,6 +29,9 @@ overwrite	Bool	Whether to permit overwriting the destination if it is an existin
 .SH RETURN
 Either `Success` or `Failure{reason}`.
 
+.SH NOTES
+With `overwrite=no`, the refusal and the move are a single operation the kernel performs indivisibly, so another process cannot slip a file into the destination in between. Moving a directory across filesystems is the one case that cannot be done that way and falls back to checking first.
+
 .SH EXAMPLES
 .EX
 (./file.txt).move(/tmp/renamed.txt)!

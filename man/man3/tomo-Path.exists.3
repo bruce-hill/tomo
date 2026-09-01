@@ -27,6 +27,9 @@ path	Path	The path to check.
 .SH RETURN
 `yes` if the file or directory exists, otherwise `no`.
 
+.SH NOTES
+This answers about the moment it is asked. Deciding what to do from it races with anything else touching the filesystem; prefer operations that say what they did, such as `Path.create_directory` (which succeeds if the directory is already there) or `Path.remove` with `ignore_missing`.
+
 .SH EXAMPLES
 .EX
 assert (/).exists()

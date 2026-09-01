@@ -29,6 +29,9 @@ recursive	Bool	If set to \fByes\fR, then recursively create any parent directori
 .SH RETURN
 Either `Success` or `Failure{reason}`.
 
+.SH NOTES
+A directory that already exists is a success, which is what makes this safe to call when another process may be creating the same directory. Something that exists but is not a directory is a failure.
+
 .SH EXAMPLES
 .EX
 (./new_directory).create_directory()!

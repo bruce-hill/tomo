@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Path.copy_to\ :\ func(path:\ Path,\ dest:\ Path,\ overwrite:\ Bool\ =\ no\ ->\ Result)
 .fi
 .SH DESCRIPTION
-Copies the file or directory from one location to another. This is the same behavior as `cp -r -T src dest` or `cp -rf -T src dest` (if `overwrite` is enabled).
+Copies the file or directory from one location to another. This is the same behavior as `cp -rn -T src dest` or `cp -rf -T src dest` (if `overwrite` is enabled).
 
 
 .SH ARGUMENTS
@@ -28,6 +28,9 @@ overwrite	Bool	Whether to permit overwriting the destination if it is an existin
 .TE
 .SH RETURN
 Either `Success` or `Failure{reason}`.
+
+.SH NOTES
+Copying a tree is many operations rather than one, so unlike `Path.move` this cannot be indivisible. With `overwrite=no` an existing destination is never written over, but if one appears while the copy is running it is skipped silently rather than reported.
 
 .SH EXAMPLES
 .EX

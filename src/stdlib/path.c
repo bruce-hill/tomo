@@ -17,6 +17,7 @@
 #include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -577,6 +578,13 @@ Result_t Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t group,
     return SuccessResult;
 }
 
+// nftw(3) hands its callback no user data, so a failure has to be left
+// somewhere for Path$remove() to collect. _Thread_local rather than a plain
+// static: the walk is not reentrant either way, but this keeps two of them from
+// overwriting each other's reason. Returning non-zero stops the walk, so at
+// most one failure is ever recorded -- the first one.
+static _Thread_local Result_t _remove_failure = Result$Success;
+
 static int _remove_files(const char *path, const struct stat *sbuf, int type, struct FTW *ftwb) {
     (void)sbuf, (void)ftwb;
     switch (type) {
@@ -584,12 +592,15 @@ static int _remove_files(const char *path, const struct stat *sbuf, int type, st
     case FTW_SL:
     case FTW_SLN:
         if (remove(path) < 0) {
-            fail("Could not remove file: ", path, " (", strerror(errno), ")");
+            _remove_failure = FailureResult("Could not remove file: ", path, " (", strerror(errno), ")");
             return -1;
         }
         return 0;
     case FTW_DP:
-        if (rmdir(path) != 0) fail("Could not remove directory: ", path, " (", strerror(errno), ")");
+        if (rmdir(path) != 0) {
+            _remove_failure = FailureResult("Could not remove directory: ", path, " (", strerror(errno), ")");
+            return -1;
+        }
         return 0;
     default: fail("Could not remove path: ", path, " (not a file or directory)"); return -1;
     }
@@ -598,40 +609,84 @@ static int _remove_files(const char *path, const struct stat *sbuf, int type, st
 public
 Result_t Path$remove(Path_t path, bool ignore_missing) {
     path = Path$expand_home(path);
-    struct stat sb;
-    if (lstat(path, &sb) != 0) {
-        if (!ignore_missing) return FailureResult("Could not remove file: ", path, " (", strerror(errno), ")");
-        return SuccessResult;
+
+    // Attempt the removal and let the kernel report what is there, rather than
+    // asking with lstat() first: between the question and the answer the entry
+    // can be replaced, and unlink(2) does not follow symlinks, so a link that
+    // appears in that window is removed rather than followed.
+    if (unlink(path) == 0) return SuccessResult;
+
+    if (errno == ENOENT) {
+        if (ignore_missing) return SuccessResult;
+        return FailureResult("Could not remove file: ", path, " (", strerror(errno), ")");
     }
 
-    if ((sb.st_mode & S_IFMT) == S_IFREG || (sb.st_mode & S_IFMT) == S_IFLNK) {
-        if (unlink(path) != 0 && !ignore_missing)
-            return FailureResult("Could not remove file: ", path, " (", strerror(errno), ")");
-    } else if ((sb.st_mode & S_IFMT) == S_IFDIR) {
+    // Linux reports EISDIR for a directory, the BSDs and macOS report EPERM:
+    if (errno == EISDIR || errno == EPERM) {
         const int num_open_fd = 10;
-        if (nftw(path, _remove_files, num_open_fd, FTW_DEPTH | FTW_MOUNT | FTW_PHYS) < 0)
-            return FailureResult("Could not remove directory: ", path, " (", strerror(errno), ")");
-    } else {
-        return FailureResult("Could not remove path: ", path, " (not a file or directory)");
+        _remove_failure = SuccessResult;
+        if (nftw(path, _remove_files, num_open_fd, FTW_DEPTH | FTW_MOUNT | FTW_PHYS) == 0) return SuccessResult;
+        // A file the walk could not remove, reported by the callback:
+        if (_remove_failure.$tag == Result$tag$Failure) return _remove_failure;
+        if (errno == ENOENT && ignore_missing) return SuccessResult;
+        return FailureResult("Could not remove directory: ", path, " (", strerror(errno), ")");
     }
-    return SuccessResult;
+
+    if (ignore_missing) return SuccessResult;
+    return FailureResult("Could not remove file: ", path, " (", strerror(errno), ")");
 }
 
+#ifndef RENAME_NOREPLACE
+#define RENAME_NOREPLACE (1 << 0)
+#endif
+
+// rename(2) replaces an existing destination without complaint. Checking with
+// lstat() first only narrows the window -- another process can create the
+// destination in between -- so the refusal has to happen inside one operation
+// the kernel performs indivisibly.
+static int rename_without_replacing(const char *src, const char *dest) {
+#if defined(__linux__) && defined(SYS_renameat2)
+    int status = (int)syscall(SYS_renameat2, AT_FDCWD, src, AT_FDCWD, dest, RENAME_NOREPLACE);
+    // ENOSYS is a kernel too old for it; EINVAL is a filesystem that does not
+    // implement the flag. Anything else is the real answer, EEXIST included.
+    if (status == 0 || (errno != ENOSYS && errno != EINVAL)) return status;
+#elif defined(__APPLE__)
+    int status = renameatx_np(AT_FDCWD, src, AT_FDCWD, dest, RENAME_EXCL);
+    if (status == 0 || errno != ENOTSUP) return status;
+#endif
+    // link(2) fails with EEXIST rather than replacing anything, so it gives the
+    // same guarantee for everything it can handle:
+    if (link(src, dest) == 0) {
+        if (unlink(src) != 0) return -1;
+        return 0;
+    }
+    // It cannot handle directories (EPERM) or a move across filesystems
+    // (EXDEV). Those fall back to looking first, which races; every other
+    // errno, EEXIST included, is the answer.
+    if (errno != EPERM && errno != EXDEV) return -1;
+
+    struct stat sb;
+    if (lstat(dest, &sb) == 0) {
+        errno = EEXIST;
+        return -1;
+    }
+    return rename(src, dest);
+}
+
+public
 Result_t Path$move(Path_t src, Path_t dest, bool allow_overwriting) {
     src = Path$expand_home(src);
     dest = Path$expand_home(dest);
-    // rename(2) replaces an existing destination without complaint, so
-    // refusing to overwrite has to be decided before the call. Waiting for the
-    // EEXIST below is not enough: Linux does not return it for this.
-    struct stat sb;
-    if (!allow_overwriting && lstat(dest, &sb) == 0)
-        return FailureResult("Could not move file ", src, " to ", dest, " (the destination already exists)");
-    int status = rename(src, dest);
+    int status = allow_overwriting ? rename(src, dest) : rename_without_replacing(src, dest);
     if (status != 0) {
-        if (errno == EEXIST && allow_overwriting) {
+        // Replacing a non-empty directory needs it gone first; rename(2) will
+        // not do that for us:
+        if (allow_overwriting && (errno == EEXIST || errno == ENOTEMPTY || errno == EISDIR)) {
             Result_t result = Path$remove(dest, true);
             if (result.Failure.reason.tag != TEXT_NONE) return result;
-            return Path$move(src, dest, allow_overwriting);
+            if (rename(src, dest) == 0) return SuccessResult;
+        } else if (errno == EEXIST || errno == ENOTEMPTY) {
+            return FailureResult("Could not move file ", src, " to ", dest, " (the destination already exists)");
         }
         return FailureResult("Could not move file ", src, " to ", dest, " (", strerror(errno), ")");
     }
@@ -642,9 +697,22 @@ Result_t Path$copy_to(Path_t src, Path_t dest, bool allow_overwriting) {
     // There is no shell in between to expand a "~" for us:
     src = Path$expand_home(src);
     dest = Path$expand_home(dest);
+
+    // Copying a tree is many operations, so unlike Path$move() it cannot be one
+    // indivisible act. What protects the destination is "cp -n" below, which
+    // declines to clobber; this look is only so the caller is told that it
+    // declined, since cp exits 0 either way. If the destination appears after
+    // this and before the copy, "cp -n" still refuses and the caller is told
+    // Success -- an inaccurate report, never a lost file.
+    struct stat sb;
+    if (!allow_overwriting && lstat(dest, &sb) == 0)
+        return FailureResult("Could not copy ", src, " to ", dest, " (the destination already exists)");
+
     pid_t child = fork();
     if (child == 0) {
-        const char *args[] = {"cp", allow_overwriting ? "-rf" : "-r", "-T", src, dest, NULL};
+        // "-r" alone still overwrites: "-f" only forces past a destination
+        // that cannot be opened. "-n" is the flag that declines to clobber.
+        const char *args[] = {"cp", allow_overwriting ? "-rf" : "-rn", "-T", src, dest, NULL};
         execvp("cp", (char **)args);
         exit(0);
     }
@@ -670,7 +738,15 @@ retry:
         if (recursive && errno == ENOENT) {
             Path$create_directory(Path$parent(path), permissions, recursive);
             goto retry;
-        } else if (errno != EEXIST) {
+        } else if (errno == EEXIST) {
+            // mkdir(2) is the check and the creation in one, which is why
+            // nothing looks first. But EEXIST only says something is there,
+            // so confirm it is the directory the caller asked for:
+            struct stat sb;
+            if (stat(c_path, &sb) != 0 || (sb.st_mode & S_IFMT) != S_IFDIR)
+                return FailureResult("Could not create directory: ", c_path,
+                                     " (something that is not a directory is already there)");
+        } else {
             return FailureResult("Could not create directory: ", c_path, " (", strerror(errno), ")");
         }
     }
@@ -1119,20 +1195,26 @@ static void glob_walk(Path_t dir, const char *relative, const char *pattern, Lis
     closedir(d);
 }
 
+static bool is_readable_directory(Path_t path) {
+    DIR *d = opendir(Path$expand_home(path));
+    if (d == NULL) return false;
+    closedir(d);
+    return true;
+}
+
 public
 OptionalList_t Path$glob(Path_t path, Text_t pattern) {
-    // The directory being globbed has to be readable. Anything else is a
-    // failure rather than an empty result, the same as Path$children.
-    DIR *base = opendir(Path$expand_home(path));
-    if (!base) return NONE_LIST;
-    closedir(base);
-
     const char *pat = Text$as_c_string(pattern);
     if (pat[0] == '\0') return EMPTY_LIST; // An empty pattern matches nothing
 
+    // The directory has to be readable, which is a failure rather than an empty
+    // result, the same as Path$children. Finding matches proves it was, so the
+    // question is only asked when there were none -- checking first would be a
+    // second look at a directory that can change between the two.
     List_t glob_files = EMPTY_LIST;
     if (pattern_has_double_star(pat)) {
         glob_walk(path, "", pat, &glob_files);
+        if (glob_files.length == 0 && !is_readable_directory(path)) return NONE_LIST;
         Closure_t comparison = {.fn = (void *)CString$compare, .userdata = (void *)&Path$info};
         List$sort(&glob_files, comparison, sizeof(Path_t));
         return glob_files;
@@ -1164,6 +1246,7 @@ OptionalList_t Path$glob(Path_t path, Text_t pattern) {
         List$insert(&glob_files, &p, I(0), sizeof(Path_t));
     }
     globfree(&glob_result);
+    if (glob_files.length == 0 && !is_readable_directory(path)) return NONE_LIST;
     // glob(3) sorts with strcoll() and the walk above does not sort at all, so
     // both are put in the same order here rather than the answer depending on
     // which branch produced it.

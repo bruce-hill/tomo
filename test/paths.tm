@@ -225,6 +225,60 @@ test "walking something that isn't there gives none"
     assert [p for p in dir.walk()!].sorted() == [dir, file].sorted()
     >> dir.remove()!
 
+test "filesystem operations do not race another process"
+    # These used to look before they acted, which is a window another process
+    # can change the answer in. move() now asks the kernel to rename only if
+    # the destination does not exist, in one operation, and the rest either
+    # attempt the act and read the error, or confirm what they found.
+    dir := (/tmp/tomo-test-race-XXXXXX).unique_directory()!
+    (dir ++ ./src.txt).write("SOURCE")!
+    (dir ++ ./dest.txt).write("DESTINATION")!
+
+    # move() and copy_to() both decline, and neither touches the destination:
+    assert not (dir ++ ./src.txt).move(dir ++ ./dest.txt).Success
+    assert not (dir ++ ./src.txt).copy_to(dir ++ ./dest.txt).Success
+    assert (dir ++ ./dest.txt).read()! == "DESTINATION"
+    assert (dir ++ ./src.txt).read()! == "SOURCE"
+
+    # ...and overwrite=yes still replaces a file or a non-empty directory:
+    assert (dir ++ ./src.txt).copy_to(dir ++ ./dest.txt, overwrite=yes).Success
+    assert (dir ++ ./dest.txt).read()! == "SOURCE"
+    (dir ++ ./d1).create_directory()!
+    (dir ++ ./d2).create_directory()!
+    (dir ++ ./d2/inner.txt).write("x")!
+    assert (dir ++ ./d1).move(dir ++ ./d2, overwrite=yes).Success
+
+    # create_directory() treats EEXIST as success, which is the race-free way
+    # to create one, but only a directory counts:
+    (dir ++ ./afile).write("x")!
+    assert not (dir ++ ./afile).create_directory().Success
+    assert (dir ++ ./realdir).create_directory().Success
+    assert (dir ++ ./realdir).create_directory().Success # Already there is fine
+
+    # remove() attempts the removal rather than asking what is there first:
+    assert not (dir ++ ./gone).remove().Success
+    assert (dir ++ ./gone).remove(ignore_missing=yes).Success
+    >> dir.remove()!
+
+test "a recursive remove reports failure instead of aborting"
+    # nftw(3) passes no user data to its callback, so the callback used to
+    # fail(), which exits the process: one unremovable file partway through a
+    # recursive delete killed the program instead of returning Failure. It
+    # leaves the reason in a _Thread_local for Path$remove() to collect now.
+    dir := (/tmp/tomo-test-rm-XXXXXX).unique_directory()!
+    (dir ++ ./sub/deeper).create_directory()!
+    (dir ++ ./top.txt).write("")!
+    (dir ++ ./sub/mid.txt).write("")!
+    (dir ++ ./sub/deeper/leaf.txt).write("")!
+    assert dir.remove().Success
+    assert not dir.exists()
+
+    # A missing path is a Failure the caller can act on, not an exit:
+    gone := (/tmp/tomo-test-rm-not-there)
+    assert not gone.remove().Success
+    assert gone.remove(ignore_missing=yes).Success
+    say("still running after a failed remove")
+
 test "path components"
     >> p := /foo/baz.x/qux.tar.gz
     >> p.base_name()

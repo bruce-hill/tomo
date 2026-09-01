@@ -181,6 +181,10 @@ Path.can_execute:
   short: check execute permissions
   description: >
     Returns whether or not a file can be executed by the current user/group.
+  note: >
+    This answers about the moment it is asked, and another process can change
+    it immediately after. Do not use it to decide whether an operation will
+    succeed: attempt the operation and handle its `Failure` instead.
   return:
     type: 'Bool'
     description: >
@@ -199,6 +203,10 @@ Path.can_read:
   short: check read permissions
   description: >
     Returns whether or not a file can be read by the current user/group.
+  note: >
+    This answers about the moment it is asked, and another process can change
+    it immediately after. Do not use it to decide whether an operation will
+    succeed: attempt the operation and handle its `Failure` instead.
   return:
     type: 'Bool'
     description: >
@@ -217,6 +225,10 @@ Path.can_write:
   short: check write permissions
   description: >
     Returns whether or not a file can be written by the current user/group.
+  note: >
+    This answers about the moment it is asked, and another process can change
+    it immediately after. Do not use it to decide whether an operation will
+    succeed: attempt the operation and handle its `Failure` instead.
   return:
     type: 'Bool'
     description: >
@@ -338,8 +350,13 @@ Path.copy_to:
   short: copy a file or directory
   description: >
     Copies the file or directory from one location to another. This is the same
-    behavior as `cp -r -T src dest` or `cp -rf -T src dest` (if `overwrite` is
+    behavior as `cp -rn -T src dest` or `cp -rf -T src dest` (if `overwrite` is
     enabled).
+  note: >
+    Copying a tree is many operations rather than one, so unlike `Path.move`
+    this cannot be indivisible. With `overwrite=no` an existing destination is
+    never written over, but if one appears while the copy is running it is
+    skipped silently rather than reported.
   return:
     type: 'Result'
     description: >
@@ -366,6 +383,10 @@ Path.create_directory:
   description: >
     Creates a new directory at the specified path with the given permissions. If
     any of the parent directories do not exist, they will be created as needed.
+  note: >
+    A directory that already exists is a success, which is what makes this safe
+    to call when another process may be creating the same directory. Something
+    that exists but is not a directory is a failure.
   return:
     type: 'Result'
     description: >
@@ -445,6 +466,11 @@ Path.exists:
   short: check if a path exists
   description: >
     Checks if a file or directory exists at the specified path.
+  note: >
+    This answers about the moment it is asked. Deciding what to do from it
+    races with anything else touching the filesystem; prefer operations that
+    say what they did, such as `Path.create_directory` (which succeeds if the
+    directory is already there) or `Path.remove` with `ignore_missing`.
   return:
     type: 'Bool'
     description: >
@@ -854,6 +880,11 @@ Path.move:
   short: move a file or directory
   description: >
     Moves the file or directory from one location to another.
+  note: >
+    With `overwrite=no`, the refusal and the move are a single operation the
+    kernel performs indivisibly, so another process cannot slip a file into the
+    destination in between. Moving a directory across filesystems is the one
+    case that cannot be done that way and falls back to checking first.
   return:
     type: 'Result'
     description: >

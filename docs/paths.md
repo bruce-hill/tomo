@@ -64,6 +64,30 @@ This means a path can be printed back to the user, or written to a file, in
 the terms they wrote it in. When you do want an absolute path, ask for one with
 `.resolved()`.
 
+## Concurrency
+
+Tomo programs are not the only thing that can touch the filesystem, so path
+operations avoid the shape where a program asks a question and then acts on the
+answer -- between the two, another process can make the answer wrong. Instead
+they attempt the operation and read what the system says about it:
+
+- `Path.move` with `overwrite=no` asks the kernel to rename only if the
+  destination does not exist, as one indivisible operation.
+- `Path.remove` attempts the removal and learns from the error what was there,
+  rather than looking first and then deleting what it saw.
+- `Path.create_directory` treats an already-existing directory as success,
+  which is what makes it safe to call when something else may be creating the
+  same directory.
+
+Two operations cannot be made indivisible and say so in their documentation:
+`Path.copy_to` is many operations over a tree rather than one, and moving a
+directory across filesystems is a copy in disguise.
+
+`Path.exists`, `Path.can_read`, `Path.can_write`, and `Path.can_execute` answer
+about the moment they are asked. They are useful for reporting, but deciding
+what to do from one is the race this section is about -- attempt the operation
+and handle its `Failure` instead.
+
 ## Internal Representation
 
 Paths are internally represented as C-style NUL-terminated char strings. This

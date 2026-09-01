@@ -3592,6 +3592,8 @@ Path.can_execute : func(path: Path -> Bool)
 
 Returns whether or not a file can be executed by the current user/group.
 
+This answers about the moment it is asked, and another process can change it immediately after. Do not use it to decide whether an operation will succeed: attempt the operation and handle its `Failure` instead.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file to check.  | -
@@ -3614,6 +3616,8 @@ Path.can_read : func(path: Path -> Bool)
 
 Returns whether or not a file can be read by the current user/group.
 
+This answers about the moment it is asked, and another process can change it immediately after. Do not use it to decide whether an operation will succeed: attempt the operation and handle its `Failure` instead.
+
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 path | `Path` | The path of the file to check.  | -
@@ -3635,6 +3639,8 @@ Path.can_write : func(path: Path -> Bool)
 ```
 
 Returns whether or not a file can be written by the current user/group.
+
+This answers about the moment it is asked, and another process can change it immediately after. Do not use it to decide whether an operation will succeed: attempt the operation and handle its `Failure` instead.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -3774,7 +3780,9 @@ assert ((/foo/bar) ++ (./baz/../qux)) == (/foo/bar/qux)
 Path.copy_to : func(path: Path, dest: Path, overwrite: Bool = no -> Result)
 ```
 
-Copies the file or directory from one location to another. This is the same behavior as `cp -r -T src dest` or `cp -rf -T src dest` (if `overwrite` is enabled).
+Copies the file or directory from one location to another. This is the same behavior as `cp -rn -T src dest` or `cp -rf -T src dest` (if `overwrite` is enabled).
+
+Copying a tree is many operations rather than one, so unlike `Path.move` this cannot be indivisible. With `overwrite=no` an existing destination is never written over, but if one appears while the copy is running it is skipped silently rather than reported.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -3797,6 +3805,8 @@ Path.create_directory : func(path: Path, permissions: Int32 = Int32(0o755), recu
 ```
 
 Creates a new directory at the specified path with the given permissions. If any of the parent directories do not exist, they will be created as needed.
+
+A directory that already exists is a success, which is what makes this safe to call when another process may be creating the same directory. Something that exists but is not a directory is a failure.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -3870,6 +3880,8 @@ Path.exists : func(path: Path -> Bool)
 ```
 
 Checks if a file or directory exists at the specified path.
+
+This answers about the moment it is asked. Deciding what to do from it races with anything else touching the filesystem; prefer operations that say what they did, such as `Path.create_directory` (which succeeds if the directory is already there) or `Path.remove` with `ignore_missing`.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -4284,6 +4296,8 @@ Path.move : func(path: Path, dest: Path, overwrite: Bool = no -> Result)
 ```
 
 Moves the file or directory from one location to another.
+
+With `overwrite=no`, the refusal and the move are a single operation the kernel performs indivisibly, so another process cannot slip a file into the destination in between. Moving a directory across filesystems is the one case that cannot be done that way and falls back to checking first.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------

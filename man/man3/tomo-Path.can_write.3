@@ -1,8 +1,8 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH Path.can_write 3 2025-11-29 "Tomo man-pages"
+.TH Path.can_write 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 Path.can_write \- check write permissions
 .SH LIBRARY
@@ -26,6 +26,9 @@ path	Path	The path of the file to check.
 .TE
 .SH RETURN
 `yes` if the file or directory exists and the current user has write permissions, otherwise `no`.
+
+.SH NOTES
+This answers about the moment it is asked, and another process can change it immediately after. Do not use it to decide whether an operation will succeed: attempt the operation and handle its `Failure` instead.
 
 .SH EXAMPLES
 .EX
