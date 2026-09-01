@@ -321,7 +321,7 @@ test "extension() and has_extension(\"\") agree"
 
 test "matches_glob matches path components from the back"
     # This used to be a single fnmatch() against the path's whole text, so
-    # "*.txt" did not match (./file.txt) -- the leading "./" had to be spelled
+    # "*.txt" did not match (./file.txt) -- the leading "./" had to be written
     # out -- and the same file matched differently depending on whether the
     # path was written relative, absolute, or home-based. The pattern is now
     # split on "/" and matched against a trailing run of components.
@@ -396,6 +396,31 @@ test "everything glob() returns matches the pattern it came from"
     assert dir.glob("*.nothing")! == []
 
     >> dir.remove()!
+
+test "paths are normalized however they are built"
+    # Path literals were left exactly as written, so (./path/to/) and
+    # (./path/to) were different values naming the same directory, and
+    # (/foo/../bar) stayed unresolved. A literal has no interpolation, so its
+    # text is entirely known while compiling: it is normalized there, and the
+    # generated code carries the result rather than redoing it on every run.
+    assert (/foo/../bar) == (/bar)
+    assert (./path/to/) == (./path/to)
+    assert (./a/./b) == (./a/b)
+    assert (/a//b) == (/a/b)
+    assert (~/x/../y) == (~/y)
+
+    # The forms that mean themselves are untouched:
+    assert "$(.)" == "."
+    assert "$(..)" == ".."
+    assert "$(/)" == "/"
+    assert "$(~)" == "~"
+    # ...and "~" is a stand-in for an unknown directory, so nothing pops it:
+    assert "$((~).parent()!)" == "~/.."
+
+    # Text is not known until it is run, so that normalizes when it is built:
+    assert Path.from_text("./a/../b") == (./b)
+    assert (.).child("a/../b") == (./b)
+    assert ((/tmp) ++ (./a/../b)) == (/tmp/b)
 
 test "path concatenation"
     # Concatenation tests:

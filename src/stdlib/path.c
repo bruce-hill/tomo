@@ -122,10 +122,10 @@ char *path_from_buf(char buf[PATH_MAX]) {
     return ret;
 }
 
-// Normalize a string built with String(). normalize_inplace() wants a PATH_MAX
-// buffer, so an over-long path fails here rather than being quietly truncated
-// into a path naming some other file.
-static Path_t path_from_string(const char *str) {
+// normalize_inplace() wants a PATH_MAX buffer, so an over-long path fails here
+// rather than being quietly truncated into a path naming some other file.
+public
+Path_t normalized_path(const char *str) {
     size_t len = strlen(str);
     if (len >= PATH_MAX) fail("Path is too long: ", str);
     static char buf[PATH_MAX];
@@ -144,7 +144,12 @@ Path_t Path$from_str(const char *str) {
 
 public
 Path_t Path$from_text(Text_t text) {
-    return Path$from_str(Text$as_c_string(text));
+    // Normalized, unlike Path$from_str(): this is a path being built out of
+    // arbitrary text, where a literal would have been normalized at compile
+    // time and every other constructor normalizes as it goes. Path$from_str()
+    // itself must not, being the way results from readdir(2) and glob(3) --
+    // already normal, and not to be second-guessed -- become paths.
+    return normalized_path(Text$as_c_string(text));
 }
 
 static OptionalPath_t Path$_concat2(OptionalPath_t a, OptionalPath_t b) {
@@ -153,7 +158,7 @@ static OptionalPath_t Path$_concat2(OptionalPath_t a, OptionalPath_t b) {
         fail("Cannot concatenate an absolute or home-based path onto another path: (", b, ")");
 
     if (b[0] == '.' && b[1] == '\0') return a;
-    return path_from_string(String(a, "/", b));
+    return normalized_path(String(a, "/", b));
 }
 
 // $HOME is not guaranteed to be set. Returning NULL here would reach opendir()
@@ -882,7 +887,7 @@ OptionalPath_t Path$parent(Path_t path) {
         return NULL;
     }
     if (streq(path, ".")) return PARENT_PATH;
-    return path_from_string(String(path, "/.."));
+    return normalized_path(String(path, "/.."));
 }
 
 static const char *base_name_start(Path_t path) {
@@ -978,14 +983,14 @@ OptionalList_t Path$components(Path_t path) {
 
 public
 Path_t Path$child(Path_t path, Text_t name) {
-    return path_from_string(String(path, "/", Text$as_c_string(name)));
+    return normalized_path(String(path, "/", Text$as_c_string(name)));
 }
 
 public
 OptionalPath_t Path$sibling(Path_t path, Text_t name) {
     // Written as the ".parent().child(name)" it is documented to be, rather
-    // than by appending "/../name": that spelling gave the root a sibling,
-    // while Path$parent() says the root has no parent to put one beside.
+    // than by appending "/../name": appending gave the root a sibling, while
+    // Path$parent() says the root has no parent to put one beside.
     OptionalPath_t parent = Path$parent(path);
     if (parent == NULL) return NONE_PATH;
     return Path$child(parent, name);
@@ -1005,9 +1010,9 @@ Path_t Path$with_extension(Path_t path, Text_t extension, bool replace) {
         const char *dot = base;
         while (*dot && *dot != '.')
             dot += 1;
-        return path_from_string(String(string_slice(path, (size_t)(dot - path)), dot_or_empty, ext));
+        return normalized_path(String(string_slice(path, (size_t)(dot - path)), dot_or_empty, ext));
     } else {
-        return path_from_string(String(path, dot_or_empty, ext));
+        return normalized_path(String(path, dot_or_empty, ext));
     }
 }
 

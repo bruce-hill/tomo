@@ -183,7 +183,13 @@ Text_t compile(env_t *env, ast_t *ast) {
     case TextLiteral:
     case TextJoin: return compile_text_ast(env, ast);
     case Path: {
-        return Texts("Path(", compile_text_literal(Text$from_str(Match(ast, Path)->path)), ")");
+        // A path literal has no interpolation, so its whole text is known here:
+        // normalize it now and emit the result, rather than resolving the same
+        // "." and ".." components on every run. `(./foo/../bar)` is compiled as
+        // `./bar`, which also makes it equal to the literal `(./bar)`.
+        const char *literal = Match(ast, Path)->path;
+        if (strlen(literal) >= PATH_MAX) code_err(ast, "This path is too long");
+        return Texts("Path(", compile_text_literal(Text$from_str(normalized_path(literal))), ")");
     }
     case Embed: {
         List_t bytes = get_embed_bytes(ast);

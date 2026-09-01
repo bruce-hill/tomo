@@ -11,6 +11,10 @@
 #include "datatypes/typeinfo.h"
 #include "integers.h"
 
+// A path with its "." and ".." components resolved, its repeated and trailing
+// slashes dropped. Unlike Path$from_str(), which takes a path that is already
+// normal (a readdir(2) or glob(3) result) and only wraps it:
+Path_t normalized_path(const char *str);
 Path_t Path$from_str(const char *str);
 Path_t Path$from_text(Text_t text);
 const char *Path$as_c_string(Path_t path);

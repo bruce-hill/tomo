@@ -30,6 +30,22 @@ In the first example, the paths are parsed as `./foo` and `./file(1).txt`, not
 `./foo),` and `./file(1).txt)]`. Similarly, in the second example, the path is
 `./baz.txt`, not `./baz.txt).read()!`.
 
+Path literals are normalized: `.` and `..` components are resolved, repeated
+and trailing slashes are dropped, and the result is what the program carries.
+A literal contains no interpolation, so all of this happens while compiling
+rather than on every run:
+
+```tomo
+assert (/foo/../bar) == (/bar)
+assert (./path/to/) == (./path/to)
+```
+
+`.`, `..`, `/`, and `~` mean themselves and are left alone, and nothing
+resolves a `..` against a `~`, which stands in for a directory whose location
+is not known until the program runs. Paths built while running -- with
+`Path.from_text`, `.child()`, or `++` -- are normalized then, since their text
+is not available any earlier.
+
 ## Usage
 
 Paths come with a bunch of methods for doing filesystem operations. Broadly,
