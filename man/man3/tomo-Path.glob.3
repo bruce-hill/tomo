@@ -4,19 +4,15 @@
 .\"
 .TH Path.glob 3 2026-09-01 "Tomo man-pages"
 .SH NAME
-Path.glob \- perform file globbing
+Path.glob \- find files in a directory matching a glob
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI Path.glob\ :\ func(path:\ Path\ ->\ [Path])
+.BI Path.glob\ :\ func(path:\ Path,\ pattern:\ Text\ ->\ [Path]?)
 .fi
 .SH DESCRIPTION
-Perform a globbing operation and return a list of matching paths. Some glob specific details:
-- The paths "." and ".." are *not* included in any globbing results.
-- Files or directories that begin with "." will not match `*`, but will match `.*`.
-- The shell-style syntax `**` for matching subdirectories is not supported.
-- The `{a,b}` alternation syntax is not supported.
+Search a directory for paths matching a glob pattern. The pattern is relative to the directory, and unlike `Path.matches_glob` it is anchored: it has to account for every component below the directory.
 
 
 .SH ARGUMENTS
@@ -26,23 +22,50 @@ allbox;
 lb lb lbx
 l l l.
 Name	Type	Description
-path	Path	The path of the directory which may contain special globbing characters like \fB*\fR, \fB?\fR, or \fB{...}\fR 
+path	Path	The directory to search. 
+pattern	Text	The glob pattern to match against, relative to the directory. An empty pattern matches nothing. 
 .TE
 .SH RETURN
-A list of file paths that match the glob.
+A sorted list of the paths that match, or `none` if the directory could not be read.
 
 .SH NOTES
-Matches keep the form of the pattern they came from: `(./*.txt)` yields relative paths and `(~/*.txt)` yields home-based ones.
+Details of the pattern syntax:
+- `?`, `*`, and character classes like `[ch]` match within a single
+  component and never across a `/`.
+
+- Files or directories beginning with `.` will not match `*`, but will
+  match `.*`. The paths "." and ".." are never included in the results.
+
+- `**` stands for zero or more components, so `"**/*.txt"` finds `.txt`
+  files at any depth. Unlike the other syntax, this cannot be answered by
+  `glob(3)`, so such a pattern is served by walking the directory tree.
+  `**` spans hidden components too, which is what makes it agree with
+  `Path.matches_glob`. It does *not* descend through a symbolic link to a
+  directory, since a link pointing back at an ancestor would never
+  terminate; an explicit `*` component still matches one, so
+  `"*/x.txt"` can find a file that `"**/x.txt"` will not.
+
+- The `{a,b}` alternation syntax is not supported.
+Results keep the form of the directory they came from, so globbing `(./src)` yields relative paths and globbing `(~/src)` yields home-based ones. Every path returned satisfies `Path.matches_glob` for the same pattern.
+
+.SH ERRORS
+Returns `none` if the directory could not be read. A pattern that simply matches nothing gives an empty list, not `none`.
 
 .SH EXAMPLES
 .EX
-# Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
-assert (./*).glob() == [(./baz.txt), (./foo.txt), (./qux.jpg)]
-assert (./*.txt).glob() == [(./baz.txt), (./foo.txt)]
-assert (./.*).glob() == [(./.hidden)]
+# A directory containing: foo.txt, baz.txt, qux.jpg, .hidden, sub/deep.txt
+assert (./dir).glob("*.txt")! == [(./dir/baz.txt), (./dir/foo.txt)]
+assert (./dir).glob(".*")! == [(./dir/.hidden)]
+assert (./dir).glob("sub/*.txt")! == [(./dir/sub/deep.txt)]
 
-# Globs with no matches return an empty list:
-assert (./*.xxx).glob() == []
+# "**" is zero or more components:
+assert (./dir).glob("**/*.txt")! == [(./dir/baz.txt), (./dir/foo.txt), (./dir/sub/deep.txt)]
+
+# A pattern matching nothing is an empty list:
+assert (./dir).glob("*.xxx")! == []
+
+# A directory that can't be read is none:
+assert (./not-a-directory).glob("*") == none
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

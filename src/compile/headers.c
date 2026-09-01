@@ -160,7 +160,8 @@ Text_t compile_statement_type_header(env_t *env, Path_t header_path, ast_t *ast)
         case USE_PACKAGE: {
             OptionalPath_t installed = find_installed_package(env->build_info, ast);
             assert(installed);
-            List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
+            OptionalList_t children = Path$glob(installed, Text("[!._0-9]*.tm"));
+            if (children.data == NULL) print_err("Could not read the installed package directory: ", installed);
             Text_t includes = EMPTY_TEXT;
             for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t tm_file = *(Path_t *)(children.data + i * children.stride);

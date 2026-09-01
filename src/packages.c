@@ -180,7 +180,8 @@ static OptionalText_t file_digest(Path_t path) {
 }
 
 Text_t get_package_name(Path_t lib_dir) {
-    Text_t name = Path$base_name(lib_dir);
+    OptionalText_t name = Path$base_name(lib_dir);
+    if (name.tag == TEXT_NONE) fail("This package's directory name is not valid UTF-8: ", lib_dir);
     name = Text$without_prefix(name, Text("tomo-"));
     name = Text$without_suffix(name, Text("-tomo"));
     return name;
@@ -239,12 +240,13 @@ static OptionalPath_t try_install_package_from_source(Path_t ini_file, pkg_info_
 
     print("Installing ", Text$quoted(Text$from_str(pkg->name), false, Text("\"")), " from URL...");
 
-    Path_t tmpdir = Path$unique_directory(Path$from_text(Texts("/tmp/tomo-", pkg->name, "-XXXXXX")));
+    OptionalPath_t tmpdir = Path$unique_directory(Path$from_text(Texts("/tmp/tomo-", pkg->name, "-XXXXXX")));
+    if (tmpdir == NULL) print_err("Could not create a temporary directory to download ", pkg->name, " into");
 
     xsystem_cleanup(tmpdir, "curl --output-dir ", quoted(tmpdir), " -LJO ", quoted(source));
 
-    List_t children = Path$children(tmpdir, true);
-    if (children.length != 1) {
+    OptionalList_t children = Path$children(tmpdir, true);
+    if (children.data == NULL || children.length != 1) {
         Path$remove(tmpdir, true);
         print("Failed to download file ", pkg->name, " from: ", source);
         return NONE_PATH;
@@ -303,14 +305,18 @@ OptionalPath_t try_install_package_from_file(pkg_info_t *pkg, const char *source
         fail("Unsupported package filetype: ", downloaded);
     }
 
-    List_t installed_files = Path$children(install_location, true);
+    OptionalList_t installed_files = Path$children(install_location, true);
+    if (installed_files.data == NULL) print_err("Could not read the installed package: ", install_location);
     if (installed_files.length == 1
         && Path$is_directory(*(Path_t *)installed_files.data, false)) { // Single top-level wrapper dir
         Path_t top_level = *(Path_t *)installed_files.data;
-        List_t contents = Path$children(top_level, true);
+        OptionalList_t contents = Path$children(top_level, true);
+        if (contents.data == NULL) print_err("Could not read the installed package: ", top_level);
         for (int64_t i = 0; i < (int64_t)contents.length; i++) {
             Path_t p = *(Path_t *)(contents.data + i * contents.stride);
-            result = Path$move(p, Path$child(install_location, Path$base_name(p)), false);
+            OptionalText_t p_name = Path$base_name(p);
+            if (p_name.tag == TEXT_NONE) fail("This package contains a file whose name is not valid UTF-8: ", p);
+            result = Path$move(p, Path$child(install_location, p_name), false);
             if (result.Failure.reason.tag != TEXT_NONE) {
                 if (tmpdir != NULL) Path$remove(tmpdir, true);
                 fail(result.Failure.reason);
@@ -353,8 +359,8 @@ static OptionalPath_t try_install_package(Path_t ini_file, pkg_info_t *pkg, bool
         // case no download (and no confirmation) is needed:
         Path_t cache_dir = download_cache_dir(Text$from_str(digest));
         if (Path$is_directory(cache_dir, true)) {
-            List_t cached = Path$children(cache_dir, true);
-            if (cached.length == 1) {
+            OptionalList_t cached = Path$children(cache_dir, true);
+            if (cached.data != NULL && cached.length == 1) {
                 const char *source = Table$str_get(pkg->info, "source");
                 install_location = try_install_package_from_file(pkg, source ? source : "cache", *(Path_t *)cached.data,
                                                                  NULL, store_root);
@@ -599,13 +605,17 @@ static void extract_package_archive(Path_t archive, Path_t dest) {
         fail("Unsupported package filetype: ", archive);
     }
 
-    List_t extracted = Path$children(dest, true);
+    OptionalList_t extracted = Path$children(dest, true);
+    if (extracted.data == NULL) print_err("Could not read the extracted archive: ", dest);
     if (extracted.length == 1 && Path$is_directory(*(Path_t *)extracted.data, false)) {
         Path_t top_level = *(Path_t *)extracted.data;
-        List_t contents = Path$children(top_level, true);
+        OptionalList_t contents = Path$children(top_level, true);
+        if (contents.data == NULL) print_err("Could not read the extracted archive: ", top_level);
         for (int64_t i = 0; i < (int64_t)contents.length; i++) {
             Path_t p = *(Path_t *)(contents.data + i * contents.stride);
-            Result_t moved = Path$move(p, Path$child(dest, Path$base_name(p)), false);
+            OptionalText_t p_name = Path$base_name(p);
+            if (p_name.tag == TEXT_NONE) fail("This archive contains a file whose name is not valid UTF-8: ", p);
+            Result_t moved = Path$move(p, Path$child(dest, p_name), false);
             if (moved.Failure.reason.tag != TEXT_NONE) fail(moved.Failure.reason);
         }
         Result_t removed = Path$remove(top_level, true);
@@ -647,8 +657,9 @@ void vendor_package(const char *name, bool editable) {
     if (digest == NULL) fail("The package ", name, " has no digest to vendor by");
 
     Path_t cache_dir = download_cache_dir(Text$from_str(digest));
-    List_t cached = Path$is_directory(cache_dir, true) ? Path$children(cache_dir, true) : EMPTY_LIST;
-    if (cached.length != 1) fail("There is no cached archive for package ", name, " (digest ", digest, ")");
+    OptionalList_t cached = Path$is_directory(cache_dir, true) ? Path$children(cache_dir, true) : NONE_LIST;
+    if (cached.data == NULL || cached.length != 1)
+        fail("There is no cached archive for package ", name, " (digest ", digest, ")");
     Path_t archive = *(Path_t *)cached.data;
 
     Result_t result = Path$create_directory(Path$child(cwd, Text("vendor")), 0755, true);
@@ -818,8 +829,10 @@ void unvendor_package(const char *name) {
     }
     // Clean up the vendor/ directory itself if nothing is left in it:
     Path_t vendor_dir = Path$child(cwd, Text("vendor"));
-    if (Path$is_directory(vendor_dir, true) && Path$children(vendor_dir, true).length == 0)
-        Path$remove(vendor_dir, false);
+    // Only remove it if it is readable and empty: an unreadable directory
+    // also reports zero children, and removing that would be destructive.
+    OptionalList_t vendored_files = Path$is_directory(vendor_dir, true) ? Path$children(vendor_dir, true) : NONE_LIST;
+    if (vendored_files.data != NULL && vendored_files.length == 0) Path$remove(vendor_dir, false);
 
     print("Unvendored ", name, ": restored to \033[1m", restored_source, "\033[m");
 }

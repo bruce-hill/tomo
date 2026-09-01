@@ -54,7 +54,8 @@ static int cmd_package(cli_command_t *self, List_t extra_args) {
         pid_t child = fork();
         if (child == 0) {
             if (output != NULL) {
-                List_t tm_files = Path$glob(Path$child(dir, Text("[!._0-9]*.tm")));
+                OptionalList_t tm_files = Path$glob(dir, Text("[!._0-9]*.tm"));
+                if (tm_files.data == NULL) print_err("Could not read the package directory: ", dir);
                 build_package_archive(dir, tm_files, Path$resolved(output, cwd));
             } else {
                 build_package(dir);

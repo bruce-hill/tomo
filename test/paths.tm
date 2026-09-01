@@ -76,7 +76,7 @@ test "enumeration preserves the form of the path"
     assert home_dir.subdirectories()! == [home_dir ++ ./sub]
     assert [c for c in home_dir.each_child()!].sorted() == [home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
     assert [p for p in home_dir.walk()].sorted() == [home_dir, home_dir ++ ./a.txt, home_dir ++ ./sub].sorted()
-    assert (home_dir ++ ./*.txt).glob() == [home_dir ++ ./a.txt]
+    assert home_dir.glob("*.txt")! == [home_dir ++ ./a.txt]
     >> home_dir.remove()!
 
     rel_dir := (./tomo-test-form-XXXXXX).unique_directory()!
@@ -86,7 +86,7 @@ test "enumeration preserves the form of the path"
     >> rel_dir.children()
     assert rel_dir.children()! == [rel_dir ++ ./a.txt]
     assert [p for p in rel_dir.walk()].sorted() == [rel_dir, rel_dir ++ ./a.txt].sorted()
-    assert (rel_dir ++ ./*.txt).glob() == [rel_dir ++ ./a.txt]
+    assert rel_dir.glob("*.txt")! == [rel_dir ++ ./a.txt]
     >> rel_dir.remove()!
 
     abs_dir := (/tmp/tomo-test-form-XXXXXX).unique_directory()!
@@ -108,13 +108,73 @@ test "enumerating a directory that isn't there gives none"
 
     # ...but a directory that exists and is empty is still an empty list:
     empty_dir := (/tmp/tomo-test-empty-XXXXXX).unique_directory()!
-    no_paths : [Path] = []
     >> empty_dir.children()
-    assert empty_dir.children()! == no_paths
-    assert empty_dir.files()! == no_paths
-    assert empty_dir.subdirectories()! == no_paths
-    assert [c for c in empty_dir.each_child()!] == no_paths
+    assert empty_dir.children()! == []
+    assert empty_dir.files()! == []
+    assert empty_dir.subdirectories()! == []
+    assert [c for c in empty_dir.each_child()!] == []
     >> empty_dir.remove()!
+
+test "move refuses to overwrite unless asked, and understands ~"
+    # Path$move called rename(2) directly, which replaces the destination
+    # without complaint, so `overwrite=no` -- the default -- did not prevent
+    # anything: moving onto an existing file destroyed it and reported Success.
+    # It also passed the path to rename(2) unexpanded, so a "~" path failed
+    # with ENOENT even though .exists() said otherwise.
+    dir := (/tmp/tomo-test-move-XXXXXX).unique_directory()!
+    (dir ++ ./src.txt).write("SOURCE")!
+    (dir ++ ./dest.txt).write("DESTINATION")!
+
+    >> (dir ++ ./src.txt).move(dir ++ ./dest.txt)
+    assert (dir ++ ./dest.txt).read()! == "DESTINATION", "the destination was clobbered"
+    assert (dir ++ ./src.txt).exists(), "the source was consumed by a move that failed"
+
+    assert (dir ++ ./src.txt).move(dir ++ ./dest.txt, overwrite=yes).Success
+    assert (dir ++ ./dest.txt).read()! == "SOURCE"
+
+    # Home-based paths reach rename(2) expanded now:
+    home_src := (~/.tomo-test-move-XXXXXX).unique_directory()!
+    home_dest := home_src.sibling("tomo-test-move-destination")
+    assert home_src.move(home_dest).Success
+    assert home_dest.is_directory()
+    assert not home_src.exists()
+    >> home_dest.remove()!
+    >> dir.remove()!
+
+test "set_owner leaves out what it is not given"
+    # The none checks were inverted: passing an owner skipped the lookup and
+    # left the uid as -1, while passing none looked up the empty user name, so
+    # every call failed with "Not a valid user: ".
+    dir := (/tmp/tomo-test-owner-XXXXXX).unique_directory()!
+    file := dir ++ ./f.txt
+    file.write("")!
+    assert file.set_owner().Success
+    if group := file.group()
+        assert file.set_owner(group=group).Success
+    assert not file.set_owner(owner="tomo-no-such-user").Success
+    >> dir.remove()!
+
+test "unique paths do not alias each other"
+    # unique_directory() and write_unique() built their name in a static
+    # buffer and handed it to Path$from_str(), which does not copy, so every
+    # result pointed at the same storage: making a second temporary directory
+    # silently rewrote the path of the first.
+    a := (/tmp/tomo-test-alias-a-XXXXXX).unique_directory()!
+    b := (/tmp/tomo-test-alias-b-XXXXXX).unique_directory()!
+    >> a
+    >> b
+    assert a != b, "the first temporary directory was overwritten by the second"
+    assert a.is_directory() and b.is_directory()
+    >> a.remove()!
+    >> b.remove()!
+
+    f := (/tmp/tomo-test-alias-f-XXXXXX.txt).write_unique("first")!
+    g := (/tmp/tomo-test-alias-g-XXXXXX.txt).write_unique("second")!
+    assert f != g, "the first unique file was overwritten by the second"
+    assert f.read()! == "first"
+    assert g.read()! == "second"
+    >> f.remove()!
+    >> g.remove()!
 
 test "path components"
     >> p := /foo/baz.x/qux.tar.gz
@@ -156,6 +216,84 @@ test "extension() and has_extension(\"\") agree"
         assert (p.extension() == none) == no_ext,
             "$p: extension() is $(p.extension()) but has_extension of an empty text is $no_ext"
 
+test "matches_glob matches path components from the back"
+    # This used to be a single fnmatch() against the path's whole text, so
+    # "*.txt" did not match (./file.txt) -- the leading "./" had to be spelled
+    # out -- and the same file matched differently depending on whether the
+    # path was written relative, absolute, or home-based. The pattern is now
+    # split on "/" and matched against a trailing run of components.
+    assert (./file.txt).matches_glob("*.txt")
+    assert (/tmp/dir/file.txt).matches_glob("*.txt")
+    assert (~/dir/file.txt).matches_glob("*.txt")
+    assert not (./file.txt).matches_glob("*.jpg")
+
+    # More components match a longer suffix, and depth is exact:
+    assert (./dir/file.txt).matches_glob("dir/*.txt")
+    assert (./dir/file.txt).matches_glob("./dir/*.txt")
+    assert not (./dir/sub/file.txt).matches_glob("dir/*.txt")
+
+    # A leading "/" can only line up at the front, so it anchors:
+    assert (/tmp/dir/file.txt).matches_glob("/tmp/dir/*.txt")
+    assert not (/other/dir/file.txt).matches_glob("/tmp/dir/*.txt")
+    assert not (./dir/file.txt).matches_glob("/dir/*.txt")
+
+    # "**" is zero or more components:
+    assert (./a/b/c/file.txt).matches_glob("**/*.txt")
+    assert (./file.txt).matches_glob("**/*.txt")
+    assert not (./a/file.jpg).matches_glob("**/*.txt")
+    assert (./a/b/file.txt).matches_glob("a/**/*.txt")
+    assert (./a/file.txt).matches_glob("a/**/*.txt")
+    assert (./anything/at/all).matches_glob("**")
+    assert (/tmp/x/y).matches_glob("/tmp/**")
+    assert not (/other/y).matches_glob("/tmp/**")
+
+    # Wildcards stay inside one component, and a leading "." is literal:
+    assert not (./dir/.hidden).matches_glob("*")
+    assert (./dir/.hidden).matches_glob(".*")
+    assert (./src/file.c).matches_glob("*.[ch]")
+    assert not (./src/file.o).matches_glob("*.[ch]")
+
+    # Still no brace alternation, and an empty pattern matches nothing:
+    assert not (./src/file.c).matches_glob("*.{c,h}")
+    assert not (./src/file.c).matches_glob("")
+
+test "everything glob() returns matches the pattern it came from"
+    # The two used to disagree: glob() would hand back (./dir/a.txt) for the
+    # pattern (./dir/*.txt), which matches_glob then said did not match.
+    dir := (/tmp/tomo-test-glob-XXXXXX).unique_directory()!
+    (dir ++ ./a.txt).write("")!
+    (dir ++ ./b.txt).write("")!
+    (dir ++ ./c.jpg).write("")!
+    (dir ++ ./sub).create_directory()!
+    (dir ++ ./sub/d.txt).write("")!
+
+    for pattern in ["*.txt", "*", "*.[tj]*", "sub/*.txt"]
+        matches := dir.glob(pattern)!
+        for f in matches
+            assert f.matches_glob(pattern),
+                "glob() returned $f for $pattern but matches_glob disagrees"
+
+    # And the bare name matches wherever the file sits:
+    for f in dir.glob("sub/*.txt")!
+        assert f.matches_glob("*.txt")
+        assert f.matches_glob("**/*.txt")
+        assert f.matches_glob("sub/*.txt")
+
+    # "**" is answered by walking rather than by glob(3), which cannot express
+    # it, so the two branches have to agree with the matcher equally:
+    deep := dir.glob("**/*.txt")!
+    assert deep.length == 3, "expected a.txt, b.txt and sub/d.txt, got $deep"
+    for f in deep
+        assert f.matches_glob("**/*.txt"), "$f does not match the pattern it came from"
+    assert dir.glob("**/*.jpg")! == [dir ++ ./c.jpg]
+
+    # A directory that cannot be read is none, not an empty list:
+    assert (./tomo-no-such-directory).glob("*") == none
+    # ...while a pattern that matches nothing is an empty list:
+    assert dir.glob("*.nothing")! == []
+
+    >> dir.remove()!
+
 test "path concatenation"
     # Concatenation tests:
     assert /foo ++ ./baz == /foo/baz
@@ -169,7 +307,7 @@ test "path concatenation"
     assert /foo ++ ./baz/../qux == /foo/qux
     assert /foo ++ ./baz//qux == /foo/baz/qux
     assert /foo/bar/baz ++ ./.././qux/./../quux == /foo/bar/quux
-    >> (./*.tm).glob()
+    >> (.).glob("*.tm")
 
 test "a path literal at the end of the file parses without hanging"
 	# parse_path's scan loop used to exit at the end-of-file boundary without

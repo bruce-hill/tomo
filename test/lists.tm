@@ -419,3 +419,19 @@ test "a comprehension is accepted directly as an argument"
 	assert list_arg_length([i for i in 5 if i > 2]) == 3
 	assert list_arg_length([i*j for i in 2 for j in 2]) == 4
 	assert list_arg_length([1, 2, i for i in 3]) == 5
+
+test "sorting an empty list leaves it empty, not none"
+    # List$compact() allocated nothing for a zero-length list and left `data`
+    # as NULL, which is exactly what a none list is. List$sort() compacts
+    # whenever the stride differs from the item size, which it does for
+    # EMPTY_LIST, so sorting an empty list quietly produced none. It read as []
+    # through a non-optional type and as none the moment it reached an
+    # optional one.
+    empty : [Int] = []
+    assert empty.sorted() == []
+    maybe : [Int]? = empty.sorted()
+    assert maybe != none
+    assert maybe! == []
+
+    one := [1]
+    assert one.sorted() == [1]

@@ -737,13 +737,19 @@ test "Path.files"
 
 test "Path.glob"
     if no
-        # Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
-        assert (./*).glob() == [(./baz.txt), (./foo.txt), (./qux.jpg)]
-        assert (./*.txt).glob() == [(./baz.txt), (./foo.txt)]
-        assert (./.*).glob() == [(./.hidden)]
+        # A directory containing: foo.txt, baz.txt, qux.jpg, .hidden, sub/deep.txt
+        assert (./dir).glob("*.txt")! == [(./dir/baz.txt), (./dir/foo.txt)]
+        assert (./dir).glob(".*")! == [(./dir/.hidden)]
+        assert (./dir).glob("sub/*.txt")! == [(./dir/sub/deep.txt)]
         
-        # Globs with no matches return an empty list:
-        assert (./*.xxx).glob() == []
+        # "**" is zero or more components:
+        assert (./dir).glob("**/*.txt")! == [(./dir/baz.txt), (./dir/foo.txt), (./dir/sub/deep.txt)]
+        
+        # A pattern matching nothing is an empty list:
+        assert (./dir).glob("*.xxx")! == []
+        
+        # A directory that can't be read is none:
+        assert (./not-a-directory).glob("*") == none
 
 test "Path.group"
     if no
@@ -791,14 +797,26 @@ test "Path.lines"
 
 test "Path.matches_glob"
     if no
-        assert (./file.txt).matches_glob("./*.txt")
-        assert (./src/file.c).matches_glob("./*/*.[ch]")
+        # A bare pattern asks about the file's name, whatever form the path is in:
+        assert (./file.txt).matches_glob("*.txt")
+        assert (/tmp/dir/file.txt).matches_glob("*.txt")
+        assert not (./file.txt).matches_glob("*.jpg")
         
-        # The leading "./" and the "/" separators are not matched by `*`:
-        assert not (./file.txt).matches_glob("*.txt")
+        # More components match a longer suffix:
+        assert (./src/file.c).matches_glob("src/*.[ch]")
+        assert (./src/file.c).matches_glob("./src/*.[ch]")
         
-        # Brace alternation is not supported here (it is in `Path.glob`):
-        assert not (./src/file.c).matches_glob("./*.{c,h}")
+        # A leading "/" anchors the pattern to the whole path:
+        assert (/tmp/dir/file.txt).matches_glob("/tmp/dir/*.txt")
+        assert not (/other/dir/file.txt).matches_glob("/tmp/dir/*.txt")
+        
+        # "**" is zero or more components:
+        assert (./a/b/c/file.txt).matches_glob("**/*.txt")
+        assert (./file.txt).matches_glob("**/*.txt")
+        
+        # "*" does not match a leading "." or cross a "/":
+        assert not (./dir/.hidden).matches_glob("*")
+        assert (./dir/.hidden).matches_glob(".*")
 
 test "Path.modified"
     if no

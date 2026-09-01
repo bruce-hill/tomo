@@ -55,7 +55,8 @@ static void uninstall_program(Text_t arg) {
     bool is_path = strchr(Text$as_c_string(arg), '/') != NULL;
     Path_t bin = is_path ? Path$resolved(Path$from_text(arg), Path$current_dir())
                          : Path$from_str(String(TOMO_PATH, "/bin/", arg));
-    Text_t name = Path$base_name(bin);
+    OptionalText_t name = Path$base_name(bin);
+    if (name.tag == TEXT_NONE) print_err("This executable's name is not valid UTF-8: ", bin);
     Path_t manpage = Path$from_str(String(TOMO_PATH, "/man/man1/", name, ".1"));
 
     bool removed_any = false;
@@ -91,7 +92,8 @@ static void uninstall_program(Text_t arg) {
 // The version another tomo@<version> installation in this prefix would
 // downgrade to: the newest one, or NULL if this was the only installation.
 static const char *newest_remaining_version(void) {
-    List_t bins = Path$glob(Path$from_str(String(TOMO_PATH, "/bin/tomo@*")));
+    OptionalList_t bins = Path$glob(Path$from_str(String(TOMO_PATH, "/bin")), Text("tomo@*"));
+    if (bins.data == NULL) return NULL; // No bin directory: nothing remains
     const char *best = NULL;
     for (int64_t i = 0; i < (int64_t)bins.length; i++) {
         Path_t *bin = (Path_t *)(bins.data + i * bins.stride);
@@ -106,7 +108,8 @@ static const char *newest_remaining_version(void) {
 // symlinks in a shared prefix, are left alone: only links whose target is
 // a tomo@<version> path are Tomo's to delete.
 static void remove_dangling_links(const char *dir) {
-    List_t entries = Path$glob(Path$from_str(String(dir, "/*")));
+    OptionalList_t entries = Path$glob(Path$from_str(dir), Text("*"));
+    if (entries.data == NULL) return; // The directory is gone already
     for (int64_t i = 0; i < (int64_t)entries.length; i++) {
         Path_t *entry = (Path_t *)(entries.data + i * entries.stride);
         if (!Path$is_symlink(*entry) || Path$exists(*entry)) continue;
@@ -119,10 +122,12 @@ static void remove_dangling_links(const char *dir) {
 // Create symlinks in PREFIX/man/manN/ for every page in the given version's
 // man page store, without touching any links that still resolve:
 static void link_man_pages(const char *version, const char *section) {
-    List_t pages = Path$glob(Path$from_str(String(TOMO_PATH, "/man/tomo@", version, "/", section, "/*")));
+    OptionalList_t pages = Path$glob(Path$from_str(String(TOMO_PATH, "/man/tomo@", version, "/", section)), Text("*"));
+    if (pages.data == NULL) return; // That version shipped no pages in this section
     for (int64_t i = 0; i < (int64_t)pages.length; i++) {
         Path_t *page = (Path_t *)(pages.data + i * pages.stride);
-        Text_t name = Path$base_name(*page);
+        OptionalText_t name = Path$base_name(*page);
+        if (name.tag == TEXT_NONE) print_err("This man page's name is not valid UTF-8: ", *page);
         Path_t link = Path$from_str(String(TOMO_PATH, "/man/", section, "/", name));
         if (!Path$exists(link) && !Path$is_symlink(link))
             xsystem("ln -s '../tomo@", version, "/", section, "/", name, "' '", link, "'");
@@ -134,9 +139,10 @@ static void link_man_pages(const char *version, const char *section) {
 // libexec/tomo@<version>/zig symlinks pointing into it. Remove any store
 // that no remaining installation references:
 static void remove_orphaned_toolchains(void) {
-    List_t stores = Path$glob(Path$from_str(String(TOMO_PATH, "/libexec/zig@*")));
-    if (stores.length == 0) return;
-    List_t links = Path$glob(Path$from_str(String(TOMO_PATH, "/libexec/tomo@*/zig")));
+    OptionalList_t stores = Path$glob(Path$from_str(String(TOMO_PATH, "/libexec")), Text("zig@*"));
+    if (stores.data == NULL || stores.length == 0) return; // No libexec, or no toolchains
+    OptionalList_t links = Path$glob(Path$from_str(String(TOMO_PATH, "/libexec")), Text("tomo@*/zig"));
+    if (links.data == NULL) links = EMPTY_LIST; // No links means every store is orphaned
     for (int64_t i = 0; i < (int64_t)stores.length; i++) {
         Path_t *store = (Path_t *)(stores.data + i * stores.stride);
         char real_store[PATH_MAX];

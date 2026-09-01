@@ -56,7 +56,8 @@ static int cmd_transpile(cli_command_t *self, List_t extra_args) {
     if (!raw) {
         if (command_exists("clang-format")) pipeline = Text("clang-format");
         if (isatty(STDOUT_FILENO) && command_exists("bat")) {
-            Text_t base = Path$base_name(path);
+            OptionalText_t base = Path$base_name(path);
+            if (base.tag == TEXT_NONE) print_err("This file's name is not valid UTF-8: ", path);
             Text_t bat = Texts("bat -l c --file-name '", base, ".h/", base, ".c'");
             pipeline = pipeline.length > 0 ? Texts(pipeline, " | ", bat) : bat;
         }

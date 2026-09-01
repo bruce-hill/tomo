@@ -12,7 +12,7 @@ Tomo Standard Library
 .BI Path.matches_glob\ :\ func(path:\ Path,\ glob:\ Text\ ->\ Bool)
 .fi
 .SH DESCRIPTION
-Return whether or not a path matches a given glob. The glob is matched against the path's entire text, not just its base name, so a pattern for `(./file.txt)` must account for the leading `./`.
+Return whether or not a path matches a given glob. This is a pattern match, not a filesystem operation, and it reads the raw bytes of the path, so it works on names that are not valid UTF-8.
 
 
 .SH ARGUMENTS
@@ -29,24 +29,50 @@ glob	Text	The glob pattern to check.
 Whether or not the path matches the given glob.
 
 .SH NOTES
-This is a pattern match, not a filesystem operation, and it accepts a narrower syntax than `Path.glob`:
-- `/` must be matched by a literal `/`; `*` and `?` will not match it.
-- A `.` at the start of the path or just after a `/` must be matched by a
-  literal `.`.
+The pattern is split on `/` and matched against the path's components from the back, so a pattern matches any trailing run of components:
+- `"*.txt"` asks about the file's name wherever it sits, so it matches
+  `(./foo.txt)`, `(/tmp/dir/foo.txt)`, and `(~/foo.txt)` alike. The answer
+  does not depend on which form the path was written in.
 
-- Character classes like `[ch]` work, but the `{a,b}` alternation syntax
-  does not.
+- `"dir/*.txt"` matches a `.txt` file directly inside any `dir`.
+- A pattern beginning with `/` can only line up at the front of the path,
+  so `"/tmp/*.txt"` pins the whole path rather than matching a suffix. A
+  pattern beginning with `./` likewise only matches `./`-form paths.
+
+- `**` stands for zero or more components, so `"**/*.txt"` matches a `.txt`
+  file at any depth, including none.
+
+- `?`, `*`, and character classes like `[ch]` match within a single
+  component and never across a `/`. A `.` at the start of a component must
+  be matched by a literal `.`, so `*` does not match hidden files.
+
+- The `{a,b}` alternation syntax is not supported.
+
+.SH ERRORS
+An empty pattern matches nothing.
 
 .SH EXAMPLES
 .EX
-assert (./file.txt).matches_glob("./*.txt")
-assert (./src/file.c).matches_glob("./*/*.[ch]")
+# A bare pattern asks about the file's name, whatever form the path is in:
+assert (./file.txt).matches_glob("*.txt")
+assert (/tmp/dir/file.txt).matches_glob("*.txt")
+assert not (./file.txt).matches_glob("*.jpg")
 
-# The leading "./" and the "/" separators are not matched by `*`:
-assert not (./file.txt).matches_glob("*.txt")
+# More components match a longer suffix:
+assert (./src/file.c).matches_glob("src/*.[ch]")
+assert (./src/file.c).matches_glob("./src/*.[ch]")
 
-# Brace alternation is not supported here (it is in `Path.glob`):
-assert not (./src/file.c).matches_glob("./*.{c,h}")
+# A leading "/" anchors the pattern to the whole path:
+assert (/tmp/dir/file.txt).matches_glob("/tmp/dir/*.txt")
+assert not (/other/dir/file.txt).matches_glob("/tmp/dir/*.txt")
+
+# "**" is zero or more components:
+assert (./a/b/c/file.txt).matches_glob("**/*.txt")
+assert (./file.txt).matches_glob("**/*.txt")
+
+# "*" does not match a leading "." or cross a "/":
+assert not (./dir/.hidden).matches_glob("*")
+assert (./dir/.hidden).matches_glob(".*")
 .EE
 .SH SEE ALSO
 .BR Tomo-Path (3)

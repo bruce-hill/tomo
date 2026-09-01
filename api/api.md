@@ -3965,33 +3965,55 @@ assert (./directory).files(include_hidden=yes)!.sorted() == [(./directory/file1.
 ## Path.glob
 
 ```tomo
-Path.glob : func(path: Path -> [Path])
+Path.glob : func(path: Path, pattern: Text -> [Path]?)
 ```
 
-Perform a globbing operation and return a list of matching paths. Some glob specific details:
-- The paths "." and ".." are *not* included in any globbing results.
-- Files or directories that begin with "." will not match `*`, but will match `.*`.
-- The shell-style syntax `**` for matching subdirectories is not supported.
-- The `{a,b}` alternation syntax is not supported.
+Search a directory for paths matching a glob pattern. The pattern is relative to the directory, and unlike `Path.matches_glob` it is anchored: it has to account for every component below the directory.
 
-Matches keep the form of the pattern they came from: `(./*.txt)` yields relative paths and `(~/*.txt)` yields home-based ones.
+Details of the pattern syntax:
+- `?`, `*`, and character classes like `[ch]` match within a single
+  component and never across a `/`.
+
+- Files or directories beginning with `.` will not match `*`, but will
+  match `.*`. The paths "." and ".." are never included in the results.
+
+- `**` stands for zero or more components, so `"**/*.txt"` finds `.txt`
+  files at any depth. Unlike the other syntax, this cannot be answered by
+  `glob(3)`, so such a pattern is served by walking the directory tree.
+  `**` spans hidden components too, which is what makes it agree with
+  `Path.matches_glob`. It does *not* descend through a symbolic link to a
+  directory, since a link pointing back at an ancestor would never
+  terminate; an explicit `*` component still matches one, so
+  `"*/x.txt"` can find a file that `"**/x.txt"` will not.
+
+- The `{a,b}` alternation syntax is not supported.
+Results keep the form of the directory they came from, so globbing `(./src)` yields relative paths and globbing `(~/src)` yields home-based ones. Every path returned satisfies `Path.matches_glob` for the same pattern.
+
+Returns `none` if the directory could not be read. A pattern that simply matches nothing gives an empty list, not `none`.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
-path | `Path` | The path of the directory which may contain special globbing characters like `*`, `?`, or `{...}`  | -
+path | `Path` | The directory to search.  | -
+pattern | `Text` | The glob pattern to match against, relative to the directory. An empty pattern matches nothing.  | -
 
-**Return:** A list of file paths that match the glob.
+**Return:** A sorted list of the paths that match, or `none` if the directory could not be read.
 
 
 **Example:**
 ```tomo
-# Current directory includes: foo.txt, baz.txt, qux.jpg, .hidden
-assert (./*).glob() == [(./baz.txt), (./foo.txt), (./qux.jpg)]
-assert (./*.txt).glob() == [(./baz.txt), (./foo.txt)]
-assert (./.*).glob() == [(./.hidden)]
+# A directory containing: foo.txt, baz.txt, qux.jpg, .hidden, sub/deep.txt
+assert (./dir).glob("*.txt")! == [(./dir/baz.txt), (./dir/foo.txt)]
+assert (./dir).glob(".*")! == [(./dir/.hidden)]
+assert (./dir).glob("sub/*.txt")! == [(./dir/sub/deep.txt)]
 
-# Globs with no matches return an empty list:
-assert (./*.xxx).glob() == []
+# "**" is zero or more components:
+assert (./dir).glob("**/*.txt")! == [(./dir/baz.txt), (./dir/foo.txt), (./dir/sub/deep.txt)]
+
+# A pattern matching nothing is an empty list:
+assert (./dir).glob("*.xxx")! == []
+
+# A directory that can't be read is none:
+assert (./not-a-directory).glob("*") == none
 
 ```
 ## Path.group
@@ -4178,15 +4200,28 @@ lines := (./file.txt).lines()!
 Path.matches_glob : func(path: Path, glob: Text -> Bool)
 ```
 
-Return whether or not a path matches a given glob. The glob is matched against the path's entire text, not just its base name, so a pattern for `(./file.txt)` must account for the leading `./`.
+Return whether or not a path matches a given glob. This is a pattern match, not a filesystem operation, and it reads the raw bytes of the path, so it works on names that are not valid UTF-8.
 
-This is a pattern match, not a filesystem operation, and it accepts a narrower syntax than `Path.glob`:
-- `/` must be matched by a literal `/`; `*` and `?` will not match it.
-- A `.` at the start of the path or just after a `/` must be matched by a
-  literal `.`.
+The pattern is split on `/` and matched against the path's components from the back, so a pattern matches any trailing run of components:
+- `"*.txt"` asks about the file's name wherever it sits, so it matches
+  `(./foo.txt)`, `(/tmp/dir/foo.txt)`, and `(~/foo.txt)` alike. The answer
+  does not depend on which form the path was written in.
 
-- Character classes like `[ch]` work, but the `{a,b}` alternation syntax
-  does not.
+- `"dir/*.txt"` matches a `.txt` file directly inside any `dir`.
+- A pattern beginning with `/` can only line up at the front of the path,
+  so `"/tmp/*.txt"` pins the whole path rather than matching a suffix. A
+  pattern beginning with `./` likewise only matches `./`-form paths.
+
+- `**` stands for zero or more components, so `"**/*.txt"` matches a `.txt`
+  file at any depth, including none.
+
+- `?`, `*`, and character classes like `[ch]` match within a single
+  component and never across a `/`. A `.` at the start of a component must
+  be matched by a literal `.`, so `*` does not match hidden files.
+
+- The `{a,b}` alternation syntax is not supported.
+
+An empty pattern matches nothing.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
@@ -4198,14 +4233,26 @@ glob | `Text` | The glob pattern to check.  | -
 
 **Example:**
 ```tomo
-assert (./file.txt).matches_glob("./*.txt")
-assert (./src/file.c).matches_glob("./*/*.[ch]")
+# A bare pattern asks about the file's name, whatever form the path is in:
+assert (./file.txt).matches_glob("*.txt")
+assert (/tmp/dir/file.txt).matches_glob("*.txt")
+assert not (./file.txt).matches_glob("*.jpg")
 
-# The leading "./" and the "/" separators are not matched by `*`:
-assert not (./file.txt).matches_glob("*.txt")
+# More components match a longer suffix:
+assert (./src/file.c).matches_glob("src/*.[ch]")
+assert (./src/file.c).matches_glob("./src/*.[ch]")
 
-# Brace alternation is not supported here (it is in `Path.glob`):
-assert not (./src/file.c).matches_glob("./*.{c,h}")
+# A leading "/" anchors the pattern to the whole path:
+assert (/tmp/dir/file.txt).matches_glob("/tmp/dir/*.txt")
+assert not (/other/dir/file.txt).matches_glob("/tmp/dir/*.txt")
+
+# "**" is zero or more components:
+assert (./a/b/c/file.txt).matches_glob("**/*.txt")
+assert (./file.txt).matches_glob("**/*.txt")
+
+# "*" does not match a leading "." or cross a "/":
+assert not (./dir/.hidden).matches_glob("*")
+assert (./dir/.hidden).matches_glob(".*")
 
 ```
 ## Path.modified

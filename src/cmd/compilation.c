@@ -175,12 +175,16 @@ static bool is_build_artifact(Text_t filename) {
 // symlinks (package binding links, since each linked package is embedded once,
 // under its own packages/ entry, via the dependency graph):
 static void add_dir_files(Table_t *files, Path_t dir, const char *prefix) {
-    List_t children = Path$glob(Path$child(dir, Text("[!.]*")));
+    OptionalList_t children = Path$glob(dir, Text("[!.]*"));
+    // Silently skipping an unreadable directory would put an archive together
+    // that is missing files without saying so:
+    if (children.data == NULL) print_err("Could not read the directory: ", dir);
     for (int64_t i = 0; i < (int64_t)children.length; i++) {
         Path_t child = *(Path_t *)(children.data + i * children.stride);
         struct stat child_stat;
         if (lstat(child, &child_stat) != 0 || S_ISLNK(child_stat.st_mode)) continue;
-        Text_t base = Path$base_name(child);
+        OptionalText_t base = Path$base_name(child);
+        if (base.tag == TEXT_NONE) print_err("This file's name is not valid UTF-8: ", child);
         const char *name = String(prefix, "/", Text$as_c_string(base));
         if (Path$is_directory(child, true)) add_dir_files(files, child, name);
         else if (!is_build_artifact(base)) Table$str_set(files, name, Path$as_c_string(child));
@@ -196,7 +200,10 @@ static bool is_store_entry_dir(Path_t dir) {
 // the .tm files in `dir` still depend on. Parse-only, so no installs or
 // confirmation prompts can trigger during garbage collection:
 static void collect_needed_packages(Path_t dir, Path_t store_root, Table_t *digests, Table_t *names) {
-    List_t files = Path$glob(Path$child(dir, Text("*.tm")));
+    OptionalList_t files = Path$glob(dir, Text("*.tm"));
+    // This drives garbage collection: reading no files here would mean nothing
+    // is depended on, and every installed package would be collected.
+    if (files.data == NULL) print_err("Could not read the directory: ", dir);
     for (int64_t i = 0; i < (int64_t)files.length; i++) {
         Path_t file = *(Path_t *)(files.data + i * files.stride);
         // A file that doesn't parse has no `use` statements to collect, and it
@@ -243,17 +250,29 @@ static void gc_package_dir(Path_t dir) {
     collect_needed_packages(dir, store_root, &digests, &names);
     mark_unused_packages(Path$child(dir, Text("packages.ini")), names);
 
-    List_t links = Path$glob(Path$child(tomo_root, Text("packages/*")));
+    // packages/ and store/ need not exist yet, in which case there is nothing
+    // to collect. Only a directory that is there but unreadable is a problem,
+    // and neither case is worth failing a build over.
+    OptionalList_t links = Path$glob(tomo_root, Text("packages/*"));
+    if (links.data == NULL) links = EMPTY_LIST;
     for (int64_t i = 0; i < (int64_t)links.length; i++) {
         Path_t link = *(Path_t *)(links.data + i * links.stride);
-        if (Table$str_get(names, Text$as_c_string(Path$base_name(link)))) continue;
+        OptionalText_t link_name = Path$base_name(link);
+        // A name that isn't valid UTF-8 can't be one we created, and it can't
+        // be looked up either: leave it alone rather than delete it blindly.
+        if (link_name.tag == TEXT_NONE) continue;
+        if (Table$str_get(names, Text$as_c_string(link_name))) continue;
         if (unlink(link) == 0)
             LOG(LOG_BUILD, "Removed unused package binding: ", Path$relative_to(link, Path$current_dir()));
     }
-    List_t entries = Path$glob(Path$child(tomo_root, Text("store/*")));
+    OptionalList_t entries = Path$glob(tomo_root, Text("store/*"));
+    if (entries.data == NULL) entries = EMPTY_LIST;
     for (int64_t i = 0; i < (int64_t)entries.length; i++) {
         Path_t entry = *(Path_t *)(entries.data + i * entries.stride);
-        if (Table$str_get(digests, Text$as_c_string(Path$base_name(entry)))) continue;
+        OptionalText_t entry_name = Path$base_name(entry);
+        // As above: an undecodable name is not a digest we know, so leave it.
+        if (entry_name.tag == TEXT_NONE) continue;
+        if (Table$str_get(digests, Text$as_c_string(entry_name))) continue;
         Result_t removed = Path$remove(entry, true);
         if (removed.Failure.reason.tag == TEXT_NONE)
             LOG(LOG_BUILD, "Removed unused store entry: ", Path$relative_to(entry, Path$current_dir()));
@@ -365,14 +384,17 @@ void write_source_blob(env_t *env, Path_t main_file, Path_t blob_path) {
         // and are regenerated when the extracted tree builds:
         if (!is_store_entry_dir(pkg_dir)) continue;
         const char *store_name = Text$as_c_string(Path$base_name(pkg_dir));
-        List_t pkg_files = Path$glob(Path$child(pkg_dir, Text("[!._0-9]*.tm")));
+        OptionalList_t pkg_files = Path$glob(pkg_dir, Text("[!._0-9]*.tm"));
+        if (pkg_files.data == NULL) print_err("Could not read the store entry: ", pkg_dir);
         for (int64_t j = 0; j < (int64_t)pkg_files.length; j++)
             add_package_bindings(env, &bindings, *(Path_t *)(pkg_files.data + j * pkg_files.stride), store_name, root);
     }
 
     // Also include the license texts shipped with the Tomo install (Tomo's own
     // license plus every statically linked library's) under licenses/:
-    List_t licenses = Path$glob(Path$from_str(String(TOMO_PATH, "/share/licenses/tomo@", TOMO_VERSION, "/*")));
+    OptionalList_t licenses =
+        Path$glob(Path$from_str(String(TOMO_PATH, "/share/licenses/tomo@", TOMO_VERSION)), Text("*"));
+    if (licenses.data == NULL) licenses = EMPTY_LIST; // An install may ship none
     for (int64_t i = 0; i < (int64_t)licenses.length; i++) {
         Path_t license = *(Path_t *)(licenses.data + i * licenses.stride);
         Table$str_set(&files, String("licenses/", Text$as_c_string(Path$base_name(license))),
@@ -630,7 +652,8 @@ void build_package(Path_t pkg_dir) {
     pkg_dir = Path$resolved(pkg_dir, Path$current_dir());
     if (!Path$is_directory(pkg_dir, true)) print_err("Not a valid directory: ", pkg_dir);
 
-    List_t tm_files = Path$glob(Path$child(pkg_dir, Text("[!._0-9]*.tm")));
+    OptionalList_t tm_files = Path$glob(pkg_dir, Text("[!._0-9]*.tm"));
+    if (tm_files.data == NULL) print_err("Could not read the package directory: ", pkg_dir);
     // Cross-compiled package archives go in the per-target .tomo directory so
     // they don't clobber the native package.a:
     Path_t archive = cross_compiling ? build_file(Path$child(pkg_dir, Text("package.a")), "")
@@ -711,8 +734,11 @@ static void commit_artifact(Path_t temp, Path_t final) {
 // mtime, so that reinstalling Tomo (or editing a header in place) names a
 // different cache entry instead of tripping clang's "file has been modified
 // since the precompiled header was built" error.
-static const char *stamp_headers(const char *fingerprint, Path_t pattern) {
-    List_t files = Path$glob(pattern);
+static const char *stamp_headers(const char *fingerprint, Path_t dir, Text_t pattern) {
+    OptionalList_t files = Path$glob(dir, pattern);
+    // A missing include directory contributes nothing to the fingerprint,
+    // which is safe: the key is only ever weaker, never wrong.
+    if (files.data == NULL) return fingerprint;
     for (int64_t i = 0; i < (int64_t)files.length; i++) {
         Path_t file = *(Path_t *)(files.data + i * files.stride);
         struct stat sb;
@@ -730,7 +756,8 @@ static const char *stamp_headers(const char *fingerprint, Path_t pattern) {
 #define MAX_CACHED_PCHS 8
 
 static void prune_pch_cache(Path_t cache_dir, Path_t keep) {
-    List_t cached = Path$glob(Path$child(cache_dir, Text("*.pch")));
+    OptionalList_t cached = Path$glob(cache_dir, Text("*.pch"));
+    if (cached.data == NULL) return; // No cache directory yet: nothing to prune
     if ((int64_t)cached.length <= MAX_CACHED_PCHS) return;
 
     // Drop the oldest entries first: repeatedly evict the least recently
@@ -789,12 +816,12 @@ static OptionalPath_t get_precompiled_header(void) {
     // Everything that decides whether a given PCH is valid for this compile:
     // the exact invocation, and the headers it would be built from.
     const char *fingerprint = String(cc, " ", cflags, " -O", optimization);
-    fingerprint = stamp_headers(fingerprint, Path$child(include_dir, Text("*.h")));
+    fingerprint = stamp_headers(fingerprint, include_dir, Text("*.h"));
     // One level down covers every subdirectory tomo.h reaches into: tomo/ for
     // the standard library's own headers, plus gc/ and unistring/, which the
     // vendored gc.h and uni*.h pull in and which clang validates just as
     // strictly as the rest.
-    fingerprint = stamp_headers(fingerprint, Path$child(Path$child(include_dir, Text("*")), Text("*.h")));
+    fingerprint = stamp_headers(fingerprint, include_dir, Text("*/*.h"));
 
     // 64 bits of the digest is plenty to keep configurations apart, the same
     // truncation tomo_root_for() uses to name build-cache directories.
@@ -925,7 +952,8 @@ void compile_files(env_t *env, List_t to_compile, List_t *object_files, List_t *
             id_str[j] = id_chars[random_range(0, num_id_chars - 1)];
         }
         Text_t filename_id = Text("");
-        Text_t base = Path$base_name(entry->filename);
+        OptionalText_t base = Path$base_name(entry->filename);
+        if (base.tag == TEXT_NONE) print_err("This file's name is not valid UTF-8: ", entry->filename);
         TextIter_t state = NEW_TEXT_ITER_STATE(base);
         for (int64_t j = 0; j < (int64_t)base.length; j++) {
             uint32_t c = Text$get_main_grapheme_fast(&state, j);
@@ -1088,7 +1116,8 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
                   || is_stale(build_file(path, ".o"), build_file(path, ".h"), false);
     Table$set(to_compile, &path, &staleness, Table$info(&Path$info, &Byte$info));
 
-    assert(Text$equal_values(Path$extension(path, true), Text("tm")));
+    OptionalText_t path_extension = Path$extension(path, true);
+    assert(path_extension.tag != TEXT_NONE && Text$equal_values(path_extension, Text("tm")));
 
     ast_t *ast = parse_file(Path$as_c_string(path), NULL);
     if (!ast) print_err("Could not parse file: ", path);
@@ -1113,7 +1142,8 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
             OptionalPath_t installed = find_installed_package(build_info, stmt_ast);
             if (!installed) code_err(stmt_ast, "I don't know where to find this package.");
 
-            List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
+            OptionalList_t children = Path$glob(installed, Text("[!._0-9]*.tm"));
+            if (children.data == NULL) print_err("Could not read the installed package directory: ", installed);
             if (cross_compiling) {
                 // Installed package archives were compiled for the native
                 // platform, so cross builds recompile the package's modules from

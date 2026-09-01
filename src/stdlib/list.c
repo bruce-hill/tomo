@@ -31,20 +31,23 @@ PUREFUNC static INLINE int64_t get_padded_item_size(const TypeInfo_t *info) {
     return size;
 }
 
-// Replace the list's .data pointer with a new pointer to a copy of the
-// data that is compacted and has a stride of exactly `padded_item_size`
+// Replace `list` with a version that has a stride of exactly `padded_item_size`,
+// and copying over the old items to a new chunk of memory for nonempty lists.
+// This is used for CoW protections, so it *must* copy the list to a new chunk
+// of memory, even if the old list had the right stride.
 public
 void List$compact(List_t *list, int64_t padded_item_size) {
-    void *copy = NULL;
-    if (list->length > 0) {
-        copy = list->atomic ? GC_MALLOC_ATOMIC((size_t)list->length * (size_t)padded_item_size)
-                            : GC_MALLOC((size_t)list->length * (size_t)padded_item_size);
-        if ((int64_t)list->stride == padded_item_size) {
-            memcpy(copy, list->data, (size_t)list->length * (size_t)padded_item_size);
-        } else {
-            for (int64_t i = 0; i < (int64_t)list->length; i++)
-                memcpy_fixed(copy + i * padded_item_size, list->data + list->stride * i, padded_item_size);
-        }
+    if (list->length == 0) {
+        list->stride = padded_item_size;
+        return;
+    }
+    void *copy = list->atomic ? GC_MALLOC_ATOMIC((size_t)list->length * (size_t)padded_item_size)
+                              : GC_MALLOC((size_t)list->length * (size_t)padded_item_size);
+    if ((int64_t)list->stride == padded_item_size) {
+        memcpy(copy, list->data, (size_t)list->length * (size_t)padded_item_size);
+    } else {
+        for (int64_t i = 0; i < (int64_t)list->length; i++)
+            memcpy_fixed(copy + i * padded_item_size, list->data + list->stride * i, padded_item_size);
     }
     *list = (List_t){
         .data = copy,

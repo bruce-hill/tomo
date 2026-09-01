@@ -388,7 +388,7 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
             {"expand_home", "Path$expand_home", "func(path:Path -> Path)"}, //
             {"extension", "Path$extension", "func(path:Path, full=yes -> Text?)"}, //
             {"files", "Path$files", "func(path:Path, include_hidden=no -> [Path]?)"}, //
-            {"glob", "Path$glob", "func(path:Path -> [Path])"}, //
+            {"glob", "Path$glob", "func(path:Path, pattern:Text -> [Path]?)"}, //
             {"group", "Path$group", "func(path:Path, follow_symlinks=yes -> Text?)"}, //
             {"has_extension", "Path$has_extension", "func(path:Path, extension:Text -> Bool)"}, //
             {"is_directory", "Path$is_directory", "func(path:Path, follow_symlinks=yes -> Bool)"}, //

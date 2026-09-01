@@ -205,7 +205,8 @@ static env_t *load_module(env_t *env, ast_t *use_ast) {
         const char *name = Match(use_ast, Use)->path;
         env_t *module_env = fresh_scope(env);
         Table$str_set(env->imports, name, module_env);
-        List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
+        OptionalList_t children = Path$glob(installed, Text("[!._0-9]*.tm"));
+        if (children.data == NULL) print_err("Could not read the installed package directory: ", installed);
         for (int64_t i = 0; i < (int64_t)children.length; i++) {
             Path_t child = *(Path_t *)(children.data + i * children.stride);
             ast_t *ast = parse_file(child, NULL);

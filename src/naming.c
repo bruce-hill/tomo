@@ -127,7 +127,8 @@ static Path_t xdg_cache_tomo_dir(void) {
 // Only called right after creating a new build-cache dir, so ordinary
 // (non-fallback) builds never pay this cost:
 static void prune_stale_build_dirs(Path_t build_cache) {
-    List_t entries = Path$children(build_cache, true);
+    OptionalList_t entries = Path$children(build_cache, true);
+    if (entries.data == NULL) return; // No build cache yet: nothing to prune
     time_t now = time(NULL);
     for (int64_t i = 0; i < (int64_t)entries.length; i++) {
         Path_t entry = *(Path_t *)(entries.data + i * entries.stride);

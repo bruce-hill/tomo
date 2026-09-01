@@ -67,7 +67,8 @@ static bool dir_on_path(Path_t dir) {
 // Prompts before overwriting existing files unless --yes was given.
 static void install_program(Path_t src_file, Path_t exe_path) {
     Path_t prefix_dir = install_prefix();
-    Text_t name = Path$base_name(exe_path);
+    OptionalText_t name = Path$base_name(exe_path);
+    if (name.tag == TEXT_NONE) print_err("This executable's name is not valid UTF-8: ", exe_path);
     Path_t bin_dir = Path$child(prefix_dir, Text("bin"));
     Path_t man_dir = Path$child(Path$child(prefix_dir, Text("man")), Text("man1"));
     Path_t bin_dest = Path$child(bin_dir, name);
@@ -125,7 +126,8 @@ static int cmd_build(cli_command_t *self, List_t extra_args) {
         // .tomo directory. Cross-compiled executables get the target platform
         // as a suffix (foo.aarch64-macos) so they don't collide with the
         // native executable or each other:
-        Text_t exe_name = Path$base_name(exe_path);
+        OptionalText_t exe_name = Path$base_name(exe_path);
+        if (exe_name.tag == TEXT_NONE) print_err("This executable's name is not valid UTF-8: ", exe_path);
         if (cross_compiling) exe_name = Texts(exe_name, ".", target);
         exe_path = Path$sibling(path, exe_name);
     }

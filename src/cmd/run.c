@@ -193,7 +193,8 @@ static int cmd_run(cli_command_t *self, List_t extra_args) {
 // command name.
 int tomo_main(cli_command_t *self, List_t extra_args) {
     if (file != NULL && !Path$exists(file) && !Text$has(Path$base_name(file), Text("."))) {
-        Text_t name = Path$base_name(file);
+        OptionalText_t name = Path$base_name(file);
+        if (name.tag == TEXT_NONE) print_err("This name is not valid UTF-8: ", file);
         List_t names = EMPTY_LIST;
         Text_t listing = EMPTY_TEXT;
         for (int i = 0; i < tomo_cli.root.num_children; i++) {

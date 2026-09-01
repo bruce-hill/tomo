@@ -195,8 +195,8 @@ For more, see:
 
 
 .TP
-.BI Path.glob\ :\ func(path:\ Path\ ->\ [Path])
-Perform a globbing operation and return a list of matching paths. Some glob specific details: - The paths "." and ".." are *not* included in any globbing results. - Files or directories that begin with "." will not match \fB*\fR, but will match \fB.*\fR. - The shell-style syntax \fB**\fR for matching subdirectories is not supported. - The \fB{a,b}\fR alternation syntax is not supported. 
+.BI Path.glob\ :\ func(path:\ Path,\ pattern:\ Text\ ->\ [Path]?)
+Search a directory for paths matching a glob pattern. The pattern is relative to the directory, and unlike \fBPath.matches_glob\fR it is anchored: it has to account for every component below the directory. 
 
 For more, see:
 .BR Tomo-Path.glob (3)
@@ -268,7 +268,7 @@ For more, see:
 
 .TP
 .BI Path.matches_glob\ :\ func(path:\ Path,\ glob:\ Text\ ->\ Bool)
-Return whether or not a path matches a given glob. The glob is matched against the path's entire text, not just its base name, so a pattern for \fB(./file.txt)\fR must account for the leading \fB./\fR. 
+Return whether or not a path matches a given glob. This is a pattern match, not a filesystem operation, and it reads the raw bytes of the path, so it works on names that are not valid UTF-8. 
 
 For more, see:
 .BR Tomo-Path.matches_glob (3)

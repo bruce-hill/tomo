@@ -12,6 +12,7 @@
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/param.h>
@@ -152,10 +153,21 @@ static OptionalPath_t Path$_concat2(OptionalPath_t a, OptionalPath_t b) {
     return path_from_string(String(a, "/", b));
 }
 
+// $HOME is not guaranteed to be set. Returning NULL here would reach opendir()
+// and friends by way of expand_home(), so fall back to the password database
+// and fail loudly rather than crash if even that has no answer.
+static const char *home_directory(void) {
+    const char *home = getenv("HOME");
+    if (home && home[0] != '\0') return home;
+    struct passwd *pw = getpwuid(getuid());
+    if (pw && pw->pw_dir && pw->pw_dir[0] != '\0') return pw->pw_dir;
+    fail("Could not determine the home directory: $HOME is unset and the user has no home");
+}
+
 public
 Path_t Path$expand_home(Path_t path) {
     if (path && path_type(path) == PATH_HOME) {
-        const char *home = getenv("HOME");
+        const char *home = home_directory();
         if (path[1] == '/') return Path$_concat2(home, path + 2);
         else if (path[1] == '\0') return home;
     }
@@ -165,8 +177,8 @@ Path_t Path$expand_home(Path_t path) {
 // The inverse of expand_home(), for methods that must hand libc a real path but
 // should still hand the caller back a path in the form they wrote it.
 static Path_t unexpand_home(Path_t path) {
-    const char *home = getenv("HOME");
-    if (!path || !home || home[0] == '\0') return path;
+    if (!path) return path;
+    const char *home = home_directory();
     size_t home_len = strlen(home);
     while (home_len > 1 && home[home_len - 1] == '/')
         --home_len;
@@ -290,7 +302,7 @@ bool Path$is_symlink(Path_t path) {
 public
 OptionalPath_t Path$link(Path_t path) {
     static char buf[PATH_MAX];
-    ssize_t status = readlink(path, buf, sizeof(buf));
+    ssize_t status = readlink(Path$expand_home(path), buf, sizeof(buf));
     if (status == -1) return NONE_PATH;
     return Path$from_str(GC_strdup(buf));
 }
@@ -539,19 +551,22 @@ OptionalText_t Path$group(Path_t path, bool follow_symlinks) {
 
 public
 Result_t Path$set_owner(Path_t path, OptionalText_t owner, OptionalText_t group, bool follow_symlinks) {
+    // (uid_t)-1 tells chown(2) to leave that half alone, which is what a none
+    // owner or group means here.
     uid_t owner_id = (uid_t)-1;
-    if (owner.tag == TEXT_NONE) {
+    if (owner.tag != TEXT_NONE) {
         struct passwd *pwd = getpwnam(Text$as_c_string(owner));
         if (pwd == NULL) return FailureResult("Not a valid user: ", owner);
         owner_id = pwd->pw_uid;
     }
 
     gid_t group_id = (gid_t)-1;
-    if (group.tag == TEXT_NONE) {
+    if (group.tag != TEXT_NONE) {
         struct group *grp = getgrnam(Text$as_c_string(group));
         if (grp == NULL) return FailureResult("Not a valid group: ", group);
         group_id = grp->gr_gid;
     }
+    path = Path$expand_home(path);
     int result = follow_symlinks ? chown(path, owner_id, group_id) : lchown(path, owner_id, group_id);
     if (result < 0) return FailureResult("Could not set owner!");
     return SuccessResult;
@@ -598,6 +613,14 @@ Result_t Path$remove(Path_t path, bool ignore_missing) {
 }
 
 Result_t Path$move(Path_t src, Path_t dest, bool allow_overwriting) {
+    src = Path$expand_home(src);
+    dest = Path$expand_home(dest);
+    // rename(2) replaces an existing destination without complaint, so
+    // refusing to overwrite has to be decided before the call. Waiting for the
+    // EEXIST below is not enough: Linux does not return it for this.
+    struct stat sb;
+    if (!allow_overwriting && lstat(dest, &sb) == 0)
+        return FailureResult("Could not move file ", src, " to ", dest, " (the destination already exists)");
     int status = rename(src, dest);
     if (status != 0) {
         if (errno == EEXIST && allow_overwriting) {
@@ -611,6 +634,9 @@ Result_t Path$move(Path_t src, Path_t dest, bool allow_overwriting) {
 }
 
 Result_t Path$copy_to(Path_t src, Path_t dest, bool allow_overwriting) {
+    // There is no shell in between to expand a "~" for us:
+    src = Path$expand_home(src);
+    dest = Path$expand_home(dest);
     pid_t child = fork();
     if (child == 0) {
         const char *args[] = {"cp", allow_overwriting ? "-rf" : "-r", "-T", src, dest, NULL};
@@ -729,7 +755,10 @@ OptionalPath_t Path$unique_directory(Path_t path) {
     if (buf[len - 1] == '/') buf[--len] = '\0';
     char *created = mkdtemp(buf);
     if (!created) return NULL;
-    return home_based ? unexpand_home(Path$from_str(created)) : Path$from_str(created);
+    // Copy out of `buf`: Path$from_str() does not, and the next call to this
+    // function would otherwise rewrite the path this one just returned.
+    Path_t path_created = Path$from_str(GC_strdup(created));
+    return home_based ? unexpand_home(path_created) : path_created;
 }
 
 public
@@ -756,7 +785,8 @@ OptionalPath_t Path$write_unique_bytes(Path_t path, List_t bytes) {
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
     if (written != (ssize_t)bytes.length) fail("Could not write to file: ", buf, " (", strerror(errno), ")");
     close(fd);
-    return home_based ? unexpand_home(Path$from_str(buf)) : Path$from_str(buf);
+    Path_t unique = Path$from_str(GC_strdup(buf)); // Copy out of the static buffer
+    return home_based ? unexpand_home(unique) : unique;
 }
 
 public
@@ -803,6 +833,9 @@ OptionalText_t Path$extension(Path_t path, bool full) {
     const char *base = base_name_start(path);
     if (!base || base[0] == '\0') return NONE_TEXT;
     if (base[0] == '.') base += 1;
+    // Nothing after the leading ".", as in (.) or (..): no extension. Without
+    // this, the searches below would start one byte past the terminator.
+    if (base[0] == '\0') return NONE_TEXT;
     const char *dot = full ? strchr(base + 1, '.') : strrchr(base + 1, '.');
     if (!dot) return NONE_TEXT; // No "." in the name at all
     const char *extension = dot + 1;
@@ -949,6 +982,7 @@ OptionalClosure_t Path$by_line(Path_t path) {
 
 public
 OptionalList_t Path$lines(Path_t path) {
+    path = Path$expand_home(path);
     FILE *f = fopen(path, "r");
     if (f == NULL) {
         if (errno == EMFILE || errno == ENFILE) {
@@ -968,38 +1002,186 @@ OptionalList_t Path$lines(Path_t path) {
     return lines;
 }
 
+// Split a path or a glob pattern into its "/"-separated pieces. Nothing here
+// decodes: a filename that is not valid UTF-8 still has to be matchable, for
+// the same reason Path$has_extension works on bytes.
+//
+// A leading "/" becomes a piece of its own. That is what anchors absolute
+// patterns: no other piece can ever equal "/", so a pattern beginning with one
+// can only line up at the front of the path.
+static size_t split_components(const char *str, string_slice_t **out) {
+    size_t count = (str[0] == '/') ? 1 : 0;
+    for (const char *p = str; *p;) {
+        p += strspn(p, "/"); // Skip separators, including a run of them
+        if (!*p) break;
+        count += 1;
+        p += strcspn(p, "/");
+    }
+
+    string_slice_t *comps = GC_MALLOC(count * sizeof(string_slice_t));
+    size_t i = 0;
+    if (str[0] == '/') comps[i++] = string_slice("/", 1);
+    for (const char *p = str; *p && i < count;) {
+        p += strspn(p, "/");
+        if (!*p) break;
+        size_t len = strcspn(p, "/");
+        comps[i++] = string_slice(p, len);
+        p += len;
+    }
+    *out = comps;
+    return count;
+}
+
+static bool component_matches(string_slice_t path, string_slice_t glob) {
+    // fnmatch() needs NUL-terminated strings, and a slice is not one:
+    return fnmatch(String(glob), String(path), FNM_PATHNAME | FNM_PERIOD) == 0;
+}
+
+static bool is_double_star(string_slice_t comp) {
+    return comp.length == 2 && comp.str[0] == '*' && comp.str[1] == '*';
+}
+
+// The pattern has to consume every component it is given. "**" stands for zero
+// or more components, so it tries each split point.
+static bool match_components(string_slice_t *path, size_t n_path, string_slice_t *glob, size_t n_glob) {
+    if (n_glob == 0) return n_path == 0;
+    if (is_double_star(glob[0])) {
+        for (size_t skip = 0; skip <= n_path; skip++)
+            if (match_components(path + skip, n_path - skip, glob + 1, n_glob - 1)) return true;
+        return false;
+    }
+    if (n_path == 0) return false;
+    if (!component_matches(path[0], glob[0])) return false;
+    return match_components(path + 1, n_path - 1, glob + 1, n_glob - 1);
+}
+
+// Path$matches_glob() lets a pattern match any trailing run of components. A
+// glob is anchored instead: the pattern is relative to the directory being
+// globbed, so it has to account for every component below it.
+static bool matches_relative_glob(const char *path, const char *pattern) {
+    string_slice_t *path_comps, *glob_comps;
+    size_t n_path = split_components(path, &path_comps);
+    size_t n_glob = split_components(pattern, &glob_comps);
+    if (n_glob == 0) return false;
+    return match_components(path_comps, n_path, glob_comps, n_glob);
+}
+
+static bool pattern_has_double_star(const char *pattern) {
+    string_slice_t *comps;
+    size_t n = split_components(pattern, &comps);
+    for (size_t i = 0; i < n; i++)
+        if (is_double_star(comps[i])) return true;
+    return false;
+}
+
+// Backslash-escape every glob(3) metacharacter in `str`, so that the bytes are
+// matched literally. glob(3) honours these escapes unless GLOB_NOESCAPE is set.
+static const char *glob_escaped(const char *str, size_t len) {
+    char *escaped = GC_MALLOC_ATOMIC(2 * len + 1); // Worst case: every byte escaped
+    char *dest = escaped;
+    for (const char *src = str, *end = str + len; src < end; src++) {
+        if (*src == '*' || *src == '?' || *src == '[' || *src == ']' || *src == '\\') *(dest++) = '\\';
+        *(dest++) = *src;
+    }
+    *dest = '\0';
+    return escaped;
+}
+
+// glob(3) has no way to say "any number of directories", so a pattern with a
+// "**" in it is answered by walking the tree and testing each path instead.
+// Every entry is visited, hidden ones included, and the matcher decides: "**"
+// spans any component, while "*" still will not match a leading ".".
+static void glob_walk(Path_t dir, const char *relative, const char *pattern, List_t *out) {
+    DIR *d = opendir(Path$expand_home(dir));
+    if (!d) return;
+
+    size_t dir_len = strlen(dir);
+    if (dir_len > 0 && dir[dir_len - 1] == '/') --dir_len;
+
+    for (struct dirent *ent; (ent = readdir(d)) != NULL;) {
+        if (streq(ent->d_name, ".") || streq(ent->d_name, "..")) continue;
+
+        Path_t child = Path$from_str(String(string_slice(dir, dir_len), "/", ent->d_name));
+        const char *child_relative = relative[0] ? String(relative, "/", ent->d_name) : ent->d_name;
+        if (matches_relative_glob(child_relative, pattern)) List$insert(out, &child, I(0), sizeof(Path_t));
+        if (Path$is_directory(child, false)) glob_walk(child, child_relative, pattern, out);
+    }
+    closedir(d);
+}
+
 public
-List_t Path$glob(Path_t path) {
-    bool home_based = (path_type(path) == PATH_HOME);
-    path = Path$expand_home(path);
-    glob_t glob_result;
-    int status = glob(Path$as_c_string(path), 0, NULL, &glob_result);
-    if (status != 0 && status != GLOB_NOMATCH) fail("Failed to perform globbing");
+OptionalList_t Path$glob(Path_t path, Text_t pattern) {
+    // The directory being globbed has to be readable. Anything else is a
+    // failure rather than an empty result, the same as Path$children.
+    DIR *base = opendir(Path$expand_home(path));
+    if (!base) return NONE_LIST;
+    closedir(base);
+
+    const char *pat = Text$as_c_string(pattern);
+    if (pat[0] == '\0') return EMPTY_LIST; // An empty pattern matches nothing
 
     List_t glob_files = EMPTY_LIST;
+    if (pattern_has_double_star(pat)) {
+        glob_walk(path, "", pat, &glob_files);
+        Closure_t comparison = {.fn = (void *)CString$compare, .userdata = (void *)&Path$info};
+        List$sort(&glob_files, comparison, sizeof(Path_t));
+        return glob_files;
+    }
+
+    // No "**", so let glob(3) prune as it descends instead of walking it all.
+    bool home_based = (path_type(path) == PATH_HOME);
+    Path_t expanded = Path$expand_home(path);
+    size_t dir_len = strlen(expanded);
+    if (dir_len > 0 && expanded[dir_len - 1] == '/') --dir_len;
+    // Only `pattern` is a pattern: the directory is a literal path, so a
+    // directory named "foo[1]" has to be escaped or glob(3) would read the
+    // "[1]" as a character class and match nothing inside it.
+    const char *joined = String(glob_escaped(expanded, dir_len), "/", pat);
+
+    glob_t glob_result;
+    int status = glob(joined, 0, NULL, &glob_result);
+    if (status != 0 && status != GLOB_NOMATCH) fail("Failed to perform globbing: ", joined);
+
     for (size_t i = 0; i < glob_result.gl_pathc; i++) {
         size_t len = strlen(glob_result.gl_pathv[i]);
         if ((len >= 2 && glob_result.gl_pathv[i][len - 1] == '.' && glob_result.gl_pathv[i][len - 2] == '/')
             || (len >= 2 && glob_result.gl_pathv[i][len - 1] == '.' && glob_result.gl_pathv[i][len - 2] == '.'
                 && glob_result.gl_pathv[i][len - 3] == '/'))
             continue;
-        Path_t p = Path$from_str(glob_result.gl_pathv[i]);
+        // Copy: Path$from_str() does not, and globfree() frees gl_pathv.
+        Path_t p = Path$from_str(GC_strdup(glob_result.gl_pathv[i]));
         if (home_based) p = unexpand_home(p);
         List$insert(&glob_files, &p, I(0), sizeof(Path_t));
     }
+    globfree(&glob_result);
+    // glob(3) sorts with strcoll() and the walk above does not sort at all, so
+    // both are put in the same order here rather than the answer depending on
+    // which branch produced it.
+    Closure_t comparison = {.fn = (void *)CString$compare, .userdata = (void *)&Path$info};
+    List$sort(&glob_files, comparison, sizeof(Path_t));
     return glob_files;
 }
 
 public
 bool Path$matches_glob(Path_t path, Text_t glob) {
-    return !fnmatch(Text$as_c_string(glob), path, FNM_PATHNAME | FNM_PERIOD);
+    string_slice_t *path_comps, *glob_comps;
+    size_t n_path = split_components(path, &path_comps);
+    size_t n_glob = split_components(Text$as_c_string(glob), &glob_comps);
+
+    if (n_glob == 0) return false; // An empty pattern matches nothing
+
+    // A pattern matches any trailing run of components, so "*.txt" asks about
+    // the file's name wherever it sits, while "/tmp/*.txt" pins the whole path.
+    for (size_t start = 0; start <= n_path; start++)
+        if (match_components(path_comps + start, n_path - start, glob_comps, n_glob)) return true;
+    return false;
 }
 
 public
 Path_t Path$current_dir(void) {
     static char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) == NULL) fail("Could not get current working directory");
-    return Path$from_str(cwd);
+    return Path$from_str(GC_strdup(cwd)); // Copy out of the static buffer
 }
 
 typedef struct {

@@ -126,7 +126,8 @@ void tomo_configure(void) {
     p = find_in_path(p);
     Path_t path = Path$from_str(p);
     TOMO_PATH = Path$as_c_string(Path$parent(Path$parent(path)));
-    Text_t base_name = Path$base_name(path);
+    OptionalText_t base_name = Path$base_name(path);
+    if (base_name.tag == TEXT_NONE) fail("Tomo is installed at a path that is not valid UTF-8: ", path);
     TOMO_VERSION_TEXT = Text$without_suffix(
         Text$without_prefix(Text$without_prefix(base_name, Text("lib")), Text("tomo@")), Text(".so"));
     TOMO_VERSION = Text$as_c_string(TOMO_VERSION_TEXT);

@@ -229,7 +229,8 @@ static Text_t _compile_statement(env_t *env, ast_t *ast) {
         } else if (use->what == USE_PACKAGE) {
             OptionalPath_t installed = find_installed_package(env->build_info, ast);
             assert(installed);
-            List_t children = Path$glob(Path$child(installed, Text("/[!._0-9]*.tm")));
+            OptionalList_t children = Path$glob(installed, Text("[!._0-9]*.tm"));
+            if (children.data == NULL) print_err("Could not read the installed package directory: ", installed);
             Text_t initialization = EMPTY_TEXT;
             for (int64_t i = 0; i < (int64_t)children.length; i++) {
                 Path_t filename = *(Path_t *)(children.data + i * children.stride);
