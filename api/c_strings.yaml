@@ -1,11 +1,15 @@
 CString.as_text:
   short: convert a C string to Text
   description: >
-    Convert a C string to Text.
+    Convert a C string to Text. This is the same conversion that `Text(str)`
+    performs.
+  errors: >
+    A C string is an arbitrary sequence of non-NUL bytes, but `Text` holds
+    Unicode, so this returns `none` when the bytes are not valid UTF-8.
   return:
-    type: 'Text'
+    type: 'Text?'
     description: >
-      The C string as a Text.
+      The C string as a Text, or `none` if it is not valid UTF-8.
   args:
     str:
       type: 'CString'
@@ -13,6 +17,7 @@ CString.as_text:
         The C string.
   example: |
     assert CString("Hello").as_text() == "Hello"
+    assert Text(CString("Hello"))! == "Hello"
 
 CString.bytes:
   short: get the raw bytes

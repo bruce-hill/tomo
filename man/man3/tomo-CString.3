@@ -2,7 +2,7 @@
 .\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH CString 3 2026-08-20 "Tomo man-pages"
+.TH CString 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 CString \- a Tomo type
 .SH LIBRARY
@@ -11,8 +11,8 @@ Tomo Standard Library
 .SH METHODS
 
 .TP
-.BI CString.as_text\ :\ func(str:\ CString\ ->\ Text)
-Convert a C string to Text. 
+.BI CString.as_text\ :\ func(str:\ CString\ ->\ Text?)
+Convert a C string to Text. This is the same conversion that \fBText(str)\fR performs. 
 
 For more, see:
 .BR Tomo-CString.as_text (3)

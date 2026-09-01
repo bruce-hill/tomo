@@ -1,18 +1,18 @@
 '\" t
-.\" Copyright (c) 2025 Bruce Hill
+.\" Copyright (c) 2026 Bruce Hill
 .\" All rights reserved.
 .\"
-.TH CString.as_text 3 2025-11-29 "Tomo man-pages"
+.TH CString.as_text 3 2026-09-01 "Tomo man-pages"
 .SH NAME
 CString.as_text \- convert a C string to Text
 .SH LIBRARY
 Tomo Standard Library
 .SH SYNOPSIS
 .nf
-.BI CString.as_text\ :\ func(str:\ CString\ ->\ Text)
+.BI CString.as_text\ :\ func(str:\ CString\ ->\ Text?)
 .fi
 .SH DESCRIPTION
-Convert a C string to Text.
+Convert a C string to Text. This is the same conversion that `Text(str)` performs.
 
 
 .SH ARGUMENTS
@@ -25,11 +25,15 @@ Name	Type	Description
 str	CString	The C string. 
 .TE
 .SH RETURN
-The C string as a Text.
+The C string as a Text, or `none` if it is not valid UTF-8.
+
+.SH ERRORS
+A C string is an arbitrary sequence of non-NUL bytes, but `Text` holds Unicode, so this returns `none` when the bytes are not valid UTF-8.
 
 .SH EXAMPLES
 .EX
 assert CString("Hello").as_text() == "Hello"
+assert Text(CString("Hello"))! == "Hello"
 .EE
 .SH SEE ALSO
 .BR Tomo-CString (3)

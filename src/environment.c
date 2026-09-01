@@ -355,7 +355,7 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
             F2(hypot), F2(nextafter)),
         MAKE_TYPE( //
             "CString", Type(CStringType), Text("char*"), Text("CString$info"), //
-            {"as_text", "Text$from_str", "func(str:CString -> Text)"},
+            {"as_text", "Text$from_str", "func(str:CString -> Text?)"},
             {"bytes", "CString$bytes", "func(str:CString -> [Byte])"},
             {"join", "CString$join", "func(glue:CString, pieces:[CString] -> CString)"}),
 #undef F2
@@ -622,8 +622,8 @@ env_t *global_env(bool source_mapping, bool profiling, bool debugging) {
     ADD_CONSTRUCTORS("CString", //
                      {"Text$as_c_string", "func(text:Text -> CString)"});
     ADD_CONSTRUCTORS("Text", //
-                     {"Text$from_str", "func(str:CString -> Text)"}, //
-                     {"Text$from_str", "func(path:Path -> Text)"});
+                     {"Text$from_str", "func(str:CString -> Text?)"}, //
+                     {"Text$from_str", "func(path:Path -> Text?)"});
 #undef ADD_CONSTRUCTORS
 
     set_binding(namespace_env(env, "Path"), "from_text",
@@ -969,6 +969,13 @@ binding_t *get_namespace_binding(env_t *env, ast_t *self, const char *name) {
     return ns_env ? get_binding(ns_env, name) : NULL;
 }
 
+// A constructor for T may return either T or T?. The optional form is for
+// conversions that can genuinely fail, such as Text(path), where the source
+// type holds bytes that are not necessarily valid UTF-8.
+PUREFUNC static bool constructs(type_t *ret, type_t *t) {
+    return type_eq(ret, t) || (ret->tag == OptionalType && type_eq(Match(ret, OptionalType)->type, t));
+}
+
 PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args) {
     env_t *type_env = get_namespace_by_type(env, t);
     if (!type_env) return NULL;
@@ -978,14 +985,14 @@ PUREFUNC binding_t *get_constructor(env_t *env, type_t *t, arg_ast_t *args) {
     for (int64_t i = (int64_t)constructors.length - 1; i >= 0; i--) {
         binding_t *constructor = constructors.data + i * constructors.stride;
         DeclareMatch(fn, constructor->type, FunctionType);
-        if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, options)) return constructor;
+        if (constructs(fn->ret, t) && is_valid_call(env, fn->args, args, options)) return constructor;
     }
     // Fall back to promotion:
     options.promotion = true;
     for (int64_t i = (int64_t)constructors.length - 1; i >= 0; i--) {
         binding_t *constructor = constructors.data + i * constructors.stride;
         DeclareMatch(fn, constructor->type, FunctionType);
-        if (type_eq(fn->ret, t) && is_valid_call(env, fn->args, args, options)) return constructor;
+        if (constructs(fn->ret, t) && is_valid_call(env, fn->args, args, options)) return constructor;
     }
     return NULL;
 }

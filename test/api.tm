@@ -47,6 +47,7 @@ test "Byte.to"
 
 test "CString.as_text"
     assert CString("Hello").as_text() == "Hello"
+    assert Text(CString("Hello"))! == "Hello"
 
 test "CString.bytes"
     assert CString("Hi").bytes() == [72, 105]

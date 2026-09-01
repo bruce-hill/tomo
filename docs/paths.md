@@ -70,6 +70,23 @@ Paths are internally represented as C-style NUL-terminated char strings. This
 makes it easy to use them with C APIs without any conversion. Paths do **not**
 perform any unicode normalization, unlike `Text`.
 
+A consequence is that a `Path` can hold bytes that are not valid UTF-8, because
+POSIX filenames are byte strings and a real file on disk may be named with any
+bytes at all. `Text`, by contrast, holds Unicode. Converting between them can
+therefore fail, so `Text(path)` returns a `Text?` rather than a `Text`:
+
+```tomo
+if name := Text(path)
+    say("The path is $name")
+else
+    say("This path is not valid UTF-8")
+
+# Or assume it converts and error if it doesn't:
+name := Text(path)!
+```
+
+The same is true of `Text(cstring)` and `CString.as_text`, for the same reason.
+
 # API
 
 [API documentation](../api/paths.md)

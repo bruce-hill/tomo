@@ -354,3 +354,21 @@ test "a text's .length is usable as an Int64 value"
 	greeting := "hello"
 	assert "$(greeting.length)" == "5"
 	assert greeting.length == Int64(5)
+
+test "converting to Text from bytes that may not be UTF-8"
+    # A CString is any sequence of non-NUL bytes and a Path is a POSIX filename,
+    # which is also just bytes; Text is Unicode. Both conversions can fail, and
+    # both used to be typed as returning a plain Text, so an invalid name came
+    # back as a none-tagged Text that reported a length of 0 and compared equal
+    # to "".
+    bad := C_code:CString `"inv\xff\xfename"`
+    >> Text(bad)
+    assert Text(bad) == none
+    assert bad.as_text() == none
+
+    good := C_code:CString `"ok"`
+    assert Text(good)! == "ok"
+    assert good.as_text()! == "ok"
+
+    # Paths convert through the same check:
+    assert Text((./valid-name.txt))! == "./valid-name.txt"

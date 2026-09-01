@@ -1007,7 +1007,8 @@ type_t *get_type(env_t *env, ast_t *ast) {
             type_t *t = Match(fn_type_t, TypeInfoType)->type;
 
             binding_t *constructor = get_constructor(env, t, call->args);
-            if (constructor) return t;
+            // Not always `t`: a fallible constructor like Text(path) returns `t?`
+            if (constructor) return Match(constructor->type, FunctionType)->ret;
             else if (t->tag == StructType)
                 // Parens on a type name mean "call a constructor function"; building a
                 // struct from its fields is a record literal instead.

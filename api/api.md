@@ -394,21 +394,24 @@ assert [x for x in Byte(2).to(5, step=2)] == [Byte(2), Byte(4)]
 ## CString.as_text
 
 ```tomo
-CString.as_text : func(str: CString -> Text)
+CString.as_text : func(str: CString -> Text?)
 ```
 
-Convert a C string to Text.
+Convert a C string to Text. This is the same conversion that `Text(str)` performs.
+
+A C string is an arbitrary sequence of non-NUL bytes, but `Text` holds Unicode, so this returns `none` when the bytes are not valid UTF-8.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
 str | `CString` | The C string.  | -
 
-**Return:** The C string as a Text.
+**Return:** The C string as a Text, or `none` if it is not valid UTF-8.
 
 
 **Example:**
 ```tomo
 assert CString("Hello").as_text() == "Hello"
+assert Text(CString("Hello"))! == "Hello"
 
 ```
 ## CString.bytes
