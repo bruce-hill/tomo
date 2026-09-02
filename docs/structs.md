@@ -37,6 +37,47 @@ my_foo.get_older()
 Method calls work when the first argument is the struct type or a pointer to
 the struct type.
 
+## Packed Booleans
+
+Every field of a struct normally gets its own byte or more, so a struct of eight
+`Bool` fields takes eight bytes. Adding the `packed_bools` flag stores each
+`Bool` field in a single bit and each `Bool?` field in two (`yes`, `no`, and
+`none` all fit), so adjacent boolean fields share bytes:
+
+```tomo
+struct Flags{a:Bool, b:Bool, c:Bool, d:Bool, e:Bool, f:Bool, g:Bool, h:Bool; packed_bools}
+...
+# One byte instead of eight:
+flags := Flags{yes, no, yes, no, yes, no, yes, no}
+assert flags.c
+```
+
+Packed booleans behave exactly like unpacked ones -- they compare, hash, sort,
+print, and serialize the same way -- with one exception: a bit-packed field has
+no address of its own, so you can't point at one.
+
+```tomo
+struct Flags{a:Bool, b:Bool; packed_bools}
+...
+flags := @Flags{yes, no}
+flags.a = no        # Assignment is fine
+p := &flags.a       # Compile error: no address to point at
+p := &flags         # Point at the whole struct instead
+```
+
+Only `Bool` and `Bool?` fields are affected. Every other field keeps its natural
+size and alignment, so mixing them in costs nothing:
+
+```tomo
+struct Entry{name:Text, active:Bool, hidden:Bool, count:Int32; packed_bools}
+```
+
+The flag only pays off for *adjacent* boolean fields, since a lone `Bool`
+between two larger fields usually fits in padding that would otherwise go
+unused. That makes the saving depend on field order: in the struct above,
+`active` and `hidden` share a byte, but they wouldn't if `count` sat between
+them. Structs whose layout comes from C (`external`) can't be packed.
+
 ## Secret Values
 
 If you want to prevent accidental leaking of sensitive information, you can

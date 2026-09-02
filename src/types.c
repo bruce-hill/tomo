@@ -549,11 +549,25 @@ PUREFUNC bool is_numeric_type(type_t *t) {
     return t->tag == IntType || t->tag == BigIntType || t->tag == NumType || t->tag == FloatType || t->tag == ByteType;
 }
 
+// How many bits a field takes in a `packed_bools` struct, or 0 if it is stored
+// as ordinary bytes. A `Bool` needs one bit; a `Bool?` needs two, since `no`,
+// `yes`, and NONE_BOOL all fit. Nothing else is bit-packed, so every other
+// field keeps its natural size and alignment.
+PUREFUNC size_t packed_bit_width(type_t *field_type) {
+    if (field_type->tag == BoolType) return 1;
+    if (field_type->tag == OptionalType && Match(field_type, OptionalType)->type->tag == BoolType) return 2;
+    return 0;
+}
+
 PUREFUNC bool is_packed_data(type_t *t) {
     if (t->tag == IntType || t->tag == FloatType || t->tag == ByteType || t->tag == PointerType || t->tag == BoolType
         || t->tag == FunctionType) {
         return true;
     } else if (t->tag == StructType) {
+        // Bit-packed fields leave bits inside the struct that belong to no
+        // field at all. Those bits are not part of the value, so a byte-wise
+        // hash or comparison would be reading something that isn't there.
+        if (Match(t, StructType)->packed_bools) return false;
         size_t offset = 0;
         for (arg_t *field = Match(t, StructType)->fields; field; field = field->next) {
             if (!is_packed_data(field->type)) return false;
@@ -583,12 +597,21 @@ PUREFUNC size_t unpadded_struct_size(type_t *t) {
         compiler_err(NULL, NULL, NULL, "The struct type %s is opaque, so I can't get the size of it",
                      Match(t, StructType)->name);
     arg_t *fields = Match(t, StructType)->fields;
+    bool packed_bools = Match(t, StructType)->packed_bools;
     size_t size = 0;
     size_t bit_offset = 0;
     for (arg_t *field = fields; field; field = field->next) {
         type_t *field_type = field->type;
-        if (field_type->tag == BoolType) {
-            bit_offset += 1;
+        size_t bits = packed_bools ? packed_bit_width(field_type) : 0;
+        if (bits > 0) {
+            // Mirroring the C compiler: a bit-packed field never straddles a
+            // byte boundary, so one that doesn't fit starts a fresh byte and
+            // leaves the remaining bits of the old one unused.
+            if (bit_offset + bits > 8) {
+                size += 1;
+                bit_offset = 0;
+            }
+            bit_offset += bits;
             if (bit_offset >= 8) {
                 size += 1;
                 bit_offset = 0;

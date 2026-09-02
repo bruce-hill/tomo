@@ -33,7 +33,9 @@ Text_t compile_struct_typeinfo(env_t *env, type_t *t, const char *name, arg_ast_
         ", "
         ".tag=StructInfo, .StructInfo.name=\"",
         short_name, "\"", is_secret ? Text(", .StructInfo.is_secret=true") : EMPTY_TEXT,
-        is_opaque ? Text(", .StructInfo.is_opaque=true") : EMPTY_TEXT, ", .StructInfo.num_fields=", num_fields);
+        is_opaque ? Text(", .StructInfo.is_opaque=true") : EMPTY_TEXT,
+        Match(t, StructType)->packed_bools ? Text(", .StructInfo.is_packed_bools=true") : EMPTY_TEXT,
+        ", .StructInfo.num_fields=", num_fields);
     if (fields) {
         typeinfo = Texts(typeinfo, ", .StructInfo.fields=(NamedType_t[", num_fields, "]){");
         for (arg_ast_t *f = fields; f; f = f->next) {
@@ -64,11 +66,13 @@ Text_t compile_struct_header(env_t *env, ast_t *ast) {
             else if (field->value)
                 code_err(field->value, "This is an opaque type, so it can't be used as a struct field type");
         }
+        size_t bits = def->packed_bools ? packed_bit_width(field_t) : 0;
         fields = Texts(fields, compile_declaration(field_t, valid_c_name(field->name)),
-                       field_t->tag == BoolType ? Text(":1") : EMPTY_TEXT, ";\n");
+                       bits > 0 ? Texts(":", (int64_t)bits) : EMPTY_TEXT, ";\n");
     }
     Text_t struct_code = def->external ? EMPTY_TEXT : Texts(type_code, " {\n", fields, "};\n");
     type_t *t = Table$str_get(*env->types, def->name);
+
 
     Text_t typeinfo_code = Texts("extern const TypeInfo_t ", typeinfo_name, ";\n");
     Text_t optional_code = EMPTY_TEXT;

@@ -111,7 +111,7 @@ struct type_s {
             const char *name;
             arg_t *fields;
             struct env_s *env;
-            bool opaque : 1, external : 1;
+            bool opaque : 1, external : 1, packed_bools : 1;
         } StructType;
         struct {
             const char *name;
@@ -169,6 +169,7 @@ CONSTFUNC type_t *most_complete_type(type_t *t1, type_t *t2);
 PUREFUNC size_t type_size(type_t *t);
 PUREFUNC size_t type_align(type_t *t);
 PUREFUNC size_t unpadded_struct_size(type_t *t);
+PUREFUNC size_t packed_bit_width(type_t *field_type);
 PUREFUNC type_t *non_optional(type_t *t);
 type_t *get_field_type(type_t *t, const char *field_name);
 PUREFUNC type_t *get_iterated_type(type_t *t);

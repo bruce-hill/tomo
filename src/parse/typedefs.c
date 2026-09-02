@@ -58,12 +58,14 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
     arg_ast_t *fields = parse_args(ctx, &pos);
 
     whitespace(ctx, &pos);
-    bool secret = false, external = false, opaque = false;
+    bool secret = false, external = false, opaque = false, packed_bools = false;
     if (match(&pos, ";")) { // Extra flags
         whitespace(ctx, &pos);
         for (;;) {
             if (match_word(&pos, "secret")) {
                 secret = true;
+            } else if (match_word(&pos, "packed_bools")) {
+                packed_bools = true;
             } else if (match_word(&pos, "external")) {
                 external = true;
             } else if (match_word(&pos, "opaque")) {
@@ -95,7 +97,7 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
     }
     if (!namespace) namespace = NewAST(ctx->file, pos, pos, Block, .statements = NULL);
     return NewAST(ctx->file, start, pos, StructDef, .name = name, .fields = fields, .namespace = namespace,
-                  .secret = secret, .external = external, .opaque = opaque);
+                  .secret = secret, .external = external, .opaque = opaque, .packed_bools = packed_bools);
 }
 
 ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {

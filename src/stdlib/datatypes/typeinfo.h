@@ -97,7 +97,10 @@ struct TypeInfo_s {
                 const char *name;
                 NamedType_t *fields;
                 int num_fields;
-                bool is_secret : 1, is_opaque : 1;
+                // `is_packed_bools` structs store each `Bool` field in one bit
+                // and each `Bool?` field in two, so their fields have to be
+                // located by walking the layout rather than by byte offset.
+                bool is_secret : 1, is_opaque : 1, is_packed_bools : 1;
             } StructInfo;
         };
     };

@@ -253,9 +253,13 @@ void prebind_statement(env_t *env, ast_t *statement) {
             code_err(statement, "A ", type_to_text(get_binding(env, def->name)->type), " called ", quoted(def->name),
                      " has already been defined");
 
+        if (def->packed_bools && def->external)
+            code_err(statement, "This struct is `external`, so its layout comes from C and I can't pack its "
+                                "booleans");
+
         env_t *ns_env = namespace_env(env, def->name);
         type_t *type = Type(StructType, .name = def->name, .opaque = true, .external = def->external,
-                            .env = ns_env); // placeholder
+                            .packed_bools = def->packed_bools, .env = ns_env); // placeholder
         Table$str_set(env->types, def->name, type);
         set_binding(env, def->name, Type(TypeInfoType, .name = def->name, .type = type, .env = ns_env),
                     namespace_name(env, env->namespace, Texts(def->name, "$$info")));

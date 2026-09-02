@@ -16,6 +16,13 @@
   `tomo format` corrupt inline C code, since the formatter splits verbatim
   chunks into lines: `sizeof(@x)` came back as `sizeof(@(x)`.
 
+- Struct definitions take a `packed_bools` flag, which stores each `Bool` field
+  in one bit and each `Bool?` field in two (`yes`, `no`, and `none` all fit), so
+  adjacent boolean fields share bytes: a struct of eight `Bool` fields goes from
+  eight bytes to one, and five `Bool?` fields from five to two. Fields of any
+  other type keep their natural size and alignment. Previously every `Bool` field of every struct was bit-packed
+  whether or not it saved anything, which is now what the flag opts into.
+
 
 ## 2026-08-27
 

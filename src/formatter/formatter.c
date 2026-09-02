@@ -697,9 +697,12 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         DeclareMatch(def, ast, StructDef);
         Text_t args = format_args(def->fields, comments, indent);
         Text_t code = Texts("struct ", Text$from_str(def->name), "{", args);
-        if (def->secret) code = Texts(code, "; secret");
-        if (def->external) code = Texts(code, "; external");
-        if (def->opaque) code = Texts(code, "; opaque");
+        Text_t flags = EMPTY_TEXT;
+        if (def->secret) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "secret");
+        if (def->packed_bools) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "packed_bools");
+        if (def->external) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "external");
+        if (def->opaque) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "opaque");
+        code = Texts(code, flags);
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, "}") : Text("}"));
         // Comments inside the field list are emitted with their field, so pick
         // up only what comes after it:
