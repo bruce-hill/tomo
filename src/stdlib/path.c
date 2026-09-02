@@ -607,7 +607,13 @@ static int _remove_files(const char *path, const struct stat *sbuf, int type, st
             return -1;
         }
         return 0;
-    default: fail("Could not remove path: ", path, " (not a file or directory)"); return -1;
+    default:
+        // FTW_DNR (a directory that can't be read) and FTW_NS (a stat that
+        // failed) land here. Reporting them the same way as the cases above
+        // keeps a tree Path$remove() can't fully walk a Failure the caller
+        // sees, rather than an abort that takes the whole program down.
+        _remove_failure = FailureResult("Could not remove path: ", path, " (it could not be read)");
+        return -1;
     }
 }
 
