@@ -23,6 +23,10 @@
   other type keep their natural size and alignment. Previously every `Bool` field of every struct was bit-packed
   whether or not it saved anything, which is now what the flag opts into.
 
+  Structs also emit `_Static_assert`s checking that the size and alignment the
+  compiler computes for them matches what C lays out, so the two models of
+  struct layout can't drift apart silently.
+
 
 ## 2026-08-27
 

@@ -73,6 +73,20 @@ Text_t compile_struct_header(env_t *env, ast_t *ast) {
     Text_t struct_code = def->external ? EMPTY_TEXT : Texts(type_code, " {\n", fields, "};\n");
     type_t *t = Table$str_get(*env->types, def->name);
 
+    // type_size()/type_align() model this struct's layout a second time, for
+    // the sizes baked into enum and optional type infos and for the runtime
+    // field walker in structs.c. Have the C compiler check that the model
+    // matches what it actually laid out, so a disagreement is a build error
+    // here rather than silent corruption somewhere downstream.
+    if (!def->external && !def->opaque) {
+        // A fieldless struct has no alignment constraint, which type_align()
+        // reports as 0 and C reports as 1.
+        size_t align = type_align(t) > 0 ? type_align(t) : 1;
+        struct_code = Texts(struct_code, "static_assert(sizeof(", type_code, ") == ", (int64_t)type_size(t),
+                            ", \"Tomo and C disagree about the size of ", def->name, "\");\n",
+                            "static_assert(__alignof__(", type_code, ") == ", (int64_t)align,
+                            ", \"Tomo and C disagree about the alignment of ", def->name, "\");\n");
+    }
 
     Text_t typeinfo_code = Texts("extern const TypeInfo_t ", typeinfo_name, ";\n");
     Text_t optional_code = EMPTY_TEXT;
