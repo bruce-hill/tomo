@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- The unused-variable check no longer flags variables that are only written
+  *through*. `p := &x; p[] = 456` reported `p` as assigned but never read, even
+  though the write reads `p` to find `x`. Writes reached through a dereference,
+  and writes to a field or index of a variable declared as a pointer (`&x` or
+  `@x`), now count as uses. Writing to a field or index of a plain value still
+  doesn't, since that only mutates the variable itself.
+
 - `tomo format` no longer expands inline C that fits on one line into a
   three-line block. It tested `InlineCCode.type`, which the compiler fills in
   and the parser doesn't, so the check was never true while formatting and every

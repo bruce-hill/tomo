@@ -568,8 +568,65 @@ Table_t get_closed_vars(env_t *env, arg_ast_t *args, ast_t *block) {
     return closed_vars;
 }
 
+// The variables a function body declares as pointers (`p := &thing` or
+// `p := @thing`), collected so that writes through them can be told apart from
+// writes into a variable's own contents. See find_target_used_variables().
+static visit_behavior_t find_pointer_variables(ast_t *ast, void *userdata) {
+    Table_t *pointers = (Table_t *)userdata;
+    switch (ast->tag) {
+    case Declare: {
+        ast_t *value = Match(ast, Declare)->value;
+        if (value && (value->tag == StackReference || value->tag == HeapAllocate)) {
+            ast_t *var = Match(ast, Declare)->var;
+            Table$str_set(pointers, Match(var, Var)->name, var);
+        }
+        return VISIT_PROCEED;
+    }
+    case Lambda: return VISIT_STOP;
+    default: return VISIT_PROCEED;
+    }
+}
+
+typedef struct {
+    Table_t used;
+    Table_t pointers;
+} variable_usage_t;
+
+static visit_behavior_t find_used_variables(ast_t *ast, void *userdata);
+
+// Walk an assignment target down to the variable it ultimately writes to,
+// counting any index expressions along the way as reads. Writing to a field or
+// an entry of a variable (`x.f = ...`, `x[i] = ...`) mutates `x` itself, which
+// doesn't count as reading it, but writing through a pointer (`p[] = ...`, or
+// any field or index write when `p` holds a pointer) lands on whatever `p`
+// points at, and getting there means reading `p`.
+static void find_target_used_variables(ast_t *target, variable_usage_t *usage) {
+    bool indirect = false;
+    for (;;) {
+        if (target->tag == Index) {
+            ast_t *index = Match(target, Index)->index;
+            if (index == NULL) { // A dereference is always a read of the pointer
+                ast_visit(Match(target, Index)->indexed, find_used_variables, usage);
+                return;
+            }
+            ast_visit(index, find_used_variables, usage);
+            target = Match(target, Index)->indexed;
+        } else if (target->tag == FieldAccess) {
+            target = Match(target, FieldAccess)->fielded;
+        } else {
+            break;
+        }
+        indirect = true;
+    }
+    if (indirect && target->tag == Var) {
+        const char *name = Match(target, Var)->name;
+        if (Table$str_get(usage->pointers, name)) Table$str_set(&usage->used, name, target);
+    }
+}
+
 static visit_behavior_t find_used_variables(ast_t *ast, void *userdata) {
-    Table_t *vars = (Table_t *)userdata;
+    variable_usage_t *usage = (variable_usage_t *)userdata;
+    Table_t *vars = &usage->used;
     switch (ast->tag) {
     case Var: {
         const char *name = Match(ast, Var)->name;
@@ -577,20 +634,8 @@ static visit_behavior_t find_used_variables(ast_t *ast, void *userdata) {
         return VISIT_STOP;
     }
     case Assign: {
-        for (ast_list_t *target = Match(ast, Assign)->targets; target; target = target->next) {
-            ast_t *var = target->ast;
-            for (;;) {
-                if (var->tag == Index) {
-                    ast_t *index = Match(var, Index)->index;
-                    if (index) ast_visit(index, find_used_variables, userdata);
-                    var = Match(var, Index)->indexed;
-                } else if (var->tag == FieldAccess) {
-                    var = Match(var, FieldAccess)->fielded;
-                } else {
-                    break;
-                }
-            }
-        }
+        for (ast_list_t *target = Match(ast, Assign)->targets; target; target = target->next)
+            find_target_used_variables(target->ast, usage);
         for (ast_list_t *val = Match(ast, Assign)->values; val; val = val->next) {
             ast_visit(val->ast, find_used_variables, userdata);
         }
@@ -598,18 +643,7 @@ static visit_behavior_t find_used_variables(ast_t *ast, void *userdata) {
     }
     case UPDATE_CASES: {
         binary_operands_t operands = BINARY_OPERANDS(ast);
-        ast_t *lhs = operands.lhs;
-        for (;;) {
-            if (lhs->tag == Index) {
-                ast_t *index = Match(lhs, Index)->index;
-                if (index) ast_visit(index, find_used_variables, userdata);
-                lhs = Match(lhs, Index)->indexed;
-            } else if (lhs->tag == FieldAccess) {
-                lhs = Match(lhs, FieldAccess)->fielded;
-            } else {
-                break;
-            }
-        }
+        find_target_used_variables(operands.lhs, usage);
         ast_visit(operands.rhs, find_used_variables, userdata);
         return VISIT_STOP;
     }
@@ -667,8 +701,10 @@ static visit_behavior_t find_assigned_variables(ast_t *ast, void *userdata) {
 }
 
 static void check_unused_vars(env_t *env, arg_ast_t *args, ast_t *body) {
-    Table_t used_vars = EMPTY_TABLE;
-    ast_visit(body, find_used_variables, &used_vars);
+    variable_usage_t usage = {.used = EMPTY_TABLE, .pointers = EMPTY_TABLE};
+    ast_visit(body, find_pointer_variables, &usage.pointers);
+    ast_visit(body, find_used_variables, &usage);
+    Table_t used_vars = usage.used;
     Table_t assigned_vars = EMPTY_TABLE;
     ast_visit(body, find_assigned_variables, &assigned_vars);
 
