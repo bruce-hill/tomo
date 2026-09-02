@@ -1,0 +1,34 @@
+# The formatter keeps the blank lines the source has, with three exceptions:
+# runs of blank lines collapse to one, a body that nests two levels deep gets a
+# blank line after it, and so does a function definition. The snapshot beside
+# this file pins that.
+
+func first()
+    say("first")
+
+func second()
+    say("second")
+
+func main()
+    xs := [1, 2, 3]
+    # A doubly indented body: the line after it gets separated.
+    for x in xs
+        if x > 1
+            say("$x")
+
+    say("after the nested loop")
+    # A singly indented body keeps whatever spacing the source had:
+    for x in xs
+        say("$x")
+    say("after the flat loop")
+
+    for x in xs
+        say("$x")
+
+    say("after the flat loop, with a blank line")
+    a := 1
+
+    b := 2
+    # Comments don't gain a blank line of their own:
+    c := a + b
+    say("$c")

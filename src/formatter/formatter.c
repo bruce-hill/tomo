@@ -509,14 +509,19 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Unknown:
         fail("Invalid AST");
     /*multiline*/ case Block: {
+        // A statement whose formatted form nests two levels deep needs a blank
+        // line after it, so that the code following it isn't mistaken for part
+        // of the inner body:
+        Text_t double_indent = Texts("\n", indent, single_indent, single_indent);
         Text_t code = EMPTY_TEXT;
         const char *comment_pos = ast->start;
         ast_list_t *prev = NULL;
+        bool prev_was_double_indented = false;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
             Text_t comment_code = comment_range(&comment_pos, stmt->ast->start, indent, comments);
             int64_t target_newlines =
                 prev == NULL ? 0
-                             : 1 + MAX(comment_code.length > 0 ? 1 : 0, suggested_blank_lines(prev->ast, stmt->ast));
+                             : 1 + MAX(prev_was_double_indented ? 1 : 0, suggested_blank_lines(prev->ast, stmt->ast));
 
             int64_t newlines = 0;
             for (int64_t i = code.length - 1; i >= 0; i--) {
@@ -532,12 +537,15 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             }
 
             if (code.length > 0 && !Text$ends_with(code, indent, NULL)) code = Text$concat(code, indent);
+            Text_t stmt_code;
             if (stmt->ast->tag == Block) {
-                code = Text$concat(
-                    code, Texts("do\n", indent, single_indent, fmt(stmt->ast, comments, Texts(indent, single_indent))));
+                stmt_code =
+                    Texts("do\n", indent, single_indent, fmt(stmt->ast, comments, Texts(indent, single_indent)));
             } else {
-                code = Text$concat(code, fmt(stmt->ast, comments, indent));
+                stmt_code = fmt(stmt->ast, comments, indent);
             }
+            code = Text$concat(code, stmt_code);
+            prev_was_double_indented = Text$has(stmt_code, double_indent);
             comment_pos = stmt->ast->end;
             const char *eol = stmt->ast->end;
             while (eol < stmt->ast->file->text + stmt->ast->file->len && *eol != '\n')

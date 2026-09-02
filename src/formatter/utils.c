@@ -40,82 +40,40 @@ bool range_has_comment(const char *start, const char *end, Table_t comments) {
     return (comment.tag != TEXT_NONE);
 }
 
+// True if the source between two positions contains a blank line: a line with
+// nothing but whitespace on it. This is how the formatter decides where the
+// author put blank lines, so that formatting can preserve them.
 PUREFUNC
-static ast_t *nl_deciding_ast(ast_t *ast) {
-    switch (ast->tag) {
-    case DebugLog: {
-        ast_list_t *values = Match(ast, DebugLog)->values;
-        while (values && values->next)
-            values = values->next;
-        return values ? values->ast : ast;
+static bool has_blank_line(const char *start, const char *end) {
+    bool seen_newline = false, only_space = true;
+    for (const char *p = start; p < end; p++) {
+        if (*p == '\n') {
+            if (seen_newline && only_space) return true;
+            seen_newline = true;
+            only_space = true;
+        } else if (*p != ' ' && *p != '\t' && *p != '\r') {
+            only_space = false;
+        }
     }
-    case Declare: {
-        // A bare `x : T` declaration has no value; fall back to the statement
-        // itself rather than answering NULL, which every caller dereferences.
-        ast_t *value = Match(ast, Declare)->value;
-        return value ? value : ast;
-    }
-    case Assign: {
-        ast_list_t *values = Match(ast, Assign)->values;
-        while (values && values->next)
-            values = values->next;
-        return values ? values->ast : ast;
-    }
-    default: return ast;
-    }
+    return false;
 }
 
-CONSTFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
+// How many blank lines belong between two consecutive statements. The
+// formatter keeps the blank lines the author wrote (collapsing runs of them
+// down to one) and only insists on a blank line of its own after a function
+// definition. The other rule -- a blank line after a body that nests two
+// levels deep -- depends on how the statement came out once formatted, so it
+// lives in the block formatter rather than here.
+PUREFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     if (first == NULL || second == NULL) return 0;
 
-    int64_t first_end_line = get_line_number(first->file, first->end);
-    int64_t second_start_line = get_line_number(second->file, second->start);
-
-    if (second_start_line > first_end_line + 1) return 1;
-
-    first = nl_deciding_ast(first);
-    second = nl_deciding_ast(second);
+    if (has_blank_line(first->end, second->start)) return 1;
 
     switch (first->tag) {
-    case If:
-    case Match:
-    case Repeat:
-    case While:
-    case For:
-    case Block:
-    case Defer:
-    case ConvertDef:
     case FunctionDef:
-    case Lambda:
-    case StructDef:
-    case EnumDef:
-    case LangDef:
-    case Test: return 1;
-    case Use: {
-        if (second->tag != Use) return 1;
-        break;
+    case ConvertDef: return 1;
+    default: return 0;
     }
-    default: break;
-    }
-
-    switch (second->tag) {
-    case If:
-    case Match:
-    case Repeat:
-    case While:
-    case For:
-    case Block:
-    case Defer:
-    case ConvertDef:
-    case FunctionDef:
-    case Lambda:
-    case StructDef:
-    case EnumDef:
-    case LangDef:
-    case Test: return 1;
-    default: break;
-    }
-    return 0;
 }
 
 Text_t indent_code(Text_t code) {
