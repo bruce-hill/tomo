@@ -562,7 +562,20 @@ test-parse: build
 regen-parse-tests: build
 	@./scripts/parse_tests.sh ./local-tomo --regen
 
-test: test-tm test-number test-cli test-parse test-format
+# Snapshot tests for the formatter: every test/format/*.tm is formatted and the
+# result compared against the snapshot checked in beside it. test-format checks
+# that formatting is faithful; this checks what layout it actually produces.
+test-format-snapshots: build
+	@printf '\033[1m Testing formatter layout... \033[m\n'
+	@./scripts/format_tests.sh ./local-tomo
+
+# Rewrites every formatter snapshot from current behavior. It can't tell a fixed
+# bug from a newly introduced one, so review `git diff test/format` afterwards.
+.PHONY: regen-format-tests
+regen-format-tests: build
+	@./scripts/format_tests.sh ./local-tomo --regen
+
+test: test-tm test-number test-cli test-parse test-format test-format-snapshots
 	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
 
 # Remove just the (target-specific) Tomo object files:
@@ -710,5 +723,5 @@ uninstall:
 	"$(PREFIX)/bin/tomo@$(TOMO_VERSION)" uninstall --yes
 
 .SUFFIXES:
-.PHONY: test-number test-cli all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version pch \
+.PHONY: test-number test-cli test-format-snapshots all build clean clean-obj dist archive install install-files install-targets uninstall test tags examples deps check-zig version pch \
 	benchmarks benchmark-fetch benchmark-refetch benchmark-run benchmark-sizes benchmark-graphs benchmark-list

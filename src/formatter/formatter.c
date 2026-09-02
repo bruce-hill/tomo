@@ -888,7 +888,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case InlineCCode: {
         DeclareMatch(c_code, ast, InlineCCode);
-        if (inlined_fits && c_code->type != NULL) return inlined;
+        // `type` is filled in by the compiler, not the parser, so it is always
+        // NULL here: testing it sent every inline C expression multiline, even
+        // one that fits. Anything that must span lines can't be inlined anyway,
+        // since format_inline_text() refuses a verbatim chunk holding a newline.
+        if (inlined_fits) return inlined;
         Text_t code = c_code->type_ast ? Texts("C_code:", format_type(c_code->type_ast)) : Text("C_code");
         text_opts_t opts = {.quote = Text("`"), .unquote = Text("`"), .interp = Text("@"), .verbatim = true};
         return Texts(code, format_text(opts, Match(ast, InlineCCode)->chunks, comments, indent));

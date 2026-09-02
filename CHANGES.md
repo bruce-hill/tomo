@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `tomo format` no longer expands inline C that fits on one line into a
+  three-line block. It tested `InlineCCode.type`, which the compiler fills in
+  and the parser doesn't, so the check was never true while formatting and every
+  inline C expression in a multi-line context grew. `tomo format --check` could
+  not see this, since it compares syntax trees and reparsing dedents a verbatim
+  block, so `test/format/` now holds snapshots of the layout the formatter
+  produces, checked by `make test` (regenerate with `make regen-format-tests`).
+
 - `Text.lines()` dropped a final line exactly one grapheme long, so
   `"a\nb".lines()` returned `["a"]` and `"x".lines()` returned `[]`. Any text
   whose last line was a single character silently lost it. This also made
