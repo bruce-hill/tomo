@@ -643,7 +643,10 @@ Result_t Path$remove(Path_t path, bool ignore_missing) {
         return FailureResult("Could not remove directory: ", path, " (", strerror(errno), ")");
     }
 
-    if (ignore_missing) return SuccessResult;
+    // `ignore_missing` is about a path that isn't there, which is settled
+    // above. Everything left (EACCES, EROFS, EBUSY, ...) is a file that is
+    // still there and has to be reported, or the caller is told the removal
+    // succeeded while the file remains.
     return FailureResult("Could not remove file: ", path, " (", strerror(errno), ")");
 }
 
@@ -668,7 +671,14 @@ static int rename_without_replacing(const char *src, const char *dest) {
     // link(2) fails with EEXIST rather than replacing anything, so it gives the
     // same guarantee for everything it can handle:
     if (link(src, dest) == 0) {
-        if (unlink(src) != 0) return -1;
+        if (unlink(src) != 0) {
+            // The move didn't happen, so don't leave the extra link behind as
+            // a second name for the same file:
+            int unlink_errno = errno;
+            unlink(dest);
+            errno = unlink_errno;
+            return -1;
+        }
         return 0;
     }
     // It cannot handle directories (EPERM) or a move across filesystems
