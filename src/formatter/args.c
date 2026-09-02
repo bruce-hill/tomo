@@ -18,6 +18,15 @@ PUREFUNC static bool ends_deeper_than(Text_t code, Text_t indent) {
     return (int64_t)last.length - (int64_t)body.length > (int64_t)indent.length;
 }
 
+// A parameter can carry a short alias for the command line (`force|f:Bool`),
+// which is part of how the parameter is written, so it has to be printed back
+// out with the name: dropping it silently deletes a subcommand's short flag.
+static Text_t arg_name(arg_ast_t *arg) {
+    Text_t name = Text$from_str(arg->name);
+    if (arg->alias) name = Texts(name, "|", Text$from_str(arg->alias));
+    return name;
+}
+
 OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
     // A comment sitting in front of this argument (parse_args() hands it over
     // in `arg->comment`) can only be written on a line of its own, so this
@@ -25,7 +34,7 @@ OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
     if (arg->comment.length > 0) return NONE_TEXT;
     if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;
     if (arg->name == NULL && arg->value) return must(format_inline_code(arg->value, comments));
-    Text_t code = Text$from_str(arg->name);
+    Text_t code = arg_name(arg);
     if (arg->type) code = Texts(code, ":", must(format_type(arg->type)));
     if (arg->value) code = Texts(code, "=", must(format_inline_code(arg->value, comments)));
     return code;
@@ -37,7 +46,7 @@ Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
         if (inline_arg.tag != TEXT_NONE && inline_arg.length <= MAX_WIDTH) return inline_arg;
     }
     if (arg->name == NULL && arg->value) return format_code(arg->value, comments, indent);
-    Text_t code = Text$from_str(arg->name);
+    Text_t code = arg_name(arg);
     if (arg->type) code = Texts(code, ":", format_type(arg->type));
     if (arg->value) code = Texts(code, "=", format_code(arg->value, comments, indent));
     return code;
@@ -47,7 +56,7 @@ OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
     Text_t code = EMPTY_TEXT;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         if (arg->name && arg->next && arg->type == arg->next->type && arg->value == arg->next->value) {
-            code = Texts(code, Text$from_str(arg->name), ",");
+            code = Texts(code, arg_name(arg), ",");
         } else {
             code = Texts(code, must(format_inline_arg(arg, comments)));
             if (arg->next) code = Texts(code, ", ");
@@ -77,7 +86,7 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
         Text_t comment = arg->comment;
         Text_t names = EMPTY_TEXT;
         while (arg->name && arg->type && arg->next && arg->type == arg->next->type && arg->value == arg->next->value) {
-            names = Texts(names, Text$from_str(arg->name), ", ");
+            names = Texts(names, arg_name(arg), ", ");
             arg = arg->next;
             if (arg->comment.length > 0)
                 comment = comment.length > 0 ? Texts(comment, " ", arg->comment) : arg->comment;

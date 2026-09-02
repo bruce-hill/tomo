@@ -139,8 +139,11 @@ Text_t ast_list_to_sexp(ast_list_t *asts) {
 Text_t arg_defs_to_sexp(arg_ast_t *args) {
     Text_t c = Text("(args");
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
-        c = Texts(c, " (arg ", arg->name ? quoted_text(arg->name) : Text("nil"), " ", type_ast_to_sexp(arg->type), " ",
-                  ast_to_sexp(arg->value), ")");
+        // The alias (`force|f`) is part of the parameter, and naming it here is
+        // what lets `tomo format --check` notice a formatter that loses it.
+        c = Texts(c, " (arg ", arg->name ? quoted_text(arg->name) : Text("nil"),
+                  arg->alias ? Texts(" :alias ", quoted_text(arg->alias)) : EMPTY_TEXT, " ",
+                  type_ast_to_sexp(arg->type), " ", ast_to_sexp(arg->value), ")");
     }
     return Texts(c, ")");
 }
