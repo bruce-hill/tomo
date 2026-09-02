@@ -144,6 +144,16 @@ test "splitting into lines"
 	>> "".lines()
 	assert "".lines() == []
 
+	# A final line one grapheme long is still a line. Every case above ends in a
+	# multi-character line, which is how this went unnoticed:
+	>> "a".lines()
+	assert "a".lines() == ["a"]
+	>> "one\ntwo\n3".lines()
+	assert "one\ntwo\n3".lines() == ["one", "two", "3"]
+	assert "a\nb".lines() == ["a", "b"]
+	assert "a\r\nb".lines() == ["a", "b"]
+	assert ")".lines() == [")"]
+
 test "splitting and joining text"
 	say("Test splitting and joining text:")
 	>> "one,, two,three".split(",")

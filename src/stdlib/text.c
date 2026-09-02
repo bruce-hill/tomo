@@ -1845,7 +1845,10 @@ List_t Text$lines(Text_t text) {
             Text_t line = Text$slice(text, I(line_start + 1), I(i));
             List$insert(&lines, &line, I_small(0), sizeof(Text_t));
             line_start = i + 1;
-        } else if (i == text.length - 1 && line_start != i) { // last line
+        } else if (i == text.length - 1) { // last line
+            // No `line_start != i` check here: a final line one grapheme long
+            // starts where it ends, and dropping it lost the last line of any
+            // text ending in a single character.
             Text_t line = Text$slice(text, I(line_start + 1), I(i + 1));
             List$insert(&lines, &line, I_small(0), sizeof(Text_t));
         }

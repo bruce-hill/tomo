@@ -1,5 +1,14 @@
 # Changes
 
+## Unreleased
+
+- `Text.lines()` dropped a final line exactly one grapheme long, so
+  `"a\nb".lines()` returned `["a"]` and `"x".lines()` returned `[]`. Any text
+  whose last line was a single character silently lost it. This also made
+  `tomo format` corrupt inline C code, since the formatter splits verbatim
+  chunks into lines: `sizeof(@x)` came back as `sizeof(@(x)`.
+
+
 ## 2026-08-27
 
 - `tomo run --debug prog.tm` runs a program under gdb, in Tomo's terms.
