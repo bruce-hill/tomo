@@ -33,7 +33,7 @@ Get the graphical cluster at a given index. This is similar to `str[i]` with ASC
 
 Negative indices are counted from the back of the text, so `-1` means the last cluster, `-2` means the second-to-last, and so on.
 
-Returns `none` if the index is out of range, the same as `text[i]` does.
+Returns `none` if the index is out of range. This is unlike `text[i]`, which fails with an error instead of giving back a value.
 
 Argument | Type | Description | Default
 ---------|------|-------------|---------
