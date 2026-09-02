@@ -856,7 +856,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Not: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, Not)->value;
-        if (is_binary_operation(val)) return Texts("not ", termify(val, comments, indent));
+        // A multi-clause `if`/`match` has to be parenthesized to stay an
+        // operand: written bare, its later clauses land outside the `not`,
+        // and `not if ...` doesn't parse at all.
+        if (is_binary_operation(val) || val->tag == If || val->tag == Match)
+            return Texts("not ", termify(val, comments, indent));
         else return Texts("not ", fmt(val, comments, indent));
     }
     /*multiline*/ case Negative: {
@@ -864,7 +868,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         ast_t *val = Match(ast, Negative)->value;
         // See the inline case above for which operands keep their parentheses.
         if (negation_needs_parens(val)) return Texts("-(", fmt(val, comments, indent), ")");
-        if (is_binary_operation(val) && !absorbs_rhs(Negative, expr_tightness(val)))
+        // An `if`/`match` keeps its parentheses here for the same reason it
+        // does as a binary operand below: spread over several lines, its
+        // later clauses would otherwise fall outside the `-`.
+        if ((is_binary_operation(val) && !absorbs_rhs(Negative, expr_tightness(val))) || val->tag == If
+            || val->tag == Match)
             return Texts("-", termify(val, comments, indent));
         else return Texts("-", fmt(val, comments, indent));
     }
