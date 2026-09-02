@@ -99,7 +99,7 @@ typedef struct tag_ast_s {
     const char *name;
     arg_ast_t *fields;
     struct tag_ast_s *next;
-    bool secret : 1;
+    bool secret : 1, packed_bools : 1;
 } tag_ast_t;
 
 struct type_ast_s {

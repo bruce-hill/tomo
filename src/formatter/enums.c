@@ -10,9 +10,12 @@
 OptionalText_t format_inline_tag(tag_ast_t *tag, Table_t comments) {
     if (range_has_comment(tag->start, tag->end, comments)) return NONE_TEXT;
     Text_t code = Text$from_str(tag->name);
-    if (tag->fields || tag->secret) {
+    if (tag->fields || tag->secret || tag->packed_bools) {
         code = Texts(code, "{", must(format_inline_args(tag->fields, comments)));
-        if (tag->secret) code = Texts(code, "; secret");
+        Text_t flags = EMPTY_TEXT;
+        if (tag->secret) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "secret");
+        if (tag->packed_bools) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "packed_bools");
+        code = Texts(code, flags);
         code = Texts(code, "}");
     }
     return code;
@@ -22,9 +25,12 @@ Text_t format_tag(tag_ast_t *tag, Table_t comments, Text_t indent) {
     OptionalText_t inline_tag = format_inline_tag(tag, comments);
     if (inline_tag.tag != TEXT_NONE) return inline_tag;
     Text_t code = Text$from_str(tag->name);
-    if (tag->fields || tag->secret) {
+    if (tag->fields || tag->secret || tag->packed_bools) {
         code = Texts(code, "{", format_args(tag->fields, comments, Texts(indent, single_indent)));
-        if (tag->secret) code = Texts(code, "; secret");
+        Text_t flags = EMPTY_TEXT;
+        if (tag->secret) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "secret");
+        if (tag->packed_bools) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "packed_bools");
+        code = Texts(code, flags);
         code = Texts(code, "}");
     }
     return code;

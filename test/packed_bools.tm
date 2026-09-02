@@ -36,6 +36,10 @@ struct LooseLonely{n:Int32, only:Bool, m:Int32}
 # Bit-packed fields in byte 0, then padding bytes 1-3 that belong to no field:
 struct WithHole{a:Bool, b:Bool, c:Bool, n:Int32; packed_bools}
 
+# The flag goes on individual enum members, not the enum, so packed and
+# unpacked members can sit side by side:
+enum Shape(Nothing, Packed{a:Bool, b:Bool, c:Bool; packed_bools}, Unpacked{a:Bool, b:Bool, c:Bool}, PackedMaybes{x:Bool?, y:Bool?, z:Bool?; packed_bools}, WithFields{n:Int32, a:Bool, b:Bool; packed_bools})
+
 test "packed bools behave like unpacked ones"
     >> Flags{yes, no, yes}
     assert "$(Flags{yes, no, yes})" == "Flags{a=yes, b=no, c=yes}"
@@ -128,6 +132,68 @@ test "a pointer to a byte-addressed field of a packed struct still works"
     n := &m.n
     n[] = Int32(99)
     assert m.n == Int32(99)
+
+test "taking a pointer to a bit-packed bool is rejected"
+    flags := @Flags{yes, no, yes}
+    p := &flags.a
+    >> p
+fails_compile "has no address of its own to point at"
+
+test "taking a pointer to a bit-packed optional bool is rejected"
+    maybes := @Maybes{yes, none, no, none, yes}
+    p := &maybes.b
+    >> p
+fails_compile "has no address of its own to point at"
+
+test "implicitly taking a pointer to a bit-packed bool is rejected"
+    flags := @Flags{yes, no, yes}
+    p : &Bool = flags.a
+    >> p
+fails_compile "has no address of its own"
+
+test "enum members can pack their bools"
+    >> Shape.Packed{yes, no, yes}
+    assert "$(Shape.Packed{yes, no, yes})" == "Packed{a=yes, b=no, c=yes}"
+    assert Shape.Packed{yes, no, yes} == Shape.Packed{yes, no, yes}
+    assert Shape.Packed{yes, no, yes} != Shape.Packed{yes, yes, yes}
+
+    # A packed member and an unpacked one with the same values are still
+    # different values of the enum:
+    assert Shape.Packed{yes, no, yes} != Shape.Unpacked{yes, no, yes}
+    >> Shape.PackedMaybes{yes, none, no}
+    assert Shape.PackedMaybes{yes, none, no} != Shape.PackedMaybes{yes, no, no}
+    >> Shape.WithFields{Int32(7), yes, no}
+
+    match Shape.WithFields{Int32(7), yes, no}
+    case WithFields{n, a, b}
+        assert n == Int32(7)
+        assert a and not b
+    else
+        fail("expected a WithFields shape")
+
+test "packed enum members match, hash, and serialize"
+    shapes := [
+        Shape.Packed{yes, no, yes}, Shape.Unpacked{no, yes, no}, Shape.Nothing,
+        Shape.PackedMaybes{yes, none, no},
+    ]
+
+    for shape in shapes
+        assert deserialize:Shape(serialize(shape))! == shape
+
+    match shapes[1]!
+    case Packed{a, b, c}
+        assert a and not b and c
+    else
+        fail("expected a Packed shape")
+
+    counts := {Shape.Packed{yes, no, yes}: 1, Shape.PackedMaybes{yes, none, no}: 2}
+    assert counts[Shape.Packed{yes, no, yes}]! == 1
+    assert counts[Shape.PackedMaybes{yes, none, no}]! == 2
+    assert counts[Shape.Packed{no, no, no}] == none
+
+# `sizeof(@var)` avoids naming the mangled C type, which changes with the file.
+func size_of_packed(x:Flags -> Int64)
+    return C_code:Int64`(int64_t)sizeof(@x)`
 
 test "packing shrinks structs"
     packed := Flags{yes, no, yes}
@@ -229,21 +295,3 @@ test "unpacked optional bool fields can be pointed at"
     assert loose.b == no
     p[] = none
     assert loose.b == none
-
-test "taking a pointer to a bit-packed bool is rejected"
-    flags := @Flags{yes, no, yes}
-    p := &flags.a
-    >> p
-fails_compile "has no address of its own to point at"
-
-test "taking a pointer to a bit-packed optional bool is rejected"
-    maybes := @Maybes{yes, none, no, none, yes}
-    p := &maybes.b
-    >> p
-fails_compile "has no address of its own to point at"
-
-test "implicitly taking a pointer to a bit-packed bool is rejected"
-    flags := @Flags{yes, no, yes}
-    p : &Bool = flags.a
-    >> p
-fails_compile "has no address of its own"

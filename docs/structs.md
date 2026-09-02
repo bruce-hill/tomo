@@ -78,6 +78,12 @@ unused. That makes the saving depend on field order: in the struct above,
 `active` and `hidden` share a byte, but they wouldn't if `count` sat between
 them. Structs whose layout comes from C (`external`) can't be packed.
 
+Enum members take the flag too, one member at a time:
+
+```tomo
+enum Shape(Nothing, Flags{a:Bool, b:Bool, c:Bool; packed_bools}, Box{w:Int32})
+```
+
 ## Secret Values
 
 If you want to prevent accidental leaking of sensitive information, you can

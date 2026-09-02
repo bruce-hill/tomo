@@ -107,14 +107,18 @@ type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
 
         spaces(&pos);
         arg_ast_t *fields;
-        bool secret = false;
+        bool secret = false, packed_bools = false;
         if (match(&pos, "{")) {
             whitespace(ctx, &pos);
             fields = parse_args(ctx, &pos);
             whitespace(ctx, &pos);
             if (match(&pos, ";")) { // Extra flags
                 whitespace(ctx, &pos);
-                secret = match_word(&pos, "secret");
+                do {
+                    if (match_word(&pos, "secret")) secret = true;
+                    else if (match_word(&pos, "packed_bools")) packed_bools = true;
+                    else break;
+                } while (match_separator(ctx, &pos));
                 whitespace(ctx, &pos);
             }
             expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this tagged union member");
@@ -123,7 +127,7 @@ type_ast_t *parse_enum_type(parse_ctx_t *ctx, const char *pos) {
         }
 
         tags = new (tag_ast_t, .file = ctx->file, .start = tag_start, .end = pos, .name = tag_name, .fields = fields,
-                    .secret = secret, .next = tags);
+                    .secret = secret, .packed_bools = packed_bools, .next = tags);
 
         if (!match_separator(ctx, &pos)) break;
     }

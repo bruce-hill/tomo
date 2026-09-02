@@ -134,7 +134,8 @@ type_t *parse_type_ast(env_t *env, type_ast_t *ast) {
             REVERSE_LIST(fields);
             const char *struct_name = String(enum_name, "$", tag_ast->name);
             env_t *struct_env = namespace_env(env, struct_name);
-            type_t *tag_type = Type(StructType, .name = tag_ast->name, .fields = fields, .env = struct_env);
+            type_t *tag_type = Type(StructType, .name = tag_ast->name, .fields = fields,
+                                    .packed_bools = tag_ast->packed_bools, .env = struct_env);
             tags = new (tag_t, .name = tag_ast->name, .tag_value = tag_value, .type = tag_type, .next = tags);
 
             if (Match(tag_type, StructType)->fields) { // Constructor:
@@ -475,8 +476,8 @@ void bind_statement(env_t *env, ast_t *statement) {
             }
             REVERSE_LIST(fields);
             env_t *member_ns = namespace_env(env, String(def->name, "$", tag_ast->name));
-            type_t *tag_type =
-                Type(StructType, .name = String(def->name, "$", tag_ast->name), .fields = fields, .env = member_ns);
+            type_t *tag_type = Type(StructType, .name = String(def->name, "$", tag_ast->name), .fields = fields,
+                                    .packed_bools = tag_ast->packed_bools, .env = member_ns);
             tags = new (tag_t, .name = tag_ast->name, .tag_value = (next_tag++), .type = tag_type, .next = tags);
         }
         REVERSE_LIST(tags);

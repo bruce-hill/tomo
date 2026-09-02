@@ -26,6 +26,10 @@
   requested". Previously every `Bool` field of every struct was bit-packed
   whether or not it saved anything, which is now what the flag opts into.
 
+  Enum members take the flag individually (`enum Foo(A{a, b:Bool;
+  packed_bools}, ...)`), so packed and unpacked members can sit in the same
+  enum. The bits are packed within the member; the enum's own tag is untouched.
+
   Bit-packed fields are read and written through the platform's own bit
   allocation order, which runs from the least significant bit of a byte on
   little-endian targets and from the most significant bit on big-endian ones

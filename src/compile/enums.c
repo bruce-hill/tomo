@@ -90,7 +90,7 @@ Text_t compile_enum_header(env_t *env, const char *name, tag_ast_t *tags) {
     for (tag_ast_t *tag = tags; tag; tag = tag->next) {
         Text_t field_def = compile_struct_header(env, NewAST(tag->file, tag->start, tag->end, StructDef,
                                                              .name = Text$as_c_string(Texts(name, "$", tag->name)),
-                                                             .fields = tag->fields));
+                                                             .fields = tag->fields, .packed_bools = tag->packed_bools));
         all_defs = Texts(all_defs, field_def);
         Text_t tag_type = namespace_name(env, env->namespace, Texts(name, "$", tag->name, "$$type"));
         enum_def = Texts(enum_def, tag_type, " ", valid_c_name(tag->name), ";\n");

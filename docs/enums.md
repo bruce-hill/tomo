@@ -13,6 +13,16 @@ b := VariousThings.TwoWords{"one", "two"}
 c := VariousThings.Nothing
 ```
 
+Enum members that hold several booleans can store each one in a single bit with
+the `packed_bools` flag, which applies to that member alone:
+
+```tomo
+enum Shape(Nothing, Flags{a:Bool, b:Bool, c:Bool; packed_bools}, Box{w:Int32})
+```
+
+See [Packed Booleans](structs.md#packed-booleans) for what the flag does and its
+one restriction.
+
 ## Pattern Matching
 
 The values inside an enum can be accessed with pattern matching
