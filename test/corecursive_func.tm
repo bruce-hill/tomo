@@ -1,15 +1,15 @@
 func ping(x:Int->[Text])
-	if x > 0
-		return ["ping: $x"] ++ pong(x-1)
-	else
-		return ["ping: $x"]
+    if x > 0
+        return ["ping: $x"] ++ pong(x-1)
+    else
+        return ["ping: $x"]
 
 func pong(x:Int->[Text])
-	if x > 0
-		return ["pong: $x"] ++ ping(x-1)
-	else
-		return ["pong: $x"]
+    if x > 0
+        return ["pong: $x"] ++ ping(x-1)
+    else
+        return ["pong: $x"]
 
 test "corecursive functions"
-	>> ping(3)
-	assert ping(3) == ["ping: 3", "pong: 2", "ping: 1", "pong: 0"]
+    >> ping(3)
+    assert ping(3) == ["ping: 3", "pong: 2", "ping: 1", "pong: 0"]

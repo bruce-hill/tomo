@@ -1,104 +1,104 @@
 test "basic float arithmetic"
-	>> n := Float64(1.5)
-	>> n + n
-	>> n * 2
-	>> n - n
-	assert n == 1.5
-	assert n + n == 3.
-	assert n * 2 == 3.
-	assert n - n == 0.
+    >> n := Float64(1.5)
+    >> n + n
+    >> n * 2
+    >> n - n
+    assert n == 1.5
+    assert n + n == 3.
+    assert n * 2 == 3.
+    assert n - n == 0.
 
 test "float literals are inexact"
-	>> Float64(0.1) + Float64(0.2)
-	assert Float64(0.1) + Float64(0.2) != Float64(0.3)
-	assert (Float64(0.1) + Float64(0.2)).near(0.3)
+    >> Float64(0.1) + Float64(0.2)
+    assert Float64(0.1) + Float64(0.2) != Float64(0.3)
+    assert (Float64(0.1) + Float64(0.2)).near(0.3)
 
 test "float literals in arithmetic take the float's type"
-	# A bare literal is untyped: in arithmetic with a float it becomes that
-	# float type rather than pulling the operation into the exact-real `Num`
-	# (a `Num` value can't be assigned to a `Float64`, so these declarations
-	# only typecheck if the arithmetic really is Float64/Float32 arithmetic).
-	x := Float64(1.5)
-	>> half : Float64 = 0.5 * x
-	scaled : Float64 = x * 0.5
-	shifted : Float64 = x + 1.0
-	dropped : Float64 = x - 0.5
-	quotient : Float64 = x / 2.0
-	powered : Float64 = 2.0 ^ x
-	assert half == 0.75
-	assert scaled == 0.75
-	assert shifted == 2.5
-	assert dropped == 1.
-	assert quotient == 0.75
-	assert powered == Float64(2) ^ Float64(1.5)
-	f32 := Float32(1.5)
-	small : Float32 = 0.5 * f32
-	assert small == Float32(0.75)
-	# Literal-only subexpressions push down the same way, however deep:
-	nested : Float64 = (1.0/2.0) * x
-	deeper : Float64 = x * (1.0 + 1.0/2.0)
-	assert nested == 0.75
-	assert deeper == 2.25
-	# ...but only literals do: an actual `Num` value stays exact and does not
-	# silently become a float.
-	n := 1./3.
-	assert n * 3 == 1
-	assert Int64(3) * (1./3.) == 1
+    # A bare literal is untyped: in arithmetic with a float it becomes that
+    # float type rather than pulling the operation into the exact-real `Num`
+    # (a `Num` value can't be assigned to a `Float64`, so these declarations
+    # only typecheck if the arithmetic really is Float64/Float32 arithmetic).
+    x := Float64(1.5)
+    >> half : Float64 = 0.5 * x
+    scaled : Float64 = x * 0.5
+    shifted : Float64 = x + 1.0
+    dropped : Float64 = x - 0.5
+    quotient : Float64 = x / 2.0
+    powered : Float64 = 2.0 ^ x
+    assert half == 0.75
+    assert scaled == 0.75
+    assert shifted == 2.5
+    assert dropped == 1.
+    assert quotient == 0.75
+    assert powered == Float64(2) ^ Float64(1.5)
+    f32 := Float32(1.5)
+    small : Float32 = 0.5 * f32
+    assert small == Float32(0.75)
+    # Literal-only subexpressions push down the same way, however deep:
+    nested : Float64 = (1.0/2.0) * x
+    deeper : Float64 = x * (1.0 + 1.0/2.0)
+    assert nested == 0.75
+    assert deeper == 2.25
+    # ...but only literals do: an actual `Num` value stays exact and does not
+    # silently become a float.
+    n := 1./3.
+    assert n * 3 == 1
+    assert Int64(3) * (1./3.) == 1
 
 test "floored division"
-	# `/` is ordinary float division; `//` is floor(x/y), plain floor and not
-	# the Euclidean quotient the integer types and Num use, so for a negative
-	# divisor it rounds down rather than keeping the remainder non-negative.
-	assert Float64(7.5) / Float64(2) == 3.75
-	assert Float64(7.5) // Float64(2) == 3.
-	assert Float64(-7.5) // Float64(2) == -4.
-	assert Float64(7.5) // Float64(-2) == -4.
-	assert Float32(7.5) // Float32(2) == Float32(3)
+    # `/` is ordinary float division; `//` is floor(x/y), plain floor and not
+    # the Euclidean quotient the integer types and Num use, so for a negative
+    # divisor it rounds down rather than keeping the remainder non-negative.
+    assert Float64(7.5) / Float64(2) == 3.75
+    assert Float64(7.5) // Float64(2) == 3.
+    assert Float64(-7.5) // Float64(2) == -4.
+    assert Float64(7.5) // Float64(-2) == -4.
+    assert Float32(7.5) // Float32(2) == Float32(3)
 
 test "constants"
-	>> Float64.PI
-	>> Float64.PI.with_precision(0.01)
-	>> Float64.INF
-	>> Float64.INF.isinf()
-	assert Float64.PI == 3.141592653589793
-	assert Float64.PI.with_precision(0.01) == 3.14
-	assert Float64.INF == Float64.INF
-	assert Float64.INF.isinf()
+    >> Float64.PI
+    >> Float64.PI.with_precision(0.01)
+    >> Float64.INF
+    >> Float64.INF.isinf()
+    assert Float64.PI == 3.141592653589793
+    assert Float64.PI.with_precision(0.01) == 3.14
+    assert Float64.INF == Float64.INF
+    assert Float64.INF.isinf()
 
 test "optional none floats"
-	>> none_num : Float64? = none
-	>> none_num
-	assert none_num == none
-	assert none_num == none_num
-	assert not (none_num < none_num)
-	assert not (none_num > none_num)
-	assert not (none_num != none_num)
-	assert (none_num <> none_num) == Int32(0)
-	assert not (none_num == 0.0)
-	assert none_num < 0.0
-	assert not (none_num > 0.0)
-	assert none_num != 0.0
-	assert (none_num <> 0.0) == Int32(-1)
+    >> none_num : Float64? = none
+    >> none_num
+    assert none_num == none
+    assert none_num == none_num
+    assert not (none_num < none_num)
+    assert not (none_num > none_num)
+    assert not (none_num != none_num)
+    assert (none_num <> none_num) == Int32(0)
+    assert not (none_num == 0.0)
+    assert none_num < 0.0
+    assert not (none_num > 0.0)
+    assert none_num != 0.0
+    assert (none_num <> 0.0) == Int32(-1)
 
 test "math functions"
-	>> Float64.PI.cos()!
-	>> Float64.PI.sin()!
-	>> Float32.sqrt(16)
-	>> Float32.sqrt(-1)
-	>> Float64(0.25).mix(10, 20)
-	>> Float64(2.0).mix(10, 20)
-	>> Float64(5)
-	>> Float64(0.5).percent()
-	assert Float64.PI.cos()!.near(-1)
-	assert Float64.PI.sin()!.near(0)
-	assert not Float64.INF.near(-Float64.INF)
-	assert Float32.sqrt(16) == Float32(4)
-	assert Float32.sqrt(-1) == none
-	assert Float64(0.25).mix(10, 20) == 12.5
-	assert Float64(2.0).mix(10, 20) == 30.
-	assert Float64(5) == 5.
-	assert Float64(0.5).percent() == "50%"
+    >> Float64.PI.cos()!
+    >> Float64.PI.sin()!
+    >> Float32.sqrt(16)
+    >> Float32.sqrt(-1)
+    >> Float64(0.25).mix(10, 20)
+    >> Float64(2.0).mix(10, 20)
+    >> Float64(5)
+    >> Float64(0.5).percent()
+    assert Float64.PI.cos()!.near(-1)
+    assert Float64.PI.sin()!.near(0)
+    assert not Float64.INF.near(-Float64.INF)
+    assert Float32.sqrt(16) == Float32(4)
+    assert Float32.sqrt(-1) == none
+    assert Float64(0.25).mix(10, 20) == 12.5
+    assert Float64(2.0).mix(10, 20) == 30.
+    assert Float64(5) == 5.
+    assert Float64(0.5).percent() == "50%"
 
 test "force-unwrapping the square root of a negative panics"
-	_ := Float64.sqrt(-1.0)!
+    _ := Float64.sqrt(-1.0)!
 fails "This was expected to be a value, but it's `none`"
