@@ -26,6 +26,11 @@
   requested". Previously every `Bool` field of every struct was bit-packed
   whether or not it saved anything, which is now what the flag opts into.
 
+  Bit-packed fields are read and written through the platform's own bit
+  allocation order, which runs from the least significant bit of a byte on
+  little-endian targets and from the most significant bit on big-endian ones
+  (`s390x`), so packed structs behave the same on both.
+
   Structs also emit `_Static_assert`s checking that the size and alignment the
   compiler computes for them matches what C lays out, so the two models of
   struct layout can't drift apart silently.

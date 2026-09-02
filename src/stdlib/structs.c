@@ -67,17 +67,29 @@ static field_location_t next_field(layout_cursor_t *cursor, NamedType_t field, b
     return loc;
 }
 
+// Where the field sits inside its byte. `loc.bit_offset` counts in allocation
+// order, which the ABI lays out from the least significant bit on little-endian
+// targets and from the most significant bit on big-endian ones, so on
+// big-endian the offset has to be turned around to get a shift.
+PUREFUNC static int packed_shift(field_location_t loc) {
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    return 8 - loc.bit_offset - loc.bits;
+#else
+    return loc.bit_offset;
+#endif
+}
+
 // Read a bit-packed field into a byte-sized value. A one-bit `Bool` comes back
 // as 0 or 1 and a two-bit `Bool?` as 0, 1, or NONE_BOOL, which is what
 // `Bool$info` and `Optional$info(.., &Bool$info)` expect to be handed.
 PUREFUNC static uint8_t read_packed(const void *obj, field_location_t loc) {
     uint8_t byte = *(const uint8_t *)(obj + loc.byte_offset);
-    return (uint8_t)((byte >> loc.bit_offset) & ((1u << loc.bits) - 1u));
+    return (uint8_t)((byte >> packed_shift(loc)) & ((1u << loc.bits) - 1u));
 }
 
 static void write_packed(void *obj, field_location_t loc, uint8_t value) {
     uint8_t *byte = (uint8_t *)(obj + loc.byte_offset);
-    int shift = loc.bit_offset;
+    int shift = packed_shift(loc);
     // Zero the byte as it is first written to. Only the field's own bits are
     // touched below, and `obj` is caller-supplied storage that may hold stale
     // ones -- Table$deserialize reuses a single stack buffer for every entry --
