@@ -229,3 +229,21 @@ test "unpacked optional bool fields can be pointed at"
     assert loose.b == no
     p[] = none
     assert loose.b == none
+
+test "taking a pointer to a bit-packed bool is rejected"
+    flags := @Flags{yes, no, yes}
+    p := &flags.a
+    >> p
+fails_compile "has no address of its own to point at"
+
+test "taking a pointer to a bit-packed optional bool is rejected"
+    maybes := @Maybes{yes, none, no, none, yes}
+    p := &maybes.b
+    >> p
+fails_compile "has no address of its own to point at"
+
+test "implicitly taking a pointer to a bit-packed bool is rejected"
+    flags := @Flags{yes, no, yes}
+    p : &Bool = flags.a
+    >> p
+fails_compile "has no address of its own"

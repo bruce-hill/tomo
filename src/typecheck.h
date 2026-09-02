@@ -26,6 +26,7 @@ PUREFUNC binding_t *get_variant_constructor(env_t *env, ast_t *type_expr);
 type_t *get_clause_type(env_t *env, type_t *subject_t, match_clause_t *clause);
 binding_t *get_subcommand_binding(env_t *env, ast_t *ast);
 PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast);
+PUREFUNC bool is_bit_packed_field(env_t *env, ast_t *ast);
 type_t *parse_type_string(env_t *env, const char *str);
 type_t *get_method_type(env_t *env, ast_t *self, const char *name);
 bool is_constant(env_t *env, ast_t *ast, type_t *expected_type);

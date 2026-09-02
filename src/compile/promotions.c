@@ -223,6 +223,11 @@ Text_t compile_to_type(env_t *env, ast_t *ast, type_t *t) {
 
     // Promote values to views-of-values if needed:
     if (t->tag == PointerType && Match(t, PointerType)->is_stack && actual->tag != PointerType) {
+        if (is_bit_packed_field(env, ast))
+            code_err(ast, "This is a ", type_to_text(actual),
+                     " field of a `packed_bools` struct, so it lives in a bit or two inside a byte and has no "
+                     "address of its own, but a ",
+                     type_to_text(t), " is needed here.");
         if (type_eq(actual, Match(t, PointerType)->pointed) && can_be_mutated(env, ast))
             return Texts("&(", compile_lvalue(env, ast), ")");
     }

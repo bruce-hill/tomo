@@ -20,7 +20,10 @@
   in one bit and each `Bool?` field in two (`yes`, `no`, and `none` all fit), so
   adjacent boolean fields share bytes: a struct of eight `Bool` fields goes from
   eight bytes to one, and five `Bool?` fields from five to two. Fields of any
-  other type keep their natural size and alignment. Previously every `Bool` field of every struct was bit-packed
+  other type keep their natural size and alignment. Bit-packed fields have no
+  address of their own, so `&foo.some_flag` on a packed struct is now a compile
+  error explaining that, rather than the C compiler's "address of bit-field
+  requested". Previously every `Bool` field of every struct was bit-packed
   whether or not it saved anything, which is now what the flag opts into.
 
   Structs also emit `_Static_assert`s checking that the size and alignment the

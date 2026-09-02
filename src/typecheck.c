@@ -1836,6 +1836,15 @@ bool is_valid_call(env_t *env, arg_t *spec_args, arg_ast_t *call_args, call_opts
     return (unused_args == NULL);
 }
 
+PUREFUNC bool is_bit_packed_field(env_t *env, ast_t *ast) {
+    if (ast->tag != FieldAccess) return false;
+    DeclareMatch(access, ast, FieldAccess);
+    type_t *fielded_t = value_type(get_type(env, access->fielded));
+    if (fielded_t->tag != StructType || !Match(fielded_t, StructType)->packed_bools) return false;
+    type_t *field_t = get_field_type(fielded_t, access->field);
+    return field_t != NULL && packed_bit_width(field_t) > 0;
+}
+
 PUREFUNC bool can_be_mutated(env_t *env, ast_t *ast) {
     switch (ast->tag) {
     case Var: return true;

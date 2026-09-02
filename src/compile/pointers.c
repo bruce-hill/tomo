@@ -59,9 +59,18 @@ Text_t compile_typed_allocation(env_t *env, ast_t *ast, type_t *pointer_type) {
     }
     case StackReference: {
         ast_t *subject = Match(ast, StackReference)->value;
-        if (can_be_mutated(env, subject) && type_eq(pointed, get_type(env, subject)))
+        if (can_be_mutated(env, subject) && type_eq(pointed, get_type(env, subject))) {
+            // Only the aliasing case needs an address; an immutable subject
+            // falls through to stack(), which boxes a copy and works fine for a
+            // value read out of a bit or two.
+            if (is_bit_packed_field(env, subject))
+                code_err(subject, "This is a ", type_to_text(get_type(env, subject)),
+                         " field of a `packed_bools` struct, so it lives in a bit or two inside a byte and has no "
+                         "address of its own to point at.\nPoint at the whole struct instead, or drop the "
+                         "`packed_bools` flag from its definition.");
             return Texts("(&", compile_lvalue(env, subject), ")");
-        else return Texts("stack(", compile_maybe_incref(env, subject, pointed), ")");
+        }
+        return Texts("stack(", compile_maybe_incref(env, subject, pointed), ")");
     }
     default: code_err(ast, "Not an allocation!");
     }

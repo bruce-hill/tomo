@@ -18,6 +18,13 @@ Text_t compile_update_assignment(env_t *env, ast_t *ast) {
     type_t *lhs_t = get_type(env, update.lhs);
 
     bool needs_idemotency_fix = !is_idempotent(update.lhs);
+    // The idempotency fix below evaluates the target once and holds a pointer
+    // to it, which a bit-packed field has no way to provide:
+    if (needs_idemotency_fix && is_bit_packed_field(env, update.lhs))
+        code_err(update.lhs, "This is a ", type_to_text(lhs_t),
+                 " field of a `packed_bools` struct, so it lives in a bit or two inside a byte and has no address "
+                 "of its own.\n"
+                 "Put the struct in a variable first, or drop the `packed_bools` flag from its definition.");
     Text_t lhs = needs_idemotency_fix ? Text("(*lhs)") : compile_lvalue(env, update.lhs);
 
     Text_t update_assignment = EMPTY_TEXT;
