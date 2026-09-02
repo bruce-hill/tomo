@@ -627,7 +627,9 @@ Result_t Path$remove(Path_t path, bool ignore_missing) {
     // appears in that window is removed rather than followed.
     if (unlink(path) == 0) return SuccessResult;
 
-    if (errno == ENOENT) {
+    // ENOTDIR means a component of the path isn't a directory, so nothing can
+    // be at that path either:
+    if (errno == ENOENT || errno == ENOTDIR) {
         if (ignore_missing) return SuccessResult;
         return FailureResult("Could not remove file: ", path, " (", strerror(errno), ")");
     }
