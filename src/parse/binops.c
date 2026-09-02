@@ -67,7 +67,7 @@ ast_t *parse_infix_expr(parse_ctx_t *ctx, const char *pos, ast_e outer_op) {
     int64_t starting_line = get_line_number(ctx->file, pos);
     int64_t starting_indent = get_indent(ctx, pos);
     spaces(&pos);
-    for (ast_e op; (op = match_binary_operator(&pos)) != Unknown && absorbs_rhs(outer_op, op); spaces(&pos)) {
+    for (ast_e op; (op = match_binary_operator(&pos)) != Unknown && absorbs_rhs(outer_op, op_tightness[op]); spaces(&pos)) {
         ast_t *key = NULL;
         if (op == Min || op == Max) {
             key = NewAST(ctx->file, pos, pos, Var, .name = (op == Min ? "_min_" : "_max_"));

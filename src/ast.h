@@ -310,19 +310,24 @@ struct ast_s {
             const char *name;
         } Var;
         struct {
-            // The value the digits denote. The literal as it was written,
-            // including its base, `_` separators and sign, is recoverable from
-            // the node's span, so it isn't kept here (see ast_source).
+            // The value the digits denote, and the digits themselves: the
+            // literal as it was written, including its base, `_` separators and
+            // sign. It is kept here rather than read back out of the node's
+            // span, because a parenthesized term's span covers its parentheses
+            // (see parse_parens), which are no part of the literal. NULL for a
+            // literal the parser synthesized rather than read.
             Int_t i;
+            const char *str;
         } Int;
         struct {
             // The exact value, computed at parse time: `3.15` is 63/20, not
             // the nearest double to it (3.14999999999999991...). Codegen picks
             // the tightest encoding this value admits, usually a
             // NUMBER_SMALL immediate, costing nothing at runtime. As with an
-            // Int literal, the digits as written, along with any `%`/`deg`
-            // suffix, are recoverable from the node's span.
+            // Int literal, `str` is the digits as written, along with any
+            // `%`/`deg` suffix.
             Num_t n;
+            const char *str;
         } Num;
         struct {
             Text_t text;
@@ -542,10 +547,11 @@ void visit_topologically(ast_list_t *ast, Closure_t fn);
 CONSTFUNC bool is_update_assignment(ast_t *ast);
 CONSTFUNC ast_e binop_tag(ast_e tag);
 CONSTFUNC bool is_binary_operation(ast_t *ast);
-CONSTFUNC bool is_operation(ast_t *ast);
+PUREFUNC bool is_operation(ast_t *ast);
 bool is_int_literal(ast_t *ast, Int_t *value);
-CONSTFUNC bool absorbs_rhs(ast_e outer_op, ast_e op);
-CONSTFUNC bool absorbs_lhs(ast_e outer_op, ast_e op);
+PUREFUNC int expr_tightness(ast_t *ast);
+CONSTFUNC bool absorbs_rhs(ast_e outer_op, int tightness);
+CONSTFUNC bool absorbs_lhs(ast_e outer_op, int tightness);
 typedef enum { VISIT_STOP, VISIT_PROCEED } visit_behavior_t;
 void ast_visit(ast_t *ast, visit_behavior_t (*visitor)(ast_t *, void *), void *userdata);
 void type_ast_visit(ast_t *ast, visit_behavior_t (*visitor)(type_ast_t *, void *), void *userdata);

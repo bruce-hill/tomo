@@ -157,6 +157,14 @@ static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments
     return code;
 }
 
+// A negation whose operand is a numeric literal or another negation always
+// parenthesizes it: `-(1)`, `-(-1)`, `-(-(1))`. Written without the
+// parentheses, `- 1` and `- -1` read back as a single negative literal rather
+// than the negation of one, which is a different syntax tree.
+PUREFUNC static bool negation_needs_parens(ast_t *operand) {
+    return operand->tag == Int || operand->tag == Num || operand->tag == Negative;
+}
+
 OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
     switch (ast->tag) {
@@ -332,9 +340,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case Negative: {
         ast_t *val = Match(ast, Negative)->value;
+        if (negation_needs_parens(val)) return Texts("-(", fmt_inline(val, comments), ")");
         // An operand this `-` absorbs needs no parentheses to be read back as
         // part of it: `-x ^ 2` is already the negation of the power.
-        if (is_binary_operation(val) && absorbs_rhs(Negative, val->tag)) return Texts("-", fmt_inline(val, comments));
+        if (is_binary_operation(val) && absorbs_rhs(Negative, expr_tightness(val))) return Texts("-", fmt_inline(val, comments));
         return Texts("-", must(termify_inline(val, comments)));
     }
     /*inline*/ case HeapAllocate: {
@@ -414,12 +423,14 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case Bool:
         return Match(ast, Bool)->b ? Text("yes") : Text("no");
     /*inline*/ case Int: {
-        OptionalText_t source = ast_source(ast);
-        return source.length > 0 ? source : Int$value_as_text(Match(ast, Int)->i);
+        // The literal as written, not the node's source text: a parenthesized
+        // literal's span covers the parentheses, which are not part of it.
+        const char *str = Match(ast, Int)->str;
+        return str ? Text$from_str(str) : Int$value_as_text(Match(ast, Int)->i);
     }
     /*inline*/ case Num: {
-        OptionalText_t source = ast_source(ast);
-        return source.length > 0 ? source : Text$from_str(number_to_symbolic(Match(ast, Num)->n));
+        const char *str = Match(ast, Num)->str;
+        return str ? Text$from_str(str) : Text$from_str(number_to_symbolic(Match(ast, Num)->n));
     }
     /*inline*/ case Var:
         return Text$from_str(Match(ast, Var)->name);
@@ -434,7 +445,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case MethodCall: {
         DeclareMatch(call, ast, MethodCall);
         Text_t self = fmt_inline(call->self, comments);
-        if (is_binary_operation(call->self) || call->self->tag == Negative || call->self->tag == Not)
+        if (is_operation(call->self) || call->self->tag == Not)
             self = parenthesize(self, EMPTY_TEXT);
         return Texts(self, ".", Text$from_str(call->name), "(", must(format_inline_args(call->args, comments)), ")");
     }
@@ -453,10 +464,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         // absorb it back: `dt / (d2 * x)` is not `dt / d2 * x`, and `(2 ^ 3) ^ 2`
         // is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are the same.
         if ((operands.lhs->tag == If || operands.lhs->tag == Match)
-            || (is_operation(operands.lhs) && !absorbs_lhs(ast->tag, operands.lhs->tag)))
+            || (is_operation(operands.lhs) && !absorbs_lhs(ast->tag, expr_tightness(operands.lhs))))
             lhs = parenthesize(lhs, EMPTY_TEXT);
         if ((operands.rhs->tag == If || operands.rhs->tag == Match)
-            || (is_operation(operands.rhs) && !absorbs_rhs(ast->tag, operands.rhs->tag)))
+            || (is_operation(operands.rhs) && !absorbs_rhs(ast->tag, expr_tightness(operands.rhs))))
             rhs = parenthesize(rhs, EMPTY_TEXT);
 
         Text_t space =
@@ -852,7 +863,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, Negative)->value;
         // See the inline case above for which operands keep their parentheses.
-        if (is_binary_operation(val) && !absorbs_rhs(Negative, val->tag))
+        if (negation_needs_parens(val)) return Texts("-(", fmt(val, comments, indent), ")");
+        if (is_binary_operation(val) && !absorbs_rhs(Negative, expr_tightness(val)))
             return Texts("-", termify(val, comments, indent));
         else return Texts("-", fmt(val, comments, indent));
     }
@@ -1018,10 +1030,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
 
         // See the inline case above for which operands keep their parentheses.
         if ((operands.lhs->tag == If || operands.lhs->tag == Match)
-            || (is_operation(operands.lhs) && !absorbs_lhs(ast->tag, operands.lhs->tag)))
+            || (is_operation(operands.lhs) && !absorbs_lhs(ast->tag, expr_tightness(operands.lhs))))
             lhs = parenthesize(lhs, indent);
         if ((operands.rhs->tag == If || operands.rhs->tag == Match)
-            || (is_operation(operands.rhs) && !absorbs_rhs(ast->tag, operands.rhs->tag)))
+            || (is_operation(operands.rhs) && !absorbs_rhs(ast->tag, expr_tightness(operands.rhs))))
             rhs = parenthesize(rhs, indent);
 
         Text_t space =

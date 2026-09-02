@@ -95,36 +95,34 @@ CONSTFUNC ast_t *unwrap_block(ast_t *ast) {
     return ast;
 }
 
-OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
-    if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
+// Whether this expression needs parentheses to be a self-contained term that
+// a suffix or prefix can attach to. Anything is_operation() covers does (which
+// takes in a literal with a folded `-`: `(-2).abs()` is not `-2.abs()`), and
+// so do the prefixed and multi-clause forms below.
+static PUREFUNC bool needs_parens_as_term(ast_t *ast) {
+    if (is_operation(ast)) return true;
     switch (ast->tag) {
-    case BINOP_CASES:
     case Not:
-    case Negative:
     case HeapAllocate:
     case If:
     case Match:
-    case StackReference: return parenthesize(format_inline_code(ast, comments), EMPTY_TEXT);
-    default: return format_inline_code(ast, comments);
+    case StackReference: return true;
+    default: return false;
     }
 }
 
+OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
+    if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
+    if (needs_parens_as_term(ast)) return parenthesize(format_inline_code(ast, comments), EMPTY_TEXT);
+    return format_inline_code(ast, comments);
+}
+
 Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
-    switch (ast->tag) {
-    case BINOP_CASES:
-    case Not:
-    case Negative:
-    case HeapAllocate:
-    case If:
-    case Match:
-    case StackReference: return parenthesize(format_code(ast, comments, indent), indent);
-    default: {
-        Text_t inlined = format_inline_code(ast, comments);
-        return (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH)
-                   ? inlined
-                   : parenthesize(format_code(ast, comments, indent), indent);
-    }
-    }
+    if (needs_parens_as_term(ast)) return parenthesize(format_code(ast, comments, indent), indent);
+    Text_t inlined = format_inline_code(ast, comments);
+    return (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH)
+               ? inlined
+               : parenthesize(format_code(ast, comments, indent), indent);
 }
 
 static visit_behavior_t _find_required_multiline(ast_t *ast, void *userdata) {

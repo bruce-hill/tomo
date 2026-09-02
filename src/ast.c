@@ -50,26 +50,41 @@ const bool op_is_right_associative[NUM_AST_TAGS] = {
     [Power] = true,
 };
 
-// Whether `outer_op` absorbs an `op` expression on its right into itself,
-// rather than leaving it for whatever encloses `outer_op` in turn. It absorbs
-// `op` when `op` binds more tightly, or exactly as tightly if `outer_op` is
-// right-associative, which is what groups `a ^ b ^ c` as `a ^ (b ^ c)`.
+// How tightly this expression's outermost operator binds: op_tightness for its
+// tag, except that a literal the parser folded a leading `-` into (see
+// negate_literal) binds like the negation it is written as -- `-2 ^ 2` is
+// `-(2 ^ 2)`, and `(-2) ^ 2` needs its parentheses. That's a question about the
+// written sign, not the value's: `-0` is zero, but a suffix still binds
+// tighter than its `-`.
+PUREFUNC int expr_tightness(ast_t *ast) {
+    const char *str = ast->tag == Int ? Match(ast, Int)->str : ast->tag == Num ? Match(ast, Num)->str : NULL;
+    if (str && str[0] == '-') return op_tightness[Negative];
+    return op_tightness[ast->tag];
+}
+
+// Whether `outer_op` absorbs an expression of the given tightness on its right
+// into itself, rather than leaving it for whatever encloses `outer_op` in
+// turn. It absorbs the expression when it binds more tightly, or exactly as
+// tightly if `outer_op` is right-associative, which is what groups
+// `a ^ b ^ c` as `a ^ (b ^ c)`. The parser asks about an operator it has yet
+// to parse the operands of (op_tightness[op]), and the formatter about a
+// finished expression (expr_tightness).
 //
 // `outer_op` is Unknown for an expression with nothing around it. That absorbs
 // every real operator, since Unknown's tightness of 0 is below all of them.
-CONSTFUNC bool absorbs_rhs(ast_e outer_op, ast_e op) {
-    if (op_is_right_associative[outer_op]) return op_tightness[op] >= op_tightness[outer_op];
-    return op_tightness[op] > op_tightness[outer_op];
+CONSTFUNC bool absorbs_rhs(ast_e outer_op, int tightness) {
+    if (op_is_right_associative[outer_op]) return tightness >= op_tightness[outer_op];
+    return tightness > op_tightness[outer_op];
 }
 
-// The same question for an `op` expression on the *left* of `outer_op`, where
-// the tie goes the other way: left-associativity is what groups `a - b - c` as
+// The same question for an expression on the *left* of `outer_op`, where the
+// tie goes the other way: left-associativity is what groups `a - b - c` as
 // `(a - b) - c`. Only the formatter needs to ask, since the parser builds its
 // left-hand side out of terms, and it asks in order to know whether an operand
 // has to be parenthesized to be read back the way it was written.
-CONSTFUNC bool absorbs_lhs(ast_e outer_op, ast_e op) {
-    if (op_is_right_associative[outer_op]) return op_tightness[op] > op_tightness[outer_op];
-    return op_tightness[op] >= op_tightness[outer_op];
+CONSTFUNC bool absorbs_lhs(ast_e outer_op, int tightness) {
+    if (op_is_right_associative[outer_op]) return tightness > op_tightness[outer_op];
+    return tightness >= op_tightness[outer_op];
 }
 
 const binop_info_t binop_info[NUM_AST_TAGS] = {
@@ -139,8 +154,6 @@ Text_t ast_list_to_sexp(ast_list_t *asts) {
 Text_t arg_defs_to_sexp(arg_ast_t *args) {
     Text_t c = Text("(args");
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
-        // The alias (`force|f`) is part of the parameter, and naming it here is
-        // what lets `tomo format --check` notice a formatter that loses it.
         c = Texts(c, " (arg ", arg->name ? quoted_text(arg->name) : Text("nil"),
                   arg->alias ? Texts(" :alias ", quoted_text(arg->alias)) : EMPTY_TEXT, " ",
                   type_ast_to_sexp(arg->type), " ", ast_to_sexp(arg->value), ")");
@@ -220,8 +233,8 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(None, "(None)");
         T(Bool, "(Bool ", data.b ? "yes" : "no", ")");
         T(Var, "(Var ", quoted_text(data.name), ")");
-        T(Int, "(Int ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
-        T(Num, "(Num ", Text$quoted(ast_source(ast), false, Text("\"")), ")");
+        T(Int, "(Int ", data.str ? quoted_text(data.str) : Int$value_as_text(data.i), ")");
+        T(Num, "(Num ", data.str ? quoted_text(data.str) : Text$from_str(number_to_symbolic(data.n)), ")");
         T(TextLiteral, Text$quoted(data.text, false, Text("\"")));
         T(TextJoin, "(Text", data.lang ? Texts(" :lang ", type_ast_to_sexp(data.lang)) : EMPTY_TEXT,
           ast_list_to_sexp(data.children), ")");
@@ -521,10 +534,11 @@ void visit_topologically(ast_list_t *asts, Closure_t fn) {
     }
 }
 
-// Whether this expression is an operator application that op_tightness
-// describes the grouping of: the binary operators, plus negation.
-CONSTFUNC bool is_operation(ast_t *ast) {
-    return op_tightness[ast->tag] > 0;
+// Whether this expression is an operator application that expr_tightness
+// describes the grouping of: the binary operators, negation, and a literal
+// with a folded `-`.
+PUREFUNC bool is_operation(ast_t *ast) {
+    return expr_tightness(ast) > 0;
 }
 
 // An integer literal, seeing through a `-` written apart from its digits. `-2`

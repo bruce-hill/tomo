@@ -58,13 +58,15 @@ ast_t *parse_int(parse_ctx_t *ctx, const char *pos) {
     // `50%` and `90deg` are numeric literals, not integers: both scale the
     // written digits by an exact factor (1/100, and pi/180 respectively).
     if (match(&pos, "%"))
-        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_PERCENT));
+        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_PERCENT),
+                      .str = strndup_bounded(start, (size_t)(pos - start)));
     else if (match(&pos, "deg"))
-        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_DEGREES));
+        return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, str, NUM_DEGREES),
+                      .str = strndup_bounded(start, (size_t)(pos - start)));
 
     OptionalInt_t i = Int$from_str(str);
     if (i.small == 0) parser_err(ctx, start, pos, "I couldn't parse this integer");
-    return NewAST(ctx->file, start, pos, Int, .i = i);
+    return NewAST(ctx->file, start, pos, Int, .i = i, .str = strndup_bounded(start, (size_t)(pos - start)));
 }
 
 ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
@@ -96,7 +98,8 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
     if (match(&pos, "%")) suffix = NUM_PERCENT;
     else if (match(&pos, "deg")) suffix = NUM_DEGREES;
 
-    return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, buf, suffix));
+    return NewAST(ctx->file, start, pos, Num, .n = num_literal_value(ctx, start, buf, suffix),
+                  .str = strndup_bounded(start, (size_t)(pos - start)));
 }
 
 // Fold a leading `-` into a numeric literal, so `-128` is a single Int literal
@@ -105,13 +108,16 @@ ast_t *parse_num(parse_ctx_t *ctx, const char *pos) {
 // would not. Returns NULL when there's no literal for the sign to fold into.
 ast_t *negate_literal(parse_ctx_t *ctx, const char *start, ast_t *literal) {
     // The sign is only part of the literal when it's written against the
-    // digits, which keeps a literal's span a literal, i.e. what the formatter
-    // prints, and what `- -1` and `-(2)` would otherwise spoil. They're
-    // negations of a literal instead, which is what they look like.
+    // digits. Written apart from them, as in `- -1` or `- 2`, it stays a
+    // negation applied to a literal, which is what it looks like.
     if (!isdigit((unsigned char)start[1]) && start[1] != '.') return NULL;
     switch (literal->tag) {
-    case Int: return NewAST(ctx->file, start, literal->end, Int, .i = Int$negative(Match(literal, Int)->i));
-    case Num: return NewAST(ctx->file, start, literal->end, Num, .n = number_neg(Match(literal, Num)->n));
+    case Int:
+        return NewAST(ctx->file, start, literal->end, Int, .i = Int$negative(Match(literal, Int)->i),
+                      .str = strndup_bounded(start, (size_t)(literal->end - start)));
+    case Num:
+        return NewAST(ctx->file, start, literal->end, Num, .n = number_neg(Match(literal, Num)->n),
+                      .str = strndup_bounded(start, (size_t)(literal->end - start)));
     default: return NULL;
     }
 }
