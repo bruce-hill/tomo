@@ -20,3 +20,13 @@ func main()
     >> &f
     >> &f.A
     >> @f.A
+
+    # A receiver that a suffix would otherwise be read as part of keeps its
+    # parentheses: `.f()` binds to the `else` branch of a bare `if`, and `@`
+    # and `&` bind a method call into themselves the way they do a field.
+    >> (if yes then f else f).A
+    >> (match f case A{x} then f else f).A
+    >> (@f).as_text()
+    >> (&f).as_text()
+    # ...while the `@` that really does own its method call needs none:
+    >> @f.as_text()

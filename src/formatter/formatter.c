@@ -464,9 +464,11 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case MethodCall: {
         DeclareMatch(call, ast, MethodCall);
-        Text_t self = fmt_inline(call->self, comments);
-        if (is_operation(call->self) || call->self->tag == Not)
-            self = parenthesize(self, EMPTY_TEXT);
+        // termify_inline(), the same as every other suffix takes its receiver
+        // through and the same as the multi-line case below: a hand-rolled
+        // list here went stale, and left `(if c then a else b).f()` and
+        // `(@x).f()` printing as `if c then a else b.f()` and `@x.f()`.
+        Text_t self = must(termify_inline(call->self, comments));
         return Texts(self, ".", Text$from_str(call->name), "(", must(format_inline_args(call->args, comments)), ")");
     }
     /*inline*/ case BINOP_CASES: {
