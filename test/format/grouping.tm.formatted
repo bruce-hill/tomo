@@ -36,3 +36,29 @@ func main()
     # ...so an operand it does absorb keeps no parentheses:
     >> x*y _min_ x
     >> x _min_ y _max_ x
+
+func wide(c:Bool -> Int)
+    # The same, when the sub-expression is too wide for one line: the block
+    # form runs on exactly as the one-line form does, so a list's `,` and a
+    # table entry's `:` need it bounded just the same.
+    >> [
+        (
+            if c
+                111111111111111111
+            else
+                22222222222222222222 + 333333333333333333 + 44444444444444
+        ),
+        3,
+    ]
+
+    >> {
+        1: (
+            if c
+                111111111111111111
+            else
+                22222222222222222222 + 333333333333333333 + 444444444444
+        ),
+    }
+
+    >> id((if c then 111111111111111111 else 22222222222222222222 + 33333333333333333 + 44444444444444))
+    return 1

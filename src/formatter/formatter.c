@@ -805,7 +805,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                 if (item == items) code = Texts(code, "\n", indent, single_indent);
                 code = Text$concat(code, item_comments);
             }
-            Text_t item_text = fmt(item->ast, comments, Texts(indent, single_indent));
+            Text_t item_text = bounded(item->ast, comments, Texts(indent, single_indent));
             if (Text$ends_with(code, Text(","), NULL) && prev
                 && get_line_number(prev->file, prev->end) == get_line_number(item->ast->file, item->ast->start)) {
                 if (!Text$has(item_text, Text("\n")) && trailing_line_len(code) + 1 + item_text.length + 1 <= MAX_WIDTH)
@@ -851,7 +851,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case TableEntry: {
         if (inlined_fits) return inlined;
         DeclareMatch(entry, ast, TableEntry);
-        if (entry->value) return Texts(fmt(entry->key, comments, indent), ": ", fmt(entry->value, comments, indent));
+        if (entry->value)
+            return Texts(bounded(entry->key, comments, indent), ": ", bounded(entry->value, comments, indent));
         else return Texts(fmt(entry->key, comments, indent));
     }
     /*multiline*/ case Declare: {

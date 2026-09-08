@@ -121,6 +121,15 @@ OptionalText_t bounded_inline(ast_t *ast, Table_t comments) {
     return format_inline_code(ast, comments);
 }
 
+// The same, for a sub-expression that has to be written across several lines.
+// The block form runs on just as the one-line form does: the `,` after a list
+// item, or a table entry's `:`, lands inside the last clause of a bare
+// `if`/`match` rather than after it.
+Text_t bounded(ast_t *ast, Table_t comments, Text_t indent) {
+    if (ast->tag == If || ast->tag == Match) return parenthesize(format_code(ast, comments, indent), indent);
+    return format_code(ast, comments, indent);
+}
+
 OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
     if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
     if (needs_parens_as_term(ast)) return parenthesize(format_inline_code(ast, comments), EMPTY_TEXT);

@@ -45,10 +45,10 @@ Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
         OptionalText_t inline_arg = format_inline_arg(arg, comments);
         if (inline_arg.tag != TEXT_NONE && inline_arg.length <= MAX_WIDTH) return inline_arg;
     }
-    if (arg->name == NULL && arg->value) return format_code(arg->value, comments, indent);
+    if (arg->name == NULL && arg->value) return bounded(arg->value, comments, indent);
     Text_t code = arg_name(arg);
     if (arg->type) code = Texts(code, ":", format_type(arg->type));
-    if (arg->value) code = Texts(code, "=", format_code(arg->value, comments, indent));
+    if (arg->value) code = Texts(code, "=", bounded(arg->value, comments, indent));
     return code;
 }
 
