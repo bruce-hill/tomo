@@ -8,16 +8,6 @@
 #include "types.h"
 #include "utils.h"
 
-// Whether the final line of `code` is indented further than `indent`, i.e. the
-// text ends inside an indented block rather than back at its own level.
-PUREFUNC static bool ends_deeper_than(Text_t code, Text_t indent) {
-    List_t lines = Text$lines(code);
-    if (lines.length <= 1) return false;
-    Text_t last = *(Text_t *)(lines.data + ((int64_t)lines.length - 1) * lines.stride);
-    Text_t body = Text$trim(last, Text(" \t"), true, false);
-    return (int64_t)last.length - (int64_t)body.length > (int64_t)indent.length;
-}
-
 // A parameter can carry a short alias for the command line (`force|f:Bool`),
 // which is part of how the parameter is written, so it has to be printed back
 // out with the name: dropping it silently deletes a subcommand's short flag.

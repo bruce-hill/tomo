@@ -925,7 +925,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case StackReference: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, StackReference)->value;
-        return Texts("&(", termify(val, comments, indent), ")");
+        if (has_nonoptional_suffix(val)) return Texts("&(", fmt(val, comments, indent), ")");
+        return Texts("&", termify(val, comments, indent));
     }
     /*multiline*/ case NonOptional: {
         if (inlined_fits) return inlined;

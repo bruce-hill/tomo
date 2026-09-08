@@ -23,6 +23,7 @@ void add_line(Text_t *code, Text_t line, Text_t indent);
 OptionalText_t next_comment(Table_t comments, const char **pos, const char *end);
 bool range_has_comment(const char *start, const char *end, Table_t comments);
 PUREFUNC int suggested_blank_lines(ast_t *first, ast_t *second);
+PUREFUNC bool ends_deeper_than(Text_t code, Text_t indent);
 Text_t indent_code(Text_t code);
 Text_t parenthesize(Text_t code, Text_t indent);
 CONSTFUNC ast_t *unwrap_block(ast_t *ast);

@@ -95,6 +95,16 @@ CONSTFUNC ast_t *unwrap_block(ast_t *ast) {
     return ast;
 }
 
+// Whether the final line of `code` is indented further than `indent`, i.e. the
+// text ends inside an indented block rather than back at its own level.
+PUREFUNC bool ends_deeper_than(Text_t code, Text_t indent) {
+    List_t lines = Text$lines(code);
+    if (lines.length <= 1) return false;
+    Text_t last = *(Text_t *)(lines.data + ((int64_t)lines.length - 1) * lines.stride);
+    Text_t body = Text$trim(last, Text(" \t"), true, false);
+    return (int64_t)last.length - (int64_t)body.length > (int64_t)indent.length;
+}
+
 // Whether this expression needs parentheses to be a self-contained term that
 // a suffix or prefix can attach to. Anything is_operation() covers does (which
 // takes in a literal with a folded `-`: `(-2).abs()` is not `-2.abs()`), and
@@ -140,9 +150,13 @@ OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
 Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
     if (needs_parens_as_term(ast)) return parenthesize(format_code(ast, comments, indent), indent);
     Text_t inlined = format_inline_code(ast, comments);
-    return (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH)
-               ? inlined
-               : parenthesize(format_code(ast, comments, indent), indent);
+    if (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH) return inlined;
+    // A rendering spread over several lines that ends back at its own level
+    // closed with a delimiter of its own -- `[`...`]`, `f(`...`)` -- and is a
+    // term already. One that ends deeper trailed off into an indented block,
+    // and needs the parentheses to say where it stopped.
+    Text_t code = format_code(ast, comments, indent);
+    return ends_deeper_than(code, indent) ? parenthesize(code, indent) : code;
 }
 
 static visit_behavior_t _find_required_multiline(ast_t *ast, void *userdata) {
