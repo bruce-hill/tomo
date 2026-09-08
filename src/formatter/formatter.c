@@ -149,7 +149,14 @@ static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments
                 current_line = opts.verbatim ? line : Text$escaped(line, false, opts.interp);
             }
         } else {
-            current_line = Texts(current_line, opts.interp, "(", fmt(chunk->ast, comments, indent), ")");
+            // A newline inside a text literal is part of the text, so an
+            // interpolation has to stay on one line whatever it holds. The
+            // fallback is for the few expressions with no one-line form at
+            // all, which cannot be written here in any case.
+            OptionalText_t inlined_chunk = format_inline_code(chunk->ast, comments);
+            Text_t chunk_code =
+                inlined_chunk.tag != TEXT_NONE ? (Text_t)inlined_chunk : fmt(chunk->ast, comments, indent);
+            current_line = Texts(current_line, opts.interp, "(", chunk_code, ")");
         }
     }
     add_line(&code, current_line, Texts(indent, single_indent));
@@ -215,7 +222,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         return NONE_TEXT;
     /*inline*/ case Assert: {
         DeclareMatch(assert, ast, Assert);
-        Text_t expr = fmt_inline(assert->expr, comments);
+        Text_t expr = must(bounded_inline(assert->expr, comments));
         if (!assert->message) return Texts("assert ", expr);
         Text_t message = fmt_inline(assert->message, comments);
         return Texts("assert ", expr, ", ", message);
@@ -853,7 +860,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         DeclareMatch(entry, ast, TableEntry);
         if (entry->value)
             return Texts(bounded(entry->key, comments, indent), ": ", bounded(entry->value, comments, indent));
-        else return Texts(fmt(entry->key, comments, indent));
+        else return bounded(entry->key, comments, indent);
     }
     /*multiline*/ case Declare: {
         if (inlined_fits) return inlined;
@@ -1056,7 +1063,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case Assert: {
         DeclareMatch(assert, ast, Assert);
-        Text_t expr = fmt(assert->expr, comments, indent);
+        Text_t expr = assert->message ? bounded(assert->expr, comments, indent) : fmt(assert->expr, comments, indent);
         if (!assert->message) return Texts("assert ", expr);
         Text_t message = fmt(assert->message, comments, indent);
         return Texts("assert ", expr, ", ", message);

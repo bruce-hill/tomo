@@ -105,6 +105,7 @@ static PUREFUNC bool needs_parens_as_term(ast_t *ast) {
     case Not:
     case HeapAllocate:
     case If:
+    case Lambda:
     case Match:
     case StackReference: return true;
     default: return false;
