@@ -157,6 +157,24 @@ static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments
     return code;
 }
 
+// Whether a `!` sits on this expression's suffix spine. `@` and `&` bind every
+// suffix but `!` into themselves and leave `!` outside (see parse_heap_alloc),
+// so an operand carrying one has to be parenthesized to stay the operand:
+// written bare, `&(f.A!)` comes back as `(&f.A)!`.
+PUREFUNC static bool has_nonoptional_suffix(ast_t *ast) {
+    for (;;) {
+        switch (ast->tag) {
+        case NonOptional: return true;
+        case FieldAccess: ast = Match(ast, FieldAccess)->fielded; break;
+        case Index: ast = Match(ast, Index)->indexed; break;
+        case MethodCall: ast = Match(ast, MethodCall)->self; break;
+        case FunctionCall: ast = Match(ast, FunctionCall)->fn; break;
+        case RecordLiteral: ast = Match(ast, RecordLiteral)->type; break;
+        default: return false;
+        }
+    }
+}
+
 // A negation whose operand is a numeric literal or another negation always
 // parenthesizes it: `-(1)`, `-(-1)`, `-(-(1))`. Written without the
 // parentheses, `- 1` and `- -1` read back as a single negative literal rather
@@ -348,10 +366,12 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case HeapAllocate: {
         ast_t *val = Match(ast, HeapAllocate)->value;
+        if (has_nonoptional_suffix(val)) return Texts("@(", must(format_inline_code(val, comments)), ")");
         return Texts("@", must(termify_inline(val, comments)));
     }
     /*inline*/ case StackReference: {
         ast_t *val = Match(ast, StackReference)->value;
+        if (has_nonoptional_suffix(val)) return Texts("&(", must(format_inline_code(val, comments)), ")");
         return Texts("&", must(termify_inline(val, comments)));
     }
     /*inline*/ case NonOptional: {
@@ -879,7 +899,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case HeapAllocate: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, HeapAllocate)->value;
-        return Texts("@", termify(val, comments, indent), "");
+        if (has_nonoptional_suffix(val)) return Texts("@(", fmt(val, comments, indent), ")");
+        return Texts("@", termify(val, comments, indent));
     }
     /*multiline*/ case StackReference: {
         if (inlined_fits) return inlined;
