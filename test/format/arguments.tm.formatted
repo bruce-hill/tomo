@@ -1,0 +1,27 @@
+# How parameter and field lists are spaced. Names sharing a type are separated
+# like any other pair of arguments (`x, y:Int`); only the type they share waits
+# for the last of them, and it stays against the name it belongs to.
+
+func grouped(one, two:Int, three:Text -> Int)
+    return two
+
+func spread(a, b, c, d:Int -> Int)
+    return a
+
+# The same, long enough that the list has to break across lines: the two code
+# paths that render an argument list used to disagree about this spacing.
+func lengthy(
+    first_argument, second_argument:Int,
+    third_argument:Text,
+    fourth_argument:[Int],
+    fifth_argument:{Text:Int}, -> Int
+)
+    return first_argument
+
+# A short flag alias travels with the name it aliases:
+func main.go(paths:[Text], force|f:Bool=no, count|n:Int=1)
+    say("$paths $force $count")
+
+struct Grouped{x, y, z:Float64}
+struct Mixed{pos, vel:Grouped, mass:Float64}
+enum Tagged(Pair{a, b:Int}, Solo{t:Text})

@@ -55,8 +55,11 @@ Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
 OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
     Text_t code = EMPTY_TEXT;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
+        // Names sharing a type (`x, y:Int`) are separated like any other pair
+        // of arguments; only the type they share is held back until the last
+        // of them. format_args() below writes them the same way.
         if (arg->name && arg->next && arg->type == arg->next->type && arg->value == arg->next->value) {
-            code = Texts(code, arg_name(arg), ",");
+            code = Texts(code, arg_name(arg), ", ");
         } else {
             code = Texts(code, must(format_inline_arg(arg, comments)));
             if (arg->next) code = Texts(code, ", ");
