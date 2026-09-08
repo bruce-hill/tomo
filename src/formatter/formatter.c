@@ -813,13 +813,19 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                 code = Text$concat(code, item_comments);
             }
             Text_t item_text = bounded(item->ast, comments, Texts(indent, single_indent));
+            // An item that trails off into an indented block (a lambda's body)
+            // has no line of its own left to end with a comma: the comma would
+            // read as part of that block, so the newline separates instead,
+            // which is what format_args() does with the same shape.
+            Text_t comma =
+                ends_deeper_than(item_text, Texts(indent, single_indent)) ? EMPTY_TEXT : Text(",");
             if (Text$ends_with(code, Text(","), NULL) && prev
                 && get_line_number(prev->file, prev->end) == get_line_number(item->ast->file, item->ast->start)) {
                 if (!Text$has(item_text, Text("\n")) && trailing_line_len(code) + 1 + item_text.length + 1 <= MAX_WIDTH)
-                    code = Texts(code, " ", item_text, ",");
-                else code = Texts(code, "\n", indent, single_indent, item_text, ",");
+                    code = Texts(code, " ", item_text, comma);
+                else code = Texts(code, "\n", indent, single_indent, item_text, comma);
             } else {
-                add_line(&code, Texts(item_text, ","), Texts(indent, single_indent));
+                add_line(&code, Texts(item_text, comma), Texts(indent, single_indent));
             }
             prev = item->ast;
         }
@@ -836,13 +842,17 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                                comment_range(&comment_pos, entry->ast->start, Texts(indent, single_indent), comments));
 
             Text_t entry_text = fmt(entry->ast, comments, Texts(indent, single_indent));
+            // As with a list item above, an entry that ends inside an indented
+            // block is separated by the newline rather than a comma.
+            Text_t comma =
+                ends_deeper_than(entry_text, Texts(indent, single_indent)) ? EMPTY_TEXT : Text(",");
             if (Text$ends_with(code, Text(","), NULL)) {
                 if (!Text$has(entry_text, Text("\n"))
                     && trailing_line_len(code) + 1 + entry_text.length + 1 <= MAX_WIDTH)
-                    code = Texts(code, " ", entry_text, ",");
-                else code = Texts(code, "\n", indent, single_indent, entry_text, ",");
+                    code = Texts(code, " ", entry_text, comma);
+                else code = Texts(code, "\n", indent, single_indent, entry_text, comma);
             } else {
-                add_line(&code, Texts(entry_text, ","), Texts(indent, single_indent));
+                add_line(&code, Texts(entry_text, comma), Texts(indent, single_indent));
             }
         }
         code = Text$concat(code, comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments));

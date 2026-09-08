@@ -16,3 +16,22 @@ func main()
     }
     >> bodies
     >> counts
+
+func lambdas()
+    # An element that trails off into an indented block has no line of its own
+    # left to carry a comma, so the newline separates it -- the same shape an
+    # argument list already handles this way.
+    fns := [
+        func()
+            111111111111111 + 222222222222222 + 333333333333333 + 444444444444444 + 555555555555555 + 6666666666666
+        func() 2,
+    ]
+
+    handlers := {
+        "big": func()
+            111111111111111 + 222222222222222 + 333333333333333 + 444444444444444 + 555555555555555 + 6666666666666
+        "small": func() 2,
+    }
+
+    >> fns
+    >> handlers
