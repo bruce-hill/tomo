@@ -1,0 +1,70 @@
+# A block-form `if`/`match` in the places a statement keeps a sub-expression:
+# a condition, a subject, an iterable, a filter, a `return`. Each is followed
+# by something -- a body, the `case` clauses, a `do`, the end of the line --
+# that a bare block form would swallow.
+
+enum E(A{q:Int})
+
+func inc(v:Int -> Int)
+    return v + 1
+
+func dec(v:Int -> Int)
+    return v - 1
+
+func chosen(c:Bool -> Int)
+    return (
+        if c
+            111111111111111111 + 2222222222222222 + 33333333333333333 + 4444444444444
+        else
+            2
+    )
+
+func main()
+    xs := [1, 2, 3]
+    e := E.A{1}
+    # The callee of a call is a receiver like any other:
+    >> (if yes then inc else dec)(5)
+    if (
+        if yes
+            111111111111111111 + 2222222222222222 + 33333333333333333 + 444444444444 > 0
+        else
+            no
+    )
+        say("condition")
+
+    while (
+        if yes
+            111111111111111111 + 2222222222222222 + 33333333333333333 + 444444444444 < 0
+        else
+            no
+    )
+        stop
+
+    for v in (
+        if yes
+            [111111111111111111, 2222222222222222, 33333333333333333, 4444444444444444]
+        else
+            xs
+    )
+        say("$v")
+
+    >> [
+        (v for v in (
+            if yes
+                [111111111111111111, 2222222222222222, 33333333333333333, 4444444444444444]
+            else
+                xs
+        )),
+    ]
+
+func no_silent_loss()
+    # A lambda with no one-line form used to vanish here: termify_inline()
+    # dropped the "there is no inline form" answer on the floor and printed
+    # the empty parentheses that were left.
+    x := (
+        func(y:Int -> Int)
+            z := y + 1
+            return z
+    ).serialized()
+
+    return x
