@@ -1,0 +1,23 @@
+# Where comments end up. A comment at the end of the last line of a file used
+# to be written out twice on the second pass, because a spoofed file counted
+# its NUL terminator as a byte and the end-of-file comment scan ran past the
+# end. One left over at the end of a list or table used to be appended where
+# the last element stopped, on the back of its comma.
+
+func f(a:Int -> Int)
+    return a
+
+func main()
+    xs := [ # opening
+        1, # trailing
+        # on its own
+        2,
+        # left over at the end
+    ]
+    t := {
+        1: 2, # trailing
+        # left over at the end
+    }
+    >> xs
+    >> t
+    >> f(1) # the last line of the file

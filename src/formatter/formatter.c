@@ -812,10 +812,9 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         for (ast_list_t *item = items; item; item = item->next) {
             Text_t item_comments =
                 comment_range(&comment_pos, item->ast->start, Texts(indent, single_indent), comments);
-            if (item_comments.length > 0) {
-                if (item == items) code = Texts(code, "\n", indent, single_indent);
-                code = Text$concat(code, item_comments);
-            }
+            // On a line of its own: concatenated where the last item stopped,
+            // it ran onto the back of that item's comma.
+            if (item_comments.length > 0) add_line(&code, item_comments, Texts(indent, single_indent));
             Text_t item_text = bounded(item->ast, comments, Texts(indent, single_indent));
             // An item that trails off into an indented block (a lambda's body)
             // has no line of its own left to end with a comma: the comma would
@@ -832,7 +831,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             }
             prev = item->ast;
         }
-        code = Text$concat(code, comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments));
+        // A comment left over at the end goes on a line of its own: appended
+        // where the last item stopped, it ran onto the back of its comma.
+        Text_t trailing = comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments);
+        if (trailing.length > 0) add_line(&code, trailing, Texts(indent, single_indent));
         return Texts(code, "\n", indent, "]");
     }
     /*multiline*/ case Table: {
@@ -841,8 +843,9 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         Text_t code = Texts("{");
         const char *comment_pos = ast->start;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-            code = Text$concat(code,
-                               comment_range(&comment_pos, entry->ast->start, Texts(indent, single_indent), comments));
+            Text_t entry_comments =
+                comment_range(&comment_pos, entry->ast->start, Texts(indent, single_indent), comments);
+            if (entry_comments.length > 0) add_line(&code, entry_comments, Texts(indent, single_indent));
 
             Text_t entry_text = fmt(entry->ast, comments, Texts(indent, single_indent));
             // As with a list item above, an entry that ends inside an indented
@@ -857,7 +860,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                 add_line(&code, Texts(entry_text, comma), Texts(indent, single_indent));
             }
         }
-        code = Text$concat(code, comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments));
+        // A comment left over at the end goes on a line of its own: appended
+        // where the last item stopped, it ran onto the back of its comma.
+        Text_t trailing = comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments);
+        if (trailing.length > 0) add_line(&code, trailing, Texts(indent, single_indent));
 
         if (table->fallback)
             code = Texts(code, ";\n", indent, single_indent, "fallback=", fmt(table->fallback, comments, indent));

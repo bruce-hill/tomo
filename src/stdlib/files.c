@@ -135,7 +135,10 @@ file_t *load_file(const char *filename) {
 //
 public
 file_t *spoof_file(const char *filename, const char *text) {
-    FILE *file = fmemopen((char *)text, strlen(text) + 1, "r");
+    // Not strlen(text) + 1: the NUL is a terminator, not a byte of the file.
+    // Counting it made a spoofed file one byte longer than the same text read
+    // from disk, and code that scans to `text + len` ran one byte past the end.
+    FILE *file = fmemopen((char *)text, strlen(text), "r");
     return _load_file(filename, file);
 }
 
