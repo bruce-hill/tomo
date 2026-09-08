@@ -175,6 +175,18 @@ PUREFUNC static bool has_nonoptional_suffix(ast_t *ast) {
     }
 }
 
+// An operand keeps its parentheses exactly when `outer_op` wouldn't absorb it
+// back: `dt / (d2 * x)` is not `dt / d2 * x`, and `(2 ^ 3) ^ 2` is not
+// `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are the same. An `if`/`match`
+// keeps them whatever the tightness: written bare it runs on through the rest
+// of the operator.
+static Text_t operand(Text_t code, ast_t *ast, ast_e outer_op, bool on_left, Text_t indent) {
+    bool absorbed =
+        on_left ? absorbs_lhs(outer_op, expr_tightness(ast)) : absorbs_rhs(outer_op, expr_tightness(ast));
+    if (ast->tag == If || ast->tag == Match || (is_operation(ast) && !absorbed)) return parenthesize(code, indent);
+    return code;
+}
+
 // A negation whose operand is a numeric literal or another negation always
 // parenthesizes it: `-(1)`, `-(-1)`, `-(-(1))`. Written without the
 // parentheses, `- 1` and `- -1` read back as a single negative literal rather
@@ -322,7 +334,9 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case TableEntry: {
         DeclareMatch(entry, ast, TableEntry);
-        if (entry->value) return Texts(fmt_inline(entry->key, comments), ": ", fmt_inline(entry->value, comments));
+        if (entry->value)
+            return Texts(must(bounded_inline(entry->key, comments)), ": ",
+                         must(bounded_inline(entry->value, comments)));
         else return Texts(fmt_inline(entry->key, comments));
     }
     /*inline*/ case Declare: {
@@ -350,7 +364,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         return Text("pass");
     /*inline*/ case Return: {
         ast_t *value = Match(ast, Return)->value;
-        return value ? Texts("return ", fmt_inline(value, comments)) : Text("return");
+        return value ? Texts("return ", must(bounded_inline(value, comments))) : Text("return");
     }
     /*inline*/ case Not: {
         ast_t *val = Match(ast, Not)->value;
@@ -421,8 +435,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case Min:
     /*inline*/ case Max: {
-        Text_t lhs = fmt_inline(ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs, comments);
-        Text_t rhs = fmt_inline(ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs, comments);
+        ast_t *lhs_ast = ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs;
+        ast_t *rhs_ast = ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs;
+        Text_t lhs = operand(fmt_inline(lhs_ast, comments), lhs_ast, ast->tag, true, EMPTY_TEXT);
+        Text_t rhs = operand(fmt_inline(rhs_ast, comments), rhs_ast, ast->tag, false, EMPTY_TEXT);
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
         // The keyed form (`a _min_.x b`) needs its spaces just as much as the
         // plain one; without them it ran together as `a_min_.xb`.
@@ -485,12 +501,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         // An operand keeps its parentheses exactly when this operator wouldn't
         // absorb it back: `dt / (d2 * x)` is not `dt / d2 * x`, and `(2 ^ 3) ^ 2`
         // is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are the same.
-        if ((operands.lhs->tag == If || operands.lhs->tag == Match)
-            || (is_operation(operands.lhs) && !absorbs_lhs(ast->tag, expr_tightness(operands.lhs))))
-            lhs = parenthesize(lhs, EMPTY_TEXT);
-        if ((operands.rhs->tag == If || operands.rhs->tag == Match)
-            || (is_operation(operands.rhs) && !absorbs_rhs(ast->tag, expr_tightness(operands.rhs))))
-            rhs = parenthesize(rhs, EMPTY_TEXT);
+        lhs = operand(lhs, operands.lhs, ast->tag, true, EMPTY_TEXT);
+        rhs = operand(rhs, operands.rhs, ast->tag, false, EMPTY_TEXT);
 
         Text_t space =
             (!is_word_operator(op) && op_tightness[ast->tag] >= op_tightness[Multiply]) ? EMPTY_TEXT : Text(" ");
@@ -973,8 +985,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Min:
     /*multiline*/ case Max: {
         if (inlined_fits) return inlined;
-        Text_t lhs = termify(ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs, comments, indent);
-        Text_t rhs = termify(ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs, comments, indent);
+        ast_t *lhs_ast = ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs;
+        ast_t *rhs_ast = ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs;
+        Text_t lhs = operand(fmt(lhs_ast, comments, indent), lhs_ast, ast->tag, true, indent);
+        Text_t rhs = operand(fmt(rhs_ast, comments, indent), rhs_ast, ast->tag, false, indent);
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
         Text_t op = key ? fmt(key, comments, indent) : (ast->tag == Min ? Text("_min_") : Text("_max_"));
         return Texts(lhs, " ", op, " ", rhs);
@@ -1060,12 +1074,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         }
 
         // See the inline case above for which operands keep their parentheses.
-        if ((operands.lhs->tag == If || operands.lhs->tag == Match)
-            || (is_operation(operands.lhs) && !absorbs_lhs(ast->tag, expr_tightness(operands.lhs))))
-            lhs = parenthesize(lhs, indent);
-        if ((operands.rhs->tag == If || operands.rhs->tag == Match)
-            || (is_operation(operands.rhs) && !absorbs_rhs(ast->tag, expr_tightness(operands.rhs))))
-            rhs = parenthesize(rhs, indent);
+        lhs = operand(lhs, operands.lhs, ast->tag, true, indent);
+        rhs = operand(rhs, operands.rhs, ast->tag, false, indent);
 
         Text_t space =
             (!is_word_operator(op) && op_tightness[ast->tag] >= op_tightness[Multiply]) ? EMPTY_TEXT : Text(" ");

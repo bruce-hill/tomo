@@ -33,10 +33,10 @@ OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
     // argument list has to go multi-line rather than silently drop it.
     if (arg->comment.length > 0) return NONE_TEXT;
     if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;
-    if (arg->name == NULL && arg->value) return must(format_inline_code(arg->value, comments));
+    if (arg->name == NULL && arg->value) return must(bounded_inline(arg->value, comments));
     Text_t code = arg_name(arg);
     if (arg->type) code = Texts(code, ":", must(format_type(arg->type)));
-    if (arg->value) code = Texts(code, "=", must(format_inline_code(arg->value, comments)));
+    if (arg->value) code = Texts(code, "=", must(bounded_inline(arg->value, comments)));
     return code;
 }
 

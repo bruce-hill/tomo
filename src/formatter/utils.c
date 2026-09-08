@@ -111,6 +111,16 @@ static PUREFUNC bool needs_parens_as_term(ast_t *ast) {
     }
 }
 
+// An inline `if`/`match` runs on through whatever follows it, so wherever the
+// surrounding syntax has to resume afterwards -- an argument list's comma, a
+// table entry's `:`, the value of a `return`, which the postfix `x if c` would
+// otherwise claim -- it needs parentheses to end where it means to.
+OptionalText_t bounded_inline(ast_t *ast, Table_t comments) {
+    if (ast->tag == If || ast->tag == Match)
+        return parenthesize(must(format_inline_code(ast, comments)), EMPTY_TEXT);
+    return format_inline_code(ast, comments);
+}
+
 OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
     if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
     if (needs_parens_as_term(ast)) return parenthesize(format_inline_code(ast, comments), EMPTY_TEXT);
