@@ -837,8 +837,6 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             } else {
                 add_line(&code, Texts(entry_text, ","), Texts(indent, single_indent));
             }
-
-            add_line(&code, Texts(entry_text, ","), Texts(indent, single_indent));
         }
         code = Text$concat(code, comment_range(&comment_pos, ast->end, Texts(indent, single_indent), comments));
 
