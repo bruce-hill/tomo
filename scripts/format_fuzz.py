@@ -31,6 +31,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 
 # A comprehension written bare runs on, so what may follow it decides whether
 # it keeps its parentheses. These are the positions one can be written in.
@@ -98,6 +99,38 @@ SECTIONS = [("comprehension", comprehension_cases), ("definition", definition_ca
             ("signature", signature_cases), ("operator", operator_cases)]
 
 
+BATCH = 40  # Cases per `--verify` call, so a section reports as it goes.
+
+
+def render(label, total, elapsed=0.0, failed=0, dropped=0, done=None):
+    """One section's line, mid-run if `done` is given and finished otherwise."""
+    dots = "." * max(1, 44 - len(label))
+    if done is not None:
+        return f"  {label} {dots} {done}/{total}"
+    body = f"{total:>4} cases {elapsed:5.1f}s"
+    if dropped:
+        body += f"  {dropped} dropped"
+    if failed:
+        # The colour goes after the dots, which pad by width and can't count it.
+        return f"  {label} {dots} \033[31;1m{body}  {failed} failed\033[m"
+    return f"  {label} {dots} {body}"
+
+
+def verify(tomo, paths, env):
+    """The names among these whose formatting isn't faithful.
+
+    --verify writes its paths relative to the repository, so they are matched
+    back to the ones handed in by name rather than used as given.
+    """
+    if not paths:
+        return []
+    result = subprocess.run([tomo, "format", "--verify"] + paths, env=env,
+                            capture_output=True, text=True)
+    failed = {os.path.basename(line.split()[1])
+              for line in result.stdout.splitlines() if line.startswith("FAIL")}
+    return [p for p in paths if os.path.basename(p) in failed]
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(f"usage: {sys.argv[0]} TOMO [--keep DIR]")
@@ -105,47 +138,78 @@ def main():
     keep = sys.argv[3] if len(sys.argv) > 3 and sys.argv[2] == "--keep" else None
     env = dict(os.environ, COLOR="0", LC_ALL="C")
     env.pop("TOMO_STACKTRACE", None)
+    tty = sys.stdout.isatty()
 
+    total_cases = total_dropped = 0
+    broken = []  # (name, source) -- the temporary directory is gone by the time
+                 # these are reported, so the text travels with the name.
+    formatted = None  # What the first failing case came out as.
     with tempfile.TemporaryDirectory() as tmp:
         out = keep or tmp
         os.makedirs(out, exist_ok=True)
-        paths, dropped = [], 0
-        for name, generate in SECTIONS:
+        for label, generate in SECTIONS:
+            paths, sources = [], {}
             for i, source in enumerate(generate()):
-                path = os.path.join(out, f"{name}_{i:04d}.tm")
+                path = os.path.join(out, f"{label}_{i:04d}.tm")
                 with open(path, "w") as f:
                     f.write(source)
-                # A shape that isn't valid Tomo says nothing about the
-                # formatter, so it is dropped rather than counted as a pass.
-                if subprocess.run([tomo, "parse", path], env=env,
-                                  capture_output=True).returncode == 0:
-                    paths.append(path)
-                else:
-                    dropped += 1
-                    os.remove(path)
+                paths.append(path)
+                sources[path] = source
 
-        print(f" Testing formatter round-trip over {len(paths)} generated cases"
-              f" ({dropped} dropped as invalid Tomo)... ")
-        result = subprocess.run([tomo, "format", "--verify"] + paths, env=env,
-                                capture_output=True, text=True)
-        failures = [line.split()[1] for line in result.stdout.splitlines()
-                    if line.startswith("FAIL")]
-        if failures:
-            # The whole of --verify's output is one line per case; only the
-            # failing ones say anything, and even those are capped, since a
-            # formatter that breaks one shape usually breaks a hundred.
-            for path in failures[:10]:
-                print(f"  did not round-trip: {os.path.basename(path)}")
-                with open(path) as f:
-                    for line in f.read().splitlines()[2:]:
-                        print(f"      {line}")
-            if len(failures) > 10:
-                print(f"  ...and {len(failures) - 10} more")
-            print(f"{len(failures)} of {len(paths)} generated cases did not round-trip")
-            if keep:
-                print(f"cases kept in {keep}")
-            sys.exit(1)
-    print(f"All {len(paths)} generated cases round-tripped.")
+            started = time.monotonic()
+            failures = []
+            for at in range(0, len(paths), BATCH):
+                if tty:
+                    print(render(label, len(paths), done=at), end="\r", flush=True)
+                failures += verify(tomo, paths[at:at + BATCH], env)
+            # A shape that isn't valid Tomo says nothing about the formatter, so
+            # it is dropped rather than counted as a pass -- but it is counted,
+            # because a generator writing nonsense shrinks the suite silently.
+            dropped = [p for p in failures
+                       if subprocess.run([tomo, "parse", p], env=env,
+                                         capture_output=True).returncode != 0]
+            failures = [p for p in failures if p not in dropped]
+            elapsed = time.monotonic() - started
+
+            if tty:
+                print(" " * 78, end="\r")
+            print(render(label, len(paths) - len(dropped), elapsed, len(failures),
+                         len(dropped)), flush=True)
+            total_cases += len(paths) - len(dropped)
+            total_dropped += len(dropped)
+            if failures and formatted is None:
+                formatted = subprocess.run([tomo, "format", failures[0]], env=env,
+                                           capture_output=True, text=True).stdout
+            broken += [(os.path.basename(p), sources[p]) for p in failures]
+
+    if broken:
+        # A formatter that breaks one shape usually breaks a hundred of them,
+        # so the sources are worth showing but not all of them.
+        for i, (name, source) in enumerate(broken[:10]):
+            print(f"\n  did not round-trip: {name}", file=sys.stderr)
+            for line in source.splitlines():
+                print(f"      {line}", file=sys.stderr)
+            # What it turned into, for the first one only: that is what has to
+            # be read to know whether the tree moved or the result won't parse,
+            # and ten of them would bury the list of what else broke.
+            if i == 0 and formatted:
+                print("    formatted to:", file=sys.stderr)
+                for line in formatted.splitlines():
+                    print(f"      {line}", file=sys.stderr)
+        if len(broken) > 10:
+            print(f"\n  ...and {len(broken) - 10} more", file=sys.stderr)
+        print(f"\033[31;1m{len(broken)} of {total_cases} generated cases did not "
+              f"round-trip.\033[m", file=sys.stderr)
+        if keep:
+            print(f"cases kept in {keep}", file=sys.stderr)
+        sys.exit(1)
+
+    # A silent pass would mean the generators had stopped generating:
+    if total_cases == 0:
+        print("No cases were generated.", file=sys.stderr)
+        sys.exit(1)
+    dropped_note = f" ({total_dropped} dropped as invalid Tomo)" if total_dropped else ""
+    print(f"All {total_cases} generated cases round-tripped{dropped_note}.")
 
 
 if __name__ == "__main__":
