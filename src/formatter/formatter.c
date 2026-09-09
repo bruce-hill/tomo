@@ -1,6 +1,7 @@
 // This code defines functions for transforming ASTs back into Tomo source text
 
 #include <assert.h>
+#include <limits.h>
 #include <setjmp.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -26,8 +27,8 @@
 #define fmt_inline(...) must(format_inline_code(__VA_ARGS__))
 #define fmt(...) format_code(__VA_ARGS__)
 
-static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, bool tighten);
-static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, bool tighten);
+static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tighten_from);
+static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int tighten_from);
 
 Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent) {
     if (unwrap_block(namespace) == NULL) return EMPTY_TEXT;
@@ -236,13 +237,27 @@ PUREFUNC static bool mixes_operator_bands(ast_t *ast) {
     return has_add && has_mul;
 }
 
-// The spaces around a binary operator. A word operator always keeps them --
-// `(x + y)mod3` is not parseable code -- and so does everything but the `*`
-// band of an expression that mixes the two.
-static Text_t binop_spacing(ast_t *ast, bool tighten) {
+// How tightly an operator has to bind to lose its spaces. An expression that
+// mixes the bands drops them from its `*` band; one that doesn't keeps them
+// everywhere; a subscript drops them from everything (see format_index()).
+#define TIGHTEN_MIXED (op_tightness[Multiply])
+#define TIGHTEN_NONE (INT_MAX)
+#define TIGHTEN_ALL (0)
+
+// The spaces around a binary operator. A word operator always keeps them:
+// `(x + y)mod3` is not parseable code. `^` never does: an exponent sits
+// against what it raises, `r^2`, however little else the expression holds.
+static Text_t binop_spacing(ast_t *ast, int tighten_from) {
     const char *op = binop_info[ast->tag].operator;
-    bool tight = tighten && !is_word_operator(op) && op_tightness[ast->tag] >= op_tightness[Multiply];
+    if (is_word_operator(op)) return Text(" ");
+    bool tight = ast->tag == Power || op_tightness[ast->tag] >= tighten_from;
     return tight ? EMPTY_TEXT : Text(" ");
+}
+
+// The spacing an expression's own operators call for, before anything the
+// surrounding syntax has to say about it.
+PUREFUNC static int expression_spacing(ast_t *ast) {
+    return mixes_operator_bands(ast) ? TIGHTEN_MIXED : TIGHTEN_NONE;
 }
 
 // Whether this operand is part of the same expression as the operator above
@@ -259,15 +274,15 @@ PUREFUNC static bool shares_expression(ast_t *operand_ast, ast_e outer_op, bool 
 // the same expression is rendered here too, so that it inherits that answer;
 // anything else -- a parenthesized operand above all -- goes back through the
 // ordinary path and is answered afresh.
-static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, bool tighten) {
+static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tighten_from) {
     binary_operands_t operands = BINARY_OPERANDS(ast);
     const char *op = binop_info[ast->tag].operator;
 
     Text_t lhs = shares_expression(operands.lhs, ast->tag, true)
-                     ? must(format_binop_inline(operands.lhs, comments, tighten))
+                     ? must(format_binop_inline(operands.lhs, comments, tighten_from))
                      : fmt_inline(operands.lhs, comments);
     Text_t rhs = shares_expression(operands.rhs, ast->tag, false)
-                     ? must(format_binop_inline(operands.rhs, comments, tighten))
+                     ? must(format_binop_inline(operands.rhs, comments, tighten_from))
                      : fmt_inline(operands.rhs, comments);
 
     if (is_update_assignment(ast)) return Texts(lhs, " ", Text$from_str(op), " ", rhs);
@@ -278,18 +293,19 @@ static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, bool tig
     lhs = operand(lhs, operands.lhs, ast->tag, true, EMPTY_TEXT);
     rhs = operand(rhs, operands.rhs, ast->tag, false, EMPTY_TEXT);
 
-    Text_t space = binop_spacing(ast, tighten);
+    Text_t space = binop_spacing(ast, tighten_from);
     return Texts(lhs, space, Text$from_str(op), space, rhs);
 }
 
-static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, bool tighten) {
+static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int tighten_from) {
     binary_operands_t operands = BINARY_OPERANDS(ast);
     const char *op = binop_info[ast->tag].operator;
 
-    Text_t lhs = shares_expression(operands.lhs, ast->tag, true) ? format_binop(operands.lhs, comments, indent, tighten)
-                                                                 : fmt(operands.lhs, comments, indent);
+    Text_t lhs = shares_expression(operands.lhs, ast->tag, true)
+                     ? format_binop(operands.lhs, comments, indent, tighten_from)
+                     : fmt(operands.lhs, comments, indent);
     Text_t rhs = shares_expression(operands.rhs, ast->tag, false)
-                     ? format_binop(operands.rhs, comments, indent, tighten)
+                     ? format_binop(operands.rhs, comments, indent, tighten_from)
                      : fmt(operands.rhs, comments, indent);
 
     if (is_update_assignment(ast)) return Texts(lhs, " ", Text$from_str(op), " ", rhs);
@@ -298,8 +314,22 @@ static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, bool tig
     lhs = operand(lhs, operands.lhs, ast->tag, true, indent);
     rhs = operand(rhs, operands.rhs, ast->tag, false, indent);
 
-    Text_t space = binop_spacing(ast, tighten);
+    Text_t space = binop_spacing(ast, tighten_from);
     return Texts(lhs, space, Text$from_str(op), space, rhs);
+}
+
+// A subscript is written compactly, `arr[i+1]` rather than `arr[i + 1]`: the
+// brackets already say where it begins and ends, so the spaces inside them buy
+// nothing. Anything that isn't a run of operators is written as it would be
+// anywhere else, so `arr[foo(a + b)]` keeps the call's own spacing.
+static OptionalText_t format_subscript_inline(ast_t *ast, Table_t comments) {
+    if (is_binop_case(ast)) return format_binop_inline(ast, comments, TIGHTEN_ALL);
+    return format_inline_code(ast, comments);
+}
+
+static Text_t format_subscript(ast_t *ast, Table_t comments, Text_t indent) {
+    if (is_binop_case(ast)) return format_binop(ast, comments, indent, TIGHTEN_ALL);
+    return format_code(ast, comments, indent);
 }
 
 // A negation whose operand is a numeric literal or another negation always
@@ -515,7 +545,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case Index: {
         DeclareMatch(index, ast, Index);
         Text_t indexed = must(termify_inline(index->indexed, comments));
-        if (index->index) return Texts(indexed, "[", fmt_inline(index->index, comments), "]");
+        if (index->index) return Texts(indexed, "[", must(format_subscript_inline(index->index, comments)), "]");
         else return Texts(indexed, "[]");
     }
     /*inline*/ case TextJoin: {
@@ -610,7 +640,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case BINOP_CASES:
         // The spacing is the whole expression's answer, so it is settled here,
         // at the operator the expression splits on, and handed down.
-        return format_binop_inline(ast, comments, mixes_operator_bands(ast));
+        return format_binop_inline(ast, comments, expression_spacing(ast));
     /*inline*/ case Use: {
         DeclareMatch(use, ast, Use);
         // `name := use ./module.tm` binds the module to a variable; dropping
@@ -1054,7 +1084,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
         DeclareMatch(index, ast, Index);
         if (index->index)
-            return Texts(termify(index->indexed, comments, indent), "[", fmt(index->index, comments, indent), "]");
+            return Texts(termify(index->indexed, comments, indent), "[",
+                         format_subscript(index->index, comments, indent), "]");
         else return Texts(termify(index->indexed, comments, indent), "[]");
     }
     /*multiline*/ case TextJoin: {
@@ -1185,7 +1216,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case BINOP_CASES: {
         if (inlined_fits) return inlined;
-        return format_binop(ast, comments, indent, mixes_operator_bands(ast));
+        return format_binop(ast, comments, indent, expression_spacing(ast));
     }
     /*multiline*/ case Use: {
         assert(inlined.length > 0);
