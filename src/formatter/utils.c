@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "../ast.h"
 #include "../parse/context.h"
@@ -159,6 +160,29 @@ OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
     if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
     if (needs_parens_as_term(ast)) return parenthesize(must(format_inline_code(ast, comments)), EMPTY_TEXT);
     return format_inline_code(ast, comments);
+}
+
+// Whether a `.` written straight against this expression would be hard to
+// read. A numeric literal that carries its own decimal point is: `2.` and
+// `.sqrt()` run together into `2..sqrt()`, which reads as a range, and
+// `4.2.ceil()` leaves the eye nowhere to stop. The parser takes both -- this
+// is about reading them, so it asks how the literal was written rather than
+// what it evaluates to.
+static PUREFUNC bool needs_parens_before_dot(ast_t *ast) {
+    const char *str = ast->tag == Num ? Match(ast, Num)->str : ast->tag == Int ? Match(ast, Int)->str : NULL;
+    return str != NULL && strchr(str, '.') != NULL;
+}
+
+// A receiver with a `.` written against it: `x.field`, `x.method()`. It is a
+// term like any other suffix's, and a decimal literal besides.
+OptionalText_t dotted_inline(ast_t *ast, Table_t comments) {
+    if (needs_parens_before_dot(ast)) return parenthesize(must(format_inline_code(ast, comments)), EMPTY_TEXT);
+    return termify_inline(ast, comments);
+}
+
+Text_t dotted_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column) {
+    if (needs_parens_before_dot(ast)) return parenthesize(format_code_at(ast, comments, indent, column + 1), indent);
+    return termify_at(ast, comments, indent, column);
 }
 
 Text_t termify_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column) {

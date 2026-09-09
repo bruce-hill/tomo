@@ -139,3 +139,18 @@ func header_lines(e:E, p:Point) # ...and a function's
         pass
     defer # on the way out
         say("done")
+
+func arg_comments(xs:&[Int])
+    # A comment among a call's arguments belongs to the argument it precedes.
+    # Only the plain-call parser used to record them, so the same comment
+    # survived `f(...)` and was dropped by `x.f(...)` and by `Foo{...}`.
+    xs.insert(
+        # which value
+        7,
+    )
+    >> Point{
+        # across
+        1,
+        # up
+        2,
+    }

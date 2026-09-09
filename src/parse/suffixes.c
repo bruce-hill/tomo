@@ -117,6 +117,62 @@ ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
     }
 }
 
+// The arguments between a call's or a record literal's delimiters, from just
+// after the opening one to just before the closing one. All three forms parse
+// them the same way, comments included: a comment written among the arguments
+// has nowhere to live but the argument it precedes, and an argument that keeps
+// no record of one is an argument whose comment the formatter deletes.
+static arg_ast_t *parse_call_args(parse_ctx_t *ctx, const char **pos, const char *missing_arg) {
+    // Taken before whitespace() runs, since that is what steps over comments.
+    const char *comment_start = *pos;
+    whitespace(ctx, pos);
+
+    arg_ast_t *args = NULL;
+    for (;;) {
+        const char *arg_start = *pos;
+        const char *name = get_id(pos);
+        whitespace(ctx, pos);
+        // A single '=' names an argument, but `==` is a comparison: `f(x == y)`
+        // passes one boolean, it doesn't name an argument `x`.
+        if (!name || !match(pos, "=") || **pos == '=') {
+            name = NULL;
+            *pos = arg_start;
+        }
+
+        Text_t arg_comments = EMPTY_TEXT;
+        for (OptionalText_t com; (com = next_comment(ctx->comments, &comment_start, arg_start)).tag != TEXT_NONE;) {
+            if (arg_comments.length > 0) arg_comments = Texts(arg_comments, " ");
+            arg_comments = Texts(arg_comments, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
+        }
+
+        ast_t *arg = optional(ctx, pos, parse_expr);
+        if (!arg) {
+            if (name) parser_err(ctx, arg_start, *pos, missing_arg);
+            break;
+        }
+        args = new (arg_ast_t, .file = ctx->file, .start = arg_start, .end = *pos, .name = name,
+                    .comment = arg_comments, .value = arg, .next = args);
+        comment_start = *pos;
+        if (!match_separator(ctx, pos)) break;
+    }
+
+    whitespace(ctx, pos);
+    if (args) {
+        // From the end of the last argument, not from here: the separator
+        // matcher has already stepped over anything written in between. This
+        // runs before the reversal, while `args` is still that last argument.
+        const char *trailing_start = args->end;
+        Text_t trailing = EMPTY_TEXT;
+        for (OptionalText_t com; (com = next_comment(ctx->comments, &trailing_start, *pos)).tag != TEXT_NONE;) {
+            if (trailing.length > 0) trailing = Texts(trailing, " ");
+            trailing = Texts(trailing, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
+        }
+        args->trailing_comment = trailing;
+    }
+    REVERSE_LIST(args);
+    return args;
+}
+
 ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
     if (!self) return NULL;
 
@@ -129,31 +185,8 @@ ast_t *parse_method_call_suffix(parse_ctx_t *ctx, ast_t *self) {
     if (!fn) return NULL;
     spaces(&pos);
     if (!match(&pos, "(")) return NULL;
-    whitespace(ctx, &pos);
 
-    arg_ast_t *args = NULL;
-    for (;;) {
-        const char *arg_start = pos;
-        const char *name = get_id(&pos);
-        whitespace(ctx, &pos);
-        // A single '=' names an argument, but `==` is a comparison: `f(x == y)`
-        // passes one boolean, it doesn't name an argument `x`.
-        if (!name || !match(&pos, "=") || *pos == '=') {
-            name = NULL;
-            pos = arg_start;
-        }
-
-        ast_t *arg = optional(ctx, &pos, parse_expr);
-        if (!arg) {
-            if (name) parser_err(ctx, arg_start, pos, "I expected an argument here");
-            break;
-        }
-        args = new (arg_ast_t, .start = arg_start, .end = arg->end, .name = name, .value = arg, .next = args);
-        if (!match_separator(ctx, &pos)) break;
-    }
-    REVERSE_LIST(args);
-
-    whitespace(ctx, &pos);
+    arg_ast_t *args = parse_call_args(ctx, &pos, "I expected an argument here");
 
     if (!match(&pos, ")")) parser_err(ctx, start, pos, "This parenthesis is unclosed");
 
@@ -172,34 +205,10 @@ ast_t *parse_record_literal_suffix(parse_ctx_t *ctx, ast_t *type) {
 
     if (!match(&pos, "{")) return NULL;
 
-    whitespace(ctx, &pos);
-
-    arg_ast_t *args = NULL;
-    for (;;) {
-        const char *arg_start = pos;
-        const char *name = get_id(&pos);
-        whitespace(ctx, &pos);
-        // A single '=' names an argument, but `==` is a comparison: `f(x == y)`
-        // passes one boolean, it doesn't name an argument `x`.
-        if (!name || !match(&pos, "=") || *pos == '=') {
-            name = NULL;
-            pos = arg_start;
-        }
-
-        ast_t *arg = optional(ctx, &pos, parse_expr);
-        if (!arg) {
-            if (name) parser_err(ctx, arg_start, pos, "I expected a field value here");
-            break;
-        }
-        args = new (arg_ast_t, .start = arg_start, .end = arg->end, .name = name, .value = arg, .next = args);
-        if (!match_separator(ctx, &pos)) break;
-    }
-
-    whitespace(ctx, &pos);
+    arg_ast_t *args = parse_call_args(ctx, &pos, "I expected a field value here");
 
     if (!match(&pos, "}")) parser_err(ctx, start, pos, "This curly brace is unclosed");
 
-    REVERSE_LIST(args);
     return NewAST(ctx->file, start, pos, RecordLiteral, .type = type, .args = args);
 }
 
@@ -211,58 +220,9 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn) {
 
     if (!match(&pos, "(")) return NULL;
 
-    // Comments written among the arguments are collected the way parse_args()
-    // collects them for a definition's parameters, so that the formatter has
-    // somewhere to read them back out of. Without a span and a comment, an
-    // argument carried no record of them and they were dropped. The position
-    // is taken before whitespace() runs, since that is what steps over them.
-    const char *comment_start = pos;
-    whitespace(ctx, &pos);
-
-    arg_ast_t *args = NULL;
-    for (;;) {
-        const char *arg_start = pos;
-        const char *name = get_id(&pos);
-        whitespace(ctx, &pos);
-        // A single '=' names an argument, but `==` is a comparison: `f(x == y)`
-        // passes one boolean, it doesn't name an argument `x`.
-        if (!name || !match(&pos, "=") || *pos == '=') {
-            name = NULL;
-            pos = arg_start;
-        }
-
-        Text_t arg_comments = EMPTY_TEXT;
-        for (OptionalText_t com; (com = next_comment(ctx->comments, &comment_start, arg_start)).tag != TEXT_NONE;) {
-            if (arg_comments.length > 0) arg_comments = Texts(arg_comments, " ");
-            arg_comments = Texts(arg_comments, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
-        }
-
-        ast_t *arg = optional(ctx, &pos, parse_expr);
-        if (!arg) {
-            if (name) parser_err(ctx, arg_start, pos, "I expected an argument here");
-            break;
-        }
-        args = new (arg_ast_t, .file = ctx->file, .start = arg_start, .end = pos, .name = name, .comment = arg_comments,
-                    .value = arg, .next = args);
-        comment_start = pos;
-        if (!match_separator(ctx, &pos)) break;
-    }
-
-    whitespace(ctx, &pos);
-    if (args) {
-        // From the end of the last argument, not from here: the separator
-        // matcher has already stepped over anything written in between.
-        const char *trailing_start = args->end;
-        Text_t trailing = EMPTY_TEXT;
-        for (OptionalText_t com; (com = next_comment(ctx->comments, &trailing_start, pos)).tag != TEXT_NONE;) {
-            if (trailing.length > 0) trailing = Texts(trailing, " ");
-            trailing = Texts(trailing, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
-        }
-        args->trailing_comment = trailing;
-    }
+    arg_ast_t *args = parse_call_args(ctx, &pos, "I expected an argument here");
 
     if (!match(&pos, ")")) parser_err(ctx, start, pos, "This parenthesis is unclosed");
 
-    REVERSE_LIST(args);
     return NewAST(ctx->file, start, pos, FunctionCall, .fn = fn, .args = args);
 }

@@ -19,3 +19,14 @@ func main()
     # A right operand starts after the left one and the operator between them:
     joined := [1, 2, 3] ++ [1111111, 2222222, 3333333, 4444444, 5555555, 6666666, 777777, 888888, 999999]
     assert boxed.length == 1 and a_rather_long_variable_name.length == 9 and joined.length == 12
+
+func wide_reduction(xs:[Int] -> Int)
+    # A reduction writes the comprehension it reduces bare, the same as the
+    # one-line form does. Wrapped as `(and: (x for x in [...]))` it grew a
+    # second pair of parentheses and closed them an indent below the line they
+    # opened on, which left the whole reduction needing another pair around it.
+    >> (and: x > 0 for x in [
+        111111111111111111111, 22222222222222222222, 3333333333333333333, 444444444444444444,
+        5555555555555555555,
+    ])
+    return (+: x for x in xs) or 0

@@ -69,3 +69,16 @@ func wide(c:Bool -> Int)
     }
     >> id((if c then 111111111111111111 else 22222222222222222222 + 33333333333333333 + 44444444444444))
     return 1
+
+func decimal_receivers()
+    # A `.` written straight against a decimal literal is hard to read: `2.`
+    # and `.sqrt()` run together into `2..sqrt()`, which looks like a range,
+    # and `4.2.ceil()` gives the eye nowhere to stop. An integer has no such
+    # trouble, so it keeps the bare form the author wrote.
+    >> (2.).sqrt()
+    >> (4.2).ceil()
+    >> (12.).round()
+    >> (0.25).is_exact(10)
+    >> 2.to(5)
+    >> 7.next_prime()
+    >> Num.PI.cos()

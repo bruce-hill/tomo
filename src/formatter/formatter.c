@@ -678,6 +678,79 @@ static OptionalText_t inline_comprehension_body(ast_t *ast, Table_t comments) {
 // same container it needs them badly: `[(a for a in xs), (b for b in xs)]` is a
 // list of two generators, and written bare it reads back as one comprehension
 // nested in another, with `b` swallowed into the outer one's iterables.
+
+// A comprehension between delimiters. The parentheses are its own when it
+// stands alone; a reduction supplies `(and: ` for the opening one instead, and
+// the body between is written the same way on either side of that choice --
+// which is what inline_comprehension_body() does for the one-line form.
+static Text_t comprehension_at(ast_t *ast, Table_t comments, Text_t open, Text_t indent, int64_t column) {
+    // The guard format_inline_code() puts in front of every one-line
+    // rendering: a comment written anywhere inside has no line to sit on in
+    // this form. The body is assembled from the parts, so nothing else asks
+    // about the gaps between them -- and the gap before the `for` is one.
+    if (!range_has_comment(ast->start, ast->end, comments)) {
+        OptionalText_t inline_body = inline_comprehension_body(ast, comments);
+        if (inline_body.tag != TEXT_NONE && column + open.length + inline_body.length + 1 <= MAX_WIDTH)
+            return Texts(open, (Text_t)inline_body, ")");
+    }
+
+    DeclareMatch(comp, ast, Comprehension);
+    // An expression that spans lines can't share the opening parenthesis's
+    // line: constructs like `match` need their continuation lines at their
+    // own starting column, which is one past `indent` there. Give it a line
+    // of its own instead.
+    Text_t inner_indent = Texts(indent, single_indent);
+    Text_t block_expr = fmt(comp->expr, comments, inner_indent);
+    bool block_layout = Text$has(block_expr, Text("\n"));
+    Text_t body_indent = block_layout ? inner_indent : indent;
+
+    // A comment written between the expression and its `for` belongs to
+    // this gap and to nothing else; it goes at the end of the expression's
+    // line, which the `for` then starts a new one after.
+    const char *gap = comp->expr->end;
+    Text_t before_for = comment_range(&gap, comp->vars ? comp->vars->ast->start : ast->end, body_indent, comments);
+
+    // An expression on the line after the delimiter leaves nothing on the
+    // delimiter's own line, which a reduction cannot have: its `+: ` needs an
+    // expression to introduce. There, and only there, the comprehension keeps
+    // parentheses of its own to put on that line.
+    bool nested = block_layout && open.length > 1;
+
+    Text_t code;
+    if (block_layout) {
+        code = Texts(open, nested ? Text("(") : EMPTY_TEXT, "\n", inner_indent, block_expr,
+                     before_for.length > 0 ? Texts(" ", before_for) : EMPTY_TEXT, "\n", inner_indent, "for ");
+    } else {
+        code = Texts(open, fmt_at(comp->expr, comments, indent, column + (int64_t)open.length));
+        if (before_for.length > 0) code = Texts(code, " ", before_for, "\n", indent, "for ");
+        else if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "for ");
+        else code = Texts(code, " for ");
+    }
+
+    for (ast_list_t *var = comp->vars; var; var = var->next) {
+        code = Texts(code, fmt_at(var->ast, comments, body_indent, column_after(column, code)));
+        if (var->next) code = Texts(code, ", ");
+    }
+    if (comp->at)
+        code = Texts(code, " at ", bounded_at(comp->at, comments, body_indent, column_after(column, code) + 4));
+
+    code = Texts(code, " in ");
+    for (ast_list_t *iter = comp->iters; iter; iter = iter->next) {
+        code = Texts(code, bounded_at(iter->ast, comments, body_indent, column_after(column, code)));
+        if (iter->next) code = Texts(code, ", ");
+    }
+
+    if (comp->filter) {
+        if (block_layout) code = Texts(code, "\n", inner_indent, "if ");
+        else if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "if ");
+        else code = Texts(code, " if ");
+        code = Texts(code, bounded_at(comp->filter, comments, body_indent, column_after(column, code)));
+    }
+    // The closing parenthesis was missing entirely: a comprehension that
+    // didn't fit on one line came out unparseable.
+    return Texts(code, block_layout ? Texts("\n", indent, nested ? Text("))") : Text(")")) : Text(")"));
+}
+
 PUREFUNC static bool ends_where_it_does(ast_list_t *item) {
     return item->next == NULL && item->ast->tag == Comprehension;
 }
@@ -874,7 +947,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case FieldAccess: {
         DeclareMatch(access, ast, FieldAccess);
-        return Texts(must(termify_inline(access->fielded, comments)), ".", Text$from_str(access->field));
+        return Texts(must(dotted_inline(access->fielded, comments)), ".", Text$from_str(access->field));
     }
     /*inline*/ case Index: {
         DeclareMatch(index, ast, Index);
@@ -967,7 +1040,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         // through and the same as the multi-line case below: a hand-rolled
         // list here went stale, and left `(if c then a else b).f()` and
         // `(@x).f()` printing as `if c then a else b.f()` and `@x.f()`.
-        Text_t self = must(termify_inline(call->self, comments));
+        Text_t self = must(dotted_inline(call->self, comments));
         return Texts(self, ".", Text$from_str(call->name), "(", must(format_inline_args(call->args, comments)), ")");
     }
     /*inline*/ case BINOP_CASES:
@@ -1130,58 +1203,8 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
         if (loop->empty) code = Texts(code, "\n", indent, "else", format_namespace(loop->empty, comments, indent));
         return code;
     }
-    /*multiline*/ case Comprehension: {
-        if (inlined_fits) return inlined;
-        DeclareMatch(comp, ast, Comprehension);
-        // An expression that spans lines can't share the opening parenthesis's
-        // line: constructs like `match` need their continuation lines at their
-        // own starting column, which is one past `indent` there. Give it a line
-        // of its own instead.
-        Text_t inner_indent = Texts(indent, single_indent);
-        Text_t block_expr = fmt(comp->expr, comments, inner_indent);
-        bool block_layout = Text$has(block_expr, Text("\n"));
-        Text_t body_indent = block_layout ? inner_indent : indent;
-
-        // A comment written between the expression and its `for` belongs to
-        // this gap and to nothing else; it goes at the end of the expression's
-        // line, which the `for` then starts a new one after.
-        const char *gap = comp->expr->end;
-        Text_t before_for = comment_range(&gap, comp->vars ? comp->vars->ast->start : ast->end, body_indent, comments);
-
-        Text_t code;
-        if (block_layout) {
-            code = Texts("(\n", inner_indent, block_expr, before_for.length > 0 ? Texts(" ", before_for) : EMPTY_TEXT,
-                         "\n", inner_indent, "for ");
-        } else {
-            code = Texts("(", fmt_at(comp->expr, comments, indent, column + 1));
-            if (before_for.length > 0) code = Texts(code, " ", before_for, "\n", indent, "for ");
-            else if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "for ");
-            else code = Texts(code, " for ");
-        }
-
-        for (ast_list_t *var = comp->vars; var; var = var->next) {
-            code = Texts(code, fmt_at(var->ast, comments, body_indent, column_after(column, code)));
-            if (var->next) code = Texts(code, ", ");
-        }
-        if (comp->at)
-            code = Texts(code, " at ", bounded_at(comp->at, comments, body_indent, column_after(column, code) + 4));
-
-        code = Texts(code, " in ");
-        for (ast_list_t *iter = comp->iters; iter; iter = iter->next) {
-            code = Texts(code, bounded_at(iter->ast, comments, body_indent, column_after(column, code)));
-            if (iter->next) code = Texts(code, ", ");
-        }
-
-        if (comp->filter) {
-            if (block_layout) code = Texts(code, "\n", inner_indent, "if ");
-            else if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "if ");
-            else code = Texts(code, " if ");
-            code = Texts(code, bounded_at(comp->filter, comments, body_indent, column_after(column, code)));
-        }
-        // The closing parenthesis was missing entirely: a comprehension that
-        // didn't fit on one line came out unparseable.
-        return Texts(code, block_layout ? Texts("\n", indent, ")") : Text(")"));
-    }
+    /*multiline*/ case Comprehension:
+        return comprehension_at(ast, comments, Text("("), indent, column);
     /*multiline*/ case FunctionDef: {
         DeclareMatch(func, ast, FunctionDef);
         Text_t code = Texts("func ", fmt_at(func->name, comments, indent, column + 5));
@@ -1408,7 +1431,7 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     /*multiline*/ case FieldAccess: {
         if (inlined_fits) return inlined;
         DeclareMatch(access, ast, FieldAccess);
-        return Texts(termify_at(access->fielded, comments, indent, column), ".", Text$from_str(access->field));
+        return Texts(dotted_at(access->fielded, comments, indent, column), ".", Text$from_str(access->field));
     }
     /*multiline*/ case Index: {
         if (inlined_fits) return inlined;
@@ -1482,18 +1505,15 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     /*multiline*/ case Reduction: {
         if (inlined_fits) return inlined;
         DeclareMatch(reduction, ast, Reduction);
-        if (reduction->key) {
-            Text_t key = fmt_at(reduction->key, comments, Texts(indent, single_indent), column + 1);
-            return Texts(
-                "(", key, ": ",
-                fmt_at(reduction->iter, comments, Texts(indent, single_indent), column_after(column + 1, key) + 2),
-                ")");
-        } else {
-            const char *op = binop_info[reduction->op].operator;
-            return Texts(
-                "(", op, ": ",
-                fmt_at(reduction->iter, comments, Texts(indent, single_indent), column + 3 + (int64_t)strlen(op)), ")");
-        }
+        Text_t open = reduction->key ? Texts("(", fmt_at(reduction->key, comments, indent, column + 1), ": ")
+                                     : Texts("(", Text$from_str(binop_info[reduction->op].operator), ": ");
+        // The iterable is nearly always the comprehension this reduces, and it
+        // is written bare: `(and: (x for x in xs))` has one pair of parentheses
+        // too many, and the pair it has puts the closing one an indent deeper
+        // than the line it belongs to.
+        if (reduction->iter->tag == Comprehension)
+            return comprehension_at(reduction->iter, comments, open, indent, column);
+        return Texts(open, fmt_at(reduction->iter, comments, indent, column + (int64_t)open.length), ")");
     }
     /*multiline*/ case Break:
     /*multiline*/ case Continue:
@@ -1520,7 +1540,7 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     /*multiline*/ case MethodCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, MethodCall);
-        Text_t self = Texts(termify_at(call->self, comments, indent, column), ".", Text$from_str(call->name));
+        Text_t self = Texts(dotted_at(call->self, comments, indent, column), ".", Text$from_str(call->name));
         return Texts(self, format_fncall_at(call->args, comments, indent, column_after(column, self)));
     }
     /*multiline*/ case DebugLog: {

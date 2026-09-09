@@ -50,6 +50,8 @@ OptionalText_t termify_inline(ast_t *ast, Table_t comments);
 // case, a rendering that starts at its own indentation.
 Text_t bounded_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column);
 Text_t termify_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column);
+OptionalText_t dotted_inline(ast_t *ast, Table_t comments);
+Text_t dotted_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column);
 
 static inline Text_t bounded(ast_t *ast, Table_t comments, Text_t indent) {
     return bounded_at(ast, comments, indent, (int64_t)indent.length);
