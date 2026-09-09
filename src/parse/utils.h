@@ -32,7 +32,6 @@ bool newline_with_indentation(const char **out, int64_t target);
 bool match_separator(parse_ctx_t *ctx, const char **pos);
 bool match_flag_separator(parse_ctx_t *ctx, const char **pos, bool in_flags);
 Text_t collect_comments(parse_ctx_t *ctx, const char **pos, const char *end);
-Text_t collect_line_comments(parse_ctx_t *ctx, const char **pos, const char *end);
 
 // Zig's libc strspn()/strcspn() measure the *whole* string with strlen() before
 // matching anything, to turn the null-terminated pointers into slices. On a

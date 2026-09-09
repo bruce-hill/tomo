@@ -658,7 +658,7 @@ static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int64_t 
         // A comment written by the operator stays by it. It can only follow
         // the operator, never precede it: `a # c` and then `+ b` on the next
         // line is not an expression the parser puts back together.
-        code = Texts(code, " ", middle, "\n", parenthesized ? inner_indent : Texts(indent, single_indent), rhs);
+        code = Texts(code, " ", middle, "\n", inner_indent, rhs);
     } else {
         code = Texts(code, space, rhs);
     }

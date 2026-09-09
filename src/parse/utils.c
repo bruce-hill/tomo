@@ -28,16 +28,6 @@ Text_t collect_comments(parse_ctx_t *ctx, const char **pos, const char *end) {
     return joined;
 }
 
-// The ones written on the line `*pos` stands in, which trail whatever finished
-// that line rather than leading what comes below it: `1, # one` says something
-// about `1`, and reading it as the next item's says it about `2`.
-Text_t collect_line_comments(parse_ctx_t *ctx, const char **pos, const char *end) {
-    const char *eol = *pos;
-    while (eol < end && *eol != '\n')
-        eol++;
-    return collect_comments(ctx, pos, eol);
-}
-
 static const char *keywords[] = {
     "C_code", "_embed_", "_max_",  "_min_",  "and",  "assert", "break", "continue", "defer", "do",   "else",
     "enum",   "for",     "func",   "if",     "in",   "match",  "mod",   "mod1",     "no",    "none", "not",

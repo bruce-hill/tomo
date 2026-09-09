@@ -62,10 +62,6 @@ OptionalText_t next_comment(Table_t comments, const char **pos, const char *end)
     return NONE_TEXT;
 }
 
-// Where the parser stopped taking a parameter list's trailing comments: at the
-// first thing that is neither whitespace nor a comment, which is the `->`, the
-// first `;`, or the closing delimiter. Anything written from there on belongs
-// to the signature that follows the parameters, and nothing else writes it out.
 // The comments between two positions, one per line at `indent`, with the
 // blank lines the author left between them kept.
 Text_t comment_range(const char **pos, const char *end, Text_t indent, Table_t comments) {
@@ -109,12 +105,6 @@ bool has_blank_line(const char *start, const char *end) {
     return false;
 }
 
-// How many blank lines belong between two consecutive statements. The
-// formatter keeps the blank lines the author wrote (collapsing runs of them
-// down to one) and only insists on a blank line of its own after a function
-// definition. The other rule -- a blank line after a body that nests two
-// levels deep -- depends on how the statement came out once formatted, so it
-// lives in the block formatter rather than here.
 // The column the line holding `pos` is indented to.
 PUREFUNC static int64_t line_indent(const char *file, const char *pos) {
     const char *line = pos;
@@ -164,6 +154,12 @@ PUREFUNC const char *block_content_end(ast_t *block) {
     return content_end_at(block, line_indent(block->file->text, first->ast->start));
 }
 
+// How many blank lines belong between two consecutive statements. The
+// formatter keeps the blank lines the author wrote (collapsing runs of them
+// down to one) and only insists on a blank line of its own after a function
+// definition. The other rule -- a blank line after a body that nests two
+// levels deep -- depends on how the statement came out once formatted, so it
+// lives in the block formatter rather than here.
 PUREFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     if (first == NULL || second == NULL) return 0;
 
