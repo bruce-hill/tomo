@@ -34,6 +34,15 @@ test "basic function call"
     >> add(3, 5)
     assert add(3, 5) == 8
 
+# Two flags are separated by a comma. Written `; cached; inline` -- which is
+# what the formatter used to emit for this -- it doesn't parse.
+func cached_and_inline(x:Int -> Int; cached, inline)
+    return x + 1
+
+test "two flags at once"
+    assert cached_and_inline(1) == 2
+    assert cached_and_inline(1) == 2
+
 test "cached functions"
     >> cached_heap(1)
     >> cached_heap(2)

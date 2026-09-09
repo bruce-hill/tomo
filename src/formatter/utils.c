@@ -15,6 +15,11 @@
 
 const Text_t single_indent = Text("    ");
 
+void add_flag(Text_t *flags, bool present, const char *name) {
+    if (!present) return;
+    *flags = Texts(*flags, flag_separator(*flags), name);
+}
+
 void add_line(Text_t *code, Text_t line, Text_t indent) {
     if (code->length == 0) {
         *code = line;

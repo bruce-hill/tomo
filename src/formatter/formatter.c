@@ -94,53 +94,32 @@ static Text_t quoted_label(const char *label) {
     return Text$quoted(Text$from_str(label), false, Text("\""));
 }
 
-// The flag uses `cached` or `cache_size=N` in source; a bare `cached`
-// parses to the sentinel size -1. There is no `cache=` flag: emitting one lost
-// the caching entirely and left a function definition that didn't parse.
-static Text_t format_cache_flag(ast_t *cache, Table_t comments, Text_t indent, int64_t column) {
-    if (cache->tag == Int && Int$equal_value(Match(cache, Int)->i, I_small(-1))) return Text("; cached");
-    return Texts("; cache_size=", fmt_at(cache, comments, indent, column + 13));
+// The flags a definition can carry after its arguments, as one `; a, b` list.
+//
+// The cache flag is written `cached` or `cache_size=N`; a bare `cached` parses
+// to the sentinel size -1. There is no `cache=` flag: emitting one lost the
+// caching entirely and left a function definition that didn't parse.
+static Text_t signature_flags(ast_t *cache, bool is_inline, Table_t comments, Text_t indent) {
+    Text_t flags = EMPTY_TEXT;
+    add_flag(&flags, is_inline, "inline");
+    if (cache) {
+        if (cache->tag == Int && Int$equal_value(Match(cache, Int)->i, I_small(-1))) {
+            add_flag(&flags, true, "cached");
+        } else {
+            // Measured from the inner indent, the line of its own that the flag
+            // list gets whenever the arguments above it wrap.
+            int64_t column = (int64_t)(indent.length + single_indent.length) + flags.length;
+            flags = Texts(flags, flag_separator(flags), "cache_size=", fmt_at(cache, comments, indent, column + 11));
+        }
+    }
+    return flags;
 }
 
-// What a definition writes between its arguments and its closing parenthesis:
-// the return type, then the flags. It carries no leading space, since where it
-// goes decides whether it wants one.
-//
-// The `cache_size` expression is the only part of this that can wrap, and it is
-// measured from the inner indent, the line of its own that it would be wrapping
-// onto.
-static Text_t signature_suffix(type_ast_t *ret_type, ast_t *cache, bool is_inline, Table_t comments, Text_t indent) {
-    Text_t code = EMPTY_TEXT;
-    int64_t column = (int64_t)(indent.length + single_indent.length);
-    if (ret_type) code = Texts("-> ", format_type(ret_type));
-    if (cache) code = Texts(code, format_cache_flag(cache, comments, indent, column + code.length));
-    if (is_inline) code = Texts(code, "; inline");
-    return code;
-}
-
-// The arguments and the suffix of a definition, from the `(` to the `)`.
-//
-// Whether the arguments fit on one line is a question about the whole
-// signature, so the suffix and the closing parenthesis are counted against
-// their budget: `func f(a:Int, b:Int -> SomeLongType)` can overflow on the
-// part that isn't the arguments.
-//
-// When they don't fit, the suffix takes a line of its own between the last
-// argument and the `)`. Left on the last argument's line it would sit after
-// the comma separating that argument from the next, and read as one more
-// argument.
 static Text_t format_signature(arg_ast_t *args, type_ast_t *ret_type, ast_t *cache, bool is_inline, Table_t comments,
                                Text_t indent, int64_t column) {
-    Text_t suffix = signature_suffix(ret_type, cache, is_inline, comments, indent);
-    // The suffix, the two parentheses, and the space before the suffix.
-    int64_t around = suffix.length + (suffix.length > 0 && args ? 3 : 2);
-    Text_t arg_code = format_args_at(args, comments, indent, column + around);
-    if (Text$has(arg_code, Text("\n"))) {
-        if (suffix.length > 0) arg_code = Texts(arg_code, "\n", indent, single_indent, suffix);
-        return Texts("(", arg_code, "\n", indent, ")");
-    }
-    if (suffix.length == 0) return Texts("(", arg_code, ")");
-    return Texts("(", arg_code, args ? Text(" ") : EMPTY_TEXT, suffix, ")");
+    Text_t ret_code = ret_type ? Texts("-> ", format_type(ret_type)) : EMPTY_TEXT;
+    Text_t flags = signature_flags(cache, is_inline, comments, indent);
+    return format_bracketed_args(args, ret_code, flags, comments, indent, column, "(", ")");
 }
 
 static bool starts_with_id(Text_t text) {
@@ -1146,15 +1125,14 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     }
     /*multiline*/ case StructDef: {
         DeclareMatch(def, ast, StructDef);
-        Text_t args = format_args(def->fields, comments, indent);
-        Text_t code = Texts("struct ", Text$from_str(def->name), "{", args);
         Text_t flags = EMPTY_TEXT;
-        if (def->secret) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "secret");
-        if (def->packed_bools) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "packed_bools");
-        if (def->external) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "external");
-        if (def->opaque) flags = Texts(flags, flags.length > 0 ? Text(", ") : Text("; "), "opaque");
-        code = Texts(code, flags);
-        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, "}") : Text("}"));
+        add_flag(&flags, def->secret, "secret");
+        add_flag(&flags, def->packed_bools, "packed_bools");
+        add_flag(&flags, def->external, "external");
+        add_flag(&flags, def->opaque, "opaque");
+        Text_t code = Texts("struct ", Text$from_str(def->name));
+        code = Texts(code, format_bracketed_args(def->fields, EMPTY_TEXT, flags, comments, indent,
+                                                 column_after(column, code), "{", "}"));
         // Comments inside the field list are emitted with their field, so pick
         // up only what comes after it:
         const char *comment_pos = ast->start;
@@ -1167,8 +1145,9 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     }
     /*multiline*/ case EnumDef: {
         DeclareMatch(def, ast, EnumDef);
-        Text_t code = Texts("enum ", Text$from_str(def->name), "(", format_tags(def->tags, comments, indent));
-        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"));
+        Text_t code = Texts("enum ", Text$from_str(def->name), "(");
+        Text_t tags = format_tags_at(def->tags, comments, indent, column_after(column, code) + 1);
+        code = Texts(code, tags, Text$has(tags, Text("\n")) ? Texts("\n", indent, ")") : Text(")"));
         // As in StructDef: a variant's field comments travel with the field.
         const char *comment_pos = ast->start;
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next)

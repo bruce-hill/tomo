@@ -45,7 +45,8 @@ func flagged(
     arg6:Int,
     arg7:Int,
     arg8:Int,
-    -> Int; inline
+    -> Int
+    ; inline
 )
     return arg2
 
@@ -78,6 +79,46 @@ func anonymous(-> func(a, b, c, d, e, f:Int -> Int))
 # A short flag alias travels with the name it aliases:
 func main.go(paths:[Text], force|f:Bool=no, count|n:Int=1)
     say("$paths $force $count")
+
+# A struct's fields and an enum's variants break the same way a parameter list
+# does, and the flags follow the same rule the return type does: a line of
+# their own, since after the last field's comma they would read as a field.
+struct Packed{
+    f1x:Bool,
+    f2:Bool,
+    f3:Bool,
+    f4:Bool,
+    f5:Bool,
+    f6:Bool,
+    f7:Bool,
+    f8:Bool,
+    f9:Bool,
+    ; packed_bools
+}
+
+enum Wide(
+    Variant1{x:Int, y:Int},
+    Variant2{x:Int, y:Int},
+    Variant3{x:Int, y:Int},
+    Variant4{x:Int, y:Int},
+    Variant5{x:Int, y:Int},
+    Variant6{x:Int, y:Int},
+)
+
+# A variant is a field list too, so one that doesn't fit breaks inside the
+# enum that holds it:
+enum Nested(
+    Small,
+    Roomy{
+        f1xxxxxxxxxxxxxxxxxxxxxxxxx:Float64,
+        f2:Float64,
+        f3:Float64,
+        f4:Float64,
+        f5:Float64,
+        f6:Float64,
+        ; packed_bools
+    },
+)
 
 struct Grouped{x, y, z:Float64}
 struct Mixed{pos, vel:Grouped, mass:Float64}

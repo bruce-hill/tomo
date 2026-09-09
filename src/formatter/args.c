@@ -1,5 +1,7 @@
 // Logic for formatting arguments and argument lists
 
+#include <string.h>
+
 #include "../ast.h"
 #include "../stdlib/datatypes.h"
 #include "../stdlib/optionals.h"
@@ -87,6 +89,33 @@ Text_t format_args_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t 
         if (arg->trailing_comment.length > 0) code = Texts(code, " # ", arg->trailing_comment);
     }
     return code;
+}
+
+// Everything between a definition's delimiters: the arguments, the return type
+// if it has one, and the flags if it has any.
+//
+// Whether the arguments fit on one line is a question about all of that, so the
+// two of those and both delimiters come out of the same budget: a definition
+// can break on its return type or its flags alone, with room to spare on its
+// arguments.
+//
+// When it does break, the return type and the flags each take a line of their
+// own. Left on the last argument's line they would sit after the comma that
+// separates that argument from the next, and read as more arguments.
+Text_t format_bracketed_args(arg_ast_t *args, Text_t ret_type, Text_t flags, Table_t comments, Text_t indent,
+                             int64_t column, const char *open, const char *close) {
+    // A return type stands apart from the arguments it follows; a flag list
+    // opens with the `;` that separates it already.
+    bool gap = ret_type.length > 0 && args != NULL;
+    int64_t around = ret_type.length + flags.length + (int64_t)(strlen(open) + strlen(close)) + (gap ? 1 : 0);
+    Text_t arg_code = format_args_at(args, comments, indent, column + around);
+    if (Text$has(arg_code, Text("\n"))) {
+        Text_t inner_indent = Texts(indent, single_indent);
+        if (ret_type.length > 0) arg_code = Texts(arg_code, "\n", inner_indent, ret_type);
+        if (flags.length > 0) arg_code = Texts(arg_code, "\n", inner_indent, flags);
+        return Texts(open, arg_code, "\n", indent, close);
+    }
+    return Texts(open, arg_code, gap ? Text(" ") : EMPTY_TEXT, ret_type, flags, close);
 }
 
 // Shared by parenthesized calls and braced record literals, which differ only
