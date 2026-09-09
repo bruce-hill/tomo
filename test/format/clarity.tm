@@ -1,0 +1,53 @@
+# Parentheses the grouping doesn't need, written because the reader does.
+# Precedence puts every operator into one order, but only part of that order is
+# common knowledge, so an operand whose grouping rests on the rest of it is
+# written out.
+func main()
+    a := yes
+    b := no
+    c := yes
+    x := 12
+    y := 5
+    z := 3
+
+    # Arithmetic inside arithmetic reads off the page, and so does arithmetic
+    # inside a comparison and a comparison inside `and`/`or`/`xor`. These keep
+    # the parentheses they don't have:
+    >> x + y*z
+    >> x*y + z
+    >> x + y*z == x and y < z
+    >> a and x == y
+    >> -x + y
+    # ...and a comparison is the one place `++` reads like arithmetic too:
+    >> "a" ++ "b" == "ab"
+
+    # A repetition of one operator groups the same way whichever way it is
+    # read, however murky the operator:
+    >> a and b and c
+    >> x _min_ y _min_ z
+    >> x << y << z
+
+    # Two different bitwise operators do not. `and`, `or` and `xor` bind
+    # equally tightly and group to the left, which is not something to make a
+    # reader look up:
+    >> a and b or c
+    >> a or b and c
+    >> a xor b or c
+
+    # Neither does where a shift sits against arithmetic, or against the
+    # bitwise operators:
+    >> x + y << z
+    >> x << y + z
+    >> x << y >> z
+    >> x and y << z
+
+    # Nor `_min_` against `_max_`, or against the arithmetic it absorbs:
+    >> x _min_ y _max_ z
+    >> x*y _min_ z
+
+    # Nor one comparison inside another:
+    >> (x == y) == (y == z)
+
+    # A parenthesized operand is a fresh expression: it settles its own
+    # spacing rather than inheriting the one around it.
+    >> x*y and (y + z)

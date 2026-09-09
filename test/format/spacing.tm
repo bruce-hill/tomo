@@ -52,6 +52,9 @@ func main()
     >> arr[x mod1 y]
     >> arr[x _min_ y]
     >> arr[x _max_ y]
+    >> arr[x*y mod 3]
+    # A parenthesized operand settles its own spacing rather than inheriting
+    # the subscript's, so the tightening stops at the parenthesis:
     >> arr[x+y and y]
     >> x + y mod 3
     >> (x and y)^2

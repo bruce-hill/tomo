@@ -33,7 +33,9 @@ func main()
     >> (x == y) _min_ x
     >> (if yes then x else y) _min_ x
     >> x _min_ (y _min_ x)
-    # ...so an operand it does absorb keeps no parentheses:
+    # ...so an operand it does absorb keeps no parentheses, as long as the
+    # grouping that leaves is one a reader can see (test/format/clarity.tm):
+    >> x _min_ y _min_ x
     >> x*y _min_ x
     >> x _min_ y _max_ x
 

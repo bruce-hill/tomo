@@ -282,14 +282,77 @@ PUREFUNC static int64_t column_after(int64_t column, Text_t code) {
     return last_line < (int64_t)code.length ? last_line : column + last_line;
 }
 
-// An operand keeps its parentheses exactly when `outer_op` wouldn't absorb it
-// back: `dt / (d2 * x)` is not `dt / d2 * x`, and `(2 ^ 3) ^ 2` is not
-// `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are the same. An `if`/`match`
-// keeps them whatever the tightness: written bare it runs on through the rest
-// of the operator.
+// The families the operators fall into for the purpose of reading an
+// expression. `op_tightness` puts every operator into a single order, but a
+// reader only reliably knows part of that order: that arithmetic binds tighter
+// than comparison, and comparison tighter than `and`/`or`. Where a shift, a
+// `_min_`, or `or` against `and` sits in it is a table lookup rather than
+// knowledge, so those groupings are written out with parentheses instead of
+// leaning on the order.
+typedef enum { OP_ARITH, OP_CONCAT, OP_SHIFT, OP_MINMAX, OP_COMPARE, OP_LOGIC } op_family_e;
+
+PUREFUNC static op_family_e op_family(ast_e op) {
+    switch (op) {
+    case Concat: return OP_CONCAT;
+    case LeftShift:
+    case RightShift:
+    case UnsignedLeftShift:
+    case UnsignedRightShift: return OP_SHIFT;
+    case Min:
+    case Max: return OP_MINMAX;
+    case And:
+    case Or:
+    case Xor: return OP_LOGIC;
+    case Equals:
+    case NotEquals:
+    case LessThan:
+    case LessThanOrEquals:
+    case GreaterThan:
+    case GreaterThanOrEquals:
+    case Compare: return OP_COMPARE;
+    default: return OP_ARITH;
+    }
+}
+
+// Whether an operand of `outer`, written bare, groups the way it reads. The
+// relationships that count as ones a reader takes off the page are arithmetic
+// within arithmetic, arithmetic within a comparison, a comparison within
+// `and`/`or`/`xor`, and the two cases the comments below give.
+PUREFUNC static bool grouping_is_obvious(ast_e outer, ast_t *inner) {
+    if (!is_binary_operation(inner)) return true; // A prefix `-` groups visibly
+    op_family_e outer_family = op_family(outer), inner_family = op_family(inner->tag);
+    // A run of one operator groups the same way whichever way it is read, and
+    // so needs nothing said about it -- unless it is a run of shifts, where the
+    // grouping is the whole meaning, or of comparisons, where `a == b == c`
+    // means `(a == b) == c` here and the chain it looks like elsewhere.
+    if (outer == inner->tag) return outer_family != OP_SHIFT && outer_family != OP_COMPARE;
+    if (outer_family == inner_family) return outer_family == OP_ARITH;
+    // Concatenation is not arithmetic, but a comparison is the one place it
+    // reads like it: nobody has to be told that `a ++ b == c` compares the
+    // joined text. Against arithmetic proper it is as murky as anything else.
+    if (outer_family == OP_COMPARE) return inner_family == OP_ARITH || inner_family == OP_CONCAT;
+    if (outer_family == OP_LOGIC) return inner_family == OP_COMPARE;
+    return false;
+}
+
+// Whether this operand is written as part of the expression above it, rather
+// than parenthesized off into one of its own. The operator above has to absorb
+// it back -- written bare it would otherwise be read as belonging somewhere
+// else -- and the grouping that leaves has to be one that can be read.
+PUREFUNC static bool is_bare_operand(ast_t *inner, ast_e outer_op, bool on_left) {
+    bool absorbed =
+        on_left ? absorbs_lhs(outer_op, expr_tightness(inner)) : absorbs_rhs(outer_op, expr_tightness(inner));
+    return absorbed && grouping_is_obvious(outer_op, inner);
+}
+
+// An operand keeps its parentheses unless it is written bare, which takes both
+// of the things is_bare_operand() asks. `dt / (d2 * x)` is not `dt / d2 * x`,
+// and `(2 ^ 3) ^ 2` is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are
+// the same. An `if`/`match` keeps them whatever the tightness: written bare it
+// runs on through the rest of the operator.
 static Text_t operand(Text_t code, ast_t *ast, ast_e outer_op, bool on_left, Text_t indent) {
-    bool absorbed = on_left ? absorbs_lhs(outer_op, expr_tightness(ast)) : absorbs_rhs(outer_op, expr_tightness(ast));
-    if (ast->tag == If || ast->tag == Match || (is_operation(ast) && !absorbed)) return parenthesize(code, indent);
+    if (ast->tag == If || ast->tag == Match || (is_operation(ast) && !is_bare_operand(ast, outer_op, on_left)))
+        return parenthesize(code, indent);
     return code;
 }
 
@@ -313,7 +376,7 @@ PUREFUNC static bool is_binop_case(ast_t *ast) {
 // same shapes and how they are written in this tree.
 //
 // Parentheses start a fresh expression with its own answer, so the walk stops
-// at any operand this operator wouldn't absorb back.
+// at any operand that is written with them.
 static void scan_operator_bands(ast_t *ast, bool *has_add, bool *has_mul) {
     if (!is_binop_case(ast) || is_update_assignment(ast)) return;
     int tightness = op_tightness[ast->tag];
@@ -321,9 +384,9 @@ static void scan_operator_bands(ast_t *ast, bool *has_add, bool *has_mul) {
     else if (tightness >= op_tightness[Multiply]) *has_mul = true;
 
     binary_operands_t operands = BINARY_OPERANDS(ast);
-    if (is_binop_case(operands.lhs) && absorbs_lhs(ast->tag, expr_tightness(operands.lhs)))
+    if (is_binop_case(operands.lhs) && is_bare_operand(operands.lhs, ast->tag, true))
         scan_operator_bands(operands.lhs, has_add, has_mul);
-    if (is_binop_case(operands.rhs) && absorbs_rhs(ast->tag, expr_tightness(operands.rhs)))
+    if (is_binop_case(operands.rhs) && is_bare_operand(operands.rhs, ast->tag, false))
         scan_operator_bands(operands.rhs, has_add, has_mul);
 }
 
@@ -368,8 +431,7 @@ PUREFUNC static int expression_spacing(ast_t *ast) {
 // that expression's spacing.
 PUREFUNC static bool shares_expression(ast_t *operand_ast, ast_e outer_op, bool on_left) {
     if (!is_binop_case(operand_ast)) return false;
-    return on_left ? absorbs_lhs(outer_op, expr_tightness(operand_ast))
-                   : absorbs_rhs(outer_op, expr_tightness(operand_ast));
+    return is_bare_operand(operand_ast, outer_op, on_left);
 }
 
 // One operator of an expression whose spacing has already been settled by
@@ -390,9 +452,7 @@ static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tigh
 
     if (is_update_assignment(ast)) return Texts(lhs, " ", Text$from_str(op), " ", rhs);
 
-    // An operand keeps its parentheses exactly when this operator wouldn't
-    // absorb it back: `dt / (d2 * x)` is not `dt / d2 * x`, and `(2 ^ 3) ^ 2`
-    // is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are the same.
+    // See operand() above for which operands keep their parentheses.
     lhs = operand(lhs, operands.lhs, ast->tag, true, EMPTY_TEXT);
     rhs = operand(rhs, operands.rhs, ast->tag, false, EMPTY_TEXT);
 
