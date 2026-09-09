@@ -34,7 +34,7 @@ func main()
     >> (if yes then x else y) _min_ x
     >> x _min_ (y _min_ x)
     # ...so an operand it does absorb keeps no parentheses:
-    >> x*y _min_ x
+    >> x * y _min_ x
     >> x _min_ y _max_ x
 
 func wide(c:Bool -> Int)

@@ -26,6 +26,9 @@
 #define fmt_inline(...) must(format_inline_code(__VA_ARGS__))
 #define fmt(...) format_code(__VA_ARGS__)
 
+static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, bool tighten);
+static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, bool tighten);
+
 Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent) {
     if (unwrap_block(namespace) == NULL) return EMPTY_TEXT;
     return Texts("\n", indent, single_indent, fmt(namespace, comments, Texts(indent, single_indent)));
@@ -191,6 +194,112 @@ static Text_t operand(Text_t code, ast_t *ast, ast_e outer_op, bool on_left, Tex
     bool absorbed = on_left ? absorbs_lhs(outer_op, expr_tightness(ast)) : absorbs_rhs(outer_op, expr_tightness(ast));
     if (ast->tag == If || ast->tag == Match || (is_operation(ast) && !absorbed)) return parenthesize(code, indent);
     return code;
+}
+
+// The operators the two functions below render. `is_binary_operation()` is a
+// wider set: it takes in `_min_`/`_max_`, which carry a key (`a _min_.x b`)
+// and have a renderer of their own.
+PUREFUNC static bool is_binop_case(ast_t *ast) {
+    switch (ast->tag) {
+    case BINOP_CASES: return true;
+    default: return false;
+    }
+}
+
+// Whether an expression mixes the `+` band with the `*` band. When it does,
+// the tighter band is written without spaces, so that the operator the
+// expression actually splits on is the one the eye lands on: `x + y*z`. When
+// it doesn't, every operator keeps its spaces, so a lone `x * y` reads as one.
+//
+// Only the `+` band triggers it, not merely anything looser: `a == b * c` and
+// `2 ^ 3 ^ 2 == 512` keep their spaces, which is both what gofmt does with the
+// same shapes and how they are written in this tree.
+//
+// Parentheses start a fresh expression with its own answer, so the walk stops
+// at any operand this operator wouldn't absorb back.
+static void scan_operator_bands(ast_t *ast, bool *has_add, bool *has_mul) {
+    if (!is_binop_case(ast) || is_update_assignment(ast)) return;
+    int tightness = op_tightness[ast->tag];
+    if (tightness == op_tightness[Plus] || tightness == op_tightness[Concat]) *has_add = true;
+    else if (tightness >= op_tightness[Multiply]) *has_mul = true;
+
+    binary_operands_t operands = BINARY_OPERANDS(ast);
+    if (is_binop_case(operands.lhs) && absorbs_lhs(ast->tag, expr_tightness(operands.lhs)))
+        scan_operator_bands(operands.lhs, has_add, has_mul);
+    if (is_binop_case(operands.rhs) && absorbs_rhs(ast->tag, expr_tightness(operands.rhs)))
+        scan_operator_bands(operands.rhs, has_add, has_mul);
+}
+
+PUREFUNC static bool mixes_operator_bands(ast_t *ast) {
+    bool has_add = false, has_mul = false;
+    scan_operator_bands(ast, &has_add, &has_mul);
+    return has_add && has_mul;
+}
+
+// The spaces around a binary operator. A word operator always keeps them --
+// `(x + y)mod3` is not parseable code -- and so does everything but the `*`
+// band of an expression that mixes the two.
+static Text_t binop_spacing(ast_t *ast, bool tighten) {
+    const char *op = binop_info[ast->tag].operator;
+    bool tight = tighten && !is_word_operator(op) && op_tightness[ast->tag] >= op_tightness[Multiply];
+    return tight ? EMPTY_TEXT : Text(" ");
+}
+
+// Whether this operand is part of the same expression as the operator above
+// it, rather than a parenthesized one of its own: only then does it inherit
+// that expression's spacing.
+PUREFUNC static bool shares_expression(ast_t *operand_ast, ast_e outer_op, bool on_left) {
+    if (!is_binop_case(operand_ast)) return false;
+    return on_left ? absorbs_lhs(outer_op, expr_tightness(operand_ast))
+                   : absorbs_rhs(outer_op, expr_tightness(operand_ast));
+}
+
+// One operator of an expression whose spacing has already been settled by
+// mixes_operator_bands() at its outermost operator. An operand belonging to
+// the same expression is rendered here too, so that it inherits that answer;
+// anything else -- a parenthesized operand above all -- goes back through the
+// ordinary path and is answered afresh.
+static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, bool tighten) {
+    binary_operands_t operands = BINARY_OPERANDS(ast);
+    const char *op = binop_info[ast->tag].operator;
+
+    Text_t lhs = shares_expression(operands.lhs, ast->tag, true)
+                     ? must(format_binop_inline(operands.lhs, comments, tighten))
+                     : fmt_inline(operands.lhs, comments);
+    Text_t rhs = shares_expression(operands.rhs, ast->tag, false)
+                     ? must(format_binop_inline(operands.rhs, comments, tighten))
+                     : fmt_inline(operands.rhs, comments);
+
+    if (is_update_assignment(ast)) return Texts(lhs, " ", Text$from_str(op), " ", rhs);
+
+    // An operand keeps its parentheses exactly when this operator wouldn't
+    // absorb it back: `dt / (d2 * x)` is not `dt / d2 * x`, and `(2 ^ 3) ^ 2`
+    // is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are the same.
+    lhs = operand(lhs, operands.lhs, ast->tag, true, EMPTY_TEXT);
+    rhs = operand(rhs, operands.rhs, ast->tag, false, EMPTY_TEXT);
+
+    Text_t space = binop_spacing(ast, tighten);
+    return Texts(lhs, space, Text$from_str(op), space, rhs);
+}
+
+static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, bool tighten) {
+    binary_operands_t operands = BINARY_OPERANDS(ast);
+    const char *op = binop_info[ast->tag].operator;
+
+    Text_t lhs = shares_expression(operands.lhs, ast->tag, true) ? format_binop(operands.lhs, comments, indent, tighten)
+                                                                 : fmt(operands.lhs, comments, indent);
+    Text_t rhs = shares_expression(operands.rhs, ast->tag, false)
+                     ? format_binop(operands.rhs, comments, indent, tighten)
+                     : fmt(operands.rhs, comments, indent);
+
+    if (is_update_assignment(ast)) return Texts(lhs, " ", Text$from_str(op), " ", rhs);
+
+    // See format_binop_inline() above for which operands keep their parentheses.
+    lhs = operand(lhs, operands.lhs, ast->tag, true, indent);
+    rhs = operand(rhs, operands.rhs, ast->tag, false, indent);
+
+    Text_t space = binop_spacing(ast, tighten);
+    return Texts(lhs, space, Text$from_str(op), space, rhs);
 }
 
 // A negation whose operand is a numeric literal or another negation always
@@ -498,27 +607,10 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         Text_t self = must(termify_inline(call->self, comments));
         return Texts(self, ".", Text$from_str(call->name), "(", must(format_inline_args(call->args, comments)), ")");
     }
-    /*inline*/ case BINOP_CASES: {
-        binary_operands_t operands = BINARY_OPERANDS(ast);
-        const char *op = binop_info[ast->tag].operator;
-
-        Text_t lhs = fmt_inline(operands.lhs, comments);
-        Text_t rhs = fmt_inline(operands.rhs, comments);
-
-        if (is_update_assignment(ast)) {
-            return Texts(lhs, " ", Text$from_str(op), " ", rhs);
-        }
-
-        // An operand keeps its parentheses exactly when this operator wouldn't
-        // absorb it back: `dt / (d2 * x)` is not `dt / d2 * x`, and `(2 ^ 3) ^ 2`
-        // is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are the same.
-        lhs = operand(lhs, operands.lhs, ast->tag, true, EMPTY_TEXT);
-        rhs = operand(rhs, operands.rhs, ast->tag, false, EMPTY_TEXT);
-
-        Text_t space =
-            (!is_word_operator(op) && op_tightness[ast->tag] >= op_tightness[Multiply]) ? EMPTY_TEXT : Text(" ");
-        return Texts(lhs, space, Text$from_str(binop_info[ast->tag].operator), space, rhs);
-    }
+    /*inline*/ case BINOP_CASES:
+        // The spacing is the whole expression's answer, so it is settled here,
+        // at the operator the expression splits on, and handed down.
+        return format_binop_inline(ast, comments, mixes_operator_bands(ast));
     /*inline*/ case Use: {
         DeclareMatch(use, ast, Use);
         // `name := use ./module.tm` binds the module to a variable; dropping
@@ -1093,22 +1185,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case BINOP_CASES: {
         if (inlined_fits) return inlined;
-        binary_operands_t operands = BINARY_OPERANDS(ast);
-        const char *op = binop_info[ast->tag].operator;
-        Text_t lhs = fmt(operands.lhs, comments, indent);
-        Text_t rhs = fmt(operands.rhs, comments, indent);
-
-        if (is_update_assignment(ast)) {
-            return Texts(lhs, " ", Text$from_str(op), " ", rhs);
-        }
-
-        // See the inline case above for which operands keep their parentheses.
-        lhs = operand(lhs, operands.lhs, ast->tag, true, indent);
-        rhs = operand(rhs, operands.rhs, ast->tag, false, indent);
-
-        Text_t space =
-            (!is_word_operator(op) && op_tightness[ast->tag] >= op_tightness[Multiply]) ? EMPTY_TEXT : Text(" ");
-        return Texts(lhs, space, Text$from_str(binop_info[ast->tag].operator), space, rhs);
+        return format_binop(ast, comments, indent, mixes_operator_bands(ast));
     }
     /*multiline*/ case Use: {
         assert(inlined.length > 0);
