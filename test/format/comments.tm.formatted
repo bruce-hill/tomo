@@ -64,3 +64,27 @@ func after_a_block()
         66666666666666, 7777777777777,
     ] # after the list
     return xs.length
+
+enum E(A{q:Int}, B)
+
+func gaps(e:E)
+    # A comment written in a gap between the parts of one statement -- before
+    # an `else`, after a `match` subject, before a `case` -- belongs to no
+    # block, so nothing used to write it out. It takes a line of its own at the
+    # statement's level.
+    if yes
+        say("a")
+    # before else
+    else
+        say("b")
+
+    match e
+    # after the subject and before the first case
+    case A{q}
+        say("$q")
+    # before a later case
+    case B
+        say("b")
+    # before the else
+    else
+        say("other")

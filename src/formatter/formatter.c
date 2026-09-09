@@ -339,6 +339,16 @@ static Text_t format_subscript(ast_t *ast, Table_t comments, Text_t indent) {
     return format_code(ast, comments, indent);
 }
 
+// Comments written in a gap between the parts of a construct -- before an
+// `else`, before a `case` -- have no line of their own to sit at the end of,
+// so they take one at the construct's own level. Nothing else writes them out:
+// a block scans between its statements, but these gaps are between the clauses
+// of one statement, inside its span.
+static Text_t gap_comments(const char **pos, const char *end, Text_t indent, Table_t comments) {
+    Text_t found = comment_range(pos, end, indent, comments);
+    return found.length > 0 ? Texts("\n", indent, found) : EMPTY_TEXT;
+}
+
 // A negation whose operand is a numeric literal or another negation always
 // parenthesizes it: `-(1)`, `-(-1)`, `-(-(1))`. Written without the
 // parentheses, `- 1` and `- -1` read back as a single negative literal rather
@@ -769,6 +779,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
 
         code = Texts(code, "\n", indent, single_indent, body);
         if (if_->else_body) {
+            const char *gap = if_->body->end;
+            code = Texts(code, gap_comments(&gap, if_->else_body->start, indent, comments));
             if (if_->else_body->tag != If) {
                 code = Texts(code, "\n", indent, "else\n", indent, single_indent,
                              fmt(if_->else_body, comments, Texts(indent, single_indent)));
@@ -781,16 +793,23 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case Match: {
         DeclareMatch(match, ast, Match);
         Text_t code = Texts("match ", bounded(match->subject, comments, indent));
+        // A comment after the subject or before a `case` sits in a gap of this
+        // statement, which no block scans:
+        const char *gap = match->subject->end;
         for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
+            code = Texts(code, gap_comments(&gap, clause->pattern->start, indent, comments));
             code = Texts(code, "\n", indent, "case ", fmt(clause->pattern, comments, indent));
             while (clause->next && clause->next->body == clause->body) {
                 clause = clause->next;
                 code = Texts(code, ", ", fmt(clause->pattern, comments, indent));
             }
             code = Texts(code, format_namespace(clause->body, comments, indent));
+            gap = clause->body->end;
         }
-        if (match->else_body)
+        if (match->else_body) {
+            code = Texts(code, gap_comments(&gap, match->else_body->start, indent, comments));
             code = Texts(code, "\n", indent, "else", format_namespace(match->else_body, comments, indent));
+        }
         return code;
     }
     /*multiline*/ case Repeat: {
