@@ -88,3 +88,23 @@ func gaps(e:E)
     # before the else
     else
         say("other")
+
+func inside_expressions()
+    xs := [1, 2, 3]
+    # A comment written inside an expression stays where it was written. It can
+    # only follow an operator, never precede one: `a # c` and then `+ b` on the
+    # next line is not an expression the parser puts back together.
+    v := 1 + # after the operator
+        2
+    w := (
+        # after the open paren
+        1 + 2
+    )
+    y := (
+        1 + 2 # before the close paren
+    )
+    z := [
+        (x # between the expression and its `for`
+        for x in xs),
+    ]
+    return v + w + y + z.length

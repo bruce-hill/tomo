@@ -307,22 +307,48 @@ static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tigh
 static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int tighten_from) {
     binary_operands_t operands = BINARY_OPERANDS(ast);
     const char *op = binop_info[ast->tag].operator;
+    Text_t inner_indent = Texts(indent, single_indent);
+
+    // The three gaps this expression is answerable for: before its left
+    // operand, between the two, and after its right one. The outer two are
+    // empty unless the source parenthesized it, since only then does its span
+    // reach past its operands.
+    const char *pos = ast->start;
+    Text_t opening = comment_range(&pos, operands.lhs->start, inner_indent, comments);
+    pos = operands.lhs->end;
+    Text_t middle = comment_range(&pos, operands.rhs->start, inner_indent, comments);
+    pos = operands.rhs->end;
+    Text_t closing = comment_range(&pos, ast->end, inner_indent, comments);
+    bool parenthesized = opening.length > 0 || closing.length > 0;
+    Text_t operand_indent = parenthesized ? inner_indent : indent;
 
     Text_t lhs = shares_expression(operands.lhs, ast->tag, true)
-                     ? format_binop(operands.lhs, comments, indent, tighten_from)
-                     : fmt(operands.lhs, comments, indent);
+                     ? format_binop(operands.lhs, comments, operand_indent, tighten_from)
+                     : fmt(operands.lhs, comments, operand_indent);
     Text_t rhs = shares_expression(operands.rhs, ast->tag, false)
-                     ? format_binop(operands.rhs, comments, indent, tighten_from)
-                     : fmt(operands.rhs, comments, indent);
+                     ? format_binop(operands.rhs, comments, operand_indent, tighten_from)
+                     : fmt(operands.rhs, comments, operand_indent);
 
     if (is_update_assignment(ast)) return Texts(lhs, " ", Text$from_str(op), " ", rhs);
 
     // See format_binop_inline() above for which operands keep their parentheses.
-    lhs = operand(lhs, operands.lhs, ast->tag, true, indent);
-    rhs = operand(rhs, operands.rhs, ast->tag, false, indent);
+    lhs = operand(lhs, operands.lhs, ast->tag, true, operand_indent);
+    rhs = operand(rhs, operands.rhs, ast->tag, false, operand_indent);
 
     Text_t space = binop_spacing(ast, tighten_from);
-    return Texts(lhs, space, Text$from_str(op), space, rhs);
+    Text_t code = Texts(lhs, space, Text$from_str(op));
+    if (middle.length > 0) {
+        // A comment written by the operator stays by it. It can only follow
+        // the operator, never precede it: `a # c` and then `+ b` on the next
+        // line is not an expression the parser puts back together.
+        code = Texts(code, " ", middle, "\n", parenthesized ? inner_indent : Texts(indent, single_indent), rhs);
+    } else {
+        code = Texts(code, space, rhs);
+    }
+    if (closing.length > 0) code = Texts(code, " ", closing);
+    if (!parenthesized) return code;
+    if (opening.length > 0) code = Texts(opening, "\n", inner_indent, code);
+    return Texts("(\n", inner_indent, code, "\n", indent, ")");
 }
 
 // A subscript is written compactly, `arr[i+1]` rather than `arr[i + 1]`: the
@@ -850,12 +876,20 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         bool block_layout = Text$has(block_expr, Text("\n"));
         Text_t body_indent = block_layout ? inner_indent : indent;
 
+        // A comment written between the expression and its `for` belongs to
+        // this gap and to nothing else; it goes at the end of the expression's
+        // line, which the `for` then starts a new one after.
+        const char *gap = comp->expr->end;
+        Text_t before_for = comment_range(&gap, comp->vars ? comp->vars->ast->start : ast->end, body_indent, comments);
+
         Text_t code;
         if (block_layout) {
-            code = Texts("(\n", inner_indent, block_expr, "\n", inner_indent, "for ");
+            code = Texts("(\n", inner_indent, block_expr,
+                         before_for.length > 0 ? Texts(" ", before_for) : EMPTY_TEXT, "\n", inner_indent, "for ");
         } else {
             code = Texts("(", fmt(comp->expr, comments, indent));
-            if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "for ");
+            if (before_for.length > 0) code = Texts(code, " ", before_for, "\n", indent, "for ");
+            else if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "for ");
             else code = Texts(code, " for ");
         }
 
@@ -984,6 +1018,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             } else {
                 add_line(&code, Texts(item_text, comma), Texts(indent, single_indent));
             }
+            // Past the item, not merely up to where it started: what is
+            // written inside it is the item's own to place, and scanning it
+            // again here would write it a second time.
+            comment_pos = item->ast->end;
             prev = item->ast;
         }
         // A comment left over at the end goes on a line of its own: appended
@@ -1014,6 +1052,8 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             } else {
                 add_line(&code, Texts(entry_text, comma), Texts(indent, single_indent));
             }
+            // As with a list item above: the entry's interior is its own.
+            comment_pos = entry->ast->end;
         }
         // A comment left over at the end goes on a line of its own: appended
         // where the last item stopped, it ran onto the back of its comma.
