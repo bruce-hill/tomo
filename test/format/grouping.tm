@@ -39,6 +39,23 @@ func main()
     >> x*y _min_ x
     >> x _min_ y _max_ x
 
+# A comprehension written bare runs on: what follows it is read as another of
+# its iterables or as its filter. It can stay bare where the construct around
+# it ends right after it -- a container's last item, the whole of a reduction --
+# and needs parentheses everywhere else. Beside a later item it needs them to
+# keep its meaning at all: bare, the two below come back as one comprehension
+# nested inside another.
+func comprehensions(xs:[Int] -> Int)
+    a := (x for x in xs)
+    b := [x for x in xs]
+    c := [(x for x in xs), (x*2 for x in xs)]
+    d := [1, (x for x in xs), 99]
+    e := (+: x for x in xs) or 0
+    f := {x: x*2 for x in xs}
+    g := [x for x in y for y in [xs]]
+    >> [a, b, c, d, e, f, g]
+    return e
+
 func wide(c:Bool -> Int)
     # The same, when the sub-expression is too wide for one line: the block
     # form runs on exactly as the one-line form does, so a list's `,` and a

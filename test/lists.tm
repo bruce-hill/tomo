@@ -1,5 +1,15 @@
 struct Vec{x,y:Int}
 
+# A list literal can hold more than one comprehension, and each contributes its
+# own items. Written without parentheses the second one is swallowed by the
+# first -- `[x for x in xs, y for y in xs]` is a single comprehension nested in
+# another -- so the parentheses are what keep them apart.
+test "several comprehensions in one list"
+    xs := [1, 2, 3]
+    assert [(x for x in xs), (x*10 for x in xs)] == [1, 2, 3, 10, 20, 30]
+    assert [1, (x for x in xs), 99] == [1, 1, 2, 3, 99]
+    assert [(x for x in xs)] == xs
+
 test "empty list literal with type"
     >> nums : [Float32] = []
     assert nums == []

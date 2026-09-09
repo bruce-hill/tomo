@@ -584,6 +584,42 @@ PUREFUNC static bool negation_needs_parens(ast_t *operand) {
     return operand->tag == Int || operand->tag == Num || operand->tag == Negative;
 }
 
+// A comprehension without the parentheses that bound it.
+static OptionalText_t inline_comprehension_body(ast_t *ast, Table_t comments) {
+    DeclareMatch(comp, ast, Comprehension);
+    // The `for` that follows ends the comprehension inside it, so a nested one
+    // needs no parentheses either: `[x for x in y for y in ys]` is how the
+    // parser reads that shape back.
+    Text_t expr = comp->expr->tag == Comprehension ? must(inline_comprehension_body(comp->expr, comments))
+                                                   : fmt_inline(comp->expr, comments);
+    Text_t code = Texts(expr, " for ");
+    for (ast_list_t *var = comp->vars; var; var = var->next) {
+        code = Texts(code, fmt_inline(var->ast, comments));
+        if (var->next) code = Texts(code, ", ");
+    }
+    if (comp->at) code = Texts(code, " at ", fmt_inline(comp->at, comments));
+    code = Texts(code, " in ");
+    for (ast_list_t *iter = comp->iters; iter; iter = iter->next) {
+        code = Texts(code, fmt_inline(iter->ast, comments));
+        if (iter->next) code = Texts(code, ", ");
+    }
+    if (comp->filter) code = Texts(code, " if ", fmt_inline(comp->filter, comments));
+    return code;
+}
+
+// A comprehension written bare runs on: whatever follows it is read as another
+// of its iterables, or as its filter. So it can only be written that way where
+// the construct around it ends right after it -- as a container's last item,
+// `[x*2 for x in xs]`, or as the whole of a reduction, `(+: x for x in xs)`.
+//
+// Anywhere else it needs parentheses of its own, and beside a later item in the
+// same container it needs them badly: `[(a for a in xs), (b for b in xs)]` is a
+// list of two generators, and written bare it reads back as one comprehension
+// nested in another, with `b` swallowed into the outer one's iterables.
+PUREFUNC static bool ends_where_it_does(ast_list_t *item) {
+    return item->next == NULL && item->ast->tag == Comprehension;
+}
+
 OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
     // A block literal stays a block. Its one-line form is a different thing to
@@ -689,27 +725,14 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         if (loop->empty) code = Texts(code, " else ", fmt_inline(loop->empty, comments));
         return code;
     }
-    /*inline*/ case Comprehension: {
-        DeclareMatch(comp, ast, Comprehension);
-        Text_t code = Texts(fmt_inline(comp->expr, comments), " for ");
-        for (ast_list_t *var = comp->vars; var; var = var->next) {
-            code = Texts(code, fmt_inline(var->ast, comments));
-            if (var->next) code = Texts(code, ", ");
-        }
-        if (comp->at) code = Texts(code, " at ", fmt_inline(comp->at, comments));
-        code = Texts(code, " in ");
-        for (ast_list_t *iter = comp->iters; iter; iter = iter->next) {
-            code = Texts(code, fmt_inline(iter->ast, comments));
-            if (iter->next) code = Texts(code, ", ");
-        }
-        if (comp->filter) code = Texts(code, " if ", fmt_inline(comp->filter, comments));
-        return code;
-    }
+    /*inline*/ case Comprehension:
+        return Texts("(", must(inline_comprehension_body(ast, comments)), ")");
     /*inline*/ case List: {
         ast_list_t *items = Match(ast, List)->items;
         Text_t code = EMPTY_TEXT;
         for (ast_list_t *item = items; item; item = item->next) {
-            code = Texts(code, fmt_inline(item->ast, comments));
+            code = Texts(code, ends_where_it_does(item) ? must(inline_comprehension_body(item->ast, comments))
+                                                        : fmt_inline(item->ast, comments));
             if (item->next) code = Texts(code, ", ");
         }
         return Texts("[", code, "]");
@@ -718,7 +741,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
         DeclareMatch(table, ast, Table);
         Text_t code = EMPTY_TEXT;
         for (ast_list_t *entry = table->entries; entry; entry = entry->next) {
-            code = Texts(code, fmt_inline(entry->ast, comments));
+            code = Texts(code, ends_where_it_does(entry) ? must(inline_comprehension_body(entry->ast, comments))
+                                                         : fmt_inline(entry->ast, comments));
             if (entry->next) code = Texts(code, ", ");
         }
         if (table->fallback) code = Texts(code, "; fallback=", fmt_inline(table->fallback, comments));
@@ -841,12 +865,11 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
     /*inline*/ case Reduction: {
         DeclareMatch(reduction, ast, Reduction);
-        if (reduction->key) {
-            return Texts("(", fmt_inline(reduction->key, comments), ": ", fmt_inline(reduction->iter, comments), ")");
-        } else {
-            return Texts("(", Text$from_str(binop_info[reduction->op].operator), ": ",
-                         fmt_inline(reduction->iter, comments), ")");
-        }
+        Text_t iter = reduction->iter->tag == Comprehension ? must(inline_comprehension_body(reduction->iter, comments))
+                                                            : fmt_inline(reduction->iter, comments);
+        Text_t op =
+            reduction->key ? fmt_inline(reduction->key, comments) : Text$from_str(binop_info[reduction->op].operator);
+        return Texts("(", op, ": ", iter, ")");
     }
     /*inline*/ case None:
         return Text("none");
