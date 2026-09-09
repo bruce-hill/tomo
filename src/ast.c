@@ -151,6 +151,14 @@ Text_t ast_list_to_sexp(ast_list_t *asts) {
     return c;
 }
 
+// A `; name` flag written on a definition, for the s-expression below. These
+// are part of what the source says and have to appear in it: `tomo format
+// --verify` compares two of these to decide that formatting was faithful, and
+// what it cannot see it cannot check.
+static Text_t flag_sexp(const char *name, bool present) {
+    return present ? Texts(" :", name) : EMPTY_TEXT;
+}
+
 Text_t arg_defs_to_sexp(arg_ast_t *args) {
     Text_t c = Text("(args");
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
@@ -182,7 +190,8 @@ Text_t match_clauses_to_sexp(match_clause_t *clauses) {
 Text_t tags_to_sexp(tag_ast_t *tags) {
     Text_t c = EMPTY_TEXT;
     for (; tags; tags = tags->next) {
-        c = Texts(c, "(tag \"", tags->name, "\" ", arg_defs_to_sexp(tags->fields), ")");
+        c = Texts(c, "(tag \"", tags->name, "\"", flag_sexp("secret", tags->secret),
+                  flag_sexp("packed_bools", tags->packed_bools), " ", arg_defs_to_sexp(tags->fields), ")");
     }
     return c;
 }
@@ -202,7 +211,8 @@ Text_t type_ast_to_sexp(type_ast_t *t) {
         T(PointerTypeAST, "(PointerType \"", data.is_stack ? "stack" : "heap", "\" ", type_ast_to_sexp(data.pointed),
           ")");
         T(ListTypeAST, "(ListType ", type_ast_to_sexp(data.item), ")");
-        T(TableTypeAST, "(TableType ", type_ast_to_sexp(data.key), " ", type_ast_to_sexp(data.value), ")");
+        T(TableTypeAST, "(TableType ", type_ast_to_sexp(data.key), " ", type_ast_to_sexp(data.value),
+          data.default_value ? Texts(" :default ", ast_to_sexp(data.default_value)) : EMPTY_TEXT, ")");
         T(FunctionTypeAST, "(FunctionType ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret), ")");
         T(OptionalTypeAST, "(OptionalType ", type_ast_to_sexp(data.type), ")");
         T(EnumTypeAST, "(EnumType ", data.name, " ", tags_to_sexp(data.tags), ")");
@@ -237,7 +247,7 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Num, "(Num ", data.str ? quoted_text(data.str) : Text$from_str(number_to_symbolic(data.n)), ")");
         T(TextLiteral, Text$quoted(data.text, false, Text("\"")));
         T(TextJoin, "(Text", data.lang ? Texts(" :lang ", type_ast_to_sexp(data.lang)) : EMPTY_TEXT,
-          ast_list_to_sexp(data.children), ")");
+          flag_sexp("colorized", data.colorize), ast_list_to_sexp(data.children), ")");
         T(Path, "(Path ", quoted_text(data.path), ")");
         T(Embed, "(Embed ", ast_to_sexp(data.path), ")");
         T(Declare, "(Declare ", ast_to_sexp(data.var), " ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value),
@@ -296,11 +306,12 @@ Text_t ast_to_sexp(ast_t *ast) {
           ast_list_to_sexp(data.entries), ")");
         T(TableEntry, "(TableEntry ", ast_to_sexp(data.key), " ", ast_to_sexp(data.value), ")");
         T(Comprehension, "(Comprehension ", ast_to_sexp(data.expr), " (vars", ast_list_to_sexp(data.vars), ") (iters",
-          ast_list_to_sexp(data.iters), ") ", optional_sexp("filter", data.filter), ")");
+          ast_list_to_sexp(data.iters), ") ", optional_sexp("at", data.at), optional_sexp("filter", data.filter), ")");
         T(FunctionDef, "(FunctionDef ", ast_to_sexp(data.name), " ", arg_defs_to_sexp(data.args),
-          optional_type_sexp("return", data.ret_type), " ", ast_to_sexp(data.body), ")");
-        T(ConvertDef, "(ConvertDef ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret_type), " ",
-          ast_to_sexp(data.body), ")");
+          optional_type_sexp("return", data.ret_type), flag_sexp("inline", data.is_inline),
+          optional_sexp("cache", data.cache), " ", ast_to_sexp(data.body), ")");
+        T(ConvertDef, "(ConvertDef ", arg_defs_to_sexp(data.args), " ", type_ast_to_sexp(data.ret_type),
+          flag_sexp("inline", data.is_inline), optional_sexp("cache", data.cache), " ", ast_to_sexp(data.body), ")");
         T(Lambda, "(Lambda ", arg_defs_to_sexp(data.args), optional_type_sexp("return", data.ret_type), " ",
           ast_to_sexp(data.body), ")");
         T(FunctionCall, "(FunctionCall ", ast_to_sexp(data.fn), arg_list_to_sexp(data.args), ")");
@@ -309,7 +320,7 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(RecordLiteral, "(RecordLiteral ", ast_to_sexp(data.type), arg_list_to_sexp(data.args), ")");
         T(Block, "(Block", ast_list_to_sexp(data.statements), ")");
         T(For, "(For (vars", ast_list_to_sexp(data.vars), ") (iters", ast_list_to_sexp(data.iters), ") ",
-          ast_to_sexp(data.body), " ", ast_to_sexp(data.empty), ")");
+          optional_sexp("at", data.at), ast_to_sexp(data.body), " ", ast_to_sexp(data.empty), ")");
         T(While, "(While ", ast_to_sexp(data.condition), " ", ast_to_sexp(data.body), ")");
         T(Repeat, "(Repeat ", ast_to_sexp(data.body), ")");
         T(If, "(If ", ast_to_sexp(data.condition), " ", ast_to_sexp(data.body), optional_sexp("else", data.else_body),
@@ -323,8 +334,10 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Pass, "(Pass)");
         T(Defer, "(Defer ", ast_to_sexp(data.body), ")");
         T(Return, "(Return ", ast_to_sexp(data.value), ")");
-        T(StructDef, "(StructDef \"", data.name, "\" ", arg_defs_to_sexp(data.fields), " ", ast_to_sexp(data.namespace),
-          ")");
+        T(StructDef, "(StructDef \"", data.name, "\"", flag_sexp("secret", data.secret),
+          flag_sexp("external", data.external), flag_sexp("opaque", data.opaque),
+          flag_sexp("packed_bools", data.packed_bools), " ", arg_defs_to_sexp(data.fields), " ",
+          ast_to_sexp(data.namespace), ")");
         T(EnumDef, "(EnumDef \"", data.name, "\" (tags ", tags_to_sexp(data.tags), ") ", ast_to_sexp(data.namespace),
           ")");
         T(LangDef, "(LangDef \"", data.name, "\" ", ast_to_sexp(data.namespace), ")");

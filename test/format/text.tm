@@ -68,3 +68,11 @@ func wrapped_spaces()
     # escape it survives being read back.
     padded := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     >> padded.length
+
+func colorized_text(n:Int)
+    # `~colorized` renders an interpolated value in the colour its type is
+    # shown in, so dropping it changes what the program prints. It used to be
+    # dropped, and `--verify` called that faithful: the flag was not in the
+    # s-expression the two parse trees were compared as.
+    say("the value is $n"~colorized)
+    say($HTML"<p>$n</p>"~colorized)

@@ -242,6 +242,16 @@ static Text_t line_comment(const char **pos, ast_t *item, Text_t item_text, Text
     return Texts(" ", found);
 }
 
+// What a text literal wears on either side of its quotes: a language in front
+// of the opening one, and `~colorized` after the closing one. The suffix says
+// to render an interpolated value in the colour its type is shown in, so
+// dropping it changes what the program prints.
+static Text_t decorate_text(ast_t *ast, Text_t code) {
+    DeclareMatch(text, ast, TextJoin);
+    if (text->lang) code = Texts("$", format_type(text->lang), code);
+    return text->colorize ? Texts(code, "~colorized") : code;
+}
+
 static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, Table_t comments) {
     Text_t code = opts.quote;
     for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
@@ -1012,8 +1022,7 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case TextJoin: {
         text_opts_t opts = choose_text_options(Match(ast, TextJoin)->children);
         Text_t ret = must(format_inline_text(opts, Match(ast, TextJoin)->children, comments));
-        type_ast_t *lang = Match(ast, TextJoin)->lang;
-        return lang ? Texts("$", format_type(lang), ret) : ret;
+        return decorate_text(ast, ret);
     }
     /*inline*/ case InlineCCode: {
         DeclareMatch(c_code, ast, InlineCCode);
@@ -1518,8 +1527,7 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
             opts.unquote = Text("\"");
         }
         Text_t ret = format_text(opts, children, comments, indent);
-        type_ast_t *lang = Match(ast, TextJoin)->lang;
-        return lang ? Texts("$", format_type(lang), ret) : ret;
+        return decorate_text(ast, ret);
     }
     /*multiline*/ case InlineCCode: {
         DeclareMatch(c_code, ast, InlineCCode);
