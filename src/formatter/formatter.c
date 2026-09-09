@@ -345,17 +345,6 @@ PUREFUNC static bool is_bare_operand(ast_t *inner, ast_e outer_op, bool on_left)
     return absorbed && grouping_is_obvious(outer_op, inner);
 }
 
-// An operand keeps its parentheses unless it is written bare, which takes both
-// of the things is_bare_operand() asks. `dt / (d2 * x)` is not `dt / d2 * x`,
-// and `(2 ^ 3) ^ 2` is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are
-// the same. An `if`/`match` keeps them whatever the tightness: written bare it
-// runs on through the rest of the operator.
-static Text_t operand(Text_t code, ast_t *ast, ast_e outer_op, bool on_left, Text_t indent) {
-    if (ast->tag == If || ast->tag == Match || (is_operation(ast) && !is_bare_operand(ast, outer_op, on_left)))
-        return parenthesize(code, indent);
-    return code;
-}
-
 // The operators the two functions below render. `is_binary_operation()` is a
 // wider set: it takes in `_min_`/`_max_`, which carry a key (`a _min_.x b`)
 // and have a renderer of their own.
@@ -408,11 +397,31 @@ PUREFUNC static bool always_spaced(const char *op) {
 
 // The spaces around a binary operator. `^` never takes them: an exponent sits
 // against what it raises, `r^2`, however little else the expression holds.
-static Text_t binop_spacing(ast_t *ast, int tighten_from) {
-    const char *op = binop_info[ast->tag].operator;
+static Text_t binop_spacing(ast_e op_tag, int tighten_from) {
+    const char *op = binop_info[op_tag].operator;
     if (always_spaced(op)) return Text(" ");
-    bool tight = ast->tag == Power || op_tightness[ast->tag] >= tighten_from;
+    bool tight = op_tag == Power || op_tightness[op_tag] >= tighten_from;
     return tight ? EMPTY_TEXT : Text(" ");
+}
+
+// An operand keeps its parentheses unless it is written bare, which takes both
+// of the things is_bare_operand() asks. `dt / (d2 * x)` is not `dt / d2 * x`,
+// and `(2 ^ 3) ^ 2` is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are
+// the same. An `if`/`match` keeps them whatever the tightness: written bare it
+// runs on through the rest of the operator.
+static Text_t operand(Text_t code, ast_t *ast, ast_e outer_op, bool on_left, Text_t indent, int tighten_from) {
+    if (ast->tag == If || ast->tag == Match || (is_operation(ast) && !is_bare_operand(ast, outer_op, on_left)))
+        return parenthesize(code, indent);
+    // Spaces are a claim about grouping, so an operand that keeps its own
+    // inside an operator that has given them up contradicts the operator it
+    // belongs to: `a mod b/c` divides the modulus but reads as the modulus of
+    // a quotient. A word operator can't give its spaces up -- it would stop
+    // being a word -- so it takes parentheses instead, and `(a mod b)/c` says
+    // what the spacing was trying to.
+    if (is_binary_operation(ast) && binop_spacing(outer_op, tighten_from).length == 0
+        && binop_spacing(ast->tag, tighten_from).length > 0)
+        return parenthesize(code, indent);
+    return code;
 }
 
 // The spacing an expression's own operators call for, before anything the
@@ -464,10 +473,10 @@ static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tigh
     if (is_update_assignment(ast)) return Texts(lhs, " ", Text$from_str(op), " ", rhs);
 
     // See operand() above for which operands keep their parentheses.
-    lhs = operand(lhs, operands.lhs, ast->tag, true, EMPTY_TEXT);
-    rhs = operand(rhs, operands.rhs, ast->tag, false, EMPTY_TEXT);
+    lhs = operand(lhs, operands.lhs, ast->tag, true, EMPTY_TEXT, tighten_from);
+    rhs = operand(rhs, operands.rhs, ast->tag, false, EMPTY_TEXT, tighten_from);
 
-    Text_t space = binop_spacing(ast, tighten_from);
+    Text_t space = binop_spacing(ast->tag, tighten_from);
     return Texts(lhs, space, Text$from_str(op), space, rhs);
 }
 
@@ -496,7 +505,7 @@ static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int64_t 
                      : fmt_at(operands.lhs, comments, operand_indent, lhs_column);
     // The operator and the spaces around it sit between the two operands.
     int64_t rhs_column =
-        column_after(lhs_column, lhs) + (int64_t)strlen(op) + 2 * binop_spacing(ast, tighten_from).length;
+        column_after(lhs_column, lhs) + (int64_t)strlen(op) + 2 * binop_spacing(ast->tag, tighten_from).length;
     Text_t rhs = shares_expression(operands.rhs, ast->tag, false)
                      ? format_binop(operands.rhs, comments, operand_indent, rhs_column, tighten_from)
                      : fmt_at(operands.rhs, comments, operand_indent, rhs_column);
@@ -504,10 +513,10 @@ static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int64_t 
     if (is_update_assignment(ast)) return Texts(lhs, " ", Text$from_str(op), " ", rhs);
 
     // See format_binop_inline() above for which operands keep their parentheses.
-    lhs = operand(lhs, operands.lhs, ast->tag, true, operand_indent);
-    rhs = operand(rhs, operands.rhs, ast->tag, false, operand_indent);
+    lhs = operand(lhs, operands.lhs, ast->tag, true, operand_indent, tighten_from);
+    rhs = operand(rhs, operands.rhs, ast->tag, false, operand_indent, tighten_from);
 
-    Text_t space = binop_spacing(ast, tighten_from);
+    Text_t space = binop_spacing(ast->tag, tighten_from);
     Text_t code = Texts(lhs, space, Text$from_str(op));
     if (middle.length > 0) {
         // A comment written by the operator stays by it. It can only follow
@@ -802,8 +811,8 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     /*inline*/ case Max: {
         ast_t *lhs_ast = ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs;
         ast_t *rhs_ast = ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs;
-        Text_t lhs = operand(fmt_inline(lhs_ast, comments), lhs_ast, ast->tag, true, EMPTY_TEXT);
-        Text_t rhs = operand(fmt_inline(rhs_ast, comments), rhs_ast, ast->tag, false, EMPTY_TEXT);
+        Text_t lhs = operand(fmt_inline(lhs_ast, comments), lhs_ast, ast->tag, true, EMPTY_TEXT, TIGHTEN_NONE);
+        Text_t rhs = operand(fmt_inline(rhs_ast, comments), rhs_ast, ast->tag, false, EMPTY_TEXT, TIGHTEN_NONE);
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
         // The keyed form (`a _min_.x b`) needs its spaces just as much as the
         // plain one; without them it ran together as `a_min_.xb`.
@@ -1379,13 +1388,13 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
         if (inlined_fits) return inlined;
         ast_t *lhs_ast = ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs;
         ast_t *rhs_ast = ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs;
-        Text_t lhs = operand(fmt_at(lhs_ast, comments, indent, column), lhs_ast, ast->tag, true, indent);
+        Text_t lhs = operand(fmt_at(lhs_ast, comments, indent, column), lhs_ast, ast->tag, true, indent, TIGHTEN_NONE);
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
         Text_t op = key ? fmt_at(key, comments, indent, column_after(column, lhs) + 1)
                         : (ast->tag == Min ? Text("_min_") : Text("_max_"));
         Text_t before_rhs = Texts(lhs, " ", op, " ");
         Text_t rhs = operand(fmt_at(rhs_ast, comments, indent, column_after(column, before_rhs)), rhs_ast, ast->tag,
-                             false, indent);
+                             false, indent, TIGHTEN_NONE);
         return Texts(before_rhs, rhs);
     }
     /*multiline*/ case Reduction: {
