@@ -40,3 +40,23 @@ func main()
     # Parentheses start a fresh expression with its own answer:
     >> (x + y) * z
     >> x * (y + z)
+
+    # An operator that is a word keeps its spaces wherever it stands, or it
+    # stops being a word: `aandb` is one identifier, and `(x + y)mod3` does not
+    # parse. A subscript, which drops them from everything else, is the place
+    # that would go wrong first.
+    >> arr[x and y]
+    >> arr[x or y]
+    >> arr[x xor y]
+    >> arr[x mod y]
+    >> arr[x mod1 y]
+    >> arr[x _min_ y]
+    >> arr[x _max_ y]
+    >> arr[x+y and y]
+    >> x + y mod 3
+    >> (x and y)^2
+
+    # `!=` keeps them for the same reason: `a!=b` reads as the `!` suffix on
+    # `a`, followed by `= b`.
+    >> arr[x != y]
+    >> arr[x+y != y]

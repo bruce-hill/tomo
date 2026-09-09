@@ -244,12 +244,19 @@ PUREFUNC static bool mixes_operator_bands(ast_t *ast) {
 #define TIGHTEN_NONE (INT_MAX)
 #define TIGHTEN_ALL (0)
 
-// The spaces around a binary operator. A word operator always keeps them:
-// `(x + y)mod3` is not parseable code. `^` never does: an exponent sits
+// Operators that can never be written without spaces, whatever the expression
+// around them: a word operator would stop being a word (`(x + y)mod3` is not
+// parseable code), and `!=` would run into the `!` suffix to its left, where
+// `a!=b` reads as `a!` followed by `= b`.
+PUREFUNC static bool always_spaced(const char *op) {
+    return is_word_operator(op) || op[0] == '!';
+}
+
+// The spaces around a binary operator. `^` never takes them: an exponent sits
 // against what it raises, `r^2`, however little else the expression holds.
 static Text_t binop_spacing(ast_t *ast, int tighten_from) {
     const char *op = binop_info[ast->tag].operator;
-    if (is_word_operator(op)) return Text(" ");
+    if (always_spaced(op)) return Text(" ");
     bool tight = ast->tag == Power || op_tightness[ast->tag] >= tighten_from;
     return tight ? EMPTY_TEXT : Text(" ");
 }
