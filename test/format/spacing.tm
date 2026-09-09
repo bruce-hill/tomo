@@ -1,6 +1,7 @@
 # The spaces around a binary operator say where an expression splits, so they
 # are kept -- except in the `*` band of an expression that also holds a `+`
-# band operator, where dropping them is what shows the split. `^` never takes
+# band operator, where dropping them is what shows the split, or of one that
+# holds a division, a quotient being written as one quantity. `^` never takes
 # them, and a subscript takes none at all: the brackets already bound it.
 
 func foo(v:Int -> Int)
@@ -13,16 +14,26 @@ func main()
     r := 2.0
     arr := [1, 2, 3]
 
-    # One band, so the spaces stay:
+    # One band and no division, so the spaces stay:
     >> x + y
     >> x * y
-    >> 100 / 10 / 2
     >> x == y * z
 
-    # Both, so the tighter one gives them up:
+    # Both bands, so the tighter one gives them up:
     >> x + y*z
     >> foo(x + y*z)
     >> x*(y + z)//2 + x + 1
+
+    # A division does the same on its own, and takes the rest of its band
+    # with it: spaces are a claim about grouping, and `x * y/z` would say
+    # this multiplies the quotient rather than dividing the product.
+    >> 100 / 10 / 2
+    >> x / y
+    >> x * y / z
+    >> x / y == z
+    >> x + y / z
+    >> x // y
+    >> foo(x)/foo(y)
 
     # A subscript is written compactly, whatever it holds:
     >> arr[x+1]

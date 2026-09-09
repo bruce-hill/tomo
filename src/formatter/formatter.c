@@ -366,34 +366,29 @@ PUREFUNC static bool is_binop_case(ast_t *ast) {
     }
 }
 
-// Whether an expression mixes the `+` band with the `*` band. When it does,
-// the tighter band is written without spaces, so that the operator the
-// expression actually splits on is the one the eye lands on: `x + y*z`. When
-// it doesn't, every operator keeps its spaces, so a lone `x * y` reads as one.
-//
-// Only the `+` band triggers it, not merely anything looser: `a == b * c` and
-// `2 ^ 3 ^ 2 == 512` keep their spaces, which is both what gofmt does with the
-// same shapes and how they are written in this tree.
+// What an expression holds, for the purpose of deciding its spacing.
+typedef struct {
+    bool has_add; // An operator of the `+` band
+    bool has_mul; // An operator of the `*` band
+    bool has_div; // A division, which is one of the `*` band as well
+} operator_bands_t;
+
+// Which bands an expression's own operators fall into.
 //
 // Parentheses start a fresh expression with its own answer, so the walk stops
 // at any operand that is written with them.
-static void scan_operator_bands(ast_t *ast, bool *has_add, bool *has_mul) {
+static void scan_operator_bands(ast_t *ast, operator_bands_t *bands) {
     if (!is_binop_case(ast) || is_update_assignment(ast)) return;
     int tightness = op_tightness[ast->tag];
-    if (tightness == op_tightness[Plus] || tightness == op_tightness[Concat]) *has_add = true;
-    else if (tightness >= op_tightness[Multiply]) *has_mul = true;
+    if (tightness == op_tightness[Plus] || tightness == op_tightness[Concat]) bands->has_add = true;
+    else if (tightness >= op_tightness[Multiply]) bands->has_mul = true;
+    if (ast->tag == Divide || ast->tag == FloorDivide) bands->has_div = true;
 
     binary_operands_t operands = BINARY_OPERANDS(ast);
     if (is_binop_case(operands.lhs) && is_bare_operand(operands.lhs, ast->tag, true))
-        scan_operator_bands(operands.lhs, has_add, has_mul);
+        scan_operator_bands(operands.lhs, bands);
     if (is_binop_case(operands.rhs) && is_bare_operand(operands.rhs, ast->tag, false))
-        scan_operator_bands(operands.rhs, has_add, has_mul);
-}
-
-PUREFUNC static bool mixes_operator_bands(ast_t *ast) {
-    bool has_add = false, has_mul = false;
-    scan_operator_bands(ast, &has_add, &has_mul);
-    return has_add && has_mul;
+        scan_operator_bands(operands.rhs, bands);
 }
 
 // How tightly an operator has to bind to lose its spaces. An expression that
@@ -422,8 +417,24 @@ static Text_t binop_spacing(ast_t *ast, int tighten_from) {
 
 // The spacing an expression's own operators call for, before anything the
 // surrounding syntax has to say about it.
+//
+// The `*` band loses its spaces when the expression mixes it with the `+`
+// band, so that the operator the expression actually splits on is the one the
+// eye lands on: `x + y*z`. Only the `+` band triggers that, not merely
+// anything looser: `a == b * c` and `2 ^ 3 ^ 2 == 512` keep their spaces,
+// which is both what gofmt does with the same shapes and how they are written
+// in this tree.
+//
+// A division loses them whatever it sits among, because a quotient is written
+// as one quantity everywhere else it is written at all: `1/3` is a number to
+// read, `1 / 3` is a sum to work out. That takes the whole band with it,
+// spaces being a claim about grouping: `a*b/c` divides the product, and
+// `a * b/c` would say it multiplies the quotient.
 PUREFUNC static int expression_spacing(ast_t *ast) {
-    return mixes_operator_bands(ast) ? TIGHTEN_MIXED : TIGHTEN_NONE;
+    operator_bands_t bands = {};
+    scan_operator_bands(ast, &bands);
+    bool tighten = bands.has_div || (bands.has_add && bands.has_mul);
+    return tighten ? TIGHTEN_MIXED : TIGHTEN_NONE;
 }
 
 // Whether this operand is part of the same expression as the operator above
