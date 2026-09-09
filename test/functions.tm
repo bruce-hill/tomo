@@ -34,9 +34,9 @@ test "basic function call"
     >> add(3, 5)
     assert add(3, 5) == 8
 
-# Two flags are separated by a comma. Written `; cached; inline` -- which is
-# what the formatter used to emit for this -- it doesn't parse.
-func cached_and_inline(x:Int -> Int; cached, inline)
+# Each flag is its own `;` clause. A comma between two of them is rejected: the
+# commas above separate the parameters, and a flag is not one more parameter.
+func cached_and_inline(x:Int -> Int; cached; inline)
     return x + 1
 
 test "two flags at once"

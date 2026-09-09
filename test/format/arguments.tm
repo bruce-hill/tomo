@@ -20,7 +20,7 @@ func lengthy(first_argument, second_argument:Int, third_argument:Text, fourth_ar
 func on_the_suffix(arg1:Int, arg2:Int, arg3:Int, arg4:Int, arg5:Int, arg6:Int, arg7:Int, arg8:Int -> {Text:[Int]})
     return {}
 
-func flagged(arg1xx:Int, arg2:Int, arg3:Int, arg4:Int, arg5:Int, arg6:Int, arg7:Int, arg8:Int -> Int; inline)
+func flagged(arg1xx:Int, arg2:Int, arg3:Int, arg4:Int, arg5:Int, arg6:Int, arg7:Int, arg8:Int -> Int; inline; cached)
     return arg2
 
 convert (arg1xxxxxxxx:Int, arg2:Int, arg3:Int, arg4:Int, arg5:Int, arg6:Int, arg7:Int, arg8:Int -> Text)

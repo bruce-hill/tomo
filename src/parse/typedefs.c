@@ -57,28 +57,23 @@ ast_t *parse_struct_def(parse_ctx_t *ctx, const char *pos) {
 
     arg_ast_t *fields = parse_args(ctx, &pos);
 
-    whitespace(ctx, &pos);
     bool secret = false, external = false, opaque = false, packed_bools = false;
-    if (match(&pos, ";")) { // Extra flags
-        whitespace(ctx, &pos);
-        for (;;) {
-            if (match_word(&pos, "secret")) {
-                secret = true;
-            } else if (match_word(&pos, "packed_bools")) {
-                packed_bools = true;
-            } else if (match_word(&pos, "external")) {
-                external = true;
-            } else if (match_word(&pos, "opaque")) {
-                if (fields)
-                    parser_err(ctx, pos - strlen("opaque"), pos, "A struct can't be opaque if it has fields defined");
-                opaque = true;
-            } else {
-                break;
-            }
-
-            if (!match_separator(ctx, &pos)) break;
+    for (bool in_flags = false; match_flag_separator(ctx, &pos, in_flags); in_flags = true) {
+        if (match_word(&pos, "secret")) {
+            secret = true;
+        } else if (match_word(&pos, "packed_bools")) {
+            packed_bools = true;
+        } else if (match_word(&pos, "external")) {
+            external = true;
+        } else if (match_word(&pos, "opaque")) {
+            if (fields)
+                parser_err(ctx, pos - strlen("opaque"), pos, "A struct can't be opaque if it has fields defined");
+            opaque = true;
+        } else {
+            break;
         }
     }
+    whitespace(ctx, &pos);
 
     expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this struct");
 
@@ -125,16 +120,12 @@ ast_t *parse_enum_def(parse_ctx_t *ctx, const char *pos) {
         if (match(&pos, "{")) {
             whitespace(ctx, &pos);
             fields = parse_args(ctx, &pos);
-            whitespace(ctx, &pos);
-            if (match(&pos, ";")) { // Extra flags
-                whitespace(ctx, &pos);
-                do {
-                    if (match_word(&pos, "secret")) secret = true;
-                    else if (match_word(&pos, "packed_bools")) packed_bools = true;
-                    else break;
-                } while (match_separator(ctx, &pos));
-                whitespace(ctx, &pos);
+            for (bool in_flags = false; match_flag_separator(ctx, &pos, in_flags); in_flags = true) {
+                if (match_word(&pos, "secret")) secret = true;
+                else if (match_word(&pos, "packed_bools")) packed_bools = true;
+                else break;
             }
+            whitespace(ctx, &pos);
             expect_closing(ctx, &pos, "}", "I wasn't able to parse the rest of this tagged union member");
         } else {
             fields = NULL;

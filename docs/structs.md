@@ -65,6 +65,10 @@ p := &flags.a       # Compile error: no address to point at
 p := &flags         # Point at the whole struct instead
 ```
 
+A struct's flags are each their own `;` clause, so one with two of them is
+written `struct Flags{a:Bool, b:Bool; secret; packed_bools}`.
+
+
 Only `Bool` and `Bool?` fields are affected. Every other field keeps its natural
 size and alignment, so mixing them in costs nothing:
 

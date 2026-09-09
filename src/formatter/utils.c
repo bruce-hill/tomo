@@ -15,9 +15,17 @@
 
 const Text_t single_indent = Text("    ");
 
-void add_flag(Text_t *flags, bool present, const char *name) {
+void add_flag(flag_list_t *flags, bool present, Text_t name) {
     if (!present) return;
-    *flags = Texts(*flags, flag_separator(*flags), name);
+    assert(flags->count < (int)(sizeof(flags->items) / sizeof(flags->items[0])));
+    flags->items[flags->count++] = name;
+}
+
+Text_t inline_flags(flag_list_t flags) {
+    Text_t code = EMPTY_TEXT;
+    for (int i = 0; i < flags.count; i++)
+        code = Texts(code, "; ", flags.items[i]);
+    return code;
 }
 
 void add_line(Text_t *code, Text_t line, Text_t indent) {

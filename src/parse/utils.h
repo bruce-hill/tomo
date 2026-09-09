@@ -29,6 +29,7 @@ bool is_xid_start_next(const char *pos);
 bool is_xid_continue_next(const char *pos);
 bool newline_with_indentation(const char **out, int64_t target);
 bool match_separator(parse_ctx_t *ctx, const char **pos);
+bool match_flag_separator(parse_ctx_t *ctx, const char **pos, bool in_flags);
 
 // Zig's libc strspn()/strcspn() measure the *whole* string with strlen() before
 // matching anything, to turn the null-terminated pointers into slices. On a

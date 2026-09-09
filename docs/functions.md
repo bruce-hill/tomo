@@ -68,6 +68,14 @@ func add(x, y:Int -> Int; cached)
     return x + y
 ```
 
+Attributes are written one `;` clause each, so a function that takes more than
+one lists them like this:
+
+```tomo
+func add(x, y:Int -> Int; inline; cache_size=100)
+    return x + y
+```
+
 Cached functions are outwardly identical to uncached functions, but internally,
 they maintain a table that maps a struct containing the input arguments to the
 return value for those arguments. The above example is functionally similar to

@@ -206,7 +206,7 @@ ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
     whitespace(ctx, &pos);
     bool is_inline = false;
     ast_t *cache_ast = NULL;
-    for (bool specials = match(&pos, ";"); specials; specials = match_separator(ctx, &pos)) {
+    for (bool in_flags = false; match_flag_separator(ctx, &pos, in_flags); in_flags = true) {
         const char *flag_start = pos;
         if (match_word(&pos, "inline")) {
             is_inline = true;
@@ -219,6 +219,7 @@ ast_t *parse_func_def(parse_ctx_t *ctx, const char *pos) {
             cache_ast = expect(ctx, start, &pos, parse_expr, "I expected a maximum size for the cache");
         }
     }
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function definition");
 
     catch_common_errors_after_parens(ctx, start, pos, ret_type, false);
@@ -242,7 +243,7 @@ ast_t *parse_convert_def(parse_ctx_t *ctx, const char *pos) {
     whitespace(ctx, &pos);
     bool is_inline = false;
     ast_t *cache_ast = NULL;
-    for (bool specials = match(&pos, ";"); specials; specials = match_separator(ctx, &pos)) {
+    for (bool in_flags = false; match_flag_separator(ctx, &pos, in_flags); in_flags = true) {
         const char *flag_start = pos;
         if (match_word(&pos, "inline")) {
             is_inline = true;
@@ -255,6 +256,7 @@ ast_t *parse_convert_def(parse_ctx_t *ctx, const char *pos) {
             cache_ast = expect(ctx, start, &pos, parse_expr, "I expected a maximum size for the cache");
         }
     }
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, ")", "I wasn't able to parse the rest of this function definition");
 
     catch_common_errors_after_parens(ctx, start, pos, ret_type, false);

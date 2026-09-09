@@ -47,6 +47,7 @@ func flagged(
     arg8:Int,
     -> Int
     ; inline
+    ; cached
 )
     return arg2
 

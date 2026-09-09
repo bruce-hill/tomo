@@ -21,16 +21,18 @@ extern const Text_t single_indent;
 
 void add_line(Text_t *code, Text_t line, Text_t indent);
 
-// What stands in front of the next flag in a `; secret, packed_bools` list: the
-// `;` that opens the list, or the `,` that continues it. A second `;` is not a
-// separator the parser knows, so a flag list built by appending `"; name"` for
-// each flag comes out unparseable as soon as there are two.
-PUREFUNC static inline Text_t flag_separator(Text_t flags) {
-    return flags.length > 0 ? Text(", ") : Text("; ");
-}
+// The flags a definition can carry after its fields. Each is written as its own
+// `; name` clause -- that is what the parser separates them by -- so they are
+// held apart here rather than joined into one text: wrapped, each gets a line.
+typedef struct {
+    Text_t items[4];
+    int count;
+} flag_list_t;
 
-// Appends one of those flags, if it is set at all.
-void add_flag(Text_t *flags, bool present, const char *name);
+void add_flag(flag_list_t *flags, bool present, Text_t name);
+
+// All of them on one line, `; a; b`.
+Text_t inline_flags(flag_list_t flags);
 OptionalText_t next_comment(Table_t comments, const char **pos, const char *end);
 bool range_has_comment(const char *start, const char *end, Table_t comments);
 PUREFUNC int suggested_blank_lines(ast_t *first, ast_t *second);

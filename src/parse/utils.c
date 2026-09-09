@@ -294,6 +294,25 @@ const char *unescape(parse_ctx_t *ctx, const char **out, size_t *len_out) {
 }
 #pragma clang diagnostic pop
 
+// Flags after a field or parameter list are written one `; name` clause each:
+// `; cached; inline`, never `; cached, inline`. Commas separate the fields
+// above them, and a flag is not one more field. Newlines before the `;` are
+// fine, which is what lets each clause have a line of its own.
+//
+// `in_flags` says whether a flag has already been read: a comma before the
+// first one is somebody's trailing comma in the list above, not a flag
+// separator, and belongs to whatever error that turns into.
+bool match_flag_separator(parse_ctx_t *ctx, const char **pos, bool in_flags) {
+    const char *p = *pos;
+    whitespace(ctx, &p);
+    if (in_flags && match(&p, ","))
+        parser_err(ctx, *pos, p, "Flags are separated by ';', so this comma should be a semicolon");
+    if (!match(&p, ";")) return false;
+    whitespace(ctx, &p);
+    *pos = p;
+    return true;
+}
+
 bool match_separator(parse_ctx_t *ctx, const char **pos) { // Either comma or newline
     const char *p = *pos;
     int separators = 0;

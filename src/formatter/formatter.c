@@ -99,17 +99,17 @@ static Text_t quoted_label(const char *label) {
 // The cache flag is written `cached` or `cache_size=N`; a bare `cached` parses
 // to the sentinel size -1. There is no `cache=` flag: emitting one lost the
 // caching entirely and left a function definition that didn't parse.
-static Text_t signature_flags(ast_t *cache, bool is_inline, Table_t comments, Text_t indent) {
-    Text_t flags = EMPTY_TEXT;
-    add_flag(&flags, is_inline, "inline");
+static flag_list_t signature_flags(ast_t *cache, bool is_inline, Table_t comments, Text_t indent) {
+    flag_list_t flags = {};
+    add_flag(&flags, is_inline, Text("inline"));
     if (cache) {
         if (cache->tag == Int && Int$equal_value(Match(cache, Int)->i, I_small(-1))) {
-            add_flag(&flags, true, "cached");
+            add_flag(&flags, true, Text("cached"));
         } else {
-            // Measured from the inner indent, the line of its own that the flag
-            // list gets whenever the arguments above it wrap.
-            int64_t column = (int64_t)(indent.length + single_indent.length) + flags.length;
-            flags = Texts(flags, flag_separator(flags), "cache_size=", fmt_at(cache, comments, indent, column + 11));
+            // Measured from the inner indent, the line of its own that this
+            // flag gets whenever the arguments above it wrap.
+            int64_t column = (int64_t)(indent.length + single_indent.length);
+            add_flag(&flags, true, Texts("cache_size=", fmt_at(cache, comments, indent, column + 13)));
         }
     }
     return flags;
@@ -118,7 +118,7 @@ static Text_t signature_flags(ast_t *cache, bool is_inline, Table_t comments, Te
 static Text_t format_signature(arg_ast_t *args, type_ast_t *ret_type, ast_t *cache, bool is_inline, Table_t comments,
                                Text_t indent, int64_t column) {
     Text_t ret_code = ret_type ? Texts("-> ", format_type(ret_type)) : EMPTY_TEXT;
-    Text_t flags = signature_flags(cache, is_inline, comments, indent);
+    flag_list_t flags = signature_flags(cache, is_inline, comments, indent);
     return format_bracketed_args(args, ret_code, flags, comments, indent, column, "(", ")");
 }
 
@@ -1125,11 +1125,11 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     }
     /*multiline*/ case StructDef: {
         DeclareMatch(def, ast, StructDef);
-        Text_t flags = EMPTY_TEXT;
-        add_flag(&flags, def->secret, "secret");
-        add_flag(&flags, def->packed_bools, "packed_bools");
-        add_flag(&flags, def->external, "external");
-        add_flag(&flags, def->opaque, "opaque");
+        flag_list_t flags = {};
+        add_flag(&flags, def->secret, Text("secret"));
+        add_flag(&flags, def->packed_bools, Text("packed_bools"));
+        add_flag(&flags, def->external, Text("external"));
+        add_flag(&flags, def->opaque, Text("opaque"));
         Text_t code = Texts("struct ", Text$from_str(def->name));
         code = Texts(code, format_bracketed_args(def->fields, EMPTY_TEXT, flags, comments, indent,
                                                  column_after(column, code), "{", "}"));

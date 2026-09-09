@@ -16,7 +16,7 @@ struct Straddle{b1:Bool, b2:Bool, b3:Bool, b4:Bool, b5:Bool, b6:Bool, b7:Bool, o
 
 struct Mixed{a:Bool, n:Int32, b:Bool?, c:Bool, t:Text, d:Bool; packed_bools}
 
-struct Secretive{a:Bool, b:Bool; secret, packed_bools}
+struct Secretive{a:Bool, b:Bool; secret; packed_bools}
 
 # Same fields as the packed structs above, for measuring against:
 struct LooseMaybes{a:Bool?, b:Bool?, c:Bool?, d:Bool?, e:Bool?}
