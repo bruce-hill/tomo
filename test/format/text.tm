@@ -1,6 +1,6 @@
 # Layout choices the formatter makes for text literals. `tomo format --verify`
-# compares syntax trees, and the two multi-line layouts below parse to the same
-# tree as each other and as a one-line literal, so it can't see the difference
+# compares syntax trees, and every layout below parses to the same tree as a
+# one-line literal holding the same text, so it can't see the difference
 # between them. The snapshot beside this file pins the layout itself.
 
 func main()
@@ -39,23 +39,24 @@ func main()
     "
     # A line split -- text starting right after the quote, continued by two or
     # more dots at the literal's own indentation -- has no line breaks of its
-    # own, so it is rejoined when it fits:
+    # own, so it is rejoined when it fits on one line:
     rejoined := "this is a long line
     .... that was split in code"
-    # ...and split again when it doesn't. The dots fill an indent's width, so
-    # the continued text lines up with where a block's text would sit:
+    # ...and becomes a block when it doesn't, so that its text starts at a
+    # column of its own rather than wherever the quote happened to land:
     long := "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    # A break is never placed right before a dot, which the `..` marker would
-    # swallow:
+    # Text too wide for the page is continued with dots filling an indent's
+    # width, so it lines up with the line above. A break is never placed right
+    # before a dot, which the `..` marker would swallow:
     dotted := "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB........BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-    # A long line inside a block is continued the same way:
-    block_split := "
-        one
-        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-    "
+    # A run of dots long enough to need breaking can't stay bare: the marker
+    # would swallow the ones it landed in front of. The first dot of a
+    # continued line is written escaped so that it survives:
+    all_dots := "......................................................................................................................................................"
     # An interpolation is written as one piece, so a break lands beside it,
     # never inside:
     interpolated := "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB$(n + 1)BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
     assert n > 0 and lines.length == 2
     assert block != joined and blank_first != rejoined
-    assert long != dotted and block_split != interpolated
+    assert long != dotted and dotted != interpolated
+    assert all_dots.length == 150

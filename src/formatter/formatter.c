@@ -64,12 +64,12 @@ PUREFUNC text_opts_t choose_text_options(ast_list_t *chunks) {
     return opts;
 }
 
-// Which of the two multi-line layouts the author wrote. A block's opening quote
-// is alone on its line and its line breaks belong to the text; a line split
-// starts its text right after the quote and its breaks are only there to keep
-// the code narrow, so a split one is free to be rejoined and broken elsewhere.
-// The quote is found rather than taken from the node's start, which sits
-// before the `$Lang` or `C_code:` a literal can be introduced by.
+// Whether the author wrote this literal as a block: opening quote alone on its
+// line, text indented beneath it. A block's line breaks belong to its text, so
+// it keeps them. The other multi-line layout, a line split, starts its text
+// right after the quote and its breaks mean nothing, so it is free to be
+// rejoined. The quote is found rather than taken from the node's start, which
+// sits before the `$Lang` or `C_code:` a literal can be introduced by.
 PUREFUNC static bool is_block_text(ast_t *ast) {
     const char *p = ast->start + strcspn(ast->start, "\"'`");
     char quote = *p;
@@ -78,15 +78,6 @@ PUREFUNC static bool is_block_text(ast_t *ast) {
         if (*p == '\n') return true;
         if (*p != ' ' && *p != '\t' && *p != '\r') return false;
     }
-}
-
-// Verbatim text has no escape for a newline, so a literal holding one can only
-// be written as a block, whichever way its author wrote it.
-PUREFUNC static bool holds_newline(ast_list_t *chunks) {
-    for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
-        if (chunk->ast->tag == TextLiteral && Text$has(Match(chunk->ast, TextLiteral)->text, Text("\n"))) return true;
-    }
-    return false;
 }
 
 // Word operators (`mod`, `and`, `_min_`, ...) always need surrounding spaces,
@@ -177,6 +168,7 @@ typedef struct {
     Text_t indent; // the indentation the literal itself sits at
     Text_t marker; // what stands between that indentation and `line`
     bool own_line; // false for the text that follows the opening quote
+    bool verbatim; // whether this text can hold a backslash escape at all
 } text_wrap_t;
 
 // What stands before `line` on the page. Text sharing the opening quote's line
@@ -197,32 +189,38 @@ static void end_line(text_wrap_t *w, Text_t marker) {
 }
 
 static void append_atom(text_wrap_t *w, Text_t atom) {
-    // A break placed right before a dot would be eaten by the `..` that marks
-    // the continuation, taking the dot with it, so the atoms of a run of dots
-    // stay on the line they started on.
-    if (w->line.length > 0 && w->indent.length + w->marker.length + w->line.length + atom.length > MAX_WIDTH
-        && !Text$starts_with(atom, Text("."), NULL))
-        end_line(w, continuation_marker);
+    if (w->line.length > 0 && w->indent.length + w->marker.length + w->line.length + atom.length > MAX_WIDTH) {
+        // Every dot at the front of a continued line belongs to the `..` that
+        // marks it, so a dot of the text's own has to be written escaped to
+        // survive there. Verbatim text has no escapes, and a run of dots in it
+        // simply can't be broken -- it stays on the line it started on.
+        bool needs_escape = Text$starts_with(atom, Text("."), NULL);
+        if (!needs_escape || !w->verbatim) {
+            end_line(w, continuation_marker);
+            if (needs_escape) atom = Texts("\\", atom);
+        }
+    }
     w->line = Texts(w->line, atom);
 }
 
-// `block` writes the literal the way its author did: as a block, whose opening
-// quote is alone on its line and whose line breaks are the text's own, or as a
-// line split, whose text starts right after the quote and whose breaks mean
-// nothing and so have to keep the text's own newlines escaped.
-static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments, Text_t indent, bool block) {
-    // A split line is closed by a quote at the literal's own indentation, so a
-    // quote in the text would close it early and has to be escaped. A block's
-    // text sits deeper than that and can hold quotes as they are.
-    Text_t escapes = block ? opts.interp : Texts(opts.unquote, opts.interp);
-    text_wrap_t w = {.indent = indent, .marker = block ? single_indent : opts.quote, .own_line = block};
+// A literal that can't be written on one line is written as a block: the
+// opening quote alone on its line, the text indented beneath it, and any line
+// too wide for the page continued with dots. Every line then begins at one of
+// two columns, which is what makes a column of text line up.
+//
+// A quote in the text needs no escape here. The parser only reads one as the
+// closing quote at the very start of a line at the literal's own indentation,
+// and every line written here starts either an indent deeper than that or with
+// the dots of a continuation.
+static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments, Text_t indent) {
+    text_wrap_t w = {.indent = indent, .marker = single_indent, .own_line = true, .verbatim = opts.verbatim};
     for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
         if (chunk->ast->tag == TextLiteral) {
             Text_t literal = Match(chunk->ast, TextLiteral)->text;
             for (int64_t i = 1; i <= (int64_t)literal.length; i += 1) {
                 Text_t grapheme = Text$slice(literal, I_small(i), I_small(i));
-                if (block && Text$equal_values(grapheme, Text("\n"))) end_line(&w, single_indent);
-                else append_atom(&w, opts.verbatim ? grapheme : Text$escaped(grapheme, false, escapes));
+                if (Text$equal_values(grapheme, Text("\n"))) end_line(&w, single_indent);
+                else append_atom(&w, opts.verbatim ? grapheme : Text$escaped(grapheme, false, opts.interp));
             }
         } else {
             // A newline inside a text literal is part of the text, so an
@@ -236,7 +234,6 @@ static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments
         }
     }
     Text_t last = w.line.length > 0 ? Texts(line_start(&w), w.line) : EMPTY_TEXT;
-    if (!block) return Texts(opts.quote, w.code, last, opts.unquote);
     return Texts(opts.quote, "\n", w.code, last, "\n", indent, opts.unquote);
 }
 
@@ -1229,15 +1226,14 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
 
         ast_list_t *children = Match(ast, TextJoin)->children;
-        bool block = is_block_text(ast);
         text_opts_t opts = choose_text_options(children);
-        if (block && Text$equal_values(opts.quote, Text("`"))) {
-            // Prefer double quotes over backticks for a block, whose text sits
-            // deep enough that a double quote in it needs no escaping.
+        if (Text$equal_values(opts.quote, Text("`"))) {
+            // Prefer double quotes over backticks, since a block's text needs
+            // no escaping of either.
             opts.quote = Text("\"");
             opts.unquote = Text("\"");
         }
-        Text_t ret = format_text(opts, children, comments, indent, block);
+        Text_t ret = format_text(opts, children, comments, indent);
         type_ast_t *lang = Match(ast, TextJoin)->lang;
         return lang ? Texts("$", format_type(lang), ret) : ret;
     }
@@ -1250,9 +1246,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
         Text_t code = c_code->type_ast ? Texts("C_code:", format_type(c_code->type_ast)) : Text("C_code");
         text_opts_t opts = {.quote = Text("`"), .unquote = Text("`"), .interp = Text("@"), .verbatim = true};
-        ast_list_t *chunks = Match(ast, InlineCCode)->chunks;
-        bool block = is_block_text(ast) || holds_newline(chunks);
-        return Texts(code, format_text(opts, chunks, comments, indent, block));
+        return Texts(code, format_text(opts, Match(ast, InlineCCode)->chunks, comments, indent));
     }
     /*multiline*/ case TextLiteral: { fail("Something went wrong, we shouldn't be formatting text literals directly"); }
     /*multiline*/ case Path: {
