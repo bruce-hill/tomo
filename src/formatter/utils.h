@@ -28,6 +28,20 @@ Text_t indent_code(Text_t code);
 Text_t parenthesize(Text_t code, Text_t indent);
 CONSTFUNC ast_t *unwrap_block(ast_t *ast);
 OptionalText_t bounded_inline(ast_t *ast, Table_t comments);
-Text_t bounded(ast_t *ast, Table_t comments, Text_t indent);
 OptionalText_t termify_inline(ast_t *ast, Table_t comments);
-Text_t termify(ast_t *ast, Table_t comments, Text_t indent);
+
+// Whether a rendering fits on the page depends on the column it starts at, not
+// on the indentation it would wrap to: `assert ` before an expression leaves
+// seven fewer columns for it. Every function that makes that decision takes the
+// column as its last argument, and the name without it stands for the common
+// case, a rendering that starts at its own indentation.
+Text_t bounded_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column);
+Text_t termify_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column);
+
+static inline Text_t bounded(ast_t *ast, Table_t comments, Text_t indent) {
+    return bounded_at(ast, comments, indent, (int64_t)indent.length);
+}
+
+static inline Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
+    return termify_at(ast, comments, indent, (int64_t)indent.length);
+}

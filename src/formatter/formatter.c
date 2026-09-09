@@ -26,9 +26,10 @@
 
 #define fmt_inline(...) must(format_inline_code(__VA_ARGS__))
 #define fmt(...) format_code(__VA_ARGS__)
+#define fmt_at(...) format_code_at(__VA_ARGS__)
 
 static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tighten_from);
-static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int tighten_from);
+static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int64_t column, int tighten_from);
 
 Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent) {
     if (unwrap_block(namespace) == NULL) return EMPTY_TEXT;
@@ -96,9 +97,9 @@ static Text_t quoted_label(const char *label) {
 // The flag uses `cached` or `cache_size=N` in source; a bare `cached`
 // parses to the sentinel size -1. There is no `cache=` flag: emitting one lost
 // the caching entirely and left a function definition that didn't parse.
-static Text_t format_cache_flag(ast_t *cache, Table_t comments, Text_t indent) {
+static Text_t format_cache_flag(ast_t *cache, Table_t comments, Text_t indent, int64_t column) {
     if (cache->tag == Int && Int$equal_value(Match(cache, Int)->i, I_small(-1))) return Text("; cached");
-    return Texts("; cache_size=", fmt(cache, comments, indent));
+    return Texts("; cache_size=", fmt_at(cache, comments, indent, column + 13));
 }
 
 static bool starts_with_id(Text_t text) {
@@ -262,6 +263,25 @@ PUREFUNC static bool has_nonoptional_suffix(ast_t *ast) {
     }
 }
 
+PUREFUNC static int64_t trailing_line_len(Text_t text) {
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
+    int64_t len = 0;
+    for (int64_t i = text.length - 1; i >= 0; i--) {
+        int32_t g = Text$get_grapheme_fast(&state, i);
+        if (g == '\n' || g == '\r') break;
+        len += 1;
+    }
+    return len;
+}
+
+// Where writing `code` from `column` leaves the cursor. A rendering that stayed
+// on one line ends that many columns further along; one that wrapped carries its
+// own indentation on its last line, so that line's length is already the column.
+PUREFUNC static int64_t column_after(int64_t column, Text_t code) {
+    int64_t last_line = trailing_line_len(code);
+    return last_line < (int64_t)code.length ? last_line : column + last_line;
+}
+
 // An operand keeps its parentheses exactly when `outer_op` wouldn't absorb it
 // back: `dt / (d2 * x)` is not `dt / d2 * x`, and `(2 ^ 3) ^ 2` is not
 // `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are the same. An `if`/`match`
@@ -380,7 +400,7 @@ static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tigh
     return Texts(lhs, space, Text$from_str(op), space, rhs);
 }
 
-static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int tighten_from) {
+static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int64_t column, int tighten_from) {
     binary_operands_t operands = BINARY_OPERANDS(ast);
     const char *op = binop_info[ast->tag].operator;
     Text_t inner_indent = Texts(indent, single_indent);
@@ -397,13 +417,18 @@ static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int tigh
     Text_t closing = comment_range(&pos, ast->end, inner_indent, comments);
     bool parenthesized = opening.length > 0 || closing.length > 0;
     Text_t operand_indent = parenthesized ? inner_indent : indent;
+    // Parenthesized, the operands start on a line of their own one level in.
+    int64_t lhs_column = parenthesized ? inner_indent.length : column;
 
     Text_t lhs = shares_expression(operands.lhs, ast->tag, true)
-                     ? format_binop(operands.lhs, comments, operand_indent, tighten_from)
-                     : fmt(operands.lhs, comments, operand_indent);
+                     ? format_binop(operands.lhs, comments, operand_indent, lhs_column, tighten_from)
+                     : fmt_at(operands.lhs, comments, operand_indent, lhs_column);
+    // The operator and the spaces around it sit between the two operands.
+    int64_t rhs_column =
+        column_after(lhs_column, lhs) + (int64_t)strlen(op) + 2 * binop_spacing(ast, tighten_from).length;
     Text_t rhs = shares_expression(operands.rhs, ast->tag, false)
-                     ? format_binop(operands.rhs, comments, operand_indent, tighten_from)
-                     : fmt(operands.rhs, comments, operand_indent);
+                     ? format_binop(operands.rhs, comments, operand_indent, rhs_column, tighten_from)
+                     : fmt_at(operands.rhs, comments, operand_indent, rhs_column);
 
     if (is_update_assignment(ast)) return Texts(lhs, " ", Text$from_str(op), " ", rhs);
 
@@ -436,8 +461,8 @@ static OptionalText_t format_subscript_inline(ast_t *ast, Table_t comments) {
     return format_inline_code(ast, comments);
 }
 
-static Text_t format_subscript(ast_t *ast, Table_t comments, Text_t indent) {
-    if (is_binop_case(ast)) return format_binop(ast, comments, indent, TIGHTEN_ALL);
+static Text_t format_subscript(ast_t *ast, Table_t comments, Text_t indent, int64_t column) {
+    if (is_binop_case(ast)) return format_binop(ast, comments, indent, column, TIGHTEN_ALL);
     return format_code(ast, comments, indent);
 }
 
@@ -779,20 +804,9 @@ OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     }
 }
 
-PUREFUNC static int64_t trailing_line_len(Text_t text) {
-    TextIter_t state = NEW_TEXT_ITER_STATE(text);
-    int64_t len = 0;
-    for (int64_t i = text.length - 1; i >= 0; i--) {
-        int32_t g = Text$get_grapheme_fast(&state, i);
-        if (g == '\n' || g == '\r') break;
-        len += 1;
-    }
-    return len;
-}
-
-Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
+Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column) {
     OptionalText_t inlined = format_inline_code(ast, comments);
-    bool inlined_fits = (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH);
+    bool inlined_fits = (inlined.tag != TEXT_NONE && column + inlined.length <= MAX_WIDTH);
 
     switch (ast->tag) {
     /*multiline*/ case Unknown:
@@ -862,9 +876,10 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case If: {
         DeclareMatch(if_, ast, If);
-        Text_t code = if_->condition->tag == Not
-                          ? Texts("unless ", bounded(Match(if_->condition, Not)->value, comments, indent))
-                          : Texts("if ", bounded(if_->condition, comments, indent));
+        Text_t code =
+            if_->condition->tag == Not
+                ? Texts("unless ", bounded_at(Match(if_->condition, Not)->value, comments, indent, column + 7))
+                : Texts("if ", bounded_at(if_->condition, comments, indent, column + 3));
 
         Text_t body = fmt(if_->body, comments, Texts(indent, single_indent));
         if (if_->postfix && if_->else_body == NULL && !Text$has(body, Text("\n"))) {
@@ -879,23 +894,23 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
                 code = Texts(code, "\n", indent, "else\n", indent, single_indent,
                              fmt(if_->else_body, comments, Texts(indent, single_indent)));
             } else {
-                code = Texts(code, "\n", indent, "else ", fmt(if_->else_body, comments, indent));
+                code = Texts(code, "\n", indent, "else ", fmt_at(if_->else_body, comments, indent, indent.length + 5));
             }
         }
         return code;
     }
     /*multiline*/ case Match: {
         DeclareMatch(match, ast, Match);
-        Text_t code = Texts("match ", bounded(match->subject, comments, indent));
+        Text_t code = Texts("match ", bounded_at(match->subject, comments, indent, column + 6));
         // A comment after the subject or before a `case` sits in a gap of this
         // statement, which no block scans:
         const char *gap = match->subject->end;
         for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
             code = Texts(code, gap_comments(&gap, clause->pattern->start, indent, comments));
-            code = Texts(code, "\n", indent, "case ", fmt(clause->pattern, comments, indent));
+            code = Texts(code, "\n", indent, "case ", fmt_at(clause->pattern, comments, indent, indent.length + 5));
             while (clause->next && clause->next->body == clause->body) {
                 clause = clause->next;
-                code = Texts(code, ", ", fmt(clause->pattern, comments, indent));
+                code = Texts(code, ", ", fmt_at(clause->pattern, comments, indent, column_after(column, code) + 2));
             }
             code = Texts(code, format_namespace(clause->body, comments, indent));
             gap = clause->body->end;
@@ -912,20 +927,21 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case While: {
         DeclareMatch(loop, ast, While);
-        return Texts("while ", bounded(loop->condition, comments, indent), "\n", indent, single_indent,
+        return Texts("while ", bounded_at(loop->condition, comments, indent, column + 6), "\n", indent, single_indent,
                      fmt(loop->body, comments, Texts(indent, single_indent)));
     }
     /*multiline*/ case For: {
         DeclareMatch(loop, ast, For);
         Text_t code = Text("for ");
         for (ast_list_t *var = loop->vars; var; var = var->next) {
-            code = Texts(code, fmt(var->ast, comments, indent));
+            code = Texts(code, fmt_at(var->ast, comments, indent, column_after(column, code)));
             if (var->next) code = Texts(code, ", ");
         }
-        if (loop->at) code = Texts(code, " at ", bounded(loop->at, comments, indent));
+        if (loop->at)
+            code = Texts(code, " at ", bounded_at(loop->at, comments, indent, column_after(column, code) + 4));
         code = Texts(code, " in ");
         for (ast_list_t *iter = loop->iters; iter; iter = iter->next) {
-            code = Texts(code, bounded(iter->ast, comments, indent));
+            code = Texts(code, bounded_at(iter->ast, comments, indent, column_after(column, code)));
             if (iter->next) code = Texts(code, ", ");
         }
         code = Texts(code, format_namespace(loop->body, comments, indent));
@@ -952,24 +968,25 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
 
         Text_t code;
         if (block_layout) {
-            code = Texts("(\n", inner_indent, block_expr,
-                         before_for.length > 0 ? Texts(" ", before_for) : EMPTY_TEXT, "\n", inner_indent, "for ");
+            code = Texts("(\n", inner_indent, block_expr, before_for.length > 0 ? Texts(" ", before_for) : EMPTY_TEXT,
+                         "\n", inner_indent, "for ");
         } else {
-            code = Texts("(", fmt(comp->expr, comments, indent));
+            code = Texts("(", fmt_at(comp->expr, comments, indent, column + 1));
             if (before_for.length > 0) code = Texts(code, " ", before_for, "\n", indent, "for ");
             else if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "for ");
             else code = Texts(code, " for ");
         }
 
         for (ast_list_t *var = comp->vars; var; var = var->next) {
-            code = Texts(code, fmt(var->ast, comments, body_indent));
+            code = Texts(code, fmt_at(var->ast, comments, body_indent, column_after(column, code)));
             if (var->next) code = Texts(code, ", ");
         }
-        if (comp->at) code = Texts(code, " at ", bounded(comp->at, comments, body_indent));
+        if (comp->at)
+            code = Texts(code, " at ", bounded_at(comp->at, comments, body_indent, column_after(column, code) + 4));
 
         code = Texts(code, " in ");
         for (ast_list_t *iter = comp->iters; iter; iter = iter->next) {
-            code = Texts(code, bounded(iter->ast, comments, body_indent));
+            code = Texts(code, bounded_at(iter->ast, comments, body_indent, column_after(column, code)));
             if (iter->next) code = Texts(code, ", ");
         }
 
@@ -977,7 +994,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             if (block_layout) code = Texts(code, "\n", inner_indent, "if ");
             else if (code.length >= MAX_WIDTH) code = Texts(code, "\n", indent, "if ");
             else code = Texts(code, " if ");
-            code = Texts(code, bounded(comp->filter, comments, body_indent));
+            code = Texts(code, bounded_at(comp->filter, comments, body_indent, column_after(column, code)));
         }
         // The closing parenthesis was missing entirely: a comprehension that
         // didn't fit on one line came out unparseable.
@@ -985,9 +1002,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case FunctionDef: {
         DeclareMatch(func, ast, FunctionDef);
-        Text_t code = Texts("func ", fmt(func->name, comments, indent), "(", format_args(func->args, comments, indent));
+        Text_t code = Texts("func ", fmt_at(func->name, comments, indent, column + 5));
+        code = Texts(code, "(", format_args_at(func->args, comments, indent, column_after(column, code) + 1));
         if (func->ret_type) code = Texts(code, func->args ? Text(" -> ") : Text("-> "), format_type(func->ret_type));
-        if (func->cache) code = Texts(code, format_cache_flag(func->cache, comments, indent));
+        if (func->cache)
+            code = Texts(code, format_cache_flag(func->cache, comments, indent, column_after(column, code)));
         if (func->is_inline) code = Texts(code, "; inline");
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
                      single_indent, fmt(func->body, comments, Texts(indent, single_indent)));
@@ -1005,10 +1024,11 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case ConvertDef: {
         DeclareMatch(convert, ast, ConvertDef);
-        Text_t code = Texts("convert (", format_args(convert->args, comments, indent));
+        Text_t code = Texts("convert (", format_args_at(convert->args, comments, indent, column + 9));
         if (convert->ret_type)
             code = Texts(code, convert->args ? Text(" -> ") : Text("-> "), format_type(convert->ret_type));
-        if (convert->cache) code = Texts(code, format_cache_flag(convert->cache, comments, indent));
+        if (convert->cache)
+            code = Texts(code, format_cache_flag(convert->cache, comments, indent, column_after(column, code)));
         if (convert->is_inline) code = Texts(code, "; inline");
         code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
                      single_indent, fmt(convert->body, comments, Texts(indent, single_indent)));
@@ -1129,27 +1149,34 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (trailing.length > 0) add_line(&code, trailing, Texts(indent, single_indent));
 
         if (table->fallback)
-            code = Texts(code, ";\n", indent, single_indent, "fallback=", fmt(table->fallback, comments, indent));
+            code =
+                Texts(code, ";\n", indent, single_indent,
+                      "fallback=", fmt_at(table->fallback, comments, indent, indent.length + single_indent.length + 9));
 
         if (table->default_value)
-            code = Texts(code, ";\n", indent, single_indent, "default=", fmt(table->default_value, comments, indent));
+            code = Texts(code, ";\n", indent, single_indent, "default=",
+                         fmt_at(table->default_value, comments, indent, indent.length + single_indent.length + 8));
 
         return Texts(code, "\n", indent, "}");
     }
     /*multiline*/ case TableEntry: {
         if (inlined_fits) return inlined;
         DeclareMatch(entry, ast, TableEntry);
-        if (entry->value)
-            return Texts(bounded(entry->key, comments, indent), ": ", bounded(entry->value, comments, indent));
-        else return bounded(entry->key, comments, indent);
+        if (entry->value) {
+            Text_t key = bounded_at(entry->key, comments, indent, column);
+            return Texts(key, ": ", bounded_at(entry->value, comments, indent, column_after(column, key) + 2));
+        } else return bounded_at(entry->key, comments, indent, column);
     }
     /*multiline*/ case Declare: {
         if (inlined_fits) return inlined;
         DeclareMatch(decl, ast, Declare);
-        Text_t code = fmt(decl->var, comments, indent);
+        Text_t code = fmt_at(decl->var, comments, indent, column);
         if (decl->type) code = Texts(code, " : ", format_type(decl->type));
-        if (decl->value)
-            code = Texts(code, decl->type ? Text(" = ") : Text(" := "), fmt(decl->value, comments, indent));
+        if (decl->value) {
+            Text_t assignment = decl->type ? Text(" = ") : Text(" := ");
+            code = Texts(code, assignment,
+                         fmt_at(decl->value, comments, indent, column_after(column, code) + assignment.length));
+        }
         return code;
     }
     /*multiline*/ case Assign: {
@@ -1157,12 +1184,12 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         DeclareMatch(assign, ast, Assign);
         Text_t code = EMPTY_TEXT;
         for (ast_list_t *target = assign->targets; target; target = target->next) {
-            code = Texts(code, fmt(target->ast, comments, indent));
+            code = Texts(code, fmt_at(target->ast, comments, indent, column_after(column, code)));
             if (target->next) code = Texts(code, ", ");
         }
         code = Texts(code, " = ");
         for (ast_list_t *value = assign->values; value; value = value->next) {
-            code = Texts(code, fmt(value->ast, comments, indent));
+            code = Texts(code, fmt_at(value->ast, comments, indent, column_after(column, code)));
             if (value->next) code = Texts(code, ", ");
         }
         return code;
@@ -1174,7 +1201,7 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         ast_t *value = Match(ast, Return)->value;
         // `return` takes a plain expression, not a block-form `if`/`match`, so
         // one has to keep the parentheses it was written with.
-        return value ? Texts("return ", bounded(value, comments, indent)) : Text("return");
+        return value ? Texts("return ", bounded_at(value, comments, indent, column + 7)) : Text("return");
     }
     /*multiline*/ case Not: {
         if (inlined_fits) return inlined;
@@ -1183,51 +1210,52 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         // operand: written bare, its later clauses land outside the `not`,
         // and `not if ...` doesn't parse at all.
         if (is_binary_operation(val) || val->tag == If || val->tag == Match)
-            return Texts("not ", termify(val, comments, indent));
-        else return Texts("not ", fmt(val, comments, indent));
+            return Texts("not ", termify_at(val, comments, indent, column + 4));
+        else return Texts("not ", fmt_at(val, comments, indent, column + 4));
     }
     /*multiline*/ case Negative: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, Negative)->value;
         // See the inline case above for which operands keep their parentheses.
-        if (negation_needs_parens(val)) return Texts("-(", fmt(val, comments, indent), ")");
+        if (negation_needs_parens(val)) return Texts("-(", fmt_at(val, comments, indent, column + 2), ")");
         // An `if`/`match` keeps its parentheses here for the same reason it
         // does as a binary operand below: spread over several lines, its
         // later clauses would otherwise fall outside the `-`.
         if ((is_binary_operation(val) && !absorbs_rhs(Negative, expr_tightness(val))) || val->tag == If
             || val->tag == Match)
-            return Texts("-", termify(val, comments, indent));
-        else return Texts("-", fmt(val, comments, indent));
+            return Texts("-", termify_at(val, comments, indent, column + 1));
+        else return Texts("-", fmt_at(val, comments, indent, column + 1));
     }
     /*multiline*/ case HeapAllocate: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, HeapAllocate)->value;
-        if (has_nonoptional_suffix(val)) return Texts("@(", fmt(val, comments, indent), ")");
-        return Texts("@", termify(val, comments, indent));
+        if (has_nonoptional_suffix(val)) return Texts("@(", fmt_at(val, comments, indent, column + 2), ")");
+        return Texts("@", termify_at(val, comments, indent, column + 1));
     }
     /*multiline*/ case StackReference: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, StackReference)->value;
-        if (has_nonoptional_suffix(val)) return Texts("&(", fmt(val, comments, indent), ")");
-        return Texts("&", termify(val, comments, indent));
+        if (has_nonoptional_suffix(val)) return Texts("&(", fmt_at(val, comments, indent, column + 2), ")");
+        return Texts("&", termify_at(val, comments, indent, column + 1));
     }
     /*multiline*/ case NonOptional: {
         if (inlined_fits) return inlined;
         ast_t *val = Match(ast, NonOptional)->value;
-        return Texts(termify(val, comments, indent), "!");
+        return Texts(termify_at(val, comments, indent, column), "!");
     }
     /*multiline*/ case FieldAccess: {
         if (inlined_fits) return inlined;
         DeclareMatch(access, ast, FieldAccess);
-        return Texts(termify(access->fielded, comments, indent), ".", Text$from_str(access->field));
+        return Texts(termify_at(access->fielded, comments, indent, column), ".", Text$from_str(access->field));
     }
     /*multiline*/ case Index: {
         if (inlined_fits) return inlined;
         DeclareMatch(index, ast, Index);
+        Text_t indexed = termify_at(index->indexed, comments, indent, column);
         if (index->index)
-            return Texts(termify(index->indexed, comments, indent), "[",
-                         format_subscript(index->index, comments, indent), "]");
-        else return Texts(termify(index->indexed, comments, indent), "[]");
+            return Texts(indexed, "[",
+                         format_subscript(index->index, comments, indent, column_after(column, indexed) + 1), "]");
+        else return Texts(indexed, "[]");
     }
     /*multiline*/ case TextJoin: {
         if (inlined_fits) return inlined;
@@ -1266,12 +1294,13 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case Serialize: {
         if (inlined_fits) return inlined;
-        return Texts("serialize(", fmt(Match(ast, Serialize)->value, comments, indent), ")");
+        return Texts("serialize(", fmt_at(Match(ast, Serialize)->value, comments, indent, column + 10), ")");
     }
     /*multiline*/ case Deserialize: {
         if (inlined_fits) return inlined;
         DeclareMatch(deserialize, ast, Deserialize);
-        return Texts("deserialize:", format_type(deserialize->type_ast), "(", fmt(deserialize->value, comments, indent),
+        Text_t type = format_type(deserialize->type_ast);
+        return Texts("deserialize:", type, "(", fmt_at(deserialize->value, comments, indent, column + 13 + type.length),
                      ")");
     }
     /*multiline*/ case Min:
@@ -1279,21 +1308,29 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         if (inlined_fits) return inlined;
         ast_t *lhs_ast = ast->tag == Min ? Match(ast, Min)->lhs : Match(ast, Max)->lhs;
         ast_t *rhs_ast = ast->tag == Min ? Match(ast, Min)->rhs : Match(ast, Max)->rhs;
-        Text_t lhs = operand(fmt(lhs_ast, comments, indent), lhs_ast, ast->tag, true, indent);
-        Text_t rhs = operand(fmt(rhs_ast, comments, indent), rhs_ast, ast->tag, false, indent);
+        Text_t lhs = operand(fmt_at(lhs_ast, comments, indent, column), lhs_ast, ast->tag, true, indent);
         ast_t *key = ast->tag == Min ? Match(ast, Min)->key : Match(ast, Max)->key;
-        Text_t op = key ? fmt(key, comments, indent) : (ast->tag == Min ? Text("_min_") : Text("_max_"));
-        return Texts(lhs, " ", op, " ", rhs);
+        Text_t op = key ? fmt_at(key, comments, indent, column_after(column, lhs) + 1)
+                        : (ast->tag == Min ? Text("_min_") : Text("_max_"));
+        Text_t before_rhs = Texts(lhs, " ", op, " ");
+        Text_t rhs = operand(fmt_at(rhs_ast, comments, indent, column_after(column, before_rhs)), rhs_ast, ast->tag,
+                             false, indent);
+        return Texts(before_rhs, rhs);
     }
     /*multiline*/ case Reduction: {
         if (inlined_fits) return inlined;
         DeclareMatch(reduction, ast, Reduction);
         if (reduction->key) {
-            return Texts("(", fmt(reduction->key, comments, Texts(indent, single_indent)), ": ",
-                         fmt(reduction->iter, comments, Texts(indent, single_indent)), ")");
+            Text_t key = fmt_at(reduction->key, comments, Texts(indent, single_indent), column + 1);
+            return Texts(
+                "(", key, ": ",
+                fmt_at(reduction->iter, comments, Texts(indent, single_indent), column_after(column + 1, key) + 2),
+                ")");
         } else {
-            return Texts("(", binop_info[reduction->op].operator, ": ",
-                         fmt(reduction->iter, comments, Texts(indent, single_indent)), ")");
+            const char *op = binop_info[reduction->op].operator;
+            return Texts(
+                "(", op, ": ",
+                fmt_at(reduction->iter, comments, Texts(indent, single_indent), column + 3 + (int64_t)strlen(op)), ")");
         }
     }
     /*multiline*/ case Break:
@@ -1309,18 +1346,20 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     /*multiline*/ case FunctionCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, FunctionCall);
-        return Texts(termify(call->fn, comments, indent), format_fncall(call->args, comments, indent));
+        Text_t fn = termify_at(call->fn, comments, indent, column);
+        return Texts(fn, format_fncall_at(call->args, comments, indent, column_after(column, fn)));
     }
     /*multiline*/ case RecordLiteral: {
         if (inlined_fits) return inlined;
         DeclareMatch(record, ast, RecordLiteral);
-        return Texts(fmt(record->type, comments, indent), format_record_literal(record->args, comments, indent));
+        Text_t type = fmt_at(record->type, comments, indent, column);
+        return Texts(type, format_record_literal_at(record->args, comments, indent, column_after(column, type)));
     }
     /*multiline*/ case MethodCall: {
         if (inlined_fits) return inlined;
         DeclareMatch(call, ast, MethodCall);
-        return Texts(termify(call->self, comments, indent), ".", Text$from_str(call->name),
-                     format_fncall(call->args, comments, indent));
+        Text_t self = Texts(termify_at(call->self, comments, indent, column), ".", Text$from_str(call->name));
+        return Texts(self, format_fncall_at(call->args, comments, indent, column_after(column, self)));
     }
     /*multiline*/ case DebugLog: {
         DeclareMatch(debug, ast, DebugLog);
@@ -1328,7 +1367,9 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
         for (ast_list_t *value = debug->values; value; value = value->next) {
             // Only a value with another after it has a comma to give back; the
             // last one ends the statement and needs no parentheses.
-            Text_t expr = value->next ? bounded(value->ast, comments, indent) : fmt(value->ast, comments, indent);
+            int64_t at = column_after(column, code);
+            Text_t expr =
+                value->next ? bounded_at(value->ast, comments, indent, at) : fmt_at(value->ast, comments, indent, at);
             code = Texts(code, expr);
             if (value->next) code = Texts(code, ", ");
         }
@@ -1351,14 +1392,15 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     }
     /*multiline*/ case Assert: {
         DeclareMatch(assert, ast, Assert);
-        Text_t expr = assert->message ? bounded(assert->expr, comments, indent) : fmt(assert->expr, comments, indent);
+        Text_t expr = assert->message ? bounded_at(assert->expr, comments, indent, column + 7)
+                                      : fmt_at(assert->expr, comments, indent, column + 7);
         if (!assert->message) return Texts("assert ", expr);
-        Text_t message = fmt(assert->message, comments, indent);
-        return Texts("assert ", expr, ", ", message);
+        Text_t code = Texts("assert ", expr, ", ");
+        return Texts(code, fmt_at(assert->message, comments, indent, column_after(column, code)));
     }
     /*multiline*/ case BINOP_CASES: {
         if (inlined_fits) return inlined;
-        return format_binop(ast, comments, indent, expression_spacing(ast));
+        return format_binop(ast, comments, indent, column, expression_spacing(ast));
     }
     /*multiline*/ case Use: {
         assert(inlined.length > 0);

@@ -1,0 +1,46 @@
+# Whether a rendering fits on the page depends on the column it starts at, not
+# on the indentation it would wrap to. `tomo format --verify` compares syntax
+# trees, and a line that runs off the page parses the same as one that fits, so
+# the snapshot beside this file is what pins the width. Each literal below is
+# sized to fit when measured from its indentation but not from where it starts.
+
+struct Vec{f0, f1, f2, f3, f4, f5, f6, f7, f8, f9:Int}
+
+func main()
+    n := 23
+    # `assert ` leaves seven fewer columns for whatever follows it:
+    assert (
+        match n
+        case 1
+            Int64(1)
+        case 2
+            Int64(2)
+        case 21 + 2
+            Int64(23)
+    ) == Int64(23)
+
+    # A record literal's arguments start after its type name and brace:
+    boxed := [
+        Vec{
+            11111111,
+            22222222,
+            3333333,
+            4444444,
+            5555555,
+            6666666,
+            7777777,
+            8888888,
+            9999999,
+            1111111,
+        },
+    ]
+
+    # A declaration's value starts after the name and the `:=`:
+    a_rather_long_variable_name := [
+        1111111, 2222222, 3333333, 4444444, 5555555, 6666666, 777777, 888888, 999999,
+    ]
+    # A right operand starts after the left one and the operator between them:
+    joined := [1, 2, 3] ++ [
+        1111111, 2222222, 3333333, 4444444, 5555555, 6666666, 777777, 888888, 999999,
+    ]
+    assert boxed.length == 1 and a_rather_long_variable_name.length == 9 and joined.length == 12

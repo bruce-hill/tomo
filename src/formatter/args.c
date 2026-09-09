@@ -30,13 +30,13 @@ OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
     return code;
 }
 
-Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
+Text_t format_arg_at(arg_ast_t *arg, Table_t comments, Text_t indent, int64_t column) {
     OptionalText_t inline_arg = format_inline_arg(arg, comments);
-    if (inline_arg.tag != TEXT_NONE && indent.length + inline_arg.length <= MAX_WIDTH) return inline_arg;
-    if (arg->name == NULL && arg->value) return bounded(arg->value, comments, indent);
+    if (inline_arg.tag != TEXT_NONE && column + inline_arg.length <= MAX_WIDTH) return inline_arg;
+    if (arg->name == NULL && arg->value) return bounded_at(arg->value, comments, indent, column);
     Text_t code = arg_name(arg);
     if (arg->type) code = Texts(code, ":", format_type(arg->type));
-    if (arg->value) code = Texts(code, "=", bounded(arg->value, comments, indent));
+    if (arg->value) code = Texts(code, "=", bounded_at(arg->value, comments, indent, column + code.length + 1));
     return code;
 }
 
@@ -57,9 +57,9 @@ OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
     return code;
 }
 
-Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
+Text_t format_args_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t column) {
     OptionalText_t inline_args = format_inline_args(args, comments);
-    if (inline_args.tag != TEXT_NONE && indent.length + inline_args.length <= MAX_WIDTH) return inline_args;
+    if (inline_args.tag != TEXT_NONE && column + inline_args.length <= MAX_WIDTH) return inline_args;
 
     Text_t code = EMPTY_TEXT;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
@@ -77,7 +77,8 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
         if (comment.length > 0) code = Texts(code, "# ", comment, "\n", indent, single_indent);
         code = Texts(code, names);
         Text_t arg_indent = Texts(indent, single_indent);
-        Text_t arg_code = format_arg(arg, comments, arg_indent);
+        // Names sharing a type sit in front of the argument on its line.
+        Text_t arg_code = format_arg_at(arg, comments, arg_indent, arg_indent.length + names.length);
         // The separating comma goes on the same line as the end of the
         // argument, which only works if that line is the argument's own level;
         // when the argument ends inside an indented block, the newline is the
@@ -90,17 +91,20 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
 
 // Shared by parenthesized calls and braced record literals, which differ only
 // in their delimiters.
-static Text_t format_delimited_args(arg_ast_t *args, Table_t comments, Text_t indent, const char *open,
+static Text_t format_delimited_args(arg_ast_t *args, Table_t comments, Text_t indent, int64_t column, const char *open,
                                     const char *close) {
+    // Written on one line this is `open`, the arguments, and `close`, so the
+    // two delimiters take a column each. The paths below pass that same budget
+    // on, since what they measure against it is the one-line form too.
     OptionalText_t inline_args = format_inline_args(args, comments);
-    if (inline_args.tag != TEXT_NONE && indent.length + inline_args.length <= MAX_WIDTH)
+    if (inline_args.tag != TEXT_NONE && column + 2 + inline_args.length <= MAX_WIDTH)
         return Texts(open, inline_args, close);
 
     // A lone argument normally hugs the delimiters, but not when it carries
     // comments: only format_args() below writes those out, so hugging here
     // would drop them.
     if (args && args->next == NULL && args->comment.length == 0 && args->trailing_comment.length == 0) {
-        Text_t arg_code = format_arg(args, comments, indent);
+        Text_t arg_code = format_arg_at(args, comments, indent, column + 2);
         // It can't hug either when its last line sits deeper than the call
         // itself (a lambda body, an `if`): a closing paren tacked onto the end
         // of an indented block reads as a second statement on that line and
@@ -108,13 +112,13 @@ static Text_t format_delimited_args(arg_ast_t *args, Table_t comments, Text_t in
         if (!ends_deeper_than(arg_code, indent)) return Texts(open, arg_code, close);
     }
 
-    return Texts(open, format_args(args, comments, indent), "\n", indent, close);
+    return Texts(open, format_args_at(args, comments, indent, column + 2), "\n", indent, close);
 }
 
-Text_t format_fncall(arg_ast_t *args, Table_t comments, Text_t indent) {
-    return format_delimited_args(args, comments, indent, "(", ")");
+Text_t format_fncall_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t column) {
+    return format_delimited_args(args, comments, indent, column, "(", ")");
 }
 
-Text_t format_record_literal(arg_ast_t *args, Table_t comments, Text_t indent) {
-    return format_delimited_args(args, comments, indent, "{", "}");
+Text_t format_record_literal_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t column) {
+    return format_delimited_args(args, comments, indent, column, "{", "}");
 }

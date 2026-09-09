@@ -135,9 +135,11 @@ OptionalText_t bounded_inline(ast_t *ast, Table_t comments) {
 // The block form runs on just as the one-line form does: the `,` after a list
 // item, or a table entry's `:`, lands inside the last clause of a bare
 // `if`/`match` rather than after it.
-Text_t bounded(ast_t *ast, Table_t comments, Text_t indent) {
-    if (ast->tag == If || ast->tag == Match) return parenthesize(format_code(ast, comments, indent), indent);
-    return format_code(ast, comments, indent);
+Text_t bounded_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column) {
+    // The parentheses take a column of their own on the line.
+    if (ast->tag == If || ast->tag == Match)
+        return parenthesize(format_code_at(ast, comments, indent, column + 1), indent);
+    return format_code_at(ast, comments, indent, column);
 }
 
 OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
@@ -146,14 +148,14 @@ OptionalText_t termify_inline(ast_t *ast, Table_t comments) {
     return format_inline_code(ast, comments);
 }
 
-Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
-    if (needs_parens_as_term(ast)) return parenthesize(format_code(ast, comments, indent), indent);
+Text_t termify_at(ast_t *ast, Table_t comments, Text_t indent, int64_t column) {
+    if (needs_parens_as_term(ast)) return parenthesize(format_code_at(ast, comments, indent, column + 1), indent);
     Text_t inlined = format_inline_code(ast, comments);
-    if (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH) return inlined;
+    if (inlined.tag != TEXT_NONE && column + inlined.length <= MAX_WIDTH) return inlined;
     // A rendering spread over several lines that ends back at its own level
     // closed with a delimiter of its own -- `[`...`]`, `f(`...`)` -- and is a
     // term already. One that ends deeper trailed off into an indented block,
     // and needs the parentheses to say where it stopped.
-    Text_t code = format_code(ast, comments, indent);
+    Text_t code = format_code_at(ast, comments, indent, column);
     return ends_deeper_than(code, indent) ? parenthesize(code, indent) : code;
 }
