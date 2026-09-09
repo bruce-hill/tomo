@@ -28,6 +28,7 @@
 #define fmt(...) format_code(__VA_ARGS__)
 #define fmt_at(...) format_code_at(__VA_ARGS__)
 
+static Text_t comment_range(const char **pos, const char *end, Text_t indent, Table_t comments);
 static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tighten_from);
 static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int64_t column, int tighten_from);
 
@@ -110,11 +111,35 @@ static flag_list_t signature_flags(ast_t *cache, bool is_inline, Table_t comment
     return flags;
 }
 
-static Text_t format_signature(arg_ast_t *args, type_ast_t *ret_type, ast_t *cache, bool is_inline, Table_t comments,
-                               Text_t indent, int64_t column) {
+// What follows the parameters between the same delimiters -- the return type
+// and the flags -- has no node of its own to carry a comment, and nothing
+// scans the gaps between them: a comment written after `-> Int` or after
+// `; inline` used to be read past and dropped. The one on the return type's
+// own line stays on it; anything below joins the flags.
+static Text_t format_signature(arg_ast_t *args, type_ast_t *ret_type, ast_t *cache, bool is_inline, ast_t *body,
+                               Table_t comments, Text_t indent, int64_t column) {
     Text_t ret_code = ret_type ? Texts("-> ", format_type(ret_type)) : EMPTY_TEXT;
     flag_list_t flags = signature_flags(cache, is_inline, comments, indent);
-    return format_bracketed_args(args, ret_code, flags, comments, indent, column, "(", ")");
+
+    Text_t ret_comment = EMPTY_TEXT, tail_comment = EMPTY_TEXT;
+    arg_ast_t *last = args;
+    while (last && last->next)
+        last = last->next;
+    const char *from = last ? last->end : (ret_type ? ret_type->start : NULL);
+    if (from && body) {
+        const char *pos = after_leading_comments(from, body->start, comments);
+        if (ret_type) {
+            const char *eol = ret_type->end;
+            while (eol < body->start && *eol != '\n')
+                eol++;
+            ret_comment = comment_range(&pos, eol, EMPTY_TEXT, comments);
+        }
+        // At the indentation it will be written at, so that a comment running
+        // to a second line has its own lines lined up under the first.
+        tail_comment = comment_range(&pos, body->start, Texts(indent, single_indent), comments);
+    }
+    if (ret_comment.length > 0) ret_code = Texts(ret_code, " ", ret_comment);
+    return format_bracketed_args(args, ret_code, flags, tail_comment, comments, indent, column, "(", ")");
 }
 
 static bool starts_with_id(Text_t text) {
@@ -219,6 +244,20 @@ Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent) {
     return format_body(namespace, comments, indent);
 }
 
+// A comment written at the end of the line an item finished on, ready to be
+// appended to that item. It belongs to the item it follows: read as the next
+// one's it would say about `2` what its author said about `1`. An item that
+// ends inside an indented block has already had that line written out one
+// level in, so claiming it again would print it twice.
+static Text_t line_comment(const char **pos, ast_t *item, Text_t item_text, Text_t indent, Table_t comments) {
+    const char *eol = item->end;
+    while (eol < item->file->text + item->file->len && *eol != '\n')
+        eol++;
+    Text_t found = comment_range(pos, eol, indent, comments);
+    if (found.length == 0 || ends_deeper_than(item_text, indent)) return EMPTY_TEXT;
+    return Texts(" ", found);
+}
+
 static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, Table_t comments) {
     Text_t code = opts.quote;
     for (ast_list_t *chunk = chunks; chunk; chunk = chunk->next) {
@@ -269,8 +308,19 @@ static Text_t line_start(text_wrap_t *w) {
     return w->own_line ? Texts(w->indent, w->marker) : EMPTY_TEXT;
 }
 
+// A space at the end of a line is part of the text and invisible on the page,
+// so anything that trims trailing whitespace -- an editor on save, a lint, a
+// patch tool -- silently shortens the value. Written as an escape it survives.
+// Verbatim text has no escapes; append_atom() below keeps a break away from a
+// space there instead, which leaves only the spaces the author wrote at the
+// end of a line of their own.
+static Text_t protect_trailing_space(Text_t line, bool verbatim) {
+    if (verbatim || !Text$ends_with(line, Text(" "), NULL)) return line;
+    return Texts(Text$slice(line, I_small(1), I_small((int64_t)line.length - 1)), "\\x20");
+}
+
 static void end_line(text_wrap_t *w, Text_t marker) {
-    if (w->line.length > 0) w->code = Texts(w->code, line_start(w), w->line);
+    if (w->line.length > 0) w->code = Texts(w->code, line_start(w), protect_trailing_space(w->line, w->verbatim));
     w->code = Texts(w->code, "\n");
     w->line = EMPTY_TEXT;
     w->marker = marker;
@@ -283,7 +333,8 @@ static void append_atom(text_wrap_t *w, Text_t atom) {
         // marks it, so a dot of the text's own has to be written escaped to
         // survive there. Verbatim text has no escapes, and a run of dots in it
         // simply can't be broken -- it stays on the line it started on.
-        bool needs_escape = Text$starts_with(atom, Text("."), NULL);
+        bool needs_escape =
+            Text$starts_with(atom, Text("."), NULL) || (w->verbatim && Text$ends_with(w->line, Text(" "), NULL));
         if (!needs_escape || !w->verbatim) {
             end_line(w, continuation_marker);
             if (needs_escape) atom = Texts("\\", atom);
@@ -323,7 +374,9 @@ static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments
             append_atom(&w, Texts(opts.interp, chunk_code));
         }
     }
-    Text_t last = w.line.length > 0 ? Texts(line_start(&w), w.line) : EMPTY_TEXT;
+    // The closing quote takes a line of its own, so the last line of text ends
+    // where the others do and needs the same protection.
+    Text_t last = w.line.length > 0 ? Texts(line_start(&w), protect_trailing_space(w.line, opts.verbatim)) : EMPTY_TEXT;
     return Texts(opts.quote, "\n", w.code, last, "\n", indent, opts.unquote);
 }
 
@@ -1112,6 +1165,11 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
             if (comment_code.length > 0) {
                 if (code.length > 0 && !Text$ends_with(code, indent, NULL)) code = Text$concat(code, indent);
                 code = Text$concat(code, comment_code, Text("\n"));
+                // The gap between a comment and what it introduces is the
+                // author's too. suggested_blank_lines() measures from one
+                // statement to the next, so the comment standing between them
+                // is inside what it measures rather than beside it.
+                if (has_blank_line(comment_pos, stmt->ast->start)) code = Text$concat(code, Text("\n"));
             }
 
             if (code.length > 0 && !Text$ends_with(code, indent, NULL)) code = Text$concat(code, indent);
@@ -1124,8 +1182,8 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
             }
             code = Text$concat(code, stmt_code);
             prev_was_double_indented = Text$has(stmt_code, double_indent);
-            comment_pos = stmt->ast->end;
-            const char *eol = stmt->ast->end;
+            comment_pos = content_end(stmt->ast);
+            const char *eol = comment_pos;
             while (eol < stmt->ast->file->text + stmt->ast->file->len && *eol != '\n')
                 eol++;
             // A comment on the line this statement ends on. The cursor moves
@@ -1142,7 +1200,7 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
             prev = stmt;
         }
 
-        Text_t comment_code = comment_range(&comment_pos, ast->end, indent, comments);
+        Text_t comment_code = comment_range(&comment_pos, block_content_end(ast), indent, comments);
         if (comment_code.length > 0) {
             if (code.length > 0) code = Text$concat(code, Text("\n"), indent);
             code = Text$concat(code, comment_code);
@@ -1225,21 +1283,22 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     /*multiline*/ case FunctionDef: {
         DeclareMatch(func, ast, FunctionDef);
         Text_t code = Texts("func ", fmt_at(func->name, comments, indent, column + 5));
-        code = Texts(code, format_signature(func->args, func->ret_type, func->cache, func->is_inline, comments, indent,
-                                            column_after(column, code)));
+        code = Texts(code, format_signature(func->args, func->ret_type, func->cache, func->is_inline, func->body,
+                                            comments, indent, column_after(column, code)));
         return Texts(code, format_body(func->body, comments, indent));
     }
     /*multiline*/ case Lambda: {
         if (inlined_fits) return inlined;
         DeclareMatch(lambda, ast, Lambda);
-        Text_t code =
-            Texts("func", format_signature(lambda->args, lambda->ret_type, NULL, false, comments, indent, column + 4));
+        Text_t code = Texts("func", format_signature(lambda->args, lambda->ret_type, NULL, false, lambda->body,
+                                                     comments, indent, column + 4));
         return Texts(code, format_body(lambda->body, comments, indent));
     }
     /*multiline*/ case ConvertDef: {
         DeclareMatch(convert, ast, ConvertDef);
-        Text_t code = Texts("convert", format_signature(convert->args, convert->ret_type, convert->cache,
-                                                        convert->is_inline, comments, indent, column + 7));
+        Text_t code =
+            Texts("convert", format_signature(convert->args, convert->ret_type, convert->cache, convert->is_inline,
+                                              convert->body, comments, indent, column + 7));
         return Texts(code, format_body(convert->body, comments, indent));
     }
     /*multiline*/ case StructDef: {
@@ -1250,7 +1309,7 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
         add_flag(&flags, def->external, Text("external"));
         add_flag(&flags, def->opaque, Text("opaque"));
         Text_t code = Texts("struct ", Text$from_str(def->name));
-        code = Texts(code, format_bracketed_args(def->fields, EMPTY_TEXT, flags, comments, indent,
+        code = Texts(code, format_bracketed_args(def->fields, EMPTY_TEXT, flags, EMPTY_TEXT, comments, indent,
                                                  column_after(column, code), "{", "}"));
         // Comments inside the field list are emitted with their field, so pick
         // up only what comes after it:
@@ -1312,6 +1371,8 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
             // written inside it is the item's own to place, and scanning it
             // again here would write it a second time.
             comment_pos = item->ast->end;
+            code =
+                Texts(code, line_comment(&comment_pos, item->ast, item_text, Texts(indent, single_indent), comments));
             prev = item->ast;
         }
         // A comment left over at the end goes on a line of its own: appended
@@ -1344,6 +1405,8 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
             }
             // As with a list item above: the entry's interior is its own.
             comment_pos = entry->ast->end;
+            code =
+                Texts(code, line_comment(&comment_pos, entry->ast, entry_text, Texts(indent, single_indent), comments));
         }
         // A comment left over at the end goes on a line of its own: appended
         // where the last item stopped, it ran onto the back of its comma.

@@ -51,12 +51,11 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
                 if (!alias) parser_err(ctx, *pos, *pos, "I expected an argument alias after `|`");
             }
 
-            Text_t comments = EMPTY_TEXT;
-            for (OptionalText_t com;
-                 (com = next_comment(ctx->comments, &comment_start, name_start)).tag != TEXT_NONE;) {
-                if (comments.length > 0) comments = Texts(comments, " ");
-                comments = Texts(comments, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
-            }
+            // As for a call's arguments: what stands on the line the previous
+            // parameter finished on trails that parameter, and only what is
+            // written below it leads this one.
+            if (args != NULL) args->trailing_comment = collect_line_comments(ctx, &comment_start, name_start);
+            Text_t comments = collect_comments(ctx, &comment_start, name_start);
 
             if (match(pos, ":")) {
                 type = expect(ctx, *pos, pos, parse_type, "I expected a type here");
@@ -93,6 +92,9 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
             args = new (arg_ast_t, .start = names->start, .end = names->end, .name = names->name, .alias = names->alias,
                         .comment = names->comment, .type = type, .value = default_val, .next = args);
 
+        // The separator below steps over whatever was written after this batch,
+        // so the scan for the next one starts from where the batch ended.
+        comment_start = *pos;
         if (!match_separator(ctx, pos)) break;
     }
 
@@ -104,12 +106,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
         const char *trailing_start = args->end;
         const char *after = *pos;
         whitespace(ctx, &after);
-        Text_t trailing = EMPTY_TEXT;
-        for (OptionalText_t com; (com = next_comment(ctx->comments, &trailing_start, after)).tag != TEXT_NONE;) {
-            if (trailing.length > 0) trailing = Texts(trailing, " ");
-            trailing = Texts(trailing, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
-        }
-        args->trailing_comment = trailing;
+        args->trailing_comment = collect_comments(ctx, &trailing_start, after);
     }
 
     REVERSE_LIST(args);

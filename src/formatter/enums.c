@@ -29,8 +29,8 @@ Text_t format_tag_at(tag_ast_t *tag, Table_t comments, Text_t indent, int64_t co
     flag_list_t flags = {};
     add_flag(&flags, tag->secret, Text("secret"));
     add_flag(&flags, tag->packed_bools, Text("packed_bools"));
-    return Texts(
-        code, format_bracketed_args(tag->fields, EMPTY_TEXT, flags, comments, indent, column + code.length, "{", "}"));
+    return Texts(code, format_bracketed_args(tag->fields, EMPTY_TEXT, flags, EMPTY_TEXT, comments, indent,
+                                             column + code.length, "{", "}"));
 }
 
 OptionalText_t format_inline_tags(tag_ast_t *tags, Table_t comments) {

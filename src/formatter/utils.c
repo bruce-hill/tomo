@@ -62,6 +62,23 @@ OptionalText_t next_comment(Table_t comments, const char **pos, const char *end)
     return NONE_TEXT;
 }
 
+// Where the parser stopped taking a parameter list's trailing comments: at the
+// first thing that is neither whitespace nor a comment, which is the `->`, the
+// first `;`, or the closing delimiter. Anything written from there on belongs
+// to the signature that follows the parameters, and nothing else writes it out.
+const char *after_leading_comments(const char *pos, const char *end, Table_t comments) {
+    while (pos < end) {
+        if (*pos == ' ' || *pos == '\t' || *pos == '\r' || *pos == '\n' || *pos == ',') {
+            pos += 1;
+            continue;
+        }
+        const char **comment_end = Table$get(comments, &pos, parse_comments_info);
+        if (comment_end == NULL) break;
+        pos = *comment_end;
+    }
+    return pos;
+}
+
 bool range_has_comment(const char *start, const char *end, Table_t comments) {
     OptionalText_t comment = next_comment(comments, &start, end);
     return (comment.tag != TEXT_NONE);
@@ -71,7 +88,7 @@ bool range_has_comment(const char *start, const char *end, Table_t comments) {
 // nothing but whitespace on it. This is how the formatter decides where the
 // author put blank lines, so that formatting can preserve them.
 PUREFUNC
-static bool has_blank_line(const char *start, const char *end) {
+bool has_blank_line(const char *start, const char *end) {
     bool seen_newline = false, only_space = true;
     for (const char *p = start; p < end; p++) {
         if (*p == '\n') {
@@ -91,10 +108,59 @@ static bool has_blank_line(const char *start, const char *end) {
 // definition. The other rule -- a blank line after a body that nests two
 // levels deep -- depends on how the statement came out once formatted, so it
 // lives in the block formatter rather than here.
+// The column the line holding `pos` is indented to.
+PUREFUNC static int64_t line_indent(const char *file, const char *pos) {
+    const char *line = pos;
+    while (line > file && line[-1] != '\n')
+        line--;
+    int64_t col = 0;
+    for (const char *p = line; p < pos && (*p == ' ' || *p == '\t'); p++)
+        col += 1;
+    return col;
+}
+
+// Where a run of source actually stops. A block consumes the whitespace after
+// itself as it parses, so a definition's span runs past the blank lines below
+// it and over any comment written there. That is how a comment at the top level
+// came to be indented into the namespace above it, and how the blank line the
+// author left in front of that comment disappeared. Nothing written to the left
+// of `own` on a line of its own was ever part of this.
+PUREFUNC static const char *content_end_at(ast_t *ast, int64_t own) {
+    const char *file = ast->file->text;
+    const char *p = ast->end;
+    for (;;) {
+        while (p > ast->start && (p[-1] == ' ' || p[-1] == '\t' || p[-1] == '\r' || p[-1] == '\n'))
+            p--;
+        if (p <= ast->start) return p;
+        const char *line = p;
+        while (line > file && line[-1] != '\n')
+            line--;
+        if (line <= ast->start) return p;
+        int64_t col = 0;
+        const char *text = line;
+        for (; *text == ' ' || *text == '\t'; text++)
+            col += 1;
+        if (*text != '#' || col >= own) return p;
+        p = line;
+    }
+}
+
+// A statement owns what is written below it and indented past it.
+PUREFUNC const char *content_end(ast_t *ast) {
+    return content_end_at(ast, line_indent(ast->file->text, ast->start) + 1);
+}
+
+// A block owns what is written at the column its own statements sit at.
+PUREFUNC const char *block_content_end(ast_t *block) {
+    ast_list_t *first = Match(block, Block)->statements;
+    if (first == NULL) return block->end;
+    return content_end_at(block, line_indent(block->file->text, first->ast->start));
+}
+
 PUREFUNC int suggested_blank_lines(ast_t *first, ast_t *second) {
     if (first == NULL || second == NULL) return 0;
 
-    if (has_blank_line(first->end, second->start)) return 1;
+    if (has_blank_line(content_end(first), second->start)) return 1;
 
     switch (first->tag) {
     case FunctionDef:

@@ -154,3 +154,41 @@ func arg_comments(xs:&[Int])
         # up
         2,
     }
+
+func trailing(xs:&[Int])
+    # A comment at the end of the line an item finished on belongs to that
+    # item. Written back on the line below it would say about the next one
+    # what its author said about this one, and `# one` would describe `2`.
+    >> [
+        1, # one
+        2, # two
+    ]
+    >> {
+        1: 2, # entry one
+        3: 4, # entry two
+    }
+    xs.insert(
+        7, # which value
+        at=1, # and where
+    )
+
+func suffix_comments(
+    a:Int,
+    -> Int # what comes back
+    ; inline
+    # ...and what is written below the flags, which has no line of its own on
+    # the one-line form, so carrying it is itself a reason to break
+)
+    # Neither the return type nor a flag is a node that could hold a comment,
+    # and nothing scanned the gaps between them, so both used to be dropped.
+    return a
+
+struct Spanned{x:Int}
+    FIELD := 1
+
+# A block consumes the whitespace after it as it parses, so this definition's
+# span runs past the blank line above and over this comment. Left to the
+# namespace, the comment was indented into it and the blank line vanished.
+
+func after_a_namespace(-> Int)
+    return Spanned.FIELD

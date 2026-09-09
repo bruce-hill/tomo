@@ -139,19 +139,25 @@ Text_t format_args_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t 
 // When it does break, the return type and the flags each take a line of their
 // own. Left on the last argument's line they would sit after the comma that
 // separates that argument from the next, and read as more arguments.
-Text_t format_bracketed_args(arg_ast_t *args, Text_t ret_type, flag_list_t flags, Table_t comments, Text_t indent,
-                             int64_t column, const char *open, const char *close) {
+Text_t format_bracketed_args(arg_ast_t *args, Text_t ret_type, flag_list_t flags, Text_t tail_comment, Table_t comments,
+                             Text_t indent, int64_t column, const char *open, const char *close) {
     // A return type stands apart from the arguments it follows; a flag carries
     // the `;` that separates it already.
     Text_t flat_flags = inline_flags(flags);
     bool gap = ret_type.length > 0 && args != NULL;
     int64_t around = ret_type.length + flat_flags.length + (int64_t)(strlen(open) + strlen(close)) + (gap ? 1 : 0);
-    Text_t arg_code = format_args_at(args, comments, indent, column + around);
-    if (Text$has(arg_code, Text("\n"))) {
+    // A comment written here has no line of its own on the one-line form, so
+    // carrying one is itself a reason to break -- and the parameters have to
+    // break with it, or the first of them is left on the opening delimiter's
+    // line with nothing to separate it from the return type below.
+    bool commented = Text$has(ret_type, Text("#")) || tail_comment.length > 0;
+    Text_t arg_code = format_args_at(args, comments, indent, commented ? MAX_WIDTH : column + around);
+    if (Text$has(arg_code, Text("\n")) || commented) {
         Text_t inner_indent = Texts(indent, single_indent);
         if (ret_type.length > 0) arg_code = Texts(arg_code, "\n", inner_indent, ret_type);
         for (int i = 0; i < flags.count; i++)
             arg_code = Texts(arg_code, "\n", inner_indent, "; ", flags.items[i]);
+        if (tail_comment.length > 0) arg_code = Texts(arg_code, "\n", inner_indent, tail_comment);
         return Texts(open, arg_code, "\n", indent, close);
     }
     return Texts(open, arg_code, gap ? Text(" ") : EMPTY_TEXT, ret_type, flat_flags, close);

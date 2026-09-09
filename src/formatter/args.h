@@ -12,8 +12,8 @@ OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments);
 // These take the column they start at as their last argument; see utils.h.
 Text_t format_arg_at(arg_ast_t *arg, Table_t comments, Text_t indent, int64_t column);
 Text_t format_args_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t column);
-Text_t format_bracketed_args(arg_ast_t *args, Text_t ret_type, flag_list_t flags, Table_t comments, Text_t indent,
-                             int64_t column, const char *open, const char *close);
+Text_t format_bracketed_args(arg_ast_t *args, Text_t ret_type, flag_list_t flags, Text_t tail_comment, Table_t comments,
+                             Text_t indent, int64_t column, const char *open, const char *close);
 Text_t format_fncall_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t column);
 Text_t format_record_literal_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t column);
 

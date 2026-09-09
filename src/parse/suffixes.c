@@ -139,11 +139,11 @@ static arg_ast_t *parse_call_args(parse_ctx_t *ctx, const char **pos, const char
             *pos = arg_start;
         }
 
-        Text_t arg_comments = EMPTY_TEXT;
-        for (OptionalText_t com; (com = next_comment(ctx->comments, &comment_start, arg_start)).tag != TEXT_NONE;) {
-            if (arg_comments.length > 0) arg_comments = Texts(arg_comments, " ");
-            arg_comments = Texts(arg_comments, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
-        }
+        // What was written on the line the argument before this one finished
+        // on belongs to that argument; only what is written below it leads
+        // this one.
+        if (args != NULL) args->trailing_comment = collect_line_comments(ctx, &comment_start, arg_start);
+        Text_t arg_comments = collect_comments(ctx, &comment_start, arg_start);
 
         ast_t *arg = optional(ctx, pos, parse_expr);
         if (!arg) {
@@ -162,12 +162,7 @@ static arg_ast_t *parse_call_args(parse_ctx_t *ctx, const char **pos, const char
         // matcher has already stepped over anything written in between. This
         // runs before the reversal, while `args` is still that last argument.
         const char *trailing_start = args->end;
-        Text_t trailing = EMPTY_TEXT;
-        for (OptionalText_t com; (com = next_comment(ctx->comments, &trailing_start, *pos)).tag != TEXT_NONE;) {
-            if (trailing.length > 0) trailing = Texts(trailing, " ");
-            trailing = Texts(trailing, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
-        }
-        args->trailing_comment = trailing;
+        args->trailing_comment = collect_comments(ctx, &trailing_start, *pos);
     }
     REVERSE_LIST(args);
     return args;

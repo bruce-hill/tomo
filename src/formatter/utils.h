@@ -34,7 +34,11 @@ void add_flag(flag_list_t *flags, bool present, Text_t name);
 // All of them on one line, `; a; b`.
 Text_t inline_flags(flag_list_t flags);
 OptionalText_t next_comment(Table_t comments, const char **pos, const char *end);
+const char *after_leading_comments(const char *pos, const char *end, Table_t comments);
 bool range_has_comment(const char *start, const char *end, Table_t comments);
+PUREFUNC bool has_blank_line(const char *start, const char *end);
+PUREFUNC const char *content_end(ast_t *ast);
+PUREFUNC const char *block_content_end(ast_t *block);
 PUREFUNC int suggested_blank_lines(ast_t *first, ast_t *second);
 PUREFUNC bool ends_deeper_than(Text_t code, Text_t indent);
 PUREFUNC int64_t trailing_line_len(Text_t text);

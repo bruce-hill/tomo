@@ -60,3 +60,11 @@ func main()
     assert block != joined and blank_first != rejoined
     assert long != dotted and dotted != interpolated
     assert all_dots.length == 150
+
+func wrapped_spaces()
+    # A space at the end of a written line is part of the text and invisible on
+    # the page, so anything that trims trailing whitespace -- an editor on save,
+    # a lint, a patch tool -- would silently shorten the value. Written as an
+    # escape it survives being read back.
+    padded := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa     bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    >> padded.length

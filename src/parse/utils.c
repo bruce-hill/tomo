@@ -7,10 +7,36 @@
 #include <uniname.h>
 #include <uninorm.h>
 
+#include "../ast.h"
+#include "../formatter/utils.h"
+#include "../stdlib/datatypes.h"
 #include "../stdlib/table.h"
+#include "../stdlib/text.h"
 #include "../util.h"
+#include "context.h"
 #include "errors.h"
 #include "utils.h"
+
+// The comments between `*pos` and `end`, joined by spaces into one text, with
+// `*pos` left after the last of them.
+Text_t collect_comments(parse_ctx_t *ctx, const char **pos, const char *end) {
+    Text_t joined = EMPTY_TEXT;
+    for (OptionalText_t com; (com = next_comment(ctx->comments, pos, end)).tag != TEXT_NONE;) {
+        if (joined.length > 0) joined = Texts(joined, " ");
+        joined = Texts(joined, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
+    }
+    return joined;
+}
+
+// The ones written on the line `*pos` stands in, which trail whatever finished
+// that line rather than leading what comes below it: `1, # one` says something
+// about `1`, and reading it as the next item's says it about `2`.
+Text_t collect_line_comments(parse_ctx_t *ctx, const char **pos, const char *end) {
+    const char *eol = *pos;
+    while (eol < end && *eol != '\n')
+        eol++;
+    return collect_comments(ctx, pos, eol);
+}
 
 static const char *keywords[] = {
     "C_code", "_embed_", "_max_",  "_min_",  "and",  "assert", "break", "continue", "defer", "do",   "else",
