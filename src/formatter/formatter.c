@@ -102,6 +102,46 @@ static Text_t format_cache_flag(ast_t *cache, Table_t comments, Text_t indent, i
     return Texts("; cache_size=", fmt_at(cache, comments, indent, column + 13));
 }
 
+// What a definition writes between its arguments and its closing parenthesis:
+// the return type, then the flags. It carries no leading space, since where it
+// goes decides whether it wants one.
+//
+// The `cache_size` expression is the only part of this that can wrap, and it is
+// measured from the inner indent, the line of its own that it would be wrapping
+// onto.
+static Text_t signature_suffix(type_ast_t *ret_type, ast_t *cache, bool is_inline, Table_t comments, Text_t indent) {
+    Text_t code = EMPTY_TEXT;
+    int64_t column = (int64_t)(indent.length + single_indent.length);
+    if (ret_type) code = Texts("-> ", format_type(ret_type));
+    if (cache) code = Texts(code, format_cache_flag(cache, comments, indent, column + code.length));
+    if (is_inline) code = Texts(code, "; inline");
+    return code;
+}
+
+// The arguments and the suffix of a definition, from the `(` to the `)`.
+//
+// Whether the arguments fit on one line is a question about the whole
+// signature, so the suffix and the closing parenthesis are counted against
+// their budget: `func f(a:Int, b:Int -> SomeLongType)` can overflow on the
+// part that isn't the arguments.
+//
+// When they don't fit, the suffix goes down to the closing line rather than
+// staying on the last argument's, where it would sit after that argument's
+// comma and read as one more argument. That is also the only place all three
+// of the definitions accept it: an anonymous function wants its `)` on the
+// same line as its return type, where a named one wants the `)` on a line
+// whose indentation its body can be deeper than, and the closing line is both.
+static Text_t format_signature(arg_ast_t *args, type_ast_t *ret_type, ast_t *cache, bool is_inline, Table_t comments,
+                               Text_t indent, int64_t column) {
+    Text_t suffix = signature_suffix(ret_type, cache, is_inline, comments, indent);
+    // The suffix, the two parentheses, and the space before the suffix.
+    int64_t around = suffix.length + (suffix.length > 0 && args ? 3 : 2);
+    Text_t arg_code = format_args_at(args, comments, indent, column + around);
+    if (Text$has(arg_code, Text("\n"))) return Texts("(", arg_code, "\n", indent, suffix, ")");
+    if (suffix.length == 0) return Texts("(", arg_code, ")");
+    return Texts("(", arg_code, args ? Text(" ") : EMPTY_TEXT, suffix, ")");
+}
+
 static bool starts_with_id(Text_t text) {
     if (text.length <= 0) return false;
     List_t codepoints = Text$utf32(Text$slice(text, I_small(1), I_small(1)));
@@ -1083,35 +1123,24 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     /*multiline*/ case FunctionDef: {
         DeclareMatch(func, ast, FunctionDef);
         Text_t code = Texts("func ", fmt_at(func->name, comments, indent, column + 5));
-        code = Texts(code, "(", format_args_at(func->args, comments, indent, column_after(column, code) + 1));
-        if (func->ret_type) code = Texts(code, func->args ? Text(" -> ") : Text("-> "), format_type(func->ret_type));
-        if (func->cache)
-            code = Texts(code, format_cache_flag(func->cache, comments, indent, column_after(column, code)));
-        if (func->is_inline) code = Texts(code, "; inline");
-        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
-                     single_indent, fmt(func->body, comments, Texts(indent, single_indent)));
+        code = Texts(code, format_signature(func->args, func->ret_type, func->cache, func->is_inline, comments, indent,
+                                            column_after(column, code)));
+        code = Texts(code, "\n", indent, single_indent, fmt(func->body, comments, Texts(indent, single_indent)));
         return Texts(code);
     }
     /*multiline*/ case Lambda: {
         if (inlined_fits) return inlined;
         DeclareMatch(lambda, ast, Lambda);
-        Text_t code = Texts("func(", format_args(lambda->args, comments, indent));
-        if (lambda->ret_type)
-            code = Texts(code, lambda->args ? Text(" -> ") : Text("-> "), format_type(lambda->ret_type));
-        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
-                     single_indent, fmt(lambda->body, comments, Texts(indent, single_indent)));
+        Text_t code =
+            Texts("func", format_signature(lambda->args, lambda->ret_type, NULL, false, comments, indent, column + 4));
+        code = Texts(code, "\n", indent, single_indent, fmt(lambda->body, comments, Texts(indent, single_indent)));
         return Texts(code);
     }
     /*multiline*/ case ConvertDef: {
         DeclareMatch(convert, ast, ConvertDef);
-        Text_t code = Texts("convert (", format_args_at(convert->args, comments, indent, column + 9));
-        if (convert->ret_type)
-            code = Texts(code, convert->args ? Text(" -> ") : Text("-> "), format_type(convert->ret_type));
-        if (convert->cache)
-            code = Texts(code, format_cache_flag(convert->cache, comments, indent, column_after(column, code)));
-        if (convert->is_inline) code = Texts(code, "; inline");
-        code = Texts(code, Text$has(code, Text("\n")) ? Texts("\n", indent, ")") : Text(")"), "\n", indent,
-                     single_indent, fmt(convert->body, comments, Texts(indent, single_indent)));
+        Text_t code = Texts("convert ", format_signature(convert->args, convert->ret_type, convert->cache,
+                                                         convert->is_inline, comments, indent, column + 8));
+        code = Texts(code, "\n", indent, single_indent, fmt(convert->body, comments, Texts(indent, single_indent)));
         return Texts(code);
     }
     /*multiline*/ case StructDef: {
