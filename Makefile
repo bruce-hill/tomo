@@ -581,13 +581,21 @@ test-format-snapshots: build
 	@printf '\033[1m Testing formatter layout... \033[m\n'
 	@./scripts/format_tests.sh ./local-tomo
 
+# Round-trip tests over generated source. test-format asks the same question of
+# the files in the tree; this asks it of a construct in every position it can be
+# written in, which is where the answer has actually differed.
+test-format-fuzz: build
+	@printf '\033[1m Testing formatter round-trip... \033[m\n'
+	@./scripts/format_fuzz.py ./local-tomo
+
 # Rewrites every formatter snapshot from current behavior. It can't tell a fixed
 # bug from a newly introduced one, so review `git diff test/format` afterwards.
 .PHONY: regen-format-tests
 regen-format-tests: build
 	@./scripts/format_tests.sh ./local-tomo --regen
 
-test: test-tm test-number test-cli test-parse test-format test-format-check test-format-snapshots
+test: test-tm test-number test-cli test-parse test-format test-format-check test-format-snapshots \
+      test-format-fuzz
 	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
 
 # Remove just the (target-specific) Tomo object files:
