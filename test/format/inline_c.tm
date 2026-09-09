@@ -10,6 +10,10 @@ func main()
     assert C_code:Int64`(int64_t)@x` == x
     # A statement block, also short enough to stay put:
     C_code`(void)(@x + 1);`
+    # A one-line body written across lines keeps the shape it was written in:
+    C_code`
+        (void)(@x + 2);
+    `
     # ...and one that genuinely spans lines, which has to keep spanning them:
     C_code`
         int a = 1;

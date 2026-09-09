@@ -385,6 +385,11 @@ PUREFUNC static bool negation_needs_parens(ast_t *operand) {
 
 OptionalText_t format_inline_code(ast_t *ast, Table_t comments) {
     if (range_has_comment(ast->start, ast->end, comments)) return NONE_TEXT;
+    // A text literal the author wrote across several lines stays that way. Its
+    // one-line form is a different thing to read: the newlines come back as
+    // `\n` escapes, and the line it lands on is as long as the whole literal.
+    if ((ast->tag == TextJoin || ast->tag == InlineCCode) && memchr(ast->start, '\n', (size_t)(ast->end - ast->start)))
+        return NONE_TEXT;
     switch (ast->tag) {
     /*inline*/ case Unknown:
         fail("Invalid AST");
@@ -710,21 +715,9 @@ PUREFUNC static int64_t trailing_line_len(Text_t text) {
     return len;
 }
 
-static visit_behavior_t _find_required_multiline(ast_t *ast, void *userdata) {
-    if (ast->tag == TextJoin && memchr(ast->start, '\n', (size_t)(ast->end - ast->start))) {
-        *(bool *)userdata = true;
-        return VISIT_STOP;
-    }
-    return VISIT_PROCEED;
-}
-
 Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
     OptionalText_t inlined = format_inline_code(ast, comments);
     bool inlined_fits = (inlined.tag != TEXT_NONE && indent.length + inlined.length <= MAX_WIDTH);
-    bool requires_multiline = false;
-
-    ast_visit(ast, _find_required_multiline, &requires_multiline);
-    if (requires_multiline) inlined_fits = false;
 
     switch (ast->tag) {
     /*multiline*/ case Unknown:

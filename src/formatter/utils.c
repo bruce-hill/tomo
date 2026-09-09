@@ -157,19 +157,3 @@ Text_t termify(ast_t *ast, Table_t comments, Text_t indent) {
     Text_t code = format_code(ast, comments, indent);
     return ends_deeper_than(code, indent) ? parenthesize(code, indent) : code;
 }
-
-static visit_behavior_t _find_required_multiline(ast_t *ast, void *userdata) {
-    if (ast->tag == TextJoin && memchr(ast->start, '\n', (size_t)(ast->end - ast->start))) {
-        *(bool *)userdata = true;
-        return VISIT_STOP;
-    }
-    return VISIT_PROCEED;
-}
-
-// Under certain circumstances, we really don't want to use an inline value, such
-// as when there's a multiline string in the source code (we want to preserve that).
-bool requires_multiline(ast_t *ast) {
-    bool required = false;
-    ast_visit(ast, _find_required_multiline, &required);
-    return required;
-}

@@ -1,0 +1,42 @@
+# Layout choices the formatter makes for text literals. A literal the author
+# wrote across several lines has a one-line form -- its newlines come back as
+# `\n` escapes -- and reparsing that form gives the same syntax tree, so
+# `tomo format --verify` can't see the difference. The snapshot beside this
+# file pins the layout itself.
+
+func main()
+    # A multi-line literal stays multi-line, wherever it is used:
+    s := "
+        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        AAAAAAAAAAAAAAAAAAAA
+    "
+    # ...including as the term a suffix hangs off of, which is where squeezing
+    # it onto one line would put a whole paragraph past the line limit:
+    n := "
+        one
+        two
+    ".length
+    # ...as one operand of an operator:
+    joined := "
+        one
+    " ++ "two"
+    # ...as one argument among several:
+    say(
+        "
+            one
+            two
+        ",
+        newline=no,
+    )
+
+    # ...and as a list item:
+    lines := [
+        "
+            one
+        ",
+        "two",
+    ]
+
+    # A literal written on one line stays there, even with escaped newlines:
+    flat := "one\ntwo"
+    assert n > 0 and joined != flat and lines.length == 2 and s != flat

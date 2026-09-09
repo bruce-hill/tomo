@@ -31,10 +31,8 @@ OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
 }
 
 Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
-    if (!arg->value || !requires_multiline(arg->value)) {
-        OptionalText_t inline_arg = format_inline_arg(arg, comments);
-        if (inline_arg.tag != TEXT_NONE && inline_arg.length <= MAX_WIDTH) return inline_arg;
-    }
+    OptionalText_t inline_arg = format_inline_arg(arg, comments);
+    if (inline_arg.tag != TEXT_NONE && inline_arg.length <= MAX_WIDTH) return inline_arg;
     if (arg->name == NULL && arg->value) return bounded(arg->value, comments, indent);
     Text_t code = arg_name(arg);
     if (arg->type) code = Texts(code, ":", format_type(arg->type));
@@ -60,17 +58,8 @@ OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
 }
 
 Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
-    bool multiline_required = false;
-    for (arg_ast_t *arg = args; arg && !multiline_required; arg = arg->next) {
-        if (arg->value) {
-            multiline_required = requires_multiline(arg->value);
-        }
-    }
-
-    if (!multiline_required) {
-        OptionalText_t inline_args = format_inline_args(args, comments);
-        if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return inline_args;
-    }
+    OptionalText_t inline_args = format_inline_args(args, comments);
+    if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return inline_args;
 
     Text_t code = EMPTY_TEXT;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
@@ -103,17 +92,8 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
 // in their delimiters.
 static Text_t format_delimited_args(arg_ast_t *args, Table_t comments, Text_t indent, const char *open,
                                     const char *close) {
-    bool multiline_required = false;
-    for (arg_ast_t *arg = args; arg && !multiline_required; arg = arg->next) {
-        if (arg->value) {
-            multiline_required = requires_multiline(arg->value);
-        }
-    }
-
-    if (!multiline_required) {
-        OptionalText_t inline_args = format_inline_args(args, comments);
-        if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return Texts(open, inline_args, close);
-    }
+    OptionalText_t inline_args = format_inline_args(args, comments);
+    if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return Texts(open, inline_args, close);
 
     // A lone argument normally hugs the delimiters, but not when it carries
     // comments: only format_args() below writes those out, so hugging here

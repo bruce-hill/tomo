@@ -31,4 +31,3 @@ OptionalText_t bounded_inline(ast_t *ast, Table_t comments);
 Text_t bounded(ast_t *ast, Table_t comments, Text_t indent);
 OptionalText_t termify_inline(ast_t *ast, Table_t comments);
 Text_t termify(ast_t *ast, Table_t comments, Text_t indent);
-bool requires_multiline(ast_t *ast);
