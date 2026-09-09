@@ -31,11 +31,6 @@
 static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tighten_from);
 static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int64_t column, int tighten_from);
 
-Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent) {
-    if (unwrap_block(namespace) == NULL) return EMPTY_TEXT;
-    return Texts("\n", indent, single_indent, fmt(namespace, comments, Texts(indent, single_indent)));
-}
-
 typedef struct {
     Text_t quote, unquote, interp;
     // Inline C is parsed verbatim (no backslash escapes), so its text has to be
@@ -155,6 +150,73 @@ static Text_t comment_range(const char **pos, const char *end, Text_t indent, Ta
         prev = *pos;
     }
     return ret;
+}
+
+// A block that opens partway along a line -- the body of an `if`, a `for`, a
+// `func` -- does not own what was written at the end of that line. The
+// construct it belongs to writes that comment back onto its header, where the
+// author put it, so the block starts scanning on the line below.
+static const char *block_scan_start(ast_t *block) {
+    ast_list_t *first = Match(block, Block)->statements;
+    if (first == NULL) return block->start;
+    const char *line = block->start;
+    while (line > block->file->text && line[-1] != '\n')
+        line--;
+    for (const char *p = line; p < block->start; p++) {
+        if (*p == ' ' || *p == '\t') continue;
+        // Something stands before the block on this line, so the line belongs
+        // to a header. Give up the rest of it -- but only as far as the first
+        // statement, since a body written on the same line shares it.
+        for (const char *eol = block->start; eol < first->ast->start; eol++)
+            if (*eol == '\n') return eol;
+        break;
+    }
+    return block->start;
+}
+
+// What an author wrote on the rest of the line `pos` stands in, ready to be
+// appended to that line. `pos` is left after it, so a caller can go on to
+// collect whatever was written below.
+static Text_t line_end_comment(const char **pos, const char *limit, Table_t comments) {
+    const char *eol = *pos;
+    while (eol < limit && *eol != '\n')
+        eol++;
+    Text_t found = comment_range(pos, eol, EMPTY_TEXT, comments);
+    return found.length > 0 ? Texts(" ", found) : EMPTY_TEXT;
+}
+
+// The comment an author left at the end of a header line: the `# x is big` of
+// `if x > 1 # x is big`. The body block steps over it, so it is written out
+// here or nowhere.
+static Text_t header_comment(ast_t *body, Table_t comments) {
+    if (body == NULL || body->tag != Block) return EMPTY_TEXT;
+    const char *pos = body->start;
+    return line_end_comment(&pos, block_scan_start(body), comments);
+}
+
+// A definition's body starts on the line below its header rather than against
+// it, so the comments between the two are this construct's to place: what sits
+// on the header's own line stays there, and anything below takes a line at the
+// body's indentation.
+static Text_t definition_comments(const char **pos, ast_t *namespace, Text_t indent, Table_t comments) {
+    Text_t code = line_end_comment(pos, namespace->start, comments);
+    Text_t below = comment_range(pos, namespace->start, Texts(indent, single_indent), comments);
+    if (below.length > 0) code = Texts(code, "\n", indent, single_indent, below);
+    return code;
+}
+
+// A body indented under the line that introduces it, with whatever was written
+// at the end of that line still on it.
+static Text_t format_body(ast_t *body, Table_t comments, Text_t indent) {
+    Text_t inner = Texts(indent, single_indent);
+    return Texts(header_comment(body, comments), "\n", inner, fmt(body, comments, inner));
+}
+
+// The same, for a body that is allowed to be empty: a definition with nothing
+// in its namespace writes no lines at all, rather than a `pass`.
+Text_t format_namespace(ast_t *namespace, Table_t comments, Text_t indent) {
+    if (unwrap_block(namespace) == NULL) return EMPTY_TEXT;
+    return format_body(namespace, comments, indent);
 }
 
 static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, Table_t comments) {
@@ -940,7 +1002,7 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
         // of the inner body:
         Text_t double_indent = Texts("\n", indent, single_indent, single_indent);
         Text_t code = EMPTY_TEXT;
-        const char *comment_pos = ast->start;
+        const char *comment_pos = block_scan_start(ast);
         ast_list_t *prev = NULL;
         bool prev_was_double_indented = false;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
@@ -1009,13 +1071,12 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
             return Texts(body, " ", code);
         }
 
-        code = Texts(code, "\n", indent, single_indent, body);
+        code = Texts(code, header_comment(if_->body, comments), "\n", indent, single_indent, body);
         if (if_->else_body) {
             const char *gap = if_->body->end;
             code = Texts(code, gap_comments(&gap, if_->else_body->start, indent, comments));
             if (if_->else_body->tag != If) {
-                code = Texts(code, "\n", indent, "else\n", indent, single_indent,
-                             fmt(if_->else_body, comments, Texts(indent, single_indent)));
+                code = Texts(code, "\n", indent, "else", format_body(if_->else_body, comments, indent));
             } else {
                 code = Texts(code, "\n", indent, "else ", fmt_at(if_->else_body, comments, indent, indent.length + 5));
             }
@@ -1028,6 +1089,7 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
         // A comment after the subject or before a `case` sits in a gap of this
         // statement, which no block scans:
         const char *gap = match->subject->end;
+        code = Texts(code, line_end_comment(&gap, ast->end, comments));
         for (match_clause_t *clause = match->clauses; clause; clause = clause->next) {
             code = Texts(code, gap_comments(&gap, clause->pattern->start, indent, comments));
             code = Texts(code, "\n", indent, "case ", fmt_at(clause->pattern, comments, indent, indent.length + 5));
@@ -1044,14 +1106,11 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
         }
         return code;
     }
-    /*multiline*/ case Repeat: {
-        return Texts("repeat\n", indent, single_indent,
-                     fmt(Match(ast, Repeat)->body, comments, Texts(indent, single_indent)));
-    }
+    /*multiline*/ case Repeat: { return Texts("repeat", format_body(Match(ast, Repeat)->body, comments, indent)); }
     /*multiline*/ case While: {
         DeclareMatch(loop, ast, While);
-        return Texts("while ", bounded_at(loop->condition, comments, indent, column + 6), "\n", indent, single_indent,
-                     fmt(loop->body, comments, Texts(indent, single_indent)));
+        return Texts("while ", bounded_at(loop->condition, comments, indent, column + 6),
+                     format_body(loop->body, comments, indent));
     }
     /*multiline*/ case For: {
         DeclareMatch(loop, ast, For);
@@ -1128,23 +1187,20 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
         Text_t code = Texts("func ", fmt_at(func->name, comments, indent, column + 5));
         code = Texts(code, format_signature(func->args, func->ret_type, func->cache, func->is_inline, comments, indent,
                                             column_after(column, code)));
-        code = Texts(code, "\n", indent, single_indent, fmt(func->body, comments, Texts(indent, single_indent)));
-        return Texts(code);
+        return Texts(code, format_body(func->body, comments, indent));
     }
     /*multiline*/ case Lambda: {
         if (inlined_fits) return inlined;
         DeclareMatch(lambda, ast, Lambda);
         Text_t code =
             Texts("func", format_signature(lambda->args, lambda->ret_type, NULL, false, comments, indent, column + 4));
-        code = Texts(code, "\n", indent, single_indent, fmt(lambda->body, comments, Texts(indent, single_indent)));
-        return Texts(code);
+        return Texts(code, format_body(lambda->body, comments, indent));
     }
     /*multiline*/ case ConvertDef: {
         DeclareMatch(convert, ast, ConvertDef);
         Text_t code = Texts("convert ", format_signature(convert->args, convert->ret_type, convert->cache,
                                                          convert->is_inline, comments, indent, column + 8));
-        code = Texts(code, "\n", indent, single_indent, fmt(convert->body, comments, Texts(indent, single_indent)));
-        return Texts(code);
+        return Texts(code, format_body(convert->body, comments, indent));
     }
     /*multiline*/ case StructDef: {
         DeclareMatch(def, ast, StructDef);
@@ -1161,9 +1217,7 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
         const char *comment_pos = ast->start;
         for (arg_ast_t *field = def->fields; field; field = field->next)
             comment_pos = field->end;
-        Text_t comment_code =
-            comment_range(&comment_pos, def->namespace->start, Texts(indent, single_indent), comments);
-        if (comment_code.length > 0) code = Texts(code, "\n", indent, single_indent, comment_code);
+        code = Texts(code, definition_comments(&comment_pos, def->namespace, indent, comments));
         return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case EnumDef: {
@@ -1176,18 +1230,14 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
         for (tag_ast_t *tag = def->tags; tag; tag = tag->next)
             for (arg_ast_t *field = tag->fields; field; field = field->next)
                 comment_pos = field->end;
-        Text_t comment_code =
-            comment_range(&comment_pos, def->namespace->start, Texts(indent, single_indent), comments);
-        if (comment_code.length > 0) code = Texts(code, "\n", indent, single_indent, comment_code);
+        code = Texts(code, definition_comments(&comment_pos, def->namespace, indent, comments));
         return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case LangDef: {
         DeclareMatch(def, ast, LangDef);
         Text_t code = Texts("lang ", Text$from_str(def->name));
         const char *comment_pos = ast->start;
-        Text_t comment_code =
-            comment_range(&comment_pos, def->namespace->start, Texts(indent, single_indent), comments);
-        if (comment_code.length > 0) code = Texts(code, "\n", indent, single_indent, comment_code);
+        code = Texts(code, definition_comments(&comment_pos, def->namespace, indent, comments));
         return Texts(code, format_namespace(def->namespace, comments, indent));
     }
     /*multiline*/ case Defer:
@@ -1489,8 +1539,7 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     }
     /*multiline*/ case Test: {
         DeclareMatch(test, ast, Test);
-        Text_t code = Texts("test ", quoted_label(test->label), "\n", indent, single_indent,
-                            fmt(test->body, comments, Texts(indent, single_indent)));
+        Text_t code = Texts("test ", quoted_label(test->label), format_body(test->body, comments, indent));
         // At most one outcome clause, dedented back to the `test` keyword's own
         // indentation (that's where the parser looks for it):
         const char *clause = test->expected_compile_error ? "fails_compile" : (test->expected_failure ? "fails" : NULL);

@@ -108,3 +108,34 @@ func inside_expressions()
         for x in xs),
     ]
     return v + w + y + z.length
+
+struct Point{x, y:Int} # a struct's header line
+    func norm(p:Point -> Int) # and a method's
+        return p.x + p.y
+
+func header_lines(e:E, p:Point) # ...and a function's
+    # A comment at the end of a header line belongs to that line, not to the
+    # body indented under it. The body block starts on the line below for just
+    # this reason: left to scan from where it really begins, which is straight
+    # after the header, it used to claim the comment and write it out as the
+    # first line of the body.
+    n := p.norm()
+    if n > 1 # the condition holds
+        say("big")
+    else # and when it does not
+        say("small")
+    while n > 0 # counting down
+        n -= 1
+    repeat # until something stops it
+        stop
+    for i in 3 # each of them
+        say("$i")
+    else # or none at all
+        say("empty")
+    match e # on the header, where `# after the subject` above is not
+    case A{q} # and on a case
+        say("$q")
+    else
+        pass
+    defer # on the way out
+        say("done")
