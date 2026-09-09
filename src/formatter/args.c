@@ -32,7 +32,7 @@ OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
 
 Text_t format_arg(arg_ast_t *arg, Table_t comments, Text_t indent) {
     OptionalText_t inline_arg = format_inline_arg(arg, comments);
-    if (inline_arg.tag != TEXT_NONE && inline_arg.length <= MAX_WIDTH) return inline_arg;
+    if (inline_arg.tag != TEXT_NONE && indent.length + inline_arg.length <= MAX_WIDTH) return inline_arg;
     if (arg->name == NULL && arg->value) return bounded(arg->value, comments, indent);
     Text_t code = arg_name(arg);
     if (arg->type) code = Texts(code, ":", format_type(arg->type));
@@ -59,7 +59,7 @@ OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
 
 Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
     OptionalText_t inline_args = format_inline_args(args, comments);
-    if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return inline_args;
+    if (inline_args.tag != TEXT_NONE && indent.length + inline_args.length <= MAX_WIDTH) return inline_args;
 
     Text_t code = EMPTY_TEXT;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
@@ -93,7 +93,8 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
 static Text_t format_delimited_args(arg_ast_t *args, Table_t comments, Text_t indent, const char *open,
                                     const char *close) {
     OptionalText_t inline_args = format_inline_args(args, comments);
-    if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return Texts(open, inline_args, close);
+    if (inline_args.tag != TEXT_NONE && indent.length + inline_args.length <= MAX_WIDTH)
+        return Texts(open, inline_args, close);
 
     // A lone argument normally hugs the delimiters, but not when it carries
     // comments: only format_args() below writes those out, so hugging here
