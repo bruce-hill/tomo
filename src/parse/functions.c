@@ -272,7 +272,10 @@ ast_t *parse_lambda(parse_ctx_t *ctx, const char *pos) {
     arg_ast_t *args = parse_args(ctx, &pos);
     spaces(&pos);
     type_ast_t *ret = match(&pos, "->") ? optional(ctx, &pos, parse_type) : NULL;
-    spaces(&pos);
+    // Newlines, not just spaces, the way a named function's are: an argument
+    // list long enough to wrap puts the return type on a line of its own, and
+    // the `)` on the line after that.
+    whitespace(ctx, &pos);
     expect_closing(ctx, &pos, ")", "I was expecting a ')' to finish this anonymous function's arguments");
     catch_common_errors_after_parens(ctx, start, pos, ret, true);
     ast_t *body = optional(ctx, &pos, parse_block);

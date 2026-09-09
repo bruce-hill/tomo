@@ -15,13 +15,14 @@ func lengthy(
     third_argument:Text,
     fourth_argument:[Int],
     fifth_argument:{Text:Int},
--> Int)
+    -> Int
+)
     return first_argument
 
 # The return type and the flags are part of what has to fit, so a signature can
-# break on them alone. Once it does, they go down to the closing line: left on
-# the last parameter's, after its comma, they read as one more parameter -- and
-# it is the one place all three of these constructs accept them.
+# break on them alone. Once it does, they take a line of their own: left on the
+# last parameter's line, after the comma that separates it from the next, they
+# read as one more parameter.
 func on_the_suffix(
     arg1:Int,
     arg2:Int,
@@ -31,7 +32,8 @@ func on_the_suffix(
     arg6:Int,
     arg7:Int,
     arg8:Int,
--> {Text:[Int]})
+    -> {Text:[Int]}
+)
     return {}
 
 func flagged(
@@ -43,7 +45,8 @@ func flagged(
     arg6:Int,
     arg7:Int,
     arg8:Int,
--> Int; inline)
+    -> Int; inline
+)
     return arg2
 
 convert (
@@ -55,12 +58,12 @@ convert (
     arg6:Int,
     arg7:Int,
     arg8:Int,
--> Text)
+    -> Text
+)
     return "$arg2"
 
 func anonymous(-> func(a, b, c, d, e, f:Int -> Int))
-    # An anonymous function wants its `)` against the return type, where a named
-    # one wants it on a line of its own; the closing line is both.
+    # An anonymous function's signature breaks the same way a named one's does:
     return func(
         first_argument:Int,
         second_argument:Int,
@@ -68,7 +71,8 @@ func anonymous(-> func(a, b, c, d, e, f:Int -> Int))
         fourth:Int,
         fifth:Int,
         sixth:Int,
-    -> Int)
+        -> Int
+    )
         first_argument
 
 # A short flag alias travels with the name it aliases:

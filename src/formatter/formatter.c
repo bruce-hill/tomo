@@ -125,19 +125,20 @@ static Text_t signature_suffix(type_ast_t *ret_type, ast_t *cache, bool is_inlin
 // their budget: `func f(a:Int, b:Int -> SomeLongType)` can overflow on the
 // part that isn't the arguments.
 //
-// When they don't fit, the suffix goes down to the closing line rather than
-// staying on the last argument's, where it would sit after that argument's
-// comma and read as one more argument. That is also the only place all three
-// of the definitions accept it: an anonymous function wants its `)` on the
-// same line as its return type, where a named one wants the `)` on a line
-// whose indentation its body can be deeper than, and the closing line is both.
+// When they don't fit, the suffix takes a line of its own between the last
+// argument and the `)`. Left on the last argument's line it would sit after
+// the comma separating that argument from the next, and read as one more
+// argument.
 static Text_t format_signature(arg_ast_t *args, type_ast_t *ret_type, ast_t *cache, bool is_inline, Table_t comments,
                                Text_t indent, int64_t column) {
     Text_t suffix = signature_suffix(ret_type, cache, is_inline, comments, indent);
     // The suffix, the two parentheses, and the space before the suffix.
     int64_t around = suffix.length + (suffix.length > 0 && args ? 3 : 2);
     Text_t arg_code = format_args_at(args, comments, indent, column + around);
-    if (Text$has(arg_code, Text("\n"))) return Texts("(", arg_code, "\n", indent, suffix, ")");
+    if (Text$has(arg_code, Text("\n"))) {
+        if (suffix.length > 0) arg_code = Texts(arg_code, "\n", indent, single_indent, suffix);
+        return Texts("(", arg_code, "\n", indent, ")");
+    }
     if (suffix.length == 0) return Texts("(", arg_code, ")");
     return Texts("(", arg_code, args ? Text(" ") : EMPTY_TEXT, suffix, ")");
 }

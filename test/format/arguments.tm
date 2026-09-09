@@ -14,9 +14,9 @@ func lengthy(first_argument, second_argument:Int, third_argument:Text, fourth_ar
     return first_argument
 
 # The return type and the flags are part of what has to fit, so a signature can
-# break on them alone. Once it does, they go down to the closing line: left on
-# the last parameter's, after its comma, they read as one more parameter -- and
-# it is the one place all three of these constructs accept them.
+# break on them alone. Once it does, they take a line of their own: left on the
+# last parameter's line, after the comma that separates it from the next, they
+# read as one more parameter.
 func on_the_suffix(arg1:Int, arg2:Int, arg3:Int, arg4:Int, arg5:Int, arg6:Int, arg7:Int, arg8:Int -> {Text:[Int]})
     return {}
 
@@ -27,8 +27,7 @@ convert (arg1xxxxxxxx:Int, arg2:Int, arg3:Int, arg4:Int, arg5:Int, arg6:Int, arg
     return "$arg2"
 
 func anonymous(-> func(a,b,c,d,e,f:Int -> Int))
-    # An anonymous function wants its `)` against the return type, where a named
-    # one wants it on a line of its own; the closing line is both.
+    # An anonymous function's signature breaks the same way a named one's does:
     return func(first_argument:Int, second_argument:Int, third:Int, fourth:Int, fifth:Int, sixth:Int -> Int)
         first_argument
 

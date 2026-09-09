@@ -7,6 +7,29 @@ func add(x:Int, y:Int -> Int)
 func cached_heap(x:Int->@Int; cached)
     return @x
 
+# A signature wide enough to wrap puts its return type on a line of its own,
+# with the `)` on the line after. An anonymous function's used to be the one
+# that wouldn't take it, so the formatter had nowhere to put a lambda's.
+func wrapped(
+    first_argument:Int,
+    second_argument:Int,
+    -> Int
+)
+    return first_argument + second_argument
+
+test "a signature that wraps"
+    assert wrapped(1, 2) == 3
+    lambda := func(
+        first_argument:Int,
+        second_argument:Int,
+        -> Int
+    )
+        first_argument*second_argument
+    assert lambda(3, 4) == 12
+    no_args := func(-> Int
+    ) 7
+    assert no_args() == 7
+
 test "basic function call"
     >> add(3, 5)
     assert add(3, 5) == 8
