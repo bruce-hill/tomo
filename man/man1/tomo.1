@@ -108,6 +108,12 @@ Print the parse tree of the given files as S\-expressions.
 \f[B]format\f[R] [\f[B]\-i\f[R]] \f[I]file.tm\&...\f[R]
 Autoformat the given files and print them to standard output, or rewrite
 them in place with \f[B]\-\-in\-place\f[R]/\f[B]\-i\f[R].
+With \f[B]\-\-check\f[R], nothing is written: each file is formatted and
+the result compared with what is already there, so that a file needing
+\f[B]\-i\f[R] run over it is named and the exit status is nonzero.
+With \f[B]\-\-verify\f[R], each file is instead checked to make sure it
+parses, that the formatted source parses to the same syntax tree, and that
+formatting it again changes nothing.
 Also available as \f[B]fmt\f[R].
 .TP
 \f[B]package\f[R] [\f[B]\-o\f[R] \f[I]libname.a\f[R]] [\f[I]dir\-or\-file\&...\f[R]]

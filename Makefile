@@ -543,9 +543,14 @@ lsp: compile_commands.json
 # formatter neither changes what the code means nor leaves it unsettled. The
 # file list is gathered at recipe time, not parse time, so a generated file like
 # test/api.tm is picked up on a fresh checkout:
+# --verify, not --check: this asks whether formatting each file is safe (it
+# parses, the result parses to the same tree, and formatting again changes
+# nothing), which is a question about the formatter. --check asks whether a
+# file is already formatted, which is a question about the file, and most of
+# these are not.
 test-format: build test/api.tm
 	@printf '\033[1m Testing formatter... \033[m\n'
-	@./local-tomo format --check $$(find test examples benchmarks -name '*.tm' \
+	@./local-tomo format --verify $$(find test examples benchmarks -name '*.tm' \
 	    -not -path 'test/parse/*' | sort)
 
 # Snapshot tests for the parser: every test/parse/*.tm is parsed and its output
@@ -565,6 +570,13 @@ regen-parse-tests: build
 # Snapshot tests for the formatter: every test/format/*.tm is formatted and the
 # result compared against the snapshot checked in beside it. test-format checks
 # that formatting is faithful; this checks what layout it actually produces.
+# The snapshots are the formatter's own output, so formatting them again has to
+# be a no-op: this is what `--check` asks, and it sees changes `--verify`
+# cannot -- a dropped comment leaves the syntax tree alone.
+test-format-check: build
+	@printf '\033[1m Testing formatter check... \033[m\n'
+	@./local-tomo format --check --quiet test/format/*.formatted
+
 test-format-snapshots: build
 	@printf '\033[1m Testing formatter layout... \033[m\n'
 	@./scripts/format_tests.sh ./local-tomo
@@ -575,7 +587,7 @@ test-format-snapshots: build
 regen-format-tests: build
 	@./scripts/format_tests.sh ./local-tomo --regen
 
-test: test-tm test-number test-cli test-parse test-format test-format-snapshots
+test: test-tm test-number test-cli test-parse test-format test-format-check test-format-snapshots
 	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
 
 # Remove just the (target-specific) Tomo object files:
