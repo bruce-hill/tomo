@@ -17,21 +17,26 @@ func g(
     return a + b
 
 func containers()
-    xs := [ # opening
-        1, # trailing
+    xs := [
+        # opening
+        1,
+        # trailing
         # on its own
         2,
         # left over at the end
     ]
     t := {
-        1: 2, # trailing
+        1: 2,
+        # trailing
         # left over at the end
     }
     return xs.length + t.length
 
 func calls()
-    >> g( # before the first
-        1, # between the arguments
+    >> g(
+        # before the first
+        1,
+        # between the arguments
         2, # after the last, before the close
     )
     # A lone argument hugs the delimiters, but not when it carries a comment:
@@ -43,3 +48,19 @@ func calls()
 func main()
     >> containers()
     >> calls() # the last line of the file
+
+func doubled()
+    # A comment on the line a statement ends on belongs to the innermost block
+    # that ends there. Claimed by the enclosing one as well, it was written
+    # twice per pass, so `tomo format -i` run twice over this file used to
+    # leave four copies of the comment below, and eight after a third.
+    >> 1 # on the last line of a body
+
+func after_a_block()
+    # ...but a statement whose own last line is at its level, like the `]`
+    # closing this list, keeps the comment written after it.
+    xs := [
+        11111111111111111, 22222222222222222, 33333333333333333, 44444444444444444, 555555555555,
+        66666666666666, 7777777777777,
+    ] # after the list
+    return xs.length

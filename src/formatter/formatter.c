@@ -735,8 +735,15 @@ Text_t format_code(ast_t *ast, Table_t comments, Text_t indent) {
             const char *eol = stmt->ast->end;
             while (eol < stmt->ast->file->text + stmt->ast->file->len && *eol != '\n')
                 eol++;
+            // A comment on the line this statement ends on. The cursor moves
+            // past it either way, so that the next statement doesn't collect
+            // it as one of its own, but a statement that ends inside an
+            // indented block has already written it out on that block's last
+            // line: this is the same line, seen from one level further out,
+            // and claiming it again is what made `>> 1 # c` grow another
+            // `# c` on every pass.
             Text_t line_comment = comment_range(&comment_pos, eol, indent, comments);
-            if (line_comment.length > 0) {
+            if (line_comment.length > 0 && !ends_deeper_than(stmt_code, indent)) {
                 code = Text$concat(code, Text(" "), line_comment);
             }
             prev = stmt;
