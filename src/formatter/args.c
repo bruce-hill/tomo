@@ -21,7 +21,7 @@ OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
     // A comment sitting in front of this argument (parse_args() hands it over
     // in `arg->comment`) can only be written on a line of its own, so this
     // argument list has to go multi-line rather than silently drop it.
-    if (arg->comment.length > 0) return NONE_TEXT;
+    if (arg->comment.length > 0 || arg->trailing_comment.length > 0) return NONE_TEXT;
     if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;
     if (arg->name == NULL && arg->value) return must(bounded_inline(arg->value, comments));
     Text_t code = arg_name(arg);
@@ -94,6 +94,7 @@ Text_t format_args(arg_ast_t *args, Table_t comments, Text_t indent) {
         // when the argument ends inside an indented block, the newline is the
         // separator instead.
         code = Texts(code, arg_code, ends_deeper_than(arg_code, arg_indent) ? EMPTY_TEXT : Text(","));
+        if (arg->trailing_comment.length > 0) code = Texts(code, " # ", arg->trailing_comment);
     }
     return code;
 }
@@ -114,12 +115,15 @@ static Text_t format_delimited_args(arg_ast_t *args, Table_t comments, Text_t in
         if (inline_args.tag != TEXT_NONE && inline_args.length <= MAX_WIDTH) return Texts(open, inline_args, close);
     }
 
-    if (args && args->next == NULL) {
+    // A lone argument normally hugs the delimiters, but not when it carries
+    // comments: only format_args() below writes those out, so hugging here
+    // would drop them.
+    if (args && args->next == NULL && args->comment.length == 0 && args->trailing_comment.length == 0) {
         Text_t arg_code = format_arg(args, comments, indent);
-        // A lone argument normally hugs the delimiters. It can't when its last
-        // line sits deeper than the call itself (a lambda body, an `if`): a
-        // closing paren tacked onto the end of an indented block reads as a
-        // second statement on that line and doesn't parse.
+        // It can't hug either when its last line sits deeper than the call
+        // itself (a lambda body, an `if`): a closing paren tacked onto the end
+        // of an indented block reads as a second statement on that line and
+        // doesn't parse.
         if (!ends_deeper_than(arg_code, indent)) return Texts(open, arg_code, close);
     }
 

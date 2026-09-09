@@ -96,6 +96,22 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
         if (!match_separator(ctx, pos)) break;
     }
 
+    // Whatever is left between the last parameter and the closing delimiter:
+    // no parameter follows it, so nothing else would pick it up.
+    if (args) {
+        // From the end of the last parameter: the separator matcher has
+        // already stepped over anything written in between.
+        const char *trailing_start = args->end;
+        const char *after = *pos;
+        whitespace(ctx, &after);
+        Text_t trailing = EMPTY_TEXT;
+        for (OptionalText_t com; (com = next_comment(ctx->comments, &trailing_start, after)).tag != TEXT_NONE;) {
+            if (trailing.length > 0) trailing = Texts(trailing, " ");
+            trailing = Texts(trailing, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
+        }
+        args->trailing_comment = trailing;
+    }
+
     REVERSE_LIST(args);
     return args;
 }

@@ -71,7 +71,10 @@ typedef struct arg_ast_s {
     file_t *file;
     const char *start, *end;
     const char *name, *alias;
-    Text_t comment;
+    // Comments written before this argument, and -- on the last one only --
+    // those written after it and before the closing delimiter, which no
+    // following argument would collect.
+    Text_t comment, trailing_comment;
     type_ast_t *type;
     ast_t *value;
     struct arg_ast_s *next;

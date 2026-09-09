@@ -3,7 +3,9 @@
 #include <stdbool.h>
 
 #include "../ast.h"
+#include "../formatter/utils.h"
 #include "../stdlib/print.h"
+#include "../stdlib/text.h"
 #include "../util.h"
 #include "context.h"
 #include "errors.h"
@@ -209,6 +211,12 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn) {
 
     if (!match(&pos, "(")) return NULL;
 
+    // Comments written among the arguments are collected the way parse_args()
+    // collects them for a definition's parameters, so that the formatter has
+    // somewhere to read them back out of. Without a span and a comment, an
+    // argument carried no record of them and they were dropped. The position
+    // is taken before whitespace() runs, since that is what steps over them.
+    const char *comment_start = pos;
     whitespace(ctx, &pos);
 
     arg_ast_t *args = NULL;
@@ -223,16 +231,35 @@ ast_t *parse_fncall_suffix(parse_ctx_t *ctx, ast_t *fn) {
             pos = arg_start;
         }
 
+        Text_t arg_comments = EMPTY_TEXT;
+        for (OptionalText_t com; (com = next_comment(ctx->comments, &comment_start, arg_start)).tag != TEXT_NONE;) {
+            if (arg_comments.length > 0) arg_comments = Texts(arg_comments, " ");
+            arg_comments = Texts(arg_comments, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
+        }
+
         ast_t *arg = optional(ctx, &pos, parse_expr);
         if (!arg) {
             if (name) parser_err(ctx, arg_start, pos, "I expected an argument here");
             break;
         }
-        args = new (arg_ast_t, .name = name, .value = arg, .next = args);
+        args = new (arg_ast_t, .file = ctx->file, .start = arg_start, .end = pos, .name = name, .comment = arg_comments,
+                    .value = arg, .next = args);
+        comment_start = pos;
         if (!match_separator(ctx, &pos)) break;
     }
 
     whitespace(ctx, &pos);
+    if (args) {
+        // From the end of the last argument, not from here: the separator
+        // matcher has already stepped over anything written in between.
+        const char *trailing_start = args->end;
+        Text_t trailing = EMPTY_TEXT;
+        for (OptionalText_t com; (com = next_comment(ctx->comments, &trailing_start, pos)).tag != TEXT_NONE;) {
+            if (trailing.length > 0) trailing = Texts(trailing, " ");
+            trailing = Texts(trailing, Text$trim(Text$without_prefix(com, Text("#")), Text(" \t"), true, true));
+        }
+        args->trailing_comment = trailing;
+    }
 
     if (!match(&pos, ")")) parser_err(ctx, start, pos, "This parenthesis is unclosed");
 

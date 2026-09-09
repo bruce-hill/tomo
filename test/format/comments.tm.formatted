@@ -1,13 +1,22 @@
 # Where comments end up. A comment at the end of the last line of a file used
 # to be written out twice on the second pass, because a spoofed file counted
 # its NUL terminator as a byte and the end-of-file comment scan ran past the
-# end. One left over at the end of a list or table used to be appended where
-# the last element stopped, on the back of its comma.
+# end. The ones a list or table writes between its elements used to be
+# appended where the last element stopped, on the back of its comma. The ones
+# written among a call's arguments were dropped outright: an argument carried
+# no span and no comment for them to be recorded in.
 
 func f(a:Int -> Int)
     return a
 
-func main()
+func g(
+    # above a parameter
+    a:Int,
+    b:Int, # after the last, before the close
+)
+    return a + b
+
+func containers()
     xs := [
         # opening
         1,
@@ -21,6 +30,21 @@ func main()
         # trailing
         # left over at the end
     }
-    >> xs
-    >> t
-    >> f(1) # the last line of the file
+    return xs.length + t.length
+
+func calls()
+    >> g(
+        # before the first
+        1,
+        # between the arguments
+        2, # after the last, before the close
+    )
+    # A lone argument hugs the delimiters, but not when it carries a comment:
+    # only the multi-line form writes those out.
+    >> f(
+        1, # explaining the argument
+    )
+
+func main()
+    >> containers()
+    >> calls() # the last line of the file
