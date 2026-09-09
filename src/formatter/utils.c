@@ -16,6 +16,19 @@
 
 const Text_t single_indent = Text("    ");
 
+// How many columns the last line of this text takes up, which is where
+// anything appended to it would start.
+PUREFUNC int64_t trailing_line_len(Text_t text) {
+    TextIter_t state = NEW_TEXT_ITER_STATE(text);
+    int64_t len = 0;
+    for (int64_t i = text.length - 1; i >= 0; i--) {
+        int32_t g = Text$get_grapheme_fast(&state, i);
+        if (g == '\n' || g == '\r') break;
+        len += 1;
+    }
+    return len;
+}
+
 void add_flag(flag_list_t *flags, bool present, Text_t name) {
     if (!present) return;
     assert(flags->count < (int)(sizeof(flags->items) / sizeof(flags->items[0])));

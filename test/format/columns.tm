@@ -10,7 +10,10 @@ func main()
     n := 23
     # `assert ` leaves seven fewer columns for whatever follows it:
     assert (match n case 1 then Int64(1) case 2 then Int64(2) case 21 + 2 then Int64(23)) == Int64(23)
-    # A record literal's arguments start after its type name and brace:
+    # A record literal's arguments start after its type name and brace, and
+    # wrap by filling each line, the way the list holding it does: a series of
+    # values has nothing to say about any one of them that a line to itself
+    # would be saying.
     boxed := [
         Vec{11111111, 22222222, 3333333, 4444444, 5555555, 6666666, 7777777, 8888888, 9999999, 1111111},
     ]

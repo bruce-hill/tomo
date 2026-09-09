@@ -100,3 +100,13 @@ func decimal_receivers()
     >> 2.to(5)
     >> 7.next_prime()
     >> Num.PI.cos()
+
+func word_prefix(optional:Int?, a:Bool, b:Bool)
+    # `not` is a word, and a word in front of an expression reads as taking all
+    # of it: `not x == y` is `not (x == y)` in most places it can be written,
+    # and `(not x) == y` here. It binds tighter than every binary operator, so
+    # nothing else was giving it parentheses.
+    assert (not optional) == no
+    assert a and (not b)
+    # Standing alone it needs none:
+    assert not optional

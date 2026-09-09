@@ -59,9 +59,46 @@ OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
     return code;
 }
 
+// Whether these arguments are a plain series of values -- a record literal's
+// fields written in order, a call's positional arguments -- rather than the
+// named, typed, defaulted list a definition takes. A series of values reads
+// like a list, so it wraps like one, filling each line: a line per value says
+// there is something to say about each, and ten lines of `no,` say it ten
+// times.
+PUREFUNC static bool is_positional_series(arg_ast_t *args) {
+    if (args == NULL || args->next == NULL) return false;
+    for (arg_ast_t *arg = args; arg; arg = arg->next) {
+        if (arg->name != NULL || arg->type != NULL || arg->value == NULL) return false;
+        if (arg->comment.length > 0 || arg->trailing_comment.length > 0) return false;
+    }
+    return true;
+}
+
 Text_t format_args_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t column) {
     OptionalText_t inline_args = format_inline_args(args, comments);
     if (inline_args.tag != TEXT_NONE && column + inline_args.length <= MAX_WIDTH) return inline_args;
+
+    if (is_positional_series(args)) {
+        Text_t code = EMPTY_TEXT;
+        Text_t arg_indent = Texts(indent, single_indent);
+        bool prev_wrapped = false;
+        for (arg_ast_t *arg = args; arg; arg = arg->next) {
+            Text_t arg_code = format_arg_at(arg, comments, arg_indent, (int64_t)arg_indent.length);
+            bool wrapped = Text$has(arg_code, Text("\n"));
+            // As for a list item: an argument that ends inside an indented
+            // block is separated by the newline rather than by a comma.
+            Text_t comma = ends_deeper_than(arg_code, arg_indent) ? EMPTY_TEXT : Text(",");
+            // Neither this argument nor the one before it may have taken more
+            // than a line. Filling in after one that did leaves the value
+            // trailing off the delimiter that closed it, as in `}, 3 * x,`.
+            if (Text$ends_with(code, Text(","), NULL) && !wrapped && !prev_wrapped
+                && trailing_line_len(code) + 1 + arg_code.length + 1 <= MAX_WIDTH)
+                code = Texts(code, " ", arg_code, comma);
+            else code = Texts(code, "\n", arg_indent, arg_code, comma);
+            prev_wrapped = wrapped;
+        }
+        return code;
+    }
 
     Text_t code = EMPTY_TEXT;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {

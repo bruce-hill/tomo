@@ -345,17 +345,6 @@ PUREFUNC static bool has_nonoptional_suffix(ast_t *ast) {
     }
 }
 
-PUREFUNC static int64_t trailing_line_len(Text_t text) {
-    TextIter_t state = NEW_TEXT_ITER_STATE(text);
-    int64_t len = 0;
-    for (int64_t i = text.length - 1; i >= 0; i--) {
-        int32_t g = Text$get_grapheme_fast(&state, i);
-        if (g == '\n' || g == '\r') break;
-        len += 1;
-    }
-    return len;
-}
-
 // Where writing `code` from `column` leaves the cursor. A rendering that stayed
 // on one line ends that many columns further along; one that wrapped carries its
 // own indentation on its last line, so that line's length is already the column.
@@ -400,6 +389,10 @@ PUREFUNC static op_family_e op_family(ast_e op) {
 // relationships that count as ones a reader takes off the page are arithmetic
 // within arithmetic, arithmetic within a comparison, a comparison within
 // `and`/`or`/`xor`, and the two cases the comments below give.
+PUREFUNC static bool is_modulus(ast_e op) {
+    return op == Mod || op == Mod1;
+}
+
 PUREFUNC static bool grouping_is_obvious(ast_e outer, ast_t *inner) {
     if (!is_binary_operation(inner)) return true; // A prefix `-` groups visibly
     op_family_e outer_family = op_family(outer), inner_family = op_family(inner->tag);
@@ -408,7 +401,13 @@ PUREFUNC static bool grouping_is_obvious(ast_e outer, ast_t *inner) {
     // grouping is the whole meaning, or of comparisons, where `a == b == c`
     // means `(a == b) == c` here and the chain it looks like elsewhere.
     if (outer == inner->tag) return outer_family != OP_SHIFT && outer_family != OP_COMPARE;
-    if (outer_family == inner_family) return outer_family == OP_ARITH;
+    // Arithmetic inside arithmetic is read off the page -- except where a
+    // modulus is one of the two. `mod` and `mod1` are words sitting somewhere
+    // in the middle of that band, and where exactly is not something anyone
+    // carries around the way they do `*` before `+`: `i * 1337 mod 37` and
+    // `y*(x//y) + x mod y` both have to be read twice. Against a comparison or
+    // an `and` it needs nothing, arithmetic binding tighter than either.
+    if (outer_family == inner_family) return outer_family == OP_ARITH && !is_modulus(outer) && !is_modulus(inner->tag);
     // Concatenation is not arithmetic, but a comparison is the one place it
     // reads like it: nobody has to be told that `a ++ b == c` compares the
     // joined text. Against arithmetic proper it is as murky as anything else.
@@ -486,6 +485,18 @@ static Text_t binop_spacing(ast_e op_tag, int tighten_from) {
     return tight ? EMPTY_TEXT : Text(" ");
 }
 
+// The spaces an operator takes between two operands already rendered. A tightened operator gives its spaces up, but not
+// where that would leave it against a `.`: `3.` written straight onto `*3` gives `3.*3`, with no boundary left between
+// the number and the operator. A division is the one exception, being how a quotient is written as a single quantity --
+// `1./3.` is the value, and spacing it out would call it a sum to work out.
+static Text_t binop_join_spacing(Text_t lhs, ast_e op_tag, Text_t rhs, int tighten_from) {
+    Text_t space = binop_spacing(op_tag, tighten_from);
+    if (space.length == 0 && op_tag != Divide && op_tag != FloorDivide
+        && (Text$ends_with(lhs, Text("."), NULL) || Text$starts_with(rhs, Text("."), NULL)))
+        space = Text(" ");
+    return space;
+}
+
 // An operand keeps its parentheses unless it is written bare, which takes both
 // of the things is_bare_operand() asks. `dt / (d2 * x)` is not `dt / d2 * x`,
 // and `(2 ^ 3) ^ 2` is not `2 ^ 3 ^ 2`, but `2 ^ (3 ^ 2)` and `2 ^ 3 ^ 2` are
@@ -494,6 +505,12 @@ static Text_t binop_spacing(ast_e op_tag, int tighten_from) {
 static Text_t operand(Text_t code, ast_t *ast, ast_e outer_op, bool on_left, Text_t indent, int tighten_from) {
     if (ast->tag == If || ast->tag == Match || (is_operation(ast) && !is_bare_operand(ast, outer_op, on_left)))
         return parenthesize(code, indent);
+    // `not` is a word, and a word in front of an expression reads as taking
+    // all of it: `not x == y` is `not (x == y)` in most places it can be
+    // written, and `(not x) == y` here. It binds tighter than any of them, so
+    // nothing else gives it parentheses -- it carries no tightness at all, and
+    // is_operation() above does not even count it as an operator.
+    if (ast->tag == Not) return parenthesize(code, indent);
     // Spaces are a claim about grouping, so an operand that keeps its own
     // inside an operator that has given them up contradicts the operator it
     // belongs to: `a mod b/c` divides the modulus but reads as the modulus of
@@ -558,7 +575,7 @@ static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tigh
     lhs = operand(lhs, operands.lhs, ast->tag, true, EMPTY_TEXT, tighten_from);
     rhs = operand(rhs, operands.rhs, ast->tag, false, EMPTY_TEXT, tighten_from);
 
-    Text_t space = binop_spacing(ast->tag, tighten_from);
+    Text_t space = binop_join_spacing(lhs, ast->tag, rhs, tighten_from);
     return Texts(lhs, space, Text$from_str(op), space, rhs);
 }
 
@@ -598,7 +615,7 @@ static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int64_t 
     lhs = operand(lhs, operands.lhs, ast->tag, true, operand_indent, tighten_from);
     rhs = operand(rhs, operands.rhs, ast->tag, false, operand_indent, tighten_from);
 
-    Text_t space = binop_spacing(ast->tag, tighten_from);
+    Text_t space = binop_join_spacing(lhs, ast->tag, rhs, tighten_from);
     Text_t code = Texts(lhs, space, Text$from_str(op));
     if (middle.length > 0) {
         // A comment written by the operator stays by it. It can only follow
@@ -1221,8 +1238,8 @@ Text_t format_code_at(ast_t *ast, Table_t comments, Text_t indent, int64_t colum
     }
     /*multiline*/ case ConvertDef: {
         DeclareMatch(convert, ast, ConvertDef);
-        Text_t code = Texts("convert ", format_signature(convert->args, convert->ret_type, convert->cache,
-                                                         convert->is_inline, comments, indent, column + 8));
+        Text_t code = Texts("convert", format_signature(convert->args, convert->ret_type, convert->cache,
+                                                        convert->is_inline, comments, indent, column + 7));
         return Texts(code, format_body(convert->body, comments, indent));
     }
     /*multiline*/ case StructDef: {

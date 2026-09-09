@@ -73,7 +73,13 @@ func main()
     # word operator takes parentheses instead: without them `a mod b/c` reads
     # as the modulus of a quotient, when it divides the modulus. A tight
     # operator inside a spaced one is already read the right way round and
-    # needs nothing:
+    # needs nothing.
+    #
+    # `mod` and `mod1` take them against any other arithmetic operator, spaced
+    # or not: they are words sitting somewhere in the middle of that band, and
+    # where exactly is not something a reader carries around the way they do
+    # `*` before `+`. Against a comparison they need nothing, arithmetic
+    # binding tighter than one wherever it is written.
     >> x mod y / z
     >> x mod1 y / z
     >> x / y mod z
@@ -85,3 +91,14 @@ func main()
     # `a`, followed by `= b`.
     >> arr[x != y]
     >> arr[x+y != y]
+
+func decimal_runs(x:Num)
+    # A tightened operator keeps its spaces where giving them up would leave it
+    # against a `.`: `3.` written straight onto `*3` gives `3.*3`, with no
+    # boundary left between the number and the operator. A division is the
+    # exception, being how a quotient is written as a single quantity.
+    >> 1./3. * 3
+    >> 1./3.
+    >> 1/3*3
+    >> 7.5//2
+    >> x * 0.5
