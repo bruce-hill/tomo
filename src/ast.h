@@ -71,10 +71,15 @@ typedef struct arg_ast_s {
     file_t *file;
     const char *start, *end;
     const char *name, *alias;
-    // Comments written before this argument, and -- on the last one only --
-    // those written after it and before the closing delimiter, which no
-    // following argument would collect.
-    Text_t comment, trailing_comment;
+    // The comments belonging to this argument, joined into one paragraph. The
+    // compiler reads a parameter's as its description on the command line,
+    // where that is what a description is.
+    Text_t comment;
+    // The same comments as source positions, spanning from where the previous
+    // argument's line ended to where this one's does. The formatter reads
+    // these instead, so that a comment written on three lines is written back
+    // out on three lines rather than joined into one long one.
+    const char *comments_start, *comments_end;
     type_ast_t *type;
     ast_t *value;
     struct arg_ast_s *next;

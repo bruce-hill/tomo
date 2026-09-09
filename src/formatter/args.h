@@ -4,6 +4,7 @@
 
 #include "../ast.h"
 #include "../stdlib/datatypes.h"
+#include "formatter.h"
 #include "utils.h"
 
 OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments);

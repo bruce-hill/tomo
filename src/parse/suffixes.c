@@ -124,7 +124,7 @@ ast_t *parse_optional_conditional_suffix(parse_ctx_t *ctx, ast_t *stmt) {
 // no record of one is an argument whose comment the formatter deletes.
 static arg_ast_t *parse_call_args(parse_ctx_t *ctx, const char **pos, const char *missing_arg) {
     // Taken before whitespace() runs, since that is what steps over comments.
-    const char *comment_start = *pos;
+    const char *scan = *pos;
     whitespace(ctx, pos);
 
     arg_ast_t *args = NULL;
@@ -139,31 +139,35 @@ static arg_ast_t *parse_call_args(parse_ctx_t *ctx, const char **pos, const char
             *pos = arg_start;
         }
 
-        // What was written on the line the argument before this one finished
-        // on belongs to that argument; only what is written below it leads
-        // this one.
-        if (args != NULL) args->trailing_comment = collect_line_comments(ctx, &comment_start, arg_start);
-        Text_t arg_comments = collect_comments(ctx, &comment_start, arg_start);
+        // The gap since the last argument splits at the end of the line that
+        // one finished on: what was written there trails it, and only what is
+        // written below leads this one.
+        const char *split = scan;
+        while (split < arg_start && *split != '\n')
+            split++;
+        if (args != NULL) args->comments_end = split;
+        const char *leading = args != NULL ? split : scan;
+
+        const char *text = leading;
+        Text_t arg_comments = collect_comments(ctx, &text, arg_start);
 
         ast_t *arg = optional(ctx, pos, parse_expr);
         if (!arg) {
             if (name) parser_err(ctx, arg_start, *pos, missing_arg);
             break;
         }
-        args = new (arg_ast_t, .file = ctx->file, .start = arg_start, .end = *pos, .name = name,
-                    .comment = arg_comments, .value = arg, .next = args);
-        comment_start = *pos;
+        args =
+            new (arg_ast_t, .file = ctx->file, .start = arg_start, .end = *pos, .name = name, .comment = arg_comments,
+                 .comments_start = leading, .comments_end = *pos, .value = arg, .next = args);
+        scan = *pos;
         if (!match_separator(ctx, pos)) break;
     }
 
     whitespace(ctx, pos);
-    if (args) {
-        // From the end of the last argument, not from here: the separator
-        // matcher has already stepped over anything written in between. This
-        // runs before the reversal, while `args` is still that last argument.
-        const char *trailing_start = args->end;
-        args->trailing_comment = collect_comments(ctx, &trailing_start, *pos);
-    }
+    // The last argument takes whatever is left before the closing delimiter:
+    // no argument follows it, so nothing else would. This runs before the
+    // reversal, while `args` is still that last argument.
+    if (args != NULL) args->comments_end = *pos;
     REVERSE_LIST(args);
     return args;
 }

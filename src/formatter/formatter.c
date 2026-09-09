@@ -28,7 +28,6 @@
 #define fmt(...) format_code(__VA_ARGS__)
 #define fmt_at(...) format_code_at(__VA_ARGS__)
 
-static Text_t comment_range(const char **pos, const char *end, Text_t indent, Table_t comments);
 static OptionalText_t format_binop_inline(ast_t *ast, Table_t comments, int tighten_from);
 static Text_t format_binop(ast_t *ast, Table_t comments, Text_t indent, int64_t column, int tighten_from);
 
@@ -125,9 +124,12 @@ static Text_t format_signature(arg_ast_t *args, type_ast_t *ret_type, ast_t *cac
     arg_ast_t *last = args;
     while (last && last->next)
         last = last->next;
-    const char *from = last ? last->end : (ret_type ? ret_type->start : NULL);
+    // The last parameter's span already reaches the first thing that is
+    // neither whitespace nor a comment -- the `->`, the first `;`, or the
+    // closing delimiter. What follows it is the suffix's, and nobody else's.
+    const char *from = last ? last->comments_end : (ret_type ? ret_type->start : NULL);
     if (from && body) {
-        const char *pos = after_leading_comments(from, body->start, comments);
+        const char *pos = from;
         if (ret_type) {
             const char *eol = ret_type->end;
             while (eol < body->start && *eol != '\n')
@@ -157,24 +159,6 @@ PUREFUNC static bool interpolation_needs_parens(ast_list_t *chunk) {
     if (chunk->ast->tag != Var) return true;
     ast_list_t *next = chunk->next;
     return next && next->ast->tag == TextLiteral && starts_with_id(Match(next->ast, TextLiteral)->text);
-}
-
-static Text_t comment_range(const char **pos, const char *end, Text_t indent, Table_t comments) {
-    Text_t ret = EMPTY_TEXT;
-    const char *prev = NULL;
-    for (OptionalText_t comment; (comment = next_comment(comments, pos, end)).length > 0;) {
-        if (prev) {
-            for (const char *p = prev + 1; p < *pos; p++) {
-                if (*p == '\n') {
-                    ret = Text$concat(ret, Text("\n"));
-                    break;
-                }
-            }
-        }
-        add_line(&ret, Text$trim(comment, Text(" \t\r\n"), false, true), indent);
-        prev = *pos;
-    }
-    return ret;
 }
 
 // A block that opens partway along a line -- the body of an `if`, a `for`, a

@@ -34,7 +34,7 @@ void add_flag(flag_list_t *flags, bool present, Text_t name);
 // All of them on one line, `; a; b`.
 Text_t inline_flags(flag_list_t flags);
 OptionalText_t next_comment(Table_t comments, const char **pos, const char *end);
-const char *after_leading_comments(const char *pos, const char *end, Table_t comments);
+Text_t comment_range(const char **pos, const char *end, Text_t indent, Table_t comments);
 bool range_has_comment(const char *start, const char *end, Table_t comments);
 PUREFUNC bool has_blank_line(const char *start, const char *end);
 PUREFUNC const char *content_end(ast_t *ast);

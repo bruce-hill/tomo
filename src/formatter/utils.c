@@ -66,17 +66,24 @@ OptionalText_t next_comment(Table_t comments, const char **pos, const char *end)
 // first thing that is neither whitespace nor a comment, which is the `->`, the
 // first `;`, or the closing delimiter. Anything written from there on belongs
 // to the signature that follows the parameters, and nothing else writes it out.
-const char *after_leading_comments(const char *pos, const char *end, Table_t comments) {
-    while (pos < end) {
-        if (*pos == ' ' || *pos == '\t' || *pos == '\r' || *pos == '\n' || *pos == ',') {
-            pos += 1;
-            continue;
+// The comments between two positions, one per line at `indent`, with the
+// blank lines the author left between them kept.
+Text_t comment_range(const char **pos, const char *end, Text_t indent, Table_t comments) {
+    Text_t ret = EMPTY_TEXT;
+    const char *prev = NULL;
+    for (OptionalText_t comment; (comment = next_comment(comments, pos, end)).length > 0;) {
+        if (prev) {
+            for (const char *p = prev + 1; p < *pos; p++) {
+                if (*p == '\n') {
+                    ret = Text$concat(ret, Text("\n"));
+                    break;
+                }
+            }
         }
-        const char **comment_end = Table$get(comments, &pos, parse_comments_info);
-        if (comment_end == NULL) break;
-        pos = *comment_end;
+        add_line(&ret, Text$trim(comment, Text(" \t\r\n"), false, true), indent);
+        prev = *pos;
     }
-    return pos;
+    return ret;
 }
 
 bool range_has_comment(const char *start, const char *end, Table_t comments) {

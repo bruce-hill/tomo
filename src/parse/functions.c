@@ -23,9 +23,13 @@
 
 arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
     const char *comment_start = *pos;
+    const char *scan = *pos;
     arg_ast_t *args = NULL;
     for (;;) {
         const char *batch_start = *pos;
+        // Names sharing a type are one line to the formatter, so the comments
+        // above them are one span: it starts where the batch does.
+        const char *batch_leading = NULL;
         ast_t *default_val = NULL;
         type_ast_t *type = NULL;
 
@@ -39,6 +43,7 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
         name_list_t *names = NULL;
         for (;;) {
             whitespace(ctx, pos);
+            const char *word_start = *pos;
             const char *name = get_id(pos);
             if (!name) break;
             const char *name_start = *pos;
@@ -51,10 +56,16 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
                 if (!alias) parser_err(ctx, *pos, *pos, "I expected an argument alias after `|`");
             }
 
-            // As for a call's arguments: what stands on the line the previous
-            // parameter finished on trails that parameter, and only what is
-            // written below it leads this one.
-            if (args != NULL) args->trailing_comment = collect_line_comments(ctx, &comment_start, name_start);
+            // As for a call's arguments: the gap since the last parameter
+            // splits at the end of the line that one finished on.
+            if (batch_leading == NULL) {
+                const char *split = scan;
+                while (split < word_start && *split != '\n')
+                    split++;
+                if (args != NULL) args->comments_end = split;
+                batch_leading = args != NULL ? split : scan;
+                comment_start = batch_leading;
+            }
             Text_t comments = collect_comments(ctx, &comment_start, name_start);
 
             if (match(pos, ":")) {
@@ -88,25 +99,24 @@ arg_ast_t *parse_args(parse_ctx_t *ctx, const char **pos) {
                        ")");
 
         REVERSE_LIST(names);
-        for (; names; names = names->next)
+        for (bool first = true; names; names = names->next, first = false)
             args = new (arg_ast_t, .start = names->start, .end = names->end, .name = names->name, .alias = names->alias,
-                        .comment = names->comment, .type = type, .value = default_val, .next = args);
+                        .comment = names->comment, .comments_start = first ? batch_leading : names->start,
+                        .comments_end = *pos, .type = type, .value = default_val, .next = args);
 
         // The separator below steps over whatever was written after this batch,
         // so the scan for the next one starts from where the batch ended.
         comment_start = *pos;
+        scan = *pos;
         if (!match_separator(ctx, pos)) break;
     }
 
     // Whatever is left between the last parameter and the closing delimiter:
     // no parameter follows it, so nothing else would pick it up.
     if (args) {
-        // From the end of the last parameter: the separator matcher has
-        // already stepped over anything written in between.
-        const char *trailing_start = args->end;
         const char *after = *pos;
         whitespace(ctx, &after);
-        args->trailing_comment = collect_comments(ctx, &trailing_start, after);
+        args->comments_end = after;
     }
 
     REVERSE_LIST(args);

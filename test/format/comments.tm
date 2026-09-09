@@ -16,6 +16,19 @@ func g(
 )
     return a + b
 
+func multi_line_comments(
+    # A comment written on several lines comes back out on several lines. The
+    # text on the argument is the lines joined into one paragraph, which is
+    # what the compiler wants -- a parameter's comment is its description on
+    # the command line -- and not what was written here, so the formatter
+    # reads the source between the argument's comment positions instead.
+    a:Int,
+    # Names sharing a type are one line, so what is written above any of them
+    # belongs above that line:
+    x, y:Int,
+)
+    return a + x + y
+
 func containers()
     xs := [
         # opening

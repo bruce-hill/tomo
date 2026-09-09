@@ -19,12 +19,18 @@ static Text_t arg_name(arg_ast_t *arg) {
     return name;
 }
 
+// Everything written between where the argument before this one stopped and
+// where the one after it starts, which is every comment this argument owns.
+PUREFUNC static bool arg_has_comment(arg_ast_t *arg, Table_t comments) {
+    const char *from = arg->comments_start ?: arg->start;
+    const char *to = arg->comments_end ?: arg->end;
+    return range_has_comment(from, to, comments);
+}
+
 OptionalText_t format_inline_arg(arg_ast_t *arg, Table_t comments) {
-    // A comment sitting in front of this argument (parse_args() hands it over
-    // in `arg->comment`) can only be written on a line of its own, so this
-    // argument list has to go multi-line rather than silently drop it.
-    if (arg->comment.length > 0 || arg->trailing_comment.length > 0) return NONE_TEXT;
-    if (range_has_comment(arg->start, arg->end, comments)) return NONE_TEXT;
+    // A comment anywhere in this argument's span can only be written on a line
+    // of its own, so the list has to go multi-line rather than drop it.
+    if (arg_has_comment(arg, comments)) return NONE_TEXT;
     if (arg->name == NULL && arg->value) return must(bounded_inline(arg->value, comments));
     Text_t code = arg_name(arg);
     if (arg->type) code = Texts(code, ":", must(format_type(arg->type)));
@@ -65,11 +71,11 @@ OptionalText_t format_inline_args(arg_ast_t *args, Table_t comments) {
 // like a list, so it wraps like one, filling each line: a line per value says
 // there is something to say about each, and ten lines of `no,` say it ten
 // times.
-PUREFUNC static bool is_positional_series(arg_ast_t *args) {
+PUREFUNC static bool is_positional_series(arg_ast_t *args, Table_t comments) {
     if (args == NULL || args->next == NULL) return false;
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
         if (arg->name != NULL || arg->type != NULL || arg->value == NULL) return false;
-        if (arg->comment.length > 0 || arg->trailing_comment.length > 0) return false;
+        if (arg_has_comment(arg, comments)) return false;
     }
     return true;
 }
@@ -78,7 +84,7 @@ Text_t format_args_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t 
     OptionalText_t inline_args = format_inline_args(args, comments);
     if (inline_args.tag != TEXT_NONE && column + inline_args.length <= MAX_WIDTH) return inline_args;
 
-    if (is_positional_series(args)) {
+    if (is_positional_series(args, comments)) {
         Text_t code = EMPTY_TEXT;
         Text_t arg_indent = Texts(indent, single_indent);
         bool prev_wrapped = false;
@@ -101,21 +107,25 @@ Text_t format_args_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t 
     }
 
     Text_t code = EMPTY_TEXT;
+    Text_t arg_indent = Texts(indent, single_indent);
     for (arg_ast_t *arg = args; arg; arg = arg->next) {
-        // Arguments that share a type and default (`x, y: Int`) are written on
-        // one line, so their comments are gathered onto the line above it:
-        Text_t comment = arg->comment;
+        // Arguments that share a type and default (`x, y:Int`) are written on
+        // one line, so the comments above any of them belong above that line.
+        arg_ast_t *first = arg;
         Text_t names = EMPTY_TEXT;
         while (arg->name && arg->type && arg->next && arg->type == arg->next->type && arg->value == arg->next->value) {
             names = Texts(names, arg_name(arg), ", ");
             arg = arg->next;
-            if (arg->comment.length > 0)
-                comment = comment.length > 0 ? Texts(comment, " ", arg->comment) : arg->comment;
         }
-        code = Texts(code, "\n", indent, single_indent);
-        if (comment.length > 0) code = Texts(code, "# ", comment, "\n", indent, single_indent);
+        // Read out of the source rather than off the argument: the text on the
+        // argument is the lines joined into one paragraph, which is what a
+        // command-line description wants and not what was written here.
+        const char *pos = first->comments_start ?: first->start;
+        Text_t leading = comment_range(&pos, arg->start, arg_indent, comments);
+
+        code = Texts(code, "\n", arg_indent);
+        if (leading.length > 0) code = Texts(code, leading, "\n", arg_indent);
         code = Texts(code, names);
-        Text_t arg_indent = Texts(indent, single_indent);
         // Names sharing a type sit in front of the argument on its line.
         Text_t arg_code = format_arg_at(arg, comments, arg_indent, arg_indent.length + names.length);
         // The separating comma goes on the same line as the end of the
@@ -123,7 +133,9 @@ Text_t format_args_at(arg_ast_t *args, Table_t comments, Text_t indent, int64_t 
         // when the argument ends inside an indented block, the newline is the
         // separator instead.
         code = Texts(code, arg_code, ends_deeper_than(arg_code, arg_indent) ? EMPTY_TEXT : Text(","));
-        if (arg->trailing_comment.length > 0) code = Texts(code, " # ", arg->trailing_comment);
+        pos = arg->end;
+        Text_t trailing = arg->comments_end ? comment_range(&pos, arg->comments_end, arg_indent, comments) : EMPTY_TEXT;
+        if (trailing.length > 0) code = Texts(code, " ", trailing);
     }
     return code;
 }
@@ -177,7 +189,7 @@ static Text_t format_delimited_args(arg_ast_t *args, Table_t comments, Text_t in
     // A lone argument normally hugs the delimiters, but not when it carries
     // comments: only format_args() below writes those out, so hugging here
     // would drop them.
-    if (args && args->next == NULL && args->comment.length == 0 && args->trailing_comment.length == 0) {
+    if (args && args->next == NULL && !arg_has_comment(args, comments)) {
         Text_t arg_code = format_arg_at(args, comments, indent, column + 2);
         // It can't hug either when its last line sits deeper than the call
         // itself (a lambda body, an `if`): a closing paren tacked onto the end
