@@ -108,6 +108,16 @@ static bool starts_with_id(Text_t text) {
     return uc_is_property_xid_continue(*(ucs4_t *)codepoints.data);
 }
 
+// An interpolation is written bare only when nothing could run on from it: a
+// `$x` followed by more name characters would read as one longer name. Anything
+// but a plain variable gets parentheses whatever follows, since `$x.y` and
+// `$f(1)` take their suffixes into the interpolation rather than the text.
+PUREFUNC static bool interpolation_needs_parens(ast_list_t *chunk) {
+    if (chunk->ast->tag != Var) return true;
+    ast_list_t *next = chunk->next;
+    return next && next->ast->tag == TextLiteral && starts_with_id(Match(next->ast, TextLiteral)->text);
+}
+
 static Text_t comment_range(const char **pos, const char *end, Text_t indent, Table_t comments) {
     Text_t ret = EMPTY_TEXT;
     const char *prev = NULL;
@@ -141,13 +151,9 @@ static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, T
             Text_t segment = Text$escaped(literal, false, Texts(opts.unquote, opts.interp));
             code = Texts(code, segment);
         } else {
-            if (chunk->ast->tag == Var
-                && (!chunk->next || chunk->next->ast->tag != TextLiteral
-                    || !starts_with_id(Match(chunk->next->ast, TextLiteral)->text))) {
-                code = Texts(code, opts.interp, fmt_inline(chunk->ast, comments));
-            } else {
-                code = Texts(code, opts.interp, "(", fmt_inline(chunk->ast, comments), ")");
-            }
+            Text_t chunk_code = fmt_inline(chunk->ast, comments);
+            if (interpolation_needs_parens(chunk)) chunk_code = Texts("(", chunk_code, ")");
+            code = Texts(code, opts.interp, chunk_code);
         }
     }
     return Texts(code, opts.unquote);
@@ -230,7 +236,8 @@ static Text_t format_text(text_opts_t opts, ast_list_t *chunks, Table_t comments
             OptionalText_t inlined_chunk = format_inline_code(chunk->ast, comments);
             Text_t chunk_code =
                 inlined_chunk.tag != TEXT_NONE ? (Text_t)inlined_chunk : fmt(chunk->ast, comments, indent);
-            append_atom(&w, Texts(opts.interp, "(", chunk_code, ")"));
+            if (interpolation_needs_parens(chunk)) chunk_code = Texts("(", chunk_code, ")");
+            append_atom(&w, Texts(opts.interp, chunk_code));
         }
     }
     Text_t last = w.line.length > 0 ? Texts(line_start(&w), w.line) : EMPTY_TEXT;
