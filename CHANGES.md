@@ -20,6 +20,22 @@
   is accepted now: `tomo eval 'x := 5; x*2'` and `tomo eval 'use random;
   random.int(1, 100)'` no longer work.
 
+- `Path.base_name()` and `Path.extension()` no longer come back empty for a
+  path with a trailing slash. The loop meant to strip the slash tested the byte
+  the pointer was on rather than the one behind it, and the pointer starts on
+  the terminator, so it never stripped anything: the name of `/foo/bar/` was
+  read as the empty string after the final slash. `Path.with_extension()` was
+  wrong the same way, turning `/foo/bar.txt/` into `/foo/bar.txt/.c` instead of
+  `/foo/bar.c`. Path literals and `Path.from_text()` normalize a trailing slash
+  away, so this was only reachable from a path built in C, such as one taken
+  straight from `argv`.
+
+- `Path.unique_directory()` and `Path.write_unique_bytes()` no longer require
+  the path to say where the random characters go. A path that doesn't
+  already contain `XXXXXX` gets `-XXXXXX` appended, so
+  `(/tmp/report).unique_directory()` yields something like `/tmp/report-a1B2c3`
+  rather than failing.
+
 - The unused-variable check no longer flags variables that are only written
   *through*. `p := &x; p[] = 456` reported `p` as assigned but never read, even
   though the write reads `p` to find `x`. Writes reached through a dereference,

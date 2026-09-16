@@ -26,14 +26,11 @@
 #include "../util.h"
 #include "c_string.h"
 #include "datatypes/typeinfo.h"
-#include "enums.h"
 #include "integers.h"
 #include "list.h"
-#include "optionals.h"
 #include "path.h"
 #include "print.h"
 #include "result.h"
-#include "structs.h"
 #include "text.h"
 #include "util.h"
 
@@ -851,46 +848,62 @@ public
 OptionalPath_t Path$unique_directory(Path_t path) {
     bool home_based = (path_type(path) == PATH_HOME);
     path = Path$expand_home(path);
+
     size_t len = strlen(path);
-    if (len >= PATH_MAX) fail("Path is too long: ", path);
-    static char buf[PATH_MAX] = {};
-    memcpy(buf, path, len);
-    buf[len] = '\0';
-    if (buf[len - 1] == '/') buf[--len] = '\0';
-    char *created = mkdtemp(buf);
-    if (!created) return NULL;
-    // Copy out of `buf`: Path$from_str() does not, and the next call to this
-    // function would otherwise rewrite the path this one just returned.
-    Path_t path_created = Path$from_str(GC_strdup(created));
-    return home_based ? unexpand_home(path_created) : path_created;
+    // A trailing slash would leave mkdtemp(3) with a template that names a
+    // directory inside one that doesn't exist yet, so trim it first:
+    while (len > 1 && path[len - 1] == '/')
+        --len;
+
+    // mkdtemp(3) replaces a trailing "XXXXXX" with the random characters, so
+    // a path that doesn't already end in one gets "-XXXXXX" appended:
+    const char *placeholder = "XXXXXX";
+    const size_t plen = strlen(placeholder);
+    bool has_placeholder = (len >= plen && strncmp(&path[len - plen], placeholder, plen) == 0);
+    size_t result_len = has_placeholder ? len : len + 1 + plen;
+    if (result_len >= PATH_MAX) fail("Path is too long: ", path);
+
+    char *result = GC_MALLOC_ATOMIC(result_len + 1);
+    memcpy(result, path, len);
+    if (!has_placeholder) {
+        result[len] = '-';
+        memcpy(&result[len + 1], placeholder, plen);
+    }
+    result[result_len] = '\0';
+
+    if (mkdtemp(result) == NULL) return NULL;
+    return home_based ? unexpand_home((Path_t)result) : (Path_t)result;
 }
 
 public
 OptionalPath_t Path$write_unique_bytes(Path_t path, List_t bytes) {
     bool home_based = (path_type(path) == PATH_HOME);
     path = Path$expand_home(path);
+
+    const char *placeholder = "XXXXXX";
+    const char *placeholder_pos = strstr(path, placeholder);
+    size_t suffixlen = placeholder_pos ? strlen(placeholder_pos + strlen(placeholder)) : 0;
+    // If there is no "XXXXXX" then append "-XXXXXX"
+    if (!placeholder_pos) {
+        path = String(path, "-", placeholder);
+    }
+
     size_t len = strlen(path);
     if (len >= PATH_MAX) fail("Path is too long: ", path);
-    static char buf[PATH_MAX] = {};
-    memcpy(buf, path, len);
-    buf[len] = '\0';
 
-    // Count the number of trailing characters leading up to the last "X"
-    // (e.g. "foo_XXXXXX.tmp" would yield suffixlen = 4)
-    size_t suffixlen = 0;
-    while (suffixlen < len && buf[len - 1 - suffixlen] != 'X')
-        ++suffixlen;
+    char *result = GC_MALLOC_ATOMIC(len + 1);
+    memcpy(result, path, len);
+    result[len] = '\0';
 
-    int fd = mkstemps(buf, suffixlen);
+    int fd = mkstemps(result, suffixlen);
     if (fd == -1) return NULL;
 
     if (bytes.stride != 1) List$compact(&bytes, 1);
 
     ssize_t written = write(fd, bytes.data, (size_t)bytes.length);
-    if (written != (ssize_t)bytes.length) fail("Could not write to file: ", buf, " (", strerror(errno), ")");
+    if (written != (ssize_t)bytes.length) fail("Could not write to file: ", result, " (", strerror(errno), ")");
     close(fd);
-    Path_t unique = Path$from_str(GC_strdup(buf)); // Copy out of the static buffer
-    return home_based ? unexpand_home(unique) : unique;
+    return home_based ? unexpand_home((Path_t)result) : (Path_t)result;
 }
 
 public
@@ -912,8 +925,9 @@ static const char *base_name_start(Path_t path) {
     if (!path || path[0] == '\0') return "";
 
     const char *end = path + strlen(path);
-    // Strip trailing slash
-    while (end > path && end[0] == '/')
+    // Strip trailing slashes. `end` starts on the terminator, so this looks at
+    // the byte behind it; testing end[0] only ever found the '\0'.
+    while (end > path && end[-1] == '/')
         end -= 1;
 
     // Get component up to end, excluding trailing slash
