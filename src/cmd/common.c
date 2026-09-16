@@ -178,14 +178,14 @@ void ensure_target_installed(void) {
 }
 
 List_t normalize_tm_paths(List_t paths) {
+    Path_t cur_dir = Path$current_dir();
     List_t result = EMPTY_LIST;
     for (int64_t i = 0; i < (int64_t)paths.length; i++) {
-        Path_t path = *(Path_t *)(paths.data + i * paths.stride);
-        // Convert `foo` to `foo/foo.tm` and resolve path to absolute path:
-        Path_t cur_dir = Path$current_dir();
-        if (Path$is_directory(path, true)) path = Path$child(path, Texts(Path$base_name(path), Text(".tm")));
-
-        path = Path$resolved(path, cur_dir);
+        Path_t path = Path$resolved(*(Path_t *)(paths.data + i * paths.stride), cur_dir);
+        // These commands each name a source file, so say which of the two ways
+        // an argument can fail to be one it is, rather than handing a directory
+        // to the compiler as if it were a file:
+        if (Path$is_directory(path, true)) fail("This is a directory, not a .tm file: ", path);
         if (!Path$exists(path)) fail("path not found: ", path);
         List$insert(&result, &path, I(0), sizeof(path));
     }

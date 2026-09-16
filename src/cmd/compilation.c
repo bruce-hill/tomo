@@ -30,7 +30,6 @@
 #include "../stdlib/datatypes.h"
 #include "../stdlib/enums.h"
 #include "../stdlib/list.h"
-#include "../stdlib/optionals.h"
 #include "../stdlib/path.h"
 #include "../stdlib/print.h"
 #include "../stdlib/profiling.h"
@@ -1120,11 +1119,9 @@ void build_file_dependency_graph(Table_t *build_info, Path_t path, Table_t *to_c
     OptionalPath_t packages_ini = Path$sibling(path, Text("packages.ini"));
     assert(packages_ini); // A source file always has a directory
     staleness_t staleness = {
-        .h = is_stale(build_file(path, ".h"), packages_ini, true)
-             || is_stale(build_file(path, ".h"), path, false)
+        .h = is_stale(build_file(path, ".h"), packages_ini, true) || is_stale(build_file(path, ".h"), path, false)
              || is_stale(build_file(path, ".h"), build_file(path, ".id"), false),
-        .c = is_stale(build_file(path, ".c"), packages_ini, true)
-             || is_stale(build_file(path, ".c"), path, false)
+        .c = is_stale(build_file(path, ".c"), packages_ini, true) || is_stale(build_file(path, ".c"), path, false)
              || is_stale(build_file(path, ".c"), build_file(path, ".id"), false),
     };
     staleness.o = staleness.c || staleness.h || is_stale(build_file(path, ".o"), build_file(path, ".c"), false)

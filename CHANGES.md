@@ -20,6 +20,15 @@
   is accepted now: `tomo eval 'x := 5; x*2'` and `tomo eval 'use random;
   random.int(1, 100)'` no longer work.
 
+- `tomo run`, `build`, `test`, `format`, `parse`, and `transpile` no longer
+  take a directory as shorthand for the file inside it: `tomo run foo` meant
+  `tomo run foo/foo.tm`. It was undocumented -- each of those commands has
+  always advertised `file.tm` -- and it only ever worked for a bare name, since
+  the directory's own name was read off the end of the argument before the
+  argument was resolved, so `tomo run foo/` looked for `foo/.tm` and `tomo run
+  .` for `..tm`. A directory argument is now an error that says so. (`tomo
+  package`, which does document directory arguments, is unaffected.)
+
 - `Path.base_name()` and `Path.extension()` no longer come back empty for a
   path with a trailing slash. The loop meant to strip the slash tested the byte
   the pointer was on rather than the one behind it, and the pointer starts on

@@ -24,7 +24,6 @@
 #include "../stdlib/bool.h"
 #include "../stdlib/files.h"
 #include "../stdlib/list.h"
-#include "../stdlib/optionals.h"
 #include "../stdlib/path.h"
 #include "../stdlib/print.h"
 #include "../stdlib/stdlib.h"
