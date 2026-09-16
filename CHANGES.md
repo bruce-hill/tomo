@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Removed the `~colorized` text suffix. `say("v $n"~colorized)` rendered the
+  interpolated values the way `>>` renders one, but the decision was made at
+  compile time, so the escape codes were emitted even when the output was
+  redirected to a file. It also only reached values that weren't already
+  `Text` -- an interpolated `Text` came out bare, which is the one thing a
+  syntax highlighter would certainly colour -- and nothing stopped
+  `$HTML"<p>$n</p>"~colorized` from splicing terminal escapes into HTML. The
+  suffix was the only use of a trailing `~` in the language, and a failed match
+  consumed the `~` anyway, so an error on `"hi"~whatever` underlined the wrong
+  span. `tomo eval` still prints its result in colour, now decided at run time
+  by `USE_COLOR`.
+
+- `tomo eval` builds its scratch program as a single `>>` line instead of
+  assembling a `func main()` around the parsed statements, so the value is
+  printed by the same code that prints any other `>>`. Only a single expression
+  is accepted now: `tomo eval 'x := 5; x*2'` and `tomo eval 'use random;
+  random.int(1, 100)'` no longer work.
+
 - The unused-variable check no longer flags variables that are only written
   *through*. `p := &x; p[] = 456` reported `p` as assigned but never read, even
   though the write reads `p` to find `x`. Writes reached through a dereference,

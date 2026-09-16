@@ -2,7 +2,6 @@
 # these is written anywhere but the source, so the parse tree is the only place
 # they are observable -- and `tomo format --verify` compares two parse trees to
 # decide that formatting was faithful, so what is missing here it cannot check.
-# A dropped `~colorized` passed as faithful for exactly that reason.
 
 struct Secret{x:Int; secret}
 struct External{x:Int; external}
@@ -30,4 +29,3 @@ func main()
     for x at i in xs
         say("$i:$x")
     >> [x for x at i in xs]
-    >> "a $xs value"~colorized

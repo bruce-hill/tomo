@@ -10,7 +10,7 @@
 #include "../util.h"
 
 Text_t compile_text_ast(env_t *env, ast_t *ast);
-Text_t compile_text(env_t *env, ast_t *ast, Text_t color);
+Text_t compile_text(env_t *env, ast_t *ast);
 Text_t compile_text_literal(Text_t literal);
 Text_t compile_bytes_literal(List_t bytes);
 Text_t compile_embed_as_text(ast_t *ast, List_t bytes);

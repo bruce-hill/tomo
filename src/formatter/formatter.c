@@ -242,14 +242,11 @@ static Text_t line_comment(const char **pos, ast_t *item, Text_t item_text, Text
     return Texts(" ", found);
 }
 
-// What a text literal wears on either side of its quotes: a language in front
-// of the opening one, and `~colorized` after the closing one. The suffix says
-// to render an interpolated value in the colour its type is shown in, so
-// dropping it changes what the program prints.
+// Add the `$Lang` prefix to the text, if applicable.
 static Text_t decorate_text(ast_t *ast, Text_t code) {
     DeclareMatch(text, ast, TextJoin);
     if (text->lang) code = Texts("$", format_type(text->lang), code);
-    return text->colorize ? Texts(code, "~colorized") : code;
+    return code;
 }
 
 static OptionalText_t format_inline_text(text_opts_t opts, ast_list_t *chunks, Table_t comments) {

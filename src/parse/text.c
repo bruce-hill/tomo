@@ -146,8 +146,7 @@ ast_t *parse_text(parse_ctx_t *ctx, const char *pos, bool allow_interps) {
     if (!(*pos == '"' || *pos == '\'' || *pos == '`')) return NULL;
 
     ast_list_t *chunks = _parse_text_helper(ctx, &pos, allow_interps, /*allow_escapes=*/true);
-    bool colorize = match(&pos, "~") && match_word(&pos, "colorized");
-    return NewAST(ctx->file, start, pos, TextJoin, .lang = lang, .children = chunks, .colorize = colorize);
+    return NewAST(ctx->file, start, pos, TextJoin, .lang = lang, .children = chunks);
 }
 
 ast_t *parse_inline_c(parse_ctx_t *ctx, const char *pos) {

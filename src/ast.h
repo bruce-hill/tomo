@@ -343,7 +343,6 @@ struct ast_s {
         struct {
             type_ast_t *lang;
             ast_list_t *children;
-            bool colorize : 1;
         } TextJoin;
         struct {
             const char *path;

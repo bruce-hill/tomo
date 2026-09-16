@@ -247,7 +247,7 @@ Text_t ast_to_sexp(ast_t *ast) {
         T(Num, "(Num ", data.str ? quoted_text(data.str) : Text$from_str(number_to_symbolic(data.n)), ")");
         T(TextLiteral, Text$quoted(data.text, false, Text("\"")));
         T(TextJoin, "(Text", data.lang ? Texts(" :lang ", type_ast_to_sexp(data.lang)) : EMPTY_TEXT,
-          flag_sexp("colorized", data.colorize), ast_list_to_sexp(data.children), ")");
+          ast_list_to_sexp(data.children), ")");
         T(Path, "(Path ", quoted_text(data.path), ")");
         T(Embed, "(Embed ", ast_to_sexp(data.path), ")");
         T(Declare, "(Declare ", ast_to_sexp(data.var), " ", type_ast_to_sexp(data.type), " ", ast_to_sexp(data.value),
