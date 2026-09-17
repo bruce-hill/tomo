@@ -184,7 +184,6 @@ static Text_t compile_command_spec(env_t *env, cli_command_def_t *node, Text_t c
             i += 1;
         }
         // If a value is returned, print it (optionally with syntax highlighting).
-        // For Text, just print the raw text value though.
         type_t *ret = Match(node->binding->type, FunctionType)->ret;
         bool has_return = (ret->tag != VoidType && ret->tag != AbortType);
         if (has_return) *defs = Texts(*defs, compile_declaration(ret, Text("result")), " = ");
@@ -193,13 +192,8 @@ static Text_t compile_command_spec(env_t *env, cli_command_def_t *node, Text_t c
             *defs =
                 Texts(*defs, "cli_arg$", c_path, "$", Text$from_str(arg->name), arg->next ? Text(", ") : EMPTY_TEXT);
         *defs = Texts(*defs, ");\n");
-        if (has_return) {
-            *defs =
-                Texts(*defs, "say(",
-                      ret->tag == TextType ? Text("result")
-                                           : Texts("generic_as_text(&result, USE_COLOR, ", compile_type_info(ret), ")"),
-                      ", yes);\n");
-        }
+        if (has_return)
+            *defs = Texts(*defs, "say(generic_as_text(&result, USE_COLOR, ", compile_type_info(ret), "), yes);\n");
         *defs = Texts(*defs, "return 0;\n}\n");
     }
 
