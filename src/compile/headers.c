@@ -43,14 +43,21 @@ Text_t compile_statement_namespace_header(env_t *env, Path_t header_path, ast_t 
         bool is_private = (decl_name[0] == '_');
         if (is_private) return EMPTY_TEXT;
 
-        type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
-        if (t->tag == FunctionType) t = Type(ClosureType, t);
+        type_t *t = NULL;
+        bool lazy = needs_runtime_initialization(env, ast, &t);
         assert(t->tag != ModuleType);
         if (t->tag == AbortType || t->tag == VoidType || t->tag == ReturnType)
             code_err(ast, "You can't declare a variable with a ", type_to_text(t), " value");
 
+        // A variable that `$initialize()` assigns is read through a guard on
+        // its `$$initialized` flag, so an importer needs the flag declared
+        // here too, not just the variable:
+        Text_t initialized_decl =
+            lazy ? Texts("extern bool ", namespace_name(env, env->namespace, Texts(decl_name, "$$initialized")), ";\n")
+                 : EMPTY_TEXT;
         return Texts(decl->value ? compile_statement_type_header(env, header_path, decl->value) : EMPTY_TEXT, "extern ",
-                     compile_declaration(t, namespace_name(env, env->namespace, Text$from_str(decl_name))), ";\n");
+                     compile_declaration(t, namespace_name(env, env->namespace, Text$from_str(decl_name))), ";\n",
+                     initialized_decl);
     }
     case FunctionDef: return compile_function_declaration(env, ast);
     case ConvertDef: return compile_convert_declaration(env, ast);

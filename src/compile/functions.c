@@ -8,7 +8,6 @@
 #include "../stdlib/files.h"
 #include "../stdlib/floats.h"
 #include "../stdlib/integers.h"
-#include "../stdlib/optionals.h"
 #include "../stdlib/table.h"
 #include "../stdlib/text.h"
 #include "../typecheck.h"
@@ -900,7 +899,7 @@ Text_t compile_lambda_pointer_args(env_t *env, ast_t *ast) {
 }
 
 public
-Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *staticdefs) {
+Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast) {
     bool is_private = false;
     const char *function_name;
     arg_ast_t *args;
@@ -945,7 +944,9 @@ Text_t compile_function(env_t *env, Text_t name_code, ast_t *ast, Text_t *static
     Text_t ret_type_code = compile_type(ret_t);
     if (ret_t->tag == AbortType) ret_type_code = Texts("__attribute__((noreturn)) _Noreturn ", ret_type_code);
 
-    if (is_private) *staticdefs = Texts(*staticdefs, "static ", ret_type_code, " ", name_code, arg_signature, ";\n");
+    if (is_private)
+        env->code->staticdefs =
+            Texts(env->code->staticdefs, "static ", ret_type_code, " ", name_code, arg_signature, ";\n");
 
     Text_t code;
     if (cache) {

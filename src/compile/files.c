@@ -12,130 +12,56 @@
 #include "../types.h"
 #include "compilation.h"
 
-static void initialize_vars_and_statics(env_t *env, ast_t *ast);
-static void initialize_namespace(env_t *env, const char *name, ast_t *namespace);
-static Text_t compile_top_level_code(env_t *env, ast_t *ast);
-static Text_t compile_namespace(env_t *env, const char *name, ast_t *namespace);
+// A file is compiled in three passes over the same AST:
+//
+//  1. compile_variables(): the file-scoped and type-namespace-scoped variables and type infos.
+//  2. compile_functions(): functions and type methods.
+//  3. compile_initializers(): the code that runs inside `$initialize()` to assign values
+//     for those variables that can't use static initializers, plus other top-level statements.
+static Text_t compile_variables(env_t *env, ast_t *ast);
+static Text_t compile_namespace_variables(env_t *env, const char *name, ast_t *namespace);
+static Text_t compile_functions(env_t *env, ast_t *ast);
+static Text_t compile_namespace_functions(env_t *env, const char *name, ast_t *namespace);
+static Text_t compile_initializers(env_t *env, ast_t *ast);
+static Text_t compile_namespace_initializers(env_t *env, const char *name, ast_t *namespace);
 
-void initialize_namespace(env_t *env, const char *name, ast_t *namespace) {
-    initialize_vars_and_statics(namespace_env(env, name), namespace);
+Text_t compile_namespace_variables(env_t *env, const char *name, ast_t *namespace) {
+    return compile_variables(namespace_env(env, name), namespace);
 }
 
-void initialize_vars_and_statics(env_t *env, ast_t *ast) {
-    if (!ast) return;
-
-    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-        if (stmt->ast->tag == InlineCCode) {
-            Text_t code = compile_statement(env, stmt->ast);
-            env->code->staticdefs = Texts(env->code->staticdefs, code, "\n");
-        } else if (stmt->ast->tag == Declare) {
-            DeclareMatch(decl, stmt->ast, Declare);
-            const char *decl_name = Match(decl->var, Var)->name;
-            Text_t full_name = namespace_name(env, env->namespace, Text$from_str(decl_name));
-            type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
-            if (t->tag == FunctionType) t = Type(ClosureType, t);
-            bool value_is_constant =
-                decl->value
-                && (decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value, t));
-            if ((decl->value && !value_is_constant) || (!decl->value && has_heap_memory(t))) {
-                // Only non-constant values need runtime initialization here.
-                // (Compile the value inside this branch, not above, since for a
-                // constant value it's emitted as a static initializer by
-                // compile_top_level_code instead, and compiling it here too
-                // would duplicate any hoisted static defs, e.g. a list
-                // literal's backing array.)
-                Text_t val_code = compile_declared_value(env, stmt->ast);
-                Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
-                env->code->variable_initializers =
-                    Texts(env->code->variable_initializers,
-                          with_source_info(env, stmt->ast,
-                                           Texts(full_name, " = ", val_code, ",\n", initialized_name, " = true;\n")));
-            }
-        } else if (stmt->ast->tag == StructDef) {
-            initialize_namespace(env, Match(stmt->ast, StructDef)->name, Match(stmt->ast, StructDef)->namespace);
-        } else if (stmt->ast->tag == EnumDef) {
-            initialize_namespace(env, Match(stmt->ast, EnumDef)->name, Match(stmt->ast, EnumDef)->namespace);
-        } else if (stmt->ast->tag == LangDef) {
-            initialize_namespace(env, Match(stmt->ast, LangDef)->name, Match(stmt->ast, LangDef)->namespace);
-        } else if (stmt->ast->tag == Use) {
-            continue;
-        } else if (stmt->ast->tag == Test) {
-            // Tests are only emitted by `tomo test`, never in normal builds:
-            continue;
-        } else {
-            Text_t code = compile_statement(env, stmt->ast);
-            if (code.length > 0)
-                env->code->variable_initializers =
-                    Texts(env->code->variable_initializers, with_source_info(env, stmt->ast, code));
-        }
-    }
-}
-
-Text_t compile_namespace(env_t *env, const char *name, ast_t *namespace) {
-    env_t *ns_env = namespace_env(env, name);
-    return namespace ? compile_top_level_code(ns_env, namespace) : EMPTY_TEXT;
-}
-
-Text_t compile_top_level_code(env_t *env, ast_t *ast) {
+Text_t compile_variables(env_t *env, ast_t *ast) {
     if (!ast) return EMPTY_TEXT;
 
     switch (ast->tag) {
-    case Use: return EMPTY_TEXT;
     case Declare: {
         DeclareMatch(decl, ast, Declare);
         const char *decl_name = Match(decl->var, Var)->name;
         Text_t full_name = namespace_name(env, env->namespace, Text$from_str(decl_name));
-        type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
-        if (t->tag == FunctionType) t = Type(ClosureType, t);
-        Text_t val_code = compile_declared_value(env, ast);
-        bool is_private = decl_name[0] == '_';
-        bool value_is_constant =
-            decl->value
-            && (decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value, t));
-        if (value_is_constant || (!decl->value && !has_heap_memory(t))) {
-            set_binding(env, decl_name, t, full_name);
-            return Texts(is_private ? "static " : "public ", compile_declaration(t, full_name), " = ", val_code, ";\n");
-        } else {
-            Text_t init_var = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
-            Text_t checked_access = Texts("check_initialized(", full_name, ", ", init_var, ", \"", decl_name, "\")");
-            set_binding(env, decl_name, t, checked_access);
-
+        // Variables and functions starting with `_` are private to the file, i.e. `static` in C.
+        // Everything else is visible to importers and declared in the header.
+        Text_t linkage = decl_name[0] == '_' ? Text("static ") : Text("public ");
+        type_t *t = NULL;
+        if (needs_runtime_initialization(env, ast, &t)) {
+            // Runtime-initialized variables have an accompanying boolean saying whether
+            // they're initialized or not, so we can do lazy and once-only initialization.
             Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
-            return Texts("static bool ", initialized_name, " = false;\n", is_private ? "static " : "public ",
-                         compile_declaration(t, full_name), ";\n");
+            return Texts(linkage, "bool ", initialized_name, " = false;\n", linkage, compile_declaration(t, full_name),
+                         ";\n");
+        } else {
+            return Texts(linkage, compile_declaration(t, full_name), " = ", compile_declared_value(env, ast), ";\n");
         }
-    }
-    case FunctionDef: {
-        // Dots in subcommand names (`main.add`) become `$`s in the C name:
-        Text_t name_code = namespace_name(
-            env, env->namespace,
-            Text$replace(Text$from_str(Match(Match(ast, FunctionDef)->name, Var)->name), Text("."), Text("$")));
-        return compile_function(env, name_code, ast, &env->code->staticdefs);
-    }
-    case ConvertDef: {
-        type_t *type = get_function_return_type(env, ast);
-        const char *name = get_type_name(type);
-        if (!name)
-            code_err(ast,
-                     "Conversions are only supported for text, struct, and enum "
-                     "types, not ",
-                     type_to_text(type));
-        Text_t name_code =
-            namespace_name(env, env->namespace, Texts(name, "$", get_line_number(ast->file, ast->start)));
-        return compile_function(env, name_code, ast, &env->code->staticdefs);
     }
     case StructDef: {
         DeclareMatch(def, ast, StructDef);
         type_t *t = Table$str_get(*env->types, def->name);
         assert(t && t->tag == StructType);
         Text_t code = compile_struct_typeinfo(env, t, def->name, def->fields, def->secret, def->opaque);
-        return Texts(code, compile_namespace(env, def->name, def->namespace));
+        return Texts(code, compile_namespace_variables(env, def->name, def->namespace));
     }
     case EnumDef: {
         DeclareMatch(def, ast, EnumDef);
         Text_t code = compile_enum_typeinfo(env, def->name, def->tags);
-        code = Texts(code, compile_enum_constructors(env, def->name, def->tags));
-        return Texts(code, compile_namespace(env, def->name, def->namespace));
+        return Texts(code, compile_namespace_variables(env, def->name, def->namespace));
     }
     case LangDef: {
         DeclareMatch(def, ast, LangDef);
@@ -143,18 +69,124 @@ Text_t compile_top_level_code(env_t *env, ast_t *ast) {
             Texts("public const TypeInfo_t ", namespace_name(env, env->namespace, Texts(def->name, "$$info")), " = {",
                   (int64_t)sizeof(Text_t), ", ", (int64_t)__alignof__(Text_t),
                   ", .metamethods=Text$metamethods, .tag=TextInfo, .TextInfo={", quoted_str(def->name), "}};\n");
-        return Texts(code, compile_namespace(env, def->name, def->namespace));
+        return Texts(code, compile_namespace_variables(env, def->name, def->namespace));
     }
     case Block: {
         Text_t code = EMPTY_TEXT;
         for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
-            code = Texts(code, compile_top_level_code(env, stmt->ast));
+            code = Texts(code, compile_variables(env, stmt->ast));
         }
         return code;
     }
-    case Metadata:
+    case InlineCCode: {
+        // Inline C code goes with variable declarations so it can be referenced inside functions.
+        // Top-level C code can be used to declare variables and macros and whatnot. If you want
+        // top-level C code that runs on initialization, you can wrap it in `do C_code"..."`
+        Text_t stmt_code = compile_statement(env, ast);
+        return with_source_info(env, ast, stmt_code);
+    }
     default: return EMPTY_TEXT;
     }
+}
+
+Text_t compile_namespace_functions(env_t *env, const char *name, ast_t *namespace) {
+    return compile_functions(namespace_env(env, name), namespace);
+}
+
+Text_t compile_functions(env_t *env, ast_t *ast) {
+    if (!ast) return EMPTY_TEXT;
+
+    switch (ast->tag) {
+    case FunctionDef: {
+        Text_t name_code = namespace_name(
+            env, env->namespace,
+            // Dots in subcommand names (`main.add`) become `$`s in the C name:
+            Text$replace(Text$from_str(Match(Match(ast, FunctionDef)->name, Var)->name), Text("."), Text("$")));
+        return compile_function(env, name_code, ast);
+    }
+    case ConvertDef: {
+        type_t *type = get_function_return_type(env, ast);
+        const char *name = get_type_name(type);
+        if (!name)
+            code_err(ast, "Conversions are only supported for text, struct, and enum types, not ", type_to_text(type));
+        Text_t name_code =
+            namespace_name(env, env->namespace, Texts(name, "$", get_line_number(ast->file, ast->start)));
+        return compile_function(env, name_code, ast);
+    }
+    case StructDef: {
+        DeclareMatch(def, ast, StructDef);
+        return compile_namespace_functions(env, def->name, def->namespace);
+    }
+    case EnumDef: {
+        DeclareMatch(def, ast, EnumDef);
+        Text_t code = compile_enum_constructors(env, def->name, def->tags);
+        return Texts(code, compile_namespace_functions(env, def->name, def->namespace));
+    }
+    case LangDef: {
+        DeclareMatch(def, ast, LangDef);
+        return compile_namespace_functions(env, def->name, def->namespace);
+    }
+    case Block: {
+        Text_t code = EMPTY_TEXT;
+        for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+            code = Texts(code, compile_functions(env, stmt->ast));
+        }
+        return code;
+    }
+    default: return EMPTY_TEXT;
+    }
+}
+
+Text_t compile_namespace_initializers(env_t *env, const char *name, ast_t *namespace) {
+    return compile_initializers(namespace_env(env, name), namespace);
+}
+
+Text_t compile_initializers(env_t *env, ast_t *ast) {
+    if (!ast) return EMPTY_TEXT;
+
+    Text_t code = EMPTY_TEXT;
+    for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
+        switch (stmt->ast->tag) {
+        case Declare: {
+            if (!needs_runtime_initialization(env, stmt->ast, NULL)) break;
+            // Compile the value here and not for a statically initialized
+            // variable, whose value compile_variables() emits as a static
+            // initializer: compiling it in both places would duplicate any
+            // hoisted static defs, e.g. a list literal's backing array.
+            const char *decl_name = Match(Match(stmt->ast, Declare)->var, Var)->name;
+            Text_t full_name = namespace_name(env, env->namespace, Text$from_str(decl_name));
+            Text_t initialized_name = namespace_name(env, env->namespace, Texts(decl_name, "$$initialized"));
+            Text_t val_code = compile_declared_value(env, stmt->ast);
+            code =
+                Texts(code, with_source_info(env, stmt->ast,
+                                             Texts(full_name, " = ", val_code, ",\n", initialized_name, " = true;\n")));
+            break;
+        }
+        case StructDef:
+            code = Texts(code, compile_namespace_initializers(env, Match(stmt->ast, StructDef)->name,
+                                                              Match(stmt->ast, StructDef)->namespace));
+            break;
+        case EnumDef:
+            code = Texts(code, compile_namespace_initializers(env, Match(stmt->ast, EnumDef)->name,
+                                                              Match(stmt->ast, EnumDef)->namespace));
+            break;
+        case LangDef:
+            code = Texts(code, compile_namespace_initializers(env, Match(stmt->ast, LangDef)->name,
+                                                              Match(stmt->ast, LangDef)->namespace));
+            break;
+        case FunctionDef:
+        case ConvertDef:
+        case InlineCCode:
+        case Use:
+        case Test: break;
+        default: {
+            Text_t stmt_code = compile_statement(env, stmt->ast);
+            if (stmt_code.length > 0) code = Texts(code, with_source_info(env, stmt->ast, stmt_code));
+            break;
+        }
+        }
+    }
+    return code;
 }
 
 typedef struct {
@@ -167,10 +199,21 @@ static visit_behavior_t add_type_infos(type_ast_t *type_ast, void *userdata) {
         compile_info_t *info = (compile_info_t *)userdata;
         // Force the type to get defined:
         (void)parse_type_ast(info->env, type_ast);
+        *info->code =
+            Texts(*info->code,
+                  compile_enum_typeinfo(info->env, String("enum$", (int64_t)(type_ast->start - type_ast->file->text)),
+                                        Match(type_ast, EnumTypeAST)->tags));
+    }
+    return VISIT_PROCEED;
+}
+
+static visit_behavior_t add_type_constructors(type_ast_t *type_ast, void *userdata) {
+    if (type_ast && type_ast->tag == EnumTypeAST) {
+        compile_info_t *info = (compile_info_t *)userdata;
+        // Force the type to get defined:
+        (void)parse_type_ast(info->env, type_ast);
         *info->code = Texts(
             *info->code,
-            compile_enum_typeinfo(info->env, String("enum$", (int64_t)(type_ast->start - type_ast->file->text)),
-                                  Match(type_ast, EnumTypeAST)->tags),
             compile_enum_constructors(info->env, String("enum$", (int64_t)(type_ast->start - type_ast->file->text)),
                                       Match(type_ast, EnumTypeAST)->tags));
     }
@@ -179,15 +222,19 @@ static visit_behavior_t add_type_infos(type_ast_t *type_ast, void *userdata) {
 
 public
 Text_t compile_file(env_t *env, ast_t *ast) {
-    Text_t top_level_code = compile_top_level_code(env, ast);
+    Text_t file_variables = EMPTY_TEXT;
+    type_ast_visit(ast, add_type_infos, (void *)(compile_info_t[1]){{.env = env, .code = &file_variables}});
+    file_variables = Texts(file_variables, compile_variables(env, ast));
 
-    compile_info_t info = {.env = env, .code = &top_level_code};
-    type_ast_visit(ast, add_type_infos, &info);
+    Text_t functions = EMPTY_TEXT;
+    type_ast_visit(ast, add_type_constructors, (void *)(compile_info_t[1]){{.env = env, .code = &functions}});
+    functions = Texts(functions, compile_functions(env, ast));
 
+    // A `use` contributes to two places: an imported C file becomes an
+    // `#include`, and an imported module's initializer has to be called at the
+    // top of this file's own initializer, before any of its code runs:
     Text_t includes = EMPTY_TEXT;
     Text_t use_imports = EMPTY_TEXT;
-
-    // First prepare variable initializers to prevent unitialized access:
     for (ast_list_t *stmt = Match(ast, Block)->statements; stmt; stmt = stmt->next) {
         if (stmt->ast->tag == Use) {
             use_imports = Texts(use_imports, compile_statement(env, stmt->ast));
@@ -208,18 +255,18 @@ Text_t compile_file(env_t *env, ast_t *ast) {
         }
     }
 
-    initialize_vars_and_statics(env, ast);
+    Text_t initializer_body = compile_initializers(env, ast);
 
     const char *name = file_base_name(ast->file->filename);
     return Texts(env->do_source_mapping ? Texts("#line 1 ", quoted_str(ast->file->filename), "\n") : EMPTY_TEXT,
                  "#define __SOURCE_FILE__ ", quoted_str(ast->file->filename), "\n",
                  "#include <tomo.h>\n"
                  "#include \"",
-                 name, ".tm.h\"\n\n", includes, env->code->constants, "\n", env->code->local_typedefs, "\n",
-                 env->code->lambdas, "\n", env->code->staticdefs, "\n", top_level_code, "public void ",
-                 namespace_name(env, env->namespace, Text("$initialize")), "(void) {\n",
+                 name, ".tm.h\"\n\n", includes, "\n", env->code->local_typedefs, "\n", env->code->constants, "\n",
+                 file_variables, "\n", env->code->lambdas, "\n", env->code->staticdefs, "\n", functions, "\n",
+                 "public void ", namespace_name(env, env->namespace, Text("$initialize")), "(void) {\n",
                  "static bool initialized = false;\n", "if (initialized) return;\n", "initialized = true;\n",
-                 use_imports, env->code->variable_initializers, "}\n");
+                 use_imports, initializer_body, "}\n");
 }
 
 public

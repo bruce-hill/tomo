@@ -9,15 +9,10 @@
 #include "types.h"
 
 typedef struct {
-    // Module-level `static const` definitions (e.g. constant list literals'
-    // backing arrays) that must precede everything else, since lambdas and
-    // staticdefs reference them but they are not forward-declared, so they are
-    // emitted first.
-    Text_t constants;
     Text_t local_typedefs;
+    Text_t constants;
     Text_t staticdefs;
     Text_t lambdas;
-    Text_t variable_initializers;
     // Per-function-type closure shims (see promote() in compile/promotions.c),
     // keyed by the compiled function-pointer type string:
     Table_t closure_shims;

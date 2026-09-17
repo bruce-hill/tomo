@@ -14,10 +14,10 @@
 #define ends_with(line, suffix)                                                                                        \
     (strlen(line) >= strlen(suffix) && strcmp(line + strlen(line) - strlen(suffix), suffix) == 0)
 #define check_initialized(var, init_var, name)                                                                         \
-    *({                                                                                                                \
+    (*({                                                                                                               \
         if (!init_var) fail_text(Text("The variable " name " is being accessed before it has been initialized!"));     \
         &var;                                                                                                          \
-    })
+    }))
 
 #ifndef public
 #define public __attribute__((visibility("default")))

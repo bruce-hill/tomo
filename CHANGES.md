@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Fixed reading a top-level variable from a function defined above it. A
+  function that read a private (`_`-prefixed) top-level variable declared
+  further down the file failed to compile, and one that read a variable
+  assigned at startup skipped the check that reports the use of a
+  not-yet-initialized value, so whether that check ran depended on where the
+  function sat in the file. A variable's accessor is now settled when the
+  variable is bound rather than partway through compiling the file, so it is
+  the same for every reader.
+
+- Fixed using a top-level variable that is initialized at startup with a field
+  access, an index, or a call, such as calling a variable that holds a
+  function. The check that reports a not-yet-initialized value was missing a
+  pair of parentheses, so the field or call bound to the wrong part of it and
+  the program failed to compile.
+
 - `main()` and each `main.<command>` subcommand may return a value, which the
   program prints when it runs. `func main(x,y:Int -> Int)` returning `x + y`
   prints the sum, rendered the way `>>` renders a value and colorized only when

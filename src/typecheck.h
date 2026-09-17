@@ -33,6 +33,7 @@ bool is_constant(env_t *env, ast_t *ast, type_t *expected_type);
 PUREFUNC bool is_pushdown_arithmetic(ast_t *ast, type_t *target);
 List_t get_embed_bytes(ast_t *ast);
 bool embed_is_constant(ast_t *ast, type_t *t);
+bool needs_runtime_initialization(env_t *env, ast_t *declare, type_t **out_type);
 PUREFUNC bool can_compile_to_type(env_t *env, ast_t *ast, type_t *needed);
 List_t get_field_names(env_t *env, type_t *t);
 List_t get_method_names(env_t *env, type_t *t);

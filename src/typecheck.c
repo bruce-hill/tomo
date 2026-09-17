@@ -14,7 +14,6 @@
 #include "parse/files.h"
 #include "parse/types.h"
 #include "stdlib/number.h"
-#include "stdlib/optionals.h"
 #include "stdlib/path.h"
 #include "stdlib/table.h"
 #include "stdlib/text.h"
@@ -342,10 +341,18 @@ void bind_statement(env_t *env, ast_t *statement) {
                          ") doesn't. Move the default into the type annotation instead, like `{K:V; default=...}`.");
         }
         if (type->tag == FunctionType) type = Type(ClosureType, type);
+        // For top-level variables, some can only be initialized at runtime, so we need to ensure that the
+        // initialization has actually happened using the check_initialized() macro.
         Text_t code;
-        if (name[0] != '_' && (env->namespace || decl->top_level))
+        if (env->namespace || decl->top_level) {
             code = namespace_name(env, env->namespace, Text$from_str(name));
-        else code = Texts("_$", name);
+            if (needs_runtime_initialization(env, statement, NULL)) {
+                Text_t initialized = namespace_name(env, env->namespace, Texts(name, "$$initialized"));
+                code = Texts("check_initialized(", code, ", ", initialized, ", \"", name, "\")");
+            }
+        } else {
+            code = Texts("_$", name);
+        }
         set_binding(env, name, type, code);
         break;
     }
@@ -2070,6 +2077,21 @@ bool embed_is_constant(ast_t *ast, type_t *t) {
         if (t->tag == TextType && byte >= 0x80) return false;
     }
     return true;
+}
+
+// File-scope variables and variables inside of type namespaces are initialized
+// using static initializers like `int x = 1;` when possible, but in cases where
+// heap allocation or function calls are needed, C does not permit that, so we
+// have to do a dance: `int x; bool x$initialized = false;` and then inside the
+// init function, we put `x$initialized = true; x = doop();`
+// The `out_type` param lets callers receive the declaration's type if they want it.
+bool needs_runtime_initialization(env_t *env, ast_t *declare, type_t **out_type) {
+    DeclareMatch(decl, declare, Declare);
+    type_t *t = decl->type ? parse_type_ast(env, decl->type) : get_type(env, decl->value);
+    if (t->tag == FunctionType) t = Type(ClosureType, t);
+    if (out_type) *out_type = t;
+    if (!decl->value) return has_heap_memory(t);
+    return !(decl->value->tag == Embed ? embed_is_constant(decl->value, t) : is_constant(env, decl->value, t));
 }
 
 // Arithmetic/bitwise binary ops whose result type can be pushed down into the
