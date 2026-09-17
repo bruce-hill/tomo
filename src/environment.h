@@ -74,6 +74,11 @@ typedef struct env_s {
     // the only way a debugger can tell what is inside one. See
     // compile_debug_typeinfo() in compile/statements.c.
     bool do_debugging : 1;
+    // If true, each non-void/abort value will be printed to stdout instead of
+    // treated as an "unused return value" compiler error.
+    // This is used by `tomo eval` to make it simpler to print one or more
+    // expressions with colors.
+    bool print_values : 1;
     type_t *current_type;
 } env_t;
 

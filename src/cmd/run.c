@@ -75,7 +75,7 @@ static int exec_under_debugger(const char *prog_args[], int64_t num_prog_args) {
 // Compile `path` and exec it, passing extra_args (the raw argv tail after
 // "--") as the program's arguments. Shared by `tomo run`, the bare-`tomo`
 // fallback, and `tomo eval` (which points it at a generated file):
-int compile_and_exec(Path_t path, List_t extra_args) {
+int compile_and_exec(Path_t path, List_t extra_args, bool print_values) {
     if (cross_compiling)
         print_err("Programs cross-compiled with --target can't run on this machine; "
                   "use `tomo build` to build them instead");
@@ -94,6 +94,7 @@ int compile_and_exec(Path_t path, List_t extra_args) {
 
     env_t *env;
     TOMO_PROFILE_SPAN("global env", env = global_env(source_mapping, instrument, debugging));
+    env->print_values = print_values;
     List_t object_files = EMPTY_LIST, extra_ldlibs = EMPTY_LIST;
     compile_files(env, List(path), &object_files, &extra_ldlibs, COMPILE_EXE);
     // This executable is run once and discarded, so don't spend git subprocesses
@@ -176,7 +177,7 @@ static int run_file(List_t extra_args) {
         }
     }
 
-    return compile_and_exec(file, extra_args);
+    return compile_and_exec(file, extra_args, /*print_values=*/false);
 }
 
 // The command handler for `tomo run file.tm`. With no file, run_file() falls

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- `tomo eval` prints the value of every statement it is given, not a `>>`
+  doctest of one expression. `tomo eval '1+2'` prints `3` where it used to
+  print the expression, its source location, and `= 3 : Int`. The value is
+  rendered the way `>>` renders one and colorized only when the output is going
+  to a terminal, the same as what `main()` returns.
+
+- The argument to `tomo eval` is ordinary Tomo source rather than a single
+  expression, so it can declare variables and functions and `use` other
+  modules, and it can span several lines. Each statement that evaluates to
+  something prints what it evaluated to, and one that evaluates to nothing (a
+  declaration, or a call that returns nothing) prints nothing of its own.
+
+- Top-level statements can be separated by `;` as well as by newlines, so a
+  whole program fits on one line: `tomo eval 'x := 5; x * 2'` prints `10`. The
+  manpage already described `tomo eval` this way. Statements inside an indented
+  block are still one per line.
+
 - Fixed reading a top-level variable from a function defined above it. A
   function that read a private (`_`-prefixed) top-level variable declared
   further down the file failed to compile, and one that read a variable

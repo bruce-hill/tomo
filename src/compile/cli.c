@@ -183,17 +183,15 @@ static Text_t compile_command_spec(env_t *env, cli_command_def_t *node, Text_t c
             }
             i += 1;
         }
-        // If a value is returned, print it (optionally with syntax highlighting).
-        type_t *ret = Match(node->binding->type, FunctionType)->ret;
-        bool has_return = (ret->tag != VoidType && ret->tag != AbortType);
-        if (has_return) *defs = Texts(*defs, compile_declaration(ret, Text("result")), " = ");
-        *defs = Texts(*defs, node->binding->code, "(");
+        Text_t call = Texts(node->binding->code, "(");
         for (arg_t *arg = args; arg; arg = arg->next)
-            *defs =
-                Texts(*defs, "cli_arg$", c_path, "$", Text$from_str(arg->name), arg->next ? Text(", ") : EMPTY_TEXT);
-        *defs = Texts(*defs, ");\n");
-        if (has_return)
-            *defs = Texts(*defs, "say(generic_as_text(&result, USE_COLOR, ", compile_type_info(ret), "), yes);\n");
+            call = Texts(call, "cli_arg$", c_path, "$", Text$from_str(arg->name), arg->next ? Text(", ") : EMPTY_TEXT);
+        call = Texts(call, ")");
+
+        // If a value is returned, print it (optionally with syntax highlighting):
+        type_t *ret = Match(node->binding->type, FunctionType)->ret;
+        if (ret->tag == VoidType || ret->tag == AbortType) *defs = Texts(*defs, call, ";\n");
+        else *defs = Texts(*defs, compile_value_print(ret, call));
         *defs = Texts(*defs, "return 0;\n}\n");
     }
 

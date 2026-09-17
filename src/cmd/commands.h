@@ -21,5 +21,7 @@ int tomo_main(cli_command_t *self, List_t extra_args);
 void style_run_command(void);
 
 // Compile the .tm file at `path` and exec it (shared by `tomo run` and
-// `tomo eval`); defined in run.c:
-int compile_and_exec(Path_t path, List_t extra_args);
+// `tomo eval`). With `print_values`, the program prints what each of its
+// top-level statements evaluates to, which is what `tomo eval` shows. Defined
+// in run.c:
+int compile_and_exec(Path_t path, List_t extra_args, bool print_values);

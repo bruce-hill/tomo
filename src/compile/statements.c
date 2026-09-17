@@ -258,3 +258,10 @@ Text_t compile_statement(env_t *env, ast_t *ast) {
     Text_t stmt = _compile_statement(env, ast);
     return with_source_info(env, ast, stmt);
 }
+
+// Create the code to print a value as text to stdout (optionally using color highlighting)
+public
+Text_t compile_value_print(type_t *t, Text_t value_code) {
+    return Texts("{\n", compile_declaration(t, Text("val")), " = ", value_code, ";\n",
+                 "say(generic_as_text(&val, USE_COLOR, ", compile_type_info(t), "), yes);\n}\n");
+}

@@ -7,6 +7,8 @@
 #include "../stdlib/datatypes.h"
 
 Text_t compile_statement(env_t *env, ast_t *ast);
+// Print a value to stdout (optionally using color highlighting)
+Text_t compile_value_print(type_t *t, Text_t value_code);
 Text_t with_source_info(env_t *env, ast_t *ast, Text_t code);
 // In a `--debug` build, the `_$<name>$typeinfo` companion declaration that
 // lets a debugger format the variable `_$<name>`; empty otherwise (see

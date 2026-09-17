@@ -1,0 +1,1 @@
+(Block (Declare (Var "x") nil (Int "5")) (Declare (Var "y") nil (Multiply (Var "x") (Int "2"))) (FunctionCall (Var "say") (Text (Var "x") " is " (Var "y") " halved")) (FunctionDef (Var "main") (args) (Block (FunctionCall (Var "say") (Text (Var "x") " " (Var "y"))))))

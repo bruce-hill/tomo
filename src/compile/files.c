@@ -180,6 +180,18 @@ Text_t compile_initializers(env_t *env, ast_t *ast) {
         case Use:
         case Test: break;
         default: {
+            // A statement that evaluates to something is printed rather than
+            // run for its side effects alone. Compiling it as an expression is
+            // also what sidesteps the error compile_statement() raises for a
+            // value that would otherwise be silently discarded. Only a file's
+            // own statements are evaluated for their values, never a
+            // namespace's members, which an `env->namespace` identifies.
+            bool print_value = env->print_values && env->namespace == NULL;
+            type_t *t = print_value ? get_type(env, stmt->ast) : NULL;
+            if (t && t->tag != VoidType && t->tag != AbortType && t->tag != ReturnType) {
+                code = Texts(code, with_source_info(env, stmt->ast, compile_value_print(t, compile(env, stmt->ast))));
+                break;
+            }
             Text_t stmt_code = compile_statement(env, stmt->ast);
             if (stmt_code.length > 0) code = Texts(code, with_source_info(env, stmt->ast, stmt_code));
             break;

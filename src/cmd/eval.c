@@ -25,8 +25,6 @@ static int cmd_eval(cli_command_t *self, List_t extra_args) {
     (void)self;
     set_default_logs(0);
 
-    Text_t program = Texts(">> ", expr, "\n");
-
     Path_t dir = Path$child(xdg_tomo_dir("XDG_STATE_HOME", "~/.local/state"), Texts("tomo@", TOMO_VERSION));
     Result_t created = Path$create_directory(dir, 0755, true);
     if (created.Failure.reason.tag != TEXT_NONE) print_err(created.Failure.reason);
@@ -37,25 +35,25 @@ static int cmd_eval(cli_command_t *self, List_t extra_args) {
     // reuse the previous eval's binary for a different expression written in
     // the same second), while re-evaluating the same expression reuses its
     // cached build:
-    const char *program_str = Text$as_c_string(program);
+    const char *program_str = Text$as_c_string(expr);
     char hash[SHA256_HEX_SIZE];
     sha256_hex(program_str, strlen(program_str), hash);
     hash[12] = '\0';
 
     Path_t eval_file = Path$child(dir, Texts("eval-", Text$from_str(hash), ".tm"));
     if (!Path$exists(eval_file)) {
-        Result_t written = Path$write(eval_file, program, 0644);
+        Result_t written = Path$write(eval_file, expr, 0644);
         if (written.Failure.reason.tag != TEXT_NONE) print_err(written.Failure.reason);
     }
 
-    return compile_and_exec(eval_file, extra_args);
+    return compile_and_exec(eval_file, extra_args, /*print_values=*/true);
 }
 
 cli_command_t eval_command = {
     .name = "eval",
     .summary = "Evaluate a Tomo expression and print its result",
     .description = "The expression is printed the way `>>` prints a value, with syntax coloring\n"
-                   "when stdout is a terminal, e.g. `tomo eval '(1).to(10)'`.",
+                   "when stdout is a terminal, e.g. `tomo eval '[n for n in 100 if n.is_prime()]'`. ",
     .spec_len = sizeof(eval_spec) / sizeof(eval_spec[0]),
     .spec = eval_spec,
     .handler = cmd_eval,

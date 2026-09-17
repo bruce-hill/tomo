@@ -82,6 +82,11 @@ ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
             statements = new (ast_list_t, .ast = stmt, .next = statements);
             pos = stmt->end;
             whitespace(ctx, &pos); // TODO: check for newline
+            // Top-level statements are usually one per line, but a `;` also
+            // separates them, so a whole program can be written on one line
+            // and handed to `tomo eval`:
+            while (match(&pos, ";"))
+                whitespace(ctx, &pos);
         } else {
             break;
         }

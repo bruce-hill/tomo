@@ -60,8 +60,10 @@ that stops on `breakpoint()` calls, runtime errors, and fatal signals (see
 `eval` *'expr'*
 : Evaluate a Tomo expression and print its result. The argument may be several
 statements separated by newlines or `;` (for example `tomo eval 'use random;
-random.int(1, 100)'`); the value of the final statement is printed, with syntax
-coloring when standard output is a terminal.
+random.int(1, 100)'`); every statement that evaluates to something prints what
+it evaluated to, with syntax coloring when standard output is a terminal. The
+argument is ordinary Tomo source, so it can also declare variables and
+functions and `use` other modules.
 
 `build` \[`-o` *output*\] \[`--install`\] \[`--prefix` *dir*\] \[`-y`\]
 \[`--instrument`\] \[`--debug`\] *file.tm*

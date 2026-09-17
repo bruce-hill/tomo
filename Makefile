@@ -557,6 +557,10 @@ test-format: build test/api.tm
 # (a parse tree, or the full text of a parse error) compared against the
 # snapshot checked in beside it. The err_*.tm fixtures don't parse on purpose,
 # which is why test-format skips this directory.
+test-eval: build
+	@printf '\033[1m Testing `tomo eval`... \033[m\n'
+	@./scripts/eval_tests.sh ./local-tomo
+
 test-parse: build
 	@printf '\033[1m Testing parser... \033[m\n'
 	@./scripts/parse_tests.sh ./local-tomo
@@ -594,7 +598,7 @@ test-format-fuzz: build
 regen-format-tests: build
 	@./scripts/format_tests.sh ./local-tomo --regen
 
-test: test-tm test-number test-cli test-parse test-format test-format-check test-format-snapshots \
+test: test-tm test-number test-cli test-eval test-parse test-format test-format-check test-format-snapshots \
       test-format-fuzz
 	@printf '\033[92;7m ALL TESTS PASSED! \033[m\n'
 
@@ -615,7 +619,7 @@ api/api.md: $(API_YAML)
 test/api.tm: $(API_YAML) | ./scripts/api_tests.py
 	./scripts/api_tests.py $^ >$@
 
-.PHONY: test-format test-tm test-cli
+.PHONY: test-format test-tm test-cli test-eval
 
 .PHONY: api-docs
 api-docs: $(API_MD) api/api.md
