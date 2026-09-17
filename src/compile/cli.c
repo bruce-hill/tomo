@@ -114,10 +114,6 @@ cli_command_def_t *get_cli_subcommands(env_t *env, ast_t *file_ast) {
         node->def = stmt->ast;
         node->binding = get_binding(env, name);
         assert(node->binding && node->binding->type->tag == FunctionType);
-        type_t *ret = Match(node->binding->type, FunctionType)->ret;
-        if (ret->tag != VoidType && ret->tag != AbortType)
-            code_err(stmt->ast, "This subcommand function has a return type of ", type_to_text(ret),
-                     ", but it should not have any return value!");
     }
     return commands;
 }
@@ -172,7 +168,8 @@ static Text_t compile_command_spec(env_t *env, cli_command_def_t *node, Text_t c
         *defs = Texts(*defs, "};\n");
 
         // The handler applies default values (lazily, so their side effects
-        // only happen when the argument wasn't given) and calls the function:
+        // only happen when the argument wasn't given), calls the function, then
+        // prints what it returned (if anything):
         *defs = Texts(*defs, "static int cli_handler$", c_path,
                       "(cli_command_t *self, List_t extra_args) {\n"
                       "(void)self, (void)extra_args;\n");
@@ -186,11 +183,24 @@ static Text_t compile_command_spec(env_t *env, cli_command_def_t *node, Text_t c
             }
             i += 1;
         }
+        // If a value is returned, print it (optionally with syntax highlighting).
+        // For Text, just print the raw text value though.
+        type_t *ret = Match(node->binding->type, FunctionType)->ret;
+        bool has_return = (ret->tag != VoidType && ret->tag != AbortType);
+        if (has_return) *defs = Texts(*defs, compile_declaration(ret, Text("result")), " = ");
         *defs = Texts(*defs, node->binding->code, "(");
         for (arg_t *arg = args; arg; arg = arg->next)
             *defs =
                 Texts(*defs, "cli_arg$", c_path, "$", Text$from_str(arg->name), arg->next ? Text(", ") : EMPTY_TEXT);
-        *defs = Texts(*defs, ");\nreturn 0;\n}\n");
+        *defs = Texts(*defs, ");\n");
+        if (has_return) {
+            *defs =
+                Texts(*defs, "say(",
+                      ret->tag == TextType ? Text("result")
+                                           : Texts("generic_as_text(&result, USE_COLOR, ", compile_type_info(ret), ")"),
+                      ", yes);\n");
+        }
+        *defs = Texts(*defs, "return 0;\n}\n");
     }
 
     Text_t command_name = Texts("cli_command$", c_path);

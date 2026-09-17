@@ -1320,12 +1320,6 @@ void transpile_code(env_t *base_env, Path_t path) {
     binding_t *main_binding = get_binding(module_env, "main");
     bool has_main = main_binding && main_binding->type->tag == FunctionType;
     cli_command_def_t *subcommands = get_cli_subcommands(module_env, ast);
-    if (has_main) {
-        type_t *ret = Match(main_binding->type, FunctionType)->ret;
-        if (ret->tag != VoidType && ret->tag != AbortType)
-            compiler_err(ast->file, ast->start, ast->end, "The main() function in this file has a return type of ",
-                         type_to_text(ret), ", but it should not have any return value!");
-    }
 
     if (has_main || subcommands) {
         Text_t entry = namespace_name(module_env, module_env->namespace, Text("main"));

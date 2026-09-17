@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `main()` and each `main.<command>` subcommand may return a value, which the
+  program prints when it runs. `func main(x,y:Int -> Int)` returning `x + y`
+  prints the sum, rendered the way `>>` renders a value and colorized only when
+  the output is going to a terminal. A `Text` result is printed as itself,
+  without the quotes `>>` puts around text, since a program's output is usually
+  read by another program; text inside a returned value is still quoted. A
+  command that returns nothing prints nothing, and what a command returns does
+  not affect the exit status. Returning a value used to be a compile error.
+
 - Removed the `~colorized` text suffix. `say("v $n"~colorized)` rendered the
   interpolated values the way `>>` renders one, but the decision was made at
   compile time, so the escape codes were emitted even when the output was

@@ -36,11 +36,24 @@ fails_compile "is a group of subcommands, not a value"
 
 # A file can define a plain main() alongside subcommands: it runs when the
 # first argument doesn't name a subcommand. It's also directly callable.
-func main(word:Text="default")
+# Returning a value is allowed: the CLI prints what the command returned, and a
+# direct call gets it back like any other function call.
+func main(word:Text="default" -> Text)
     log.insert("main $word")
+    return word
 
 test "a plain main() can coexist with subcommands"
-    main("x")
+    assert main("x") == "x"
     assert log[log.length]! == "main x"
-    main()
+    assert main() == "default"
     assert log[log.length]! == "main default"
+
+# Add two numbers together
+func main.total(xs:[Int] -> Int)
+    total := 0
+    for x in xs
+        total += x
+    return total
+
+test "subcommand functions can return values"
+    assert main.total([2, 3]) == 5

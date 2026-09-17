@@ -232,6 +232,38 @@ func main(output|o:Path? = none, verbose|v:Bool = no)
 $ tomo build program.tm && ./program -vo outfile.txt`
 ```
 
+## Return Values
+
+`main()` may return a value, which the program prints when it runs:
+
+```tomo
+# add.tm
+func main(x,y:Int -> Int)
+    return x + y
+```
+
+```bash
+$ ./add 2 3
+5
+```
+
+Any type can be returned. The value is printed the way `>>` prints one, with
+syntax highlighting when the output is going to a terminal and without it when
+the output is piped into another program or `NO_COLOR` is set:
+
+```tomo
+# point.tm
+struct Point{x,y:Int}
+
+func main(-> Point)
+    return Point{1, 2}
+```
+
+```bash
+$ ./point
+Point{x=1, y=2}
+```
+
 ## Subcommands
 
 For git-style CLIs, you can define subcommands by declaring functions named
@@ -254,7 +286,8 @@ func main.submodule.init(paths:[Text])
 ```
 
 Each subcommand function gets the same automatic argument parsing that
-`main()` gets, including flags, defaults, aliases, and `--help`:
+`main()` gets, including flags, defaults, aliases, `--help`, and printing
+whatever the function returns:
 
 ```bash
 $ tomo build mygit.tm
