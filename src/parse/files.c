@@ -88,7 +88,7 @@ ast_t *parse_file_body(parse_ctx_t *ctx, const char *pos) {
     }
     whitespace(ctx, &pos);
     if (pos < ctx->file->text + ctx->file->len && *pos != '\0') {
-        parser_err(ctx, pos, eol(pos), "I expect all top-level statements to be declarations of some kind");
+        parser_err(ctx, pos, eol(pos), "I couldn't parse this top-level statement.");
     }
     REVERSE_LIST(statements);
     return NewAST(ctx->file, start, pos, Block, .statements = statements);

@@ -6,5 +6,5 @@ test/parse/err_dedented_else.tm
   : ----
  5|     say("no")
 
-I expect all top-level statements to be declarations of some kind
+I couldn't parse this top-level statement.
 
