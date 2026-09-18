@@ -122,7 +122,10 @@ Text_t compile(env_t *env, ast_t *ast) {
         }
 
         if (t->tag == BoolType) return Texts("!(", compile(env, value), ")");
-        else if (t->tag == IntType || t->tag == ByteType) return Texts("~(", compile(env, value), ")");
+        // C's `~` promotes a `Byte_t` to `int`, so cast the result back down:
+        // the bits above the low eight aren't part of the value.
+        else if (t->tag == ByteType) return Texts("((Byte_t)~(", compile(env, value), "))");
+        else if (t->tag == IntType) return Texts("~(", compile(env, value), ")");
         else if (t->tag == ListType) return Texts("((", compile(env, value), ").length == 0)");
         else if (t->tag == TableType) return Texts("((", compile(env, value), ").entries.length == 0)");
         else if (t->tag == TextType) return Texts("(", compile(env, value), ".length == 0)");

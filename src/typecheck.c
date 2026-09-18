@@ -1271,7 +1271,7 @@ type_t *get_type(env_t *env, ast_t *ast) {
     }
     case Not: {
         type_t *t = get_type(env, Match(ast, Not)->value);
-        if (t->tag == IntType || t->tag == FloatType || t->tag == BoolType) return t;
+        if (t->tag == IntType || t->tag == ByteType || t->tag == FloatType || t->tag == BoolType) return t;
         if (t->tag == OptionalType) return Type(BoolType);
 
         ast_t *value = Match(ast, Not)->value;

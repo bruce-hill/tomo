@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `not x` does bitwise negation on a `Byte`, flipping all eight bits, the way
+  it already did on the fixed-width integer types: `not Byte(0x0F)` is
+  `Byte(0xF0)`. It used to be a compile error.
+
 - `tomo eval` prints the value of every statement it is given, not a `>>`
   doctest of one expression. `tomo eval '1+2'` prints `3` where it used to
   print the expression, its source location, and `= 3 : Int`. The value is
