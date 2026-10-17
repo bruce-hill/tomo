@@ -9,7 +9,7 @@ the language design decisions of the future.
 Please visit [tomo.bruce-hill.com](https://tomo.bruce-hill.com) for full
 documentation.
 
-```
+```tomo
 func greeting(name:Text, add_exclamation:Bool -> Text)
     message := "hello $name"
     message = " ".join([w.title() for w in message.split_any(" ")])
@@ -40,14 +40,14 @@ of many language features or the other example programs/packages in
 
 Quick script to install to `~/.local` on your machine:
 
-```
+```bash
 curl -L "https://tomo.bruce-hill.com/dist/tomo_$(uname -sm | tr ' ' '-').tar.gz" \
   | tar -xz -C ~/.local --strip-components=1
 ```
 
 ### Arch User Repository (AUR)
 
-```
+```bash
 yay -Sy tomo-bin
 ```
 
@@ -55,7 +55,7 @@ yay -Sy tomo-bin
 
 If you don't want to build from source but just want to install, run this script:
 
-```
+```bash
 curl -o /tmp/install_tomo.sh https://raw.githubusercontent.com/bruce-hill/tomo/refs/heads/main/install_script.sh \
   && bash /tmp/install_tomo.sh
 rm -f /tmp/install_tomo.sh
